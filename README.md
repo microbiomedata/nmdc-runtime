@@ -45,5 +45,4 @@ pytest tests
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your
 code behaves as desired and does not break over time.
 
-[For hints on how to write tests for solids and pipelines in Dagster,
-[see our documentation tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+[For hints on how to write tests for solids and pipelines in Dagster, see their documentation tutorial on Testing](https://docs.dagster.io/tutorial/testable).
