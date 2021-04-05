@@ -1,2 +1,1 @@
-# nmdc-runtime
-runtime system for NMDC data management and orchestration
+A runtime system for NMDC data management and orchestration.
