@@ -16,8 +16,6 @@ data.
 3. A [FastAPI](https://fastapi.tiangolo.com/) service to interface with the orchestrator and
 database.
 
-Welcome to your new Dagster repository.
-
 ## Local Development
 
 1. Start the [Dagit process](https://docs.dagster.io/overview/dagit). This will start a Dagit web
