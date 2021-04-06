@@ -16,7 +16,7 @@ houses code specific to the data portal -- its database, back-end API, and front
 references workflow code spread across several repositories, that take source data and produce computed data.
 
 * This repo (nmdc-runtime) manages execution of lightweight data transformations (e.g. in nmdc-metadata) and of workflows,
-including ensuring that processes have access to needed configuration and data resources.
+including ensuring that spawned processes have access to needed configuration and data resources.
 
 ## Overview
 
