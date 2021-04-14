@@ -1,5 +1,23 @@
 A runtime system for NMDC data management and orchestration.
 
+## How It Fits In
+
+* [nmdc-schema](https://github.com/microbiomedata/nmdc-schema/)
+houses the LinkML schema specification, as well as generated artifacts (e.g. JSON Schema).
+
+* [nmdc-metadata](https://github.com/microbiomedata/nmdc-metadata)
+houses code that takes source data and computed data,
+and transforms it to broadly accommodate downstream applications such as the data portal.
+
+* [nmdc-server](https://github.com/microbiomedata/nmdc-server)
+houses code specific to the data portal -- its database, back-end API, and front-end application.
+
+* [workflow_documentation](https://nmdc-workflow-documentation.readthedocs.io/en/latest/index.html)
+references workflow code spread across several repositories, that take source data and produce computed data.
+
+* This repo (nmdc-runtime) manages execution of lightweight data transformations (e.g. in nmdc-metadata) and of workflows,
+including ensuring that spawned processes have access to needed configuration and data resources.
+
 ## Overview
 
 The runtime features:
