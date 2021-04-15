@@ -36,13 +36,36 @@ database.
 
 ## Local Development
 
-Use Docker Compose. This will start a Dagit web
-server that, by default, is viewable at http://localhost:3000.
+```bash
+dagit -f nmdc_runtime/dagster_repository.py
+```
+
+This will start a Dagit web server that, by default, is viewable at http://localhost:3000.
+
+If you are also developing schedules or sensors, you will need to also run the dagster daemon:
+
+```bash
+dagster-daemon run
+```
+
+The daemon expects `$DAGSTER_HOME` to be set, e.g. `~/.dagster`, with a `dagster.yaml` in it. A fine
+default is
+```yaml
+telemetry:
+  enabled: false
+```
+
+### Using Docker Compose
+
+This simulates a production deployment with a Postgres container, each pipeline run in an isolated
+container, etc.
 
 ```bash
 cd nmdc_runtime
 docker-compose up
 ```
+
+This will start a Dagit web server that, by default, is viewable at http://localhost:3000.
 
 If you change the local repository code, be sure to rebuild the container images:
 ```bash
