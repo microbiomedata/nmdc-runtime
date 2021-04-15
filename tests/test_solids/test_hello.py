@@ -13,4 +13,4 @@ def test_hello():
     result = execute_solid(hello, mode_def=MODE_TEST)
 
     assert result.success
-    assert result.output_value() == "Hello, Dagster!"
+    assert result.output_value() == "Hello, NMDC!"

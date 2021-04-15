@@ -36,20 +36,18 @@ database.
 
 ## Local Development
 
-1. Start the [Dagit process](https://docs.dagster.io/overview/dagit). This will start a Dagit web
-server that, by default, is served on http://localhost:3000.
+Use Docker Compose. This will start a Dagit web
+server that, by default, is viewable at http://localhost:3000.
 
 ```bash
-dagit -w nmdc_runtime/dagster_workspace.yaml
+cd nmdc_runtime
+docker-compose up
 ```
 
-2. (Optional) If you want to enable Dagster
-[Schedules](https://docs.dagster.io/overview/schedules-sensors/schedules) or
-[Sensors](https://docs.dagster.io/overview/schedules-sensors/sensors) for your pipelines, start the
-[Dagster Daemon process](https://docs.dagster.io/overview/daemon#main) **in a different shell or terminal**:
-
+If you change the local repository code, be sure to rebuild the container images:
 ```bash
-dagster-daemon run
+docker-compose down
+docker-compose up --build --force-recreate
 ```
 
 ## Local Testing
