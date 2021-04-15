@@ -11,7 +11,6 @@ from nmdc_runtime.solids.hello import hello, list_databases
 class TerminusDB:
     def __init__(self, server_url, user, key, account, db):
         self.client = WOQLClient(server_url=server_url)
-        # FIXME operation timed out - failed to establish a new connection
         self.client.connect(account=account, db=db, user=user, key=key)
 
 
