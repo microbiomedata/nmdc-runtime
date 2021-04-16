@@ -10,7 +10,7 @@ def list_operations(req: ListOperationsRequest = Depends()):
     pass
 ```
 
-The syntax for data models is meant to resemble a read Pydantic model, with some liberties taken for
+The syntax for data models is meant to resemble a real Pydantic model, with some liberties taken for
 brevity:
 - for generic models, sublassing `GenericModel` is implicit and omitted.
 - for models that only inherit from `BaseModel`, this is implicit and omitted.
