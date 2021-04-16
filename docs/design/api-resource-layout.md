@@ -15,6 +15,9 @@ brevity:
 - for generic models, sublassing `GenericModel` is implicit and omitted.
 - for models that only inherit from `BaseModel`, this is implicit and omitted.
 
+This design is an adaptation of patterns described in [Geewax, *API Design Patterns*. Manning,
+2021.](https://www.manning.com/books/api-design-patterns)
+
 # Long-running operations
 
 ```python
