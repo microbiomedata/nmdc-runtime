@@ -1,8 +1,8 @@
 from dagster import repository
 
-from nmdc_runtime.pipelines.my_pipeline import my_pipeline, another_pipeline
+from nmdc_runtime.pipelines.core import mongo_to_terminus
 from nmdc_runtime.schedules.my_hourly_schedule import my_hourly_schedule
-from nmdc_runtime.sensors.my_sensor import my_sensor
+from nmdc_runtime.sensors.core import my_sensor
 
 
 @repository
@@ -13,7 +13,7 @@ def nmdc_runtime():
     For hints on building your Dagster repository, see our documentation overview on Repositories:
     https://docs.dagster.io/overview/repositories-workspaces/repositories
     """
-    pipelines = [my_pipeline, another_pipeline]
+    pipelines = [mongo_to_terminus]
     schedules = [my_hourly_schedule]
     sensors = [my_sensor]
 
