@@ -27,6 +27,12 @@ def list_databases(context) -> List[String]:
     return list_
 
 
+@solid(required_resource_keys={"mongo"})
+def mongo_stats(context) -> List[str]:
+    db = context.resources.mongo.db
+    context.log.info(str(db.list_collection_names()))
+
+
 @solid(required_resource_keys={"terminus"})
 def update_schema(context):
     with tempfile.TemporaryDirectory() as tmpdirname:

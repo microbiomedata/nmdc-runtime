@@ -1,4 +1,4 @@
-from dagster import resource, Field, StringSource
+from dagster import resource, StringSource
 from terminusdb_client import WOQLClient
 
 

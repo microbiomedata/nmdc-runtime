@@ -1,6 +1,7 @@
-from dagster import ModeDefinition, pipeline, PresetDefinition, file_relative_path
+from dagster import ModeDefinition, pipeline, PresetDefinition
 
-from nmdc_runtime.solids.core import list_databases, update_schema, hello
+from nmdc_runtime.resources.mongo import mongo_resource
+from nmdc_runtime.solids.core import mongo_stats, update_schema, hello
 from nmdc_runtime.resources.core import terminus_resource
 
 # Mode definitions allow you to configure the behavior of your pipelines and solids at execution
@@ -8,7 +9,9 @@ from nmdc_runtime.resources.core import terminus_resource
 # Resources: https://docs.dagster.io/overview/modes-resources-presets/modes-resources
 
 
-mode_dev = ModeDefinition(name="dev", resource_defs={"terminus": terminus_resource})
+mode_dev = ModeDefinition(
+    name="dev", resource_defs={"terminus": terminus_resource, "mongo": mongo_resource}
+)
 mode_test = ModeDefinition(name="test")
 
 # preset_dev_yaml = PresetDefinition.from_files(
@@ -30,16 +33,24 @@ preset_dev_env = PresetDefinition(
                     "user": {"env": "DAGSTER_DEV_TERMINUS_USER"},
                     "account": {"env": "DAGSTER_DEV_TERMINUS_ACCOUNT"},
                     "dbid": {"env": "DAGSTER_DEV_TERMINUS_DBID"},
-                }
-            }
-        }
+                },
+            },
+            "mongo": {
+                "config": {
+                    "host": {"env": "DAGSTER_DEV_MONGO_HOST"},
+                    "username": {"env": "DAGSTER_DEV_MONGO_USERNAME"},
+                    "password": {"env": "DAGSTER_DEV_MONGO_PASSWORD"},
+                    "dbname": {"env": "DAGSTER_DEV_MONGO_DBNAME"},
+                },
+            },
+        },
     },
     mode="dev",
 )
 
 
 @pipeline(mode_defs=[mode_dev], preset_defs=[preset_dev_env])
-def mongo_to_terminus():
+def update_terminus():
     """
     A pipeline definition. This example pipeline has a single solid.
 
@@ -47,6 +58,11 @@ def mongo_to_terminus():
     https://docs.dagster.io/overview/solids-pipelines/pipelines
     """
     update_schema()
+
+
+@pipeline(mode_defs=[mode_dev], preset_defs=[preset_dev_env])
+def hello_mongo():
+    mongo_stats()
 
 
 @pipeline(mode_defs=[mode_test])
