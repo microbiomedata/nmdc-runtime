@@ -30,7 +30,9 @@ def list_databases(context) -> List[String]:
 @solid(required_resource_keys={"mongo"})
 def mongo_stats(context) -> List[str]:
     db = context.resources.mongo.db
-    context.log.info(str(db.list_collection_names()))
+    collection_names = db.list_collection_names()
+    context.log.info(str(collection_names))
+    return collection_names
 
 
 @solid(required_resource_keys={"terminus"})

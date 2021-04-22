@@ -37,10 +37,13 @@ database.
 ## Local Development
 
 ```bash
+# Load environment variables
+export $(grep -v '^#' .env.dev | xargs)
+# Start a local TerminusDB and MongoDB (requires Docker running)
+docker compose -f nmdc_runtime/docker-compose-dev.yml up -d
+# Start the Dagster Dagit web server (viewable at http://localhost:3000)
 dagit -f nmdc_runtime/dagster_repository.py
 ```
-
-This will start a Dagit web server that, by default, is viewable at http://localhost:3000.
 
 If you are also developing schedules or sensors, you will need to also run the dagster daemon:
 
