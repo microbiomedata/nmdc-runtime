@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 
@@ -17,6 +18,13 @@ def hello(context):
     out = "Hello, NMDC!"
     context.log.info(out)
     return out
+
+
+@solid
+def log_env(context):
+    env = subprocess.check_output("printenv", shell=True).decode()
+    out = [line for line in env.splitlines() if line.startswith("DAGSTER_")]
+    context.log.info("\n".join(out))
 
 
 @solid(required_resource_keys={"terminus"})
