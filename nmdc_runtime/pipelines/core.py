@@ -12,6 +12,9 @@ from nmdc_runtime.resources.core import terminus_resource
 mode_dev = ModeDefinition(
     name="dev", resource_defs={"terminus": terminus_resource, "mongo": mongo_resource}
 )
+mode_prod = ModeDefinition(
+    name="prod", resource_defs={"terminus": terminus_resource, "mongo": mongo_resource}
+)
 mode_test = ModeDefinition(name="test")
 
 # preset_dev_yaml = PresetDefinition.from_files(
@@ -48,8 +51,36 @@ preset_dev_env = PresetDefinition(
     mode="dev",
 )
 
+preset_prod_env = PresetDefinition(
+    "prod_via_env",
+    run_config={
+        "resources": {
+            "terminus": {
+                "config": {
+                    "server_url": {"env": "DAGSTER_PROD_TERMINUS_SERVER_URL"},
+                    "key": {"env": "DAGSTER_PROD_TERMINUS_KEY"},
+                    "user": {"env": "DAGSTER_PROD_TERMINUS_USER"},
+                    "account": {"env": "DAGSTER_PROD_TERMINUS_ACCOUNT"},
+                    "dbid": {"env": "DAGSTER_PROD_TERMINUS_DBID"},
+                },
+            },
+            "mongo": {
+                "config": {
+                    "host": {"env": "DAGSTER_PROD_MONGO_HOST"},
+                    "username": {"env": "DAGSTER_PROD_MONGO_USERNAME"},
+                    "password": {"env": "DAGSTER_PROD_MONGO_PASSWORD"},
+                    "dbname": {"env": "DAGSTER_PROD_MONGO_DBNAME"},
+                },
+            },
+        },
+    },
+    mode="prod",
+)
 
-@pipeline(mode_defs=[mode_dev], preset_defs=[preset_dev_env])
+
+@pipeline(
+    mode_defs=[mode_dev, mode_prod], preset_defs=[preset_dev_env, preset_prod_env]
+)
 def update_terminus():
     """
     A pipeline definition. This example pipeline has a single solid.
@@ -60,7 +91,9 @@ def update_terminus():
     update_schema()
 
 
-@pipeline(mode_defs=[mode_dev], preset_defs=[preset_dev_env])
+@pipeline(
+    mode_defs=[mode_dev, mode_prod], preset_defs=[preset_dev_env, preset_prod_env]
+)
 def hello_mongo():
     mongo_stats()
 
