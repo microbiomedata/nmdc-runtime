@@ -40,6 +40,7 @@ database.
 # Load environment variables
 export $(grep -v '^#' .env.dev | xargs)
 # Start a local TerminusDB and MongoDB (requires Docker running)
+# TerminusDB browser console viewable at https://127.0.0.1:6364/.
 docker compose -f nmdc_runtime/docker-compose-dev.yml up -d
 # Start the Dagster Dagit web server (viewable at http://localhost:3000)
 dagit -f nmdc_runtime/dagster_repository.py
