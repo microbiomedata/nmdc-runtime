@@ -1,8 +1,14 @@
 # Workspaces specify where to find user code in order to load it for Dagit and the Dagster CLI.
 # https://docs.dagster.io/overview/repositories-workspaces/workspaces
+
+# Each entry here corresponds to a service in the docker-compose file that exposes pipelines.
+#- grpc_server:
+#    host: nmdc_dagster_pipelines
+#    port: 4000
+#    location_name: "nmdc_dagster_pipelines"
+
 load_from:
-  # Each entry here corresponds to a service in the docker-compose file that exposes pipelines.
-  - grpc_server:
-      host: nmdc_dagster_pipelines
-      port: 4000
-      location_name: "nmdc_dagster_pipelines"
+  - python_file:
+      relative_path: "repositories/jgi_gold_etl.py"
+  - python_file:
+      relative_path: "dagster_repository.py"

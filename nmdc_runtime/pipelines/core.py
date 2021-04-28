@@ -10,10 +10,12 @@ from nmdc_runtime.resources.core import terminus_resource
 
 
 mode_dev = ModeDefinition(
-    name="dev", resource_defs={"terminus": terminus_resource, "mongo": mongo_resource}
+    name="dev",
+    resource_defs={"terminus": terminus_resource, "mongo": mongo_resource},
 )
 mode_prod = ModeDefinition(
-    name="prod", resource_defs={"terminus": terminus_resource, "mongo": mongo_resource}
+    name="prod",
+    resource_defs={"terminus": terminus_resource, "mongo": mongo_resource},
 )
 mode_test = ModeDefinition(name="test")
 
