@@ -28,7 +28,14 @@ def run_job():
     pass
 
 
-@router.get("/jobs/{job_id}/executions")
+@router.get(
+    "/jobs/{job_id}/executions",
+    description=(
+        "A sub-resource of a job resource, the result of a successful run of that job. "
+        "An execution resource may be retrieved by any site; however, it may be created "
+        "and updated only by the site that ran its job."
+    ),
+)
 def list_job_executions():
     pass
 

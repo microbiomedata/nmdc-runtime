@@ -13,7 +13,7 @@ from nmdc_runtime.api.endpoints import (
 api_router = APIRouter()
 api_router.include_router(operations.router, tags=["operations"])
 api_router.include_router(sites.router, tags=["sites"])
-api_router.include_router(jobs.router, tags=["jobs", "executions"])
+api_router.include_router(jobs.router, tags=["jobs"])
 api_router.include_router(data_resources.router, tags=["data_resources"])
 api_router.include_router(compute_resources.router, tags=["compute_resources"])
 
@@ -50,13 +50,6 @@ A site must be able to service requests for any data resources it has registered
 Rather than directly requesting a workflow execution by supplying a workflow ID along with configuration, one creates a job that pairs a workflow with configuration. Then, a workflow is executed by supplying a job ID without additional configuration.
 
 A job can have multiple executions, and a workflow's executions are precisely the executions of all jobs created for that workflow.
-        """,
-    },
-    {
-        "name": "executions",
-        "description": """A sub-resource of a job resource, the result of a successful run of that job.
-
-An execution resource may be retrieved by any site; however, it may be created and updated only by the site that ran its job.
         """,
     },
     {
