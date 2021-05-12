@@ -23,28 +23,32 @@ including ensuring that spawned processes have access to needed configuration an
 The runtime features:
 
 1. [Dagster](https://docs.dagster.io/concepts) orchestration:
-    - Code to run is loaded into a Dagster `workspace`. This code is loaded from
-      one or more dagster `repositories`. Each Dagster `repository` may be run with a different
-      Python virtual environment if need be, and may be loaded from a local Python file or
-      `pip install`ed from an external source. In our case, each Dagster `repository` is simply
-      loaded from a Python file local to the nmdc-runtime GitHub repository, and all code is
-      run in the same Python environment.
-    - A Dagster repository consists of `solids` and `pipelines`,
-      and optionally `schedules` and `sensors`.
-      - `solids` represent individual units of computation
-      - `pipelines` are built up from solids
-      - `schedules` trigger recurring pipeline runs based on time
-      - `sensors` trigger pipeline runs based on external state
-    - Each `pipeline` can declare dependencies on any runtime `resources` or additional
-      configuration. There are TerminusDB and MongoDB `resources` defined, as well as `preset`
-      configuration definitions for both "dev" and "prod" `modes`. The `preset`s tell Dagster to
-      look to a set of known environment variables to load resources configurations, depending on
-      the `mode`.
+    - dagit - a web UI to monitor and manage the running system.
+    - dagster-daemon - a service that triggers pipeline runs based on time or external state.
+    - PostgresSQL database - for storing run history, event logs, and scheduler state.
+    - workspace code
+      - Code to run is loaded into a Dagster `workspace`. This code is loaded from
+         one or more dagster `repositories`. Each Dagster `repository` may be run with a different
+         Python virtual environment if need be, and may be loaded from a local Python file or
+         `pip install`ed from an external source. In our case, each Dagster `repository` is simply
+         loaded from a Python file local to the nmdc-runtime GitHub repository, and all code is
+         run in the same Python environment.
+      - A Dagster repository consists of `solids` and `pipelines`,
+         and optionally `schedules` and `sensors`.
+         - `solids` represent individual units of computation
+         - `pipelines` are built up from solids
+         - `schedules` trigger recurring pipeline runs based on time
+         - `sensors` trigger pipeline runs based on external state
+      - Each `pipeline` can declare dependencies on any runtime `resources` or additional
+         configuration. There are TerminusDB and MongoDB `resources` defined, as well as `preset`
+         configuration definitions for both "dev" and "prod" `modes`. The `preset`s tell Dagster to
+         look to a set of known environment variables to load resources configurations, depending on
+         the `mode`.
 
 2. A [TerminusDB](https://terminusdb.com/) database supporting revision control of schema-validated
 data.
    
-3. A [MongoDB](https://www.mongodb.com/) database supporting write-once, high-throughput internal
+3. A MongoDB database supporting write-once, high-throughput internal
 data storage by the nmdc-runtime FastAPI instance.
    
 4. A [FastAPI](https://fastapi.tiangolo.com/) service to interface with the orchestrator and
