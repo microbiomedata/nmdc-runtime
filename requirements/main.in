@@ -3,3 +3,5 @@ dagster
 dagster-graphql
 dagster-postgres
 linkml
+pymongo
+terminusdb-client

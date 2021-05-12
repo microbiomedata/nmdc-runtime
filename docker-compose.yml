@@ -1,0 +1,45 @@
+version: "3.7"
+
+services:
+  # This service runs the postgres DB used by dagster for run storage, schedule storage,
+  # and event log storage.
+  nmdc_dagster_postgresql:
+    image: postgres:11
+    environment:
+      POSTGRES_USER: "postgres_user"
+      POSTGRES_PASSWORD: "postgres_password"
+      POSTGRES_DB: "postgres_db"
+
+  # This service runs dagit.
+  # Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
+  # a queue and later dequeued and launched by dagster-daemon.
+  nmdc_dagster_dagit:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/dagster.Dockerfile
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/entrypoint-dagit.sh"]
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    depends_on:
+      - nmdc_dagster_postgresql
+
+  # This service runs the dagster-daemon process, which is responsible for taking runs
+  # off of the queue and launching them, as well as creating runs from schedules or sensors.
+  nmdc_dagster_daemon:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/dagster.Dockerfile
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/entrypoint-dagster-daemon.sh"]
+    restart: on-failure
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    depends_on:
+      - nmdc_dagster_postgresql

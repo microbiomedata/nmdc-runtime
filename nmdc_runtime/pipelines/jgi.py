@@ -6,7 +6,6 @@ from nmdc_runtime.solids.core import hello
 from nmdc_runtime.pipelines.core import (
     mode_dev,
     mode_prod,
-    mode_test,
     preset_prod_env,
     preset_dev_env,
 )
