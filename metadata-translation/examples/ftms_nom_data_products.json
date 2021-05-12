@@ -1,0 +1,104 @@
+{
+	"data_object_set":[
+		{
+		 "id": "nmdc:9185ba726c5285a6f994a9f7f8090cbf",
+		 "name": "Brodie_381_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43829.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 29351,
+		 "md5_checksum": "9185ba726c5285a6f994a9f7f8090cbf",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_381_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43829.csv",
+		 "was_generated_by": "nmdc:ce4bb2d2e89a4114a0d940740b039822",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:b85033563ec7a74b81b30c851d2de421",
+		 "name": "Brodie_381_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43877.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 15292,
+		 "md5_checksum": "b85033563ec7a74b81b30c851d2de421",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_381_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43877.csv",
+		 "was_generated_by": "nmdc:914e80de4b2e4118bf2b62b4e3143433",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:bbfc4d1a469b3120d79b5b7a181f0f2e",
+		 "name": "Brodie_380_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43851.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 28189,
+		 "md5_checksum": "bbfc4d1a469b3120d79b5b7a181f0f2e",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_380_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43851.csv",
+		 "was_generated_by": "nmdc:052d1e9073c548ae9cc1affd437563a6",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:07c396a05ff9e27123acad7fef29770c",
+		 "name": "Brodie_380_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43899.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 28572,
+		 "md5_checksum": "07c396a05ff9e27123acad7fef29770c",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_380_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43899.csv",
+		 "was_generated_by": "nmdc:84b738ced88f45e5af2c110715d62748",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:1bcc844e32581e3c3603969c77e15c8b",
+		 "name": "Brodie_379_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43850.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 19871,
+		 "md5_checksum": "1bcc844e32581e3c3603969c77e15c8b",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_379_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43850.csv",
+		 "was_generated_by": "nmdc:c24ba7e2b8ce4eab83e8d51ad5938cad",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:180e54cc8e6095f11e7cd8bda87c2924",
+		 "name": "Brodie_379_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43898.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 26055,
+		 "md5_checksum": "180e54cc8e6095f11e7cd8bda87c2924",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_379_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43898.csv",
+		 "was_generated_by": "nmdc:9d97f717365945b3866719a3f5b3857d",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:0562e0197ac3f2bf43ac87300f72278a",
+		 "name": "Brodie_369_R1_CHCl3_03May19_Alder_Infuse_IATp08_144SA_1_01_43817.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 18556,
+		 "md5_checksum": "0562e0197ac3f2bf43ac87300f72278a",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_369_R1_CHCl3_03May19_Alder_Infuse_IATp08_144SA_1_01_43817.csv",
+		 "was_generated_by": "nmdc:a15f45b17dad43bab02537a136bf3d25",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:bb7a9edac41c31f6d36c34f6bfa7491a",
+		 "name": "Brodie_369_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43865.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 30219,
+		 "md5_checksum": "bb7a9edac41c31f6d36c34f6bfa7491a",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_369_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43865.csv",
+		 "was_generated_by": "nmdc:f2a40483485c45baaf30160d0ca2ac40",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:ce2b61288719e551c2c5882855f8772d",
+		 "name": "Brodie_369_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43913.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 31069,
+		 "md5_checksum": "ce2b61288719e551c2c5882855f8772d",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_369_R3_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43913.csv",
+		 "was_generated_by": "nmdc:ac7168889e0741c198d353fc881b23f8",
+		 "type": "nmdc:DataObject"
+		},
+		{
+		 "id": "nmdc:854b902e52a939ef10d37589d2aef19f",
+		 "name": "Brodie_368_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43828.csv",
+		 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+		 "file_size_bytes": 27607,
+		 "md5_checksum": "854b902e52a939ef10d37589d2aef19f",
+		 "url": "https://nmdcdemo.emsl.pnnl.gov/nom/results/Brodie_368_R2_CHCl3_03May19_Alder_Infuse_IATp05_144SA_1_01_43828.csv",
+		 "was_generated_by": "nmdc:838fc28a0dc74f388667c59398e9388d",
+		 "type": "nmdc:DataObject"
+		}
+	]
+}

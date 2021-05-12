@@ -1,0 +1,49 @@
+{
+ "data_object_set":[
+	{
+	 "id": "nmdc:eadcd3b883c0da0f9d42a9fb1162ffcf",
+	 "name": "Froze_Core_2015_S2_0_10_7_Metab.csv",
+	 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+	 "file_size_bytes": 565558,
+	 "md5_checksum": "eadcd3b883c0da0f9d42a9fb1162ffcf",
+	 "url": "https://nmdcdemo.emsl.pnnl.gov/metabolomics/results/Froze_Core_2015_S2_0_10_7_Metab.csv",
+	 "was_generated_by": "nmdc:6fdeaf901c4c4c8fa19ec94696a2d03a"
+	},
+	{
+	 "id": "nmdc:70db302d43caca83fc7dc58ef39fdb4a",
+	 "name": "Froze_Core_2015_S3_20_30_14_Metab.csv",
+	 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+	 "file_size_bytes": 422891,
+	 "md5_checksum": "70db302d43caca83fc7dc58ef39fdb4a",
+	 "url": "https://nmdcdemo.emsl.pnnl.gov/metabolomics/results/Froze_Core_2015_S3_20_30_14_Metab.csv",
+	 "was_generated_by": "nmdc:633e5d5f0c3146cbb73fbc5b66f85a63"
+	},
+	{
+	 "id": "nmdc:3f553ced7a908db8cf077953156d600e",
+	 "name": "Froze_Core_2015_S3_10_20_5_Metab.csv",
+	 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+	 "file_size_bytes": 535212,
+	 "md5_checksum": "3f553ced7a908db8cf077953156d600e",
+	 "url": "https://nmdcdemo.emsl.pnnl.gov/metabolomics/results/Froze_Core_2015_S3_10_20_5_Metab.csv",
+	 "was_generated_by": "nmdc:12fe9ff4496c487f80f61a36ccdddd34"
+	},
+	{
+	 "id": "nmdc:f582dfddb0869611ec48feef6c6e702f",
+	 "name": "Froze_Core_2015_S3_50_60_4_Metab.csv",
+	 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+	 "file_size_bytes": 331968,
+	 "md5_checksum": "f582dfddb0869611ec48feef6c6e702f",
+	 "url": "https://nmdcdemo.emsl.pnnl.gov/metabolomics/results/Froze_Core_2015_S3_50_60_4_Metab.csv",
+	 "was_generated_by": "nmdc:12d1e59834b547188a302fea21fbfd89"
+	},
+	{
+	 "id": "nmdc:278120c57c9f186360147385ada0373b",
+	 "name": "Froze_Core_2015_S1_40_50_17_Metab.csv",
+	 "description": "MetaMS GC-MS metabolomics output detail CSV file",
+	 "file_size_bytes": 475084,
+	 "md5_checksum": "278120c57c9f186360147385ada0373b",
+	 "url": "https://nmdcdemo.emsl.pnnl.gov/metabolomics/results/Froze_Core_2015_S1_40_50_17_Metab.csv",
+	 "was_generated_by": "nmdc:bd9fb2bdf2da4f5197fa34c52bcc3bd5"
+	}
+ ]
+}

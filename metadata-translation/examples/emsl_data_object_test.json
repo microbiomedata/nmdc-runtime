@@ -1,0 +1,25 @@
+{
+  "data_object_set": [
+    {
+      "id": "emsl:output_359123",
+      "name": "output: GCMS_Blank_01_29Jan14",
+      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "file_size_bytes": 1547264,
+      "type": "nmdc:DataObject"
+    },
+    {
+      "id": "emsl:output_359124",
+      "name": "output: GCMS_FAMEs_01_29Jan14",
+      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "file_size_bytes": 1775104,
+      "type": "nmdc:DataObject"
+    },
+    {
+      "id": "emsl:output_359129",
+      "name": "output: GCMS_Blank_02_29Jan14",
+      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "file_size_bytes": 1028608,
+      "type": "nmdc:DataObject"
+    }
+  ]
+}

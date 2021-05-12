@@ -1,0 +1,130 @@
+{
+  "genome_feature_set": [
+    {
+      "id": "NMDC:Ga0185794_01_249_1208",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_249_1208",
+      "end": 1208,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 249,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_1388_2383",
+      "end": 2383,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 1388,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_2399_3199",
+      "end": 3199,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 2399,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_3271_3498",
+      "end": 3498,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 3271,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_3511_4266",
+      "end": 4266,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 3511,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_4402_4995",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_4402_4995",
+      "end": 4995,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 4402,
+      "strand": "-",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_5123_5308",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_5123_5308",
+      "end": 5308,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 5123,
+      "strand": "-",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_5378_5494",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_5378_5494",
+      "end": 5494,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 5378,
+      "strand": "-",
+      "type": "NMDC:GenomeFeature"
+    },
+    {
+      "id": "NMDC:Ga0185794_01_6206_7969",
+      "type": "NMDC:GeneProduct"
+    },
+    {
+      "encodes": "NMDC:Ga0185794_01_6206_7969",
+      "end": 7969,
+      "feature_type": "SO:0000316",
+      "phase": 0,
+      "seqid": "Ga0185794_01",
+      "start": 6206,
+      "strand": "+",
+      "type": "NMDC:GenomeFeature"
+    }
+  ]
+}
