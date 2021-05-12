@@ -36,46 +36,19 @@ database.
 
 ## Local Development
 
-```bash
-# Load environment variables
-export $(grep -v '^#' .env.dev | xargs)
-# Start a local TerminusDB and MongoDB (requires Docker running)
-# TerminusDB browser console viewable at https://127.0.0.1:6364/.
-docker compose -f nmdc_runtime/docker-compose-dev.yml up -d
-# Start the Dagster Dagit web server (viewable at http://localhost:3000)
-dagit -f nmdc_runtime/dagster_repository.py
-```
-
-If you are also developing schedules or sensors, you will need to also run the dagster daemon:
+Ensure Docker (and Docker Compose) are installed.
 
 ```bash
-dagster-daemon run
+# optional: copy .env.dev to .env (gitignore'd) and set those vars
+make up-dev
 ```
 
-The daemon expects `$DAGSTER_HOME` to be set, e.g. `~/.dagster`, with a `dagster.yaml` in it. A fine
-default is
-```yaml
-telemetry:
-  enabled: false
-```
+Docker Compose is used to start local TerminusDB, MongoDB, and PostgresSQL (used by Dagster to log
+information) instances, as well as a Dagster web server (dagit) and daemon (dagster-daemon).
 
-### Using Docker Compose
+The Dagit web server is viewable at http://localhost:3000/.
 
-This simulates a production deployment with a Postgres container, each pipeline run in an isolated
-container, etc.
-
-```bash
-cd nmdc_runtime
-docker-compose up
-```
-
-This will start a Dagit web server that, by default, is viewable at http://localhost:3000.
-
-If you change the local repository code, be sure to rebuild the container images:
-```bash
-docker-compose down
-docker-compose up --build --force-recreate
-```
+The TerminusDB browser console is viewable at http://localhost:6364/.
 
 ## Local Testing
 

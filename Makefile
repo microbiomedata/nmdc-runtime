@@ -12,6 +12,13 @@ update-deps:
 
 update: update-deps init
 
+up-dev:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
+		docker compose up --build --force-recreate --detach
+
+down-dev:
+	docker compose down
+
 publish:
 	invoke publish
 
