@@ -50,6 +50,9 @@ The Dagit web server is viewable at http://localhost:3000/.
 
 The TerminusDB browser console is viewable at http://localhost:6364/.
 
+The FastAPI service is viewable at http://localhost:8000/ -- e.g., rendered documentation at
+http://localhost:8000/redoc/.
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following command:

@@ -52,6 +52,19 @@ services:
     depends_on:
       - nmdc_dagster_postgresql
 
+  fastapi:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/dagster.Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+      - .env.dev
+    entrypoint: ["uvicorn", "nmdc_runtime.api.main:app", "--host", "0.0.0.0", "--reload"]
+    volumes:
+      - .:/opt/dagster/lib
+
   mongo:
     image: mongo:4.4-bionic
     ports:
@@ -74,7 +87,6 @@ services:
       TERMINUSDB_ADMIN_PASS: root
       TERMINUSDB_AUTOLOGIN_ENABLED: "true"
       TERMINUSDB_HTTPS_ENABLED: "false"
-
 
 volumes:
   nmdc_runtime_postgres_data:
