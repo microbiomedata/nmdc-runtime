@@ -2,6 +2,8 @@ dagit
 dagster
 dagster-graphql
 dagster-postgres
+fastapi
 linkml
 pymongo
 terminusdb-client
+uvicorn[standard]
