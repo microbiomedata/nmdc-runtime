@@ -1,0 +1,38 @@
+[
+  {
+    "id": "gold:Gs0112340",
+    "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations",
+    "description": "A fundamental challenge of microbial environmental science is to understand how earth systems will respond to climate change. A parallel challenge in biology is to unverstand how information encoded in organismal genes manifests as biogeochemical processes at ecosystem-to-global scales. These grand challenges intersect in the need to understand the glocal carbon (C) cycle, which is both mediated by biological processes and a key driver of climate through the greenhouse gases carbon dioxide (CO2) and methane (CH4). A key aspect of these challenges is the C cycle implications of the predicted dramatic shrinkage in northern permafrost in the coming century.  ",
+    "ecosystem": {
+      "has_raw_value": "Environmental"
+    },
+    "ecosystem_category": {
+      "has_raw_value": "Terrestrial"
+    },
+    "ecosystem_type": {
+      "has_raw_value": "Soil"
+    },
+    "ecosystem_subtype": {
+      "has_raw_value": "Wetlands"
+    },
+    "specific_ecosystem": {
+      "has_raw_value": "Permafrost"
+    },
+    "doi": {
+      "has_raw_value": "10.25585/1487764"
+    },
+    "type": "nmdc:Study",
+    "add_date": {
+      "has_raw_value": "24-OCT-14 12.00.00.000000000 AM"
+    },
+    "gold_study_name": {
+      "has_raw_value": "Systems-level insights into carbon transformations in thawing permafrost by parallel high-resolution organic matter and microbial community characterizations"
+    },
+    "mod_date": {
+      "has_raw_value": "15-MAY-20 09.59.01.421000000 AM"
+    },
+    "principal_investigator_name": {
+      "has_raw_value": "Virginia Rich"
+    }
+  }
+]

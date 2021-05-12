@@ -1,0 +1,137 @@
+[
+  {
+    "id": "nmdc:5af0d80364d0b3374773e066",
+    "name": "188318.assembled.faa",
+    "description": "FASTA amino acid sequence",
+    "file_size_bytes": {
+      "has_raw_value": "4407200"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af0d80264d0b3374773e064",
+    "name": "188318.assembled.fna",
+    "description": "FASTA nucleotide sequence",
+    "file_size_bytes": {
+      "has_raw_value": "14317737"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "jgi:551a20d60d878525404e90d9",
+    "name": "8871.1.114459.ATGTCA.fastq.gz",
+    "description": "Raw sequencer read data",
+    "file_size_bytes": {
+      "has_raw_value": "15960839070"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af0d91764d0b3374773e07a",
+    "name": "188316.assembled.faa",
+    "description": "FASTA amino acid sequence",
+    "file_size_bytes": {
+      "has_raw_value": "1381202"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af0d91764d0b3374773e078",
+    "name": "188316.assembled.fna",
+    "description": "FASTA nucleotide sequence",
+    "file_size_bytes": {
+      "has_raw_value": "4324830"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "jgi:551a20d50d878525404e90d7",
+    "name": "8871.1.114459.AGTCAA.fastq.gz",
+    "description": "Raw sequencer read data",
+    "file_size_bytes": {
+      "has_raw_value": "8650102011"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af44fd364d0b33747747ddb",
+    "name": "188315.assembled.faa",
+    "description": "FASTA amino acid sequence",
+    "file_size_bytes": {
+      "has_raw_value": "31611232"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af44fd264d0b33747747dd9",
+    "name": "188315.assembled.fna",
+    "description": "FASTA nucleotide sequence",
+    "file_size_bytes": {
+      "has_raw_value": "100496223"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "jgi:551a20d30d878525404e90d5",
+    "name": "8871.1.114459.GCCAAT.fastq.gz",
+    "description": "Raw sequencer read data",
+    "file_size_bytes": {
+      "has_raw_value": "17586370657"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af65c0864d0b3374774e587",
+    "name": "188319.assembled.faa",
+    "description": "FASTA amino acid sequence",
+    "file_size_bytes": {
+      "has_raw_value": "173545362"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af65c0764d0b3374774e559",
+    "name": "188319.assembled.fna",
+    "description": "FASTA nucleotide sequence",
+    "file_size_bytes": {
+      "has_raw_value": "553354926"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "jgi:551a20da0d878525404e90e4",
+    "name": "8871.2.114463.CCGTCC.fastq.gz",
+    "description": "Raw sequencer read data",
+    "file_size_bytes": {
+      "has_raw_value": "12968626191"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af6f6bd64d0b3374774f9a7",
+    "name": "188317.assembled.faa",
+    "description": "FASTA amino acid sequence",
+    "file_size_bytes": {
+      "has_raw_value": "184070621"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "nmdc:5af6f6bc64d0b3374774f9a5",
+    "name": "188317.assembled.fna",
+    "description": "FASTA nucleotide sequence",
+    "file_size_bytes": {
+      "has_raw_value": "578587021"
+    },
+    "type": "nmdc:DataObject"
+  },
+  {
+    "id": "jgi:551a20d90d878525404e90e1",
+    "name": "8871.2.114463.GTGAAA.fastq.gz",
+    "description": "Raw sequencer read data",
+    "file_size_bytes": {
+      "has_raw_value": "13625474575"
+    },
+    "type": "nmdc:DataObject"
+  }
+]
