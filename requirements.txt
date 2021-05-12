@@ -1,0 +1,16 @@
+click~=7.0
+dotted-dict
+git-root
+jq
+jupyter
+linkml
+mongospawn
+nmdc-schema
+openpyxl
+pandas
+pymongo
+pyyaml
+requests
+tqdm
+xlrd
+xlsxwriter
