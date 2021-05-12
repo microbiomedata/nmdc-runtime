@@ -2,8 +2,8 @@
 .PHONY: run-etl build-test-datasets build-example-db build-merged-db
 
 # directories for output and data
-etl_build_dir := metadata-translation/src/bin/output
-etl_data_dir := metadata-translation/src/data
+etl_build_dir := src/bin/output
+etl_data_dir := src/data
 etl_example_dir := examples
 
 # files produced by etl
@@ -25,10 +25,10 @@ test-etl-vars:
 run-etl:
 # runs the ETL script, creates the nmdc datbase and test/example files
 # create needed dirs
-	mkdir -p metadata-translation/src/bin/output/nmdc_etl
+	mkdir -p src/bin/output/nmdc_etl
 
 # navigate to directory and execute pipeline script
-	cd metadata-translation/src/bin/ && python execute_etl_pipeline.py
+	cd src/bin/ && python execute_etl_pipeline.py
 
 # zip output and move to data directory
 	rm -f $(etl_db_zip) # remove old copy of zipped db
@@ -44,10 +44,10 @@ run-etl:
 build-test-datasets:
 # runs the ETL scipt, but ONLY creates the test dataset
 # create needed dirs
-	mkdir -p metadata-translation/src/bin/output/nmdc_etl
+	mkdir -p src/bin/output/nmdc_etl
 
 # navigate to directory and execute pipeline script
-	cd metadata-translation/src/bin/ && python execute_etl_pipeline.py --testdata --no-etl --no-exdb --no-mergedb
+	cd src/bin/ && python execute_etl_pipeline.py --testdata --no-etl --no-exdb --no-mergedb
 
 # copy test datasets to examples
 	cp $(etl_test_set_files) $(etl_example_dir)
@@ -55,10 +55,10 @@ build-test-datasets:
 build-example-db:
 # runs the ETL scipt, but ONLY creates the example database
 # create needed dirs
-	mkdir -p metadata-translation/src/bin/output/nmdc_etl
+	mkdir -p src/bin/output/nmdc_etl
 
 # navigate to directory and execute pipeline script
-	cd metadata-translation/src/bin/ && python execute_etl_pipeline.py --exdb --no-testdata --no-etl --no-mergedb
+	cd src/bin/ && python execute_etl_pipeline.py --exdb --no-testdata --no-etl --no-mergedb
 
 # copy example database to examples directory
 	cp $(etl_example_db) $(etl_example_dir)
@@ -66,7 +66,7 @@ build-example-db:
 build-merged-db:
 # runs the ETL scipt, but ONLY creates the merged data source used as input for the ETL pipeline
 # create needed dirs
-	mkdir -p metadata-translation/src/bin/output/nmdc_etl
+	mkdir -p src/bin/output/nmdc_etl
 
 # navigate to directory and execute pipeline script
-	cd metadata-translation/src/bin/ && python execute_etl_pipeline.py --only-mergedb
+	cd src/bin/ && python execute_etl_pipeline.py --only-mergedb
