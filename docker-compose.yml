@@ -3,7 +3,7 @@ version: "3.7"
 services:
   # This service runs the postgres DB used by dagster for run storage, schedule storage,
   # and event log storage.
-  nmdc_dagster_postgresql:
+  dagster_postgresql:
     image: postgres:11
     volumes:
       - nmdc_runtime_postgres_data:/var/lib/postgresql/data
@@ -15,7 +15,7 @@ services:
   # This service runs dagit.
   # Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
   # a queue and later dequeued and launched by dagster-daemon.
-  nmdc_dagster_dagit:
+  dagster_dagit:
     build:
       context: .
       dockerfile: nmdc_runtime/dagster.Dockerfile
@@ -32,11 +32,11 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
-      - nmdc_dagster_postgresql
+      - dagster_postgresql
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
-  nmdc_dagster_daemon:
+  dagster_daemon:
     build:
       context: .
       dockerfile: nmdc_runtime/dagster.Dockerfile
@@ -50,7 +50,7 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
-      - nmdc_dagster_postgresql
+      - dagster_postgresql
 
   fastapi:
     build:
