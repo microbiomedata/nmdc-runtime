@@ -22,4 +22,4 @@ down-dev:
 publish:
 	invoke publish
 
-.PHONY: update-deps init update publish
+.PHONY: init update-deps update up-dev down-dev publish
