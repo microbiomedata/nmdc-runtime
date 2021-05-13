@@ -26,6 +26,7 @@ def run_and_log(shell_cmd, context):
     output_defs=[
         OutputDefinition(
             str,
+            name="merged_data_path",
             description="path to TSV merging of source metadata",
         )
     ]
@@ -45,7 +46,7 @@ def build_merged_db(context) -> str:
             "path": EventMetadata.path(storage_path),
         },
     )
-    yield Output(storage_path)
+    yield Output(storage_path, "merged_data_path")
 
 
 @solid(
