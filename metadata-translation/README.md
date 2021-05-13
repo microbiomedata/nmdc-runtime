@@ -1,4 +1,16 @@
-# Metadata translation
+# Usage
+
+```
+# Run only when metadata sources change
+# TODO: re-target to online metadata store rather than to local zipped tsv files
+make build-merged-db
+
+# Run when metadata translation logic changes
+# TODO: re-target to online metadata store rather than to local zipped json file
+make run-etl
+```
+
+# Details
 The metadata translation process brings together metadata from a number of data sources:
 - [GOLD](https://gold.jgi.doe.gov/) 
 - [JGI](https://jgi.doe.gov/) 
