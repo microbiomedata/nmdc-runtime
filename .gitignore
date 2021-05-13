@@ -136,3 +136,6 @@ dmypy.json
 
 # Dagster PresetDefinition config files
 presets_*.yaml
+
+# VSCode
+.vscode/
