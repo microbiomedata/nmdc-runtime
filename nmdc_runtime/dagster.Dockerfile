@@ -17,8 +17,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   rm -rf /var/lib/apt/lists/*
 
 
-# Add repository code
+# Install requirements
 WORKDIR /opt/dagster/lib
+COPY requirements/main.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Add repository code
 COPY . .
 RUN pip install --no-cache-dir --editable .
 
