@@ -19,7 +19,9 @@ up-dev:
 down-dev:
 	docker compose down
 
+docker-images:
+	./docker-build.sh polyneme/nmdc-runtime
 publish:
 	invoke publish
 
-.PHONY: init update-deps update up-dev down-dev publish
+.PHONY: init update-deps update up-dev down-dev docker-image publish
