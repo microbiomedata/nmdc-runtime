@@ -1,0 +1,289 @@
+[
+  {
+    "id": "gold:Gb0108335",
+    "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+    "lat_lon": {
+      "has_raw_value": "68.3534 19.0472",
+      "latitude": 68.3534,
+      "longitude": 19.0472,
+      "type": "nmdc:GeolocationValue"
+    },
+    "env_broad_scale": {
+      "has_raw_value": "ENVO_00000446",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_local_scale": {
+      "has_raw_value": "ENVO_00000489",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_medium": {
+      "has_raw_value": "ENVO_00000134",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "geo_loc_name": {
+      "has_raw_value": "Sweden: Kiruna"
+    },
+    "collection_date": {
+      "has_raw_value": "2012-07-20"
+    },
+    "depth": {
+      "has_raw_value": "0.0"
+    },
+    "type": "nmdc:Biosample",
+    "add_date": {
+      "has_raw_value": "30-OCT-14 12.00.00.000000000 AM"
+    },
+    "community": {
+      "has_raw_value": "microbial communities"
+    },
+    "ecosystem": {
+      "has_raw_value": "Environmental"
+    },
+    "ecosystem_subtype": {
+      "has_raw_value": "Wetlands"
+    },
+    "ecosystem_type": {
+      "has_raw_value": "Soil"
+    },
+    "habitat": {
+      "has_raw_value": "Thawing permafrost"
+    },
+    "identifier": {
+      "has_raw_value": "studying carbon transformations"
+    },
+    "location": {
+      "has_raw_value": "from the Arctic"
+    },
+    "mod_date": {
+      "has_raw_value": "15-MAY-20 10.04.19.473000000 AM"
+    },
+    "ncbi_taxonomy_name": {
+      "has_raw_value": "permafrost metagenome"
+    },
+    "sample_collection_site": {
+      "has_raw_value": "Palsa"
+    },
+    "specific_ecosystem": {
+      "has_raw_value": "Permafrost"
+    },
+    "part_of": [
+      "gold:Gp0108335"
+    ]
+  },
+  {
+    "id": "gold:Gb0108340",
+    "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 612S3M",
+    "description": "permafrost soil where Sphagnum dominantly present",
+    "lat_lon": {
+      "has_raw_value": "68.3533 19.0475",
+      "latitude": 68.3533,
+      "longitude": 19.0475,
+      "type": "nmdc:GeolocationValue"
+    },
+    "env_broad_scale": {
+      "has_raw_value": "ENVO_00000446",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_local_scale": {
+      "has_raw_value": "ENVO_00000044",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_medium": {
+      "has_raw_value": "ENVO_00000134",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "geo_loc_name": {
+      "has_raw_value": "Sweden: Kiruna"
+    },
+    "collection_date": {
+      "has_raw_value": "2012-06-03"
+    },
+    "depth": {
+      "has_raw_value": "0.0"
+    },
+    "type": "nmdc:Biosample",
+    "add_date": {
+      "has_raw_value": "30-OCT-14 12.00.00.000000000 AM"
+    },
+    "community": {
+      "has_raw_value": "microbial communities"
+    },
+    "ecosystem": {
+      "has_raw_value": "Environmental"
+    },
+    "ecosystem_subtype": {
+      "has_raw_value": "Wetlands"
+    },
+    "ecosystem_type": {
+      "has_raw_value": "Soil"
+    },
+    "habitat": {
+      "has_raw_value": "Thawing permafrost"
+    },
+    "identifier": {
+      "has_raw_value": "studying carbon transformations"
+    },
+    "location": {
+      "has_raw_value": "from the Arctic"
+    },
+    "mod_date": {
+      "has_raw_value": "20-MAY-20 08.16.56.747000000 PM"
+    },
+    "ncbi_taxonomy_name": {
+      "has_raw_value": "permafrost metagenome"
+    },
+    "sample_collection_site": {
+      "has_raw_value": "permafrost soil where Sphagnum dominantly present"
+    },
+    "specific_ecosystem": {
+      "has_raw_value": "Permafrost"
+    },
+    "part_of": [
+      "gold:Gp0108340"
+    ]
+  },
+  {
+    "id": "gold:Gb0108341",
+    "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712S3S",
+    "description": "permafrost soil where Sphagnum dominantly present",
+    "lat_lon": {
+      "has_raw_value": "68.3533 19.0475",
+      "latitude": 68.3533,
+      "longitude": 19.0475,
+      "type": "nmdc:GeolocationValue"
+    },
+    "env_broad_scale": {
+      "has_raw_value": "ENVO_00000446",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_local_scale": {
+      "has_raw_value": "ENVO_00000044",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_medium": {
+      "has_raw_value": "ENVO_00000134",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "geo_loc_name": {
+      "has_raw_value": "Sweden: Kiruna"
+    },
+    "collection_date": {
+      "has_raw_value": "2012-07-20"
+    },
+    "depth": {
+      "has_raw_value": "0.0"
+    },
+    "type": "nmdc:Biosample",
+    "add_date": {
+      "has_raw_value": "30-OCT-14 12.00.00.000000000 AM"
+    },
+    "community": {
+      "has_raw_value": "microbial communities"
+    },
+    "ecosystem": {
+      "has_raw_value": "Environmental"
+    },
+    "ecosystem_subtype": {
+      "has_raw_value": "Wetlands"
+    },
+    "ecosystem_type": {
+      "has_raw_value": "Soil"
+    },
+    "habitat": {
+      "has_raw_value": "Thawing permafrost"
+    },
+    "identifier": {
+      "has_raw_value": "studying carbon transformations"
+    },
+    "location": {
+      "has_raw_value": "from the Arctic"
+    },
+    "mod_date": {
+      "has_raw_value": "20-MAY-20 08.16.34.976000000 PM"
+    },
+    "ncbi_taxonomy_name": {
+      "has_raw_value": "permafrost metagenome"
+    },
+    "sample_collection_site": {
+      "has_raw_value": "permafrost soil where Sphagnum dominantly present"
+    },
+    "specific_ecosystem": {
+      "has_raw_value": "Permafrost"
+    },
+    "part_of": [
+      "gold:Gp0108341"
+    ]
+  },
+  {
+    "id": "gold:Gb0108342",
+    "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 812E2M",
+    "description": "Permafrost soil where Eriophorum dominanatly present.",
+    "lat_lon": {
+      "has_raw_value": "68.3533 19.0466",
+      "latitude": 68.3533,
+      "longitude": 19.0466,
+      "type": "nmdc:GeolocationValue"
+    },
+    "env_broad_scale": {
+      "has_raw_value": "ENVO_00000446",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_local_scale": {
+      "has_raw_value": "ENVO_00000044",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "env_medium": {
+      "has_raw_value": "ENVO_00000134",
+      "type": "nmdc:ControlledTermValue"
+    },
+    "geo_loc_name": {
+      "has_raw_value": "Sweden: Kiruna"
+    },
+    "collection_date": {
+      "has_raw_value": "2012-08-23"
+    },
+    "depth": {
+      "has_raw_value": "0.0"
+    },
+    "type": "nmdc:Biosample",
+    "add_date": {
+      "has_raw_value": "30-OCT-14 12.00.00.000000000 AM"
+    },
+    "community": {
+      "has_raw_value": "microbial communities"
+    },
+    "ecosystem": {
+      "has_raw_value": "Environmental"
+    },
+    "ecosystem_subtype": {
+      "has_raw_value": "Wetlands"
+    },
+    "ecosystem_type": {
+      "has_raw_value": "Soil"
+    },
+    "habitat": {
+      "has_raw_value": "Thawing permafrost"
+    },
+    "identifier": {
+      "has_raw_value": "studying carbon transformations"
+    },
+    "location": {
+      "has_raw_value": "from the Arctic"
+    },
+    "mod_date": {
+      "has_raw_value": "20-MAY-20 07.59.40.510000000 PM"
+    },
+    "ncbi_taxonomy_name": {
+      "has_raw_value": "permafrost metagenome"
+    },
+    "sample_collection_site": {
+      "has_raw_value": "permafrost soil where Eriophorum dominanatly present."
+    },
+    "specific_ecosystem": {
+      "has_raw_value": "Permafrost"
+    },
+    "part_of": [
+      "gold:Gp0108342"
+    ]
+  }
+]

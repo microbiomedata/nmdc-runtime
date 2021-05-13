@@ -136,3 +136,11 @@ dmypy.json
 
 # Dagster PresetDefinition config files
 presets_*.yaml
+
+# VSCode
+.vscode/
+
+# metadata-translation `make run-etl` output
+metadata-translation/src/bin/output/
+metadata-translation/examples/nmdc_example_database.json
+metadata-translation/src/data/nmdc_database.json.zip

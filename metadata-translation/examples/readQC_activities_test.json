@@ -1,0 +1,67 @@
+{
+  "read_QC_analysis_activity_set": [
+    {
+      "id": "nmdc:498a1b67f0b35bc4f059a5de7d5ddb49",
+      "name": "ReadQC activiity 1472_51277",
+      "was_informed_by": "gold:Gp0061273",
+      "started_at_time": "2020-03-19",
+      "ended_at_time": "2020-03-19",
+      "type": "nmdc:ReadQCAnalysisActivity",
+      "execution_resource": "NERSC - Cori",
+      "git_url": "https://github.com/microbiomedata/ReadsQC/releases/tag/1.0.0",
+      "has_input": [
+        "jgi:5bd6893146d1e604fecfb2fd"
+      ],
+      "has_output": [
+        "nmdc:ae40d7ae535c92b6d347915d8b1ac125",
+        "nmdc:bd723452a107e973fcc6734ff7894bb9"
+      ],
+      "input_read_count": 89507740,
+      "input_read_bases": 13426161000.0,
+      "output_read_count": 87803950,
+      "output_read_bases": 13125851787.0
+    },
+    {
+      "id": "nmdc:f147e32d8b91ef47d6eb718bfe623997",
+      "name": "ReadQC activiity 1472_51278",
+      "was_informed_by": "gold:Gp0061274",
+      "started_at_time": "2020-03-19",
+      "ended_at_time": "2020-03-19",
+      "type": "nmdc:ReadQCAnalysisActivity",
+      "execution_resource": "NERSC - Cori",
+      "git_url": "https://github.com/microbiomedata/ReadsQC/releases/tag/1.0.0",
+      "has_input": [
+        "jgi:5bd6893146d1e604fecfb2fd"
+      ],
+      "has_output": [
+        "nmdc:2ab62ebc3f4641d4c5de8b1507feeaf1",
+        "nmdc:b7e3ca7843cc0cf9a4944a9a9d3e2a66"
+      ],
+      "input_read_count": 142905940,
+      "input_read_bases": 21435891000.0,
+      "output_read_count": 141175680,
+      "output_read_bases": 21052724662.0
+    },
+    {
+      "id": "nmdc:b40fd68b42b84ffa2b1b3ad584505fc8",
+      "name": "ReadQC activiity 1472_51279",
+      "was_informed_by": "gold:Gp0061275",
+      "started_at_time": "2020-03-19",
+      "ended_at_time": "2020-03-19",
+      "type": "nmdc:ReadQCAnalysisActivity",
+      "execution_resource": "NERSC - Cori",
+      "git_url": "https://github.com/microbiomedata/ReadsQC/releases/tag/1.0.0",
+      "has_input": [
+        "jgi:5bd6893146d1e604fecfb2fd"
+      ],
+      "has_output": [
+        "nmdc:c7596ad4b3d36e58a6975949f1a9f1f7",
+        "nmdc:918109eabfaabfa7b7e948154c013e8a"
+      ],
+      "input_read_count": 118345228,
+      "input_read_bases": 17751784200.0,
+      "output_read_count": 116129794,
+      "output_read_bases": 17282364046.0
+    }
+  ]
+}

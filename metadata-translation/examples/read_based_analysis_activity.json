@@ -1,0 +1,100 @@
+{"activity_set":
+ [
+	 {
+		 "id": "nmdc:2c6e1cdd721c4d81b2bfe476b92bae4e",
+		 "name": "ReadbasedAnalysis activity for gold:Gp0095970",
+		 "was_informed_by": "gold:Gp0095970",
+		 "started_at_time": "2020-04-21",
+		 "ended_at_time": "2020-04-21",
+		 "type": "nmdc:ReadbasedAnalysis",
+		 "execution_resource": "NERSC - Cori",
+		 "git_url": "https://github.com/microbiomedata/ReadbasedAnalysis/releases/tag/0.0.1",
+		 "has_input": [
+			 "nmdc:94f8b6d9385c10f729f4b41ba99112e3"
+		 ],
+		 "has_output": [
+			 "nmdc:681e1ae0af0e90c82176230957a9f350",
+			 "nmdc:0f737867c45fa701d7e8f7cd6b5d3afa",
+			 "nmdc:cae9a61e865d186b7941e8d97a3047dc",
+			 "nmdc:d9ea092b9e046d130b2eac04aaaa6700",
+			 "nmdc:34f431d821454ff34141c5455e54c505",
+			 "nmdc:120514f399362ff11990b5dbb8b4ddb0",
+			 "nmdc:9d10baac3ba72ea9e6ff95777ee15a91",
+			 "nmdc:b1b941bb88cc82a2f90a7402c5490f53",
+			 "nmdc:c7636605ed81c4928acefcfac2628f20"
+		 ]
+	 },
+	 {
+		 "id": "nmdc:1adf4fe8b5bd79ac47feddef06ddbcb9",
+		 "name": "ReadbasedAnalysis activity for gold:Gp0095971",
+		 "was_informed_by": "gold:Gp0095971",
+		 "started_at_time": "2020-04-18",
+		 "ended_at_time": "2020-04-18",
+		 "type": "nmdc:ReadbasedAnalysis",
+		 "execution_resource": "NERSC - Cori",
+		 "git_url": "https://github.com/microbiomedata/ReadbasedAnalysis/releases/tag/0.0.1",
+		 "has_input": [
+			 "nmdc:bcedb65695ed0e33fd982036e4678a47"
+		 ],
+		 "has_output": [
+			 "nmdc:08692662b39f8542452df4ff825d02c4",
+			 "nmdc:2ca49d97838ca52c0e6a6a6ed6b3da75",
+			 "nmdc:4164de2223bb8084702ba7419e962e7c",
+			 "nmdc:f3d6746deee7d6082a21bf5a0d0a89eb",
+			 "nmdc:cac0bbcd95bd5c1e74121c0f0195b819",
+			 "nmdc:be860a37532eebb5e1ab3684ecdeebe8",
+			 "nmdc:623b95f2ab6dbbaf3586117cc1c06663",
+			 "nmdc:3c54d39f9884103184e4f74ef14a2e11",
+			 "nmdc:052b3bcac71b0b556cbe0ba965f4492e"
+		 ]
+	 },
+	 {
+		 "id": "nmdc:02e729b55f6e3c02ed6f0473c46fdb6f",
+		 "name": "ReadbasedAnalysis activity for gold:Gp0095972",
+		 "was_informed_by": "gold:Gp0095972",
+		 "started_at_time": "2020-04-19",
+		 "ended_at_time": "2020-04-19",
+		 "type": "nmdc:ReadbasedAnalysis",
+		 "execution_resource": "NERSC - Cori",
+		 "git_url": "https://github.com/microbiomedata/ReadbasedAnalysis/releases/tag/0.0.1",
+		 "has_input": [
+			 "nmdc:facb66790fe84d9af80247be7a0b625f"
+		 ],
+		 "has_output": [
+			 "nmdc:cc50ab2a1aa5dc26f802594bdc106237",
+			 "nmdc:f86d4acb37f06bb92181c307622a79f0",
+			 "nmdc:e262ed146ea2dbd7aabebc05e1e40b84",
+			 "nmdc:3697b78e29d93f8694e1118af894a710",
+			 "nmdc:62e4cdb6a2ecaddf8468ee392d84b3b5",
+			 "nmdc:35f1310f7eddf7268703eb34158d3cc9",
+			 "nmdc:026cbf570dc59e9a77e5050cb9d09ac6",
+			 "nmdc:e0d28304063343a9a6336cb2f4d3a2a7",
+			 "nmdc:d24b23a250ba570c5c629e8c82fc2a9e"
+		 ]
+	 },
+	 {
+		 "id": "nmdc:59154c0ea1d7fe1d617e1cb6663bade5",
+		 "name": "ReadbasedAnalysis activity for gold:Gp0095973",
+		 "was_informed_by": "gold:Gp0095973",
+		 "started_at_time": "2020-04-21",
+		 "ended_at_time": "2020-04-21",
+		 "type": "nmdc:ReadbasedAnalysis",
+		 "execution_resource": "NERSC - Cori",
+		 "git_url": "https://github.com/microbiomedata/ReadbasedAnalysis/releases/tag/0.0.1",
+		 "has_input": [
+			 "nmdc:9e452b7562cdb64fdcb11569849afa82"
+		 ],
+		 "has_output": [
+			 "nmdc:23a61f0acaeefcba4d0afd1558df707a",
+			 "nmdc:6b492e4aedca8a8cb9090b6037a7fb3f",
+			 "nmdc:3cfef3fc5eee6325e3d7d85df64b534c",
+			 "nmdc:73eeceb8159ef5db0d2970b15c9c5924",
+			 "nmdc:b597fafadd6047527a29e299c1680e0e",
+			 "nmdc:d69e312ea2ff8a5759dd8963e16bdf3b",
+			 "nmdc:3ec37adf436043b48e2bd3bbb4664f5b",
+			 "nmdc:35518895b4064c1516bad6f14c873464",
+			 "nmdc:90075da608c1fa98ad21ee120ab3bebb"
+		 ]
+	 }
+ ]
+}

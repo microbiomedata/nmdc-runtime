@@ -1,0 +1,232 @@
+{
+  "functional_annotation_set": [
+    {
+      "has_function": "EGGNOG:COG1446",
+      "subject": "NMDC:Ga0185794_01_2_217",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF01112",
+      "subject": "NMDC:Ga0185794_01_2_217",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:56235",
+      "subject": "NMDC:Ga0185794_01_2_217",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:56784",
+      "subject": "NMDC:Ga0185794_01_249_1208",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:4.10.960.10",
+      "subject": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "EGGNOG:COG0087",
+      "subject": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "KEGG.ORTHOLOGY:KO:K02906",
+      "subject": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF00297",
+      "subject": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:50447",
+      "subject": "NMDC:Ga0185794_01_1388_2383",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:3.40.1370.10",
+      "subject": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "EGGNOG:COG0088",
+      "subject": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "KEGG.ORTHOLOGY:KO:K02930",
+      "subject": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF00573",
+      "subject": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:52166",
+      "subject": "NMDC:Ga0185794_01_2399_3199",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:3.30.70.330",
+      "subject": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "EGGNOG:COG0089",
+      "subject": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "KEGG.ORTHOLOGY:KO:K02892",
+      "subject": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF00276",
+      "subject": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:54189",
+      "subject": "NMDC:Ga0185794_01_3271_3498",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:2.30.30.30",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:2.40.50.140",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:4.10.950.10",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "EGGNOG:COG0090",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "KEGG.ORTHOLOGY:KO:K02886",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF00181",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF03947",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SMART:SM01382",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SMART:SM01383",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:50104",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:50249",
+      "subject": "NMDC:Ga0185794_01_3511_4266",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "PFAM:PF07691",
+      "subject": "NMDC:Ga0185794_01_4402_4995",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:49785",
+      "subject": "NMDC:Ga0185794_01_4402_4995",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:3.30.565.10",
+      "subject": "NMDC:Ga0185794_01_5123_5308",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:53335",
+      "subject": "NMDC:Ga0185794_01_5123_5308",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "CATH:3.50.50.60",
+      "subject": "NMDC:Ga0185794_01_5378_5494",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "EGGNOG:COG0654",
+      "subject": "NMDC:Ga0185794_01_5378_5494",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SUPFAM:51905",
+      "subject": "NMDC:Ga0185794_01_5378_5494",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    },
+    {
+      "has_function": "SMART:SM00933",
+      "subject": "NMDC:Ga0185794_01_6206_7969",
+      "type": "NMDC:FunctionalAnnotation",
+      "was_generated_by": "N/A"
+    }
+  ]
+}

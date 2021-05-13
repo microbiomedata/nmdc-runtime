@@ -1,0 +1,79 @@
+{
+	"nom_analysis_activity_set": [
+	 {
+		"id": "nmdc:5552769abc9b41b4b80939d02fbfe14e",
+		"ended_at_time": "2021-01-21 23:34:41",
+		"execution_resource": "EMSL-RZR",
+		"git_url": "https://github.com/microbiomedata/enviroMS",
+		"has_input": [
+		 "emsl:output_748009"
+		],
+		"has_output": [
+		 "nmdc:2b1069be85dca4eb0644773ef1d03c44"
+		],
+		"started_at_time": "2021-01-21 23:34:41",
+		"used": "12T_FTICR_B",
+		"was_informed_by": "emsl:748009"
+	 },
+	 {
+		"id": "nmdc:ce4bb2d2e89a4114a0d940740b039822",
+		"ended_at_time": "2021-01-21 23:27:18",
+		"execution_resource": "EMSL-RZR",
+		"git_url": "https://github.com/microbiomedata/enviroMS",
+		"has_input": [
+		 "emsl:output_747953"
+		],
+		"has_output": [
+		 "nmdc:9185ba726c5285a6f994a9f7f8090cbf"
+		],
+		"started_at_time": "2021-01-21 23:27:18",
+		"used": "12T_FTICR_B",
+		"was_informed_by": "emsl:747953"
+	 },
+	 {
+		"id": "nmdc:6da51024e8ef422ab98018cd8d94a861",
+		"ended_at_time": "2021-01-22 01:20:30",
+		"execution_resource": "EMSL-RZR",
+		"git_url": "https://github.com/microbiomedata/enviroMS",
+		"has_input": [
+		 "emsl:output_472655"
+		],
+		"has_output": [
+		 "nmdc:7164fd94962241493d8444cdfaa98349"
+		],
+		"started_at_time": "2021-01-22 01:20:30",
+		"used": "12T_FTICR_B",
+		"was_informed_by": "emsl:472655"
+	 },
+	 {
+		"id": "nmdc:4b96f340d10b495e9273020688ea1991",
+		"ended_at_time": "2021-01-22 01:41:18",
+		"execution_resource": "EMSL-RZR",
+		"git_url": "https://github.com/microbiomedata/enviroMS",
+		"has_input": [
+		 "emsl:output_457918"
+		],
+		"has_output": [
+		 "nmdc:5b1f3df78c3f6c9e9e332c407025a070"
+		],
+		"started_at_time": "2021-01-22 01:41:18",
+		"used": "12T_FTICR_B",
+		"was_informed_by": "emsl:457918"
+	 },
+	 {
+		"id": "nmdc:3bf07c3a20694769aa3ee008e70c4d4b",
+		"ended_at_time": "2021-01-22 01:53:47",
+		"execution_resource": "EMSL-RZR",
+		"git_url": "https://github.com/microbiomedata/enviroMS",
+		"has_input": [
+		 "emsl:output_456439"
+		],
+		"has_output": [
+		 "nmdc:d92051e771e261d1bc1195d12ed9f2d7"
+		],
+		"started_at_time": "2021-01-22 01:53:47",
+		"used": "12T_FTICR_B",
+		"was_informed_by": "emsl:456439"
+	 }
+	]
+}	

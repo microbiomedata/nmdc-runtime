@@ -1,0 +1,640 @@
+[
+{
+   "id": 173480,
+   "name": "Wine grape associated microbial communities from Sonoma, California, USA - ED6",
+   "annotations": [
+      {
+         "has_raw_value": 173480,
+         "has_characteristic": {
+            "name": "biosample_id"
+         }
+      },
+      {
+         "has_raw_value": "Wine grape associated microbial communities from Sonoma, California, USA - ED6",
+         "has_characteristic": {
+            "name": "biosample_name"
+         }
+      },
+      {
+         "has_raw_value": "Wine grape associated microbial communities from Sonoma, California, USA; sample collected from Cordon section; Wood disease symptoms: Wedge canker, dieback, browning and streaking, Foliar symptoms: Eutypa dieback",
+         "has_characteristic": {
+            "name": "description"
+         }
+      },
+      {
+         "has_raw_value": "09-DEC-17 11.15.52.119000000 PM",
+         "has_characteristic": {
+            "name": "add_date"
+         }
+      },
+      {
+         "has_raw_value": "05-JAN-18 12.58.38.000000000 PM",
+         "has_characteristic": {
+            "name": "mod_date"
+         }
+      },
+      {
+         "has_raw_value": 4524,
+         "has_characteristic": {
+            "name": "ecosystem_path_id"
+         }
+      },
+      {
+         "has_raw_value": "Host-associated",
+         "has_characteristic": {
+            "name": "ecosystem"
+         }
+      },
+      {
+         "has_raw_value": "Plants",
+         "has_characteristic": {
+            "name": "ecosystem_category"
+         }
+      },
+      {
+         "has_raw_value": "Phyllosphere",
+         "has_characteristic": {
+            "name": "ecosystem_type"
+         }
+      },
+      {
+         "has_raw_value": "Caulosphere",
+         "has_characteristic": {
+            "name": "ecosystem_subtype"
+         }
+      },
+      {
+         "has_raw_value": "Wine grape associated",
+         "has_characteristic": {
+            "name": "habitat"
+         }
+      },
+      {
+         "has_raw_value": "from Sonoma, California, USA",
+         "has_characteristic": {
+            "name": "location"
+         }
+      },
+      {
+         "has_raw_value": "microbial communities",
+         "has_characteristic": {
+            "name": "community"
+         }
+      },
+      {
+         "has_raw_value": "plant metagenome",
+         "has_characteristic": {
+            "name": "ncbi_taxonomy_name"
+         }
+      },
+      {
+         "has_raw_value": "USA: Sonoma, California",
+         "has_characteristic": {
+            "name": "geographic_location"
+         }
+      },
+      {
+         "has_raw_value": 38.2222222,
+         "has_characteristic": {
+            "name": "latitude"
+         }
+      },
+      {
+         "has_raw_value": 122.35972220000001,
+         "has_characteristic": {
+            "name": "longitude"
+         }
+      },
+      {
+         "has_raw_value": "Cordon section",
+         "has_characteristic": {
+            "name": "sample_collection_site"
+         }
+      },
+      {
+         "has_raw_value": "ED6",
+         "has_characteristic": {
+            "name": "identifier"
+         }
+      },
+      {
+         "has_raw_value": 2014,
+         "has_characteristic": {
+            "name": "sample_collection_year"
+         }
+      },
+      {
+         "has_raw_value": 6,
+         "has_characteristic": {
+            "name": "sample_collection_month"
+         }
+      },
+      {
+         "has_raw_value": "Vitis vinifera",
+         "has_characteristic": {
+            "name": "host_name"
+         }
+      }
+   ]
+}, {
+   "id": 173774,
+   "name": "Fermented milk associated microbial communities from Xilinhot, China - NM19-1",
+   "annotations": [
+      {
+         "has_raw_value": 173774,
+         "has_characteristic": {
+            "name": "biosample_id"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated microbial communities from Xilinhot, China - NM19-1",
+         "has_characteristic": {
+            "name": "biosample_name"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk (koumiss) associated microbial communities from Xilinhot, China",
+         "has_characteristic": {
+            "name": "description"
+         }
+      },
+      {
+         "has_raw_value": "09-DEC-17 11.36.30.369000000 PM",
+         "has_characteristic": {
+            "name": "add_date"
+         }
+      },
+      {
+         "has_raw_value": "05-JAN-18 12.54.38.000000000 PM",
+         "has_characteristic": {
+            "name": "mod_date"
+         }
+      },
+      {
+         "has_raw_value": 3505,
+         "has_characteristic": {
+            "name": "ecosystem_path_id"
+         }
+      },
+      {
+         "has_raw_value": "Engineered",
+         "has_characteristic": {
+            "name": "ecosystem"
+         }
+      },
+      {
+         "has_raw_value": "Food production",
+         "has_characteristic": {
+            "name": "ecosystem_category"
+         }
+      },
+      {
+         "has_raw_value": "Dairy products",
+         "has_characteristic": {
+            "name": "ecosystem_type"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated",
+         "has_characteristic": {
+            "name": "habitat"
+         }
+      },
+      {
+         "has_raw_value": "from Xilinhot, China",
+         "has_characteristic": {
+            "name": "location"
+         }
+      },
+      {
+         "has_raw_value": "microbial communities",
+         "has_characteristic": {
+            "name": "community"
+         }
+      },
+      {
+         "has_raw_value": "food fermentation metagenome",
+         "has_characteristic": {
+            "name": "ncbi_taxonomy_name"
+         }
+      },
+      {
+         "has_raw_value": "China: Xilinhot",
+         "has_characteristic": {
+            "name": "geographic_location"
+         }
+      },
+      {
+         "has_raw_value": 44.23,
+         "has_characteristic": {
+            "name": "latitude"
+         }
+      },
+      {
+         "has_raw_value": 116.39,
+         "has_characteristic": {
+            "name": "longitude"
+         }
+      },
+      {
+         "has_raw_value": "Fermented koumiss",
+         "has_characteristic": {
+            "name": "sample_collection_site"
+         }
+      },
+      {
+         "has_raw_value": "NM19-1",
+         "has_characteristic": {
+            "name": "identifier"
+         }
+      },
+      {
+         "has_raw_value": 2014,
+         "has_characteristic": {
+            "name": "sample_collection_year"
+         }
+      },
+      {
+         "has_raw_value": 7,
+         "has_characteristic": {
+            "name": "sample_collection_month"
+         }
+      }
+   ]
+}, {
+   "id": 173775,
+   "name": "Fermented milk associated microbial communities from Xilinhot, China - NM19-2",
+   "annotations": [
+      {
+         "has_raw_value": 173775,
+         "has_characteristic": {
+            "name": "biosample_id"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated microbial communities from Xilinhot, China - NM19-2",
+         "has_characteristic": {
+            "name": "biosample_name"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk (koumiss) associated microbial communities from Xilinhot, China",
+         "has_characteristic": {
+            "name": "description"
+         }
+      },
+      {
+         "has_raw_value": "09-DEC-17 11.36.34.360000000 PM",
+         "has_characteristic": {
+            "name": "add_date"
+         }
+      },
+      {
+         "has_raw_value": "05-JAN-18 12.54.43.000000000 PM",
+         "has_characteristic": {
+            "name": "mod_date"
+         }
+      },
+      {
+         "has_raw_value": 3505,
+         "has_characteristic": {
+            "name": "ecosystem_path_id"
+         }
+      },
+      {
+         "has_raw_value": "Engineered",
+         "has_characteristic": {
+            "name": "ecosystem"
+         }
+      },
+      {
+         "has_raw_value": "Food production",
+         "has_characteristic": {
+            "name": "ecosystem_category"
+         }
+      },
+      {
+         "has_raw_value": "Dairy products",
+         "has_characteristic": {
+            "name": "ecosystem_type"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated",
+         "has_characteristic": {
+            "name": "habitat"
+         }
+      },
+      {
+         "has_raw_value": "from Xilinhot, China",
+         "has_characteristic": {
+            "name": "location"
+         }
+      },
+      {
+         "has_raw_value": "microbial communities",
+         "has_characteristic": {
+            "name": "community"
+         }
+      },
+      {
+         "has_raw_value": "food fermentation metagenome",
+         "has_characteristic": {
+            "name": "ncbi_taxonomy_name"
+         }
+      },
+      {
+         "has_raw_value": "China: Xilinhot",
+         "has_characteristic": {
+            "name": "geographic_location"
+         }
+      },
+      {
+         "has_raw_value": 44.23,
+         "has_characteristic": {
+            "name": "latitude"
+         }
+      },
+      {
+         "has_raw_value": 116.39,
+         "has_characteristic": {
+            "name": "longitude"
+         }
+      },
+      {
+         "has_raw_value": "Fermented koumiss",
+         "has_characteristic": {
+            "name": "sample_collection_site"
+         }
+      },
+      {
+         "has_raw_value": "NM19-2",
+         "has_characteristic": {
+            "name": "identifier"
+         }
+      },
+      {
+         "has_raw_value": 2014,
+         "has_characteristic": {
+            "name": "sample_collection_year"
+         }
+      },
+      {
+         "has_raw_value": 7,
+         "has_characteristic": {
+            "name": "sample_collection_month"
+         }
+      }
+   ]
+}, {
+   "id": 173776,
+   "name": "Fermented milk associated microbial communities from Xilinhot, China - NM19-3",
+   "annotations": [
+      {
+         "has_raw_value": 173776,
+         "has_characteristic": {
+            "name": "biosample_id"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated microbial communities from Xilinhot, China - NM19-3",
+         "has_characteristic": {
+            "name": "biosample_name"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk (koumiss) associated microbial communities from Xilinhot, China",
+         "has_characteristic": {
+            "name": "description"
+         }
+      },
+      {
+         "has_raw_value": "09-DEC-17 11.36.38.315000000 PM",
+         "has_characteristic": {
+            "name": "add_date"
+         }
+      },
+      {
+         "has_raw_value": "05-JAN-18 12.54.43.000000000 PM",
+         "has_characteristic": {
+            "name": "mod_date"
+         }
+      },
+      {
+         "has_raw_value": 3505,
+         "has_characteristic": {
+            "name": "ecosystem_path_id"
+         }
+      },
+      {
+         "has_raw_value": "Engineered",
+         "has_characteristic": {
+            "name": "ecosystem"
+         }
+      },
+      {
+         "has_raw_value": "Food production",
+         "has_characteristic": {
+            "name": "ecosystem_category"
+         }
+      },
+      {
+         "has_raw_value": "Dairy products",
+         "has_characteristic": {
+            "name": "ecosystem_type"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated",
+         "has_characteristic": {
+            "name": "habitat"
+         }
+      },
+      {
+         "has_raw_value": "from Xilinhot, China",
+         "has_characteristic": {
+            "name": "location"
+         }
+      },
+      {
+         "has_raw_value": "microbial communities",
+         "has_characteristic": {
+            "name": "community"
+         }
+      },
+      {
+         "has_raw_value": "food fermentation metagenome",
+         "has_characteristic": {
+            "name": "ncbi_taxonomy_name"
+         }
+      },
+      {
+         "has_raw_value": "China: Xilinhot",
+         "has_characteristic": {
+            "name": "geographic_location"
+         }
+      },
+      {
+         "has_raw_value": 44.23,
+         "has_characteristic": {
+            "name": "latitude"
+         }
+      },
+      {
+         "has_raw_value": 116.39,
+         "has_characteristic": {
+            "name": "longitude"
+         }
+      },
+      {
+         "has_raw_value": "Fermented koumiss",
+         "has_characteristic": {
+            "name": "sample_collection_site"
+         }
+      },
+      {
+         "has_raw_value": "NM19-3",
+         "has_characteristic": {
+            "name": "identifier"
+         }
+      },
+      {
+         "has_raw_value": 2014,
+         "has_characteristic": {
+            "name": "sample_collection_year"
+         }
+      },
+      {
+         "has_raw_value": 7,
+         "has_characteristic": {
+            "name": "sample_collection_month"
+         }
+      }
+   ]
+}, {
+   "id": 173784,
+   "name": "Fermented milk associated microbial communities from Zuunkharaa, Mongolia - MG16-2",
+   "annotations": [
+      {
+         "has_raw_value": 173784,
+         "has_characteristic": {
+            "name": "biosample_id"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated microbial communities from Zuunkharaa, Mongolia - MG16-2",
+         "has_characteristic": {
+            "name": "biosample_name"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk (koumiss) associated microbial communities from Zuunkharaa, Mongolia",
+         "has_characteristic": {
+            "name": "description"
+         }
+      },
+      {
+         "has_raw_value": "09-DEC-17 11.37.10.939000000 PM",
+         "has_characteristic": {
+            "name": "add_date"
+         }
+      },
+      {
+         "has_raw_value": "05-JAN-18 12.54.43.000000000 PM",
+         "has_characteristic": {
+            "name": "mod_date"
+         }
+      },
+      {
+         "has_raw_value": 3505,
+         "has_characteristic": {
+            "name": "ecosystem_path_id"
+         }
+      },
+      {
+         "has_raw_value": "Engineered",
+         "has_characteristic": {
+            "name": "ecosystem"
+         }
+      },
+      {
+         "has_raw_value": "Food production",
+         "has_characteristic": {
+            "name": "ecosystem_category"
+         }
+      },
+      {
+         "has_raw_value": "Dairy products",
+         "has_characteristic": {
+            "name": "ecosystem_type"
+         }
+      },
+      {
+         "has_raw_value": "Fermented milk associated",
+         "has_characteristic": {
+            "name": "habitat"
+         }
+      },
+      {
+         "has_raw_value": "from Zuunkharaa, Mongolia",
+         "has_characteristic": {
+            "name": "location"
+         }
+      },
+      {
+         "has_raw_value": "microbial communities",
+         "has_characteristic": {
+            "name": "community"
+         }
+      },
+      {
+         "has_raw_value": "food fermentation metagenome",
+         "has_characteristic": {
+            "name": "ncbi_taxonomy_name"
+         }
+      },
+      {
+         "has_raw_value": "Mongolia: Zuunkharaa",
+         "has_characteristic": {
+            "name": "geographic_location"
+         }
+      },
+      {
+         "has_raw_value": 48.85,
+         "has_characteristic": {
+            "name": "latitude"
+         }
+      },
+      {
+         "has_raw_value": 106.45,
+         "has_characteristic": {
+            "name": "longitude"
+         }
+      },
+      {
+         "has_raw_value": "Fermented koumiss",
+         "has_characteristic": {
+            "name": "sample_collection_site"
+         }
+      },
+      {
+         "has_raw_value": "MG16-2",
+         "has_characteristic": {
+            "name": "identifier"
+         }
+      },
+      {
+         "has_raw_value": 2015,
+         "has_characteristic": {
+            "name": "sample_collection_year"
+         }
+      },
+      {
+         "has_raw_value": 8,
+         "has_characteristic": {
+            "name": "sample_collection_month"
+         }
+      }
+   ]
+}
+]

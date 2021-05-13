@@ -1,0 +1,124 @@
+{"activity_set":
+[
+  {
+    "id": "nmdc:647b163bdcb9528b8dcc8ab9b506c957",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324040",
+    "was_informed_by": "gold:Gp0324040",
+    "started_at_time": "2021-01-17",
+    "ended_at_time": "2021-01-17",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:7e0bb15dc62ea4a5ae94f51af347129f"
+    ],
+    "has_output": [
+      "nmdc:dca7ca0cc779868ceac63aa3af6a3070",
+      "nmdc:c177fd732e25dda4d2afa10159e8d0b4",
+      "nmdc:b09c3cd4ad025e106e51f3234bf3850f",
+      "nmdc:1fd680ec996ea2043fd34468e5c3464a",
+      "nmdc:7796820582563a8b3867de9554b1a8ac"
+    ]
+  },
+  {
+    "id": "nmdc:0e9fb1e720caf88f61ab8bc4d866af7e",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324044",
+    "was_informed_by": "gold:Gp0324044",
+    "started_at_time": "2021-01-17",
+    "ended_at_time": "2021-01-17",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:6a455b07be6e9c6b3f0631858a8ade17"
+    ],
+    "has_output": [
+      "nmdc:6d6bc7279ced7706d60024621e3bd32f",
+      "nmdc:50f2fe8d10b7f498c092ad58d84566e9",
+      "nmdc:1aa4f17a80bf5f1783b044261bd0122e",
+      "nmdc:a17065ca9209cb2774e2364c6d4a4e09",
+      "nmdc:2ac6dc3b3e885520db0e4604c641cde3"
+    ]
+  },
+  {
+    "id": "nmdc:200022c0672deff53cda040fee54b9e6",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324060",
+    "was_informed_by": "gold:Gp0324060",
+    "started_at_time": "2021-01-20",
+    "ended_at_time": "2021-01-20",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:376cc399590f368eaf5a486087750077"
+    ],
+    "has_output": [
+      "nmdc:0acdb269f2e35fc19dc6623988088dc1",
+      "nmdc:ffe2cecca5ef75ef1e203136d3ff4e22",
+      "nmdc:e1f5e368f8cfe9409a50d2da9a862b76",
+      "nmdc:ba157a1192b357ce12cde03add87da1a",
+      "nmdc:a69b8eb3359923800442f56798098d2b"
+    ]
+  },
+  {
+    "id": "nmdc:567e35cfffbc1e0ebc1e2c781ce726e3",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324038",
+    "was_informed_by": "gold:Gp0324038",
+    "started_at_time": "2021-01-17",
+    "ended_at_time": "2021-01-17",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:fddf8cd12a559ba5c1dc7749ea6ffadb"
+    ],
+    "has_output": [
+      "nmdc:7abb0722f447e0bd10a167427baaba52",
+      "nmdc:e4baa40c20b579766e7e635186ee13e1",
+      "nmdc:94234da5f78c857e82a597f6c8696ad2",
+      "nmdc:f87a7fb9b56919637a310e10d0de9158",
+      "nmdc:103e68b77fdade3bed75ed960fa0600b"
+    ]
+  },
+  {
+    "id": "nmdc:51880e32d7564747a46f00854e071d32",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324051",
+    "was_informed_by": "gold:Gp0324051",
+    "started_at_time": "2021-01-18",
+    "ended_at_time": "2021-01-18",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:6f83c763978b8cfccd1dbc3c1fff4976"
+    ],
+    "has_output": [
+      "nmdc:bbc9d4625db044c14edcfee2f44e2192",
+      "nmdc:872059b4891bd553927fe13283b43506",
+      "nmdc:a902d37dbd3acad785ee6847d3b0f772",
+      "nmdc:54971a8537769c42292f244f87104fe1",
+      "nmdc:cee211856400b7116369a4e97a7ca4d6"
+    ]
+  },
+  {
+    "id": "nmdc:34472e64c7f249a6e1f2b0f9445b89d6",
+    "name": "MetagenomeAnnotation activity for gold:Gp0324036",
+    "was_informed_by": "gold:Gp0324036",
+    "started_at_time": "2021-01-17",
+    "ended_at_time": "2021-01-17",
+    "type": "nmdc:MetagenomeAnnotation",
+    "execution_resource": "NERSC - Cori",
+    "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+    "has_input": [
+      "nmdc:fcc5bd82615fab43bb54006632862521"
+    ],
+    "has_output": [
+      "nmdc:cdd92fcbc8f886b03e916a4cc3ce5d5d",
+      "nmdc:52f62ff6a8bf9f2fa990c7833bf917f8",
+      "nmdc:bf80f6977cb32659cc227c17a1bb1002",
+      "nmdc:6a681d736f05ceda84dd6794b91e492e",
+      "nmdc:da4820355c96d6e07432d6e3c73cf0e3"
+    ]
+  }
+]
+}

@@ -1,0 +1,4618 @@
+{
+	"metabolomics_analysis_activity_set": [
+	 {
+		 "id": "nmdc:6fdeaf901c4c4c8fa19ec94696a2d03a",
+		 "ended_at_time": "2021-01-07 23:54:31",
+		 "execution_resource": "EMSL-RZR",
+		 "git_url": "https://github.com/microbiomedata/metaMS",
+		 "has_input": ["emsl:output_499575"],
+		 "has_calibration": "emsl:output_499433",
+		 "has_output": ["nmdc:eadcd3b883c0da0f9d42a9fb1162ffcf"],
+		 "started_at_time": "2021-01-07 23:54:31",
+		 "used": "Agilent_GC_MS",
+		 "was_informed_by": "emsl:499575",
+		 "has_metabolite_quantifications": [
+			{
+			 "highest_similarity_score": 0.5346150247035811,
+			 "metabolite_quantified": "chebi:16997",
+			 "alternate_identifiers": [
+				"kegg:C00583",
+				"cas:57-55-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.361064085881995,
+			 "metabolite_quantified": "chebi:17724",
+			 "alternate_identifiers": [
+				"kegg:C01026",
+				"cas:1118-68-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.41067467401495344,
+			 "metabolite_quantified": "chebi:28579",
+			 "alternate_identifiers": [
+				"kegg:C06593",
+				"cas:105-60-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3977691258357822,
+			 "metabolite_quantified": "chebi:17967",
+			 "alternate_identifiers": [
+				"kegg:C01537",
+				"cas:51-79-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4896085202793993,
+			 "metabolite_quantified": "chebi:422",
+			 "alternate_identifiers": [
+				"kegg:C00186",
+				"cas:79-33-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7595410767447531,
+			 "metabolite_quantified": "chebi:16530",
+			 "alternate_identifiers": [
+				"kegg:C00141",
+				"cas:759-05-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7214261680415885,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:C03500",
+				"cas:141-97-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.20653781951559205,
+			 "metabolite_quantified": "chebi:18314",
+			 "alternate_identifiers": [
+				"kegg:C01826",
+				"cas:6600-40-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2874422296645396,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:74280-71-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5207726864545422,
+			 "metabolite_quantified": "chebi:15611",
+			 "alternate_identifiers": [
+				"kegg:C00213",
+				"cas:107-97-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8764568919597895,
+			 "metabolite_quantified": "chebi:75144",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2043-43-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7693088215269049,
+			 "metabolite_quantified": "chebi:28976",
+			 "alternate_identifiers": [
+				"kegg:C01353",
+				"cas:463-79-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3253788997057196,
+			 "metabolite_quantified": "chebi:17231",
+			 "alternate_identifiers": [
+				"kegg:C01467",
+				"cas:108-39-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7921553860602227,
+			 "metabolite_quantified": "chebi:9171",
+			 "alternate_identifiers": [
+				"kegg:C08313",
+				"cas:83-34-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5689503439572569,
+			 "metabolite_quantified": "chebi:16995",
+			 "alternate_identifiers": [
+				"kegg:C00209",
+				"cas:144-62-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2147583616885102,
+			 "metabolite_quantified": "chebi:77761",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:675-20-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9048918913355536,
+			 "metabolite_quantified": "chebi:18064",
+			 "alternate_identifiers": [
+				"kegg:C01188",
+				"cas:2068-83-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8549335392959044,
+			 "metabolite_quantified": "chebi:20067",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:300-85-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.46219360262736314,
+			 "metabolite_quantified": "chebi:15733",
+			 "alternate_identifiers": [
+				"kegg:C02299",
+				"cas:100-61-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8448328744265026,
+			 "metabolite_quantified": "chebi:29063",
+			 "alternate_identifiers": [
+				"kegg:C04771",
+				"cas:500-44-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9113117714348855,
+			 "metabolite_quantified": "chebi:37051",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:473-86-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8871296021161929,
+			 "metabolite_quantified": "chebi:30794",
+			 "alternate_identifiers": [
+				"kegg:C04025",
+				"cas:141-82-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6519960579083242,
+			 "metabolite_quantified": "chebi:5445",
+			 "alternate_identifiers": [
+				"kegg:C02154",
+				"cas:56-82-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9300077434784738,
+			 "metabolite_quantified": "chebi:17115",
+			 "alternate_identifiers": [
+				"kegg:C00065",
+				"cas:56-45-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8243420860801407,
+			 "metabolite_quantified": "chebi:17308",
+			 "alternate_identifiers": [
+				"kegg:C00902",
+				"cas:2492-75-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7642847426420317,
+			 "metabolite_quantified": "chebi:16931",
+			 "alternate_identifiers": [
+				"kegg:C03739",
+				"cas:1460-57-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9411076041498972,
+			 "metabolite_quantified": "chebi:16016",
+			 "alternate_identifiers": [
+				"kegg:C00184",
+				"cas:96-26-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37628990929085737,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:69974-55-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7401155201765458,
+			 "metabolite_quantified": "chebi:28837",
+			 "alternate_identifiers": [
+				"kegg:C06423",
+				"cas:124-07-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8428227114432785,
+			 "metabolite_quantified": "chebi:17754",
+			 "alternate_identifiers": [
+				"kegg:C00116",
+				"cas:56-81-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5757611190555938,
+			 "metabolite_quantified": "chebi:16000",
+			 "alternate_identifiers": [
+				"kegg:C00189",
+				"cas:141-43-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6502447765949317,
+			 "metabolite_quantified": "chebi:149",
+			 "alternate_identifiers": [
+				"kegg:C11396",
+				"cas:20549-47-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4273683757312966,
+			 "metabolite_quantified": "chebi:27413",
+			 "alternate_identifiers": [
+				"kegg:C05670",
+				"cas:151-18-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4583539334599674,
+			 "metabolite_quantified": "chebi:15603",
+			 "alternate_identifiers": [
+				"kegg:C00123",
+				"cas:61-90-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6319729583217963,
+			 "metabolite_quantified": "chebi:15698",
+			 "alternate_identifiers": [
+				"kegg:C00881",
+				"cas:951-77-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3186616102217367,
+			 "metabolite_quantified": "chebi:26078",
+			 "alternate_identifiers": [
+				"kegg:C00009",
+				"cas:7664-38-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3215271115862624,
+			 "metabolite_quantified": "chebi:28884",
+			 "alternate_identifiers": [
+				"kegg:C07565",
+				"cas:103-84-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5545087391843567,
+			 "metabolite_quantified": "chebi:17981",
+			 "alternate_identifiers": [
+				"kegg:C00979",
+				"cas:5147-00-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6845039994465165,
+			 "metabolite_quantified": "chebi:28718",
+			 "alternate_identifiers": [
+				"kegg:C05519",
+				"cas:28954-12-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.897635620615519,
+			 "metabolite_quantified": "chebi:38264",
+			 "alternate_identifiers": [
+				"kegg:C16434",
+				"cas:443-79-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9896813126117785,
+			 "metabolite_quantified": "chebi:16857",
+			 "alternate_identifiers": [
+				"kegg:C00188",
+				"cas:72-19-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.33909872408081165,
+			 "metabolite_quantified": "chebi:17203",
+			 "alternate_identifiers": [
+				"kegg:C00148",
+				"cas:147-85-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7441727590146556,
+			 "metabolite_quantified": "chebi:18300",
+			 "alternate_identifiers": [
+				"kegg:C01384",
+				"cas:110-16-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.30847302235980967,
+			 "metabolite_quantified": "chebi:131454",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:16867-04-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8768934936255245,
+			 "metabolite_quantified": "chebi:15741",
+			 "alternate_identifiers": [
+				"kegg:C00042",
+				"cas:110-15-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9936574340482272,
+			 "metabolite_quantified": "chebi:15428",
+			 "alternate_identifiers": [
+				"kegg:C00037",
+				"cas:56-40-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7246388904765619,
+			 "metabolite_quantified": "chebi:18135",
+			 "alternate_identifiers": [
+				"kegg:C15571",
+				"cas:120-80-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.32763531223170617,
+			 "metabolite_quantified": "chebi:18347",
+			 "alternate_identifiers": [
+				"kegg:C01933",
+				"cas:327-57-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.33564663855802884,
+			 "metabolite_quantified": "chebi:991",
+			 "alternate_identifiers": [
+				"kegg:C11260",
+				"cas:115-69-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39046902879737533,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:C09541",
+				"cas:3019-51-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5135880260273319,
+			 "metabolite_quantified": "chebi:15888",
+			 "alternate_identifiers": [
+				"kegg:C02129",
+				"cas:3128-06-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3682843766940028,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:93-51-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.387163852017715,
+			 "metabolite_quantified": "chebi:17568",
+			 "alternate_identifiers": [
+				"kegg:C00106",
+				"cas:66-22-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9882711814729067,
+			 "metabolite_quantified": "chebi:32398",
+			 "alternate_identifiers": [
+				"kegg:C00258",
+				"cas:473-81-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6526914370765857,
+			 "metabolite_quantified": "chebi:36436",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:591-12-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9983982594361027,
+			 "metabolite_quantified": "chebi:115156",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:17013-01-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8065275931312403,
+			 "metabolite_quantified": "chebi:17626",
+			 "alternate_identifiers": [
+				"kegg:C02226",
+				"cas:498-23-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.24039208027942852,
+			 "metabolite_quantified": "chebi:36751",
+			 "alternate_identifiers": [
+				"kegg:C05942",
+				"cas:634-97-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6024395978666255,
+			 "metabolite_quantified": "chebi:89836",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:21709-90-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5732311118674811,
+			 "metabolite_quantified": "chebi:17957",
+			 "alternate_identifiers": [
+				"kegg:C04294",
+				"cas:137-00-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4949101069728957,
+			 "metabolite_quantified": "chebi:16934",
+			 "alternate_identifiers": [
+				"kegg:C02512",
+				"cas:6232-19-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5386442683911415,
+			 "metabolite_quantified": "chebi:16354",
+			 "alternate_identifiers": [
+				"kegg:C02565",
+				"cas:616-04-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5389910435239244,
+			 "metabolite_quantified": "chebi:16913",
+			 "alternate_identifiers": [
+				"kegg:C03711",
+				"cas:68579-60-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.643120664086693,
+			 "metabolite_quantified": "chebi:16977",
+			 "alternate_identifiers": [
+				"kegg:C00041",
+				"cas:56-41-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9931913227209163,
+			 "metabolite_quantified": "chebi:40547",
+			 "alternate_identifiers": [
+				"kegg:C03969",
+				"cas:52-52-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9946834926837445,
+			 "metabolite_quantified": "chebi:17964",
+			 "alternate_identifiers": [
+				"kegg:C00408",
+				"cas:535-75-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8045259023479233,
+			 "metabolite_quantified": "chebi:21717",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2491-15-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37541444451922024,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:503-48-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8317594576329158,
+			 "metabolite_quantified": "chebi:16513",
+			 "alternate_identifiers": [
+				"kegg:C02287",
+				"cas:80-69-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7261622363765632,
+			 "metabolite_quantified": "chebi:17254",
+			 "alternate_identifiers": [
+				"kegg:C06730",
+				"cas:452-86-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.30780924221454714,
+			 "metabolite_quantified": "chebi:27810",
+			 "alternate_identifiers": [
+				"kegg:C01751",
+				"cas:108-46-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6845606424697364,
+			 "metabolite_quantified": "chebi:18404",
+			 "alternate_identifiers": [
+				"kegg:C02923",
+				"cas:488-17-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8054837520676944,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:108-13-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5350315022948499,
+			 "metabolite_quantified": "chebi:80637",
+			 "alternate_identifiers": [
+				"kegg:C16651",
+				"cas:58888-84-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6067109913029973,
+			 "metabolite_quantified": "chebi:70979",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:15926-18-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3156983699570922,
+			 "metabolite_quantified": "chebi:27628",
+			 "alternate_identifiers": [
+				"kegg:C06576",
+				"cas:536-60-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6075104685017614,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:18457-55-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.22195338522232672,
+			 "metabolite_quantified": "chebi:17594",
+			 "alternate_identifiers": [
+				"kegg:C00530",
+				"cas:123-31-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7744857225126207,
+			 "metabolite_quantified": "chebi:30838",
+			 "alternate_identifiers": [
+				"kegg:C00490",
+				"cas:97-65-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7124731884308769,
+			 "metabolite_quantified": "chebi:41674",
+			 "alternate_identifiers": [
+				"kegg:C06105",
+				"cas:765-87-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4291441309128282,
+			 "metabolite_quantified": "chebi:412516",
+			 "alternate_identifiers": [
+				"kegg:C11101",
+				"cas:67-47-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3772626576786779,
+			 "metabolite_quantified": "chebi:16643",
+			 "alternate_identifiers": [
+				"kegg:C00073",
+				"cas:63-68-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3032218090510999,
+			 "metabolite_quantified": "chebi:17821",
+			 "alternate_identifiers": [
+				"kegg:C00178",
+				"cas:65-71-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.32462337609693714,
+			 "metabolite_quantified": "chebi:28631",
+			 "alternate_identifiers": [
+				"kegg:C05629",
+				"cas:501-52-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4833365869738041,
+			 "metabolite_quantified": "chebi:18383",
+			 "alternate_identifiers": [
+				"kegg:C06393",
+				"cas:515-94-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9923277342886887,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7699155782327235,
+			 "metabolite_quantified": "chebi:29045",
+			 "alternate_identifiers": [
+				"kegg:C01596",
+				"cas:557-24-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5358806279339284,
+			 "metabolite_quantified": "chebi:16464",
+			 "alternate_identifiers": [
+				"kegg:C02323",
+				"cas:90-01-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4743199868997262,
+			 "metabolite_quantified": "chebi:28341",
+			 "alternate_identifiers": [
+				"kegg:C07189",
+				"cas:582-24-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5748084508522014,
+			 "metabolite_quantified": "chebi:18112",
+			 "alternate_identifiers": [
+				"kegg:C01987",
+				"cas:95-55-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.26744683213278664,
+			 "metabolite_quantified": "chebi:40538",
+			 "alternate_identifiers": [
+				"kegg:C15562",
+				"cas:100-46-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3386611513871309,
+			 "metabolite_quantified": "chebi:17786",
+			 "alternate_identifiers": [
+				"kegg:C02710",
+				"cas:1188-21-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.21458403821818411,
+			 "metabolite_quantified": "chebi:28179",
+			 "alternate_identifiers": [
+				"kegg:C09815",
+				"cas:55-21-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5423824407328307,
+			 "metabolite_quantified": "chebi:17869",
+			 "alternate_identifiers": [
+				"kegg:C06103",
+				"cas:1191-25-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5644937269224594,
+			 "metabolite_quantified": "chebi:17869",
+			 "alternate_identifiers": [
+				"kegg:C06103",
+				"cas:1191-25-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5760384791620902,
+			 "metabolite_quantified": "chebi:16958",
+			 "alternate_identifiers": [
+				"kegg:C00099",
+				"cas:107-95-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.850254756839299,
+			 "metabolite_quantified": "chebi:28587",
+			 "alternate_identifiers": [
+				"kegg:C06463",
+				"cas:95-43-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8078671596542822,
+			 "metabolite_quantified": "chebi:37245",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:5746-90-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3631087421270612,
+			 "metabolite_quantified": "chebi:16536",
+			 "alternate_identifiers": [
+				"kegg:C00727",
+				"cas:504-15-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6528383144137463,
+			 "metabolite_quantified": "chebi:17561",
+			 "alternate_identifiers": [
+				"kegg:C00097",
+				"cas:52-90-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9453141341788122,
+			 "metabolite_quantified": "chebi:24786",
+			 "alternate_identifiers": [
+				"kegg:C19911",
+				"cas:142-73-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3229735632582951,
+			 "metabolite_quantified": "chebi:87840",
+			 "alternate_identifiers": [
+				"kegg:C04397",
+				"cas:4298-08-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8279227040935287,
+			 "metabolite_quantified": "chebi:30744",
+			 "alternate_identifiers": [
+				"kegg:C00036",
+				"cas:328-42-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5458151251487979,
+			 "metabolite_quantified": "chebi:16562",
+			 "alternate_identifiers": [
+				"kegg:C02505",
+				"cas:103-81-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5710475220740516,
+			 "metabolite_quantified": "chebi:17756",
+			 "alternate_identifiers": [
+				"kegg:C01984",
+				"cas:17199-29-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3795090437921279,
+			 "metabolite_quantified": "chebi:17069",
+			 "alternate_identifiers": [
+				"kegg:C03351",
+				"cas:620-24-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.38721699977427904,
+			 "metabolite_quantified": "chebi:27389",
+			 "alternate_identifiers": [
+				"kegg:C05145",
+				"cas:144-90-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4596071250895339,
+			 "metabolite_quantified": "chebi:16879",
+			 "alternate_identifiers": [
+				"kegg:C04067",
+				"cas:759-65-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.65391017582253,
+			 "metabolite_quantified": "chebi:64564",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:444-27-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5795665810800732,
+			 "metabolite_quantified": "chebi:80636",
+			 "alternate_identifiers": [
+				"kegg:C16650",
+				"cas:53660-23-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7945859224347185,
+			 "metabolite_quantified": "chebi:15584",
+			 "alternate_identifiers": [
+				"kegg:C00815",
+				"cas:597-44-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.252341653656873,
+			 "metabolite_quantified": "chebi:16797",
+			 "alternate_identifiers": [
+				"kegg:C02918",
+				"cas:3106-60-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.26477803032981717,
+			 "metabolite_quantified": "chebi:17154",
+			 "alternate_identifiers": [
+				"kegg:C00153",
+				"cas:98-92-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5266042557956824,
+			 "metabolite_quantified": "chebi:18050",
+			 "alternate_identifiers": [
+				"kegg:C00064",
+				"cas:56-85-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6094626055775646,
+			 "metabolite_quantified": "chebi:16458",
+			 "alternate_identifiers": [
+				"kegg:C02752",
+				"cas:675-10-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7720521608318952,
+			 "metabolite_quantified": "chebi:30796",
+			 "alternate_identifiers": [
+				"kegg:C00497",
+				"cas:636-61-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2361894540916061,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:3685-26-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6609229192709122,
+			 "metabolite_quantified": "chebi:141700",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:934-00-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.42994852877377376,
+			 "metabolite_quantified": "chebi:27468",
+			 "alternate_identifiers": [
+				"kegg:C00906",
+				"cas:696-04-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.27948966274903336,
+			 "metabolite_quantified": "chebi:17597",
+			 "alternate_identifiers": [
+				"kegg:C00633",
+				"cas:123-08-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6118105556686471,
+			 "metabolite_quantified": "chebi:17397",
+			 "alternate_identifiers": [
+				"kegg:C02366",
+				"cas:1504-06-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19455251565800036,
+			 "metabolite_quantified": "chebi:31835",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:99-76-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8462949804003175,
+			 "metabolite_quantified": "chebi:86952",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:29311-53-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6769460167846204,
+			 "metabolite_quantified": "chebi:15728",
+			 "alternate_identifiers": [
+				"kegg:C01035",
+				"cas:463-00-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6191642234790697,
+			 "metabolite_quantified": "chebi:30832",
+			 "alternate_identifiers": [
+				"kegg:C06104",
+				"cas:124-04-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.771221064670384,
+			 "metabolite_quantified": "chebi:16151",
+			 "alternate_identifiers": [
+				"kegg:C02274",
+				"cas:119-84-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.20328564783708103,
+			 "metabolite_quantified": "chebi:17645",
+			 "alternate_identifiers": [
+				"kegg:C02946",
+				"cas:3025-96-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.46584373591051753,
+			 "metabolite_quantified": "chebi:17533",
+			 "alternate_identifiers": [
+				"kegg:C00624",
+				"cas:1188-37-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8198995702203449,
+			 "metabolite_quantified": "chebi:48300",
+			 "alternate_identifiers": [
+				"kegg:C16884",
+				"cas:2418-52-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5356119384643733,
+			 "metabolite_quantified": "chebi:67410",
+			 "alternate_identifiers": [
+				"kegg:C17467",
+				"cas:623-05-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5719020982978222,
+			 "metabolite_quantified": "chebi:18183",
+			 "alternate_identifiers": [
+				"kegg:C01879",
+				"cas:98-79-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3783169099002624,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:2784-50-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5511334864834196,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:3685-26-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6878197187926742,
+			 "metabolite_quantified": "chebi:17113",
+			 "alternate_identifiers": [
+				"kegg:C00503",
+				"cas:149-32-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.45980098549613474,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:4385-35-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.49751943775524593,
+			 "metabolite_quantified": "chebi:16914",
+			 "alternate_identifiers": [
+				"kegg:C00805",
+				"cas:69-72-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.23597832003045743,
+			 "metabolite_quantified": "chebi:28122",
+			 "alternate_identifiers": [
+				"kegg:C06578",
+				"cas:536-66-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9800563257361952,
+			 "metabolite_quantified": "chebi:17053",
+			 "alternate_identifiers": [
+				"kegg:C00049",
+				"cas:56-84-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6475016175797863,
+			 "metabolite_quantified": "chebi:18280",
+			 "alternate_identifiers": [
+				"kegg:C02137",
+				"cas:611-73-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6158128520283526,
+			 "metabolite_quantified": "chebi:16015",
+			 "alternate_identifiers": [
+				"kegg:C00025",
+				"cas:56-86-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6492143442895597,
+			 "metabolite_quantified": "chebi:27957",
+			 "alternate_identifiers": [
+				"kegg:C05235",
+				"cas:116-09-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4238233347743125,
+			 "metabolite_quantified": "chebi:16015",
+			 "alternate_identifiers": [
+				"kegg:C00025",
+				"cas:56-86-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.32068960973072796,
+			 "metabolite_quantified": "chebi:28313",
+			 "alternate_identifiers": [
+				"kegg:C06524",
+				"cas:494-97-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3361220831871104,
+			 "metabolite_quantified": "chebi:17602",
+			 "alternate_identifiers": [
+				"kegg:C02372",
+				"cas:123-30-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39626932620489236,
+			 "metabolite_quantified": "chebi:16440",
+			 "alternate_identifiers": [
+				"kegg:C01046",
+				"cas:35989-16-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4266542186335946,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:35989-16-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2365867790422258,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:39669-35-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6591827325387188,
+			 "metabolite_quantified": "chebi:16164",
+			 "alternate_identifiers": [
+				"kegg:C01108",
+				"cas:87-66-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6578130473929712,
+			 "metabolite_quantified": "chebi:17710",
+			 "alternate_identifiers": [
+				"kegg:C00418",
+				"cas:17817-88-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34313803991854047,
+			 "metabolite_quantified": "chebi:127780",
+			 "alternate_identifiers": [
+				"kegg:C06456",
+				"cas:63585-09-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6666990103317909,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2734-48-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.46743479178377395,
+			 "metabolite_quantified": "chebi:18095",
+			 "alternate_identifiers": [
+				"kegg:C01157",
+				"cas:51-35-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.27113695113818215,
+			 "metabolite_quantified": "chebi:34238",
+			 "alternate_identifiers": [
+				"kegg:C14521",
+				"cas:615-58-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9968024859330415,
+			 "metabolite_quantified": "chebi:17295",
+			 "alternate_identifiers": [
+				"kegg:C00079",
+				"cas:63-91-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6141467277564447,
+			 "metabolite_quantified": "chebi:38407",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:505-70-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7588786504227611,
+			 "metabolite_quantified": "chebi:28635",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:3237-44-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6043977936118047,
+			 "metabolite_quantified": "chebi:33404",
+			 "alternate_identifiers": [
+				"kegg:C01013",
+				"cas:503-66-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6419617985623022,
+			 "metabolite_quantified": "chebi:87897",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:51568-18-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8740646166763449,
+			 "metabolite_quantified": "chebi:28478",
+			 "alternate_identifiers": [
+				"kegg:C05852",
+				"cas:614-75-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4932989006593835,
+			 "metabolite_quantified": "chebi:16737",
+			 "alternate_identifiers": [
+				"kegg:C00791",
+				"cas:60-27-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7743065498950986,
+			 "metabolite_quantified": "chebi:25998",
+			 "alternate_identifiers": [
+				"kegg:C01479",
+				"cas:828-01-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7804328874569066,
+			 "metabolite_quantified": "chebi:43065",
+			 "alternate_identifiers": [
+				"kegg:C05607",
+				"cas:7326-19-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7996806739924798,
+			 "metabolite_quantified": "chebi:30915",
+			 "alternate_identifiers": [
+				"kegg:C00026",
+				"cas:328-50-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3340809834263667,
+			 "metabolite_quantified": "chebi:113449",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:114-63-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.350278057383944,
+			 "metabolite_quantified": "chebi:73018",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:35842-45-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.30457772832971836,
+			 "metabolite_quantified": "chebi:17311",
+			 "alternate_identifiers": [
+				"kegg:C03793",
+				"cas:19253-88-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8359605150749594,
+			 "metabolite_quantified": "chebi:30851",
+			 "alternate_identifiers": [
+				"kegg:C00166",
+				"cas:156-06-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9122665392290918,
+			 "metabolite_quantified": "chebi:37084",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:625-08-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8776059352510613,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:638-18-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7563247023879894,
+			 "metabolite_quantified": "chebi:17000",
+			 "alternate_identifiers": [
+				"kegg:C01456",
+				"cas:529-64-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5947588282542681,
+			 "metabolite_quantified": "chebi:32797",
+			 "alternate_identifiers": [
+				"kegg:C03196",
+				"cas:13095-48-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.649720496351822,
+			 "metabolite_quantified": "chebi:42106",
+			 "alternate_identifiers": [
+				"kegg:C00265",
+				"cas:16096-97-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.40752451330661843,
+			 "metabolite_quantified": "chebi:68499",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:33008-07-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.633077271065503,
+			 "metabolite_quantified": "chebi:18261",
+			 "alternate_identifiers": [
+				"kegg:C02642",
+				"cas:462-88-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3772739873518273,
+			 "metabolite_quantified": "chebi:1879",
+			 "alternate_identifiers": [
+				"kegg:C06044",
+				"cas:501-94-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3030200782046874,
+			 "metabolite_quantified": "chebi:17150",
+			 "alternate_identifiers": [
+				"kegg:C00988",
+				"cas:13147-57-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.275468732180924,
+			 "metabolite_quantified": "chebi:44897",
+			 "alternate_identifiers": [
+				"kegg:C00074",
+				"cas:138-08-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6050547700723101,
+			 "metabolite_quantified": "chebi:16971",
+			 "alternate_identifiers": [
+				"kegg:C02814",
+				"cas:533-73-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19940504303345613,
+			 "metabolite_quantified": "chebi:37548",
+			 "alternate_identifiers": [
+				"kegg:C02734",
+				"cas:701-64-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7767428531918803,
+			 "metabolite_quantified": "chebi:16831",
+			 "alternate_identifiers": [
+				"kegg:C03761",
+				"cas:503-49-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7385174789382165,
+			 "metabolite_quantified": "chebi:30531",
+			 "alternate_identifiers": [
+				"kegg:C02656",
+				"cas:111-16-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.784743386742617,
+			 "metabolite_quantified": "chebi:17196",
+			 "alternate_identifiers": [
+				"kegg:C00152",
+				"cas:70-47-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4184614296148646,
+			 "metabolite_quantified": "chebi:17605",
+			 "alternate_identifiers": [
+				"kegg:C03057",
+				"cas:119-67-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5073427483270077,
+			 "metabolite_quantified": "chebi:15729",
+			 "alternate_identifiers": [
+				"kegg:C00077",
+				"cas:70-26-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.1910285855263032,
+			 "metabolite_quantified": "chebi:16394",
+			 "alternate_identifiers": [
+				"kegg:C03005",
+				"cas:119-68-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.49818929633709275,
+			 "metabolite_quantified": "chebi:17445",
+			 "alternate_identifiers": [
+				"kegg:C05593",
+				"cas:621-37-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34334527591394737,
+			 "metabolite_quantified": "chebi:27036",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:3588-17-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.27536983630724676,
+			 "metabolite_quantified": "chebi:16668",
+			 "alternate_identifiers": [
+				"kegg:C00519",
+				"cas:300-84-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.663361447278414,
+			 "metabolite_quantified": "chebi:17196",
+			 "alternate_identifiers": [
+				"kegg:C00152",
+				"cas:70-47-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4415038613418574,
+			 "metabolite_quantified": "chebi:15887",
+			 "alternate_identifiers": [
+				"kegg:C00431",
+				"cas:660-88-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2663477443097941,
+			 "metabolite_quantified": "chebi:16040",
+			 "alternate_identifiers": [
+				"kegg:C00380",
+				"cas:71-30-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.36221949423879796,
+			 "metabolite_quantified": "chebi:15815",
+			 "alternate_identifiers": [
+				"kegg:C06343",
+				"cas:611-36-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8823422964148306,
+			 "metabolite_quantified": "chebi:15671",
+			 "alternate_identifiers": [
+				"kegg:C00898",
+				"cas:87-69-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4837012686971997,
+			 "metabolite_quantified": "chebi:2030",
+			 "alternate_identifiers": [
+				"kegg:C04051",
+				"cas:360-97-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.43023224254157766,
+			 "metabolite_quantified": "chebi:30763",
+			 "alternate_identifiers": [
+				"kegg:C00156",
+				"cas:99-96-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.24378333920422113,
+			 "metabolite_quantified": "chebi:86562",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:6627-88-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.324651885652212,
+			 "metabolite_quantified": "chebi:16204",
+			 "alternate_identifiers": [
+				"kegg:C02183",
+				"cas:108-73-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8240386003389657,
+			 "metabolite_quantified": "chebi:15753",
+			 "alternate_identifiers": [
+				"kegg:C00322",
+				"cas:3184-35-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19848267896987026,
+			 "metabolite_quantified": "chebi:15783",
+			 "alternate_identifiers": [
+				"kegg:C04203",
+				"cas:99-98-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5686999506905994,
+			 "metabolite_quantified": "chebi:64390",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:24003-67-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8332245320887727,
+			 "metabolite_quantified": "chebi:18101",
+			 "alternate_identifiers": [
+				"kegg:C00642",
+				"cas:156-38-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9775751978756376,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:39840-37-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5316678902966561,
+			 "metabolite_quantified": "chebi:30805",
+			 "alternate_identifiers": [
+				"kegg:C02679",
+				"cas:143-07-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6160979110498036,
+			 "metabolite_quantified": "chebi:21547",
+			 "alternate_identifiers": [
+				"kegg:C01042",
+				"cas:997-55-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4006710292267192,
+			 "metabolite_quantified": "chebi:18353",
+			 "alternate_identifiers": [
+				"kegg:C06317",
+				"cas:498-00-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.42318299181669344,
+			 "metabolite_quantified": "chebi:15725",
+			 "alternate_identifiers": [
+				"kegg:C00986",
+				"cas:109-76-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4266285059348561,
+			 "metabolite_quantified": "chebi:84212",
+			 "alternate_identifiers": [
+				"kegg:C20450",
+				"cas:3238-40-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.53007859746566,
+			 "metabolite_quantified": "chebi:10696",
+			 "alternate_identifiers": [
+				"kegg:C11511",
+				"cas:7298-99-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.24683461221598732,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:10516-71-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.23908784518275422,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:621-59-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.1855308083559693,
+			 "metabolite_quantified": "chebi:18346",
+			 "alternate_identifiers": [
+				"kegg:C00755",
+				"cas:121-33-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7496647546468211,
+			 "metabolite_quantified": "chebi:37440",
+			 "alternate_identifiers": [
+				"kegg:C00846",
+				"cas:689-31-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.97200642305484,
+			 "metabolite_quantified": "chebi:16789",
+			 "alternate_identifiers": [
+				"kegg:C00476",
+				"cas:1114-34-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9815267053355424,
+			 "metabolite_quantified": "chebi:53455",
+			 "alternate_identifiers": [
+				"kegg:C00181",
+				"cas:58-86-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8291430208842931,
+			 "metabolite_quantified": "chebi:27469",
+			 "alternate_identifiers": [
+				"kegg:C06473",
+				"cas:669-90-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8945596788385688,
+			 "metabolite_quantified": "chebi:74168",
+			 "alternate_identifiers": [
+				"kegg:C02674",
+				"cas:5336-08-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5431637634019043,
+			 "metabolite_quantified": "chebi:16552",
+			 "alternate_identifiers": [
+				"kegg:C03145",
+				"cas:4289-98-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4812670722966462,
+			 "metabolite_quantified": "chebi:17588",
+			 "alternate_identifiers": [
+				"kegg:C00155",
+				"cas:6027-13-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6115375972260232,
+			 "metabolite_quantified": "chebi:16104",
+			 "alternate_identifiers": [
+				"kegg:C01198",
+				"cas:495-78-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.240512771948252,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.975630396887735,
+			 "metabolite_quantified": "chebi:46983",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:10323-20-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34656849724240835,
+			 "metabolite_quantified": "chebi:29081",
+			 "alternate_identifiers": [
+				"kegg:C04548",
+				"cas:94-07-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7241021563267693,
+			 "metabolite_quantified": "chebi:28939",
+			 "alternate_identifiers": [
+				"kegg:C06809",
+				"cas:616-91-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5121420222444496,
+			 "metabolite_quantified": "chebi:15699",
+			 "alternate_identifiers": [
+				"kegg:C00263",
+				"cas:672-15-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.26404810830325126,
+			 "metabolite_quantified": "chebi:28986",
+			 "alternate_identifiers": [
+				"kegg:C06180",
+				"cas:13078-04-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9613711759268991,
+			 "metabolite_quantified": "chebi:47013",
+			 "alternate_identifiers": [
+				"kegg:C00121",
+				"cas:50-69-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6935923285714833,
+			 "metabolite_quantified": "chebi:17140",
+			 "alternate_identifiers": [
+				"kegg:C00310",
+				"cas:551-84-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5804228688804018,
+			 "metabolite_quantified": "chebi:18115",
+			 "alternate_identifiers": [
+				"kegg:C00650",
+				"cas:13093-65-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5064853143811118,
+			 "metabolite_quantified": "chebi:29069",
+			 "alternate_identifiers": [
+				"kegg:C01606",
+				"cas:88-99-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5918948585595759,
+			 "metabolite_quantified": "chebi:28508",
+			 "alternate_identifiers": [
+				"kegg:C05585",
+				"cas:1194-98-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5488897422621581,
+			 "metabolite_quantified": "chebi:16347",
+			 "alternate_identifiers": [
+				"kegg:C00318",
+				"cas:541-15-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5352435882891741,
+			 "metabolite_quantified": "chebi:18138",
+			 "alternate_identifiers": [
+				"kegg:C06555",
+				"cas:108-19-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5239456751019288,
+			 "metabolite_quantified": "chebi:17138",
+			 "alternate_identifiers": [
+				"kegg:C00661",
+				"cas:142-10-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8875204231313966,
+			 "metabolite_quantified": "chebi:18333",
+			 "alternate_identifiers": [
+				"kegg:C01904",
+				"cas:488-82-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5227055223968824,
+			 "metabolite_quantified": "chebi:50205",
+			 "alternate_identifiers": [
+				"kegg:C16700",
+				"cas:139-85-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.593865957685847,
+			 "metabolite_quantified": "chebi:16675",
+			 "alternate_identifiers": [
+				"kegg:C03722",
+				"cas:89-00-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9937613817233091,
+			 "metabolite_quantified": "chebi:28140",
+			 "alternate_identifiers": [
+				"kegg:C02522",
+				"cas:7658-08-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.988244849565399,
+			 "metabolite_quantified": "chebi:2181",
+			 "alternate_identifiers": [
+				"kegg:C01019",
+				"cas:2438-80-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5888734463871239,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:2503-46-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6875439516295168,
+			 "metabolite_quantified": "chebi:37023",
+			 "alternate_identifiers": [
+				"kegg:C00956",
+				"cas:542-32-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.492478136999339,
+			 "metabolite_quantified": "chebi:132089",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:819-83-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37816227059775515,
+			 "metabolite_quantified": "chebi:1427",
+			 "alternate_identifiers": [
+				"kegg:C11457",
+				"cas:621-54-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4082285301939359,
+			 "metabolite_quantified": "chebi:16343",
+			 "alternate_identifiers": [
+				"kegg:C02735",
+				"cas:7568-93-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8676854083516314,
+			 "metabolite_quantified": "chebi:17151",
+			 "alternate_identifiers": [
+				"kegg:C00379",
+				"cas:87-99-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3550966156839849,
+			 "metabolite_quantified": "chebi:2781",
+			 "alternate_identifiers": [
+				"kegg:C11380",
+				"cas:498-02-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3755747866792631,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:20263-06-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6093054974536025,
+			 "metabolite_quantified": "chebi:16318",
+			 "alternate_identifiers": [
+				"kegg:C02235",
+				"cas:3316-09-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.531181133516856,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:62147-49-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.36103376901179296,
+			 "metabolite_quantified": "chebi:16742",
+			 "alternate_identifiers": [
+				"kegg:C00295",
+				"cas:65-86-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.45231346484976614,
+			 "metabolite_quantified": "chebi:17016",
+			 "alternate_identifiers": [
+				"kegg:C02989",
+				"cas:3226-65-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.21877016276733138,
+			 "metabolite_quantified": "chebi:15573",
+			 "alternate_identifiers": [
+				"kegg:C03557",
+				"cas:2041-14-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.519375119918977,
+			 "metabolite_quantified": "chebi:16349",
+			 "alternate_identifiers": [
+				"kegg:C00327",
+				"cas:372-75-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6088661648840556,
+			 "metabolite_quantified": "chebi:15963",
+			 "alternate_identifiers": [
+				"kegg:C00474",
+				"cas:488-81-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4123673591537953,
+			 "metabolite_quantified": "chebi:46837",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:499-83-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7515246341251125,
+			 "metabolite_quantified": "chebi:165524",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:628-94-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6205265309591688,
+			 "metabolite_quantified": "chebi:143268",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:93-62-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.27435528490840616,
+			 "metabolite_quantified": "chebi:15793",
+			 "alternate_identifiers": [
+				"kegg:C00632",
+				"cas:548-93-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6093148206610767,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:638-23-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5985872517673887,
+			 "metabolite_quantified": "chebi:17477",
+			 "alternate_identifiers": [
+				"kegg:C03030",
+				"cas:23945-44-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6648958305962528,
+			 "metabolite_quantified": "chebi:32805",
+			 "alternate_identifiers": [
+				"kegg:C00417",
+				"cas:585-84-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4407792286340043,
+			 "metabolite_quantified": "chebi:15978",
+			 "alternate_identifiers": [
+				"kegg:C00093",
+				"cas:57-03-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.42353687923538863,
+			 "metabolite_quantified": "chebi:37525",
+			 "alternate_identifiers": [
+				"kegg:C12147",
+				"cas:1114-81-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3712733389291165,
+			 "metabolite_quantified": "chebi:17189",
+			 "alternate_identifiers": [
+				"kegg:C00628",
+				"cas:490-79-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.31465658989258943,
+			 "metabolite_quantified": "chebi:32980",
+			 "alternate_identifiers": [
+				"kegg:C01744",
+				"cas:501-97-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6007937209558881,
+			 "metabolite_quantified": "chebi:16050",
+			 "alternate_identifiers": [
+				"kegg:C02172",
+				"cas:574-17-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.31906414537416006,
+			 "metabolite_quantified": "chebi:17553",
+			 "alternate_identifiers": [
+				"kegg:C00346",
+				"cas:1071-23-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2685407593223764,
+			 "metabolite_quantified": "chebi:388428",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:88546-55-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6319481864449608,
+			 "metabolite_quantified": "chebi:15811",
+			 "alternate_identifiers": [
+				"kegg:C01005",
+				"cas:407-41-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2100548102485596,
+			 "metabolite_quantified": "chebi:30816",
+			 "alternate_identifiers": [
+				"kegg:C06672",
+				"cas:121-34-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6337167091575675,
+			 "metabolite_quantified": "chebi:16259",
+			 "alternate_identifiers": [
+				"kegg:C03519",
+				"cas:2018-61-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5016706102267876,
+			 "metabolite_quantified": "chebi:545959",
+			 "alternate_identifiers": [
+				"kegg:C05582",
+				"cas:306-08-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5532270260617742,
+			 "metabolite_quantified": "chebi:24344",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2553-59-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.46550164674115474,
+			 "metabolite_quantified": "chebi:15918",
+			 "alternate_identifiers": [
+				"kegg:C00239",
+				"cas:1032-65-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.41753642751822934,
+			 "metabolite_quantified": "chebi:2404",
+			 "alternate_identifiers": [
+				"kegg:C10664",
+				"cas:2478-38-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5031851290712815,
+			 "metabolite_quantified": "chebi:16619",
+			 "alternate_identifiers": [
+				"kegg:C01126",
+				"cas:106-28-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.42448924551825595,
+			 "metabolite_quantified": "chebi:18089",
+			 "alternate_identifiers": [
+				"kegg:C01586",
+				"cas:495-69-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.47148160931721905,
+			 "metabolite_quantified": "chebi:17368",
+			 "alternate_identifiers": [
+				"kegg:C00262",
+				"cas:68-94-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5193717573061255,
+			 "metabolite_quantified": "chebi:17050",
+			 "alternate_identifiers": [
+				"kegg:C00597",
+				"cas:820-11-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.17104178823396302,
+			 "metabolite_quantified": "chebi:18386",
+			 "alternate_identifiers": [
+				"kegg:C06325",
+				"cas:93-10-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9203343134606089,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:2922-42-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8199944345283956,
+			 "metabolite_quantified": "chebi:18125",
+			 "alternate_identifiers": [
+				"kegg:C01772",
+				"cas:614-60-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5444913410905103,
+			 "metabolite_quantified": "chebi:16119",
+			 "alternate_identifiers": [
+				"kegg:C00493",
+				"cas:138-59-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7399020542681832,
+			 "metabolite_quantified": "chebi:17050",
+			 "alternate_identifiers": [
+				"kegg:C00597",
+				"cas:820-11-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.625519009031844,
+			 "metabolite_quantified": "chebi:17409",
+			 "alternate_identifiers": [
+				"kegg:C02774",
+				"cas:1679-53-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5722848852834103,
+			 "metabolite_quantified": "chebi:24814",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:700-06-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.44607661120130326,
+			 "metabolite_quantified": "chebi:17682",
+			 "alternate_identifiers": [
+				"kegg:C01408",
+				"cas:119-53-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3258601738150326,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:3177-80-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4429787044879373,
+			 "metabolite_quantified": "chebi:18316",
+			 "alternate_identifiers": [
+				"kegg:C06552",
+				"cas:2163-68-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7768096208082973,
+			 "metabolite_quantified": "chebi:4047",
+			 "alternate_identifiers": [
+				"kegg:C01419",
+				"cas:19246-18-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7233140129993298,
+			 "metabolite_quantified": "chebi:27625",
+			 "alternate_identifiers": [
+				"kegg:C06156",
+				"cas:2152-75-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7996881824354937,
+			 "metabolite_quantified": "chebi:27625",
+			 "alternate_identifiers": [
+				"kegg:C06156",
+				"cas:2152-75-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6811808652127845,
+			 "metabolite_quantified": "chebi:27625",
+			 "alternate_identifiers": [
+				"kegg:C06156",
+				"cas:2152-75-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.338276210868146,
+			 "metabolite_quantified": "chebi:67380",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:134-96-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.22702277703903304,
+			 "metabolite_quantified": "chebi:15890",
+			 "alternate_identifiers": [
+				"kegg:C03114",
+				"cas:582-60-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6874114401857945,
+			 "metabolite_quantified": "chebi:41941",
+			 "alternate_identifiers": [
+				"kegg:C01161",
+				"cas:102-32-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5990253855433475,
+			 "metabolite_quantified": "chebi:41941",
+			 "alternate_identifiers": [
+				"kegg:C01161",
+				"cas:102-32-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.46082401549178637,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:60658-41-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7488706639198485,
+			 "metabolite_quantified": "chebi:44747",
+			 "alternate_identifiers": [
+				"kegg:C00544",
+				"cas:451-13-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3857087203022486,
+			 "metabolite_quantified": "chebi:39912",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:99-10-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6109915451852928,
+			 "metabolite_quantified": "chebi:17405",
+			 "alternate_identifiers": [
+				"kegg:C00847",
+				"cas:82-82-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7714164596692433,
+			 "metabolite_quantified": "chebi:71028",
+			 "alternate_identifiers": [
+				"kegg:C05829",
+				"cas:1188-38-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5306087855002699,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:147664-83-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39979164674592205,
+			 "metabolite_quantified": "chebi:36062",
+			 "alternate_identifiers": [
+				"kegg:C00230",
+				"cas:99-50-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8086021318879955,
+			 "metabolite_quantified": "chebi:30887",
+			 "alternate_identifiers": [
+				"kegg:C00311",
+				"cas:320-77-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.768336255531053,
+			 "metabolite_quantified": "chebi:30769",
+			 "alternate_identifiers": [
+				"kegg:C00158",
+				"cas:77-92-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8334550858594911,
+			 "metabolite_quantified": "chebi:27956",
+			 "alternate_identifiers": [
+				"kegg:C05422",
+				"cas:490-83-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5492822501639915,
+			 "metabolite_quantified": "chebi:28483",
+			 "alternate_identifiers": [
+				"kegg:C05135",
+				"cas:673-49-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4046397163966322,
+			 "metabolite_quantified": "chebi:28918",
+			 "alternate_identifiers": [
+				"kegg:C00788",
+				"cas:51-43-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4058002187248818,
+			 "metabolite_quantified": "chebi:28918",
+			 "alternate_identifiers": [
+				"kegg:C00788",
+				"cas:51-43-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5735916424589104,
+			 "metabolite_quantified": "chebi:28875",
+			 "alternate_identifiers": [
+				"kegg:C06424",
+				"cas:544-63-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8223721798126299,
+			 "metabolite_quantified": "chebi:15999",
+			 "alternate_identifiers": [
+				"kegg:C01179",
+				"cas:156-39-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2678558855165899,
+			 "metabolite_quantified": "chebi:945",
+			 "alternate_identifiers": [
+				"kegg:C00102",
+				"cas:956-48-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9643525532428778,
+			 "metabolite_quantified": "chebi:4249",
+			 "alternate_identifiers": [
+				"kegg:C00795",
+				"cas:87-81-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9836393070536397,
+			 "metabolite_quantified": "chebi:27625",
+			 "alternate_identifiers": [
+				"kegg:C06156",
+				"cas:2152-75-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7080657685041684,
+			 "metabolite_quantified": "chebi:17540",
+			 "alternate_identifiers": [
+				"kegg:C03619",
+				"cas:1824-94-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5775680796433912,
+			 "metabolite_quantified": "chebi:846276",
+			 "alternate_identifiers": [
+				"kegg:C05594",
+				"cas:534-82-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5005590387399416,
+			 "metabolite_quantified": "chebi:125366",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:220006-74-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4694453049302626,
+			 "metabolite_quantified": "chebi:18292",
+			 "alternate_identifiers": [
+				"kegg:C08491",
+				"cas:6894-38-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.47364399085203474,
+			 "metabolite_quantified": "chebi:16489",
+			 "alternate_identifiers": [
+				"kegg:C03212",
+				"cas:487-21-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6738186019170013,
+			 "metabolite_quantified": "chebi:17215",
+			 "alternate_identifiers": [
+				"kegg:C03404",
+				"cas:1080-06-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3342951455333458,
+			 "metabolite_quantified": "chebi:68455",
+			 "alternate_identifiers": [
+				"kegg:\t C01586",
+				"cas:42013-20-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.29113945930857477,
+			 "metabolite_quantified": "chebi:16576",
+			 "alternate_identifiers": [
+				"kegg:C00993",
+				"cas:923-16-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3439949354122835,
+			 "metabolite_quantified": "chebi:30835",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:6061-96-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7642517070866662,
+			 "metabolite_quantified": "chebi:17072",
+			 "alternate_identifiers": [
+				"kegg:C03139",
+				"cas:6133-30-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.28301537969419044,
+			 "metabolite_quantified": "chebi:28315",
+			 "alternate_identifiers": [
+				"kegg:C07599",
+				"cas:2465-59-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7678542723811502,
+			 "metabolite_quantified": "chebi:37741",
+			 "alternate_identifiers": [
+				"kegg:C01487",
+				"cas:6038-51-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7464048168859547,
+			 "metabolite_quantified": "chebi:17268",
+			 "alternate_identifiers": [
+				"kegg:C00137",
+				"cas:87-89-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7914354942147015,
+			 "metabolite_quantified": "chebi:15676",
+			 "alternate_identifiers": [
+				"kegg:C01551",
+				"cas:97-59-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6109164957979352,
+			 "metabolite_quantified": "chebi:32357",
+			 "alternate_identifiers": [
+				"kegg:C12621",
+				"cas:14755-02-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7489888347419879,
+			 "metabolite_quantified": "chebi:27480",
+			 "alternate_identifiers": [
+				"kegg:C05598",
+				"cas:500-98-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9724748112608725,
+			 "metabolite_quantified": "chebi:13022",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:3615-56-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3714601775583804,
+			 "metabolite_quantified": "chebi:15971",
+			 "alternate_identifiers": [
+				"kegg:C00135",
+				"cas:71-00-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.24337441381061423,
+			 "metabolite_quantified": "chebi:15760",
+			 "alternate_identifiers": [
+				"kegg:C00483",
+				"cas:51-67-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5062028032616804,
+			 "metabolite_quantified": "chebi:17566",
+			 "alternate_identifiers": [
+				"kegg:C02938",
+				"cas:771-51-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4087707227704862,
+			 "metabolite_quantified": "chebi:17587",
+			 "alternate_identifiers": [
+				"kegg:C01040",
+				"cas:1128-23-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.45426070975392285,
+			 "metabolite_quantified": "chebi:1387",
+			 "alternate_identifiers": [
+				"kegg:C05576",
+				"cas:28822-73-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.22267104225145634,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:2979-06-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9894438392271604,
+			 "metabolite_quantified": "chebi:17521",
+			 "alternate_identifiers": [
+				"kegg:C00296",
+				"cas:77-95-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6864721320684033,
+			 "metabolite_quantified": "chebi:68461",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2595-98-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5234951962361408,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:23403-54-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7410315800163757,
+			 "metabolite_quantified": "chebi:88378",
+			 "alternate_identifiers": [
+				"kegg:C03342",
+				"cas:91548-32-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.45716018867600217,
+			 "metabolite_quantified": "chebi:16709",
+			 "alternate_identifiers": [
+				"kegg:C00314",
+				"cas:65-23-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4132611754788967,
+			 "metabolite_quantified": "chebi:7563",
+			 "alternate_identifiers": [
+				"kegg:C05380",
+				"cas:583-08-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2906109774798342,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:72963-27-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39768848502102755,
+			 "metabolite_quantified": "chebi:17895",
+			 "alternate_identifiers": [
+				"kegg:C00082",
+				"cas:60-18-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6753765111395865,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:1990-29-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9333430908805986,
+			 "metabolite_quantified": "chebi:28645",
+			 "alternate_identifiers": [
+				"kegg:C02336",
+				"cas:53188-23-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.788141250354308,
+			 "metabolite_quantified": "chebi:16217",
+			 "alternate_identifiers": [
+				"kegg:C00198",
+				"cas:90-80-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4391156764868105,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:201595-65-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.29156945973589526,
+			 "metabolite_quantified": "chebi:48153",
+			 "alternate_identifiers": [
+				"kegg:C00279",
+				"cas:585-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34273261499091,
+			 "metabolite_quantified": "chebi:48153",
+			 "alternate_identifiers": [
+				"kegg:C00279",
+				"cas:585-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3712739230754595,
+			 "metabolite_quantified": "chebi:48153",
+			 "alternate_identifiers": [
+				"kegg:C00279",
+				"cas:585-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8738837881096981,
+			 "metabolite_quantified": "chebi:28729",
+			 "alternate_identifiers": [
+				"kegg:C00936",
+				"cas:3458-28-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9659754024973717,
+			 "metabolite_quantified": "chebi:33198",
+			 "alternate_identifiers": [
+				"kegg:C00257",
+				"cas:526-95-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7685171288917338,
+			 "metabolite_quantified": "chebi:17587",
+			 "alternate_identifiers": [
+				"kegg:C01040",
+				"cas:1128-23-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.528310860971707,
+			 "metabolite_quantified": "chebi:17947",
+			 "alternate_identifiers": [
+				"kegg:C00944",
+				"cas:10534-44-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.35104227335049765,
+			 "metabolite_quantified": "chebi:18019",
+			 "alternate_identifiers": [
+				"kegg:C00047",
+				"cas:56-87-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.29010848497936026,
+			 "metabolite_quantified": "chebi:27637",
+			 "alternate_identifiers": [
+				"kegg:C05580",
+				"cas:775-01-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2193204950702227,
+			 "metabolite_quantified": "chebi:143265",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:1002-57-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7015150430293612,
+			 "metabolite_quantified": "chebi:47952",
+			 "alternate_identifiers": [
+				"kegg:C00191",
+				"cas:6556-12-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2924663072882228,
+			 "metabolite_quantified": "chebi:68329",
+			 "alternate_identifiers": [
+				"kegg:C10833",
+				"cas:530-57-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9146309745829166,
+			 "metabolite_quantified": "chebi:28061",
+			 "alternate_identifiers": [
+				"kegg:C00984",
+				"cas:3646-73-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8709551902658372,
+			 "metabolite_quantified": "chebi:17924",
+			 "alternate_identifiers": [
+				"kegg:C00794",
+				"cas:50-70-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6424006093884501,
+			 "metabolite_quantified": "chebi:27373",
+			 "alternate_identifiers": [
+				"kegg:C05944",
+				"cas:81-13-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7479886699225998,
+			 "metabolite_quantified": "chebi:46905",
+			 "alternate_identifiers": [
+				"kegg:C00864",
+				"cas:79-83-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6314758436388254,
+			 "metabolite_quantified": "chebi:47962",
+			 "alternate_identifiers": [
+				"kegg:C08348",
+				"cas:14982-50-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8137980846072558,
+			 "metabolite_quantified": "chebi:29073",
+			 "alternate_identifiers": [
+				"kegg:C01041",
+				"cas:50-81-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4525767853660057,
+			 "metabolite_quantified": "chebi:16547",
+			 "alternate_identifiers": [
+				"kegg:C02666",
+				"cas:458-36-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6788145036969098,
+			 "metabolite_quantified": "chebi:21260",
+			 "alternate_identifiers": [
+				"kegg:C00506",
+				"cas:498-40-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2425444370283439,
+			 "metabolite_quantified": "chebi:16532",
+			 "alternate_identifiers": [
+				"kegg:C03710",
+				"cas:1138-80-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3889176442997794,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:284664-96-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.94256901932764,
+			 "metabolite_quantified": "chebi:15903",
+			 "alternate_identifiers": [
+				"kegg:C00221",
+				"cas:492-61-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4525992608983422,
+			 "metabolite_quantified": "chebi:30314",
+			 "alternate_identifiers": [
+				"kegg:C16241",
+				"cas:1200-22-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5860036865837085,
+			 "metabolite_quantified": "chebi:64557",
+			 "alternate_identifiers": [
+				"kegg:C02325",
+				"cas:537-33-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7067790978855232,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:469-90-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7051731867313648,
+			 "metabolite_quantified": "chebi:16705",
+			 "alternate_identifiers": [
+				"kegg:C02954",
+				"cas:551-16-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37113744953572364,
+			 "metabolite_quantified": "chebi:16411",
+			 "alternate_identifiers": [
+				"kegg:C00954",
+				"cas:87-51-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37902187751002303,
+			 "metabolite_quantified": "chebi:16031",
+			 "alternate_identifiers": [
+				"kegg:C02693",
+				"cas:879-37-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3303973847378042,
+			 "metabolite_quantified": "chebi:32374",
+			 "alternate_identifiers": [
+				"kegg:C00811",
+				"cas:501-98-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.414076342352922,
+			 "metabolite_quantified": "chebi:30778",
+			 "alternate_identifiers": [
+				"kegg:C01424",
+				"cas:149-91-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19503997349308072,
+			 "metabolite_quantified": "chebi:16125",
+			 "alternate_identifiers": [
+				"kegg:C00823",
+				"cas:36653-82-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9947591379579006,
+			 "metabolite_quantified": "chebi:16899",
+			 "alternate_identifiers": [
+				"kegg:C00392",
+				"cas:69-65-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.20406341929857105,
+			 "metabolite_quantified": "chebi:16125",
+			 "alternate_identifiers": [
+				"kegg:C00823",
+				"cas:36653-82-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8470822289251924,
+			 "metabolite_quantified": "chebi:47952",
+			 "alternate_identifiers": [
+				"kegg:C00191",
+				"cas:6556-12-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4164419428951253,
+			 "metabolite_quantified": "chebi:16543",
+			 "alternate_identifiers": [
+				"kegg:C00437",
+				"cas:6205-08-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.92340809036133,
+			 "metabolite_quantified": "chebi:16813",
+			 "alternate_identifiers": [
+				"kegg:C01697",
+				"cas:608-66-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8696898503604297,
+			 "metabolite_quantified": "chebi:405237",
+			 "alternate_identifiers": [
+				"kegg:C00308",
+				"cas:543-38-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6189769033286633,
+			 "metabolite_quantified": "chebi:4153",
+			 "alternate_identifiers": [
+				"kegg:C00333",
+				"cas:685-73-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.35514695725146067,
+			 "metabolite_quantified": "chebi:70744",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:704-15-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.30792781876585446,
+			 "metabolite_quantified": "chebi:17440",
+			 "alternate_identifiers": [
+				"kegg:C03360",
+				"cas:330-13-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3306205883867741,
+			 "metabolite_quantified": "chebi:28136",
+			 "alternate_identifiers": [
+				"kegg:C06213",
+				"cas:61-49-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5705974959042258,
+			 "metabolite_quantified": "chebi:16026",
+			 "alternate_identifiers": [
+				"kegg:C00666",
+				"cas:583-93-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.43421600805140775,
+			 "metabolite_quantified": "chebi:36108",
+			 "alternate_identifiers": [
+				"kegg:C03203",
+				"cas:86-48-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8461385393160936,
+			 "metabolite_quantified": "chebi:17784",
+			 "alternate_identifiers": [
+				"kegg:C03752",
+				"cas:3646-68-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.28665175149133193,
+			 "metabolite_quantified": "chebi:27543",
+			 "alternate_identifiers": [
+				"kegg:C08060",
+				"cas:86-74-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.31047141231725683,
+			 "metabolite_quantified": "chebi:17224",
+			 "alternate_identifiers": [
+				"kegg:C03081",
+				"cas:90-33-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5230967327642227,
+			 "metabolite_quantified": "chebi:30817",
+			 "alternate_identifiers": [
+				"kegg:C00785",
+				"cas:104-98-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.666596742135966,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:20989-69-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6958598119219754,
+			 "metabolite_quantified": "chebi:17712",
+			 "alternate_identifiers": [
+				"kegg:C00385",
+				"cas:69-89-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6852206439316647,
+			 "metabolite_quantified": "chebi:87248",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:17685-04-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7656923044092377,
+			 "metabolite_quantified": "chebi:16002",
+			 "alternate_identifiers": [
+				"kegg:C00818",
+				"cas:87-73-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.628848876240473,
+			 "metabolite_quantified": "chebi:17361",
+			 "alternate_identifiers": [
+				"kegg:C00055",
+				"cas:63-37-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3327305976131992,
+			 "metabolite_quantified": "chebi:6856",
+			 "alternate_identifiers": [
+				"kegg:C10477",
+				"cas:3843-74-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9598098128939745,
+			 "metabolite_quantified": "chebi:16534",
+			 "alternate_identifiers": [
+				"kegg:C00880",
+				"cas:13382-27-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6628852611489869,
+			 "metabolite_quantified": "chebi:15873",
+			 "alternate_identifiers": [
+				"kegg:C00352",
+				"cas:55722-81-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6303457055321472,
+			 "metabolite_quantified": "chebi:53678",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:7423-93-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3842753615080728,
+			 "metabolite_quantified": "chebi:28716",
+			 "alternate_identifiers": [
+				"kegg:C08362",
+				"cas:373-49-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.48331917382272294,
+			 "metabolite_quantified": "chebi:16160",
+			 "alternate_identifiers": [
+				"kegg:C01118",
+				"cas:1492-23-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6348445074765512,
+			 "metabolite_quantified": "chebi:150326",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:64519-82-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.20706510254695523,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:4046-02-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7739447264562032,
+			 "metabolite_quantified": "chebi:30852",
+			 "alternate_identifiers": [
+				"kegg:C00879",
+				"cas:526-99-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.23514311239990504,
+			 "metabolite_quantified": "chebi:17488",
+			 "alternate_identifiers": [
+				"kegg:C01752",
+				"cas:92-61-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9159048665253925,
+			 "metabolite_quantified": "chebi:67270",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:87-74-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2561556070809482,
+			 "metabolite_quantified": "chebi:28282",
+			 "alternate_identifiers": [
+				"kegg:C04335",
+				"cas:2018-66-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7318444387797199,
+			 "metabolite_quantified": "chebi:61448",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:367-93-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.32321064709661107,
+			 "metabolite_quantified": "chebi:15765",
+			 "alternate_identifiers": [
+				"kegg:C00355",
+				"cas:59-92-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.16907039184709677,
+			 "metabolite_quantified": "chebi:742324",
+			 "alternate_identifiers": [
+				"kegg:C05587",
+				"cas:554-52-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9032002200935175,
+			 "metabolite_quantified": "chebi:17268",
+			 "alternate_identifiers": [
+				"kegg:C00137",
+				"cas:87-89-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6121362766140558,
+			 "metabolite_quantified": "chebi:18344",
+			 "alternate_identifiers": [
+				"kegg:C01717",
+				"cas:492-27-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.20798994110655428,
+			 "metabolite_quantified": "chebi:16437",
+			 "alternate_identifiers": [
+				"kegg:C02997",
+				"cas:2497-02-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8775598652137997,
+			 "metabolite_quantified": "chebi:63154",
+			 "alternate_identifiers": [
+				"kegg:C00645",
+				"cas:7772-94-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8514103175475815,
+			 "metabolite_quantified": "chebi:17460",
+			 "alternate_identifiers": [
+				"kegg:C00248",
+				"cas:940-69-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8964280479600165,
+			 "metabolite_quantified": "chebi:506227",
+			 "alternate_identifiers": [
+				"kegg:C00140",
+				"cas:7512-17-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4896586711638413,
+			 "metabolite_quantified": "chebi:15714",
+			 "alternate_identifiers": [
+				"kegg:C00482",
+				"cas:7362-37-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4185504535122435,
+			 "metabolite_quantified": "chebi:18243",
+			 "alternate_identifiers": [
+				"kegg:C03758",
+				"cas:51-61-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.44155356949810287,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:7636-26-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8434560480591624,
+			 "metabolite_quantified": "chebi:30852",
+			 "alternate_identifiers": [
+				"kegg:C00879",
+				"cas:526-99-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3515817085580206,
+			 "metabolite_quantified": "chebi:48991",
+			 "alternate_identifiers": [
+				"kegg:C16353",
+				"cas:552-62-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6836930772462061,
+			 "metabolite_quantified": "chebi:44356",
+			 "alternate_identifiers": [
+				"kegg:C05353",
+				"cas:7365-44-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19281716624651887,
+			 "metabolite_quantified": "chebi:28820",
+			 "alternate_identifiers": [
+				"kegg:C11430",
+				"cas:484-17-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3422639272879638,
+			 "metabolite_quantified": "chebi:6052",
+			 "alternate_identifiers": [
+				"kegg:C10084",
+				"cas:480-19-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9993939800083657,
+			 "metabolite_quantified": "chebi:17268",
+			 "alternate_identifiers": [
+				"kegg:C00137",
+				"cas:87-89-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2511272333887732,
+			 "metabolite_quantified": "chebi:16713",
+			 "alternate_identifiers": [
+				"kegg:C03975",
+				"cas:529-69-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.24481299775088783,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:21598-06-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4928842883037788,
+			 "metabolite_quantified": "chebi:32365",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:506-12-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4046780630728231,
+			 "metabolite_quantified": "chebi:28281",
+			 "alternate_identifiers": [
+				"kegg:C05660",
+				"cas:3471-31-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.44407750115810846,
+			 "metabolite_quantified": "chebi:24813",
+			 "alternate_identifiers": [
+				"kegg:C02043",
+				"cas:1821-52-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.37473761625424923,
+			 "metabolite_quantified": "chebi:17363",
+			 "alternate_identifiers": [
+				"kegg:C00199",
+				"cas:4151-19-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5080286072282052,
+			 "metabolite_quantified": "chebi:16433",
+			 "alternate_identifiers": [
+				"kegg:C01481",
+				"cas:331-39-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2426108129328925,
+			 "metabolite_quantified": "chebi:18357",
+			 "alternate_identifiers": [
+				"kegg:C00547",
+				"cas:51-41-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6643064148699885,
+			 "metabolite_quantified": "chebi:18189",
+			 "alternate_identifiers": [
+				"kegg:C03736",
+				"cas:34980-65-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5430240260651776,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:300-34-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39698881003175407,
+			 "metabolite_quantified": "chebi:16856",
+			 "alternate_identifiers": [
+				"kegg:C00051",
+				"cas:70-18-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.38516593792548404,
+			 "metabolite_quantified": "chebi:61058",
+			 "alternate_identifiers": [
+				"kegg:C07194",
+				"cas:555-30-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2403526067946266,
+			 "metabolite_quantified": "chebi:17327",
+			 "alternate_identifiers": [
+				"kegg:C01389",
+				"cas:7541-49-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5500414893801734,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:154-02-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.41463620673807977,
+			 "metabolite_quantified": "chebi:18094",
+			 "alternate_identifiers": [
+				"kegg:C03657",
+				"cas:31519-22-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4971600937854799,
+			 "metabolite_quantified": "chebi:15851",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:21416-43-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6211148419959246,
+			 "metabolite_quantified": "chebi:73828",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:6157-06-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2516859806001377,
+			 "metabolite_quantified": "chebi:133474",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:52079-10-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2904686264565181,
+			 "metabolite_quantified": "chebi:17351",
+			 "alternate_identifiers": [
+				"kegg:C01595",
+				"cas:60-33-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.23160510395744882,
+			 "metabolite_quantified": "chebi:27823",
+			 "alternate_identifiers": [
+				"kegg:C05635",
+				"cas:54-16-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2147383885732136,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:17660-51-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5569732944251857,
+			 "metabolite_quantified": "chebi:16946",
+			 "alternate_identifiers": [
+				"kegg:C00328",
+				"cas:2922-83-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4679735083325593,
+			 "metabolite_quantified": "chebi:16828",
+			 "alternate_identifiers": [
+				"kegg:C00078",
+				"cas:73-22-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4355324017802179,
+			 "metabolite_quantified": "chebi:16283",
+			 "alternate_identifiers": [
+				"kegg:C00491",
+				"cas:56-89-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3480840533960778,
+			 "metabolite_quantified": "chebi:16196",
+			 "alternate_identifiers": [
+				"kegg:C00712",
+				"cas:112-80-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8190723257720895,
+			 "metabolite_quantified": "chebi:18047",
+			 "alternate_identifiers": [
+				"kegg:C02147",
+				"cas:462-20-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5492228191423947,
+			 "metabolite_quantified": "chebi:28842",
+			 "alternate_identifiers": [
+				"kegg:C01530",
+				"cas:57-11-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4649598728130889,
+			 "metabolite_quantified": "chebi:18358",
+			 "alternate_identifiers": [
+				"kegg:C01864",
+				"cas:298-81-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3675810642197543,
+			 "metabolite_quantified": "chebi:33216",
+			 "alternate_identifiers": [
+				"kegg:C13624",
+				"cas:80-05-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.29481973529553335,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:62595-11-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.23405977239726714,
+			 "metabolite_quantified": "chebi:17356",
+			 "alternate_identifiers": [
+				"kegg:C02778",
+				"cas:53-96-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.41443709236782106,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:41468-25-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3955014331917533,
+			 "metabolite_quantified": "chebi:15946",
+			 "alternate_identifiers": [
+				"kegg:C00085",
+				"cas:643-13-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8089885713292645,
+			 "metabolite_quantified": "chebi:8083",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:1464-44-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39939226031475844,
+			 "metabolite_quantified": "chebi:16450",
+			 "alternate_identifiers": [
+				"kegg:C00526",
+				"cas:951-78-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3127653384523637,
+			 "metabolite_quantified": "chebi:545959",
+			 "alternate_identifiers": [
+				"kegg:C05582",
+				"cas:306-08-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4910377294842236,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:60113-83-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4506419681180908,
+			 "metabolite_quantified": "chebi:4170",
+			 "alternate_identifiers": [
+				"kegg:C00092",
+				"cas:56-73-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2459513006545777,
+			 "metabolite_quantified": "chebi:16664",
+			 "alternate_identifiers": [
+				"kegg:C01779",
+				"cas:54965-21-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4018230053851313,
+			 "metabolite_quantified": "chebi:17748",
+			 "alternate_identifiers": [
+				"kegg:C00214",
+				"cas:50-89-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3708752763976886,
+			 "metabolite_quantified": "chebi:17697",
+			 "alternate_identifiers": [
+				"kegg:C00978",
+				"cas:1210-83-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4093709642187235,
+			 "metabolite_quantified": "chebi:16522",
+			 "alternate_identifiers": [
+				"kegg:C00371",
+				"cas:1637-39-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34299505625060184,
+			 "metabolite_quantified": "chebi:17381",
+			 "alternate_identifiers": [
+				"kegg:C00931",
+				"cas:487-90-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39646985833534526,
+			 "metabolite_quantified": "chebi:89698",
+			 "alternate_identifiers": [
+				"kegg:C01817",
+				"cas:626-72-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3634416121173841,
+			 "metabolite_quantified": "chebi:545959",
+			 "alternate_identifiers": [
+				"kegg:C05582",
+				"cas:306-08-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8403128150633696,
+			 "metabolite_quantified": "chebi:45744",
+			 "alternate_identifiers": [
+				"kegg:C19910",
+				"cas:19342-33-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3967987322182729,
+			 "metabolite_quantified": "chebi:17780",
+			 "alternate_identifiers": [
+				"kegg:C00643",
+				"cas:4350-09-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9111730814150164,
+			 "metabolite_quantified": "chebi:17012",
+			 "alternate_identifiers": [
+				"kegg:C00270",
+				"cas:131-48-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.484481621111291,
+			 "metabolite_quantified": "chebi:28822",
+			 "alternate_identifiers": [
+				"kegg:C06425",
+				"cas:506-30-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9492810342066408,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:C01630",
+				"cas:6860-47-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5886686196350319,
+			 "metabolite_quantified": "chebi:1547",
+			 "alternate_identifiers": [
+				"kegg:C02794",
+				"cas:484-78-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5662867526377698,
+			 "metabolite_quantified": "chebi:15956",
+			 "alternate_identifiers": [
+				"kegg:C00120",
+				"cas:58-85-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5690573394719207,
+			 "metabolite_quantified": "chebi:46968",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:13552-09-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5248187775660089,
+			 "metabolite_quantified": "chebi:63931",
+			 "alternate_identifiers": [
+				"kegg:C06313",
+				"cas:22150-76-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6736506617034608,
+			 "metabolite_quantified": "chebi:17562",
+			 "alternate_identifiers": [
+				"kegg:C00475",
+				"cas:65-46-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5705258986768948,
+			 "metabolite_quantified": "chebi:48928",
+			 "alternate_identifiers": [
+				"kegg:C00345",
+				"cas:921-62-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7372988762765809,
+			 "metabolite_quantified": "chebi:59016",
+			 "alternate_identifiers": [
+				"kegg:C09806",
+				"cas:13241-33-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2997712500841572,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:16652-64-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.2732777805879653,
+			 "metabolite_quantified": "chebi:53650",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:7382-59-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4295477297342532,
+			 "metabolite_quantified": "chebi:73517",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:658-79-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5276437256450702,
+			 "metabolite_quantified": "chebi:28130",
+			 "alternate_identifiers": [
+				"kegg:C05958",
+				"cas:87893-54-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8648759862775652,
+			 "metabolite_quantified": "chebi:18305",
+			 "alternate_identifiers": [
+				"kegg:C06186",
+				"cas:497-76-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4347392998457499,
+			 "metabolite_quantified": "chebi:28125",
+			 "alternate_identifiers": [
+				"kegg:C06429",
+				"cas:6217-54-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.33834390101119155,
+			 "metabolite_quantified": "chebi:16866",
+			 "alternate_identifiers": [
+				"kegg:C01474",
+				"cas:72-48-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6626967845434117,
+			 "metabolite_quantified": "chebi:46961",
+			 "alternate_identifiers": [
+				"kegg:C12144",
+				"cas:554-62-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.39873080017384516,
+			 "metabolite_quantified": "chebi:68819",
+			 "alternate_identifiers": [
+				"kegg:C01151",
+				"cas:14689-84-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.34968910987631224,
+			 "metabolite_quantified": "chebi:28689",
+			 "alternate_identifiers": [
+				"kegg:C01227",
+				"cas:53-43-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6371976673840252,
+			 "metabolite_quantified": "chebi:15721",
+			 "alternate_identifiers": [
+				"kegg:C00281",
+				"cas:2646-35-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6066154406859551,
+			 "metabolite_quantified": "chebi:17256",
+			 "alternate_identifiers": [
+				"kegg:C00559",
+				"cas:958-09-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4709941956666397,
+			 "metabolite_quantified": "chebi:15768",
+			 "alternate_identifiers": [
+				"kegg:C01060",
+				"cas:300-39-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7015001578262456,
+			 "metabolite_quantified": "chebi:16335",
+			 "alternate_identifiers": [
+				"kegg:C00212",
+				"cas:58-61-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6413234268526999,
+			 "metabolite_quantified": "chebi:15367",
+			 "alternate_identifiers": [
+				"kegg:C00777",
+				"cas:302-79-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4145931723416417,
+			 "metabolite_quantified": "chebi:17781",
+			 "alternate_identifiers": [
+				"kegg:C01727",
+				"cas:1086-80-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6792461307633331,
+			 "metabolite_quantified": "chebi:6359",
+			 "alternate_identifiers": [
+				"kegg:C07064",
+				"cas:4618-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8428705781576713,
+			 "metabolite_quantified": "chebi:55481",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:96-82-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9811430969236434,
+			 "metabolite_quantified": "chebi:17992",
+			 "alternate_identifiers": [
+				"kegg:C00089",
+				"cas:57-50-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4536300804593507,
+			 "metabolite_quantified": "chebi:34146",
+			 "alternate_identifiers": [
+				"kegg:C14777",
+				"cas:54397-83-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.38486719292422295,
+			 "metabolite_quantified": "chebi:34306",
+			 "alternate_identifiers": [
+				"kegg:C14748",
+				"cas:79551-86-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4033687715167437,
+			 "metabolite_quantified": "chebi:17263",
+			 "alternate_identifiers": [
+				"kegg:C00468",
+				"cas:53-16-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5434945205674575,
+			 "metabolite_quantified": "chebi:28689",
+			 "alternate_identifiers": [
+				"kegg:C01227",
+				"cas:53-43-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5745314333074589,
+			 "metabolite_quantified": "chebi:27768",
+			 "alternate_identifiers": [
+				"kegg:C05296",
+				"cas:62-84-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5080015327002548,
+			 "metabolite_quantified": "chebi:17509",
+			 "alternate_identifiers": [
+				"kegg:C00170",
+				"cas:2457-80-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.712983861039948,
+			 "metabolite_quantified": "chebi:16020",
+			 "alternate_identifiers": [
+				"kegg:C02494",
+				"cas:15763-06-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5450253682788571,
+			 "metabolite_quantified": "chebi:20607",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2140-61-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4654805145214163,
+			 "metabolite_quantified": "chebi:16905",
+			 "alternate_identifiers": [
+				"kegg:C00354",
+				"cas:488-69-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7363661905144931,
+			 "metabolite_quantified": "chebi:16750",
+			 "alternate_identifiers": [
+				"kegg:C00387",
+				"cas:118-00-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.370653101285657,
+			 "metabolite_quantified": "chebi:15746",
+			 "alternate_identifiers": [
+				"kegg:C00750",
+				"cas:71-44-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7092925839045611,
+			 "metabolite_quantified": "chebi:32528",
+			 "alternate_identifiers": [
+				"kegg:C19636",
+				"cas:547-25-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.396591127351313,
+			 "metabolite_quantified": "chebi:544560",
+			 "alternate_identifiers": [
+				"kegg:C18166",
+				"cas:80226-00-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.409055332325491,
+			 "metabolite_quantified": "chebi:76125",
+			 "alternate_identifiers": [
+				"kegg:C09728",
+				"cas:35323-91-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6786851748967649,
+			 "metabolite_quantified": "chebi:15647",
+			 "alternate_identifiers": [
+				"kegg:C02165",
+				"cas:71160-24-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4246262354141252,
+			 "metabolite_quantified": "chebi:55481",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:96-82-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6461028872951909,
+			 "metabolite_quantified": "chebi:16784",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:3583-03-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.47313056755021876,
+			 "metabolite_quantified": "chebi:17509",
+			 "alternate_identifiers": [
+				"kegg:C00170",
+				"cas:2457-80-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6024727906411653,
+			 "metabolite_quantified": "chebi:28442",
+			 "alternate_identifiers": [
+				"kegg:C05960",
+				"cas:35850-13-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6370489762384575,
+			 "metabolite_quantified": "chebi:28442",
+			 "alternate_identifiers": [
+				"kegg:C05960",
+				"cas:35850-13-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4741497991356108,
+			 "metabolite_quantified": "chebi:17172",
+			 "alternate_identifiers": [
+				"kegg:C00330",
+				"cas:961-07-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.47160292068224446,
+			 "metabolite_quantified": "chebi:28777",
+			 "alternate_identifiers": [
+				"kegg:C09762",
+				"cas:578-86-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9356662715329351,
+			 "metabolite_quantified": "chebi:36217",
+			 "alternate_identifiers": [
+				"kegg:C06422",
+				"cas:528-50-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8984062060696699,
+			 "metabolite_quantified": "chebi:36219",
+			 "alternate_identifiers": [
+				"kegg:C00243",
+				"cas:63-42-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9784505367620623,
+			 "metabolite_quantified": "chebi:16551",
+			 "alternate_identifiers": [
+				"kegg:C01083",
+				"cas:99-20-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9801785356836537,
+			 "metabolite_quantified": "chebi:47937",
+			 "alternate_identifiers": [
+				"kegg:C00208",
+				"cas:69-79-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6871666704004908,
+			 "metabolite_quantified": "chebi:1230",
+			 "alternate_identifiers": [
+				"kegg:C08250",
+				"cas:20429-79-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6748131576804028,
+			 "metabolite_quantified": "chebi:15550",
+			 "alternate_identifiers": [
+				"kegg:C04671",
+				"cas:363-23-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.22900214208376132,
+			 "metabolite_quantified": "chebi:8387",
+			 "alternate_identifiers": [
+				"kegg:C05484",
+				"cas:80-92-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.229250573934212,
+			 "metabolite_quantified": "chebi:40304",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:88847-89-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8067982568195978,
+			 "metabolite_quantified": "chebi:1156",
+			 "alternate_identifiers": [
+				"kegg:C05298",
+				"cas:362-06-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9645908671645695,
+			 "metabolite_quantified": "chebi:18394",
+			 "alternate_identifiers": [
+				"kegg:C01742",
+				"cas:13718-94-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5047074556402448,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:112898-27-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.48791286559158764,
+			 "metabolite_quantified": "chebi:76125",
+			 "alternate_identifiers": [
+				"kegg:C09728",
+				"cas:35323-91-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7711243974880431,
+			 "metabolite_quantified": "chebi:19289",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:2140-67-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6401961303712969,
+			 "metabolite_quantified": "chebi:28814",
+			 "alternate_identifiers": [
+				"kegg:C05901",
+				"cas:10083-24-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.702170123960675,
+			 "metabolite_quantified": "chebi:27974",
+			 "alternate_identifiers": [
+				"kegg:C05141",
+				"cas:50-27-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5490476895181927,
+			 "metabolite_quantified": "chebi:16496",
+			 "alternate_identifiers": [
+				"kegg:C05454",
+				"cas:547-96-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.40323732540464907,
+			 "metabolite_quantified": "chebi:15600",
+			 "alternate_identifiers": [
+				"kegg:C06562",
+				"cas:154-23-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.8436594616539546,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:37169-69-0"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9191774907422259,
+			 "metabolite_quantified": "chebi:68428",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:585-88-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.524281634723746,
+			 "metabolite_quantified": "chebi:8067",
+			 "alternate_identifiers": [
+				"kegg:C07432",
+				"cas:382-44-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.506268323904778,
+			 "metabolite_quantified": "chebi:16695",
+			 "alternate_identifiers": [
+				"kegg:C00105",
+				"cas:58-97-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7200949317854035,
+			 "metabolite_quantified": "chebi:17505",
+			 "alternate_identifiers": [
+				"kegg:C01235",
+				"cas:3687-64-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.21832576976263454,
+			 "metabolite_quantified": "chebi:28197",
+			 "alternate_identifiers": [
+				"kegg:C10208",
+				"cas:486-66-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.49313091848882296,
+			 "metabolite_quantified": "chebi:15771",
+			 "alternate_identifiers": [
+				"kegg:C01433",
+				"cas:18524-94-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9737835547429674,
+			 "metabolite_quantified": "chebi:68428",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:585-88-6"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5840413007870683,
+			 "metabolite_quantified": "chebi:48153",
+			 "alternate_identifiers": [
+				"kegg:C00279",
+				"cas:585-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.3661166737472942,
+			 "metabolite_quantified": "chebi:17948",
+			 "alternate_identifiers": [
+				"kegg:C01617",
+				"cas:480-18-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.9851820902685269,
+			 "metabolite_quantified": "chebi:28053",
+			 "alternate_identifiers": [
+				"kegg:C05402",
+				"cas:585-99-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4968765454891673,
+			 "metabolite_quantified": "chebi:28931",
+			 "alternate_identifiers": [
+				"kegg:C01367",
+				"cas:84-21-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5060619527539597,
+			 "metabolite_quantified": "chebi:28230",
+			 "alternate_identifiers": [
+				"kegg:C01709",
+				"cas:520-33-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.6548301081527419,
+			 "metabolite_quantified": "chebi:None",
+			 "alternate_identifiers": [
+				"kegg:C05476",
+				"cas:68-42-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.40715829906419,
+			 "metabolite_quantified": "chebi:17505",
+			 "alternate_identifiers": [
+				"kegg:C01235",
+				"cas:667-65-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5313787531176373,
+			 "metabolite_quantified": "chebi:28931",
+			 "alternate_identifiers": [
+				"kegg:C01367",
+				"cas:84-21-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5483014290468141,
+			 "metabolite_quantified": "chebi:16238",
+			 "alternate_identifiers": [
+				"kegg:C00016",
+				"cas:146-14-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19796877599379017,
+			 "metabolite_quantified": "chebi:28499",
+			 "alternate_identifiers": [
+				"kegg:C05903",
+				"cas:520-18-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5243202542461141,
+			 "metabolite_quantified": "chebi:28043",
+			 "alternate_identifiers": [
+				"kegg:C05485",
+				"cas:1164-98-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.30805121807817376,
+			 "metabolite_quantified": "chebi:17713",
+			 "alternate_identifiers": [
+				"kegg:C00360",
+				"cas:653-63-4"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.22378649700483907,
+			 "metabolite_quantified": "chebi:17500",
+			 "alternate_identifiers": [
+				"kegg:C03594",
+				"cas:566-26-7"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.5424345976412295,
+			 "metabolite_quantified": "chebi:88776",
+			 "alternate_identifiers": [
+				"kegg:None",
+				"cas:38632-24-5"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.4336036338913425,
+			 "metabolite_quantified": "chebi:16356",
+			 "alternate_identifiers": [
+				"kegg:C00942",
+				"cas:7665-99-8"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.19118668588716403,
+			 "metabolite_quantified": "chebi:17762",
+			 "alternate_identifiers": [
+				"kegg:C03238",
+				"cas:566-88-1"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.7649702500546907,
+			 "metabolite_quantified": "chebi:28819",
+			 "alternate_identifiers": [
+				"kegg:C09789",
+				"cas:10236-47-2"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.41012150334878594,
+			 "metabolite_quantified": "chebi:28834",
+			 "alternate_identifiers": [
+				"kegg:C04483",
+				"cas:83-44-3"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.42195672951663316,
+			 "metabolite_quantified": "chebi:16755",
+			 "alternate_identifiers": [
+				"kegg:C02528",
+				"cas:474-25-9"
+			 ]
+			},
+			{
+			 "highest_similarity_score": 0.945277810727403,
+			 "metabolite_quantified": "chebi:",
+			 "alternate_identifiers": [
+				"kegg:",
+				"cas:32860-62-1"
+			 ]
+			}
+		 ]
+		}
+	]
+}
