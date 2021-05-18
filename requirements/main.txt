@@ -131,23 +131,23 @@ croniter==1.0.13 \
     --hash=sha256:0c67c8afbf0f9ac3fce587caa7c911f871be8a42f6169e9f486ae125ab54a1b0 \
     --hash=sha256:57f36df4f5a1c31bbf50bbffa3551612c19f6156ab1e88e2e42342ccbb9f9b9a
     # via dagster
-dagit==0.11.8 \
-    --hash=sha256:734110499b5ae1f980b031383fea56bc6897eef323db52c3243118c034096ac9 \
-    --hash=sha256:dd4784586044f2c5612dff8235e1d244779a5370bf04a8c054cf06b13dc59209
+dagit==0.11.9 \
+    --hash=sha256:62550210e0f31f9e539d1581e1e138a017a9f5cb46c70eb17a0baef6cbbf7488 \
+    --hash=sha256:72cc02db647d846b8824d780699f1fd73c660abe2c8965ba9b81f822d224282f
     # via -r requirements/main.in
-dagster-graphql==0.11.8 \
-    --hash=sha256:0c4148c92d378e1d79048f9ad26be784475e0322cb877f9cae52023570ed450b \
-    --hash=sha256:78cd186d3407cc0fdd9ff5958896622b635195365dad4c23ef83c0a019b2a052
+dagster-graphql==0.11.9 \
+    --hash=sha256:886e0db77b8fbaeb97bdb0d91e10ca775febdb51b7821d427a14419f6ad9290b \
+    --hash=sha256:9c7fa186080c8d0b30b348558201ed29b6d7e1f53d554384ebb1c8e80e795aae
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.11.8 \
-    --hash=sha256:0fae99cc2e0146334944725b8cc3a8e886438fe25de24460ba104e28157ae136 \
-    --hash=sha256:e29d5686c792ae4de0c4310a9f7ce85834f61fdc5d7155f92f1ccf19341fdedb
+dagster-postgres==0.11.9 \
+    --hash=sha256:5b4db9085e05e28bbcb764c668563063485c09612b29a694bb7c3251f486746d \
+    --hash=sha256:759f431e8748a483b762f0da5f2a98bd8607a228268e1a0eaf7d0951c568a921
     # via -r requirements/main.in
-dagster==0.11.8 \
-    --hash=sha256:dca23adc261cb41ce01fb53714afc5a8da159d059f4a63f85aca81a9452e2f41 \
-    --hash=sha256:f9550d518f4bdd0bee760ff6ee8c1e902b6b0b487a095bb69207c3beceaeeed1
+dagster==0.11.9 \
+    --hash=sha256:75ee4ea807bf3ed408aae0739a6e9ad859b4f16bbc1db8d095da5c43a0980a48 \
+    --hash=sha256:b5cb8a9adb32dd7edb720bdd403300958505701ab040825b26bcd9c29e6c5b1b
     # via
     #   -r requirements/main.in
     #   dagit
@@ -190,9 +190,9 @@ flask-sockets==0.2.1 \
     --hash=sha256:072927da8edca0e81e024f5787e643c87d80b351b714de95d723becb30e0643b \
     --hash=sha256:350a76d55f5889f64afd2ca9b32f262680b7960965f0830365576307d30cfe1e
     # via dagit
-flask==2.0.0 \
-    --hash=sha256:168e8507792cb8a3aa06afbe5d4d431d3e07c6318bc3893ceecb81aff09f848d \
-    --hash=sha256:1833a4b36ace08dfa1510d86f1bb6fc595d990ec1b838e03ac8dd80ac0705954
+flask==1.1.4 \
+    --hash=sha256:0fbeb6180d383a9186d0d6ed954e0042ad9f18e0e8de088b2b419d526927d196 \
+    --hash=sha256:c34f04500f2cbbea882b1acb02002ad6fe6b7ffa64a6164577995657f50aed22
     # via
     #   dagit
     #   flask-cors
@@ -462,17 +462,17 @@ isodate==0.6.0 \
     # via
     #   linkml
     #   rdflib
-itsdangerous==2.0.0 \
-    --hash=sha256:99b1053ccce68066dfc0b4465ef8779027e6d577377c8270e21a3d6289cac111 \
-    --hash=sha256:e2cb4ae918f07ab2a2f9a91dec2695bd1f25a19d31861a70015ad537ccb5e807
+itsdangerous==1.1.0 \
+    --hash=sha256:321b033d07f2a4136d3ec762eac9f16a10ccd60f53c0c91af90217ace7ba1f19 \
+    --hash=sha256:b12271b2047cb23eeb98c8b5622e2e5c5e9abd9784a153e9d8ef9cb4dd09d749
     # via flask
 jedi==0.18.0 \
     --hash=sha256:18456d83f65f400ab0c2d3319e48520420ef43b23a086fdc05dff34132f0fb93 \
     --hash=sha256:92550a404bad8afed881a137ec9a461fed49eca661414be45059329614ed0707
     # via ipython
-jinja2==3.0.0 \
-    --hash=sha256:2f2de5285cf37f33d33ecd4a9080b75c87cd0c1994d5a9c6df17131ea1f049c6 \
-    --hash=sha256:ea8d7dd814ce9df6de6a761ec7f1cac98afe305b8cdc4aaae4e114b8d8ce24c5
+jinja2==2.11.3 \
+    --hash=sha256:03e47ad063331dd6a3f04a43eddca8a966a26ba0c5b7207a9a9e4e08f1b29419 \
+    --hash=sha256:a6d58433de0ae800347cab1fa3043cebbabe8baa9d29e668f1c768cb87a333c6
     # via
     #   dagster
     #   flask
@@ -1437,10 +1437,12 @@ websockets==8.1 \
     --hash=sha256:e898a0863421650f0bebac8ba40840fc02258ef4714cb7e1fd76b6a6354bda36 \
     --hash=sha256:f8a7bff6e8664afc4e6c28b983845c5bc14965030e3fb98789734d416af77c4b
     # via uvicorn
-werkzeug==2.0.0 \
-    --hash=sha256:3389bbfe6d40c6dd25e6d3f974155163c8b3de5bbda6a89342d4ab93fae80ba0 \
-    --hash=sha256:64c02f6495ba01eddd6625b3675f357cd358a73f1e38458a56ad86c5baa30b53
-    # via flask
+werkzeug==1.0.1 \
+    --hash=sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43 \
+    --hash=sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c
+    # via
+    #   dagit
+    #   flask
 widgetsnbextension==3.5.1 \
     --hash=sha256:079f87d87270bce047512400efd70238820751a11d2d8cb137a5a5bdbaf255c7 \
     --hash=sha256:bd314f8ceb488571a5ffea6cc5b9fc6cba0adaf88a9d2386b93a489751938bcd
