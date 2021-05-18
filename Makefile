@@ -20,7 +20,8 @@ down-dev:
 	docker compose down
 
 docker-images:
-	./docker-build.sh polyneme/nmdc-runtime
+	./docker-build.sh polyneme/nmdc-runtime nmdc_runtime/dagster.Dockerfile
+	./docker-build.sh polyneme/terminusdb-server nmdc_runtime/terminus.Dockerfile
 publish:
 	invoke publish
 

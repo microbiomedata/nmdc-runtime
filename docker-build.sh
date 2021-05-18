@@ -33,6 +33,7 @@ set -euo pipefail
 # Image name (without tag, e.g. "yourregistry.example.com/yourorg/yourimage") is
 # set to the first command-line argument:
 IMAGE_NAME="$1"
+DOCKERFILE="$2"
 
 # Get the Git commit and branch.
 GIT_COMMIT=$(set -e && git rev-parse --short HEAD)
@@ -69,7 +70,7 @@ docker image build \
        --label "git-commit=${GIT_COMMIT}" \
        --label "git-branch=${GIT_BRANCH}" \
        --build-arg BUILDKIT_INLINE_CACHE=1 \
-       -f nmdc_runtime/dagster.Dockerfile \
+       -f "${DOCKERFILE}" \
        .
 
 # Push the newly created images.
