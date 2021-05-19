@@ -1,0 +1,267 @@
+{
+  "study_set": [
+    {
+      "id": "gold:Gs0110115",
+      "name": "Avena fatua rhizosphere microbial communities from Hopland, California, USA, for root-enhanced decomposition of organic matter studies",
+      "description": "Using analytical expertise at both the JGI and EMSL, we plan to follow successional patterns of protein expression by root-associated microorganisms. This work builds on foundational research we are conducting with the common California grassland plant, Avena fatua, grown in Hopland, CA soil (FOA DE-PS02-09ER09-25). Using our 16-chamber 13C labeling facility at UC Berkeley, we have shown that elevated CO2 increased the amount of C allocated belowground, and increased the yield of root biomass. The rhizosphere microbial community undergoes a succession as the root grows, senesces, and dies. In elevated CO2 treatments, we also detect a greater amount of root-derived 13C in the mineral-associated heavy fraction of the soil, which is commonly assumed to reflect longer term stabilization. \\n \\nIn our JGI-EMSL project, we will follow over time how roots impact the functional capacity of the rhizosphere microbiome to enzymatically mediate decomposition processes. We hypothesize that root-exudate stimulation of soil microbial populations results in elevated expression of biomolecules (transcripts, enzymes, metabolites) for the decomposition of macromolecular C compounds.",
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Rhizosphere",
+      "ecosystem_subtype": "Soil",
+      "specific_ecosystem": "Unclassified",
+      "principal_investigator_name": {
+        "has_raw_value": "Mary Firestone"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487760"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0112340",
+      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations",
+      "description": "A fundamental challenge of microbial environmental science is to understand how earth systems will respond to climate change. A parallel challenge in biology is to unverstand how information encoded in organismal genes manifests as biogeochemical processes at ecosystem-to-global scales. These grand challenges intersect in the need to understand the glocal carbon (C) cycle, which is both mediated by biological processes and a key driver of climate through the greenhouse gases carbon dioxide (CO2) and methane (CH4). A key aspect of these challenges is the C cycle implications of the predicted dramatic shrinkage in northern permafrost in the coming century.  ",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Soil",
+      "ecosystem_subtype": "Wetlands",
+      "specific_ecosystem": "Permafrost",
+      "principal_investigator_name": {
+        "has_raw_value": "Virginia Rich"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487764"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0134277",
+      "name": "Rhizosphere microbial communities from Carex aquatilis grown in University of Washington, Seatle, WA, United States",
+      "description": "The goal of this study is to advance understanding of the response of methane production and methane oxidation to changes in plant productivity so that modeled representations of these processes and interactions can be improved.",
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Roots",
+      "ecosystem_subtype": "Rhizosphere",
+      "specific_ecosystem": "Soil",
+      "principal_investigator_name": {
+        "has_raw_value": "Rebecca Neumann"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1488209"
+      },
+      "type": "nmdc:Study"
+    }
+  ],
+  "omics_processing_set": [
+    {
+      "id": "gold:Gp0306221",
+      "name": "Rhizosphere microbial communities from Carex aquatilis grown in University of Washington, Seatle, WA, United States - 4-1-23 metaG",
+      "description": "Rhizosphere microbial communities from Carex aquatilis grown in submerged peat from a thermokarst bog, University of Washington, Seatle, WA, United States",
+      "has_input": [
+        "gold:Gb0188037"
+      ],
+      "add_date": "29-MAR-18 01.27.30.036000000 PM",
+      "mod_date": "04-APR-20 08.26.35.067000000 AM",
+      "has_output": [
+        "jgi:5baa816646d1e63f764deb37"
+      ],
+      "ncbi_project_name": "Rhizosphere microbial communities from Carex aquatilis grown in University of Washington, Seatle, WA, United States - 4-1-23 metaG",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "part_of": [
+        "gold:Gs0134277"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
+      "id": "gold:Gp0108335",
+      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+      "has_input": [
+        "gold:Gb0108335"
+      ],
+      "add_date": "30-OCT-14 12.00.00.000000000 AM",
+      "mod_date": "22-MAY-20 06.13.12.927000000 PM",
+      "has_output": [
+        "jgi:551a20d30d878525404e90d5"
+      ],
+      "ncbi_project_name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "part_of": [
+        "gold:Gs0112340"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
+      "id": "gold:Gp0507254",
+      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
+      "description": "Bulk soil microbial communities from Hopland, California, USA",
+      "has_input": [
+        "gold:Gb0259543"
+      ],
+      "add_date": "09-OCT-20 03.15.22.633000000 PM",
+      "mod_date": "11-OCT-20 03.45.35.940000000 PM",
+      "omics_type": {
+        "has_raw_value": "Targeted Gene Survey"
+      },
+      "part_of": [
+        "gold:Gs0110115"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    }
+  ],
+  "biosample_set": [
+    {
+      "id": "gold:Gb0108335",
+      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2012-07-20"
+      },
+      "depth": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:00000446"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00000489"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00000134"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "Sweden: Kiruna"
+      },
+      "lat_lon": {
+        "has_raw_value": "68.3534 19.0472",
+        "latitude": 68.3534,
+        "longitude": 19.0472
+      },
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Soil",
+      "ecosystem_subtype": "Wetlands",
+      "specific_ecosystem": "Permafrost",
+      "add_date": "30-OCT-14 12.00.00.000000000 AM",
+      "community": "microbial communities",
+      "habitat": "Thawing permafrost",
+      "identifier": "studying carbon transformations",
+      "location": "from the Arctic",
+      "mod_date": "15-MAY-20 10.04.19.473000000 AM",
+      "ncbi_taxonomy_name": "permafrost metagenome",
+      "sample_collection_site": "Palsa"
+    },
+    {
+      "id": "gold:Gb0188037",
+      "name": "Rhizosphere microbial communities from Carex aquatilis grown in University of Washington, Seatle, WA, United States - 4-1-23 metaG",
+      "description": "Rhizosphere microbial communities from Carex aquatilis grown in submerged peat from a thermokarst bog, University of Washington, Seatle, WA, United States",
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2018-01-29"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:00000446"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00005801"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00005774"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "USA: Seattle, Washington"
+      },
+      "lat_lon": {
+        "has_raw_value": "47.6516 -122.3045",
+        "latitude": 47.6516,
+        "longitude": -122.3045
+      },
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Rhizosphere",
+      "ecosystem_subtype": "Soil",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "29-MAR-18 01.27.40.709000000 PM",
+      "community": "microbial communities",
+      "habitat": "rhizosphere",
+      "host_name": "Carex aquatilis",
+      "identifier": "4-1-23 metaG",
+      "location": "University of Washington, Seatle, WA, United States",
+      "mod_date": "08-JAN-20 02.49.25.000000000 PM",
+      "ncbi_taxonomy_name": "rhizosphere metagenome",
+      "sample_collection_site": "Peat Soil"
+    },
+    {
+      "id": "gold:Gb0259543",
+      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
+      "description": "Bulk soil microbial communities from Hopland, California, USA",
+      "type": "nmdc:Biosample",
+      "alt": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "collection_date": {
+        "has_raw_value": "2013-03-15"
+      },
+      "depth": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:00000446"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00005801"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00005802"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "USA: Hopland, California"
+      },
+      "lat_lon": {
+        "has_raw_value": "38.9929 -123.0674",
+        "latitude": 38.9929,
+        "longitude": -123.0674
+      },
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Roots",
+      "ecosystem_subtype": "Bulk soil",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "09-OCT-20 03.15.44.048000000 PM",
+      "community": "microbial communities",
+      "habitat": "Bulk soil",
+      "identifier": "21_Bulk_cDNA",
+      "location": "Hopland, California, USA",
+      "ncbi_taxonomy_name": "soil metagenome",
+      "sample_collection_site": "Soil"
+    }
+  ],
+  "data_object_set": [
+    {
+      "id": "jgi:551a20d30d878525404e90d5",
+      "name": "8871.1.114459.GCCAAT.fastq.gz",
+      "description": "Raw sequencer read data",
+      "file_size_bytes": 17586370657.0,
+      "type": "nmdc:DataObject"
+    },
+    {
+      "id": "jgi:5baa816646d1e63f764deb37",
+      "name": "12660.4.274923.GATCGTAC-GTACGATC.fastq.gz",
+      "description": "Raw sequencer read data",
+      "file_size_bytes": 7580035314.0,
+      "type": "nmdc:DataObject"
+    }
+  ]
+}
