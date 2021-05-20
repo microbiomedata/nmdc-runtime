@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from fastapi import APIRouter
 
 router = APIRouter()
@@ -25,9 +27,4 @@ def update_site():
 
 @router.put("/sites/{site_id}")
 def replace_site():
-    pass
-
-
-@router.delete("/sites/{site_id}")
-def delete_site():
     pass

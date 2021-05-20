@@ -3,11 +3,6 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
-@router.post("/jobs")
-def create_job():
-    pass
-
-
 @router.get("/jobs")
 def list_jobs():
     pass
@@ -23,8 +18,8 @@ def update_job():
     pass
 
 
-@router.post("/jobs/{job_id}:run")
-def run_job():
+@router.post("/jobs/{job_id}:claim")
+def claim_job():
     pass
 
 

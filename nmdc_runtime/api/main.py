@@ -6,27 +6,27 @@ from nmdc_runtime.api.endpoints import (
     operations,
     sites,
     jobs,
-    data_resources,
-    compute_resources,
+    data_objects,
+    capabilities,
 )
 
 api_router = APIRouter()
 api_router.include_router(operations.router, tags=["operations"])
 api_router.include_router(sites.router, tags=["sites"])
 api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(data_resources.router, tags=["data_resources"])
-api_router.include_router(compute_resources.router, tags=["compute_resources"])
+api_router.include_router(data_objects.router, tags=["data_objects"])
+api_router.include_router(capabilities.router, tags=["capabilities"])
 
 tags_metadata = [
     {
         "name": "operations",
-        "description": """An operation is a resource for tracking a request to run a job.
+        "description": """An operation is a resource for tracking the execution of a job.
 
-When a request to run a job is issued, an operation resource is created.
+When a job is claimed by a site for execution, an operation resource is created.
 
 An operation is akin to a "promise" or "future" in that it should eventually resolve to either a successful result, i.e. an execution resource, or to an error.
 
-An operation is parameterized to return a result type, and a metadata type for storing progress information, that are both particular to the workflow type.
+An operation is parameterized to return a result type, and a metadata type for storing progress information, that are both particular to the job type.
 
 Operations may be paused, resumed, and/or cancelled.
 
@@ -36,38 +36,39 @@ Operations may expire, i.e. not be stored indefinitely. In this case, it is reco
     {
         "name": "sites",
         "description": (
-            """A site corresponds to a physical place that may participate in workflow execution.
+            """A site corresponds to a physical place that may participate in job execution.
 
-A site may register compute resources and data resources with NMDC. It may also execute workflows, and may request that workflows be executed.
+A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
 
-A site must be able to service requests for any data resources it has registered."""
+A site must be able to service requests for any data objects it has registered."""
         ),
     },
     {
         "name": "jobs",
         "description": """A job is a resource that isolates workflow configuration from execution.
 
-Rather than directly requesting a workflow execution by supplying a workflow ID along with configuration, one creates a job that pairs a workflow with configuration. Then, a workflow is executed by supplying a job ID without additional configuration.
+Rather than directly creating a workflow operation by supplying a workflow ID along with configuration, NMDC creates a job that pairs a workflow with configuration. Then, a site can claim a job ID, allowing the site to execute the intended workflow without additional configuration.
 
 A job can have multiple executions, and a workflow's executions are precisely the executions of all jobs created for that workflow.
         """,
     },
     {
-        "name": "data_resources",
+        "name": "data_objects",
         "description": (
-            "A data resource represents a file or set of files necessary"
+            "A data object represents a file necessary"
             " for a workflow job to execute, and/or output from a job execution."
-            " Sites register the data resources they contain, and sites must ensure "
-            " that these resources are accessible to the NMDC data broker."
+            " Sites register data objects, and sites must ensure "
+            " that these objects are accessible to the NMDC data broker."
         ),
     },
     {
-        "name": "compute_resources",
+        "name": "capabilities",
         "description": (
-            "A compute resource is a capability necessary for a workflow to execute."
-            "Sites register compute resources, and sites are only able to accept "
-            "workflow job operations if they are known to have the compute resources needed "
-            "for the job."
+            "A workflow may need an executing site to have certain capabilities"
+            " beyond the simple fetching of identified data objects."
+            " Sites register capabilties, and sites are only able to accept"
+            " workflow job operations if they are known to have the capabiltiies needed"
+            " for the job."
         ),
     },
 ]
