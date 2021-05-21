@@ -78,7 +78,7 @@ API](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs
 (formerly called the "Data Object Service" API) is a read-only API, expecting each implementation to
 define its own mechanisms and interfaces for adding and updating data.
 
-The NMDC Runtime API compatibly specializes the GA4GH DRS API in the following ways:
+The NMDC Runtime API may compatibly specialize the GA4GH DRS API in the following ways:
 
 * `updated_time` and `version` in `DrsObject` are ignored because the underlying content of a data
    object cannot be updated.
@@ -94,11 +94,11 @@ tasks (jobs). Furthermore, sites are expected to execute tasks exactly as specif
 sequence of Docker run commands, with given volume mounts, etc.
 
 The NMDC Runtime does not require that executing sites act as TES services that can service TES API
-requests. Though hte NMDC Runtime could in theory act as a TES server, our needs for task/job schema
-and task/job listing are different. We do borrow from the TES API `Task` schema as appropriate for
+requests. Though the NMDC Runtime could in theory act as a TES server, our needs for task/job schema
+and task/job listing are different. We may borrow from the TES API `Task` schema as appropriate for
 our `Job` schema.
 
-Finally, we do adopt the [GA4GH service-info
+Finally, we may adopt the [GA4GH service-info
 API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/develop/service-info.yaml),
 convention for the `GetServiceInfo` endpoint that is required by the TES API.
 
