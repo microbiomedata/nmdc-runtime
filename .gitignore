@@ -148,3 +148,5 @@ metadata-translation/src/data/nmdc_database.json.zip
 deployment/docker-compose/dhparam/
 deployment/docker-compose/web-root/
 deployment
+
+!metadata-translation/src/bin/lib
