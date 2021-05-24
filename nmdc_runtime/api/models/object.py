@@ -80,7 +80,7 @@ class Error(BaseModel):
 class DrsObjectBase(BaseModel):
     aliases: Optional[List[str]]
     description: Optional[str]
-    mime_type: Optional[Mimetype]
+    mime_type: Optional[Mimetype] = "application/json"
     name: Optional[PortableFilename]
 
 

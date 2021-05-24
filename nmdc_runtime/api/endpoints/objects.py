@@ -1,23 +1,44 @@
 from ctypes import Union
 
-from fastapi import APIRouter, Response, status
+import boto3
+import botocore
+import pymongo.database
+from fastapi import APIRouter, Response, status, Depends
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
 from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObjectBlobIn,
     Error,
     DrsObjectIn,
+    DrsObjectPresignedUrlPut,
 )
+from nmdc_runtime.api.models.user import User, get_current_active_user
 
 router = APIRouter()
 
 
-@router.post("/objects")
-def create_object(object_in: DrsObjectIn, response: Response):
+@router.post("/objects", status_code=202)
+def create_object(
+    object_in: DrsObjectIn,
+    response: Response,
+    current_user: User = Depends(get_current_active_user),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    s3client: botocore.client.BaseClient = Depends(get_s3_client),
+):
     if not isinstance(object_in, DrsObjectBlobIn):
         response.status_code = status.HTTP_501_NOT_IMPLEMENTED
         return Error(msg="Only blob creation supported at this time", status_code=501)
-    # TODO: check authorization for, and use, object_in.site_id
+    site = mdb.sites.find_one({"id": object_in.site_id})
+    if site is None:
+        response.status_code = 404
+        return Error(msg=f"no site with ID '{object_in.site_id}'", status_code=404)
+    expires_in = 300
+    # TODO generate ID
+    # TODO dagster sensor polls for new bucket files, creates object resources in terminus.
+    url = presigned_url_to_put("myfile.json", client=s3client, expires_in=expires_in)
+    return DrsObjectPresignedUrlPut(**{"url": url, "expires_in": expires_in})
 
 
 @router.get("/objects")
