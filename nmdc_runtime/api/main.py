@@ -3,18 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from nmdc_runtime.api.endpoints import (
+    auth,
     operations,
     sites,
     jobs,
-    data_objects,
+    objects,
     capabilities,
 )
 
 api_router = APIRouter()
+api_router.include_router(auth.router, tags=["authentication"])
 api_router.include_router(operations.router, tags=["operations"])
 api_router.include_router(sites.router, tags=["sites"])
 api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(data_objects.router, tags=["data_objects"])
+api_router.include_router(objects.router, tags=["objects"])
 api_router.include_router(capabilities.router, tags=["capabilities"])
 
 tags_metadata = [
@@ -53,11 +55,12 @@ A job can have multiple executions, and a workflow's executions are precisely th
         """,
     },
     {
-        "name": "data_objects",
+        "name": "objects",
         "description": (
-            "A data object represents a file necessary"
+            "A [Data Repository Service (DRS) object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes) represents content necessary"
             " for a workflow job to execute, and/or output from a job execution."
-            " Sites register data objects, and sites must ensure "
+            " An object may be a *blob*, analogous to a file, or a *bundle*, analogous to a folder."
+            " Sites register objects, and sites must ensure "
             " that these objects are accessible to the NMDC data broker."
         ),
     },

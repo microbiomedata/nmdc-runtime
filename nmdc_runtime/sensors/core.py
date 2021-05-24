@@ -1,9 +1,9 @@
 from dagster import RunRequest, sensor
 
-from nmdc_runtime.pipelines.core import preset_dev_env
+from nmdc_runtime.pipelines.core import preset_normal_env
 
 
-@sensor(pipeline_name="hello_mongo", mode="dev")
+@sensor(pipeline_name="hello_mongo", mode="normal")
 def my_sensor(_context):
     """
     A sensor definition. This example sensor always requests a pipeline run at each sensor tick.
@@ -14,4 +14,4 @@ def my_sensor(_context):
     """
     should_run = True
     if should_run:
-        yield RunRequest(run_key=None, run_config=preset_dev_env.run_config)
+        yield RunRequest(run_key=None, run_config=preset_normal_env.run_config)

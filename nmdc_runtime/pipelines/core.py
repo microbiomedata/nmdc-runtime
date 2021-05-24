@@ -9,80 +9,40 @@ from nmdc_runtime.resources.core import terminus_resource
 # Resources: https://docs.dagster.io/overview/modes-resources-presets/modes-resources
 
 
-mode_dev = ModeDefinition(
-    name="dev",
-    resource_defs={"terminus": terminus_resource, "mongo": mongo_resource},
-)
-mode_prod = ModeDefinition(
-    name="prod",
+mode_normal = ModeDefinition(
+    name="normal",
     resource_defs={"terminus": terminus_resource, "mongo": mongo_resource},
 )
 mode_test = ModeDefinition(name="test")
 
-# preset_dev_yaml = PresetDefinition.from_files(
-#     "dev_via_yaml",
-#     config_files=[
-#         file_relative_path(__file__, "presets_dev.yaml"),
-#     ],
-#     mode="dev",
-# )
-
-preset_dev_env = PresetDefinition(
-    "dev_via_env",
+preset_normal_env = PresetDefinition(
+    "normal_via_env",
     run_config={
         "resources": {
             "terminus": {
                 "config": {
-                    "server_url": {"env": "DAGSTER_DEV_TERMINUS_SERVER_URL"},
-                    "key": {"env": "DAGSTER_DEV_TERMINUS_KEY"},
-                    "user": {"env": "DAGSTER_DEV_TERMINUS_USER"},
-                    "account": {"env": "DAGSTER_DEV_TERMINUS_ACCOUNT"},
-                    "dbid": {"env": "DAGSTER_DEV_TERMINUS_DBID"},
+                    "server_url": {"env": "TERMINUS_SERVER_URL"},
+                    "key": {"env": "TERMINUS_KEY"},
+                    "user": {"env": "TERMINUS_USER"},
+                    "account": {"env": "TERMINUS_ACCOUNT"},
+                    "dbid": {"env": "TERMINUS_DBID"},
                 },
             },
             "mongo": {
                 "config": {
-                    "host": {"env": "DAGSTER_DEV_MONGO_HOST"},
-                    "username": {"env": "DAGSTER_DEV_MONGO_USERNAME"},
-                    "password": {"env": "DAGSTER_DEV_MONGO_PASSWORD"},
-                    "dbname": {"env": "DAGSTER_DEV_MONGO_DBNAME"},
+                    "host": {"env": "MONGO_HOST"},
+                    "username": {"env": "MONGO_USERNAME"},
+                    "password": {"env": "MONGO_PASSWORD"},
+                    "dbname": {"env": "MONGO_DBNAME"},
                 },
             },
         },
     },
-    mode="dev",
-)
-
-preset_prod_env = PresetDefinition(
-    "prod_via_env",
-    run_config={
-        "resources": {
-            "terminus": {
-                "config": {
-                    "server_url": {"env": "DAGSTER_PROD_TERMINUS_SERVER_URL"},
-                    "key": {"env": "DAGSTER_PROD_TERMINUS_KEY"},
-                    "user": {"env": "DAGSTER_PROD_TERMINUS_USER"},
-                    "account": {"env": "DAGSTER_PROD_TERMINUS_ACCOUNT"},
-                    "dbid": {"env": "DAGSTER_PROD_TERMINUS_DBID"},
-                },
-            },
-            "mongo": {
-                "config": {
-                    "host": {"env": "DAGSTER_PROD_MONGO_HOST"},
-                    "username": {"env": "DAGSTER_PROD_MONGO_USERNAME"},
-                    "password": {"env": "DAGSTER_PROD_MONGO_PASSWORD"},
-                    "dbname": {"env": "DAGSTER_PROD_MONGO_DBNAME"},
-                },
-            },
-        },
-    },
-    mode="prod",
+    mode="normal",
 )
 
 
-@pipeline(
-    mode_defs=[mode_dev, mode_prod], preset_defs=[preset_dev_env, preset_prod_env]
-)
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
 def update_terminus():
     """
     A pipeline definition. This example pipeline has a single solid.
@@ -93,9 +53,7 @@ def update_terminus():
     update_schema()
 
 
-@pipeline(
-    mode_defs=[mode_dev, mode_prod], preset_defs=[preset_dev_env, preset_prod_env]
-)
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
 def hello_mongo():
     mongo_stats()
 

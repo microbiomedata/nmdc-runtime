@@ -16,8 +16,8 @@ def list_capabilities():
 
 
 @router.get("/capabilities/{capability_id}")
-def get_capability():
-    pass
+def get_capability(capability_id: str):
+    return {"@id": capability_id}
 
 
 @router.patch("/capabilities/{capability_id}")

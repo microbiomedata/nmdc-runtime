@@ -20,10 +20,8 @@ file_env() {
 	unset "$fileVar"
 }
 
-file_env "DAGSTER_DEV_MONGO_PASSWORD"
-file_env "DAGSTER_PROD_MONGO_PASSWORD"
-file_env "DAGSTER_DEV_TERMINUS_KEY"
-file_env "DAGSTER_PROD_TERMINUS_KEY"
+file_env "MONGO_PASSWORD"
+file_env "TERMINUS_KEY"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
 exec dagit -h 0.0.0.0 -p 3000 -w workspace.yaml

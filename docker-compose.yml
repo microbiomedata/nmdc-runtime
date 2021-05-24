@@ -30,7 +30,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-      - .env.dev
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -49,7 +48,6 @@ services:
     restart: on-failure
     env_file:
       - .env
-      - .env.dev
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -60,13 +58,13 @@ services:
   fastapi:
     build:
       context: .
+      # XXX base on https://github.com/tiangolo/uvicorn-gunicorn-docker instead?
       dockerfile: nmdc_runtime/dagster.Dockerfile
     container_name: fastapi
     ports:
       - "8000:8000"
     env_file:
       - .env
-      - .env.dev
     entrypoint: ["uvicorn", "nmdc_runtime.api.main:app", "--host", "0.0.0.0", "--reload"]
     volumes:
       - .:/opt/dagster/lib

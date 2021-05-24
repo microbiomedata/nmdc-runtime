@@ -1,3 +1,4 @@
+boto3
 click~=7.0
 dagit
 dagster
@@ -13,7 +14,10 @@ mongospawn
 nmdc-schema
 openpyxl
 pandas
+passlib[bcrypt]
 pymongo
+python-jose[cryptography]
+python-multipart
 pyyaml
 requests
 terminusdb-client
