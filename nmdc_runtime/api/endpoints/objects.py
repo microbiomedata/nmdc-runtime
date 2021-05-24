@@ -1,6 +1,5 @@
-from ctypes import Union
+from typing import Union
 
-import boto3
 import botocore
 import pymongo.database
 from fastapi import APIRouter, Response, status, Depends
@@ -11,8 +10,8 @@ from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObjectBlobIn,
     Error,
-    DrsObjectIn,
     DrsObjectPresignedUrlPut,
+    DrsObjectBundleIn,
 )
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
@@ -21,11 +20,11 @@ router = APIRouter()
 
 @router.post("/objects", status_code=202)
 def create_object(
-    object_in: DrsObjectIn,
+    object_in: Union[DrsObjectBlobIn, DrsObjectBundleIn],
     response: Response,
-    current_user: User = Depends(get_current_active_user),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
+    user: User = Depends(get_current_active_user),
 ):
     if not isinstance(object_in, DrsObjectBlobIn):
         response.status_code = status.HTTP_501_NOT_IMPLEMENTED

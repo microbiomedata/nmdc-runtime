@@ -2,6 +2,9 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
+# TODO implement ../models/operation.py sa per
+#   https://github.com/microbiomedata/nmdc-runtime/blob/23b23a29d49ecb65cc78d30b151688b857f2eae0/docs/design/api-resource-layout.md
+
 
 @router.get("/operations")
 def list_operations():

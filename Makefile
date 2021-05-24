@@ -15,11 +15,6 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach
 
-up-dev-fastapi-local:
-	docker compose up --build --force-recreate --detach
-	docker compose stop fastapi
-	uvicorn --host 0.0.0.0 --reload nmdc_runtime.api.main:app
-
 down-dev:
 	docker compose down
 

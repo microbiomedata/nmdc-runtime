@@ -85,14 +85,11 @@ class DrsObjectBase(BaseModel):
 
 
 class DrsObjectBlobIn(DrsObjectBase):
-    site_id: str
+    pass
 
 
 class DrsObjectBundleIn(DrsObjectBase):
     contents: List[ContentsObject]
-
-
-DrsObjectIn = Union[DrsObjectBlobIn, DrsObjectBundleIn]
 
 
 Seconds = conint(strict=True, gt=0)

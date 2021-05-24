@@ -1,3 +1,4 @@
+base32-lib
 boto3
 click~=7.0
 dagit
@@ -21,6 +22,7 @@ python-multipart
 pyyaml
 requests
 terminusdb-client
+toolz
 tqdm
 uvicorn[standard]
 xlrd

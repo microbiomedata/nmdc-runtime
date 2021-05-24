@@ -21,9 +21,11 @@ async def get_s3_client():
     return _state["client"]
 
 
-def presigned_url_to_put(key, client=None, bucket=API_SITE_BUCKET, expires_in=300):
+def presigned_url_to_put(
+    key, client=None, mime_type=None, bucket=API_SITE_BUCKET, expires_in=300
+):
     return client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={"Bucket": bucket, "Key": key},
+        Params={"Bucket": bucket, "Key": key, "ContentType": mime_type},
         ExpiresIn=expires_in,
     )
