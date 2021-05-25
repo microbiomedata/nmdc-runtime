@@ -112,11 +112,13 @@ A job can have multiple executions, and a workflow's executions are precisely th
     {
         "name": "capabilities",
         "description": (
-            "A workflow may need an executing site to have certain capabilities"
-            " beyond the simple fetching of identified data objects."
-            " Sites register capabilties, and sites are only able to accept"
-            " workflow job operations if they are known to have the capabiltiies needed"
-            " for the job."
+            """A workflow may require an executing site to have particular capabilities.
+            
+These capabilities go beyond the simple ability to access the data object resources registered with
+the runtime system. Sites register their capabilities, and sites are only able to claim workflow
+jobs if they are known to have the capabilities required by the workflow.
+
+"""
         ),
     },
     {
