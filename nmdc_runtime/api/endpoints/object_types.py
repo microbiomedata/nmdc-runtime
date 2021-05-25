@@ -9,6 +9,7 @@ from starlette.responses import JSONResponse
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.object_type import ObjectType, ObjectTypeBase
+from nmdc_runtime.api.models.workflow import Workflow
 
 router = APIRouter()
 
@@ -28,6 +29,13 @@ def create_object_type(
     return object_type
 
 
+@router.get("/object_types", response_model=List[ObjectType])
+def list_object_types(
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    return list(mdb.object_types.find())
+
+
 @router.get("/object_types/{object_type_id}", response_model=ObjectType)
 def get_object_type(
     object_type_id: str,
@@ -39,11 +47,9 @@ def get_object_type(
     return doc
 
 
-@router.get("/object_types", response_model=List[ObjectType])
-def list_object_types(
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
-):
-    return list(mdb.object_types.find())
+@router.get("/object_types/{object_type_id}/workflows", response_model=List[Workflow])
+def list_object_type_workflows(object_type_id: str):
+    return object_type_id
 
 
 @router.delete("/object_types/{object_type_id}", response_model=BaseModel)

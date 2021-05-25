@@ -8,6 +8,7 @@ from nmdc_runtime.api.models.object import (
     DrsObject,
     AccessURL,
 )
+from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
 router = APIRouter()
@@ -29,6 +30,16 @@ def list_objects():
 @router.get("/objects/{object_id}", response_model=DrsObject)
 def get_object_info(object_id: DrsId):
     return object_id
+
+
+@router.get("/objects/{object_id}/types", response_model=List[ObjectType])
+def list_object_types(object_id: DrsId):
+    return object_id
+
+
+@router.put("/objects/{object_id}/types", response_model=List[ObjectType])
+def replace_object_types(object_type_ids: List[str]):
+    return object_type_ids
 
 
 @router.get("/objects/{object_id}/access/{access_id}", response_model=AccessURL)

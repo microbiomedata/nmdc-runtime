@@ -1,3 +1,5 @@
+from typing import List
+
 import botocore
 from fastapi import APIRouter, Response, Depends, status
 import pymongo
@@ -5,6 +7,7 @@ import pymongo
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
+from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
 from nmdc_runtime.api.models.user import get_current_active_user, User
 
@@ -34,6 +37,16 @@ def update_site():
 @router.put("/sites/{site_id}")
 def replace_site():
     pass
+
+
+@router.get("/sites/{site_id}/capabilities", response_model=List[Capability])
+def list_site_capabilities(site_id: str):
+    return site_id
+
+
+@router.put("/sites/{site_id}/capabilities", response_model=List[Capability])
+def replace_site_capabilities(site_id: str, capability_ids: List[str]):
+    return capability_ids
 
 
 @router.post("/sites/{site_id}:putObject")

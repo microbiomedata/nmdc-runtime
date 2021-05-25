@@ -47,7 +47,7 @@ the new workflow.
 ## Pre-claiming jobs
 
 A site that already has a compatible job execution result can preempt the unnecessary creation of a
-job by POSTing to `/jobs:preclaim`. This will return like `/jobs:claim`, and now the site can
+job by POSTing to `/jobs:preclaim`. This will return like `/jobs/1:claim`, and now the site can
 register known data object inputs for the job without the risk of the NMDC Runtime creating a
 claimable job of the pre-claimed type.
 

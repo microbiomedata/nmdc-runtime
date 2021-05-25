@@ -23,6 +23,11 @@ def claim_job():
     pass
 
 
+@router.post("/jobs:preclaim")
+def preclaim_job():
+    pass
+
+
 @router.get(
     "/jobs/{job_id}/executions",
     description=(
