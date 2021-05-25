@@ -3,7 +3,15 @@ import http
 from enum import Enum
 from typing import Optional, List, Dict, Union
 
-from pydantic import BaseModel, Json, AnyUrl, constr, conint, HttpUrl
+from pydantic import (
+    BaseModel,
+    Json,
+    AnyUrl,
+    constr,
+    conint,
+    HttpUrl,
+    root_validator,
+)
 
 
 class AccessMethodType(str, Enum):
@@ -27,6 +35,15 @@ class AccessMethod(BaseModel):
     access_url: Optional[AccessURL]
     region: Optional[str]
     type: AccessMethodType
+
+    @root_validator
+    def at_least_one_of_access_id_and_url(cls, values):
+        access_id, access_url = values.get("access_id"), values.get("access_url")
+        if access_id is None and access_url is None:
+            raise ValueError(
+                "At least one of access_url and access_is must be provided."
+            )
+        return values
 
 
 ChecksumType = (
@@ -70,6 +87,15 @@ class DrsObject(BaseModel):
     size: SizeInBytes
     updated_time: Optional[datetime.datetime]
     version: Optional[str]
+
+    @root_validator()
+    def no_contents_means_single_blob(cls, values):
+        contents, access_methods = values.get("contents"), values.get("access_methods")
+        if contents is None and access_methods is None:
+            raise ValueError(
+                "no contents means single blob, which requires access_methods"
+            )
+        return values
 
 
 class Error(BaseModel):
