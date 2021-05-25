@@ -10,6 +10,7 @@ from nmdc_runtime.api.endpoints import (
     objects,
     capabilities,
     triggers,
+    workflows,
 )
 
 api_router = APIRouter()
@@ -20,8 +21,20 @@ api_router.include_router(jobs.router, tags=["jobs"])
 api_router.include_router(objects.router, tags=["objects"])
 api_router.include_router(capabilities.router, tags=["capabilities"])
 api_router.include_router(triggers.router, tags=["triggers"])
+api_router.include_router(workflows.router, tags=["workflows"])
 
 tags_metadata = [
+    {
+        "name": "workflows",
+        "description": (
+            """A workflow is a template for creating jobs.
+
+Workflow jobs are typically created by the system via trigger associations between
+workflows and object types. A workflow may also require certain capabilities of sites
+in order for those sites to claim workflow jobs.
+            """
+        ),
+    },
     {
         "name": "triggers",
         "description": (

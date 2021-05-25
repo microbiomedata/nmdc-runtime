@@ -31,7 +31,8 @@ def create_trigger(
         **trigger_base.dict(), id=tid, created_at=datetime.now(timezone.utc)
     )
     mdb.triggers.insert_one(trigger.dict())
-    # TODO mdb.triggers.create_index("id")
+    # TODO move below to a db bootstrap routine
+    mdb.triggers.create_index("id")
     return trigger
 
 
