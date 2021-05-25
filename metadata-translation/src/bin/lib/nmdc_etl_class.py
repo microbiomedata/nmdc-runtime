@@ -269,6 +269,9 @@ class NMDC_ETL:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        transform_map = self.data_source_spec["classes"][data_source_class][
+            "transforms"
+        ]
 
         self.omics_processing_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.project,
@@ -276,6 +279,7 @@ class NMDC_ETL:
             constructor_map=constructor,
             attribute_fields=attributes,
             attribute_map=self.sssom_map,
+            transform_map=transform_map,
             test_rows=test_rows,
             print_df=print_df,
             print_dict=print_dict,

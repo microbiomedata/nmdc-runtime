@@ -3,6 +3,7 @@
 
 ## add ./lib and rooth directory to sys.path so that local modules can be found
 import os, sys, git_root
+from datetime import datetime
 
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))
@@ -915,6 +916,46 @@ def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
                         val.has_unit = value_list[1].strip()
 
                 # print("*** post ***", val)
+
+    return nmdc_objs
+
+
+def make_iso_8601_date_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
+    """
+    Converts date values in ISO-8601 format.
+    E.g., "30-OCT-14 12.00.00.000000000 AM" -> "30-OCT-14" is converted to "2014-10-14".
+
+    Parameters
+    ----------
+    nmdc_objs : list
+        List of objects to whose attributes will converted to ISO-8601 format.
+    tx_attributes : list
+        List of attributes whose values need to updated to ISO-8601 format.
+
+    Returns
+    -------
+    list
+        List of updated nmdc_objs with ISO-8601 formated strings as values.
+    """
+    print(f"*** executing make_iso_8601_date for attributes {tx_attributes}")
+    for attribute in tx_attributes:
+        for obj in nmdc_objs:
+            # check if object has a date field (attribute)
+            if hasattr(obj, attribute):
+                # get the current date string value and return just the date part
+                # e.g.: "30-OCT-14 12.00.00.000000000 AM" -> "30-OCT-14"
+                date_str = str(getattr(obj, attribute)).split(" ", 1)[0]
+
+                # convert date string in ISO-8601
+                # e.g.: "30-OCT-14" -> "2014-10-14"
+                if not (date_str is None) and date_str != "None":
+                    try:
+                        date_val = datetime.strptime(date_str, "%d-%b-%y").strftime(
+                            "%Y-%m-%d"
+                        )
+                        setattr(obj, attribute, date_val)
+                    except Exception as ex:
+                        print(getattr(obj, "id"), f"property {attribute}", "error:", ex)
 
     return nmdc_objs
 
