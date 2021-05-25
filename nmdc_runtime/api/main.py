@@ -12,6 +12,7 @@ from nmdc_runtime.api.endpoints import (
     capabilities,
     triggers,
     workflows,
+    queries,
 )
 
 api_router = APIRouter()
@@ -24,6 +25,7 @@ api_router.include_router(capabilities.router, tags=["capabilities"])
 api_router.include_router(triggers.router, tags=["triggers"])
 api_router.include_router(workflows.router, tags=["workflows"])
 api_router.include_router(object_types.router, tags=["object types"])
+api_router.include_router(queries.router, tags=["queries"])
 
 tags_metadata = [
     {
@@ -115,6 +117,23 @@ A job can have multiple executions, and a workflow's executions are precisely th
             " Sites register capabilties, and sites are only able to accept"
             " workflow job operations if they are known to have the capabiltiies needed"
             " for the job."
+        ),
+    },
+    {
+        "name": "queries",
+        "description": (
+            """A query is an operation (find, update, etc.) against the metadata store.
+
+Metadata -- for studies, biosamples, omics processing, etc. -- is used by sites to execute jobs,
+as the parameterization of job executions may depend not only on the content of data objects, but
+also on objects' associated metadata.
+
+Also, the function of many workflows is to extract or produce new metadata. Such metadata products
+should be registered as data objects, and they may also be supplied by sites to the runtime system
+as an update query (if the latter is not done, the runtime system will sense the new metadata and
+issue an update query).
+
+            """
         ),
     },
 ]
