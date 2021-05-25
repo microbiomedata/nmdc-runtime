@@ -8,6 +8,7 @@ from nmdc_runtime.api.endpoints import (
     sites,
     jobs,
     objects,
+    object_types,
     capabilities,
     triggers,
     workflows,
@@ -22,6 +23,7 @@ api_router.include_router(objects.router, tags=["objects"])
 api_router.include_router(capabilities.router, tags=["capabilities"])
 api_router.include_router(triggers.router, tags=["triggers"])
 api_router.include_router(workflows.router, tags=["workflows"])
+api_router.include_router(object_types.router, tags=["object types"])
 
 tags_metadata = [
     {
@@ -32,6 +34,21 @@ tags_metadata = [
 Workflow jobs are typically created by the system via trigger associations between
 workflows and object types. A workflow may also require certain capabilities of sites
 in order for those sites to claim workflow jobs.
+            """
+        ),
+    },
+    {
+        "name": "object types",
+        "description": (
+            """An object type is an object annotation that is useful for triggering workflows.
+
+A data object may be annotated with one or more types, which in turn can be associated with
+workflows through trigger resources.
+
+The data-object type system may be used to trigger workflow jobs on a subset of data objects when a
+new version of a workflow is deployed. This could be done by minting a special object type for the
+occasion, annotating the subset of data objects with that type, and registering the association of
+object type to workflow via a trigger resource.
             """
         ),
     },
