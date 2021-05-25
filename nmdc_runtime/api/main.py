@@ -3,23 +3,46 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from nmdc_runtime.api.endpoints import (
-    auth,
+    users,
     operations,
     sites,
     jobs,
     objects,
     capabilities,
+    triggers,
 )
 
 api_router = APIRouter()
-api_router.include_router(auth.router, tags=["authentication"])
+api_router.include_router(users.router, tags=["users"])
 api_router.include_router(operations.router, tags=["operations"])
 api_router.include_router(sites.router, tags=["sites"])
 api_router.include_router(jobs.router, tags=["jobs"])
 api_router.include_router(objects.router, tags=["objects"])
 api_router.include_router(capabilities.router, tags=["capabilities"])
+api_router.include_router(triggers.router, tags=["triggers"])
 
 tags_metadata = [
+    {
+        "name": "triggers",
+        "description": (
+            """A trigger is an association between a workflow and a data object type.
+            
+When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
+Runtime will check, via trigger associations, for potential new jobs to create for any workflows.
+            
+            """
+        ),
+    },
+    {
+        "name": "sites",
+        "description": (
+            """A site corresponds to a physical place that may participate in job execution.
+
+A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
+
+A site must be able to service requests for any data objects it has registered."""
+        ),
+    },
     {
         "name": "operations",
         "description": """An operation is a resource for tracking the execution of a job.
@@ -34,16 +57,6 @@ Operations may be paused, resumed, and/or cancelled.
 
 Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that execution resources have longer lifetimes / not expire, so that information about successful results of operations are available.
         """,
-    },
-    {
-        "name": "sites",
-        "description": (
-            """A site corresponds to a physical place that may participate in job execution.
-
-A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
-
-A site must be able to service requests for any data objects it has registered."""
-        ),
     },
     {
         "name": "jobs",

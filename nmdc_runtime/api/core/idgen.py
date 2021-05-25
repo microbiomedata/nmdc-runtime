@@ -63,4 +63,4 @@ def generate_id_unique(
         eid_decoded = decode_id(eid)
         get_one = collection.count_documents({"_id": eid_decoded}) > 0
     collection.insert_one({"_id": eid_decoded})
-    return eid
+    return f"{ns}.{eid}"
