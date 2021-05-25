@@ -24,9 +24,6 @@ fastapi-docker:
 dagster-docker:
 	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
-terminus-docker:
-	./docker-build.sh polyneme/terminusdb-server nmdc_runtime/terminus.Dockerfile
-
 publish:
 	invoke publish
 
