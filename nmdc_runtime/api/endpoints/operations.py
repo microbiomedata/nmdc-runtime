@@ -1,16 +1,37 @@
-from fastapi import APIRouter
+import pymongo
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
+
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.models.operation import (
+    ListOperationsResponse,
+    ResultT,
+    MetadataT,
+    ListOperationsRequest,
+    Operation,
+)
 
 router = APIRouter()
 
 
-@router.get("/operations")
-def list_operations():
-    pass
+@router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
+def list_operations(
+    req: ListOperationsRequest = Depends(),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    limit = req.max_page_size
+    return {"resources": list(mdb.operations.find(limit=limit))}
 
 
-@router.get("/operations/{op_id}")
-def get_operation():
-    pass
+@router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
+def get_operation(
+    op_id: str,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    op = mdb.operations.find_one({"id": op_id})
+    if op is not None:
+        return op
+    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content=None)
 
 
 @router.patch("/operations/{op_id}")

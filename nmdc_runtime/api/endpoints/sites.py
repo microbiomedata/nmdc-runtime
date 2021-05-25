@@ -1,4 +1,12 @@
-from fastapi import APIRouter
+import botocore
+from fastapi import APIRouter, Response, Depends, status
+import pymongo
+
+from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
+from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
+from nmdc_runtime.api.models.user import get_current_active_user, User
 
 router = APIRouter()
 
@@ -28,6 +36,27 @@ def replace_site():
     pass
 
 
-@router.delete("/sites/{site_id}")
-def delete_site():
-    pass
+@router.post("/sites/{site_id}:putObject")
+def put_object_in_site(
+    site_id: str,
+    object_in: DrsObjectBlobIn,
+    response: Response,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    s3client: botocore.client.BaseClient = Depends(get_s3_client),
+    user: User = Depends(get_current_active_user),
+):
+    site = mdb.sites.find_one({"id": site_id})
+    if site is None:
+        response.status_code = 404
+        return {"msg": f"no site with ID '{site_id}'"}
+    expires_in = 300
+    id_ns = "do"  # Drs Objects.
+    eid = generate_id_unique(mdb, id_ns)
+    url = presigned_url_to_put(
+        f"{id_ns}/{eid}",
+        client=s3client,
+        mime_type=object_in.mime_type,
+        expires_in=expires_in,
+    )
+    # TODO return Operation that user can update to signal runtime to create object resource.
+    return {"url": url, "expires_in": expires_in}

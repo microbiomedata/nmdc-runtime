@@ -13,15 +13,18 @@ update-deps:
 update: update-deps init
 
 up-dev:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
-		docker compose up --build --force-recreate --detach
+	docker compose up --build --force-recreate --detach
 
 down-dev:
 	docker compose down
 
-docker-images:
-	./docker-build.sh polyneme/nmdc-runtime
+fastapi-docker:
+	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
+
+dagster-docker:
+	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
+
 publish:
 	invoke publish
 
-.PHONY: init update-deps update up-dev down-dev docker-image publish
+.PHONY: init update-deps update up-dev down-dev fastapi-docker dagster-docker terminus-docker publish
