@@ -149,6 +149,13 @@ classes:
       id: gold_id
       name: project_name
       description: description
+    transforms:
+      post:
+        # note: attribute names must match names in nmdc.yaml
+        - function: make_iso_8601_date_value
+          attributes:
+            - add_date
+            - mod_date
     attributes:
       - part_of: [study_gold_id]
       - has_input: [biosample_gold_id]
@@ -162,7 +169,7 @@ classes:
       - principal_investigator_name:
           has_raw_value: principal_investigator_name
       - processing_institution
-   
+  
   emsl_omics_processing:
     type: omics processing
     constructor:
@@ -225,6 +232,10 @@ classes:
             - nitrate
             - pressure
             - samp_vol_we_dna_ext
+        - function: make_iso_8601_date_value
+          attributes:
+            - add_date
+            - mod_date
     attributes:
       - add_date
       - mod_date

@@ -1,0 +1,271 @@
+{
+  "study_set": [
+    {
+      "id": "gold:Gs0110115",
+      "name": "Avena fatua rhizosphere microbial communities from Hopland, California, USA, for root-enhanced decomposition of organic matter studies",
+      "description": "Using analytical expertise at both the JGI and EMSL, we plan to follow successional patterns of protein expression by root-associated microorganisms. This work builds on foundational research we are conducting with the common California grassland plant, Avena fatua, grown in Hopland, CA soil (FOA DE-PS02-09ER09-25). Using our 16-chamber 13C labeling facility at UC Berkeley, we have shown that elevated CO2 increased the amount of C allocated belowground, and increased the yield of root biomass. The rhizosphere microbial community undergoes a succession as the root grows, senesces, and dies. In elevated CO2 treatments, we also detect a greater amount of root-derived 13C in the mineral-associated heavy fraction of the soil, which is commonly assumed to reflect longer term stabilization. \\n \\nIn our JGI-EMSL project, we will follow over time how roots impact the functional capacity of the rhizosphere microbiome to enzymatically mediate decomposition processes. We hypothesize that root-exudate stimulation of soil microbial populations results in elevated expression of biomolecules (transcripts, enzymes, metabolites) for the decomposition of macromolecular C compounds.",
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Rhizosphere",
+      "ecosystem_subtype": "Soil",
+      "specific_ecosystem": "Unclassified",
+      "principal_investigator_name": {
+        "has_raw_value": "Mary Firestone"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487760"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0114298",
+      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM)",
+      "description": "The goal of the proposed research is to develop a predictive understanding of how and why photochemical alterations of permafrost dissolved organic carbon (DOC) lead to increased respiration rates by bacteria. The proposal will use metagenomic and metatranscriptomic sequencing of expressed bacterial genes to identify the genome-encoded, functional metabolic pathways actively used by DOC-degrading bacteria in permafrost soils and to determine how these pathways change when soil DOC is exposed to sunlight in surface waters. The proposal will then compare these results to DOC characterization by low and high-resolution mass spectrometry, and 13C-NMR of compounds that are produced or lost  during the exposure to light. The proposal also aims to determine genes that are differentially expressed and DOC compounds that are differentially modified and respired following light exposure, compared to DOC kept in the dark. The effects of light exposure on DOC metabolism to the concurrently measured rates of bacterial respiration and production will be related to develop a predictive understanding of the controls on soil C degradation in the Arctic.",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Soil",
+      "ecosystem_subtype": "Wetlands",
+      "specific_ecosystem": "Permafrost",
+      "principal_investigator_name": {
+        "has_raw_value": "Byron Crump"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487766"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0135152",
+      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
+      "description": "The goal of this study is to identify genomes of novel microbial players that are able to decompose recalcitrant organic matter in the presence of nitrate; to determine which metabolic pathways are differentially expressed as a result of nitrate addition; and to link differential expression of these genes to the decomposition of organic matter in salt marsh sediments.",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Aquatic",
+      "ecosystem_type": "Marine",
+      "ecosystem_subtype": "Intertidal zone",
+      "specific_ecosystem": "Salt marsh",
+      "principal_investigator_name": {
+        "has_raw_value": "Jennifer Bowen"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487491"
+      },
+      "type": "nmdc:Study"
+    }
+  ],
+  "omics_processing_set": [
+    {
+      "id": "gold:Gp0111276",
+      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "description": "Decoding DOM degradation: Permafrost soil sample from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "has_input": [
+        "gold:Gb0111009"
+      ],
+      "add_date": "2015-02-26",
+      "mod_date": "2020-04-05",
+      "has_output": [
+        "jgi:55c1f47a0d87855594c2653b"
+      ],
+      "ncbi_project_name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "part_of": [
+        "gold:Gs0114298"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
+      "id": "gold:Gp0507254",
+      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
+      "description": "Bulk soil microbial communities from Hopland, California, USA",
+      "has_input": [
+        "gold:Gb0259543"
+      ],
+      "add_date": "2020-10-09",
+      "mod_date": "2020-10-11",
+      "omics_type": {
+        "has_raw_value": "Targeted Gene Survey"
+      },
+      "part_of": [
+        "gold:Gs0110115"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
+      "id": "gold:Gp0321404",
+      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
+      "description": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
+      "has_input": [
+        "gold:Gb0191784"
+      ],
+      "add_date": "2018-06-22",
+      "mod_date": "2020-04-04",
+      "has_output": [
+        "jgi:5b3065e764d0b3516a5e1543"
+      ],
+      "ncbi_project_name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "part_of": [
+        "gold:Gs0135152"
+      ],
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    }
+  ],
+  "biosample_set": [
+    {
+      "id": "gold:Gb0111009",
+      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2013-06-20"
+      },
+      "depth": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:00000446"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00000043"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00000134"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "Alaska, USA"
+      },
+      "lat_lon": {
+        "has_raw_value": "68.6139 -149.3145",
+        "latitude": 68.6139,
+        "longitude": -149.3145
+      },
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Soil",
+      "ecosystem_subtype": "Wetlands",
+      "specific_ecosystem": "Permafrost",
+      "add_date": "2015-02-26",
+      "community": "microbial communities",
+      "habitat": "Permafrost soil",
+      "location": "from Alaska, USA",
+      "mod_date": "2020-05-26",
+      "ncbi_taxonomy_name": "soil metagenome",
+      "sample_collection_site": "soil"
+    },
+    {
+      "id": "gold:Gb0191784",
+      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
+      "description": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2016-06-09"
+      },
+      "depth": {
+        "has_raw_value": "0.1",
+        "has_numeric_value": 0.1,
+        "has_unit": "meter"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:01000022"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00000316"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00002007"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "USA: Massachusetts"
+      },
+      "lat_lon": {
+        "has_raw_value": "42.759 -70.891",
+        "latitude": 42.759,
+        "longitude": -70.891
+      },
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Aquatic",
+      "ecosystem_type": "Marine",
+      "ecosystem_subtype": "Intertidal zone",
+      "specific_ecosystem": "Salt marsh",
+      "add_date": "2018-06-22",
+      "community": "microbial communities",
+      "habitat": "salt marsh",
+      "identifier": "WE1602-10",
+      "location": "salt marshes at the Plum Island Ecosystem LTER, Massachusetts, United States",
+      "mod_date": "2019-06-16",
+      "ncbi_taxonomy_name": "salt marsh metagenome",
+      "sample_collection_site": "Salt marsh sediment"
+    },
+    {
+      "id": "gold:Gb0259543",
+      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
+      "description": "Bulk soil microbial communities from Hopland, California, USA",
+      "type": "nmdc:Biosample",
+      "alt": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "collection_date": {
+        "has_raw_value": "2013-03-15"
+      },
+      "depth": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:00000446"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:00005801"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:00005802"
+      },
+      "geo_loc_name": {
+        "has_raw_value": "USA: Hopland, California"
+      },
+      "lat_lon": {
+        "has_raw_value": "38.9929 -123.0674",
+        "latitude": 38.9929,
+        "longitude": -123.0674
+      },
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Roots",
+      "ecosystem_subtype": "Bulk soil",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "2020-10-09",
+      "community": "microbial communities",
+      "habitat": "Bulk soil",
+      "identifier": "21_Bulk_cDNA",
+      "location": "Hopland, California, USA",
+      "ncbi_taxonomy_name": "soil metagenome",
+      "sample_collection_site": "Soil"
+    }
+  ],
+  "data_object_set": [
+    {
+      "id": "jgi:55c1f47a0d87855594c2653b",
+      "name": "9365.2.130724.ATGTCA.fastq.gz",
+      "description": "Raw sequencer read data",
+      "file_size_bytes": 5715523835.0,
+      "type": "nmdc:DataObject"
+    },
+    {
+      "id": "jgi:5b3065e764d0b3516a5e1543",
+      "name": "12512.1.261459.GTCCACA-ATGTGGA.fastq.gz",
+      "description": "Raw sequencer read data",
+      "file_size_bytes": 6654909872.0,
+      "type": "nmdc:DataObject"
+    }
+  ]
+}
