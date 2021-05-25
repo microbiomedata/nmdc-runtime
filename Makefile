@@ -18,13 +18,16 @@ up-dev:
 down-dev:
 	docker compose down
 
-docker-image:
-	./docker-build.sh polyneme/nmdc-runtime nmdc_runtime/dagster.Dockerfile
+fastapi-docker:
+	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
 
-terminus-docker-image:
+dagster-docker:
+	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
+
+terminus-docker:
 	./docker-build.sh polyneme/terminusdb-server nmdc_runtime/terminus.Dockerfile
 
 publish:
 	invoke publish
 
-.PHONY: init update-deps update up-dev down-dev docker-image publish
+.PHONY: init update-deps update up-dev down-dev fastapi-docker dagster-docker terminus-docker publish
