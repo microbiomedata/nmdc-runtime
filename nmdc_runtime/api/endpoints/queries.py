@@ -3,12 +3,10 @@ from typing import List
 
 import pymongo
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel
 from starlette.responses import JSONResponse
 from toolz import assoc, merge
 
 from nmdc_runtime.api.core.idgen import generate_id_unique
-from nmdc_runtime.api.core.util import pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.query import Query, QueryBase
 
@@ -59,6 +57,11 @@ def save_query(
     query_id: str,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+
+    # TODO mechanism to periodically run query and save result as new object iff new result is
+    #      different than last saved result? Just save result's sha-256 hash! And if new result,
+    #      can add tags to existing objects in order to trigger workflow consideration.
+
     doc = mdb.queries.find_one({"id": query_id})
     if not doc:
         return JSONResponse(content={}, status_code=status.HTTP_404_NOT_FOUND)
