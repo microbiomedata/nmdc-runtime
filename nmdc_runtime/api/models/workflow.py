@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class WorkflowBase(BaseModel):
     name: Optional[str]
     description: Optional[str]
+    capability_ids: Optional[List[str]]
 
 
 class Workflow(WorkflowBase):

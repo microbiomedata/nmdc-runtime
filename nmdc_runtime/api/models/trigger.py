@@ -11,6 +11,4 @@ class TriggerBase(BaseModel):
 
 class Trigger(TriggerBase):
     id: str
-    object_type_id: str
-    workflow_id: str
     created_at: datetime.datetime

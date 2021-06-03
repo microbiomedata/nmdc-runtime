@@ -1,7 +1,10 @@
+from importlib import import_module
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     users,
     operations,
@@ -193,8 +196,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# To build static redoc documentation:
-# > cd docs/design && redoc-cli bundle http://0.0.0.0:8000/openapi.json
+
+@app.on_event("startup")
+async def ensure_initial_resources_on_boot():
+    """ensure these resources are loaded when (re-)booting the system."""
+    mdb = await get_mongo_db()
+    collections = ["workflows", "capabilities", "object_types", "triggers"]
+    for collection_name in collections:
+        collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
+        for model in collection_boot.construct():
+            doc = model.dict()
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

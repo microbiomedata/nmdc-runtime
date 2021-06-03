@@ -67,6 +67,9 @@ services:
     command: ["/start-reload.sh"]
     environment:
       MODULE_NAME: "nmdc_runtime.api.main"
+    depends_on:
+      - mongo
+      - terminus
     volumes:
       - .:/app
 
