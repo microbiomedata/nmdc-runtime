@@ -29,6 +29,7 @@ publish:
 
 docs:
 	# assumes `make up-dev`.
+	# nvm use 14
 	redoc-cli bundle http://0.0.0.0:8000/openapi.json -o docs/design/redoc-static.html
 
 .PHONY: init update-deps update up-dev down-dev \
