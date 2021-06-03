@@ -32,14 +32,29 @@ api_router.include_router(queries.router, tags=["queries"])
 
 tags_metadata = [
     {
-        "name": "triggers",
+        "name": "sites",
         "description": (
-            """A trigger is an association between a workflow and a data object type.
+            """A site corresponds to a physical place that may participate in job execution.
 
-When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
-Runtime will check, via trigger associations, for potential new jobs to create for any workflows.
+A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
 
-            """
+A site must be able to service requests for any data objects it has registered.
+
+A site may expose a "put object" custom method for authorized users. This method facilitates an
+operation to upload an object to the site and have the site register that object with the runtime
+system.
+
+"""
+        ),
+    },
+    {
+        "name": "users",
+        "description": (
+            """Endpoints for user identification.
+
+Currently, accounts for use of the runtime API are created manually by system administrators.
+
+          """
         ),
     },
     {
@@ -81,16 +96,14 @@ object type to workflow via a trigger resource.
         ),
     },
     {
-        "name": "objects",
+        "name": "triggers",
         "description": (
-            """A [Data Repository Service (DRS) object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes) represents content necessary for a workflow job to execute, and/or output from a job execution.
+            """A trigger is an association between a workflow and a data object type.
 
-An object may be a *blob*, analogous to a file, or a *bundle*, analogous to a folder. Sites register
-objects, and sites must ensure that these objects are accessible to the NMDC data broker.
+When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
+Runtime will check, via trigger associations, for potential new jobs to create for any workflows.
 
-An object may be associated with one or more object types, useful for triggering workflows.
-
-"""
+            """
         ),
     },
     {
@@ -108,21 +121,18 @@ A site that already has a compatible job execution result can preempt the unnece
 job by pre-claiming it. This will return like a claim, and now the site can register known data
 object inputs for the job without the risk of the runtime system creating a claimable job of the
 pre-claimed type.
-        
+
 """,
     },
     {
-        "name": "sites",
+        "name": "objects",
         "description": (
-            """A site corresponds to a physical place that may participate in job execution.
+            """A [Data Repository Service (DRS) object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes) represents content necessary for a workflow job to execute, and/or output from a job execution.
 
-A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
+An object may be a *blob*, analogous to a file, or a *bundle*, analogous to a folder. Sites register
+objects, and sites must ensure that these objects are accessible to the NMDC data broker.
 
-A site must be able to service requests for any data objects it has registered.
-
-A site may expose a "put object" custom method for authorized users. This method facilitates an
-operation to upload an object to the site and have the site register that object with the runtime
-system.
+An object may be associated with one or more object types, useful for triggering workflows.
 
 """
         ),
@@ -157,16 +167,6 @@ as an update query (if the latter is not done, the runtime system will sense the
 issue an update query).
 
             """
-        ),
-    },
-    {
-        "name": "users",
-        "description": (
-            """Endpoints for user identification.
-          
-Currently, accounts for use of the runtime API are created manually by system administrators.
-          
-          """
         ),
     },
 ]
