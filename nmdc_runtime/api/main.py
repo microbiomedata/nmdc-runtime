@@ -1,9 +1,11 @@
+import os
 from importlib import import_module
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     users,
@@ -201,12 +203,32 @@ app.add_middleware(
 async def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
     mdb = await get_mongo_db()
+
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
         for model in collection_boot.construct():
             doc = model.dict()
             mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    username = os.getenv("API_ADMIN_USER")
+    admin_ok = mdb.users.count_documents(({"username": username})) == 1
+    if not admin_ok:
+        mdb.users.insert_one(
+            {
+                "username": username,
+                "hashed_password": get_password_hash(os.getenv("API_ADMIN_PASS")),
+            }
+        )
+        mdb.users.create_index("username")
+
+    site_id = os.getenv("API_SITE_ID")
+    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) == 1
+    if not runtime_site_ok:
+        mdb.sites.insert_one({"id": site_id})
+        mdb.sites.create_index("id")
+
+    mdb.queries.create_index("id")
 
 
 if __name__ == "__main__":

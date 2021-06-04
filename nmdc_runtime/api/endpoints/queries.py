@@ -29,8 +29,6 @@ def run_new_query(
         result="OK"
     )
     mdb.queries.insert_one(query.dict())
-    # TODO move below to a db bootstrap routine
-    mdb.queries.create_index("id")
     return query
 
 
