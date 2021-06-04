@@ -148,3 +148,5 @@ metadata-translation/src/data/nmdc_database.json.zip
 deployment
 
 !metadata-translation/src/bin/lib
+.env*
+!.env.example

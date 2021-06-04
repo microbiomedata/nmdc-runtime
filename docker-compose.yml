@@ -67,6 +67,7 @@ services:
     command: ["/start-reload.sh"]
     environment:
       MODULE_NAME: "nmdc_runtime.api.main"
+      PORT: 8000
     depends_on:
       - mongo
       - terminus
