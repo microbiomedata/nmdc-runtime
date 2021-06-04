@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 
 @lru_cache
-async def get_mongo_db() -> pymongo.database.Database:
+def get_mongo_db() -> pymongo.database.Database:
     _client = MongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),

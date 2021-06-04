@@ -202,7 +202,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
-    mdb = await get_mongo_db()
+    mdb = get_mongo_db()
 
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
