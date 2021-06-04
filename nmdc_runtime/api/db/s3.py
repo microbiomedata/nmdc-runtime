@@ -1,24 +1,21 @@
+from functools import lru_cache
 import os
 
 import boto3
 
-_state = {"client": None}
-
 API_SITE_BUCKET = os.getenv("API_SITE_ID")
 
 
+@lru_cache
 async def get_s3_client():
-    if _state["client"] is None:
-        _session = boto3.session.Session()
-        _client = _session.client(
-            "s3",
-            region_name=os.getenv("DO_REGION_NAME"),
-            endpoint_url=os.getenv("DO_ENDPOINT_URL"),
-            aws_access_key_id=os.getenv("DO_SPACES_KEY"),
-            aws_secret_access_key=os.getenv("DO_SPACES_SECRET"),
-        )
-        _state["client"] = _client
-    return _state["client"]
+    _session = boto3.session.Session()
+    return _session.client(
+        "s3",
+        region_name=os.getenv("DO_REGION_NAME"),
+        endpoint_url=os.getenv("DO_ENDPOINT_URL"),
+        aws_access_key_id=os.getenv("DO_SPACES_KEY"),
+        aws_secret_access_key=os.getenv("DO_SPACES_SECRET"),
+    )
 
 
 def presigned_url_to_put(
