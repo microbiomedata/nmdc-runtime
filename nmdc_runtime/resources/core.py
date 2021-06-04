@@ -2,6 +2,13 @@ from dagster import resource, StringSource
 from terminusdb_client import WOQLClient
 
 
+class RuntimeAPI:
+    def __init__(self, base_url, token):
+        self.base_url = base_url
+        self.token = token
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+
+
 class TerminusDB:
     def __init__(self, server_url, user, key, account, dbid):
         self.client = WOQLClient(server_url=server_url)

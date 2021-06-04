@@ -18,6 +18,12 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
+class TokenExpires(BaseModel):
+    days: Optional[int] = 1
+    hours: Optional[int] = 0
+    minutes: Optional[int] = 0
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -70,15 +76,27 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+
+
+def get_access_token_expiration(token) -> datetime:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("exp")
+    except JWTError:
+        raise credentials_exception
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    if mdb.invalidated_tokens.find_one({"_id": token}):
+        raise credentials_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")

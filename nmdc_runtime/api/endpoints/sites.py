@@ -1,15 +1,23 @@
+from datetime import timedelta, datetime, timezone
 from typing import List
 
 import botocore
-from fastapi import APIRouter, Response, Depends, status
-import pymongo
+from fastapi import APIRouter, Response, Depends, status, HTTPException
+import pymongo.database
 
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
-from nmdc_runtime.api.models.user import get_current_active_user, User
+from nmdc_runtime.api.models.user import (
+    get_current_active_user,
+    User,
+    TokenExpires,
+    create_access_token,
+    Token,
+    get_access_token_expiration,
+)
 
 router = APIRouter()
 
@@ -73,3 +81,49 @@ def put_object_in_site(
     )
     # TODO return Operation that user can update to signal runtime to create object resource.
     return {"url": url, "expires_in": expires_in}
+
+
+@router.post("/sites/{site_id}:generateToken", response_model=Token)
+def generate_token_for_site(
+    site_id: str,
+    token_expires: TokenExpires,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    site_admin = mdb.users.find_one({"username": user.username, "site_admin": site_id})
+    if not site_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You're not registered as an admin for this site",
+        )
+
+    access_token_expires = timedelta(**token_expires.dict())
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/sites/{site_id}:invalidateToken")
+def invalidate_token_for_site(
+    site_id: str,
+    token: str,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    site_admin = mdb.users.find_one({"username": user.username, "site_admin": site_id})
+    if not site_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You're not registered as an admin for this site",
+        )
+
+    expiration = get_access_token_expiration(token)
+    if expiration < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found. It may have already expired.",
+        )
+    mdb.invalidated_tokens.replace_one({"_id": token.access_token}, upsert=True)
+    return {"result": "OK"}
