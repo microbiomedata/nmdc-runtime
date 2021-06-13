@@ -1,11 +1,21 @@
 from datetime import timedelta, datetime, timezone
 from typing import List
+from uuid import uuid4
 
 import botocore
 from fastapi import APIRouter, Response, Depends, status, HTTPException
 import pymongo.database
 
+from nmdc_runtime.api.core.auth import (
+    TokenExpires,
+    Token,
+    create_access_token,
+    get_access_token_expiration,
+    ClientCredentials,
+    get_password_hash,
+)
 from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
 from nmdc_runtime.api.models.capability import Capability
@@ -13,10 +23,6 @@ from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
 from nmdc_runtime.api.models.user import (
     get_current_active_user,
     User,
-    TokenExpires,
-    create_access_token,
-    Token,
-    get_access_token_expiration,
 )
 
 router = APIRouter()
@@ -66,10 +72,9 @@ def put_object_in_site(
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
     user: User = Depends(get_current_active_user),
 ):
-    site = mdb.sites.find_one({"id": site_id})
-    if site is None:
-        response.status_code = 404
-        return {"msg": f"no site with ID '{site_id}'"}
+    site = raise404_if_none(
+        mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
+    )
     expires_in = 300
     id_ns = "do"  # Drs Objects.
     eid = generate_id_unique(mdb, id_ns)
@@ -83,13 +88,15 @@ def put_object_in_site(
     return {"url": url, "expires_in": expires_in}
 
 
-@router.post("/sites/{site_id}:generateToken", response_model=Token)
-def generate_token_for_site(
+@router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
+def generate_credentials_for_site_client(
     site_id: str,
-    token_expires: TokenExpires,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    raise404_if_none(
+        mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
+    )
     site_admin = mdb.users.find_one({"username": user.username, "site_admin": site_id})
     if not site_admin:
         raise HTTPException(
@@ -97,33 +104,15 @@ def generate_token_for_site(
             detail="You're not registered as an admin for this site",
         )
 
-    access_token_expires = timedelta(**token_expires.dict())
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+    client_id = generate_id_unique(mdb, "site_clients")
+    client_secret = uuid4().hex
+    hashed_secret = get_password_hash(client_secret)
+    mdb.sites.update_one(
+        {"id": site_id},
+        {"$push": {"clients": {"id": client_id, "hashed_secret": hashed_secret}}},
     )
 
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@router.post("/sites/{site_id}:invalidateToken")
-def invalidate_token_for_site(
-    site_id: str,
-    token: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
-):
-    site_admin = mdb.users.find_one({"username": user.username, "site_admin": site_id})
-    if not site_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You're not registered as an admin for this site",
-        )
-
-    expiration = get_access_token_expiration(token)
-    if expiration < datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Token not found. It may have already expired.",
-        )
-    mdb.invalidated_tokens.replace_one({"_id": token.access_token}, upsert=True)
-    return {"result": "OK"}
+    return {
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }

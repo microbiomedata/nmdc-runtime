@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from nmdc_runtime.api.models.site import Site, get_current_client_site
 
 router = APIRouter()
 
@@ -19,8 +21,8 @@ def update_job():
 
 
 @router.post("/jobs/{job_id}:claim")
-def claim_job():
-    pass
+def claim_job(job_id: str, site: Site = Depends(get_current_client_site)):
+    return "OK"
 
 
 @router.post("/jobs:preclaim")
