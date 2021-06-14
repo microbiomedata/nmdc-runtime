@@ -16,11 +16,12 @@ from nmdc_runtime.api.core.auth import (
     get_password_hash,
 )
 from nmdc_runtime.api.core.idgen import generate_id_unique
-from nmdc_runtime.api.core.util import raise404_if_none
+from nmdc_runtime.api.core.util import raise404_if_none, expiry_dt_from_now
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
+from nmdc_runtime.api.models.operation import Operation, EmptyResult, ObjectPutMetadata
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.api.models.user import (
     get_current_active_user,
@@ -65,7 +66,10 @@ def replace_site_capabilities(site_id: str, capability_ids: List[str]):
     return capability_ids
 
 
-@router.post("/sites/{site_id}:putObject")
+@router.post(
+    "/sites/{site_id}:putObject",
+    response_model=Operation[EmptyResult, ObjectPutMetadata],
+)
 def put_object_in_site(
     site_id: str,
     object_in: DrsObjectBlobIn,
@@ -84,16 +88,25 @@ def put_object_in_site(
         )
     expires_in = 300
     id_ns = "do"  # Drs Objects.
-    eid = generate_id_unique(mdb, id_ns)
+    object_id = generate_id_unique(mdb, id_ns)
     url = presigned_url_to_put(
-        f"{id_ns}/{eid}",
+        f"{id_ns}/{object_id}",
         client=s3client,
         mime_type=object_in.mime_type,
         expires_in=expires_in,
     )
-    # TODO return Operation that site client can update
-    #   to signal runtime to create object resource.
-    return {"url": url, "expires_in": expires_in}
+    op = {
+        "id": generate_id_unique(mdb, "op"),
+        "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
+        "metadata": {
+            "object_id": object_id,
+            "site_id": site_id,
+            "url": url,
+            "expires_in_seconds": expires_in,
+        },
+    }
+    mdb.operations.insert_one(op)
+    return op
 
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)

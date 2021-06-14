@@ -73,31 +73,6 @@ Mimetype = constr(regex=r"^\w+/[-+.\w]+$")
 SizeInBytes = conint(strict=True, ge=0)
 
 
-class DrsObject(BaseModel):
-    access_methods: Optional[List[AccessMethod]]
-    aliases: Optional[List[str]]
-    checksums: List[Checksum]
-    contents: Optional[List[ContentsObject]]
-    created_time: datetime.datetime
-    description: Optional[str]
-    id: DrsId
-    mime_type: Optional[Mimetype]
-    name: Optional[PortableFilename]
-    self_uri: AnyUrl
-    size: SizeInBytes
-    updated_time: Optional[datetime.datetime]
-    version: Optional[str]
-
-    @root_validator()
-    def no_contents_means_single_blob(cls, values):
-        contents, access_methods = values.get("contents"), values.get("access_methods")
-        if contents is None and access_methods is None:
-            raise ValueError(
-                "no contents means single blob, which requires access_methods"
-            )
-        return values
-
-
 class Error(BaseModel):
     msg: Optional[str]
     status_code: http.HTTPStatus
@@ -112,6 +87,27 @@ class DrsObjectBase(BaseModel):
 
 class DrsObjectBlobIn(DrsObjectBase):
     pass
+
+
+class DrsObject(DrsObjectBase):
+    access_methods: Optional[List[AccessMethod]]
+    checksums: List[Checksum]
+    contents: Optional[List[ContentsObject]]
+    created_time: datetime.datetime
+    id: DrsId
+    self_uri: AnyUrl
+    size: SizeInBytes
+    updated_time: Optional[datetime.datetime]
+    version: Optional[str]
+
+    @root_validator()
+    def no_contents_means_single_blob(cls, values):
+        contents, access_methods = values.get("contents"), values.get("access_methods")
+        if contents is None and access_methods is None:
+            raise ValueError(
+                "no contents means single blob, which requires access_methods"
+            )
+        return values
 
 
 class DrsObjectBundleIn(DrsObjectBase):

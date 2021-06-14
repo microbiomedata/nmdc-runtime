@@ -1,7 +1,7 @@
 import datetime
 from typing import Generic, TypeVar, Optional, List, Any, Union
 
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import BaseModel, validator, ValidationError, HttpUrl
 from pydantic.generics import GenericModel
 
 ResultT = TypeVar("ResultT")
@@ -16,7 +16,7 @@ class OperationError(BaseModel):
 
 class Operation(GenericModel, Generic[ResultT, MetadataT]):
     id: str
-    done: bool
+    done: bool = False
     expire_time: datetime.datetime
     result: Optional[Union[ResultT, OperationError]]
     metadata: Optional[MetadataT]
@@ -31,3 +31,26 @@ class ListOperationsRequest(BaseModel):
 class ListOperationsResponse(GenericModel, Generic[ResultT, MetadataT]):
     resources: List[Operation[ResultT, MetadataT]]
     next_page_token: Optional[str]
+
+
+class Result(BaseModel):
+    pass
+
+
+class EmptyResult(Result):
+    pass
+
+
+class Metadata(BaseModel):
+    pass
+
+
+class PausedOrNot(Metadata):
+    paused: bool
+
+
+class ObjectPutMetadata(Metadata):
+    object_id: str
+    site_id: str
+    url: HttpUrl
+    expires_in_seconds: int

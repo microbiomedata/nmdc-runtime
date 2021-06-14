@@ -2,6 +2,7 @@ import pymongo
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
+from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.operation import (
     ListOperationsResponse,
@@ -28,14 +29,13 @@ def get_operation(
     op_id: str,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    op = mdb.operations.find_one({"id": op_id})
-    if op is not None:
-        return op
-    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content=None)
+    op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
+    return op
 
 
 @router.patch("/operations/{op_id}")
 def update_operation():
+    # TODO a site client can update operations with site_id in metadata
     pass
 
 
