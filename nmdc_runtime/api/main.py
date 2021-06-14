@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     users,
@@ -19,6 +20,7 @@ from nmdc_runtime.api.endpoints import (
     workflows,
     queries,
 )
+from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -225,7 +227,20 @@ async def ensure_initial_resources_on_boot():
     site_id = os.getenv("API_SITE_ID")
     runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) == 1
     if not runtime_site_ok:
-        mdb.sites.insert_one({"id": site_id})
+        client_id = os.getenv("API_SITE_CLIENT_ID")
+        mdb.sites.insert_one(
+            SiteInDB(
+                id=site_id,
+                clients=[
+                    SiteClientInDB(
+                        id=client_id,
+                        hashed_secret=get_password_hash(
+                            os.getenv("API_SITE_CLIENT_SECRET")
+                        ),
+                    )
+                ],
+            ).dict()
+        )
         mdb.sites.create_index("id")
 
     mdb.queries.create_index("id")

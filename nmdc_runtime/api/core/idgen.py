@@ -2,7 +2,7 @@ import base32_lib as base32
 import pymongo
 
 
-def generate_id(length=10, split_every=5, checksum=True) -> str:
+def generate_id(length=10, split_every=4, checksum=True) -> str:
     """Generate random base32 string: a user-shareable ID for a database entity.
 
     Uses Douglas Crockford Base32 encoding: <https://www.crockford.com/base32.html>
@@ -36,7 +36,7 @@ def decode_id(encoded: str, checksum=True) -> int:
     return base32.decode(encoded=encoded, checksum=checksum)
 
 
-def encode_id(number: int, split_every=5, min_length=10, checksum=True) -> int:
+def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
     """Encodes `number` to URI-friendly Douglas Crockford base32 string.
 
     :param number: number to encode
@@ -57,10 +57,10 @@ def generate_id_unique(
 ) -> str:
     """Generate unique Crockford Base32-encoded entity ID for given namespace ns."""
     get_one = True
-    collection = mdb.get_collection(f"ids.{ns}")
+    collection = mdb.get_collection("ids")
     while get_one:
         eid = generate_id(**generate_id_kwargs)
         eid_decoded = decode_id(eid)
         get_one = collection.count_documents({"_id": eid_decoded}) > 0
-    collection.insert_one({"_id": eid_decoded})
-    return f"{ns}.{eid}"
+    collection.insert_one({"_id": eid_decoded, "ns": ns})
+    return eid

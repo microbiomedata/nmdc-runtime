@@ -146,6 +146,7 @@ metadata-translation/examples/nmdc_example_database.json
 metadata-translation/src/data/nmdc_database.json.zip
 
 deployment
+cordra-2.3.0/
 
 !metadata-translation/src/bin/lib
 .env*

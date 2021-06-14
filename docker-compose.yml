@@ -99,6 +99,24 @@ services:
       TERMINUSDB_AUTOLOGIN_ENABLED: "true"
       TERMINUSDB_HTTPS_ENABLED: "false"
 
+#  cordra:
+#    build:
+#      context: ./cordra-2.3.0
+#      dockerfile: docker/Dockerfile
+#    container_name: cordra
+#    env_file:
+#      - cordra-2.3.0/docker/variables.env
+#    depends_on:
+#      - mongo
+#    # Uncomment these lines to persist the Cordra data directory
+##    volumes:
+##      - ../data:/opt/cordra/data
+#    ports:
+#      - "8080:8080"
+#      - "8443:8443"
+#      - "2641:2641"
+#      - "9000:9000"
+
 volumes:
   nmdc_runtime_postgres_data:
     driver: local

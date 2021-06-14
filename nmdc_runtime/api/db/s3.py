@@ -7,7 +7,7 @@ API_SITE_BUCKET = os.getenv("API_SITE_ID")
 
 
 @lru_cache
-async def get_s3_client():
+def get_s3_client():
     _session = boto3.session.Session()
     return _session.client(
         "s3",
