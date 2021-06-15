@@ -18,9 +18,19 @@ from nmdc_runtime.api.core.auth import (
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.core.util import raise404_if_none, expiry_dt_from_now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.db.s3 import get_s3_client, presigned_url_to_put
+from nmdc_runtime.api.db.s3 import (
+    get_s3_client,
+    presigned_url_to_put,
+    presigned_url_to_get,
+)
 from nmdc_runtime.api.models.capability import Capability
-from nmdc_runtime.api.models.object import DrsObjectBlobIn, Error
+from nmdc_runtime.api.models.object import (
+    DrsObjectBlobIn,
+    Error,
+    ObjectPresignedUrl,
+    AccessMethod,
+    AccessURL,
+)
 from nmdc_runtime.api.models.operation import Operation, EmptyResult, ObjectPutMetadata
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.api.models.user import (
@@ -29,6 +39,8 @@ from nmdc_runtime.api.models.user import (
 )
 
 router = APIRouter()
+
+S3_ID_NS = "do"  # Namespace for Drs Objects in Site S3-bucket store.
 
 
 @router.post("/sites")
@@ -66,31 +78,36 @@ def replace_site_capabilities(site_id: str, capability_ids: List[str]):
     return capability_ids
 
 
+def verify_client_site_pair(
+    site_id: str,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    client_site: Site = Depends(get_current_client_site),
+):
+    site = raise404_if_none(
+        mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
+    )
+    if site["id"] != client_site.id:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN,
+            detail=f"client authorized for different site_id than {site_id}",
+        )
+
+
 @router.post(
     "/sites/{site_id}:putObject",
     response_model=Operation[EmptyResult, ObjectPutMetadata],
+    dependencies=[Depends(verify_client_site_pair)],
 )
 def put_object_in_site(
     site_id: str,
     object_in: DrsObjectBlobIn,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
-    site: Site = Depends(get_current_client_site),
 ):
-    client_site_id = site.id
-    site = raise404_if_none(
-        mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
-    )
-    if site["id"] != client_site_id:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN,
-            detail=f"client authorized for different site_id than {site_id}",
-        )
     expires_in = 300
-    id_ns = "do"  # Drs Objects.
-    object_id = generate_id_unique(mdb, id_ns)
+    object_id = generate_id_unique(mdb, S3_ID_NS)
     url = presigned_url_to_put(
-        f"{id_ns}/{object_id}",
+        f"{S3_ID_NS}/{object_id}",
         client=s3client,
         mime_type=object_in.mime_type,
         expires_in=expires_in,
@@ -107,6 +124,22 @@ def put_object_in_site(
     }
     mdb.operations.insert_one(op)
     return op
+
+
+@router.post(
+    "/sites/{site_id}:getObjectLink",
+    response_model=AccessURL,
+    dependencies=[Depends(verify_client_site_pair)],
+)
+def get_site_object_link(
+    access_method: AccessMethod,
+    s3client: botocore.client.BaseClient = Depends(get_s3_client),
+):
+    url = presigned_url_to_get(
+        f"{S3_ID_NS}/{access_method.access_id}",
+        client=s3client,
+    )
+    return {"url": url}
 
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)

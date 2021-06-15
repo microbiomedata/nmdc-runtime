@@ -34,14 +34,14 @@ class AccessMethod(BaseModel):
     access_id: Optional[str]
     access_url: Optional[AccessURL]
     region: Optional[str]
-    type: AccessMethodType
+    type: AccessMethodType = AccessMethodType.https
 
     @root_validator
     def at_least_one_of_access_id_and_url(cls, values):
         access_id, access_url = values.get("access_id"), values.get("access_url")
         if access_id is None and access_url is None:
             raise ValueError(
-                "At least one of access_url and access_is must be provided."
+                "At least one of access_url and access_id must be provided."
             )
         return values
 
@@ -117,7 +117,7 @@ class DrsObjectBundleIn(DrsObjectBase):
 Seconds = conint(strict=True, gt=0)
 
 
-class DrsObjectPresignedUrlPut(BaseModel):
+class ObjectPresignedUrl(BaseModel):
     url: HttpUrl
     expires_in: Seconds = 300
 

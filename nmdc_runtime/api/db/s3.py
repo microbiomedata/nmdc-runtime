@@ -26,3 +26,11 @@ def presigned_url_to_put(
         Params={"Bucket": bucket, "Key": key, "ContentType": mime_type},
         ExpiresIn=expires_in,
     )
+
+
+def presigned_url_to_get(key, client=None, bucket=API_SITE_BUCKET, expires_in=300):
+    return client.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=expires_in,
+    )
