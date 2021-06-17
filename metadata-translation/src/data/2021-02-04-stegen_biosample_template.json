@@ -1,0 +1,67 @@
+{
+  "id": $BIOSAMPLE_ID,
+  "name": "Groundwater microbial communities from the Columbia River, Washington, USA - GW-RW $BIOSAMPLE_NAME“,
+  "lat_lon": {
+    "has_raw_value": "46.372 -119.272",
+    "latitude": 46.372,
+    "longitude": -119.272,
+    "type": "nmdc:GeolocationValue"
+  },
+  "env_broad_scale": {
+    "has_raw_value": "ENVO:00000873",
+    "term": {
+      "id": "ENVO:00000873"
+    }
+  },
+  "env_local_scale": {
+    "has_raw_value": "ENVO:00000022",
+    "term": {
+      "id": "ENVO:00000022"
+    }
+  },
+  "env_medium": {
+    "has_raw_value": "ENVO:01000017",
+    "term": {
+      "id": "ENVO:01000017"
+    }
+  },
+  "geo_loc_name": {
+    "has_raw_value": "USA: Columbia River, Washington"
+  },
+  "collection_date": {
+    "has_raw_value": "2014-04-01"
+  },
+  "ecosystem": {
+    "has_raw_value": "Environmental"
+  },
+  "ecosystem_category": {
+    "has_raw_value": "Terrestrial"
+  },
+  "ecosystem_type": {
+    "has_raw_value": "Soil"
+  },
+  "ecosystem_subtype": {
+    "has_raw_value": "Sand"
+  },
+  "specific_ecosystem": {
+    "has_raw_value": "Unclassified"
+  },
+  "community": {
+    "has_raw_value": "microbial communities"
+  },
+  "habitat": {
+    "has_raw_value": "Groundwater sand"
+  },
+  "identifier": {
+    "has_raw_value": "GW-RW $BIOSAMPLE_NAME"
+  },
+  "location": {
+    "has_raw_value": "Columbia River, Washington, USA"
+  },
+  "ncbi_taxonomy_name": {
+    "has_raw_value": "groundwater metagenome"
+  },
+  "sample_collection_site": {
+    "has_raw_value": "sand"
+  }
+}
