@@ -16,20 +16,26 @@ from nmdc_runtime.api.core.auth import (
     get_password_hash,
 )
 from nmdc_runtime.api.core.idgen import generate_id_unique
-from nmdc_runtime.api.core.util import raise404_if_none, expiry_dt_from_now
+from nmdc_runtime.api.core.util import (
+    raise404_if_none,
+    expiry_dt_from_now,
+    dotted_path_for,
+)
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import (
     get_s3_client,
     presigned_url_to_put,
     presigned_url_to_get,
+    S3_ID_NS,
 )
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import (
-    DrsObjectBlobIn,
     Error,
     ObjectPresignedUrl,
     AccessMethod,
     AccessURL,
+    DrsObjectBase,
+    DrsObjectIn,
 )
 from nmdc_runtime.api.models.operation import Operation, EmptyResult, ObjectPutMetadata
 from nmdc_runtime.api.models.site import get_current_client_site, Site
@@ -39,8 +45,6 @@ from nmdc_runtime.api.models.user import (
 )
 
 router = APIRouter()
-
-S3_ID_NS = "do"  # Namespace for Drs Objects in Site S3-bucket store.
 
 
 @router.post("/sites")
@@ -95,12 +99,12 @@ def verify_client_site_pair(
 
 @router.post(
     "/sites/{site_id}:putObject",
-    response_model=Operation[EmptyResult, ObjectPutMetadata],
+    response_model=Operation[DrsObjectIn, ObjectPutMetadata],
     dependencies=[Depends(verify_client_site_pair)],
 )
 def put_object_in_site(
     site_id: str,
-    object_in: DrsObjectBlobIn,
+    object_in: DrsObjectBase,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
@@ -112,17 +116,21 @@ def put_object_in_site(
         mime_type=object_in.mime_type,
         expires_in=expires_in,
     )
-    op = {
-        "id": generate_id_unique(mdb, "op"),
-        "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
-        "metadata": {
-            "object_id": object_id,
-            "site_id": site_id,
-            "url": url,
-            "expires_in_seconds": expires_in,
-        },
-    }
-    mdb.operations.insert_one(op)
+    # XXX ensures defaults are set, e.g. done:false
+    op = Operation[DrsObjectIn, ObjectPutMetadata](
+        **{
+            "id": generate_id_unique(mdb, "op"),
+            "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
+            "metadata": {
+                "object_id": object_id,
+                "site_id": site_id,
+                "url": url,
+                "expires_in_seconds": expires_in,
+                "model": dotted_path_for(ObjectPutMetadata),
+            },
+        }
+    )
+    mdb.operations.insert_one(op.dict())
     return op
 
 
@@ -132,6 +140,7 @@ def put_object_in_site(
     dependencies=[Depends(verify_client_site_pair)],
 )
 def get_site_object_link(
+    site_id: str,
     access_method: AccessMethod,
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):

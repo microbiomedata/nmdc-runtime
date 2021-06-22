@@ -4,6 +4,7 @@ import os
 import boto3
 
 API_SITE_BUCKET = os.getenv("API_SITE_ID")
+S3_ID_NS = "do"  # Namespace for Drs Objects in Site S3-bucket store.
 
 
 @lru_cache

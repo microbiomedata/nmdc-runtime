@@ -55,7 +55,11 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
 def generate_id_unique(
     mdb: pymongo.database.Database = None, ns: str = None, **generate_id_kwargs
 ) -> str:
-    """Generate unique Crockford Base32-encoded entity ID for given namespace ns."""
+    """Generate unique Crockford Base32-encoded ID for mdb repository.
+
+    Can associate ID with namespace ns to facilitate ID deletion/recycling.
+
+    """
     get_one = True
     collection = mdb.get_collection("ids")
     while get_one:

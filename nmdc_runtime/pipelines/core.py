@@ -1,8 +1,10 @@
 from dagster import ModeDefinition, pipeline, PresetDefinition
 
+from nmdc_runtime.resources.core import runtime_api_site_client_resource
 from nmdc_runtime.resources.mongo import mongo_resource
+from nmdc_runtime.resources.terminus import terminus_resource
 from nmdc_runtime.solids.core import mongo_stats, update_schema, hello
-from nmdc_runtime.resources.core import terminus_resource
+
 
 # Mode definitions allow you to configure the behavior of your pipelines and solids at execution
 # time. For hints on creating modes in Dagster, see our documentation overview on Modes and
@@ -11,7 +13,11 @@ from nmdc_runtime.resources.core import terminus_resource
 
 mode_normal = ModeDefinition(
     name="normal",
-    resource_defs={"terminus": terminus_resource, "mongo": mongo_resource},
+    resource_defs={
+        "runtime_api_site_client": runtime_api_site_client_resource,
+        "terminus": terminus_resource,
+        "mongo": mongo_resource,
+    },
 )
 mode_test = ModeDefinition(name="test")
 
@@ -19,6 +25,14 @@ preset_normal_env = PresetDefinition(
     "normal_via_env",
     run_config={
         "resources": {
+            "runtime_api_site_client": {
+                "config": {
+                    "base_url": {"env": "API_HOST"},
+                    "site_id": {"env": "API_SITE_ID"},
+                    "client_id": {"env": "API_SITE_CLIENT_ID"},
+                    "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                },
+            },
             "terminus": {
                 "config": {
                     "server_url": {"env": "TERMINUS_SERVER_URL"},
@@ -42,6 +56,16 @@ preset_normal_env = PresetDefinition(
 )
 
 
+@pipeline(mode_defs=[mode_test])
+def hello_pipeline():
+    hello()
+
+
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
+def hello_mongo():
+    mongo_stats()
+
+
 @pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
 def update_terminus():
     """
@@ -51,13 +75,3 @@ def update_terminus():
     https://docs.dagster.io/overview/solids-pipelines/pipelines
     """
     update_schema()
-
-
-@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
-def hello_mongo():
-    mongo_stats()
-
-
-@pipeline(mode_defs=[mode_test])
-def hello_pipeline():
-    hello()

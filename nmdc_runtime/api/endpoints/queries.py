@@ -59,6 +59,7 @@ def save_query(
     # TODO mechanism to periodically run query and save result as new object iff new result is
     #      different than last saved result? Just save result's sha-256 hash! And if new result,
     #      can add tags to existing objects in order to trigger workflow consideration.
+    #      Can saved queries be claimable jobs?
 
     doc = mdb.queries.find_one({"id": query_id})
     if not doc:

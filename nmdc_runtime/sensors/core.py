@@ -13,5 +13,7 @@ def my_sensor(_context):
     https://docs.dagster.io/overview/schedules-sensors/sensors
     """
     should_run = True
+    preset_normal_env.run_config["resources": {
+            "runtime_api_site_client": {]
     if should_run:
         yield RunRequest(run_key=None, run_config=preset_normal_env.run_config)

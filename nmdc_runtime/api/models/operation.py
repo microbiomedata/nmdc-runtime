@@ -1,11 +1,14 @@
 import datetime
 from typing import Generic, TypeVar, Optional, List, Any, Union
 
-from pydantic import BaseModel, validator, ValidationError, HttpUrl
+from pydantic import BaseModel, validator, ValidationError, HttpUrl, constr
 from pydantic.generics import GenericModel
 
 ResultT = TypeVar("ResultT")
 MetadataT = TypeVar("MetadataT")
+
+
+PythonImportPath = constr(regex=r"^[A-Za-z0-9_.]+$")
 
 
 class OperationError(BaseModel):
@@ -22,6 +25,12 @@ class Operation(GenericModel, Generic[ResultT, MetadataT]):
     metadata: Optional[MetadataT]
 
 
+class UpdateOperationRequest(GenericModel, Generic[ResultT, MetadataT]):
+    done: bool = False
+    result: Optional[Union[ResultT, OperationError]]
+    metadata: Optional[MetadataT]
+
+
 class ListOperationsRequest(BaseModel):
     filter: Optional[str]
     max_page_size: Optional[int] = 20
@@ -34,7 +43,7 @@ class ListOperationsResponse(GenericModel, Generic[ResultT, MetadataT]):
 
 
 class Result(BaseModel):
-    pass
+    model: Optional[PythonImportPath]
 
 
 class EmptyResult(Result):
@@ -42,7 +51,8 @@ class EmptyResult(Result):
 
 
 class Metadata(BaseModel):
-    pass
+    # TODO set model field using __class__ on construct?
+    model: Optional[PythonImportPath]
 
 
 class PausedOrNot(Metadata):

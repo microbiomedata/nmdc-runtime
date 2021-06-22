@@ -85,17 +85,11 @@ class DrsObjectBase(BaseModel):
     name: Optional[PortableFilename]
 
 
-class DrsObjectBlobIn(DrsObjectBase):
-    pass
-
-
-class DrsObject(DrsObjectBase):
+class DrsObjectIn(DrsObjectBase):
     access_methods: Optional[List[AccessMethod]]
     checksums: List[Checksum]
     contents: Optional[List[ContentsObject]]
     created_time: datetime.datetime
-    id: DrsId
-    self_uri: AnyUrl
     size: SizeInBytes
     updated_time: Optional[datetime.datetime]
     version: Optional[str]
@@ -109,9 +103,12 @@ class DrsObject(DrsObjectBase):
             )
         return values
 
+    # TODO root validator ensuring at least one checksum
 
-class DrsObjectBundleIn(DrsObjectBase):
-    contents: List[ContentsObject]
+
+class DrsObject(DrsObjectIn):
+    id: DrsId
+    self_uri: AnyUrl
 
 
 Seconds = conint(strict=True, gt=0)
