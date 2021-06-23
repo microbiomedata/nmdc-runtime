@@ -84,8 +84,8 @@ class RuntimeApiSiteClient:
 )
 def runtime_api_site_client_resource(context):
     return RuntimeApiSiteClient(
-        base_url=context.resource_config["host"],
-        site_id=context.resource_config["username"],
-        client_id=context.resource_config["password"],
-        client_secret=context.resource_config["dbname"],
+        base_url=context.resource_config["base_url"],
+        site_id=context.resource_config["site_id"],
+        client_id=context.resource_config["client_id"],
+        client_secret=context.resource_config["client_secret"],
     )

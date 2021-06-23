@@ -36,6 +36,8 @@ services:
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
       - dagster-postgresql
+    volumes:
+      - ./:/opt/dagster/lib
 
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
@@ -54,6 +56,8 @@ services:
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
       - dagster-postgresql
+    volumes:
+      - ./:/opt/dagster/lib
 
   fastapi:
     build:
