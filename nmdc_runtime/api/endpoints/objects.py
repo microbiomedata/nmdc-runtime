@@ -46,6 +46,9 @@ def create_object(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    # TODO have site (i.e. site admin) register object, and thus site admins can manage?
+    #    This makes sense. Every data object "comes from" a site, even though it may be accessed
+    #    via other sites.
     drs_id = generate_id_unique(mdb, S3_ID_NS)
     self_uri = f"drs://{HOSTNAME}/{drs_id}"
     drs_obj = DrsObject(**object_in, id=drs_id, self_uri=self_uri)
