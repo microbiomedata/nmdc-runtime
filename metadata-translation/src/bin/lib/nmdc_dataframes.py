@@ -443,6 +443,7 @@ def make_biosample_dataframe(
     water_package_table,
     project_biosample_table,
     project_table,
+    study_table,
     result_cols=[],
 ):
     def make_collection_date_from_row(row):
@@ -470,13 +471,27 @@ def make_biosample_dataframe(
     project_biosample_table_splice = project_biosample_table[
         ["biosample_id", "project_id"]
     ].copy()
-    project_table_splice = project_table[["project_id", "gold_id"]].copy()
+    project_table_splice = project_table[
+        ["project_id", "gold_id", "master_study_id"]
+    ].copy()
+
+    study_table_splice = study_table[["study_id", "gold_id"]].copy()
 
     ## add prefix
     project_table_splice.gold_id = "gold:" + project_table_splice.gold_id
 
     ## rename columns
     project_table_splice.rename(columns={"gold_id": "project_gold_id"}, inplace=True)
+    study_table_splice.rename(columns={"gold_id": "study_gold_id"}, inplace=True)
+
+    ## inner join projects and studies
+    project_table_splice = pds.merge(
+        project_table_splice,
+        study_table_splice,
+        how="inner",
+        left_on="master_study_id",
+        right_on="study_id",
+    )
 
     ## left join package tables to biosample table
     temp0_df = pds.merge(
