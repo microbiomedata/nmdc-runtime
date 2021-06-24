@@ -479,6 +479,7 @@ def make_biosample_dataframe(
 
     ## add prefix
     project_table_splice.gold_id = "gold:" + project_table_splice.gold_id
+    study_table_splice.gold_id = "gold:" + study_table_splice.gold_id
 
     ## rename columns
     project_table_splice.rename(columns={"gold_id": "project_gold_id"}, inplace=True)
@@ -492,6 +493,11 @@ def make_biosample_dataframe(
         left_on="master_study_id",
         right_on="study_id",
     )
+
+    ## drop biosample rows that don't have required fields
+    biosample_table = biosample_table[biosample_table["env_broad_scale"].notnull()]
+    biosample_table = biosample_table[biosample_table["env_local_scale"].notnull()]
+    biosample_table = biosample_table[biosample_table["env_medium"].notnull()]
 
     ## left join package tables to biosample table
     temp0_df = pds.merge(
