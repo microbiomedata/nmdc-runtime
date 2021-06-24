@@ -211,14 +211,18 @@ classes:
       description: description
       env_broad_scale: 
         has_raw_value: env_broad_scale
+        $class_type: ControlledTermValue
       env_local_scale: 
         has_raw_value: env_local_scale
+        $class_type: ControlledTermValue
       env_medium: 
         has_raw_value: env_medium
+        $class_type: ControlledTermValue
       lat_lon: 
         latitude: latitude
         longitude: longitude
         has_raw_value: lat_lon
+        $class_type: GeolocationValue
     transforms:
       pre:
         - function: test_pre_transform
@@ -237,6 +241,7 @@ classes:
             - add_date
             - mod_date
     attributes:
+      - part of: [study_gold_id]
       - add_date
       - mod_date
       - collection_date:
