@@ -355,6 +355,8 @@ def make_project_dataframe(
     biosample_table=None,
     result_cols=[],
 ):
+    print(data_object_table.head())
+    print("****************")
     ## subset data
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
     contact_table_splice = contact_table[
@@ -429,7 +431,10 @@ def make_project_dataframe(
         input_samples = pds.merge(
             project_biosample_table, biosample_table, how="inner", on="biosample_id"
         )
-        temp2_df = pds.merge(temp2_df, input_samples, how="left", on="project_id")
+        # temp2_df = pds.merge(temp2_df, input_samples, how="left", on="project_id")
+
+        # require input samples (i.e., inner join)
+        temp2_df = pds.merge(temp2_df, input_samples, how="inner", on="project_id")
 
     if len(result_cols) > 0:
         return temp2_df[result_cols]
@@ -474,7 +479,6 @@ def make_biosample_dataframe(
     project_table_splice = project_table[
         ["project_id", "gold_id", "master_study_id"]
     ].copy()
-
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
 
     ## add prefix
