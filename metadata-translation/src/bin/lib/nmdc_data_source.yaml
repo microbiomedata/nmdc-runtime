@@ -149,6 +149,9 @@ classes:
       id: gold_id
       name: project_name
       description: description
+      part_of: [study_gold_id]
+      has_input: [biosample_gold_id]
+      has_output: [output_file_ids]
     transforms:
       post:
         # note: attribute names must match names in nmdc.yaml
@@ -157,9 +160,6 @@ classes:
             - add_date
             - mod_date
     attributes:
-      - part_of: [study_gold_id]
-      - has_input: [biosample_gold_id]
-      - has_output: [output_file_ids]
       - add_date 
       - mod_date
       - completion_date 
