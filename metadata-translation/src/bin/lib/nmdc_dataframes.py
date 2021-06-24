@@ -431,8 +431,6 @@ def make_project_dataframe(
         input_samples = pds.merge(
             project_biosample_table, biosample_table, how="inner", on="biosample_id"
         )
-        # temp2_df = pds.merge(temp2_df, input_samples, how="left", on="project_id")
-
         # require input samples (i.e., inner join)
         temp2_df = pds.merge(temp2_df, input_samples, how="inner", on="project_id")
 
