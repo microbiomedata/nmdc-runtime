@@ -350,13 +350,11 @@ def make_project_dataframe(
     project_table,
     study_table,
     contact_table,
-    data_object_table=None,
+    data_object_table,
     project_biosample_table=None,
     biosample_table=None,
     result_cols=[],
 ):
-    print(data_object_table.head())
-    print("****************")
     ## subset data
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
     contact_table_splice = contact_table[
@@ -406,11 +404,11 @@ def make_project_dataframe(
         output_files.rename(columns={"file_id": "output_file_ids"}, inplace=True)
         output_files["output_file_ids"] = output_files["output_file_ids"].astype(str)
 
-        ## join project and output files
+        ## require output files for projects (i.e., inner join)
         temp2_df = pds.merge(
             temp2_df,
             output_files,
-            how="left",
+            how="inner",
             left_on="gold_id",
             right_on="gold_project_id",
         )
@@ -633,6 +631,9 @@ def make_emsl_dataframe(
     )  # build data object id
 
     ## group concat & join the biosample ids that are inputs to the omics process
+    ## With filter function as None, the function defaults to Identity function,
+    ## and each element in random_list is checked if it's true or not.
+    ## see https://www.programiz.com/python-programming/methods/built-in/filter
     groups = biosample_slice.groupby("dataset_id")["biosample_gold_id"]
     input_biosamples = (
         pds.DataFrame(groups.apply(lambda x: ",".join(filter(None, x))))
@@ -651,7 +652,10 @@ def make_emsl_dataframe(
         str
     )  # make sure biosample_ids are strings
 
-    temp2_df = pds.merge(temp2_df, input_biosamples, how="left", on="dataset_id")
+    temp2_df = pds.merge(temp2_df, input_biosamples, how="inner", on="dataset_id")
+
+    ## drop rows that don't have biosample_gold_ids
+    temp2_df = temp2_df[temp2_df["biosample_gold_ids"].notnull()]
 
     ## add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id
