@@ -166,7 +166,7 @@ classes:
       - ncbi_project_name 
       - omics_type:
           has_raw_value: omics_type
-      - principal_investigator_name:
+      - principal_investigator:
           has_raw_value: principal_investigator_name
       - processing_institution
   
