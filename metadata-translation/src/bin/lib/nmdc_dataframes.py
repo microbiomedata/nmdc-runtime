@@ -658,10 +658,12 @@ def make_emsl_dataframe(
         str
     )  # make sure biosample_ids are strings
 
-    temp2_df = pds.merge(temp2_df, input_biosamples, how="inner", on="dataset_id")
+    temp2_df = pds.merge(temp2_df, input_biosamples, how="left", on="dataset_id")
 
-    ## drop rows that don't have biosample_gold_ids
-    temp2_df = temp2_df[temp2_df["biosample_gold_ids"].notnull()]
+    ## add "emsl:TBD" id for missing biosamples
+    temp2_df["biosample_gold_ids"] = temp2_df["biosample_gold_ids"].map(
+        lambda x: "emsl:TBD" if pds.isnull(x) else x
+    )
 
     ## add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id
