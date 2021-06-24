@@ -176,14 +176,14 @@ classes:
       id: dataset_id
       name: dataset_name
       description: dataset_type_description
+      part_of: [gold_study_id]
+      has_input: [biosample_gold_ids]
+      has_output: [data_object_id]
     attributes:
       - omics_type:
           has_raw_value: omics_type
       - instrument_name
       - processing_institution
-      - part_of: [gold_study_id]
-      - has_output: [data_object_id]
-      - has_input: [biosample_gold_ids]
       
   emsl_data_object:
     type: data object
