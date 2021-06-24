@@ -133,7 +133,7 @@ classes:
       name: study_name
       description: description
     attributes:
-      - principal_investigator_name:
+      - principal_investigator:
           has_raw_value: principal_investigator_name
       - ecosystem
       - ecosystem_category
