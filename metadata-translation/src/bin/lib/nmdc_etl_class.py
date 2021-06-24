@@ -142,6 +142,7 @@ class NMDC_ETL:
                 self.water_package_table,
                 self.project_biosample_table,
                 self.project_table,
+                self.study_table,
             )  # gold biosamples
 
             self.project = nmdc_dfs.make_project_dataframe(
