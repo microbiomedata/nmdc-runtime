@@ -4,6 +4,7 @@ from typing import Union, List
 import botocore
 import pymongo
 from fastapi import APIRouter, Response, status, Depends, HTTPException
+from starlette.responses import RedirectResponse
 
 from nmdc_runtime.api.core.idgen import generate_id_unique, decode_id
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
@@ -17,45 +18,54 @@ from nmdc_runtime.api.models.object import (
     DrsObjectIn,
 )
 from nmdc_runtime.api.models.object_type import ObjectType
-from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.site import Site, get_current_client_site
 
 router = APIRouter()
 
 HOSTNAME = os.getenv("API_HOST").split("://", 1)[-1]
+BASE_URL = os.getenv("API_HOST")
 
 
-def object_id_given(mdb, obj_doc):
-    # TODO okay?
-    #   Hold up. Don't create object after s3 upload via POST /objects ;
-    #   Create it via PATCH /operations/{op_id} to return value of sites.put_object_in_site.
+def supplied_object_id(mdb, client_site, obj_doc):
     if "access_methods" not in obj_doc:
         return None
     for method in obj_doc["access_methods"]:
         if "access_id" in method and ":" in method["access_id"]:
-            site_id, object_id = method["access_id"].split(":", 1)
-            if mdb.sites.count_documents({"id": site_id}) and mdb.ids.count_documents(
-                {"_id": decode_id(object_id), "ns": S3_ID_NS}
+            site_id, _, object_id = method["access_id"].rpartition(":")
+            if (
+                client_site.id == site_id
+                and mdb.sites.count_documents({"id": site_id})
+                and mdb.ids.count_documents(
+                    {"_id": decode_id(object_id), "ns": S3_ID_NS}
+                )
+                and mdb.objects.count_documents({"id": object_id}) == 0
             ):
                 return object_id
     return None
 
 
-@router.post("/objects", status_code=201, response_model=DrsObject)
+@router.post("/objects", status_code=status.HTTP_201_CREATED, response_model=DrsObject)
 def create_object(
     object_in: DrsObjectIn,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
+    client_site: Site = Depends(get_current_client_site),
 ):
     # TODO have site (i.e. site admin) register object, and thus site admins can manage?
     #    This makes sense. Every data object "comes from" a site, even though it may be accessed
     #    via other sites.
-    drs_id = generate_id_unique(mdb, S3_ID_NS)
+    id_supplied = supplied_object_id(mdb, client_site, object_in.dict())
+    drs_id = (
+        id_supplied if id_supplied is not None else generate_id_unique(mdb, S3_ID_NS)
+    )
     self_uri = f"drs://{HOSTNAME}/{drs_id}"
-    drs_obj = DrsObject(**object_in, id=drs_id, self_uri=self_uri)
-    doc = drs_obj.dict()
-    doc["_user"] = user.username
+    print(drs_id)
+    drs_obj = DrsObject(
+        **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
+    )
+    doc = drs_obj.dict(exclude_unset=True)
+    doc["_mgr_site"] = client_site.id  # manager site
     mdb.objects.insert_one(doc)
-    return drs_obj
+    return doc
 
 
 @router.get("/objects", response_model=List[DrsObject])
@@ -64,8 +74,29 @@ def list_objects():
 
 
 @router.get("/objects/{object_id}", response_model=DrsObject)
-def get_object_info(object_id: DrsId):
-    return object_id
+def get_object_info(
+    object_id: DrsId,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    return raise404_if_none(mdb.objects.find_one({"id": object_id}))
+
+
+@router.get(
+    "/ga4gh/drs/v1/objects/{object_id}",
+    summary="Get Object Info",
+    response_model=DrsObject,
+    responses={
+        status.HTTP_303_SEE_OTHER: {
+            "description": "See other",
+            "headers": {"Location": {"schema": {"type": "string"}}},
+        },
+    },
+)
+def get_ga4gh_object_info(object_id: DrsId):
+    """Redirect to /objects/{object_id}."""
+    return RedirectResponse(
+        BASE_URL + f"/objects/{object_id}", status_code=status.HTTP_303_SEE_OTHER
+    )
 
 
 @router.get("/objects/{object_id}/types", response_model=List[ObjectType])

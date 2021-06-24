@@ -56,8 +56,8 @@ class Checksum(BaseModel):
     type: ChecksumType
 
 
-DrsId = constr(regex=r"^[A-Za-z0-9.-_~]+$")
-PortableFilename = constr(regex=r"^[A-Za-z0-9.-_]+$")
+DrsId = constr(regex=r"^[A-Za-z0-9._~\-]+$")
+PortableFilename = constr(regex=r"^[A-Za-z0-9._\-]+$")
 
 
 class ContentsObject(BaseModel):

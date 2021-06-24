@@ -1,7 +1,7 @@
 from dagster import repository
 
 from nmdc_runtime.pipelines.core import hello_mongo, update_terminus
-from nmdc_runtime.pipelines.objects import create_object_from_site_object_put
+from nmdc_runtime.pipelines.objects import create_objects_from_site_object_puts
 from nmdc_runtime.schedules.my_hourly_schedule import my_hourly_schedule
 from nmdc_runtime.sensors.core import my_sensor
 from nmdc_runtime.sensors.operations import done_object_put_ops
@@ -15,7 +15,7 @@ def nmdc_runtime():
     For hints on building your Dagster repository, see our documentation overview on Repositories:
     https://docs.dagster.io/overview/repositories-workspaces/repositories
     """
-    pipelines = [hello_mongo, update_terminus, create_object_from_site_object_put]
+    pipelines = [hello_mongo, update_terminus, create_objects_from_site_object_puts]
     schedules = [my_hourly_schedule]
     sensors = [my_sensor, done_object_put_ops]
 

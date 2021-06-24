@@ -1,8 +1,8 @@
 from datetime import timedelta
 
-from dagster import resource, StringSource
+from dagster import resource, StringSource, build_init_resource_context
 import requests
-from toolz import merge
+from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.operation import ListOperationsResponse
@@ -73,13 +73,22 @@ class RuntimeApiSiteClient:
             )
             return resources_so_far + resources_rest
 
+    def create_object_from_op(self, op_doc):
+        return self.request("POST", "/objects", op_doc["result"])
+
+    def get_object_info(self, object_id):
+        return self.request("GET", f"/objects/{object_id}")
+
+    def get_object_access(self, object_id, access_id):
+        return self.request("GET", f"/objects/{object_id}/access/{access_id}")
+
 
 @resource(
     config_schema={
-        "base_url": StringSource,  # os.getenv("API_HOST")
-        "site_id": StringSource,  # os.getenv("API_SITE_ID")
-        "client_id": StringSource,  # os.getenv("API_SITE_CLIENT_ID")
-        "client_secret": StringSource,  # os.getenv("API_SITE_CLIENT_SECRET")
+        "base_url": StringSource,
+        "site_id": StringSource,
+        "client_id": StringSource,
+        "client_secret": StringSource,
     }
 )
 def runtime_api_site_client_resource(context):
@@ -89,3 +98,13 @@ def runtime_api_site_client_resource(context):
         client_id=context.resource_config["client_id"],
         client_secret=context.resource_config["client_secret"],
     )
+
+
+def get_runtime_api_site_client(run_config: dict):
+    resource_context = build_init_resource_context(
+        config=get_in(
+            ["resources", "runtime_api_site_client", "config"],
+            run_config,
+        )
+    )
+    return runtime_api_site_client_resource(resource_context)

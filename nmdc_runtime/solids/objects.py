@@ -4,9 +4,11 @@ from nmdc_runtime.resources.core import RuntimeApiSiteClient
 
 
 @solid(required_resource_keys={"runtime_api_site_client"})
-def create_objects_from_done_object_puts(context, op_docs: list):
+def create_objects_from_ops(context, op_docs: list):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
-    for doc in op_docs:
-        pass
-    context.log.info("OK")
-    return "OK"
+    responses = [client.create_object_from_op(doc) for doc in op_docs]
+    if {r.status_code for r in responses} == {201}:
+        context.log.info("All OK")
+    else:
+        raise Exception(f"Unexpected response(s): {[r.text for r in responses]}")
+    return op_docs

@@ -241,9 +241,12 @@ async def ensure_initial_resources_on_boot():
                 ],
             ).dict()
         )
-        mdb.sites.create_index("id")
 
-    mdb.queries.create_index("id")
+    # Ensure that any collections with an "id" field have an index on "id".
+    for collection_name in mdb.list_collection_names():
+        doc = mdb[collection_name].find_one({}, ["id"])
+        if doc and doc.get("id"):
+            mdb[collection_name].create_index("id")
 
 
 if __name__ == "__main__":
