@@ -1,65 +1,77 @@
 {
   "omics_processing_set": [
     {
-      "id": "gold:Gp0108335",
-      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+      "id": "gold:Gp0115663",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "has_input": [
-        "gold:Gb0108335"
+        "gold:Gb0115217"
       ],
-      "add_date": "2014-10-30",
-      "mod_date": "2020-05-22",
       "has_output": [
-        "jgi:551a20d30d878525404e90d5"
+        "jgi:55d740280d8785342fcf7e39"
       ],
-      "ncbi_project_name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712P3D",
+      "part_of": [
+        "gold:Gs0114663"
+      ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
+      "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
-      "part_of": [
-        "gold:Gs0112340"
-      ],
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
+      },
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
     },
     {
-      "id": "gold:Gp0108340",
-      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 612S3M",
+      "id": "gold:Gp0115664",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_25-Nov-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "has_input": [
-        "gold:Gb0108340"
+        "gold:Gb0115218"
       ],
-      "add_date": "2014-10-30",
-      "mod_date": "2020-05-22",
       "has_output": [
-        "jgi:551a20d50d878525404e90d7"
+        "jgi:55d817f20d8785342fcf826c"
       ],
-      "ncbi_project_name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 612S3M",
+      "part_of": [
+        "gold:Gs0114663"
+      ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
+      "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_25-Nov-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
-      "part_of": [
-        "gold:Gs0112340"
-      ],
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
+      },
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
     },
     {
-      "id": "gold:Gp0108341",
-      "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712S3S",
+      "id": "gold:Gp0115665",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_30-Apr-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "has_input": [
-        "gold:Gb0108341"
+        "gold:Gb0115219"
       ],
-      "add_date": "2014-10-30",
-      "mod_date": "2020-05-22",
       "has_output": [
-        "jgi:551a20d90d878525404e90e1"
+        "jgi:55f23d820d8785306f964980"
       ],
-      "ncbi_project_name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations - Permafrost 712S3S",
+      "part_of": [
+        "gold:Gs0114663"
+      ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
+      "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_30-Apr-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
-      "part_of": [
-        "gold:Gs0112340"
-      ],
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
+      },
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
     }

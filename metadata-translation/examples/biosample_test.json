@@ -1,109 +1,160 @@
 {
   "biosample_set": [
     {
-      "id": "gold:Gb0101224",
-      "name": "Lithgow State Coal Mine Calcium nutrients (early)",
-      "description": "Bulk Aqueous phase filtered water",
-      "type": "nmdc:Biosample",
+      "id": "gold:Gb0115217",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "env_broad_scale": {
-        "has_raw_value": "ENVO:00002030"
+        "has_raw_value": "ENVO:01000253"
       },
       "env_local_scale": {
-        "has_raw_value": "ENVO:00002169"
+        "has_raw_value": "ENVO:01000621"
       },
       "env_medium": {
-        "has_raw_value": "ENVO:00005792"
+        "has_raw_value": "ENVO:01000017"
+      },
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2014-09-23"
+      },
+      "depth": {
+        "has_raw_value": "0.5",
+        "has_numeric_value": 0.5,
+        "has_unit": "meter"
       },
       "geo_loc_name": {
-        "has_raw_value": "Lithgow"
+        "has_raw_value": "USA: Columbia River, Washington"
       },
       "lat_lon": {
-        "has_raw_value": "-33.460524 150.168149",
-        "latitude": -33.460524,
-        "longitude": 150.168149
+        "has_raw_value": "46.37228379 -119.2717467",
+        "latitude": 46.37228379,
+        "longitude": -119.2717467
       },
-      "ecosystem": "Environmental",
-      "ecosystem_category": "Aquatic",
-      "ecosystem_type": "Freshwater",
-      "ecosystem_subtype": "Groundwater",
-      "specific_ecosystem": "Coalbed water",
-      "add_date": "2014-07-28",
+      "ecosystem": "Engineered",
+      "ecosystem_category": "Artificial ecosystem",
+      "ecosystem_type": "Sand microcosm",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "2015-05-28",
       "community": "microbial communities",
-      "habitat": "Coalbed water",
-      "location": "from the Lithgow State Coal Mine, New South Wales, Australia",
-      "mod_date": "2016-08-26",
-      "ncbi_taxonomy_name": "coal metagenome",
-      "sample_collection_site": "Lithgow State Coal Mine"
+      "depth2": {
+        "has_raw_value": "1.0",
+        "has_numeric_value": 1,
+        "has_unit": "meter"
+      },
+      "habitat": "sand microcosm",
+      "identifier": "GW-RW T2_23-Sept-14",
+      "location": "groundwater-surface water interaction zone in Washington, USA",
+      "mod_date": "2021-06-17",
+      "ncbi_taxonomy_name": "sediment metagenome",
+      "sample_collection_site": "sand microcosm",
+      "part of": [
+        "gold:Gs0114663"
+      ]
     },
     {
-      "id": "gold:Gb0101225",
-      "name": "Lithgow State Coal Mine Calcium nutrients Extra",
-      "description": "Bulk Aqueous phase filtered water",
-      "type": "nmdc:Biosample",
+      "id": "gold:Gb0115218",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_25-Nov-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "env_broad_scale": {
-        "has_raw_value": "ENVO:00002030"
+        "has_raw_value": "ENVO:01000253"
       },
       "env_local_scale": {
-        "has_raw_value": "ENVO:00002169"
+        "has_raw_value": "ENVO:01000621"
       },
       "env_medium": {
-        "has_raw_value": "ENVO:00005792"
+        "has_raw_value": "ENVO:01000017"
+      },
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2014-11-25"
+      },
+      "depth": {
+        "has_raw_value": "0.5",
+        "has_numeric_value": 0.5,
+        "has_unit": "meter"
       },
       "geo_loc_name": {
-        "has_raw_value": "Lithgow"
+        "has_raw_value": "USA: Columbia River, Washington"
       },
       "lat_lon": {
-        "has_raw_value": "-33.460524 150.168149",
-        "latitude": -33.460524,
-        "longitude": 150.168149
+        "has_raw_value": "46.37228379 -119.2717467",
+        "latitude": 46.37228379,
+        "longitude": -119.2717467
       },
-      "ecosystem": "Environmental",
-      "ecosystem_category": "Aquatic",
-      "ecosystem_type": "Freshwater",
-      "ecosystem_subtype": "Groundwater",
-      "specific_ecosystem": "Coalbed water",
-      "add_date": "2014-07-28",
+      "ecosystem": "Engineered",
+      "ecosystem_category": "Artificial ecosystem",
+      "ecosystem_type": "Sand microcosm",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "2015-05-28",
       "community": "microbial communities",
-      "habitat": "Coalbed water",
-      "location": "from the Lithgow State Coal Mine, New South Wales, Australia",
-      "mod_date": "2016-08-26",
-      "ncbi_taxonomy_name": "coal metagenome",
-      "sample_collection_site": "Lithgow State Coal Mine"
+      "depth2": {
+        "has_raw_value": "1.0",
+        "has_numeric_value": 1,
+        "has_unit": "meter"
+      },
+      "habitat": "sand microcosm",
+      "identifier": "GW-RW T2_25-Nov-14",
+      "location": "groundwater-surface water interaction zone in Washington, USA",
+      "mod_date": "2021-06-17",
+      "ncbi_taxonomy_name": "sediment metagenome",
+      "sample_collection_site": "sand microcosm",
+      "part of": [
+        "gold:Gs0114663"
+      ]
     },
     {
-      "id": "gold:Gb0101226",
-      "name": "Lithgow State Coal Mine Calcium nutrients",
-      "description": "Bulk Aqueous phase filtered water",
-      "type": "nmdc:Biosample",
+      "id": "gold:Gb0115219",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_30-Apr-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "env_broad_scale": {
-        "has_raw_value": "ENVO:00002030"
+        "has_raw_value": "ENVO:01000253"
       },
       "env_local_scale": {
-        "has_raw_value": "ENVO:00002169"
+        "has_raw_value": "ENVO:01000621"
       },
       "env_medium": {
-        "has_raw_value": "ENVO:00005792"
+        "has_raw_value": "ENVO:01000017"
+      },
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2014-04-30"
+      },
+      "depth": {
+        "has_raw_value": "0.5",
+        "has_numeric_value": 0.5,
+        "has_unit": "meter"
       },
       "geo_loc_name": {
-        "has_raw_value": "Lithgow"
+        "has_raw_value": "USA: Columbia River, Washington"
       },
       "lat_lon": {
-        "has_raw_value": "-33.460524 150.168149",
-        "latitude": -33.460524,
-        "longitude": 150.168149
+        "has_raw_value": "46.37228379 -119.2717467",
+        "latitude": 46.37228379,
+        "longitude": -119.2717467
       },
-      "ecosystem": "Environmental",
-      "ecosystem_category": "Aquatic",
-      "ecosystem_type": "Freshwater",
-      "ecosystem_subtype": "Groundwater",
-      "specific_ecosystem": "Coalbed water",
-      "add_date": "2014-07-28",
+      "ecosystem": "Engineered",
+      "ecosystem_category": "Artificial ecosystem",
+      "ecosystem_type": "Sand microcosm",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "2015-05-28",
       "community": "microbial communities",
-      "habitat": "Coalbed water",
-      "location": "from the Lithgow State Coal Mine, New South Wales, Australia",
-      "mod_date": "2016-08-26",
-      "ncbi_taxonomy_name": "coal metagenome",
-      "sample_collection_site": "Lithgow State Coal Mine"
+      "depth2": {
+        "has_raw_value": "1.0",
+        "has_numeric_value": 1,
+        "has_unit": "meter"
+      },
+      "habitat": "sand microcosm",
+      "identifier": "GW-RW T2_30-Apr-14",
+      "location": "groundwater-surface water interaction zone in Washington, USA",
+      "mod_date": "2021-06-17",
+      "ncbi_taxonomy_name": "sediment metagenome",
+      "sample_collection_site": "sand microcosm",
+      "part of": [
+        "gold:Gs0114663"
+      ]
     }
   ]
 }
