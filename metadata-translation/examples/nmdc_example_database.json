@@ -54,6 +54,31 @@
   ],
   "omics_processing_set": [
     {
+      "id": "gold:Gp0321263",
+      "name": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
+      "description": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States",
+      "has_input": [
+        "gold:Gb0191643"
+      ],
+      "has_output": [
+        "jgi:5b3b869964d0b3516a5f4f4c"
+      ],
+      "part_of": [
+        "gold:Gs0135149"
+      ],
+      "add_date": "2018-06-22",
+      "mod_date": "2020-04-04",
+      "ncbi_project_name": "Soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "principal_investigator": {
+        "has_raw_value": "Eoin Brodie"
+      },
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
       "id": "gold:Gp0119849",
       "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio, USA - Utica-2 Time Series 2014_10_10",
       "description": "Microbial controls on biogeochemical cycling in deep subsurface shale carbon reservoirs",
@@ -99,31 +124,6 @@
       },
       "principal_investigator": {
         "has_raw_value": "James Stegen"
-      },
-      "processing_institution": "Joint Genome Institute",
-      "type": "nmdc:OmicsProcessing"
-    },
-    {
-      "id": "gold:Gp0321263",
-      "name": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
-      "description": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States",
-      "has_input": [
-        "gold:Gb0191643"
-      ],
-      "has_output": [
-        "jgi:5b3b869964d0b3516a5f4f4c"
-      ],
-      "part_of": [
-        "gold:Gs0135149"
-      ],
-      "add_date": "2018-06-22",
-      "mod_date": "2020-04-04",
-      "ncbi_project_name": "Soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
-      "omics_type": {
-        "has_raw_value": "Metagenome"
-      },
-      "principal_investigator": {
-        "has_raw_value": "Eoin Brodie"
       },
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
@@ -299,21 +299,21 @@
       "id": "jgi:55d740280d8785342fcf7e39",
       "name": "9422.8.132674.GTTTCG.fastq.gz",
       "description": "Raw sequencer read data",
-      "file_size_bytes": 2861414297,
+      "file_size_bytes": 2861414297.0,
       "type": "nmdc:DataObject"
     },
     {
       "id": "jgi:560df5b90d878540fd6fe202",
       "name": "9567.8.137569.TAGGCAT-AGAGTAG.fastq.gz",
       "description": "Raw sequencer read data",
-      "file_size_bytes": 4551741658,
+      "file_size_bytes": 4551741658.0,
       "type": "nmdc:DataObject"
     },
     {
       "id": "jgi:5b3b869964d0b3516a5f4f4c",
       "name": "12531.3.262778.GAGCTCA-TTGAGCT.fastq.gz",
       "description": "Raw sequencer read data",
-      "file_size_bytes": 9142282136,
+      "file_size_bytes": 9142282136.0,
       "type": "nmdc:DataObject"
     }
   ]

@@ -1,10 +1,15 @@
 import json
+import mimetypes
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 
-from dagster import solid, List, String
+from dagster import solid, List, String, Failure
+from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
+
+from nmdc_runtime.util import put_object, drs_object_in_for
 
 
 @solid
@@ -18,6 +23,36 @@ def hello(context):
     out = "Hello, NMDC!"
     context.log.info(out)
     return out
+
+
+@solid(required_resource_keys={"mongo", "runtime_api_site_client"})
+def local_file_to_api_object(context, file_info):
+    client = context.resources.runtime_api_site_client
+    storage_path = file_info["storage_path"]
+    mime_type = file_info.get("mime_type")
+    if mime_type is None:
+        mime_type = mimetypes.guess_type(storage_path)[0]
+    op = client.put_object_in_site(
+        {"mime_type": mime_type, "name": Path(storage_path).name}
+    ).json()
+    rv = put_object(storage_path, op["metadata"]["url"])
+    if not rv.status_code == status.HTTP_200_OK:
+        raise Failure(description="put_object failed")
+    op_patch = {"done": True, "result": drs_object_in_for(storage_path, op)}
+    rv = client.update_operation(op["id"], op_patch)
+    if not rv.status_code == status.HTTP_200_OK:
+        raise Failure(description="update_operation failed")
+    op = rv.json()
+    rv = client.create_object_from_op(op)
+    if rv.status_code != status.HTTP_201_CREATED:
+        raise Failure(f"create_object_from_op failed")
+    obj = rv.json()
+    context.log.info(f'Created /objects/{obj["id"]}')
+    mdb = context.resources.mongo.db
+    rv = mdb.operations.delete_one({"id": op["id"]})
+    if rv.deleted_count != 1:
+        context.log.error("deleting op failed")
+    return obj
 
 
 @solid

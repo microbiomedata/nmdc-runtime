@@ -80,13 +80,13 @@ bleach==3.3.0 \
     --hash=sha256:6123ddc1052673e52bab52cdc955bcb57a015264a1c57d37bea2f6b817af0125 \
     --hash=sha256:98b3170739e5e83dd9dc19633f074727ad848cbedb6026708c8ac2d3b697a433
     # via nbconvert
-boto3==1.17.98 \
-    --hash=sha256:2c2f70608934b03f9c08f4cd185de223b5abd18245dd4d4800e1fbc2a2523e31 \
-    --hash=sha256:fccfa81cda69bb2317ed97e7149d7d84d19e6ec3bfbe3f721139e7ac0c407c73
+boto3==1.17.100 \
+    --hash=sha256:0cdb443db72787eff296138952f952529d49dba00d67d5652017d2584daab33a \
+    --hash=sha256:ab767dffc34e3093d4c4d0b40a6387129661e24de2ae06a8eaefb92739447ad9
     # via -r requirements/main.in
-botocore==1.20.98 \
-    --hash=sha256:b2a49de4ee04b690142c8e7240f0f5758e3f7673dd39cf398efe893bf5e11c3f \
-    --hash=sha256:b955b23fe2fbdbbc8e66f37fe2970de6b5d8169f940b200bcf434751709d38f6
+botocore==1.20.100 \
+    --hash=sha256:1331c6a9aafa1a893b20d9ee71abdb52c9bb4e5f7197e82153c371e1856e645d \
+    --hash=sha256:55da43d99d1ed5f51fa65d71f30ecdfb5f9d8b0874c0c3e63264121bd88e0cab
     # via
     #   boto3
     #   s3transfer
@@ -177,9 +177,9 @@ coloredlogs==14.0 \
     --hash=sha256:346f58aad6afd48444c2468618623638dadab76e4e70d5e10822676f2d32226a \
     --hash=sha256:a1fab193d2053aa6c0a97608c4342d031f1f93a3d1218432c59322441d31a505
     # via dagster
-croniter==1.0.13 \
-    --hash=sha256:0c67c8afbf0f9ac3fce587caa7c911f871be8a42f6169e9f486ae125ab54a1b0 \
-    --hash=sha256:57f36df4f5a1c31bbf50bbffa3551612c19f6156ab1e88e2e42342ccbb9f9b9a
+croniter==1.0.15 \
+    --hash=sha256:0f97b361fe343301a8f66f852e7d84e4fb7f21379948f71e1bbfe10f5d015fbd \
+    --hash=sha256:a70dfc9d52de9fc1a886128b9148c89dd9e76b67d55f46516ca94d2d73d58219
     # via dagster
 cryptography==3.4.7 \
     --hash=sha256:0f1212a66329c80d68aeeb39b8a16d54ef57071bf22ff4e521657b27372e327d \
@@ -195,26 +195,27 @@ cryptography==3.4.7 \
     --hash=sha256:eb8cc2afe8b05acbd84a43905832ec78e7b3873fb124ca190f574dca7389a87d \
     --hash=sha256:ee77aa129f481be46f8d92a1a7db57269a2f23052d5f2433b4621bb457081cc9
     # via python-jose
-dagit==0.11.14 \
-    --hash=sha256:67456ea753d367fbf82a3b8c6bf5093612e5ac14665daf12319ded6cd925b7ea \
-    --hash=sha256:e3a034c6ed80467bc68790c4e2c350f6980600c3f654d96f7a4ac0519e3b6a76
+dagit==0.11.15 \
+    --hash=sha256:147244515794a98f8c561872950275b95339007f942a87ca6c611586c8474cd9 \
+    --hash=sha256:7fa11987df47c035f6deee12b2b353c2578490ac5b3acbc32333a69f1a83e344
     # via -r requirements/main.in
-dagster==0.11.14 \
-    --hash=sha256:a8eb5a266859ff71b1b3ea80858a7cf5838702210c7df5f1c783411456e4b8a1 \
-    --hash=sha256:b1e8ebe3058c881de68116191c3308a66e50cdd6424a5a64537b3a6ea264cc83
+dagster==0.11.15 \
+    --hash=sha256:d563afff27480523533b9c88cce7a245508c21fabb236eb7b7e3d636ef91c03c \
+    --hash=sha256:f5d92c74e992a1e27c5eb93b3547a7b53c72c532d8fba36f8aeb97884e1dd1f1
     # via
     #   -r requirements/main.in
     #   dagit
+    #   dagster-graphql
     #   dagster-postgres
-dagster-graphql==0.11.14 \
-    --hash=sha256:1f3d1f0b501e014e6e1f778b2c3bf8fa209d9059442fdaafe1131cedb03463a1 \
-    --hash=sha256:855ffc2512c3d226839f136255ad16adb5522cad96043c030a61670eb587482d
+dagster-graphql==0.11.15 \
+    --hash=sha256:047649d9ec48fd81485e95772920843234016d34ae29281be4d1feb39928bdc5 \
+    --hash=sha256:db15ab1d0e57077fa5d899aecf66a130a847b16190838169464ac5d15a75526a
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.11.14 \
-    --hash=sha256:5c2e8714c7795bbfc3cdb11efe2efe4108221153d8bff32a8d683b5dba5622ee \
-    --hash=sha256:f2e74b3f2af4a8316b9dba5d343d06bb746452889c118d4a0481151b02f1711c
+dagster-postgres==0.11.15 \
+    --hash=sha256:1a5d6f4001ec5af14dc2770dd5ee74c56029694b8bcba515ff154fcfd0ccb0cd \
+    --hash=sha256:27fab868ef6451812836d865e870ce02fb3fb5630b8932d2a5d643626ce6de00
     # via -r requirements/main.in
 decorator==5.0.9 \
     --hash=sha256:6e5c199c16f7a9f0e3a61a4a54b3d27e7dad0dbdde92b944426cb20914376323 \
@@ -251,6 +252,10 @@ fastapi==0.65.2 \
     --hash=sha256:39569a18914075b2f1aaa03bcb9dc96a38e0e5dabaf3972e088c9077dfffa379 \
     --hash=sha256:8359e55d8412a5571c0736013d90af235d6949ec4ce978e9b63500c8f4b6f714
     # via -r requirements/main.in
+fastjsonschema==2.15.1 \
+    --hash=sha256:671f36d225b3493629b5e789428660109528f373cf4b8a22bac6fa2f8191c2d2 \
+    --hash=sha256:fa2f4bb1e31419c5eb1150f2e0545921712c10c34165b86d33f08f5562ad4b85
+    # via -r requirements/main.in
 flask==1.1.4 \
     --hash=sha256:0fbeb6180d383a9186d0d6ed954e0042ad9f18e0e8de088b2b419d526927d196 \
     --hash=sha256:c34f04500f2cbbea882b1acb02002ad6fe6b7ffa64a6164577995657f50aed22
@@ -271,8 +276,9 @@ flask-sockets==0.2.1 \
     --hash=sha256:072927da8edca0e81e024f5787e643c87d80b351b714de95d723becb30e0643b \
     --hash=sha256:350a76d55f5889f64afd2ca9b32f262680b7960965f0830365576307d30cfe1e
     # via dagit
-frozendict==2.0.2 \
-    --hash=sha256:4d5a25859bfeb1dadcf4e41f8a8a528f6cbe8271ae471e9a9b973524e7188524
+frozendict==2.0.3 \
+    --hash=sha256:163c616188beb97fdc8ef6e73ec2ebd70a844d4cf19d2e383aa94d1b8376653d \
+    --hash=sha256:58143e2d3d11699bc295d9e7e05f10dde99a727e2295d7f43542ecdc42c5ec70
     # via
     #   pyld
     #   pyldmod
@@ -619,6 +625,7 @@ jsonasobj2==1.0.4 \
     --hash=sha256:12e86f86324d54fcf60632db94ea74488d5314e3da554c994fe1e2c6f29acb79 \
     --hash=sha256:f50b1668ef478004aa487b2d2d094c304e5cb6b79337809f4a1f2975cc7fbb4e
     # via
+    #   -r requirements/main.in
     #   linkml
     #   linkml-runtime
 jsonschema==3.2.0 \
@@ -666,7 +673,9 @@ linkml==1.0.0 \
 linkml-runtime==1.0.10 \
     --hash=sha256:41a25481efeebf08b9cff9791ba501fe70a81e082bf1d059ac5f9e58b5b1d4d1 \
     --hash=sha256:9c92d3f4dc630bb4950da7df07a4ba14f27f30555129d7c52b980f265dfc1360
-    # via linkml
+    # via
+    #   -r requirements/main.in
+    #   linkml
 lxml==4.6.3 \
     --hash=sha256:079f3ae844f38982d156efce585bc540c16a926d4436712cf4baee0cce487a3d \
     --hash=sha256:0fbcf5565ac01dff87cbfc0ff323515c823081c5777a9fc7703ff58388c258c3 \
@@ -767,9 +776,9 @@ mistune==0.8.4 \
     --hash=sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e \
     --hash=sha256:88a1051873018da288eee8538d476dffe1262495144b33ecb586c4ab266bb8d4
     # via nbconvert
-mongogrant==0.3.2 \
-    --hash=sha256:1d4f83729933c9951cdb7cb8ae40a93bab13d59afe04df69c25c9a322188d866 \
-    --hash=sha256:9939614a2d9dbf15d3a803a175da076f888b3e3309b3ef698227372ae9596850
+mongogrant==0.3.3 \
+    --hash=sha256:ad494b8638adfa840cdd5568af44448dd43771b58102550cf7c61402b1620ab4 \
+    --hash=sha256:e32ea6f07d72c7d08ab78d17c79ab7ee56373458ae79d2995c3cc6c2eb3ecbdb
     # via mongospawn
 mongospawn==0.5.10 \
     --hash=sha256:54c7478ee8180267050ce095dd4ac7796d717028a01ce07e1300bec7a9b5ed98 \
@@ -789,9 +798,9 @@ nbformat==5.1.3 \
     #   ipywidgets
     #   nbconvert
     #   notebook
-nmdc-schema==2021.6.17rc1 \
-    --hash=sha256:77e7898863e5cfc774c314f4cc9293cd9c3d82c3b8345092176629b854348978 \
-    --hash=sha256:7bb82fd31bf8985ad1c55343d0105a7418458cad9eeed87e9fd6deefc2c88b6b
+nmdc-schema==2021.6.24rc1 \
+    --hash=sha256:37ecdf64a63bb5a5cdbf7d79c5604ee2b7d006e49ad5a706d64a6e53f51408bc \
+    --hash=sha256:c1c251013927685b4843ddc3508b71ebd5180685b0347ba44fde20b34ff2055c
     # via -r requirements/main.in
 notebook==6.4.0 \
     --hash=sha256:9c4625e2a2aa49d6eae4ce20cbc3d8976db19267e32d2a304880e0c10bf8aef9 \
@@ -1506,9 +1515,9 @@ typing-extensions==3.10.0.0 \
     --hash=sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342 \
     --hash=sha256:779383f6086d90c99ae41cf0ff39aac8a7937a9283ce0a414e5dd782f4c94a84
     # via pydantic
-urllib3==1.26.5 \
-    --hash=sha256:753a0374df26658f99d826cfe40394a686d05985786d946fbe4165b5148f5a7c \
-    --hash=sha256:a7acd0977125325f516bda9735fa7142b909a8d01e8b2e4c8108d0984e6e0098
+urllib3==1.26.6 \
+    --hash=sha256:39fb8672126159acb139a7718dd10806104dec1e2f0f6c88aab05d17df10c8d4 \
+    --hash=sha256:f57b4c16c62fa2760b7e3d97c35b255512fb6b59a259730f36ba32ce9f8e342f
     # via
     #   botocore
     #   pyshex

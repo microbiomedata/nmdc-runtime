@@ -7,6 +7,7 @@ dagster-graphql
 dagster-postgres
 dotted-dict
 fastapi
+fastjsonschema
 git-root
 jq
 jsonasobj2

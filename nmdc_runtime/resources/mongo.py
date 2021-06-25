@@ -1,12 +1,26 @@
 from dagster import resource, StringSource, build_init_resource_context
-from pymongo import MongoClient
+from fastjsonschema import JsonSchemaValueException
+from pymongo import MongoClient, ReplaceOne
 from toolz import get_in
+
+from nmdc_runtime.util import nmdc_jsonschema_validate
 
 
 class MongoDB:
     def __init__(self, host: str, username: str, password: str, dbname: str):
         self.client = MongoClient(host=host, username=username, password=password)
         self.db = self.client[dbname]
+
+    def add_docs(self, docs, validate=True):
+        try:
+            if validate:
+                nmdc_jsonschema_validate(docs)
+            for collection_name, docs in docs.items():
+                self.db[collection_name].bulk_write(
+                    [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
+                )
+        except JsonSchemaValueException as e:
+            raise ValueError(e.message)
 
 
 @resource(

@@ -1,4 +1,4 @@
-from dagster import solid
+from dagster import solid, Failure
 
 from nmdc_runtime.resources.core import RuntimeApiSiteClient
 
@@ -10,5 +10,5 @@ def create_objects_from_ops(context, op_docs: list):
     if {r.status_code for r in responses} == {201}:
         context.log.info("All OK")
     else:
-        raise Exception(f"Unexpected response(s): {[r.text for r in responses]}")
+        raise Failure(f"Unexpected response(s): {[r.text for r in responses]}")
     return op_docs

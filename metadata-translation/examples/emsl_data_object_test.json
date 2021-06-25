@@ -4,21 +4,21 @@
       "id": "emsl:output_446532",
       "name": "output: Ha_5Kpsi_2_08_QE_12Aug15_Arwen_14-12-03",
       "description": "High res MS with high res HCD MSn",
-      "file_size_bytes": 2536997550,
+      "file_size_bytes": 2536997550.0,
       "type": "nmdc:DataObject"
     },
     {
       "id": "emsl:output_446533",
       "name": "output: Ha_250NaCl_2_17_QE_12Aug15_Arwen_14-12-03",
       "description": "High res MS with high res HCD MSn",
-      "file_size_bytes": 2316074122,
+      "file_size_bytes": 2316074122.0,
       "type": "nmdc:DataObject"
     },
     {
       "id": "emsl:output_446534",
       "name": "output: Ha_150NaCl_1_13_QE_12Aug15_Arwen_14-12-03",
       "description": "High res MS with high res HCD MSn",
-      "file_size_bytes": 2541175822,
+      "file_size_bytes": 2541175822.0,
       "type": "nmdc:DataObject"
     }
   ]

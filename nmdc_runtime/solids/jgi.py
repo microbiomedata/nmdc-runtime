@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from zipfile import ZipFile
 
@@ -11,6 +12,9 @@ from dagster import (
     Failure,
     OutputDefinition,
 )
+from starlette import status
+
+from nmdc_runtime.util import put_object, drs_object_in_for
 
 
 def run_and_log(shell_cmd, context):
@@ -50,14 +54,13 @@ def build_merged_db(context) -> str:
 
 
 @solid(
-    output_defs=[OutputDefinition(dict, description="a NMDC-Schema 'Database' object")]
+    required_resource_keys={"runtime_api_site_client"},
 )
 def run_etl(context, merged_data_path: str):
     context.log.info("metadata-translation: running `make run-etl`")
     if not os.path.exists(merged_data_path):
         raise Failure(description=f"merged_db not present at {merged_data_path}")
     run_and_log(f"cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
-
     storage_path = (
         "/opt/dagster/lib/metadata-translation/src/data/nmdc_database.json.zip"
     )
@@ -73,4 +76,4 @@ def run_etl(context, merged_data_path: str):
             "path": EventMetadata.path(storage_path),
         },
     )
-    yield Output(rv)
+    yield Output({"storage_path": storage_path})

@@ -246,7 +246,7 @@ async def ensure_initial_resources_on_boot():
     for collection_name in mdb.list_collection_names():
         doc = mdb[collection_name].find_one({}, ["id"])
         if doc and doc.get("id"):
-            mdb[collection_name].create_index("id")
+            mdb[collection_name].create_index("id", unique=True)
 
 
 if __name__ == "__main__":

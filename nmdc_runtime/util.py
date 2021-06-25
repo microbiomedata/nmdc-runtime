@@ -4,6 +4,8 @@ import mimetypes
 import os
 from pathlib import Path
 
+import fastjsonschema
+import pkg_resources
 import requests
 from toolz import merge
 
@@ -11,10 +13,26 @@ from nmdc_runtime.api.core.util import sha256hash_from
 from nmdc_runtime.api.models.object import DrsObjectIn
 
 
+with open(pkg_resources.resource_filename("nmdc_schema", "nmdc.schema.json")) as f:
+    nmdc_jsonschema = json.load(f)
+    nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
+
+
 def put_object(filepath, url, mime_type=None):
     if mime_type is None:
         mime_type = mimetypes.guess_type(filepath)[0]
-    with open(filepath) as f:
+    reading_bytes = mime_type in {
+        "application/gzip",
+        "application/zip",
+        "application/x-7z-compressed",
+        "application/x-bzip",
+        "application/x-bzip2",
+        "image/jpeg",
+        "image/png",
+        "image/tiff",
+        "application/pdf",
+    }
+    with open(filepath, f'r{"b" if reading_bytes else ""}') as f:
         return requests.put(url, data=f, headers={"Content-Type": mime_type})
 
 

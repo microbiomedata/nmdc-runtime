@@ -5,6 +5,7 @@ import requests
 from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
+from nmdc_runtime.api.models.object import DrsObject, AccessURL
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 
 
@@ -81,6 +82,17 @@ class RuntimeApiSiteClient:
 
     def get_object_access(self, object_id, access_id):
         return self.request("GET", f"/objects/{object_id}/access/{access_id}")
+
+    def get_object_bytes(self, object_id) -> requests.Response:
+        obj = DrsObject(**self.get_object_info(object_id).json())
+        method = obj.access_methods[0]
+        if method.access_url is None:
+            access = AccessURL(
+                **self.get_object_access(object_id, method.access_id).json()
+            )
+        else:
+            access = AccessURL(url=method.access_url)
+        return requests.get(access.url)
 
 
 @resource(
