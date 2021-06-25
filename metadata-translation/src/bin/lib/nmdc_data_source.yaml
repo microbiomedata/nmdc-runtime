@@ -265,9 +265,19 @@ classes:
           has_numeric_value: depth, float # mixs:depth
           # has_unit: {$const: meter}
           has_unit: meter
+      - depth2: 
+          has_raw_value: depth2
+          has_numeric_value: depth2, float # mixs:depth
+          # has_unit: {$const: meter}
+          has_unit: meter
       - subsurface_depth:
           has_raw_value: subsurface_depth
           has_numeric_value: subsurface_depth, float
+          # has_unit: {$const: meter}
+          has_unit: meter
+      - subsurface_depth2:
+          has_raw_value: subsurface_depth2
+          has_numeric_value: subsurface_depth2, float
           # has_unit: {$const: meter}
           has_unit: meter
       - altitude:
@@ -542,7 +552,7 @@ data_sources:
       - identifier
       - host_name
       - depth # BIOSAMPLE, MICROBIAL_MAT_PACKAGE, PLANT_PACKAGE, SEDIMENT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
-      - subsurface_depth
+      - depth2
       - altitude
       - proport_woa_temperature
       - biogas_temperature
@@ -558,6 +568,7 @@ data_sources:
       - sample_volume # BIOSAMPLE, PLANT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
       - sampling_strategy
       - soluble_iron_micromol
+      - subsurface_depth
       - subsurface_depth2
       - tot_nitrogen # BIOSAMPLE, MICROBIAL_MAT_PACKAGE, SEDIMENT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
       - tot_org_carbon # BIOSAMPLE, SOIL_PACKAGE
@@ -604,6 +615,7 @@ data_sources:
       - soil_microbial_biomass_method
       - soil_misc_param
       - soil_depth
+      - soil_depth2
       - soil_ph
       - soil_ph_method
       - soil_pool_dna_extracts
@@ -643,6 +655,7 @@ data_sources:
     subset_cols:
       - water_package_id
       - water_depth
+      - water_depth2
       - water_alkalinity 
       - water_alkalinity_method
       - water_alkyl_diethers
