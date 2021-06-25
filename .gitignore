@@ -144,6 +144,7 @@ presets_*.yaml
 metadata-translation/src/bin/output/
 metadata-translation/examples/nmdc_example_database.json
 metadata-translation/src/data/nmdc_database.json.zip
+metadata-translation/src/data/nmdc_merged_data.tsv.zip
 
 deployment
 cordra-2.3.0/

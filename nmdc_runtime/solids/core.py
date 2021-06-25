@@ -32,9 +32,12 @@ def local_file_to_api_object(context, file_info):
     mime_type = file_info.get("mime_type")
     if mime_type is None:
         mime_type = mimetypes.guess_type(storage_path)[0]
-    op = client.put_object_in_site(
+    rv = client.put_object_in_site(
         {"mime_type": mime_type, "name": Path(storage_path).name}
-    ).json()
+    )
+    if not rv.status_code == status.HTTP_200_OK:
+        raise Failure(description=f"put_object_in_site failed")
+    op = rv.json()
     rv = put_object(storage_path, op["metadata"]["url"])
     if not rv.status_code == status.HTTP_200_OK:
         raise Failure(description="put_object failed")

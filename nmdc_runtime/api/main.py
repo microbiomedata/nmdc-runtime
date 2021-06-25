@@ -245,7 +245,7 @@ async def ensure_initial_resources_on_boot():
     # Ensure that any collections with an "id" field have an index on "id".
     for collection_name in mdb.list_collection_names():
         doc = mdb[collection_name].find_one({}, ["id"])
-        if doc and doc.get("id"):
+        if doc and doc.get("id") is not None:
             mdb[collection_name].create_index("id", unique=True)
 
 
