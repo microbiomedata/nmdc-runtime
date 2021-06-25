@@ -133,7 +133,7 @@ classes:
       name: study_name
       description: description
     attributes:
-      - principal_investigator_name:
+      - principal_investigator:
           has_raw_value: principal_investigator_name
       - ecosystem
       - ecosystem_category
@@ -149,6 +149,9 @@ classes:
       id: gold_id
       name: project_name
       description: description
+      part_of: [study_gold_id]
+      has_input: [biosample_gold_id]
+      has_output: [output_file_ids]
     transforms:
       post:
         # note: attribute names must match names in nmdc.yaml
@@ -157,16 +160,13 @@ classes:
             - add_date
             - mod_date
     attributes:
-      - part_of: [study_gold_id]
-      - has_input: [biosample_gold_id]
-      - has_output: [output_file_ids]
       - add_date 
       - mod_date
       - completion_date 
       - ncbi_project_name 
       - omics_type:
           has_raw_value: omics_type
-      - principal_investigator_name:
+      - principal_investigator:
           has_raw_value: principal_investigator_name
       - processing_institution
   
@@ -176,14 +176,14 @@ classes:
       id: dataset_id
       name: dataset_name
       description: dataset_type_description
+      part_of: [gold_study_id]
+      has_input: [biosample_gold_ids]
+      has_output: [data_object_id]
     attributes:
       - omics_type:
           has_raw_value: omics_type
       - instrument_name
       - processing_institution
-      - part_of: [gold_study_id]
-      - has_output: [data_object_id]
-      - has_input: [biosample_gold_ids]
       
   emsl_data_object:
     type: data object
@@ -211,14 +211,18 @@ classes:
       description: description
       env_broad_scale: 
         has_raw_value: env_broad_scale
+        $class_type: ControlledTermValue
       env_local_scale: 
         has_raw_value: env_local_scale
+        $class_type: ControlledTermValue
       env_medium: 
         has_raw_value: env_medium
+        $class_type: ControlledTermValue
       lat_lon: 
         latitude: latitude
         longitude: longitude
         has_raw_value: lat_lon
+        $class_type: GeolocationValue
     transforms:
       pre:
         - function: test_pre_transform
@@ -237,6 +241,7 @@ classes:
             - add_date
             - mod_date
     attributes:
+      - part of: [study_gold_id]
       - add_date
       - mod_date
       - collection_date:
@@ -260,9 +265,19 @@ classes:
           has_numeric_value: depth, float # mixs:depth
           # has_unit: {$const: meter}
           has_unit: meter
+      - depth2: 
+          has_raw_value: depth2
+          has_numeric_value: depth2, float # mixs:depth
+          # has_unit: {$const: meter}
+          has_unit: meter
       - subsurface_depth:
           has_raw_value: subsurface_depth
           has_numeric_value: subsurface_depth, float
+          # has_unit: {$const: meter}
+          has_unit: meter
+      - subsurface_depth2:
+          has_raw_value: subsurface_depth2
+          has_numeric_value: subsurface_depth2, float
           # has_unit: {$const: meter}
           has_unit: meter
       - altitude:
@@ -440,26 +455,10 @@ data_sources:
   study_table:
     id_key: study_id
     data_source:
-      file_name: "NMDC_DUMP/STUDY_DATA_TABLE.dsv"
+      file_name: "NMDC_DUMP_Jun_21_2021/STUDY_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     filters:
-      - include:
-          field: gold_id
-          values:
-            - Gs0110115
-            - Gs0110132
-            - Gs0112340
-            - Gs0114675
-            - Gs0128849
-            - Gs0130354
-            - Gs0114298
-            - Gs0114663
-            - Gs0120351
-            - Gs0134277
-            - Gs0133461
-            - Gs0135152
-            - Gs0135149
       - include:
           field: active
           values: ['Yes']
@@ -467,9 +466,9 @@ data_sources:
   contact_table:
     id_key: contact_id
     data_source:
-      file_name: "NMDC_DUMP/CONTACT_DATA_TABLE.dsv"
+      file_name: "NMDC_DUMP_Jun_21_2021/CONTACT_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     rename_slots:
       - old_name: name
         new_name: principal_investigator_name
@@ -487,9 +486,9 @@ data_sources:
   project_table:
     id_key: project_id
     data_source:
-      file_name: "NMDC_DUMP/PROJECT_DATA_TABLE.dsv"
+      file_name: "NMDC_DUMP_Jun_21_2021/PROJECT_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     filters:              
       - include:
           field: active
@@ -506,16 +505,16 @@ data_sources:
 
   project_biosample_table:
     data_source:
-      file_name: "NMDC_DUMP/PROJECT_BIOSAMPLE_DATA_TABLE.dsv"
+      file_name: "NMDC_DUMP_Jun_21_2021/PROJECT_BIOSAMPLE_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     
   biosample_table:
     id_key: biosample_id
     data_source:
-      file_name: "NMDC_DUMP/BIOSAMPLE_DATA_TABLE.dsv" 
+      file_name: "NMDC_DUMP_Jun_21_2021/BIOSAMPLE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     filters:              
       - include:
           field: active
@@ -553,7 +552,7 @@ data_sources:
       - identifier
       - host_name
       - depth # BIOSAMPLE, MICROBIAL_MAT_PACKAGE, PLANT_PACKAGE, SEDIMENT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
-      - subsurface_depth
+      - depth2
       - altitude
       - proport_woa_temperature
       - biogas_temperature
@@ -569,6 +568,7 @@ data_sources:
       - sample_volume # BIOSAMPLE, PLANT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
       - sampling_strategy
       - soluble_iron_micromol
+      - subsurface_depth
       - subsurface_depth2
       - tot_nitrogen # BIOSAMPLE, MICROBIAL_MAT_PACKAGE, SEDIMENT_PACKAGE, SOIL_PACKAGE, WATER_PACKAGE
       - tot_org_carbon # BIOSAMPLE, SOIL_PACKAGE
@@ -586,9 +586,9 @@ data_sources:
   soil_package_table:
     id_key: soil_package_id
     data_source:
-      file_name: "NMDC_DUMP/SOIL_PACKAGE_DATA_TABLE.dsv" 
+      file_name: "NMDC_DUMP_Jun_21_2021/SOIL_PACKAGE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     subset_cols:
       - soil_package_id
       - soil_agrochem_addition
@@ -615,6 +615,7 @@ data_sources:
       - soil_microbial_biomass_method
       - soil_misc_param
       - soil_depth
+      - soil_depth2
       - soil_ph
       - soil_ph_method
       - soil_pool_dna_extracts
@@ -648,12 +649,13 @@ data_sources:
   water_package_table:
     id_key: water_package_id
     data_source:
-      file_name: "NMDC_DUMP/WATER_PACKAGE_DATA_TABLE.dsv" 
+      file_name: "NMDC_DUMP_Jun_21_2021/WATER_PACKAGE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/GOLD_NMDC_DUMP_10162020.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
     subset_cols:
       - water_package_id
       - water_depth
+      - water_depth2
       - water_alkalinity 
       - water_alkalinity_method
       - water_alkyl_diethers

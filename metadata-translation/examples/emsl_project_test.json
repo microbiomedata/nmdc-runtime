@@ -1,53 +1,62 @@
 {
   "omics_processing_set": [
     {
-      "id": "emsl:359123",
-      "name": "GCMS_Blank_01_29Jan14",
-      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "id": "emsl:446532",
+      "name": "Ha_5Kpsi_2_08_QE_12Aug15_Arwen_14-12-03",
+      "description": "High res MS with high res HCD MSn",
+      "has_input": [
+        "emsl:TBD"
+      ],
       "has_output": [
-        "emsl:output_359123"
+        "emsl:output_446532"
       ],
-      "instrument_name": "Agilent_GC_MS_01",
-      "omics_type": {
-        "has_raw_value": "Metabolomics"
-      },
       "part_of": [
-        "gold:Gs0110132"
+        "gold:Gs0114675"
       ],
+      "instrument_name": "QExactP04",
+      "omics_type": {
+        "has_raw_value": "Proteomics"
+      },
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     },
     {
-      "id": "emsl:359124",
-      "name": "GCMS_FAMEs_01_29Jan14",
-      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "id": "emsl:446533",
+      "name": "Ha_250NaCl_2_17_QE_12Aug15_Arwen_14-12-03",
+      "description": "High res MS with high res HCD MSn",
+      "has_input": [
+        "emsl:TBD"
+      ],
       "has_output": [
-        "emsl:output_359124"
+        "emsl:output_446533"
       ],
-      "instrument_name": "Agilent_GC_MS_01",
-      "omics_type": {
-        "has_raw_value": "Metabolomics"
-      },
       "part_of": [
-        "gold:Gs0110132"
+        "gold:Gs0114675"
       ],
+      "instrument_name": "QExactP04",
+      "omics_type": {
+        "has_raw_value": "Proteomics"
+      },
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     },
     {
-      "id": "emsl:359129",
-      "name": "GCMS_Blank_02_29Jan14",
-      "description": "Full scan GC-MS (but not GC QExactive, which is EI-HMS)",
+      "id": "emsl:446534",
+      "name": "Ha_150NaCl_1_13_QE_12Aug15_Arwen_14-12-03",
+      "description": "High res MS with high res HCD MSn",
+      "has_input": [
+        "emsl:TBD"
+      ],
       "has_output": [
-        "emsl:output_359129"
+        "emsl:output_446534"
       ],
-      "instrument_name": "Agilent_GC_MS_01",
-      "omics_type": {
-        "has_raw_value": "Metabolomics"
-      },
       "part_of": [
-        "gold:Gs0110132"
+        "gold:Gs0114675"
       ],
+      "instrument_name": "QExactP04",
+      "omics_type": {
+        "has_raw_value": "Proteomics"
+      },
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     }

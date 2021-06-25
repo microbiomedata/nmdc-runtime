@@ -9,8 +9,10 @@ dotted-dict
 fastapi
 git-root
 jq
+jsonasobj2
 jupyter
 linkml
+linkml-runtime
 mongospawn
 nmdc-schema
 openpyxl

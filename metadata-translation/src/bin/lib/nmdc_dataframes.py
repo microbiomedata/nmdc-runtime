@@ -350,7 +350,7 @@ def make_project_dataframe(
     project_table,
     study_table,
     contact_table,
-    data_object_table=None,
+    data_object_table,
     project_biosample_table=None,
     biosample_table=None,
     result_cols=[],
@@ -404,11 +404,11 @@ def make_project_dataframe(
         output_files.rename(columns={"file_id": "output_file_ids"}, inplace=True)
         output_files["output_file_ids"] = output_files["output_file_ids"].astype(str)
 
-        ## join project and output files
+        ## require output files for projects (i.e., inner join)
         temp2_df = pds.merge(
             temp2_df,
             output_files,
-            how="left",
+            how="inner",
             left_on="gold_id",
             right_on="gold_project_id",
         )
@@ -429,7 +429,8 @@ def make_project_dataframe(
         input_samples = pds.merge(
             project_biosample_table, biosample_table, how="inner", on="biosample_id"
         )
-        temp2_df = pds.merge(temp2_df, input_samples, how="left", on="project_id")
+        # require input samples (i.e., inner join)
+        temp2_df = pds.merge(temp2_df, input_samples, how="inner", on="project_id")
 
     if len(result_cols) > 0:
         return temp2_df[result_cols]
@@ -443,6 +444,7 @@ def make_biosample_dataframe(
     water_package_table,
     project_biosample_table,
     project_table,
+    study_table,
     result_cols=[],
 ):
     def make_collection_date_from_row(row):
@@ -470,13 +472,32 @@ def make_biosample_dataframe(
     project_biosample_table_splice = project_biosample_table[
         ["biosample_id", "project_id"]
     ].copy()
-    project_table_splice = project_table[["project_id", "gold_id"]].copy()
+    project_table_splice = project_table[
+        ["project_id", "gold_id", "master_study_id"]
+    ].copy()
+    study_table_splice = study_table[["study_id", "gold_id"]].copy()
 
     ## add prefix
     project_table_splice.gold_id = "gold:" + project_table_splice.gold_id
+    study_table_splice.gold_id = "gold:" + study_table_splice.gold_id
 
     ## rename columns
     project_table_splice.rename(columns={"gold_id": "project_gold_id"}, inplace=True)
+    study_table_splice.rename(columns={"gold_id": "study_gold_id"}, inplace=True)
+
+    ## inner join projects and studies
+    project_table_splice = pds.merge(
+        project_table_splice,
+        study_table_splice,
+        how="inner",
+        left_on="master_study_id",
+        right_on="study_id",
+    )
+
+    ## drop biosample rows that don't have required fields
+    biosample_table = biosample_table[biosample_table["env_broad_scale"].notnull()]
+    biosample_table = biosample_table[biosample_table["env_local_scale"].notnull()]
+    biosample_table = biosample_table[biosample_table["env_medium"].notnull()]
 
     ## left join package tables to biosample table
     temp0_df = pds.merge(
@@ -616,6 +637,9 @@ def make_emsl_dataframe(
     )  # build data object id
 
     ## group concat & join the biosample ids that are inputs to the omics process
+    ## With filter function as None, the function defaults to Identity function,
+    ## and each element in random_list is checked if it's true or not.
+    ## see https://www.programiz.com/python-programming/methods/built-in/filter
     groups = biosample_slice.groupby("dataset_id")["biosample_gold_id"]
     input_biosamples = (
         pds.DataFrame(groups.apply(lambda x: ",".join(filter(None, x))))
@@ -635,6 +659,11 @@ def make_emsl_dataframe(
     )  # make sure biosample_ids are strings
 
     temp2_df = pds.merge(temp2_df, input_biosamples, how="left", on="dataset_id")
+
+    ## add "emsl:TBD" id for missing biosamples
+    temp2_df["biosample_gold_ids"] = temp2_df["biosample_gold_ids"].map(
+        lambda x: "emsl:TBD" if pds.isnull(x) else x
+    )
 
     ## add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id

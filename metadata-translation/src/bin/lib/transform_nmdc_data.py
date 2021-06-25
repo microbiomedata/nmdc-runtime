@@ -236,6 +236,8 @@ def make_constructor_args_from_record(
                 constructor_dict[key] = class_type(**record_dict)
             else:
                 constructor_dict[key] = record_dict
+        elif type([]) == type(field) and len(field) > 0:
+            constructor_dict[key] = [get_record_attr(nmdc_record, f) for f in field]
         else:
             constructor_dict[key] = get_record_attr(nmdc_record, field)
 

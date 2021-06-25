@@ -1,270 +1,319 @@
 {
   "study_set": [
     {
-      "id": "gold:Gs0110115",
-      "name": "Avena fatua rhizosphere microbial communities from Hopland, California, USA, for root-enhanced decomposition of organic matter studies",
-      "description": "Using analytical expertise at both the JGI and EMSL, we plan to follow successional patterns of protein expression by root-associated microorganisms. This work builds on foundational research we are conducting with the common California grassland plant, Avena fatua, grown in Hopland, CA soil (FOA DE-PS02-09ER09-25). Using our 16-chamber 13C labeling facility at UC Berkeley, we have shown that elevated CO2 increased the amount of C allocated belowground, and increased the yield of root biomass. The rhizosphere microbial community undergoes a succession as the root grows, senesces, and dies. In elevated CO2 treatments, we also detect a greater amount of root-derived 13C in the mineral-associated heavy fraction of the soil, which is commonly assumed to reflect longer term stabilization. \\n \\nIn our JGI-EMSL project, we will follow over time how roots impact the functional capacity of the rhizosphere microbiome to enzymatically mediate decomposition processes. We hypothesize that root-exudate stimulation of soil microbial populations results in elevated expression of biomolecules (transcripts, enzymes, metabolites) for the decomposition of macromolecular C compounds.",
-      "ecosystem": "Host-associated",
-      "ecosystem_category": "Plants",
-      "ecosystem_type": "Rhizosphere",
-      "ecosystem_subtype": "Soil",
-      "specific_ecosystem": "Unclassified",
-      "principal_investigator_name": {
-        "has_raw_value": "Mary Firestone"
+      "id": "gold:Gs0114663",
+      "name": "Riverbed sediment microbial communities from the Columbia River, Washington, USA",
+      "description": "A metagenomic study to couple microbial communities to carbon and contaminant biogeochemistry in the groundwater-surface water interaction zone (hyporheic zone).",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Aquatic",
+      "ecosystem_type": "Freshwater",
+      "ecosystem_subtype": "River",
+      "specific_ecosystem": "Sediment",
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
       },
       "doi": {
-        "has_raw_value": "10.25585/1487760"
+        "has_raw_value": "10.25585/1487765"
       },
       "type": "nmdc:Study"
     },
     {
-      "id": "gold:Gs0114298",
-      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM)",
-      "description": "The goal of the proposed research is to develop a predictive understanding of how and why photochemical alterations of permafrost dissolved organic carbon (DOC) lead to increased respiration rates by bacteria. The proposal will use metagenomic and metatranscriptomic sequencing of expressed bacterial genes to identify the genome-encoded, functional metabolic pathways actively used by DOC-degrading bacteria in permafrost soils and to determine how these pathways change when soil DOC is exposed to sunlight in surface waters. The proposal will then compare these results to DOC characterization by low and high-resolution mass spectrometry, and 13C-NMR of compounds that are produced or lost  during the exposure to light. The proposal also aims to determine genes that are differentially expressed and DOC compounds that are differentially modified and respired following light exposure, compared to DOC kept in the dark. The effects of light exposure on DOC metabolism to the concurrently measured rates of bacterial respiration and production will be related to develop a predictive understanding of the controls on soil C degradation in the Arctic.",
+      "id": "gold:Gs0114675",
+      "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA",
+      "description": "Despite the importance of carbon-rich deep shale systems, little is known about microbe-catalyzed processes that may occur naturally within these formations, and how these change as a result of engineered activities. This has important implications on biodiversity change within the deep terrestrial biosphere, the efficiency of energy recovery, and the sustainability of our energy infrastructure. Although limited studies have identified diverse active microorganisms in deep shale formations, more research is needed to understand microbial mechanisms for growth and survival, and how such activities impact carbon and other biogeochemical cycles.",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Deep subsurface",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "principal_investigator": {
+        "has_raw_value": "Kelly Wrighton"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487763"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0135149",
+      "name": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States",
+      "description": "The goal of the study is to observe the activation of microbial metabolic potential beneath the snowpack during winter and during the snowmelt period, as well as advanced characterization of the chemistry of carbon and nutrient transformations and assimilation by microorganisms and vegetation in response to earlier snowmelt timing..",
       "ecosystem": "Environmental",
       "ecosystem_category": "Terrestrial",
       "ecosystem_type": "Soil",
-      "ecosystem_subtype": "Wetlands",
-      "specific_ecosystem": "Permafrost",
-      "principal_investigator_name": {
-        "has_raw_value": "Byron Crump"
+      "ecosystem_subtype": "Meadow",
+      "specific_ecosystem": "Bulk soil",
+      "principal_investigator": {
+        "has_raw_value": "Eoin Brodie"
       },
       "doi": {
-        "has_raw_value": "10.25585/1487766"
-      },
-      "type": "nmdc:Study"
-    },
-    {
-      "id": "gold:Gs0135152",
-      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
-      "description": "The goal of this study is to identify genomes of novel microbial players that are able to decompose recalcitrant organic matter in the presence of nitrate; to determine which metabolic pathways are differentially expressed as a result of nitrate addition; and to link differential expression of these genes to the decomposition of organic matter in salt marsh sediments.",
-      "ecosystem": "Environmental",
-      "ecosystem_category": "Aquatic",
-      "ecosystem_type": "Marine",
-      "ecosystem_subtype": "Intertidal zone",
-      "specific_ecosystem": "Salt marsh",
-      "principal_investigator_name": {
-        "has_raw_value": "Jennifer Bowen"
-      },
-      "doi": {
-        "has_raw_value": "10.25585/1487491"
+        "has_raw_value": "10.25585/1488224"
       },
       "type": "nmdc:Study"
     }
   ],
   "omics_processing_set": [
     {
-      "id": "gold:Gp0111276",
-      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
-      "description": "Decoding DOM degradation: Permafrost soil sample from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "id": "gold:Gp0119849",
+      "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio, USA - Utica-2 Time Series 2014_10_10",
+      "description": "Microbial controls on biogeochemical cycling in deep subsurface shale carbon reservoirs",
       "has_input": [
-        "gold:Gb0111009"
+        "gold:Gb0119259"
       ],
-      "add_date": "2015-02-26",
-      "mod_date": "2020-04-05",
       "has_output": [
-        "jgi:55c1f47a0d87855594c2653b"
+        "jgi:560df5b90d878540fd6fe202"
       ],
-      "ncbi_project_name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "part_of": [
+        "gold:Gs0114675"
+      ],
+      "add_date": "2015-08-15",
+      "mod_date": "2020-04-05",
+      "ncbi_project_name": "Deep subsurface shale carbon reservoir microbial communities from Ohio, USA - Utica-2 Time Series 2014_10_10",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
-      "part_of": [
-        "gold:Gs0114298"
-      ],
-      "processing_institution": "Joint Genome Institute",
-      "type": "nmdc:OmicsProcessing"
-    },
-    {
-      "id": "gold:Gp0507254",
-      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
-      "description": "Bulk soil microbial communities from Hopland, California, USA",
-      "has_input": [
-        "gold:Gb0259543"
-      ],
-      "add_date": "2020-10-09",
-      "mod_date": "2020-10-11",
-      "omics_type": {
-        "has_raw_value": "Targeted Gene Survey"
+      "principal_investigator": {
+        "has_raw_value": "Kelly Wrighton"
       },
-      "part_of": [
-        "gold:Gs0110115"
-      ],
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
     },
     {
-      "id": "gold:Gp0321404",
-      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
-      "description": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
+      "id": "gold:Gp0115663",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
       "has_input": [
-        "gold:Gb0191784"
+        "gold:Gb0115217"
+      ],
+      "has_output": [
+        "jgi:55d740280d8785342fcf7e39"
+      ],
+      "part_of": [
+        "gold:Gs0114663"
+      ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
+      "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+      "omics_type": {
+        "has_raw_value": "Metagenome"
+      },
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
+      },
+      "processing_institution": "Joint Genome Institute",
+      "type": "nmdc:OmicsProcessing"
+    },
+    {
+      "id": "gold:Gp0321263",
+      "name": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
+      "description": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States",
+      "has_input": [
+        "gold:Gb0191643"
+      ],
+      "has_output": [
+        "jgi:5b3b869964d0b3516a5f4f4c"
+      ],
+      "part_of": [
+        "gold:Gs0135149"
       ],
       "add_date": "2018-06-22",
       "mod_date": "2020-04-04",
-      "has_output": [
-        "jgi:5b3065e764d0b3516a5e1543"
-      ],
-      "ncbi_project_name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
+      "ncbi_project_name": "Soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_DNA_115",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
-      "part_of": [
-        "gold:Gs0135152"
-      ],
+      "principal_investigator": {
+        "has_raw_value": "Eoin Brodie"
+      },
       "processing_institution": "Joint Genome Institute",
       "type": "nmdc:OmicsProcessing"
     }
   ],
   "biosample_set": [
     {
-      "id": "gold:Gb0111009",
-      "name": "Permafrost soil microbial communities from the Arctic, to analyse light accelerated degradation of dissolved organic matter (DOM) - Organic soil replicate 1 DNA2013-045",
+      "id": "gold:Gb0115217",
+      "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+      "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
+      "env_broad_scale": {
+        "has_raw_value": "ENVO:01000253"
+      },
+      "env_local_scale": {
+        "has_raw_value": "ENVO:01000621"
+      },
+      "env_medium": {
+        "has_raw_value": "ENVO:01000017"
+      },
       "type": "nmdc:Biosample",
       "collection_date": {
-        "has_raw_value": "2013-06-20"
+        "has_raw_value": "2014-09-23"
       },
       "depth": {
-        "has_raw_value": "0.0",
-        "has_numeric_value": 0,
+        "has_raw_value": "0.5",
+        "has_numeric_value": 0.5,
         "has_unit": "meter"
       },
+      "geo_loc_name": {
+        "has_raw_value": "USA: Columbia River, Washington"
+      },
+      "lat_lon": {
+        "has_raw_value": "46.37228379 -119.2717467",
+        "latitude": 46.37228379,
+        "longitude": -119.2717467
+      },
+      "ecosystem": "Engineered",
+      "ecosystem_category": "Artificial ecosystem",
+      "ecosystem_type": "Sand microcosm",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "add_date": "2015-05-28",
+      "community": "microbial communities",
+      "depth2": {
+        "has_raw_value": "1.0",
+        "has_numeric_value": 1,
+        "has_unit": "meter"
+      },
+      "habitat": "sand microcosm",
+      "identifier": "GW-RW T2_23-Sept-14",
+      "location": "groundwater-surface water interaction zone in Washington, USA",
+      "mod_date": "2021-06-17",
+      "ncbi_taxonomy_name": "sediment metagenome",
+      "sample_collection_site": "sand microcosm",
+      "part of": [
+        "gold:Gs0114663"
+      ]
+    },
+    {
+      "id": "gold:Gb0119259",
+      "name": "Deep subsurface shale carbon reservoir microbial communities from Ohio, USA - Utica-2 Time Series 2014_10_10",
+      "description": "time series sample of the fluid post-fracking",
       "env_broad_scale": {
         "has_raw_value": "ENVO:00000446"
       },
       "env_local_scale": {
-        "has_raw_value": "ENVO:00000043"
+        "has_raw_value": "ENVO:01000941"
       },
       "env_medium": {
-        "has_raw_value": "ENVO:00000134"
+        "has_raw_value": "ENVO:00002194"
+      },
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2014-10-10"
+      },
+      "depth": {
+        "has_raw_value": "2000.0",
+        "has_numeric_value": 2000,
+        "has_unit": "meter"
       },
       "geo_loc_name": {
-        "has_raw_value": "Alaska, USA"
+        "has_raw_value": "USA: Ohio"
       },
       "lat_lon": {
-        "has_raw_value": "68.6139 -149.3145",
-        "latitude": 68.6139,
-        "longitude": -149.3145
+        "has_raw_value": "40.178 -81.073",
+        "latitude": 40.178,
+        "longitude": -81.073
+      },
+      "nitrate": {
+        "has_raw_value": "below detection",
+        "has_unit": "detection"
+      },
+      "salinity": {
+        "has_raw_value": "104117 mg/L"
+      },
+      "temp": {
+        "has_raw_value": "65.0",
+        "has_unit": "Celsius",
+        "has_numeric_value": 65
       },
       "ecosystem": "Environmental",
       "ecosystem_category": "Terrestrial",
-      "ecosystem_type": "Soil",
-      "ecosystem_subtype": "Wetlands",
-      "specific_ecosystem": "Permafrost",
-      "add_date": "2015-02-26",
+      "ecosystem_type": "Deep subsurface",
+      "ecosystem_subtype": "Shale gas reservoir",
+      "specific_ecosystem": "Flow back/Produced fluids",
+      "add_date": "2015-08-15",
       "community": "microbial communities",
-      "habitat": "Permafrost soil",
-      "location": "from Alaska, USA",
-      "mod_date": "2020-05-26",
-      "ncbi_taxonomy_name": "soil metagenome",
-      "sample_collection_site": "soil"
+      "habitat": "Deep subsurface",
+      "identifier": "Utica-2 Time Series 2014_10_10",
+      "location": "Ohio, USA",
+      "mod_date": "2021-06-17",
+      "ncbi_taxonomy_name": "subsurface metagenome",
+      "sample_collection_site": "Deep subsurface aqueous Sample",
+      "part of": [
+        "gold:Gs0114675"
+      ]
     },
     {
-      "id": "gold:Gb0191784",
-      "name": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States - WE1602-10",
-      "description": "Salt marsh sediment microbial communities from the Plum Island Ecosystem LTER, Massachusetts, United States",
-      "type": "nmdc:Biosample",
-      "collection_date": {
-        "has_raw_value": "2016-06-09"
-      },
-      "depth": {
-        "has_raw_value": "0.1",
-        "has_numeric_value": 0.1,
-        "has_unit": "meter"
-      },
+      "id": "gold:Gb0191643",
+      "name": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States - ER_115",
+      "description": "Bulk soil microbial communities from the East River watershed near Crested Butte, Colorado, United States",
       "env_broad_scale": {
-        "has_raw_value": "ENVO:01000022"
+        "has_raw_value": "ENVO:01000177"
       },
       "env_local_scale": {
-        "has_raw_value": "ENVO:00000316"
-      },
-      "env_medium": {
-        "has_raw_value": "ENVO:00002007"
-      },
-      "geo_loc_name": {
-        "has_raw_value": "USA: Massachusetts"
-      },
-      "lat_lon": {
-        "has_raw_value": "42.759 -70.891",
-        "latitude": 42.759,
-        "longitude": -70.891
-      },
-      "ecosystem": "Environmental",
-      "ecosystem_category": "Aquatic",
-      "ecosystem_type": "Marine",
-      "ecosystem_subtype": "Intertidal zone",
-      "specific_ecosystem": "Salt marsh",
-      "add_date": "2018-06-22",
-      "community": "microbial communities",
-      "habitat": "salt marsh",
-      "identifier": "WE1602-10",
-      "location": "salt marshes at the Plum Island Ecosystem LTER, Massachusetts, United States",
-      "mod_date": "2019-06-16",
-      "ncbi_taxonomy_name": "salt marsh metagenome",
-      "sample_collection_site": "Salt marsh sediment"
-    },
-    {
-      "id": "gold:Gb0259543",
-      "name": "Bulk soil microbial communities from Hopland, California, USA - 21_Bulk_cDNA",
-      "description": "Bulk soil microbial communities from Hopland, California, USA",
-      "type": "nmdc:Biosample",
-      "alt": {
-        "has_raw_value": "0.0",
-        "has_numeric_value": 0,
-        "has_unit": "meter"
-      },
-      "collection_date": {
-        "has_raw_value": "2013-03-15"
-      },
-      "depth": {
-        "has_raw_value": "0.0",
-        "has_numeric_value": 0,
-        "has_unit": "meter"
-      },
-      "env_broad_scale": {
-        "has_raw_value": "ENVO:00000446"
-      },
-      "env_local_scale": {
-        "has_raw_value": "ENVO:00005801"
+        "has_raw_value": "ENVO:00000108"
       },
       "env_medium": {
         "has_raw_value": "ENVO:00005802"
       },
+      "type": "nmdc:Biosample",
+      "collection_date": {
+        "has_raw_value": "2017-03-07"
+      },
+      "depth": {
+        "has_raw_value": "0.0",
+        "has_numeric_value": 0,
+        "has_unit": "meter"
+      },
       "geo_loc_name": {
-        "has_raw_value": "USA: Hopland, California"
+        "has_raw_value": "USA: Colorado"
       },
       "lat_lon": {
-        "has_raw_value": "38.9929 -123.0674",
-        "latitude": 38.9929,
-        "longitude": -123.0674
+        "has_raw_value": "38.917216053 -106.9559947",
+        "latitude": 38.917216053,
+        "longitude": -106.9559947
       },
-      "ecosystem": "Host-associated",
-      "ecosystem_category": "Plants",
-      "ecosystem_type": "Roots",
-      "ecosystem_subtype": "Bulk soil",
-      "specific_ecosystem": "Unclassified",
-      "add_date": "2020-10-09",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Terrestrial",
+      "ecosystem_type": "Soil",
+      "ecosystem_subtype": "Meadow",
+      "specific_ecosystem": "Bulk soil",
+      "add_date": "2018-06-22",
       "community": "microbial communities",
-      "habitat": "Bulk soil",
-      "identifier": "21_Bulk_cDNA",
-      "location": "Hopland, California, USA",
+      "depth2": {
+        "has_raw_value": "0.05",
+        "has_numeric_value": 0.05,
+        "has_unit": "meter"
+      },
+      "habitat": "bulk soil",
+      "identifier": "ER_115",
+      "location": "The East River watershed near Crested Butte, Colorado, USA",
+      "mod_date": "2021-06-15",
       "ncbi_taxonomy_name": "soil metagenome",
-      "sample_collection_site": "Soil"
+      "sample_collection_site": "soil",
+      "part of": [
+        "gold:Gs0135149"
+      ]
     }
   ],
   "data_object_set": [
     {
-      "id": "jgi:55c1f47a0d87855594c2653b",
-      "name": "9365.2.130724.ATGTCA.fastq.gz",
+      "id": "jgi:55d740280d8785342fcf7e39",
+      "name": "9422.8.132674.GTTTCG.fastq.gz",
       "description": "Raw sequencer read data",
-      "file_size_bytes": 5715523835.0,
+      "file_size_bytes": 2861414297,
       "type": "nmdc:DataObject"
     },
     {
-      "id": "jgi:5b3065e764d0b3516a5e1543",
-      "name": "12512.1.261459.GTCCACA-ATGTGGA.fastq.gz",
+      "id": "jgi:560df5b90d878540fd6fe202",
+      "name": "9567.8.137569.TAGGCAT-AGAGTAG.fastq.gz",
       "description": "Raw sequencer read data",
-      "file_size_bytes": 6654909872.0,
+      "file_size_bytes": 4551741658,
+      "type": "nmdc:DataObject"
+    },
+    {
+      "id": "jgi:5b3b869964d0b3516a5f4f4c",
+      "name": "12531.3.262778.GAGCTCA-TTGAGCT.fastq.gz",
+      "description": "Raw sequencer read data",
+      "file_size_bytes": 9142282136,
       "type": "nmdc:DataObject"
     }
   ]
