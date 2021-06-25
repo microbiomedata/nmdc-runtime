@@ -3,6 +3,4 @@
 
 load_from:
   - python_file:
-      relative_path: "../lib/nmdc_runtime/repositories/jgi_gold_etl.py"
-  - python_file:
       relative_path: "../lib/nmdc_runtime/dagster_repository.py"
