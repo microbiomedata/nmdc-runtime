@@ -463,14 +463,13 @@ if __name__ == "__main__":
     # make_test_merged_data_source()  # build a testing subset from merged data source
 
     ## ------ testing specific etl modules -------- ##
-    # sssom_map_file = git_root("schema/mappings/gold-to-mixs.sssom.tsv")
     # data_file = "../data/nmdc_merged_data.tsv.zip"
     # spec_file = "lib/nmdc_data_source.yaml"
     # nmdc_etl = NMDC_ETL(
     #     merged_data_file=data_file,
     #     data_source_spec_file=spec_file,
-    #     sssom_file="",
-    #     pickled_data="nmdc_etl_data.pickle",  # change this to load different data
+    #     sssom_file="",  # this is used for an optional sssom file
+    #     # pickled_data="nmdc_etl_data.pickle",  # uncomment to load pickled data; helps speed up testing
     # )
 
     ## pickle nmdc data to speed up future loads
@@ -484,8 +483,8 @@ if __name__ == "__main__":
 
     ## test emsl omic processing etl
     # nmdc_etl.transform_emsl_omics_processing()
-    # nmdc_etl.save_emsl_omics_processing('output/nmdc_etl/test.json')
-    # print(nmdc_etl.emsl.head())
+    # nmdc_etl.save_emsl_omics_processing("output/nmdc_etl/test.json")
+    # print(nmdc_etl.nmdc_data.emsl.head())
 
     ## test omic processing etl
     # nmdc_etl.transform_omics_processing()
