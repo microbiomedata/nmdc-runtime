@@ -21,18 +21,7 @@ with open(pkg_resources.resource_filename("nmdc_schema", "nmdc.schema.json")) as
 def put_object(filepath, url, mime_type=None):
     if mime_type is None:
         mime_type = mimetypes.guess_type(filepath)[0]
-    reading_bytes = mime_type in {
-        "application/gzip",
-        "application/zip",
-        "application/x-7z-compressed",
-        "application/x-bzip",
-        "application/x-bzip2",
-        "image/jpeg",
-        "image/png",
-        "image/tiff",
-        "application/pdf",
-    }
-    with open(filepath, f'r{"b" if reading_bytes else ""}') as f:
+    with open(filepath, "rb") as f:
         return requests.put(url, data=f, headers={"Content-Type": mime_type})
 
 

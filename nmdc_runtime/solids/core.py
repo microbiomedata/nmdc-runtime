@@ -36,11 +36,11 @@ def local_file_to_api_object(context, file_info):
         {"mime_type": mime_type, "name": Path(storage_path).name}
     )
     if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description=f"put_object_in_site failed")
+        raise Failure(description=f"put_object_in_site failed: {rv.content}")
     op = rv.json()
     rv = put_object(storage_path, op["metadata"]["url"])
     if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description="put_object failed")
+        raise Failure(description=f"put_object failed: {rv.content}")
     op_patch = {"done": True, "result": drs_object_in_for(storage_path, op)}
     rv = client.update_operation(op["id"], op_patch)
     if not rv.status_code == status.HTTP_200_OK:
