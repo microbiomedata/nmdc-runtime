@@ -1,5 +1,8 @@
+from functools import lru_cache
+
 from dagster import resource, StringSource, build_init_resource_context
 from fastjsonschema import JsonSchemaValueException
+from frozendict import frozendict
 from pymongo import MongoClient, ReplaceOne
 from toolz import get_in
 
@@ -16,9 +19,11 @@ class MongoDB:
             if validate:
                 nmdc_jsonschema_validate(docs)
             for collection_name, docs in docs.items():
-                self.db[collection_name].bulk_write(
-                    [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
-                )
+                return {
+                    collection_name: self.db[collection_name].bulk_write(
+                        [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
+                    )
+                }
         except JsonSchemaValueException as e:
             raise ValueError(e.message)
 
@@ -40,7 +45,8 @@ def mongo_resource(context):
     )
 
 
-def get_mongo(run_config: dict):
+@lru_cache
+def get_mongo(run_config: frozendict):
     resource_context = build_init_resource_context(
         config=get_in(
             ["resources", "mongo", "config"],

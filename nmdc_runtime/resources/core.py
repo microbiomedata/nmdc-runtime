@@ -1,7 +1,9 @@
 from datetime import timedelta
+from functools import lru_cache
 
 from dagster import resource, StringSource, build_init_resource_context
 import requests
+from frozendict import frozendict
 from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
@@ -112,7 +114,8 @@ def runtime_api_site_client_resource(context):
     )
 
 
-def get_runtime_api_site_client(run_config: dict):
+@lru_cache
+def get_runtime_api_site_client(run_config: frozendict):
     resource_context = build_init_resource_context(
         config=get_in(
             ["resources", "runtime_api_site_client", "config"],

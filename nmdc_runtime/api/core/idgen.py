@@ -1,5 +1,6 @@
 import base32_lib as base32
 import pymongo
+from pydantic import constr
 
 
 def generate_id(length=10, split_every=4, checksum=True) -> str:
@@ -68,3 +69,7 @@ def generate_id_unique(
         get_one = collection.count_documents({"_id": eid_decoded}) > 0
     collection.insert_one({"_id": eid_decoded, "ns": ns})
     return eid
+
+
+# NO i, l, o or u. Optional '-'s.
+Base32Id = constr(regex=r"^[0-9abcdefghjkmnpqrstvwxyz\-]+$")

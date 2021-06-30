@@ -9,7 +9,7 @@ from nmdc_runtime.solids.core import mongo_stats, update_schema, hello
 # Mode definitions allow you to configure the behavior of your pipelines and solids at execution
 # time. For hints on creating modes in Dagster, see our documentation overview on Modes and
 # Resources: https://docs.dagster.io/overview/modes-resources-presets/modes-resources
-
+from nmdc_runtime.util import frozendict_recursive
 
 mode_normal = ModeDefinition(
     name="normal",
@@ -21,38 +21,44 @@ mode_normal = ModeDefinition(
 )
 mode_test = ModeDefinition(name="test")
 
-preset_normal_env = PresetDefinition(
-    "normal_via_env",
-    run_config={
-        "resources": {
-            "runtime_api_site_client": {
-                "config": {
-                    "base_url": {"env": "API_HOST"},
-                    "site_id": {"env": "API_SITE_ID"},
-                    "client_id": {"env": "API_SITE_CLIENT_ID"},
-                    "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
-                },
+run_config__preset_normal_env = {
+    "resources": {
+        "runtime_api_site_client": {
+            "config": {
+                "base_url": {"env": "API_HOST"},
+                "site_id": {"env": "API_SITE_ID"},
+                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
             },
-            "terminus": {
-                "config": {
-                    "server_url": {"env": "TERMINUS_SERVER_URL"},
-                    "key": {"env": "TERMINUS_KEY"},
-                    "user": {"env": "TERMINUS_USER"},
-                    "account": {"env": "TERMINUS_ACCOUNT"},
-                    "dbid": {"env": "TERMINUS_DBID"},
-                },
+        },
+        "terminus": {
+            "config": {
+                "server_url": {"env": "TERMINUS_SERVER_URL"},
+                "key": {"env": "TERMINUS_KEY"},
+                "user": {"env": "TERMINUS_USER"},
+                "account": {"env": "TERMINUS_ACCOUNT"},
+                "dbid": {"env": "TERMINUS_DBID"},
             },
-            "mongo": {
-                "config": {
-                    "host": {"env": "MONGO_HOST"},
-                    "username": {"env": "MONGO_USERNAME"},
-                    "password": {"env": "MONGO_PASSWORD"},
-                    "dbname": {"env": "MONGO_DBNAME"},
-                },
+        },
+        "mongo": {
+            "config": {
+                "host": {"env": "MONGO_HOST"},
+                "username": {"env": "MONGO_USERNAME"},
+                "password": {"env": "MONGO_PASSWORD"},
+                "dbname": {"env": "MONGO_DBNAME"},
             },
         },
     },
+}
+
+preset_normal_env = PresetDefinition(
+    "normal_via_env",
+    run_config=run_config__preset_normal_env.copy(),
     mode="normal",
+)
+
+run_config_frozen__preset_normal_env = frozendict_recursive(
+    run_config__preset_normal_env
 )
 
 
