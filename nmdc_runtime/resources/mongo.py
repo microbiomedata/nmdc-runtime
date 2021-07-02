@@ -18,12 +18,12 @@ class MongoDB:
         try:
             if validate:
                 nmdc_jsonschema_validate(docs)
+            rv = {}
             for collection_name, docs in docs.items():
-                return {
-                    collection_name: self.db[collection_name].bulk_write(
-                        [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
-                    )
-                }
+                rv[collection_name] = self.db[collection_name].bulk_write(
+                    [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
+                )
+            return rv
         except JsonSchemaValueException as e:
             raise ValueError(e.message)
 
