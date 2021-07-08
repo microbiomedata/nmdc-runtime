@@ -1,6 +1,12 @@
+"""
+Translating an export of the JGI GOLD [1] database of SQL tables to the NMDC database JSON schema.
+
+[1] Genomes OnLine Database (GOLD) <https://gold.jgi.doe.gov/>.
+"""
+
+
 import json
 import os
-from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from zipfile import ZipFile
 
@@ -12,9 +18,6 @@ from dagster import (
     Failure,
     OutputDefinition,
 )
-from starlette import status
-
-from nmdc_runtime.util import put_object, drs_object_in_for
 
 
 def run_and_log(shell_cmd, context):

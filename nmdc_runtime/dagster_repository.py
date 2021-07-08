@@ -1,7 +1,7 @@
 from dagster import repository
 
 from nmdc_runtime.pipelines.core import hello_mongo, update_terminus
-from nmdc_runtime.pipelines.jgi import gold_etl
+from nmdc_runtime.pipelines.gold_translation import gold_translation
 from nmdc_runtime.pipelines.objects import create_objects_from_site_object_puts
 from nmdc_runtime.schedules.my_hourly_schedule import my_hourly_schedule
 from nmdc_runtime.sensors.core import my_sensor
@@ -20,7 +20,7 @@ def nmdc_runtime():
         hello_mongo,
         update_terminus,
         create_objects_from_site_object_puts,
-        gold_etl,
+        gold_translation,
     ]
     schedules = [my_hourly_schedule]
     sensors = [my_sensor, done_object_put_ops]

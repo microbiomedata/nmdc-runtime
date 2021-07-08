@@ -1,0 +1,79 @@
+Study,Task Category,GOLD Study ID,Action,Term,Value,Related GH Issue,Notes,Still need
+Stegen,Biosample,Gs0114663,,,"Update cur_vegetation to a value that makes sense for the samples described in the GH issue for all samples with a ""N""",https://github.com/microbiomedata/nmdc-metadata/issues/352,"See : https://drive.google.com/file/d/1NrTWTWV39nqvy4ftq3LLQu9rF0dHBsZ-/view?usp=sharing I added ""cur_vegetation"" to column ED. Not, I did NOT copy ALL the metadata to the EMSL and JGI samples. If the ""Parent Sample ID"" is the same, the metadata is the same, even if it isn't listed",
+Stegen,Biosample,Gs0114663,,,"Update samp_mat_process to reflect the methods described in the GH issue for all samples that have a ""T""",https://github.com/microbiomedata/nmdc-metadata/issues/352,"Stegen: See column samp_mat_process in column DZ. I added ""steralized sand bags via autoclave prior to field deployment; https://doi.org/10.1371/journal.pone.0228165"" to applicable samples. Same spreadsheet listed above",
+Wrighton,Biosample,Gs0114675,,,Update samp_mat_process to reflect the methods described in the GH issue.,https://github.com/microbiomedata/nmdc-metadata/issues/342,"See: https://drive.google.com/file/d/1YiDWPxAEhpctuxuzsqBrWu2MmV_gyt83/view?usp=sharing
+-'additional_info' added for sample 'LMS_cellobiose_enrichment' to indicate moose gut
+-Removed environmental details, lat long, geo_lgraphic_location, and collection date for 3 viral samples, 2 microbial community samples, and 1 moose sample.
+-Added 'community' details for 3 viral samples, 2 microbial community sampels, and 1 moose gut sample
+-Added ""samp_mat_process"" to 3 viral samples and 2 microbial communities.
+Need to make sure kitware can expose samp_mat_process in the Sample attributes","Need more details on the viral samples & microbial communities.
+-Method of induction citation
+-What methylated compounds were added to microbial communities / method citation"
+Wrighton,Biosample,Gs0114675,,,We need to come up with a new way to list samples that do not include the proposal name (can be misleading). Consider removing the proposal name altogether as a temporary fix until this has been resolved.,"https://github.com/microbiomedata/nmdc-metadata/issues/342
+https://github.com/microbiomedata/nmdc-metadata/issues/349",,
+Stegen,Study,Gs0114663,Add to existing,study/publications,Add citation to study page. Please reformat as needed. https://journals.plos.org/plosone/article/authors?id=10.1371/journal.pone.0228165,https://github.com/microbiomedata/nmdc-metadata/issues/350,,
+Stegen,Study,Gs0114663,Replace,study/description,"This research project, led by James Stegen at PNNL, aimed to understand how molecular-scale processes govern the biogeochemical function of subsurface groundwater-surface water mixing zones (i.e., the hyporheic zone). This project was conducted along the Columbia River in Eastern Washington State, which exhibits variation in microbiome composition, biogeochemical activity, and substrate biogeochemistry, making it an ideal environment for studying biogeochemical hotspots. To capture a range of biogeochemical activities, samples were collected from areas with dense vegetation and virtually no vegetation. 
+
+This project’s long-term goal is to develop models that can simulate impacts of disturbance on river corridor hydro-biogeochemistry by understanding fundamental molecular processes that lead to emergent function. This project is part of PNNL’s River Corridor Hydrobiogeochemistry Science Focus Area (https://www.pnnl.gov/projects/river-corridor-hydrobiogeochemistry-science-focus-area).",,"Pajau wrote up short science stories a few months ago, and this description was shared with the FICUS PI.",
+Wrighton,Study,Gs0114675,Replace,study/description,"This project aims to improve the understanding of microbial diversity and metabolism in deep shale, with implications for novel enzyme discovery and energy development. This project was conducted along two Appalachian basin shales, the Marcellus and Utica/Point Pleasant formations in Pennsylvania and Ohio, respectively. Samples were collected from input and produced fluids up to a year after hydraulic fracturing at varying depths and locations (4 wells, 2 basin shales).",,"Pajau wrote up short science stories a few months ago, and this description was shared with the FICUS PI.",
+Brodie,Study,Gs0135149,Replace,study/publications,"Update the current dataset citation to: Sorensen, P., Brodie, E., Beller, H., Wang, S., Bill, M., & Bouskill, N. (2019). Sample Collection Metadata for Soil Cores from the East River Watershed, Colorado collected in 2017 [Data set]. ESS-DIVE. https://doi.org/10.21952/WTR/1573029",https://github.com/microbiomedata/nmdc-metadata/issues/343,,
+Brodie,Study,Gs0135149,Replace,study/description,"This research project aimed to understand how snow accumulation and snowmelt influences the mobilization of nitrogen through the soil microbiome in a mountainous catchment at the East River Watershed in Colorado. This project sought to identify bacteria, archaea, and fungi that were associated with the microbial biomass bloom that occurs during winter and the biomass crash following snowmelt. This project also sought to understand whether the traits that govern microbial community assembly during and after snowmelt were phylogenetically conserved. Samples were collected during winter, the snowmelt period, and after snowmelt in spring, from an area that transitioned from an upland hillslope to a riparian floodplain.
+
+This project is part of the Watershed Function Science Focus Area: https://watershed.lbl.gov/.",,"Pajau wrote up short science stories a few months ago, and this description was shared with the FICUS PI.",
+Bioscales,Study,Gs0154044,Add new,study/description,The goal of this Bio-Scales Pilot Project study is to understand how plant traits modify the microbiome and in particular how the coupled plant-soil-microbial system influences nitrogen transformation patterns and fluxes.,,,
+Bioscales,Study,Gs0154044,Add new,study/websites,"https://www.ornl.gov/staff-profile/mitchel-j-doktycz
+https://www.ornl.gov/section/bioimaging-and-analytics
+www.pmi.ornl.gov
+https://www.ornl.gov/project/bio-scales",,,
+Bioscales,Study,Gs0154044,Add new,study/PI Photo,"https://drive.google.com/file/d/1tXynqGeRCByN_WExFzqScHXJYwr_2U_A/view?usp=sharing
+https://portal.nersc.gov/cfs/m3408/profile_images/doktycz_mitch.jpeg",,"It is the profile_image_url attribute of the person_value object that is the value of the principal_investigator attribute on studies. Also, this needs to be the URL to the files Kjiersten added to the NERSC file sytem under the HTTP server mounted www directory.
+
+Also noticing that all ORCiD IDs must be set for PIs, that is also an attribute on the person_value object so a study ends up looking like:
+
+{
+    ""id"": ""gold:Gs0114663"",
+    ""name"": ""Riverbed sediment microbial communities from the Columbia River, Washington, USA"",
+    ""description"": ""A metagenomic study to couple microbial communities to carbon and contaminant biogeochemistry in the groundwater-surface water interaction zone (hyporheic zone)."",
+    ""ecosystem"": ""Environmental"",
+    ""ecosystem_category"": ""Aquatic"",
+    ""ecosystem_type"": ""Freshwater"",
+    ""ecosystem_subtype"": ""River"",
+    ""specific_ecosystem"": ""Sediment"",
+    ""principal_investigator"": {
+        ""has_raw_value"": ""James Stegen"",
+        ""orcid"": ""orcid:0000-0001-9135-7424"",
+        ""profile_image_url"": ""https://portal.nersc.gov/cfs/m3408/profile_images/stegen_james.jpg""
+    },
+    ""doi"": {
+        ""has_raw_value"": ""10.25585/1487765""
+    },
+    ""type"": ""nmdc:Study""
+}",
+Bioscales,Study,Gs0154044,Add new,study/principal investigator,Mitchel J. Doktycz,,,
+Microbes Persist SFA,Study,Gs0128850,Add new,study/websites,https://sc-programs.llnl.gov/biological-and-environmental-research-at-llnl/soil-microbiome,,,
+Microbes Persist SFA,Study,Gs0128850,Add new,study/description,"The Microbes Persist: Systems Biology of the Soil Microbiome SFA seeks to understand how microbial ecophysiology, population dynamics, and microbe–mineral–organic matter interactions regulate the persistence of microbial residues in soil under changing moisture regimes. ",,,
+Microbes Persist SFA,Study,Gs0128850,Add new,study/PI Photo,https://drive.google.com/file/d/1Qk09oJkX1Ha9LJoo22gc32piwd72CSA4/view?usp=sharing and name of lead PI: ,,Can't find a slot in study for photo,
+Microbes Persist SFA,Study,Gs0128850,Add new,study/principal investigator,Jennifer Pett-Ridge,,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Add new,study/websites,https://pmiweb.ornl.gov/pmi-project-aims/,,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Add new,study/description,The goal of the Plant-Microbe Interfaces SFA is to gain a deeper understanding of the diversity and functioning of mutually beneficial interactions between plants and microbes in the rhizosphere. ,,,
+SPRUCE,Study,Gs0110138,Add new,study/websites,https://mnspruce.ornl.gov/project/overview,,,
+SPRUCE,Study,Gs0110138,Add new,study/description,"The Spruce and Peatland Responses Under Changing Environments (SPRUCE) experiment is the primary component of the Terrestrial Ecosystem Science Scientific Focus Area of ORNL's Climate Change Program, focused on terrestrial ecosystems and the mechanisms that underlie their responses to climatic change. This project seeks to assess the response of northern peatland ecosystems to increases in temperature and exposures to elevated atmospheric CO2 concentrations.",,,
+Watershed SFA,Study,Gs0149986,Add new,study/websites,https://watershed.lbl.gov/about/,,,
+Watershed SFA,Study,Gs0149986,Add new,study/description,"The Watershed Function Scientific SFA is developing a predictive understanding of how mountainous watersheds retain and release water, nutrients, carbon, and metals. In particular, the SFA is developing understanding and tools to measure and predict how droughts, early snowmelt, and other perturbations impact downstream water availability and biogeochemical cycling at episodic to decadal timescales.",,,
+,,,,,,,,
+,,,,,,,,
+Bioscales,Study,Gs0154044,Add new,study title,Bio-Scales: Defining plant gene function and its connection to ecosystem nitrogen and carbon cycle,,,
+Microbes Persist SFA,Study,Gs0128850,Add new,study title,Microbial Carbon Transformations in Wet Tropical Soils: Effects of Redox Fluctuation,,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Add new,study title,Defining the functional diversity of the Populus root microbiome,,,
+SPRUCE,Study,Gs0110138,Add new,study title,"Fungal, bacterial, and archaeal communities mediating C cycling and trace gas flux in peatland ecosystems subject to climate change",,,
+Watershed SFA,Study,Gs0149986,Add new,study title,"Scaling microbial traits from genomes to  watersheds through combined airborne hyperspectral imaging, soil biogeochemistry, and metagenome assembled genomes",,,
+Bioscales,Study,Gs0154044,Add new,Dataset citation,10.46936/10.25585/60000017,,,
+Microbes Persist SFA,Study,Gs0128850,Add new,Dataset citation,10.25585/1488160,,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Add new,Dataset citation,10.25585/1488096,,,
+SPRUCE,Study,Gs0110138,Add new,Dataset citation,10.25585/1488099,,,
+Watershed SFA,Study,Gs0149986,Add new,Dataset citation,10.46936/10.25585/60000016,,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Add new,Publication,10.1128/mSystems.00045-18,,,
+Watershed SFA,Study,Gs0149986,Replace,study/description,"This study is part of the Watershed Function Science Focus Area (SFA), which is developing a predictive understanding of how mountainous watersheds retain and release water, nutrients, carbon, and metals. In particular, the SFA is developing understanding and tools to measure and predict how droughts, early snowmelt, and other perturbations impact downstream water availability and biogeochemical cycling at episodic to decadal timescales.",,,
+SPRUCE,Study,Gs0110138,Replace,study/description,"This study is part of the Spruce and Peatland Responses Under Changing Environments (SPRUCE) experiment, which is the primary component of the Terrestrial Ecosystem Science Focus Area of ORNL's Climate Change Program, focused on terrestrial ecosystems and the mechanisms that underlie their responses to climatic change. This project seeks to assess the response of northern peatland ecosystems to increases in temperature and exposures to elevated atmospheric CO2 concentrations.",,,
+Plant-Microbe Interfaces SFA,Study,Gs0103573,Replace,study/description,"This study is part of the Plant-Microbe Interfaces Science Focus Area, which aims to gain a deeper understanding of the diversity and functioning of mutually beneficial interactions between plants and microbes in the rhizosphere. Ongoing efforts focus on characterizing and interpreting such interfaces using systems comprising plants and microbes, in particular the poplar tree (Populus) and its microbial community in the context of favorable plant microbe interactions.",,,
+Microbes Persist SFA,Study,Gs0128850,Replace,study/description,"This study is part of the Microbes Persist: Systems Biology of the Soil Microbiome Science Focus Area, which seeks to understand how microbial ecophysiology, population dynamics, and microbe–mineral–organic matter interactions regulate the persistence of microbial residues in soil under changing moisture regimes. ",,,
