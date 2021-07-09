@@ -457,7 +457,7 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/STUDY_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     filters:
       - include:
           field: active
@@ -468,7 +468,7 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/CONTACT_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     rename_slots:
       - old_name: name
         new_name: principal_investigator_name
@@ -488,7 +488,7 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/PROJECT_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     filters:              
       - include:
           field: active
@@ -507,14 +507,14 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/PROJECT_BIOSAMPLE_DATA_TABLE.dsv"
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     
   biosample_table:
     id_key: biosample_id
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/BIOSAMPLE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     filters:              
       - include:
           field: active
@@ -588,7 +588,7 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/SOIL_PACKAGE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     subset_cols:
       - soil_package_id
       - soil_agrochem_addition
@@ -651,7 +651,7 @@ data_sources:
     data_source:
       file_name: "NMDC_DUMP_Jun_21_2021/WATER_PACKAGE_DATA_TABLE.dsv" 
       file_type: tsv
-      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021.zip"
+      file_archive_name: "../data/NMDC_DUMP_Jun_21_2021_update.zip"
     subset_cols:
       - water_package_id
       - water_depth
