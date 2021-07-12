@@ -1,6 +1,6 @@
 {
-  "id": $BIOSAMPLE_ID,
-  "name": "Groundwater microbial communities from the Columbia River, Washington, USA - GW-RW $BIOSAMPLE_NAME“,
+  "id": "$BIOSAMPLE_ID",
+  "name": "Groundwater microbial communities from the Columbia River, Washington, USA - GW-RW $BIOSAMPLE_NAME",
   "lat_lon": {
     "has_raw_value": "46.372 -119.272",
     "latitude": 46.372,
@@ -61,7 +61,7 @@
   "ncbi_taxonomy_name": {
     "has_raw_value": "groundwater metagenome"
   },
-  "sample_collection_site": {
-    "has_raw_value": "sand"
-  }
+  "part_of": [
+    "gold:Gs0114663"
+  ]
 }
