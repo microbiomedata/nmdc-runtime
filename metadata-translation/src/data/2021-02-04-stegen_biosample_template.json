@@ -63,5 +63,6 @@
   },
   "sample_collection_site": {
     "has_raw_value": "sand"
-  }
+  },
+  "part_of": ["gold:Gs0114663"]
 }
