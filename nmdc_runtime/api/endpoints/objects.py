@@ -24,7 +24,7 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
 
-HOSTNAME = os.getenv("API_HOST").split("://", 1)[-1]
+HOSTNAME_EXTERNAL = os.getenv("API_HOST_EXTERNAL").split("://", 1)[-1]
 BASE_URL = os.getenv("API_HOST")
 
 
@@ -56,7 +56,7 @@ def create_object(
     drs_id = (
         id_supplied if id_supplied is not None else generate_id_unique(mdb, S3_ID_NS)
     )
-    self_uri = f"drs://{HOSTNAME}/{drs_id}"
+    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     print(drs_id)
     drs_obj = DrsObject(
         **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
