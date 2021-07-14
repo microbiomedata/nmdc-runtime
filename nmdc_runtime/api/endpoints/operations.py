@@ -7,53 +7,26 @@ from toolz import get_in, merge
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.operation import (
     ListOperationsResponse,
     ResultT,
     MetadataT,
-    ListOperationsRequest,
     Operation,
     UpdateOperationRequest,
 )
 from nmdc_runtime.api.models.site import Site, get_current_client_site
+from nmdc_runtime.api.models.util import ListRequest
 
 router = APIRouter()
 
 
 @router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
 def list_operations(
-    req: ListOperationsRequest = Depends(),
+    req: ListRequest = Depends(),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    limit = req.max_page_size
-    filter_ = json.loads(req.filter) if req.filter else {}
-    print(req.dict())
-    if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": "operations"})
-        if doc is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
-            )
-        last_id = doc["id"]
-        mdb.page_tokens.delete_one({"_id": req.page_token})
-    else:
-        last_id = None
-    if last_id is not None:
-        if "id" in filter_:
-            filter_["id"] = merge(filter_["id"], {"$gt": last_id})
-        else:
-            filter_ = merge(filter_, {"id": {"$gt": last_id}})
-
-    if mdb.operations.count_documents(filter=filter_) <= limit:
-        return {"resources": list(mdb.operations.find(filter=filter_))}
-    else:
-        resources = list(
-            mdb.operations.find(filter=filter_, limit=limit, sort=[("id", 1)])
-        )
-        last_id = resources[-1]["id"]
-        token = generate_id_unique(mdb, "page_tokens")
-        mdb.page_tokens.insert_one({"_id": token, "ns": "operations", "id": last_id})
-        return {"resources": resources, "next_page_token": token}
+    return list_resources(req, mdb, "operations")
 
 
 @router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])

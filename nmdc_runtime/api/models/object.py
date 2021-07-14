@@ -1,7 +1,7 @@
 import datetime
 import http
 from enum import Enum
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, TypeVar
 
 from pydantic import (
     BaseModel,
@@ -47,13 +47,13 @@ class AccessMethod(BaseModel):
         return values
 
 
-NonEmptyString = constr(min_length=1)
-
-ChecksumType = NonEmptyString  # Cannot be an Enum because "sha-256" (contains a dash) is a valid value.
+ChecksumType = (
+    str  # Cannot be an Enum because "sha-256" (contains a dash) is a valid value.
+)
 
 
 class Checksum(BaseModel):
-    checksum: NonEmptyString
+    checksum: str
     type: ChecksumType
 
 
@@ -115,6 +115,7 @@ class DrsObjectIn(DrsObjectBase):
     def at_least_one_checksum(cls, v):
         if not len(v) >= 1:
             raise ValueError("At least one checksum requried")
+        return v
 
 
 class DrsObject(DrsObjectIn):

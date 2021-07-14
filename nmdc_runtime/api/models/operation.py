@@ -31,12 +31,6 @@ class UpdateOperationRequest(GenericModel, Generic[ResultT, MetadataT]):
     metadata: Optional[MetadataT]
 
 
-class ListOperationsRequest(BaseModel):
-    filter: Optional[str]
-    max_page_size: Optional[int] = 20
-    page_token: Optional[str]
-
-
 class ListOperationsResponse(GenericModel, Generic[ResultT, MetadataT]):
     resources: List[Operation[ResultT, MetadataT]]
     next_page_token: Optional[str]

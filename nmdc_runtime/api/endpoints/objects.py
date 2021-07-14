@@ -10,6 +10,7 @@ from nmdc_runtime.api.core.idgen import generate_id_unique, decode_id
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, S3_ID_NS, presigned_url_to_get
+from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.object import (
     DrsId,
     Error,
@@ -19,6 +20,7 @@ from nmdc_runtime.api.models.object import (
 )
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.site import Site, get_current_client_site
+from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
 
@@ -65,9 +67,12 @@ def create_object(
     return doc
 
 
-@router.get("/objects", response_model=List[DrsObject])
-def list_objects():
-    pass
+@router.get("/objects", response_model=ListResponse[DrsObject])
+def list_objects(
+    req: ListRequest = Depends(),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    return list_resources(req, mdb, "objects")
 
 
 @router.get("/objects/{object_id}", response_model=DrsObject)
