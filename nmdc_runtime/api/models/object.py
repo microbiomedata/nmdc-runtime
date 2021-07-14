@@ -11,6 +11,7 @@ from pydantic import (
     conint,
     HttpUrl,
     root_validator,
+    validator,
 )
 
 
@@ -46,13 +47,13 @@ class AccessMethod(BaseModel):
         return values
 
 
-ChecksumType = (
-    str  # Cannot be an Enum because "sha-256" (contains a dash) is a valid value.
-)
+NonEmptyString = constr(min_length=1)
+
+ChecksumType = NonEmptyString  # Cannot be an Enum because "sha-256" (contains a dash) is a valid value.
 
 
 class Checksum(BaseModel):
-    checksum: str
+    checksum: NonEmptyString
     type: ChecksumType
 
 
@@ -65,6 +66,13 @@ class ContentsObject(BaseModel):
     drs_uri: Optional[List[AnyUrl]]
     id: Optional[DrsId]
     name: PortableFilename
+
+    @root_validator()
+    def no_contents_means_single_blob(cls, values):
+        contents, id_ = values.get("contents"), values.get("id")
+        if contents is None and id_ is None:
+            raise ValueError("no contents means no further nesting, so id required")
+        return values
 
 
 ContentsObject.update_forward_refs()
@@ -103,7 +111,10 @@ class DrsObjectIn(DrsObjectBase):
             )
         return values
 
-    # TODO root validator ensuring at least one checksum
+    @validator("checksums")
+    def at_least_one_checksum(cls, v):
+        if not len(v) >= 1:
+            raise ValueError("At least one checksum requried")
 
 
 class DrsObject(DrsObjectIn):
