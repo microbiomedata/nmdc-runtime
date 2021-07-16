@@ -90,7 +90,9 @@ def list_objects(
     return list_resources(req, mdb, "objects")
 
 
-@router.get("/objects/{object_id}", response_model=DrsObject)
+@router.get(
+    "/objects/{object_id}", response_model=DrsObject, response_model_exclude_unset=True
+)
 def get_object_info(
     object_id: DrsId,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
