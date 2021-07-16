@@ -25,7 +25,8 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
 
-HOSTNAME_EXTERNAL = os.getenv("API_HOST_EXTERNAL").split("://", 1)[-1]
+BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
+HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def supplied_object_id(mdb, client_site, obj_doc):
