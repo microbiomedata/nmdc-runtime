@@ -7,7 +7,7 @@ from frozendict import frozendict
 from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
-from nmdc_runtime.api.models.object import DrsObject, AccessURL
+from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 
 
@@ -75,6 +75,10 @@ class RuntimeApiSiteClient:
                 merge(req, {"page_token": lor.next_page_token})
             )
             return resources_so_far + resources_rest
+
+    def create_object(self, drs_object_in: DrsObjectIn):
+        DrsObjectIn(**drs_object_in)  # validate before network request
+        return self.request("POST", "/objects", drs_object_in)
 
     def create_object_from_op(self, op_doc):
         return self.request("POST", "/objects", op_doc["result"])

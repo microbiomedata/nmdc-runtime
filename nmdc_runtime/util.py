@@ -10,7 +10,7 @@ import requests
 from frozendict import frozendict
 from toolz import merge
 
-from nmdc_runtime.api.core.util import sha256hash_from
+from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 import nmdc_schema
 
@@ -44,7 +44,9 @@ def drs_metadata_for(filepath, base=None):
             os.path.getctime(filepath), tz=timezone.utc
         )
     if "checksums" not in base:
-        base["checksums"] = [{"type": "sha-256", "checksum": sha256hash_from(filepath)}]
+        base["checksums"] = [
+            {"type": "sha-256", "checksum": sha256hash_from_file(filepath)}
+        ]
     if "mime_type" not in base:
         base["mime_type"] = mimetypes.guess_type(filepath)[0]
     if "name" not in base:

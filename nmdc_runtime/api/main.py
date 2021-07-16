@@ -248,6 +248,11 @@ async def ensure_initial_resources_on_boot():
         if doc and doc.get("id") is not None:
             mdb[collection_name].create_index("id", unique=True)
 
+    # No two object documents can have the same checksum of the same type.
+    mdb.objects.create_index(
+        [("checksums.type", 1), ("checksums.checksum", 1)], unique=True
+    )
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

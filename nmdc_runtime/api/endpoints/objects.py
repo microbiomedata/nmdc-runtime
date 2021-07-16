@@ -4,6 +4,7 @@ from typing import Union, List
 import botocore
 import pymongo
 from fastapi import APIRouter, Response, status, Depends, HTTPException
+from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
 
 from nmdc_runtime.api.core.idgen import generate_id_unique, decode_id
@@ -25,7 +26,6 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse
 router = APIRouter()
 
 HOSTNAME_EXTERNAL = os.getenv("API_HOST_EXTERNAL").split("://", 1)[-1]
-BASE_URL = os.getenv("API_HOST")
 
 
 def supplied_object_id(mdb, client_site, obj_doc):
@@ -52,7 +52,9 @@ def create_object(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
-    id_supplied = supplied_object_id(mdb, client_site, object_in.dict())
+    id_supplied = supplied_object_id(
+        mdb, client_site, object_in.dict(exclude_unset=True)
+    )
     drs_id = (
         id_supplied if id_supplied is not None else generate_id_unique(mdb, S3_ID_NS)
     )
@@ -63,7 +65,19 @@ def create_object(
     )
     doc = drs_obj.dict(exclude_unset=True)
     doc["_mgr_site"] = client_site.id  # manager site
-    mdb.objects.insert_one(doc)
+    try:
+        mdb.objects.insert_one(doc)
+    except DuplicateKeyError as e:
+        if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="provided checksum matches existing object",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="duplicate key error",
+            )
     return doc
 
 
@@ -97,7 +111,8 @@ def get_object_info(
 def get_ga4gh_object_info(object_id: DrsId):
     """Redirect to /objects/{object_id}."""
     return RedirectResponse(
-        BASE_URL + f"/objects/{object_id}", status_code=status.HTTP_303_SEE_OTHER
+        HOSTNAME_EXTERNAL + f"/objects/{object_id}",
+        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 

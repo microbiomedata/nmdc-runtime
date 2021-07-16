@@ -17,11 +17,13 @@ def pick(whitelist, d):
     return keyfilter(lambda k: k in whitelist, d)
 
 
-def md5hash_from(s: str) -> str:
-    return hashlib.md5(s.encode("utf-8")).hexdigest()
+def hash_from_str(s: str, algo="sha256") -> str:
+    if algo not in hashlib.algorithms_guaranteed:
+        raise ValueError(f"desired algorithm {algo} not supported")
+    return getattr(hashlib, algo)(s.encode("utf-8")).hexdigest()
 
 
-def sha256hash_from(file_path: str):
+def sha256hash_from_file(file_path: str):
     # https://stackoverflow.com/a/55542529
     h = hashlib.sha256()
 
