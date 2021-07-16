@@ -112,7 +112,7 @@ def get_object_info(
 def get_ga4gh_object_info(object_id: DrsId):
     """Redirect to /objects/{object_id}."""
     return RedirectResponse(
-        HOSTNAME_EXTERNAL + f"/objects/{object_id}",
+        BASE_URL_EXTERNAL + f"/objects/{object_id}",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
