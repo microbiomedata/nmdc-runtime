@@ -35,7 +35,7 @@ https://drs.microbiomedata.org/ga4gh/drs/v1/objects/jh4z-z81d-76
 
 The returned blob object record lists https://portal.nersc.gov/project/m3408/meta/mongoexports/2021-07/study_set.json.bz2 as the url for an access method.
 
-The 2021-07 exports are currently all accessible at https://portal.nersc.gov/project/m3408/meta/mongoexports/2021-07/ , but the DRS API indirection allows these links to change in the future, for mirroring via other URLs, etc. S,o the DRS API links should be the links you share.
+The 2021-07 exports are currently all accessible at https://portal.nersc.gov/project/m3408/meta/mongoexports/2021-07/ , but the DRS API indirection allows these links to change in the future, for mirroring via other URLs, etc. So, the DRS API links should be the links you share.
 
 ## Overview
 
