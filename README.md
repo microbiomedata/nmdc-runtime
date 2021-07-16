@@ -23,7 +23,7 @@ references workflow code spread across several repositories, that take source da
 
 ## Data exports
 
-The NMDC metadata as of 2021-07 is available as a DRS bundle here:
+The NMDC metadata as of 2021-07 is available here:
 
 https://drs.microbiomedata.org/ga4gh/drs/v1/objects/y3ax-8bq3-60
 
