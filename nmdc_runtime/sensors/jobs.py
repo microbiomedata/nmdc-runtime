@@ -1,8 +1,12 @@
 import json
 
 from dagster import RunRequest, sensor
+from starlette import status
+from toolz import get_in
 
+from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.core.util import dotted_path_for
+from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
 from nmdc_runtime.pipelines.core import (
     preset_normal_env,
@@ -17,13 +21,35 @@ def new_gold_translation(_context):
     client = get_runtime_api_site_client(
         run_config=run_config_frozen__preset_normal_env
     )
-    mongo = get_mongo(run_config=run_config_frozen__preset_normal_env)
-    gold_etl_latest = mongo.db.objects.find_one(
+    mdb = get_mongo(run_config=run_config_frozen__preset_normal_env).db
+    gold_etl_latest = mdb.objects.find_one(
         {"name": "nmdc_database.json.zip"}, sort=[("created_time", -1)]
     )
-    # TODO ensure job with id of latest object. if existing job
-    #   with older object, cancel that job.
-    should_run = len(ops) > 0
-    if should_run:
-        run_key = ",".join(sorted([op["id"] for op in ops]))
-        yield RunRequest(run_key=run_key, run_config=preset_normal_env.run_config)
+    if gold_etl_latest is None:
+        return
+
+    # TODO ensure job with id of latest object.
+    #  if existing jobs for older objects, remove those jobs.
+    jobs = list(mdb.jobs.find({"workflow.id": "gold-translation-1.0.0"}))
+    jobs_older = [
+        job
+        for job in jobs
+        if get_in(["config", "gold_etl_latest"], job) != gold_etl_latest["id"]
+    ]
+    if len(jobs_older):
+        mdb.jobs.delete_many({"id": {"$in": [d["id"] for d in jobs_older]}})
+    if len(jobs) == len(jobs_older):
+        doc = {
+            "id": generate_id_unique(mdb, "jobs"),
+            "workflow": {"id": "gold-translation-1.0.0"},
+            "config": {"gold_etl_latest": gold_etl_latest["id"]},
+        }
+        Job(**doc)
+        mdb.jobs.insert_one(doc)
+
+    job = mdb.jobs.find_one({"workflow.id": "gold-translation-1.0.0"})
+    if job is not None:
+        rv = client.claim_job(job["id"])
+        if rv.status_code == status.HTTP_200_OK:
+            run_key = rv.json()["id"]  # operation id
+            yield RunRequest(run_key=run_key, run_config=preset_normal_env.run_config)

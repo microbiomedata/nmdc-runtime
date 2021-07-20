@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pymongo.database
 from fastapi import Depends, APIRouter, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,

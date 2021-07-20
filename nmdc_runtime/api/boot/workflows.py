@@ -44,10 +44,22 @@ _raw = [
         "name": "Metabolomics  (v2.1.0)",
     },
     {
-        "id": "portal-etl-1.0.0",
+        "id": "gold-translation-1.0.0",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
-        "name": "NMDC Portal ETL (v1.0.0)",
-        "description": "Dagster-based pipeline(s) to transform metadata.",
+        "name": "GOLD db dump translation",
+        "description": "Transform metadata obtained from the JGI GOLD database.",
+    },
+    {
+        "id": "metap-metadata-1.0.0",
+        "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
+        "name": "metaP metadata ETL",
+        "description": "Ingest and validate metaP metadata",
+    },
+    {
+        "id": "metadata-etl-1.0.0",
+        "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
+        "name": "general metadata ETL",
+        "description": "Ingest and validate metadata from JSON files",
     },
 ]
 
@@ -55,6 +67,6 @@ _raw = [
 def construct():
     models = []
     for kwargs in _raw:
-        kwargs["capability_ids"] = [kwargs["id"]]
+        kwargs["capability_ids"] = []
         models.append(Workflow(**kwargs))
     return models

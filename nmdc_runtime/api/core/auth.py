@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 import os
 from typing import Optional, Dict
 
+from fastapi import Request, Depends
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.param_functions import Form
-from fastapi.security import OAuth2
+from fastapi.security import OAuth2, HTTPBasic, HTTPBasicCredentials
 from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -111,9 +112,14 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
 oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(tokenUrl="token")
 
 
+async def basic_credentials(req: Request):
+    return await HTTPBasic(auto_error=False)(req)
+
+
 class OAuth2PasswordOrClientCredentialsRequestForm:
     def __init__(
         self,
+        basic_creds: Optional[HTTPBasicCredentials] = Depends(basic_credentials),
         grant_type: str = Form(None, regex="^password$|^client_credentials$"),
         username: Optional[str] = Form(None),
         password: Optional[str] = Form(None),
@@ -129,10 +135,14 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
         if grant_type == "client_credentials" and (
             client_id is None or client_secret is None
         ):
-            raise HTTPException(
-                status_code=HTTP_400_BAD_REQUEST,
-                detail="grant_type client_credentials requires client_id and client_secret",
-            )
+            if basic_creds:
+                client_id = basic_creds.username
+                client_secret = basic_creds.password
+            else:
+                raise HTTPException(
+                    status_code=HTTP_400_BAD_REQUEST,
+                    detail="grant_type client_credentials requires client_id and client_secret",
+                )
         self.grant_type = grant_type
         self.username = username
         self.password = password

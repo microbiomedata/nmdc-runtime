@@ -100,6 +100,9 @@ class RuntimeApiSiteClient:
             access = AccessURL(url=method.access_url)
         return requests.get(access.url)
 
+    def claim_job(self, job_id):
+        return self.request("POST", f"/jobs/{job_id}:claim")
+
 
 @resource(
     config_schema={

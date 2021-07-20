@@ -12,4 +12,4 @@ class WorkflowBase(BaseModel):
 
 class Workflow(WorkflowBase):
     id: str
-    created_at: datetime.datetime
+    created_at: Optional[datetime.datetime]

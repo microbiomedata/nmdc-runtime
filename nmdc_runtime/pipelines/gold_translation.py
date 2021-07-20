@@ -18,3 +18,16 @@ from nmdc_runtime.pipelines.core import (
 @pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
 def gold_translation():
     local_file_to_api_object(run_etl(build_merged_db()))
+
+
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
+def gold_translation_curation():
+    # TODO
+    #   solid that
+    #   - finds (claimed job) op for this site with workflow.id "gold-translation-1.0.0"
+    #   - gets /objects id for gold_etl_latest from config
+    #   - passes this id to next solid
+    #   solid that
+    #   - loads /objects/{id}
+    #   - does stuff!
+    pass

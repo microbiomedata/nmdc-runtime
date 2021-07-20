@@ -9,6 +9,6 @@ def create_objects_from_ops(context, op_docs: list):
     responses = [client.create_object_from_op(doc) for doc in op_docs]
     if {r.status_code for r in responses} == {201}:
         context.log.info("All OK")
-    else:
+    elif responses:
         raise Failure(f"Unexpected response(s): {[r.text for r in responses]}")
     return op_docs
