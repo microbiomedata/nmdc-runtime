@@ -9,6 +9,11 @@ from nmdc_runtime.solids.core import mongo_stats, update_schema, hello
 # Mode definitions allow you to configure the behavior of your pipelines and solids at execution
 # time. For hints on creating modes in Dagster, see our documentation overview on Modes and
 # Resources: https://docs.dagster.io/overview/modes-resources-presets/modes-resources
+from nmdc_runtime.solids.operations import (
+    filter_ops_undone_expired,
+    delete_operations,
+    list_operations,
+)
 from nmdc_runtime.util import frozendict_recursive
 
 mode_normal = ModeDefinition(
@@ -81,3 +86,8 @@ def update_terminus():
     https://docs.dagster.io/overview/solids-pipelines/pipelines
     """
     update_schema()
+
+
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
+def housekeeping():
+    delete_operations(list_operations(filter_ops_undone_expired()))

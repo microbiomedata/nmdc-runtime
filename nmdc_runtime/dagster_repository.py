@@ -1,13 +1,12 @@
 from dagster import repository
 
-from nmdc_runtime.pipelines.core import hello_mongo, update_terminus
+from nmdc_runtime.pipelines.core import hello_mongo, update_terminus, housekeeping
 from nmdc_runtime.pipelines.gold_translation import (
     gold_translation,
     gold_translation_curation,
 )
 from nmdc_runtime.pipelines.objects import create_objects_from_site_object_puts
-from nmdc_runtime.schedules.my_hourly_schedule import my_hourly_schedule
-from nmdc_runtime.sensors.core import my_sensor
+from nmdc_runtime.schedules.core import housekeeping_weekly
 from nmdc_runtime.sensors.jobs import new_gold_translation
 from nmdc_runtime.sensors.operations import done_object_put_ops
 
@@ -26,8 +25,9 @@ def nmdc_runtime():
         create_objects_from_site_object_puts,
         gold_translation,
         gold_translation_curation,
+        housekeeping,
     ]
-    schedules = [my_hourly_schedule]
-    sensors = [my_sensor, done_object_put_ops, new_gold_translation]
+    schedules = [housekeeping_weekly]
+    sensors = [done_object_put_ops, new_gold_translation]
 
     return pipelines + schedules + sensors

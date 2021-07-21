@@ -1,6 +1,7 @@
 import json
 import logging
 
+from bson import json_util
 import pymongo
 from fastapi import HTTPException
 from starlette import status
@@ -14,7 +15,7 @@ def list_resources(
     req: ListRequest, mdb: pymongo.database.Database, collection_name: str
 ):
     limit = req.max_page_size
-    filter_ = json.loads(req.filter) if req.filter else {}
+    filter_ = json_util.loads(req.filter) if req.filter else {}
     if req.page_token:
         doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
         if doc is None:

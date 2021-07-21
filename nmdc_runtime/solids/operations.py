@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 
+from bson import json_util
 from dagster import solid
 
 from nmdc_runtime.api.core.util import dotted_path_for
@@ -9,7 +10,7 @@ from nmdc_runtime.api.models.operation import ObjectPutMetadata
 
 @solid
 def filter_ops_done_object_puts() -> str:
-    return json.dumps(
+    return json_util.dumps(
         {
             "done": True,
             "metadata.model": dotted_path_for(ObjectPutMetadata),
@@ -18,12 +19,10 @@ def filter_ops_done_object_puts() -> str:
 
 
 @solid
-def filter_ops_undone_expired_object_puts() -> str:
-    # TODO add schedule to periodically run this as part of a cleaning pipeline.
-    return json.dumps(
+def filter_ops_undone_expired() -> str:
+    return json_util.dumps(
         {
-            "done": False,
-            "metadata.model": dotted_path_for(ObjectPutMetadata),
+            "done": {"$ne": True},
             "expire_time": {"$lt": datetime.now(timezone.utc)},
         }
     )
