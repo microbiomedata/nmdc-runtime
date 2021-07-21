@@ -45,7 +45,7 @@ class EmptyResult(Result):
 
 
 class Metadata(BaseModel):
-    # TODO set model field using __class__ on construct?
+    # XXX alternative: set model field using __class__ on __init__()?
     model: Optional[PythonImportPath]
 
 

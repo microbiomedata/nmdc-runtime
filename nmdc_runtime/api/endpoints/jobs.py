@@ -79,7 +79,7 @@ def claim_job(
             },
         }
     )
-    mdb.operations.insert_one(op.dict(exclude_unset=True))
+    mdb.operations.insert_one(op.dict())
     return op
 
 

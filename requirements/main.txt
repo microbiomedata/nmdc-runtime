@@ -716,9 +716,9 @@ jupyterlab-widgets==1.0.0 \
     --hash=sha256:5c1a29a84d3069208cb506b10609175b249b6486d6b1cbae8fcde2a11584fb78 \
     --hash=sha256:caeaf3e6103180e654e7d8d2b81b7d645e59e432487c1d35a41d6d3ee56b3fef
     # via ipywidgets
-linkml==1.0.2 \
-    --hash=sha256:36ea0a14865c6ae99f796014399fb4288fc3dff650f042d5a2597144fc9b75be \
-    --hash=sha256:9ef85b81a1df928bccce773a27cee08c37c92b4e80d56de4a4b2e32108919c4f
+linkml==1.0.3 \
+    --hash=sha256:1e615f6a2a01ce6a5315ed0d1063960b984d39070f9a0b9454596f661335ecbe \
+    --hash=sha256:a6479b71d1563a3f8336b0bcd8c4b4112d0cf83ae51dd8c1d0448e556b9b7671
     # via
     #   -r requirements/main.in
     #   nmdc-schema

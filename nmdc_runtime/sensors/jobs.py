@@ -49,6 +49,9 @@ def new_gold_translation(_context):
 
     job = mdb.jobs.find_one({"workflow.id": "gold-translation-1.0.0"})
     if job is not None:
+        # TODO decouple periodic job creation from sensing to claim.
+        #   Perhaps job creation (i.e. mdb.jobs updates) should be part of a *schedule*,
+        #   whereas claiming + running a pipeline should be part of a *sensor*.
         rv = client.claim_job(job["id"])
         if rv.status_code == status.HTTP_200_OK:
             run_key = rv.json()["id"]  # operation id
