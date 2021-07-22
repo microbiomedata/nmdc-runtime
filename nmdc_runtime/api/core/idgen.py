@@ -73,3 +73,4 @@ def generate_id_unique(
 
 # NO i, l, o or u. Optional '-'s.
 Base32Id = constr(regex=r"^[0-9abcdefghjkmnpqrstvwxyz\-]+$")
+IdShoulder = constr(regex=r"^[abcdefghjkmnpqrstvwxyz\-]+[0-9]$")

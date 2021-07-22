@@ -9,6 +9,7 @@ from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
+    ids,
     users,
     operations,
     sites,
@@ -33,6 +34,7 @@ api_router.include_router(triggers.router, tags=["triggers"])
 api_router.include_router(workflows.router, tags=["workflows"])
 api_router.include_router(object_types.router, tags=["object types"])
 api_router.include_router(queries.router, tags=["queries"])
+api_router.include_router(ids.router, tags=["identifiers"])
 
 tags_metadata = [
     {
@@ -172,6 +174,10 @@ issue an update query).
 
             """
         ),
+    },
+    {
+        "name": "identifiers",
+        "description": "Tools for identifier generation and resolution.",
     },
 ]
 
