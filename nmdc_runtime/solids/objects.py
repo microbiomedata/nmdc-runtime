@@ -12,3 +12,8 @@ def create_objects_from_ops(context, op_docs: list):
     elif responses:
         raise Failure(f"Unexpected response(s): {[r.text for r in responses]}")
     return op_docs
+
+
+@solid(required_resource_keys={"runtime_api_site_client"})
+def get_object(context, id_: str):
+    pass

@@ -7,12 +7,17 @@ Translating an export of the JGI GOLD [1] database of SQL tables to the NMDC dat
 from dagster import pipeline
 
 from nmdc_runtime.solids.core import local_file_to_api_object
-from nmdc_runtime.solids.gold_translation import build_merged_db, run_etl
+from nmdc_runtime.solids.gold_translation import (
+    build_merged_db,
+    run_etl,
+    produce_curated_db,
+)
 
 from nmdc_runtime.pipelines.core import (
     mode_normal,
     preset_normal_env,
 )
+from nmdc_runtime.solids.operations import get_operation
 
 
 @pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
@@ -30,4 +35,4 @@ def gold_translation_curation():
     #   solid that
     #   - loads /objects/{id}
     #   - does stuff!
-    pass
+    produce_curated_db(get_operation())

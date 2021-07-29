@@ -4,7 +4,7 @@ from nmdc_runtime.resources.core import runtime_api_site_client_resource
 from nmdc_runtime.resources.mongo import mongo_resource
 from nmdc_runtime.resources.terminus import terminus_resource
 from nmdc_runtime.solids.core import mongo_stats, update_schema, hello
-
+from nmdc_runtime.solids.jobs import ensure_job
 
 # Mode definitions allow you to configure the behavior of your pipelines and solids at execution
 # time. For hints on creating modes in Dagster, see our documentation overview on Modes and
@@ -91,3 +91,8 @@ def update_terminus():
 @pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
 def housekeeping():
     delete_operations(list_operations(filter_ops_undone_expired()))
+
+
+@pipeline(mode_defs=[mode_normal], preset_defs=[preset_normal_env])
+def ensure_job_p():
+    ensure_job()

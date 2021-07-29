@@ -2,10 +2,10 @@ import json
 from datetime import datetime, timezone
 
 from bson import json_util
-from dagster import solid
+from dagster import solid, Failure
 
 from nmdc_runtime.api.core.util import dotted_path_for
-from nmdc_runtime.api.models.operation import ObjectPutMetadata
+from nmdc_runtime.api.models.operation import ObjectPutMetadata, Operation
 
 
 @solid
@@ -43,3 +43,13 @@ def delete_operations(context, op_docs: list):
     context.log.info(f"Deleted {rv.deleted_count} of {len(op_docs)}")
     if rv.deleted_count != len(op_docs):
         context.log.error("Didn't delete all.")
+
+
+@solid(required_resource_keys={"mongo"})
+def get_operation(context):
+    mdb = context.resources.mongo.db
+    id_op = context.solid_config["operation_id"]
+    doc = mdb.operations.find_one({"id": id_op})
+    if doc is None:
+        raise Failure(description=f"operation {id_op} not found")
+    return Operation(**doc)

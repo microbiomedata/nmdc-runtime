@@ -5,10 +5,20 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from dagster import solid, List, String, Failure
+from dagster import (
+    solid,
+    List,
+    String,
+    Failure,
+    Output,
+    EventMetadata,
+    AssetMaterialization,
+    AssetKey,
+)
 from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
 
+from nmdc_runtime.resources.core import RuntimeApiSiteClient
 from nmdc_runtime.util import put_object, drs_object_in_for
 
 
@@ -27,7 +37,7 @@ def hello(context):
 
 @solid(required_resource_keys={"mongo", "runtime_api_site_client"})
 def local_file_to_api_object(context, file_info):
-    client = context.resources.runtime_api_site_client
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     storage_path = file_info["storage_path"]
     mime_type = file_info.get("mime_type")
     if mime_type is None:
@@ -55,7 +65,12 @@ def local_file_to_api_object(context, file_info):
     rv = mdb.operations.delete_one({"id": op["id"]})
     if rv.deleted_count != 1:
         context.log.error("deleting op failed")
-    return obj
+    yield AssetMaterialization(
+        asset_key=AssetKey(["object", obj["name"]]),
+        description="output of metadata-translation run_etl",
+        metadata={"object_id": EventMetadata.text(obj["id"])},
+    )
+    yield Output(obj)
 
 
 @solid
