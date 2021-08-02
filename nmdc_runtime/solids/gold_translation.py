@@ -23,7 +23,7 @@ from dagster import (
 from toolz import get_in
 
 from nmdc_runtime.api.models.job import JobOperationMetadata
-from nmdc_runtime.api.models.operation import Operation
+from nmdc_runtime.api.models.operation import Operation, ResultT
 from nmdc_runtime.resources.core import RuntimeApiSiteClient
 
 
@@ -93,6 +93,7 @@ def run_etl(context, merged_data_path: str):
 def produce_curated_db(context, op: Operation):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     mdb: pymongo.database.Database = context.resources.mongo.db
+    op = Operation[ResultT, JobOperationMetadata](**op.dict())
     op_meta: JobOperationMetadata = op.metadata
     job_id = op_meta.job.id
     job = mdb.jobs.find_one({"id": job_id})
@@ -105,4 +106,5 @@ def produce_curated_db(context, op: Operation):
             nmdc_database = json.load(f)
 
     context.log.info(f"{list(nmdc_database.keys())}")
+    # TODO do the curation. :)
     return nmdc_database

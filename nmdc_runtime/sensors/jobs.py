@@ -67,12 +67,13 @@ def ensure_gold_translation_job(_context, asset_event):
     mode="normal",
 )
 def claim_and_run_gold_translation_curation(_context, asset_event):
-    # TODO test this sensor.
     client = get_runtime_api_site_client(
         run_config=run_config_frozen__preset_normal_env
     )
     mdb = get_mongo(run_config=run_config_frozen__preset_normal_env).db
-    object_id_latest = asset_event.asset_key.object_id_latest
+    object_id_latest = asset_materialization_metadata(
+        asset_event, "object_id_latest"
+    ).text
     job = mdb.jobs.find_one(
         {
             "workflow.id": "gold-translation-1.0.0",

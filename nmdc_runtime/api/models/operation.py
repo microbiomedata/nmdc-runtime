@@ -4,7 +4,8 @@ from typing import Generic, TypeVar, Optional, List, Any, Union
 from pydantic import BaseModel, validator, ValidationError, HttpUrl, constr
 from pydantic.generics import GenericModel
 
-ResultT = TypeVar("ResultT")
+from nmdc_runtime.api.models.util import ResultT
+
 MetadataT = TypeVar("MetadataT")
 
 
