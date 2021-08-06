@@ -9,51 +9,92 @@ from toolz import assoc
 
 from nmdc_runtime.api.core.idgen import (
     Base32Id,
-    generate_id_unique,
+    generate_ids,
     decode_id,
     encode_id,
 )
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.id import IdRequest, Id
+from nmdc_runtime.api.models.id import MintRequest, Id
+from nmdc_runtime.api.models.user import User, get_current_active_user
 
 router = APIRouter()
 
 
-@router.post("/ids", response_model=Id)
-def create_id(
-    id_req: IdRequest,
+@router.post("/ids/mint", response_model=List[str])
+def mint_ids(
+    mint_req: MintRequest,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
-    # sping: "semi-opaque string" (https://n2t.net/e/n2t_apidoc.html).
-    sping = generate_id_unique(mdb, ns=id_req.ns)
-    shoulder = id_req.shoulder or "fk1"
-    return {"id": f"{shoulder}-{sping}", "ns": id_req.ns}
+    minter = mint_req.minter
+    if minter.startswith("ark:"):
+        naan = minter.split(":", maxsplit=1)[1].split("/", maxsplit=1)[0]
+        if naan not in {"76954", "99999"}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Invalid ARK NAAN. Accepting only 99999 (for testing) "
+                    "and 76954 (for NMDC) at this time."
+                ),
+            )
+    ids = generate_ids(
+        mdb,
+        populator=(mint_req.populator or user.username),
+        number=mint_req.number,
+        minter=mint_req.minter,
+    )
+    return ids
 
 
+pattern_base = re.compile(r"ark:[0-9]+/")
 pattern_shoulder = re.compile(r"[abcdefghjkmnpqrstvwxyz\-]+[0-9]")
-pattern_shoulder_and_blade = re.compile(
-    r"^(?P<shoulder>[abcdefghjkmnpqrstvwxyz\-]+[0-9])(?P<blade>[0-9abcdefghjkmnpqrstvwxyz\-]+$)"
+pattern_shoulder_blade = re.compile(
+    r"[abcdefghjkmnpqrstvwxyz\-]+[0-9][0-9abcdefghjkmnpqrstvwxyz]+"
+)
+pattern_base_shoulder_blade = re.compile(
+    r"^(?P<base>ark:[0-9]+/)"
+    r"(?P<shoulder>[abcdefghjkmnpqrstvwxyz\-]+[0-9])"
+    r"(?P<blade>[0-9abcdefghjkmnpqrstvwxyz\-]+)"
 )
 
 
-def shoulder_and_blade(id_):
-    m = re.match(pattern_shoulder_and_blade, id_)
-    return m.group("shoulder"), m.group("blade")
+def base_shoulder_blade(s):
+    m = re.match(pattern_base_shoulder_blade, s)
+    return (
+        m.group("base"),
+        m.group("shoulder"),
+        m.group("blade"),
+    )
 
 
-@router.get("/ids/{id_}", response_model=Id)
-def get_id(
-    id_: str,
+@router.get("/ids/bindings/{rest:path}", response_model=Id)
+def get_id_bindings(
+    rest: str,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    if re.match(pattern_shoulder, id_) is None:
+    cleaned = rest.replace("nmdc:", "ark:76954/")
+    before, _, after = cleaned.rpartition("/")
+    if re.match(pattern_shoulder_blade, after):
+        base, shoulder, blade = base_shoulder_blade(cleaned)
+        attribute = None
+    elif re.match(pattern_base, cleaned) is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid ID - invalid base. Needs to be valid ARK base.",
+        )
+    elif re.match(pattern_shoulder, cleaned.split("/", maxsplit=1)[1]) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - invalid shoulder. Did you forget to include the shoulder?",
         )
+    else:
+        base, shoulder, blade = base_shoulder_blade(before)
+        attribute = after
+
+    # TODO lots
+
     try:
-        shoulder, blade = shoulder_and_blade(id_)
         id_decoded = decode_id(Base32Id(blade))
     except (AttributeError, ValidationError):
         raise HTTPException(

@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+from typing import List
+
 import base32_lib as base32
 import pymongo
 from pydantic import constr
@@ -69,6 +72,65 @@ def generate_id_unique(
         get_one = collection.count_documents({"_id": eid_decoded}) > 0
     collection.insert_one({"_id": eid_decoded, "ns": ns})
     return eid
+
+
+# sping: "semi-opaque string" (https://n2t.net/e/n2t_apidoc.html).
+SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
+
+
+def generate_ids(
+    mdb: pymongo.database.Database,
+    populator: str,
+    number: int,
+    minter: str = "ark:99999/fk4",
+) -> List[str]:
+    if minter.startswith("nmdc:"):
+        minter = "ark:76954/" + minter[5:]
+    base_name, shoulder = minter.split("/")
+    coll_name = f'{base_name.replace(":", "_")}_{shoulder}'
+    collection = mdb.get_collection(coll_name)
+    n_chars = next(
+        (
+            n
+            for n, t in SPING_SIZE_THRESHOLDS
+            if (number + collection.count_documents({})) < t
+        ),
+        12,
+    )
+    collected = []
+
+    while True:
+        eids = set()
+        n_to_generate = number - len(collected)
+        while len(eids) < n_to_generate:
+            eids.add(generate_id(length=(n_chars + 2), split_every=0, checksum=True))
+        eids = list(eids)
+        deids = [decode_id(eid) for eid in eids]
+        taken = {d["_id"] for d in collection.find({"_id": {"$in": deids}}, {"_id": 1})}
+        not_taken = [
+            (eid, eid_decoded)
+            for eid, eid_decoded in zip(eids, deids)
+            if eid_decoded not in taken
+        ]
+        if not_taken:
+            docs = [
+                {
+                    "_id": eid_decoded,
+                    "who": populator,
+                    "what": "(:tba) Work in progress",
+                    "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "how": shoulder,
+                    "where": f"{minter}{eid}",
+                    "_.as": "reserved",
+                    # public|reserved|unavailable (see '_.es' in https://github.com/jkunze/n2t-eggnog/)
+                }
+                for eid, eid_decoded in not_taken
+            ]
+            collection.insert_many(docs)
+            collected.extend(docs)
+        if len(collected) == number:
+            break
+    return [d["where"] for d in collected]
 
 
 # NO i, l, o or u. Optional '-'s.
