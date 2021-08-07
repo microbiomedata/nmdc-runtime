@@ -208,7 +208,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
 
         ## used for testing
         if test_rows != 0:
@@ -238,7 +238,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
@@ -266,7 +266,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
@@ -298,7 +298,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
@@ -330,7 +330,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
@@ -361,7 +361,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
@@ -390,7 +390,7 @@ class NMDC_ETL:
         test_rows=0,
         print_df=False,
         print_dict=False,
-    ):
+    ) -> list:
         ## specify constructor args and attributes
         constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
         attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
