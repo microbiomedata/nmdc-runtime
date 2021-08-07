@@ -765,10 +765,10 @@ def dataframe_to_dict(
     attribute_fields=[],
     attribute_map={},
     transform_map={},
-) -> dict:
+) -> list:
     """
     This is the main interface for the module.
-    The nmdc dataframe (nmdc_df) is transformed and returned as a dict.
+    The nmdc dataframe (nmdc_df) is transformed and returned as a list of dicts.
 
     Args:
         nmdc_df (pds.DataFrame): the Pandas dataframe to be transformed
@@ -779,7 +779,7 @@ def dataframe_to_dict(
         transform_map (dict, optional): specfies pre/post transformations to preform on the data; defaults to {}
 
     Returns:
-        [type]: [description]
+        list: list of dicts that represent hte dataframe
     """
 
     def make_nmdc_object(nmdc_record: namedtuple, nmdc_class):
