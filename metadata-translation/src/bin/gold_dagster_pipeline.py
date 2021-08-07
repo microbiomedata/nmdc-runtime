@@ -6,9 +6,7 @@ from typing import Dict, List
 from git_root import git_root
 import pymongo
 
-sys.path.append(
-    os.path.abspath(git_root("schema"))
-)  # add path nmdc schema files and modules
+# add path to modules
 sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin")))
 sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin/lib")))
 
