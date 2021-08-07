@@ -4,6 +4,7 @@
 import os, sys, click, pickle
 from typing import Dict, List
 from git_root import git_root
+import pymongo
 
 sys.path.append(
     os.path.abspath(git_root("schema"))
@@ -11,7 +12,16 @@ sys.path.append(
 sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin")))
 sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin/lib")))
 
-from dagster import execute_pipeline, pipeline, solid, composite_solid, Failure
+from dagster import (
+    execute_pipeline,
+    pipeline,
+    solid,
+    composite_solid,
+    Failure,
+    PresetDefinition,
+    ModeDefinition,
+    make_values_resource,
+)
 from lib.nmdc_etl_class import NMDC_ETL
 from nmdc_schema import nmdc
 import nmdc_dataframes
@@ -19,6 +29,7 @@ import pandas as pds
 import json
 import pkgutil
 import io
+from pymongo import MongoClient
 
 
 @solid
@@ -26,10 +37,8 @@ def load_merged_data_source(
     context,
 ) -> str:
     """Create a new data source containing the merged data sources"""
-    mdf = nmdc_dataframes.make_dataframe_from_spec_file(
-        context.solid_config["spec_file"]
-    )  # build merged data frame (mdf)
-
+    spec_file = context.solid_config["spec_file"]
+    mdf = nmdc_dataframes.make_dataframe_from_spec_file(spec_file)
     print("merged data frame length:", len(mdf))
 
     # save merged dataframe (mdf)
@@ -42,11 +51,11 @@ def load_merged_data_source(
 
 
 @solid
-def load_nmdc_etl_class(context, data_file) -> NMDC_ETL:
+def load_nmdc_etl_class(context) -> NMDC_ETL:
 
     # build instance of NMDC_ETL class
     etl = NMDC_ETL(
-        merged_data_file=data_file,
+        merged_data_file=context.solid_config["data_file"],
         data_source_spec_file=context.solid_config["spec_file"],
         sssom_file="",
     )
@@ -54,26 +63,19 @@ def load_nmdc_etl_class(context, data_file) -> NMDC_ETL:
 
 
 @solid
-def load_gold_study(conext, nmdc_etl_class: NMDC_ETL):
-    return nmdc_etl_class.study
+def transform_study(context, nmdc_etl: NMDC_ETL) -> tuple:
+    # return {"study_set": nmdc_etl.transform_study()}
+    return ("study_set", nmdc_etl.transform_study())
 
 
 @solid
-def transform_study(context, nmdc_etl_class: NMDC_ETL) -> list:
-    study = nmdc_etl_class.transform_study()
-    return study
+def transform_omics_processing(context, nmdc_etl: NMDC_ETL) -> tuple:
+    return ("omics_processing_set", nmdc_etl.transform_omics_processing())
 
 
 @solid
-def make_nmdc_database(context, gold_study):
-    database = {"study_set": [*gold_study]}
-
-
-@solid(required_resource_keys={"mongo"})
-def transform_set_and_load(context, nmdc_etl_class, set_name):
-    objects = getattr(mdc_etl_class, f"transform_{set_name}")()
-    mdb: pymongo.database.Database = context.resources.mongo.db
-    mdb[f"{set_name}_set"].insert_many(objects)
+def transform_biosample(context, nmdc_etl: NMDC_ETL) -> tuple:
+    return ("biosample_set", nmdc_etl.transform_biosample())
 
 
 # database = {
@@ -92,34 +94,55 @@ def transform_set_and_load(context, nmdc_etl_class, set_name):
 
 
 @solid
-def load_mongo_collection(context, collection, data):
-    pass
+def get_mongo_db(context) -> pymongo.database.Database:
+    host = context.solid_config["host"]
+    username = context.solid_config["username"]
+    password = context.solid_config["password"]
+    dbname = context.solid_config["dbname"]
+
+    client = MongoClient(host=host, username=username, password=password)
+    return client[dbname]
+
+
+@solid
+def load_mongo_collection(context, mongo_db: pymongo.database.Database, data: tuple):
+    collecton_name = data[0]  # get collection name
+    documents = data[1]  # get data portion of tuple
+    collecton = mongo_db[collecton_name]  # get mongo collection
+
+    # drop collection if exists
+    collecton.drop()
+
+    # insert data
+    collecton.insert(documents)
 
 
 @pipeline
-def study_pipeline1():
-    etl = load_nmdc_etl_class(load_merged_data_source())
-    gold_study = transform_study(etl)
+def gold_pipeline1():
+    # load_merged_data_source()
+    db = get_mongo_db()
+    nmdc_etl = load_nmdc_etl_class()
+    gold_study = transform_study(nmdc_etl)
+    gold_omics_processing = transform_omics_processing(nmdc_etl)
+    gold_biosample = transform_biosample(nmdc_etl)
 
-    ## workflows for the rest will be similary
-    # gold_project = transfrom_project(etl)
-    # biosample = ...
-    # ...
-    make_nmdc_database(gold_study)
-
-    # push to mongo?
+    # load data into mongo
+    load_mongo_collection(db, gold_study)
+    load_mongo_collection(db, gold_omics_processing)
+    load_mongo_collection(db, gold_biosample)
 
 
 if __name__ == "__main__":
 
-    run_config2 = {
+    # push to mongo?
+    run_config1 = {
         "solids": {
-            "load_merged_data_source": {
-                "config": {
-                    "spec_file": "lib/nmdc_data_source.yaml",
-                    "save_path": "../data/nmdc_merged_data.tsv.zip",
-                }
-            },
+            # "load_merged_data_source": {
+            #     "config": {
+            #         "spec_file": "lib/nmdc_data_source.yaml",
+            #         "save_path": "../data/nmdc_merged_data.tsv.zip",
+            #     }
+            # },
             "load_nmdc_etl_class": {
                 "config": {
                     "data_file": "../data/nmdc_merged_data.tsv.zip",
@@ -127,91 +150,15 @@ if __name__ == "__main__":
                     "spec_file": "lib/nmdc_data_source.yaml",
                 }
             },
-        },
-        "resources": {
-            "mongo": {
+            "get_mongo_db": {
                 "config": {
-                    "host": {"env": "MONGO_HOST"},
-                    "username": {"env": "MONGO_USERNAME"},
-                    "password": {"env": "MONGO_PASSWORD"},
-                    "dbname": {"env": "MONGO_DBNAME"},
-                },
+                    "host": os.getenv("MONGO_HOST"),
+                    "username": os.getenv("MONGO_USERNAME"),
+                    "password": os.getenv("MONGO_PASSWORD"),
+                    "dbname": "nmdc_etl_staging",
+                }
             },
         },
     }
 
-    result = execute_pipeline(study_pipeline1, run_config=run_config2)
-    # print(result)
-
-    run_config1 = {
-        "solids": {
-            "load_merged_data_source": {
-                "config": {
-                    "spec_file": "lib/nmdc_data_source.yaml",
-                    "save_path": "../data/nmdc_merged_data.tsv",
-                }
-            }
-        }
-    }
-
-    run_config3 = {
-        "solids": {
-            "load_merged_data_source": {
-                "config": {
-                    "spec_file": "lib/nmdc_data_source.yaml",
-                    "save_path": "../data/nmdc_merged_data.tsv",
-                },
-                "solids": {
-                    "load_nmdc_etl_class": {
-                        "config": {
-                            "data_file": "../data/nmdc_merged_data.tsv.zip",
-                            "sssom_map_file": "",
-                            "spec_file": "lib/nmdc_data_source.yaml",
-                        }
-                    }
-                },
-            }
-        }
-    }
-
-    load_merged_data_source_dict = {
-        "load_merged_data_source": {
-            "config": {
-                "spec_file": "lib/nmdc_data_source.yaml",
-                "save_path": "../data/nmdc_merged_data.tsv",
-            }
-        }
-    }
-
-    load_nmdc_etl_class_dict = {
-        "load_nmdc_etl_class": {
-            "config": {
-                "data_file": "../data/nmdc_merged_data.tsv.zip",
-                "sssom_map_file": "",
-                "spec_file": "lib/nmdc_data_source.yaml",
-            }
-        }
-    }
-
-    test1 = {"solids": [load_merged_data_source_dict, load_nmdc_etl_class_dict]}
-
-    config1 = {
-        "config": {
-            "spec_file": "lib/nmdc_data_source.yaml",
-            "save_path": "../data/nmdc_merged_data.tsv",
-        }
-    }
-
-    config2 = {
-        "config": {
-            "data_file": "../data/nmdc_merged_data.tsv.zip",
-            "sssom_map_file": "",
-            "spec_file": "lib/nmdc_data_source.yaml",
-        }
-    }
-    test2 = {
-        "solids": {"load_merged_data_source": config1, "load_nmdc_etl_class": config2}
-    }
-
-    test3 = {"solids": {"load_merged_data_source": config1}}
-    test4 = {"solids": load_nmdc_etl_class_dict}
+    result = execute_pipeline(gold_pipeline1, run_config=run_config1)
