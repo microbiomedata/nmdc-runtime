@@ -152,3 +152,4 @@ cordra-2.3.0/
 !metadata-translation/src/bin/lib
 .env*
 !.env.example
+!nmdc_runtime/lib
