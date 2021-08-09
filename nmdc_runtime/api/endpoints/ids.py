@@ -1,7 +1,7 @@
 import re
 from typing import List, Dict, Any
 
-import pymongo
+from pymongo.database import Database as MongoDatabase
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from starlette import status
@@ -19,6 +19,9 @@ from nmdc_runtime.api.models.id import (
     pattern_shoulder,
     AssignedBaseName,
     pattern_assigned_base_name,
+    IdBindingRequest,
+    pattern_base_object_name,
+    IdThreeParts,
 )
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
@@ -28,7 +31,7 @@ router = APIRouter()
 @router.post("/ids/mint", response_model=List[str])
 def mint_ids(
     mint_req: MintRequest,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
     naa = mint_req.naa
@@ -68,10 +71,73 @@ def mint_ids(
     return ids
 
 
+@router.post("/ids/bindings", response_model=List[Dict[str, Any]])
+def set_id_bindings(
+    binding_requests: List[IdBindingRequest],
+    mdb: MongoDatabase = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    bons = [r.i for r in binding_requests]
+    ids: List[IdThreeParts] = []
+    for bon in bons:
+        m = re.match(pattern_base_object_name, bon)
+        ids.append(
+            IdThreeParts(
+                arklabel_and_naan=m.group("arklabel_and_naan"),
+                shoulder=m.group("shoulder"),
+                blade=m.group("blade"),
+            )
+        )
+    # Ensure that user owns all supplied identifiers.
+    for id_, r in zip(ids, binding_requests):
+        coll_name = f'{id_.arklabel_and_naan.replace(":", "_")}_{id_.shoulder}'
+        collection = mdb.get_collection(coll_name)
+        doc = collection.find_one({"_id": decode_id(str(id_.blade))}, ["__ao"])
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"id {r.i} not found",
+            )
+        elif doc.get("__ao") != user.username:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"authenticated user does not own {r.i}",
+            )
+    # Ensure no attempts to set reserved attributes.
+    if any(r.a.startswith("__a") for r in binding_requests):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot set attribute names beginning with '__a'.",
+        )
+    # Process binding requests
+    docs = []
+    for id_, r in zip(ids, binding_requests):
+        coll_name = f'{id_.arklabel_and_naan.replace(":", "_")}_{id_.shoulder}'
+        collection = mdb.get_collection(coll_name)
+        filter_ = {"_id": decode_id(id_.blade)}
+        if r.o == "purge":
+            docs.append(collection.find_one_and_delete(filter_))
+        elif r.o == "rm":
+            docs.append(collection.find_one_and_update(filter_, {"$unset": {r.a: ""}}))
+        elif r.o == "set":
+            docs.append(collection.find_one_and_update(filter_, {"$set": {r.a: r.v}}))
+        elif r.o == "addToSet":
+            docs.append(
+                collection.find_one_and_update(filter_, {"$addToSet": {r.a: r.v}})
+            )
+        else:
+            # Note: IdBindingRequest root_validator methods should preclude this.
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid operation 'o'."
+            )
+
+        return [dissoc(d, "_id") for d in docs]
+
+
 @router.get("/ids/bindings/{rest:path}", response_model=Dict[str, Any])
 def get_id_bindings(
     rest: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     cleaned = rest.replace("nmdc:", "ark:76954/").replace("-", "")
     parts = cleaned.split("/")

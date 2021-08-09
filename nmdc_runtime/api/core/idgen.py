@@ -115,8 +115,9 @@ def generate_ids(
             if eid_decoded not in taken
         ]
         if not_taken:
-            # All attribute names beginning with "_.a" are reserved...
+            # All attribute names beginning with "__a" are reserved...
             # https://github.com/jkunze/n2t-eggnog/blob/0f0f4c490e6dece507dba710d3557e29b8f6627e/egg#L1882
+            # XXX mongo is a pain with '.'s in field names, so not using e.g. "_.e" names.
             docs = [
                 {
                     "_id": eid_decoded,
@@ -125,9 +126,9 @@ def generate_ids(
                     "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "how": shoulder,
                     "where": f"{naa}/{shoulder}{eid}",
-                    "_.as": "reserved",  # status, public|reserved|unavailable
-                    "_.ao": owner,  # owner
-                    "_.ac": datetime.now(timezone.utc).isoformat(
+                    "__as": "reserved",  # status, public|reserved|unavailable
+                    "__ao": owner,  # owner
+                    "__ac": datetime.now(timezone.utc).isoformat(
                         timespec="seconds"
                     ),  # created
                 }
