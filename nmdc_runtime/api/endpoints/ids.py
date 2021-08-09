@@ -31,9 +31,9 @@ def mint_ids(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
-    minter = mint_req.minter
-    if minter.startswith("ark:"):
-        naan = minter.split(":", maxsplit=1)[1].split("/", maxsplit=1)[0]
+    naa = mint_req.naa
+    if naa.startswith("ark:"):
+        naan = naa.split(":", maxsplit=1)[1]
         if naan not in {"76954", "99999"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,11 +42,28 @@ def mint_ids(
                     "and 76954 (for NMDC) at this time."
                 ),
             )
+    elif naa != "nmdc":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid name assigning authority (NAA). Accepting only 'nmdc' at this time.",
+        )
+
+    if not re.match(r"(fk|mga|mta|mba|mpa|oma)[0-9]", mint_req.shoulder):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Invalid shoulder namespace. "
+                "Valid beginning are {fk,mga,mta,mba,mpa,oma}."
+            ),
+        )
+
     ids = generate_ids(
         mdb,
+        owner=user.username,
         populator=(mint_req.populator or user.username),
         number=mint_req.number,
-        minter=mint_req.minter,
+        naa=mint_req.naa,
+        shoulder=mint_req.shoulder,
     )
     return ids
 

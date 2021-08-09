@@ -81,14 +81,15 @@ SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
 def generate_ids(
     mdb: pymongo.database.Database,
+    owner: str,
     populator: str,
     number: int,
-    minter: str = "ark:99999/fk4",
+    naa: str = "ark:99999",
+    shoulder: str = "fk4",
 ) -> List[str]:
-    if minter.startswith("nmdc:"):
-        minter = "ark:76954/" + minter[5:]
-    base, shoulder = minter.split("/")
-    coll_name = f'{base.replace(":", "_")}_{shoulder}'
+    if naa == "nmdc":
+        naa = "ark:76954"
+    coll_name = f'{naa.replace(":", "_")}_{shoulder}'
     collection = mdb.get_collection(coll_name)
     n_chars = next(
         (
@@ -114,6 +115,8 @@ def generate_ids(
             if eid_decoded not in taken
         ]
         if not_taken:
+            # All attribute names beginning with "_.a" are reserved...
+            # https://github.com/jkunze/n2t-eggnog/blob/0f0f4c490e6dece507dba710d3557e29b8f6627e/egg#L1882
             docs = [
                 {
                     "_id": eid_decoded,
@@ -121,9 +124,12 @@ def generate_ids(
                     "what": "(:tba) Work in progress",
                     "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "how": shoulder,
-                    "where": f"{minter}{eid}",
-                    "_.as": "reserved",
-                    # public|reserved|unavailable (see '_.es' in https://github.com/jkunze/n2t-eggnog/)
+                    "where": f"{naa}/{shoulder}{eid}",
+                    "_.as": "reserved",  # status, public|reserved|unavailable
+                    "_.ao": owner,  # owner
+                    "_.ac": datetime.now(timezone.utc).isoformat(
+                        timespec="seconds"
+                    ),  # created
                 }
                 for eid, eid_decoded in not_taken
             ]
