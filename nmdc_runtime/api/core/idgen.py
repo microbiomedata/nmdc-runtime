@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from typing import List
 
@@ -86,8 +87,8 @@ def generate_ids(
 ) -> List[str]:
     if minter.startswith("nmdc:"):
         minter = "ark:76954/" + minter[5:]
-    base_name, shoulder = minter.split("/")
-    coll_name = f'{base_name.replace(":", "_")}_{shoulder}'
+    base, shoulder = minter.split("/")
+    coll_name = f'{base.replace(":", "_")}_{shoulder}'
     collection = mdb.get_collection(coll_name)
     n_chars = next(
         (
@@ -131,8 +132,3 @@ def generate_ids(
         if len(collected) == number:
             break
     return [d["where"] for d in collected]
-
-
-# NO i, l, o or u. Optional '-'s.
-Base32Id = constr(regex=r"^[0-9abcdefghjkmnpqrstvwxyz\-]+$")
-IdShoulder = constr(regex=r"^[abcdefghjkmnpqrstvwxyz\-]+[0-9]$")

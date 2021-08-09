@@ -1,21 +1,25 @@
 import re
-from typing import List
+from typing import List, Dict, Any
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from starlette import status
-from toolz import assoc
+from toolz import dissoc
 
 from nmdc_runtime.api.core.idgen import (
-    Base32Id,
     generate_ids,
     decode_id,
-    encode_id,
 )
-from nmdc_runtime.api.core.util import raise404_if_none
+from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.id import MintRequest, Id
+from nmdc_runtime.api.models.id import (
+    MintRequest,
+    pattern_scheme_and_naan,
+    pattern_shoulder,
+    AssignedBaseName,
+    pattern_assigned_base_name,
+)
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
 router = APIRouter()
@@ -47,64 +51,72 @@ def mint_ids(
     return ids
 
 
-pattern_base = re.compile(r"ark:[0-9]+/")
-pattern_shoulder = re.compile(r"[abcdefghjkmnpqrstvwxyz\-]+[0-9]")
-pattern_shoulder_blade = re.compile(
-    r"[abcdefghjkmnpqrstvwxyz\-]+[0-9][0-9abcdefghjkmnpqrstvwxyz]+"
-)
-pattern_base_shoulder_blade = re.compile(
-    r"^(?P<base>ark:[0-9]+/)"
-    r"(?P<shoulder>[abcdefghjkmnpqrstvwxyz\-]+[0-9])"
-    r"(?P<blade>[0-9abcdefghjkmnpqrstvwxyz\-]+)"
-)
-
-
-def base_shoulder_blade(s):
-    m = re.match(pattern_base_shoulder_blade, s)
-    return (
-        m.group("base"),
-        m.group("shoulder"),
-        m.group("blade"),
-    )
-
-
-@router.get("/ids/bindings/{rest:path}", response_model=Id)
+@router.get("/ids/bindings/{rest:path}", response_model=Dict[str, Any])
 def get_id_bindings(
     rest: str,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    cleaned = rest.replace("nmdc:", "ark:76954/")
-    before, _, after = cleaned.rpartition("/")
-    if re.match(pattern_shoulder_blade, after):
-        base, shoulder, blade = base_shoulder_blade(cleaned)
+    cleaned = rest.replace("nmdc:", "ark:76954/").replace("-", "")
+    parts = cleaned.split("/")
+    if len(parts) not in (2, 3):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Invalid ID - needs both name assigning authority (NAA) part"
+                "(e.g. 'nmdc:' or 'ark:99999/') and name part (e.g. 'fk4ra92')."
+            ),
+        )
+    elif len(parts) == 2 or parts[-1] == "":  # one '/', or ends with '/'
+        scheme_and_naan, assigned_base_name = parts[:2]
         attribute = None
-    elif re.match(pattern_base, cleaned) is None:
+    else:
+        scheme_and_naan, assigned_base_name, attribute = parts
+
+    if re.match(pattern_scheme_and_naan, scheme_and_naan) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - invalid base. Needs to be valid ARK base.",
         )
-    elif re.match(pattern_shoulder, cleaned.split("/", maxsplit=1)[1]) is None:
+    if re.match(pattern_shoulder, assigned_base_name) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid ID - invalid shoulder. Did you forget to include the shoulder?",
+            detail=(
+                "Invalid ID - invalid shoulder. "
+                "Every name part begins with a 'shoulder', a "
+                "sequence of letters followed by a number, "
+                "for example 'fk4'. "
+                "Did you forget to include the shoulder?",
+            ),
         )
-    else:
-        base, shoulder, blade = base_shoulder_blade(before)
-        attribute = after
-
-    # TODO lots
-
     try:
-        id_decoded = decode_id(Base32Id(blade))
+        m = re.match(pattern_assigned_base_name, AssignedBaseName(assigned_base_name))
+        shoulder, blade = m.group("shoulder"), m.group("blade")
+        id_decoded = decode_id(blade)
     except (AttributeError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - characters used outside of base32.",
         )
-    except ValueError:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - failed checksum. Did you copy it incorrectly?",
         )
-    d = raise404_if_none(mdb.ids.find_one({"_id": id_decoded}))
-    return assoc(d, "id", f'{shoulder}-{encode_id(d["_id"])}')
+
+    coll_name = f'{scheme_and_naan.replace(":", "_")}_{shoulder}'
+    collection = mdb.get_collection(coll_name)
+    d = raise404_if_none(collection.find_one({"_id": id_decoded}))
+    d = dissoc(d, "_id")
+    if attribute is not None:
+        if attribute not in d:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    f"attribute '{attribute}' not found in "
+                    f"{scheme_and_naan}/{assigned_base_name}."
+                ),
+            )
+        rv = pick(["where", attribute], d)
+    else:
+        rv = d
+    return rv
