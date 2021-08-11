@@ -1,12 +1,6 @@
 ## author: Bill Duncan
 ## summary: Contains methods for extracting data for the NMDC ETL pipeline.
 
-## add ./lib directory to sys.path so that local modules can be found
-import os, sys
-
-sys.path.append(os.path.abspath("."))
-# print(sys.path)
-
 ## system level modules
 import pandas as pds
 import jq

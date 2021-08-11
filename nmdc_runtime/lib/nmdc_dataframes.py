@@ -1,21 +1,13 @@
 ## author: Bill Duncan
 ## summary: Contains methods for creating dataframes needed for NMDC ETL pipeline.
 
-## add ./lib directory to sys.path so that local modules can be found
-import os, sys
-
-from pandas.core.dtypes.missing import notnull
-
-sys.path.append(os.path.abspath("."))
-sys.path.append(os.path.abspath("./lib"))
-# print(sys.path)
-
 ## system level modules
 import pandas as pds
 import jsonasobj
 import json
 import zipfile
 import yaml
+from pandas.core.dtypes.missing import notnull
 from yaml import CLoader as Loader, CDumper as Dumper
 from dotted_dict import DottedDict
 from collections import namedtuple

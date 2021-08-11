@@ -1,25 +1,12 @@
 ## author: Bill Duncan
 ## summary: Contains class with methods and properties for transforming data in NMDC ETL pipeline.
 
-## add ./lib directory to sys.path so that local modules can be found
 import pickle
-from git_root import git_root
-import os, sys
-
-sys.path.append(os.path.abspath("."))
-sys.path.append(os.path.abspath("./lib"))
-sys.path.append(
-    os.path.abspath(git_root("schema"))
-)  # add path nmdc schema files and modules
-# print(sys.path)
-
-import transform_nmdc_data as tx
-import extract_nmdc_data as ex
-import load_nmdc_data as lx
-import nmdc_dataframes as nmdc_dfs
+import nmdc_runtime.lib.transform_nmdc_data as tx
+import nmdc_runtime.lib.extract_nmdc_data as ex
+import nmdc_runtime.lib.load_nmdc_data as lx
+import nmdc_runtime.lib.nmdc_dataframes as nmdc_dfs
 from nmdc_schema import nmdc
-
-## system level modules
 import pandas as pds
 import jq
 import jsonasobj
