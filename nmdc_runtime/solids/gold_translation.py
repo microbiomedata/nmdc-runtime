@@ -11,6 +11,7 @@ from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from zipfile import ZipFile
 
 import pymongo.database
+from git_root import git_root
 from dagster import (
     solid,
     AssetMaterialization,
@@ -21,6 +22,7 @@ from dagster import (
     AssetKey,
 )
 from toolz import get_in
+from pymongo import MongoClient
 
 from nmdc_runtime.api.models.job import JobOperationMetadata
 from nmdc_runtime.api.models.operation import Operation, ResultT
@@ -214,9 +216,11 @@ if __name__ == "__main__":
             # },
             "load_nmdc_etl_class": {
                 "config": {
-                    "data_file": "../data/nmdc_merged_data.tsv.zip",
+                    "data_file": git_root(
+                        "metadata-translation/src/data/nmdc_merged_data.tsv.zip"
+                    ),
                     "sssom_map_file": "",
-                    "spec_file": "lib/nmdc_data_source.yaml",
+                    "spec_file": git_root("nmdc_runtime/lib/nmdc_data_source.yaml"),
                 }
             },
             "get_mongo_db": {
