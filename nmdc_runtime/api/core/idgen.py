@@ -1,10 +1,8 @@
-import re
 from datetime import datetime, timezone
 from typing import List
 
 import base32_lib as base32
 import pymongo
-from pydantic import constr
 
 
 def generate_id(length=10, split_every=4, checksum=True) -> str:
@@ -57,6 +55,7 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
     )
 
 
+# XXX deprecated: used internally by nmdc-runtime. consumers should switch to use `generate_ids`.
 def generate_id_unique(
     mdb: pymongo.database.Database = None, ns: str = None, **generate_id_kwargs
 ) -> str:
@@ -79,18 +78,19 @@ def generate_id_unique(
 SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
 
+def collection_name(naa, shoulder):
+    return f"ids_{naa}_{shoulder}"
+
+
 def generate_ids(
     mdb: pymongo.database.Database,
     owner: str,
     populator: str,
     number: int,
-    naa: str = "ark:99999",
+    naa: str = "nmdc",
     shoulder: str = "fk4",
 ) -> List[str]:
-    if naa == "nmdc":
-        naa = "ark:76954"
-    coll_name = f'{naa.replace(":", "_")}_{shoulder}'
-    collection = mdb.get_collection(coll_name)
+    collection = mdb.get_collection(collection_name(naa, shoulder))
     n_chars = next(
         (
             n
@@ -120,12 +120,13 @@ def generate_ids(
             # XXX mongo is a pain with '.'s in field names, so not using e.g. "_.e" names.
             docs = [
                 {
+                    "@context": "https://n2t.net/e/n2t_apidoc.html#identifier-metadata",
                     "_id": eid_decoded,
                     "who": populator,
                     "what": "(:tba) Work in progress",
                     "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "how": shoulder,
-                    "where": f"{naa}/{shoulder}{eid}",
+                    "where": f"{naa}:{shoulder}{eid}",
                     "__as": "reserved",  # status, public|reserved|unavailable
                     "__ao": owner,  # owner
                     "__ac": datetime.now(timezone.utc).isoformat(

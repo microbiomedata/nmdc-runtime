@@ -1,43 +1,51 @@
 import re
 from enum import Enum
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, Literal
 
 from pydantic import BaseModel, constr, PositiveInt, root_validator
 
-# NO i, l, o or u. Optional '-'s.
-_arklabel_and_naan = r"(?P<arklabel_and_naan>ark:[0-9]+)"
-pattern_scheme_and_naan = re.compile(_arklabel_and_naan)
-_shoulder = r"(?P<shoulder>[abcdefghjkmnpqrstvwxyz]+[0-9])"
+
+# NO i, l, o or u.
+base32_letters = "abcdefghjkmnpqrstvwxyz"
+
+NAA_VALUES = ["nmdc"]
+SHOULDER_PREFIXES = ["fk", "mga", "mta", "mba", "mpa", "oma"]
+
+_naa = rf"(?P<naa>({'|'.join(NAA_VALUES)}))"
+pattern_naa = re.compile(_naa)
+_shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_PREFIXES)})+[0-9])"
 pattern_shoulder = re.compile(_shoulder)
-_blade = r"(?P<blade>[0-9abcdefghjkmnpqrstvwxyz]+)"
+_blade = rf"(?P<blade>[0-9{base32_letters}]+)"
 pattern_blade = re.compile(_blade)
-pattern_assigned_base_name = re.compile(_shoulder + _blade)
-pattern_base_object_name = re.compile(_arklabel_and_naan + "/" + _shoulder + _blade)
+_assigned_base_name = f"{_shoulder}{_blade}"
+pattern_assigned_base_name = re.compile(_assigned_base_name)
+_base_object_name = f"{_naa}:{_shoulder}{_blade}"
+pattern_base_object_name = re.compile(_base_object_name)
 
-ArkLabelAndNaan = constr(regex=_arklabel_and_naan)
-Shoulder = constr(regex=_shoulder, min_length=2)
+Naa = constr(regex=_naa)
+Shoulder = constr(regex=rf"^{_shoulder}$", min_length=2)
 Blade = constr(regex=_blade, min_length=4)
-AssignedBaseName = constr(regex=(_shoulder + _blade))
-BaseObjectName = constr(regex=(_arklabel_and_naan + "/" + _shoulder + _blade))
+AssignedBaseName = constr(regex=_assigned_base_name)
+BaseObjectName = constr(regex=_base_object_name)
 
-NameAssigningAuthority = constr(regex=fr"({_arklabel_and_naan}|nmdc)")
+NameAssigningAuthority = Literal[tuple(NAA_VALUES)]
 
 
 class MintRequest(BaseModel):
     populator: str = ""
-    naa: NameAssigningAuthority = "ark:76954"
+    naa: NameAssigningAuthority = "nmdc"
     shoulder: Shoulder = "fk4"
     number: PositiveInt = 1
 
 
 class IdThreeParts(BaseModel):
-    arklabel_and_naan: ArkLabelAndNaan
+    naa: Naa
     shoulder: Shoulder
     blade: Blade
 
 
 class IdTwoParts(BaseModel):
-    arklabel_and_naan: ArkLabelAndNaan
+    naa: Naa
     assigned_base_name: AssignedBaseName
 
 

@@ -10,18 +10,19 @@ from toolz import dissoc
 from nmdc_runtime.api.core.idgen import (
     generate_ids,
     decode_id,
+    collection_name,
 )
 from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.id import (
     MintRequest,
-    pattern_scheme_and_naan,
     pattern_shoulder,
     AssignedBaseName,
     pattern_assigned_base_name,
     IdBindingRequest,
     pattern_base_object_name,
     IdThreeParts,
+    pattern_naa,
 )
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
@@ -34,32 +35,6 @@ def mint_ids(
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
-    naa = mint_req.naa
-    if naa.startswith("ark:"):
-        naan = naa.split(":", maxsplit=1)[1]
-        if naan not in {"76954", "99999"}:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Invalid ARK NAAN. Accepting only 99999 (for testing) "
-                    "and 76954 (for NMDC) at this time."
-                ),
-            )
-    elif naa != "nmdc":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid name assigning authority (NAA). Accepting only 'nmdc' at this time.",
-        )
-
-    if not re.match(r"(fk|mga|mta|mba|mpa|oma)[0-9]", mint_req.shoulder):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid shoulder namespace. "
-                "Valid beginning are {fk,mga,mta,mba,mpa,oma}."
-            ),
-        )
-
     ids = generate_ids(
         mdb,
         owner=user.username,
@@ -83,15 +58,14 @@ def set_id_bindings(
         m = re.match(pattern_base_object_name, bon)
         ids.append(
             IdThreeParts(
-                arklabel_and_naan=m.group("arklabel_and_naan"),
+                naa=m.group("naa"),
                 shoulder=m.group("shoulder"),
                 blade=m.group("blade"),
             )
         )
     # Ensure that user owns all supplied identifiers.
     for id_, r in zip(ids, binding_requests):
-        coll_name = f'{id_.arklabel_and_naan.replace(":", "_")}_{id_.shoulder}'
-        collection = mdb.get_collection(coll_name)
+        collection = mdb.get_collection(collection_name(id_.naa, id_.shoulder))
         doc = collection.find_one({"_id": decode_id(str(id_.blade))}, ["__ao"])
         if doc is None:
             raise HTTPException(
@@ -112,8 +86,8 @@ def set_id_bindings(
     # Process binding requests
     docs = []
     for id_, r in zip(ids, binding_requests):
-        coll_name = f'{id_.arklabel_and_naan.replace(":", "_")}_{id_.shoulder}'
-        collection = mdb.get_collection(coll_name)
+        collection = mdb.get_collection(collection_name(id_.naa, id_.shoulder))
+
         filter_ = {"_id": decode_id(id_.blade)}
         if r.o == "purge":
             docs.append(collection.find_one_and_delete(filter_))
@@ -139,27 +113,30 @@ def get_id_bindings(
     rest: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    cleaned = rest.replace("nmdc:", "ark:76954/").replace("-", "")
-    parts = cleaned.split("/")
-    if len(parts) not in (2, 3):
+    cleaned = rest.replace("-", "")
+    parts = cleaned.split(":")
+    if len(parts) != 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Invalid ID - needs both name assigning authority (NAA) part"
-                "(e.g. 'nmdc:' or 'ark:99999/') and name part (e.g. 'fk4ra92')."
+                "(e.g. 'nmdc') and name part (e.g. 'fk4ra92'), separated by a colon (':')."
             ),
         )
-    elif len(parts) == 2 or parts[-1] == "":  # one '/', or ends with '/'
-        scheme_and_naan, assigned_base_name = parts[:2]
-        attribute = None
+    naa = parts[0]
+    suffix_parts = parts[1].split("/")
+    if len(suffix_parts) == 2 and suffix_parts[-1] != "":  # one '/', or ends with '/'
+        assigned_base_name, attribute = suffix_parts
     else:
-        scheme_and_naan, assigned_base_name, attribute = parts
+        assigned_base_name = suffix_parts[0]
+        attribute = None
 
-    if re.match(pattern_scheme_and_naan, scheme_and_naan) is None:
+    if re.match(pattern_naa, naa) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid ID - invalid base. Needs to be valid ARK base.",
+            detail=f"Invalid ID - invalid name assigning authority (NAA) '{naa}'.",
         )
+    print(assigned_base_name)
     if re.match(pattern_shoulder, assigned_base_name) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -186,8 +163,7 @@ def get_id_bindings(
             detail="Invalid ID - failed checksum. Did you copy it incorrectly?",
         )
 
-    coll_name = f'{scheme_and_naan.replace(":", "_")}_{shoulder}'
-    collection = mdb.get_collection(coll_name)
+    collection = mdb.get_collection(collection_name(naa, shoulder))
     d = raise404_if_none(collection.find_one({"_id": id_decoded}))
     d = dissoc(d, "_id")
     if attribute is not None:
@@ -196,7 +172,7 @@ def get_id_bindings(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=(
                     f"attribute '{attribute}' not found in "
-                    f"{scheme_and_naan}/{assigned_base_name}."
+                    f"{naa}:{assigned_base_name}."
                 ),
             )
         rv = pick(["where", attribute], d)
