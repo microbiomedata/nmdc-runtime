@@ -132,17 +132,17 @@ def load_nmdc_etl_class(context) -> NMDC_ETL:
 @solid
 def transform_study(context, nmdc_etl: NMDC_ETL) -> tuple:
     # return {"study_set": nmdc_etl.transform_study()}
-    return ("study_set", nmdc_etl.transform_study())
+    return ("gold.study_set", nmdc_etl.transform_study())
 
 
 @solid
 def transform_omics_processing(context, nmdc_etl: NMDC_ETL) -> tuple:
-    return ("omics_processing_set", nmdc_etl.transform_omics_processing())
+    return ("gold.omics_processing_set", nmdc_etl.transform_omics_processing())
 
 
 @solid
 def transform_biosample(context, nmdc_etl: NMDC_ETL) -> tuple:
-    return ("biosample_set", nmdc_etl.transform_biosample())
+    return ("gold.biosample_set", nmdc_etl.transform_biosample())
 
 
 @solid
