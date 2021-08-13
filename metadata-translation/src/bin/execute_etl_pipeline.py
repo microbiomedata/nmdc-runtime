@@ -413,7 +413,7 @@ def execute_etl(
     "--skip-build",
     is_flag=True,
     default=False,
-    help="specifies whether to SKIP building ETL artificats and ONLY echo progress outputs (useful for testing); default false",
+    help="specifies whether to SKIP building ETL artifacts and ONLY echo progress outputs (useful for testing); default false",
 )
 def main(
     datafile,
