@@ -118,24 +118,6 @@ def produce_curated_db(context, op: Operation):
 
 
 @solid
-def load_merged_data_source(
-    context,
-) -> str:
-    """Create a new data source containing the merged data sources"""
-    spec_file = context.solid_config["spec_file"]
-    mdf = nmdc_dataframes.make_dataframe_from_spec_file(spec_file)
-    print("merged data frame length:", len(mdf))
-
-    # save merged dataframe (mdf)
-    save_path = context.solid_config["save_path"]
-    compression_options = dict(method="zip", archive_name=f"{save_path}")
-    mdf.to_csv(
-        f"{save_path}.zip", compression=compression_options, sep="\t", index=False
-    )
-    return save_path
-
-
-@solid
 def load_nmdc_etl_class(context) -> NMDC_ETL:
 
     # build instance of NMDC_ETL class
@@ -208,12 +190,6 @@ if __name__ == "__main__":
 
     run_config1 = {
         "solids": {
-            # "load_merged_data_source": {
-            #     "config": {
-            #         "spec_file": "lib/nmdc_data_source.yaml",
-            #         "save_path": "../data/nmdc_merged_data.tsv.zip",
-            #     }
-            # },
             "load_nmdc_etl_class": {
                 "config": {
                     "data_file": git_root(
