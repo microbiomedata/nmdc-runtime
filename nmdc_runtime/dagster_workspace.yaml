@@ -1,6 +1,0 @@
-# Workspaces specify where to find user code in order to load it for Dagit and the Dagster CLI.
-# https://docs.dagster.io/overview/repositories-workspaces/workspaces
-
-load_from:
-  - python_file:
-      relative_path: "../lib/nmdc_runtime/dagster_repository.py"
