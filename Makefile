@@ -18,6 +18,9 @@ up-dev:
 down-dev:
 	docker compose down
 
+follow-fastapi:
+	docker compose logs fastapi -f
+
 fastapi-docker:
 	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
 
@@ -32,5 +35,5 @@ docs:
 	# nvm use 14
 	redoc-cli bundle http://0.0.0.0:8000/openapi.json -o docs/design/redoc-static.html
 
-.PHONY: init update-deps update up-dev down-dev \
+.PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs

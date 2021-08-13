@@ -29,7 +29,7 @@ setuptools.setup(
     extras_require={
         "dev": dev_requires,
     },
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     entry_points={
         "console_scripts": [
             "gen-terminusdb = nmdc_runtime.terminusdbgen:cli",

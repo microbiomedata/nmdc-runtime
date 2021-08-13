@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
+from typing import List
+
 import base32_lib as base32
 import pymongo
-from pydantic import constr
 
 
 def generate_id(length=10, split_every=4, checksum=True) -> str:
@@ -53,6 +55,7 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
     )
 
 
+# XXX deprecated: used internally by nmdc-runtime. consumers should switch to use `generate_ids`.
 def generate_id_unique(
     mdb: pymongo.database.Database = None, ns: str = None, **generate_id_kwargs
 ) -> str:
@@ -71,6 +74,69 @@ def generate_id_unique(
     return eid
 
 
-# NO i, l, o or u. Optional '-'s.
-Base32Id = constr(regex=r"^[0-9abcdefghjkmnpqrstvwxyz\-]+$")
-IdShoulder = constr(regex=r"^[abcdefghjkmnpqrstvwxyz\-]+[0-9]$")
+# sping: "semi-opaque string" (https://n2t.net/e/n2t_apidoc.html).
+SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
+
+
+def collection_name(naa, shoulder):
+    return f"ids_{naa}_{shoulder}"
+
+
+def generate_ids(
+    mdb: pymongo.database.Database,
+    owner: str,
+    populator: str,
+    number: int,
+    naa: str = "nmdc",
+    shoulder: str = "fk4",
+) -> List[str]:
+    collection = mdb.get_collection(collection_name(naa, shoulder))
+    n_chars = next(
+        (
+            n
+            for n, t in SPING_SIZE_THRESHOLDS
+            if (number + collection.count_documents({})) < t
+        ),
+        12,
+    )
+    collected = []
+
+    while True:
+        eids = set()
+        n_to_generate = number - len(collected)
+        while len(eids) < n_to_generate:
+            eids.add(generate_id(length=(n_chars + 2), split_every=0, checksum=True))
+        eids = list(eids)
+        deids = [decode_id(eid) for eid in eids]
+        taken = {d["_id"] for d in collection.find({"_id": {"$in": deids}}, {"_id": 1})}
+        not_taken = [
+            (eid, eid_decoded)
+            for eid, eid_decoded in zip(eids, deids)
+            if eid_decoded not in taken
+        ]
+        if not_taken:
+            # All attribute names beginning with "__a" are reserved...
+            # https://github.com/jkunze/n2t-eggnog/blob/0f0f4c490e6dece507dba710d3557e29b8f6627e/egg#L1882
+            # XXX mongo is a pain with '.'s in field names, so not using e.g. "_.e" names.
+            docs = [
+                {
+                    "@context": "https://n2t.net/e/n2t_apidoc.html#identifier-metadata",
+                    "_id": eid_decoded,
+                    "who": populator,
+                    "what": "(:tba) Work in progress",
+                    "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "how": shoulder,
+                    "where": f"{naa}:{shoulder}{eid}",
+                    "__as": "reserved",  # status, public|reserved|unavailable
+                    "__ao": owner,  # owner
+                    "__ac": datetime.now(timezone.utc).isoformat(
+                        timespec="seconds"
+                    ),  # created
+                }
+                for eid, eid_decoded in not_taken
+            ]
+            collection.insert_many(docs)
+            collected.extend(docs)
+        if len(collected) == number:
+            break
+    return [d["where"] for d in collected]
