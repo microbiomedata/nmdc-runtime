@@ -1,10 +1,7 @@
-import json
-
 import pymongo
 from fastapi import APIRouter, Depends, status, HTTPException
 from toolz import get_in, merge
 
-from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources

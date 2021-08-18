@@ -1,20 +1,19 @@
 import os
-from typing import Union, List
+from typing import List
 
 import botocore
 import pymongo
-from fastapi import APIRouter, Response, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException
 from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
 
-from nmdc_runtime.api.core.idgen import generate_id_unique, decode_id
+from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import get_s3_client, S3_ID_NS, presigned_url_to_get
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.object import (
     DrsId,
-    Error,
     DrsObject,
     AccessURL,
     DrsObjectIn,
@@ -56,8 +55,8 @@ def create_object(
     id_supplied = supplied_object_id(
         mdb, client_site, object_in.dict(exclude_unset=True)
     )
-    drs_id = (
-        id_supplied if id_supplied is not None else generate_id_unique(mdb, S3_ID_NS)
+    drs_id = local_part(
+        id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
     )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     print(drs_id)

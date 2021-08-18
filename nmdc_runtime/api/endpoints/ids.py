@@ -1,9 +1,9 @@
 import re
 from typing import List, Dict, Any
 
-from pymongo.database import Database as MongoDatabase
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
+from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
 
@@ -24,7 +24,7 @@ from nmdc_runtime.api.models.id import (
     IdThreeParts,
     pattern_naa,
 )
-from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.site import get_current_client_site, Site
 
 router = APIRouter()
 
@@ -33,12 +33,12 @@ router = APIRouter()
 def mint_ids(
     mint_req: MintRequest,
     mdb: MongoDatabase = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
+    site: Site = Depends(get_current_client_site),
 ):
     ids = generate_ids(
         mdb,
-        owner=user.username,
-        populator=(mint_req.populator or user.username),
+        owner=site.id,
+        populator=(mint_req.populator or site.id),
         number=mint_req.number,
         naa=mint_req.naa,
         shoulder=mint_req.shoulder,
@@ -50,7 +50,7 @@ def mint_ids(
 def set_id_bindings(
     binding_requests: List[IdBindingRequest],
     mdb: MongoDatabase = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
+    site: Site = Depends(get_current_client_site),
 ):
     bons = [r.i for r in binding_requests]
     ids: List[IdThreeParts] = []
@@ -72,10 +72,13 @@ def set_id_bindings(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"id {r.i} not found",
             )
-        elif doc.get("__ao") != user.username:
+        elif doc.get("__ao") != site.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"authenticated user does not own {r.i}",
+                detail=(
+                    f"authenticated site client does not manage {r.i} "
+                    f"(client represents site {site.id}).",
+                ),
             )
     # Ensure no attempts to set reserved attributes.
     if any(r.a.startswith("__a") for r in binding_requests):

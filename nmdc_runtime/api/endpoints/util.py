@@ -1,13 +1,12 @@
-import json
 import logging
 
-from bson import json_util
 import pymongo
+from bson import json_util
 from fastapi import HTTPException
 from starlette import status
 from toolz import merge
 
-from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.models.util import ListRequest
 
 
@@ -45,8 +44,12 @@ def list_resources(
             mdb[collection_name].find(filter=filter_, limit=limit, sort=[("id", 1)])
         )
         last_id = resources[-1]["id"]
-        token = generate_id_unique(mdb, "page_tokens")
+        token = generate_one_id(mdb, "page_tokens")
         mdb.page_tokens.insert_one(
             {"_id": token, "ns": collection_name, "last_id": last_id}
         )
         return {"resources": resources, "next_page_token": token}
+
+
+def exists(collection: pymongo.collection.Collection, filter_: dict):
+    return collection.count_documents(filter_) > 0

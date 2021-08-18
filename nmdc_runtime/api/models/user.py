@@ -1,12 +1,8 @@
-import os
-from datetime import datetime, timedelta
 from typing import Optional, List
 
 import pymongo.database
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from jose import JWTError, jwt
-
-
 from pydantic import BaseModel
 
 from nmdc_runtime.api.core.auth import (
@@ -32,7 +28,7 @@ class UserInDB(User):
     hashed_password: str
 
 
-def get_user(mdb, username: str):
+def get_user(mdb, username: str) -> UserInDB:
     user = mdb.users.find_one({"username": username})
     if user is not None:
         return UserInDB(**user)
@@ -50,7 +46,7 @@ def authenticate_user(mdb, username: str, password: str):
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
-):
+) -> UserInDB:
     if mdb.invalidated_tokens.find_one({"_id": token}):
         raise credentials_exception
     try:
@@ -70,7 +66,9 @@ async def get_current_user(
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> UserInDB:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

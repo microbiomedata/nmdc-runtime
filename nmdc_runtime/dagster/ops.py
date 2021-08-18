@@ -25,7 +25,7 @@ from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
 from toolz import get_in
 
-from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.job import JobOperationMetadata, JobBase, Job
 from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
@@ -106,7 +106,10 @@ def update_schema(context):
     return rv
 
 
-@op(required_resource_keys={"mongo", "runtime_api_site_client"})
+@op(
+    required_resource_keys={"mongo", "runtime_api_site_client"},
+    retry_policy=RetryPolicy(max_retries=2),
+)
 def local_file_to_api_object(context, file_info):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     storage_path: str = file_info["storage_path"]
@@ -199,10 +202,11 @@ def run_etl(context, merged_data_path: str):
 @op(required_resource_keys={"mongo"})
 def get_operation(context):
     mdb = context.resources.mongo.db
-    id_op = context.solid_config["operation_id"]
+    id_op = context.solid_config.get("operation_id")
     doc = mdb.operations.find_one({"id": id_op})
     if doc is None:
         raise Failure(description=f"operation {id_op} not found")
+    context.log.info(f"got operation {id_op}")
     return Operation(**doc)
 
 
@@ -292,7 +296,7 @@ def ensure_job(context):
     ]
     if len(job_docs) == len(job_docs_older):
         doc = {
-            "id": generate_id_unique(mdb, "jobs"),
+            "id": generate_one_id(mdb, "jobs"),
             "workflow": {"id": job.workflow.id},
             "config": {"object_id_latest": object_id_latest},
         }

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List
 
 import base32_lib as base32
-import pymongo
+from pymongo.database import Database as MongoDatabase
 
 
 def generate_id(length=10, split_every=4, checksum=True) -> str:
@@ -55,25 +55,6 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
     )
 
 
-# XXX deprecated: used internally by nmdc-runtime. consumers should switch to use `generate_ids`.
-def generate_id_unique(
-    mdb: pymongo.database.Database = None, ns: str = None, **generate_id_kwargs
-) -> str:
-    """Generate unique Crockford Base32-encoded ID for mdb repository.
-
-    Can associate ID with namespace ns to facilitate ID deletion/recycling.
-
-    """
-    get_one = True
-    collection = mdb.get_collection("ids")
-    while get_one:
-        eid = generate_id(**generate_id_kwargs)
-        eid_decoded = decode_id(eid)
-        get_one = collection.count_documents({"_id": eid_decoded}) > 0
-    collection.insert_one({"_id": eid_decoded, "ns": ns})
-    return eid
-
-
 # sping: "semi-opaque string" (https://n2t.net/e/n2t_apidoc.html).
 SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
@@ -83,10 +64,11 @@ def collection_name(naa, shoulder):
 
 
 def generate_ids(
-    mdb: pymongo.database.Database,
+    mdb: MongoDatabase,
     owner: str,
     populator: str,
     number: int,
+    ns: str = "",
     naa: str = "nmdc",
     shoulder: str = "fk4",
 ) -> List[str]:
@@ -123,7 +105,7 @@ def generate_ids(
                     "@context": "https://n2t.net/e/n2t_apidoc.html#identifier-metadata",
                     "_id": eid_decoded,
                     "who": populator,
-                    "what": "(:tba) Work in progress",
+                    "what": (f"{ns}/{eid}" if ns else "(:tba) Work in progress"),
                     "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "how": shoulder,
                     "where": f"{naa}:{shoulder}{eid}",
@@ -140,3 +122,29 @@ def generate_ids(
         if len(collected) == number:
             break
     return [d["where"] for d in collected]
+
+
+def generate_one_id(
+    mdb: MongoDatabase = None,
+    ns: str = "",
+    shoulder: str = "sys0",
+) -> str:
+    """Generate unique Crockford Base32-encoded ID for mdb repository.
+
+    Can associate ID with namespace ns to facilitate ID deletion/recycling.
+
+    """
+    return generate_ids(
+        mdb,
+        owner="_system",
+        populator="_system",
+        number=1,
+        ns=ns,
+        naa="nmdc",
+        shoulder=shoulder,
+    )[0]
+
+
+def local_part(id_):
+    """nmdc:fk0123 -> fk0123"""
+    return id_.split(":", maxsplit=1)[1]

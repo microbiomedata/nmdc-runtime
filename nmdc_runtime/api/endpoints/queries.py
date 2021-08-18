@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, status
 from starlette.responses import JSONResponse
 from toolz import assoc, merge
 
-from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.query import Query, QueryBase
 
@@ -18,7 +18,7 @@ def run_new_query(
     query_base: QueryBase,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    qyid = generate_id_unique(mdb, "qy")
+    qyid = generate_one_id(mdb, "qy")
     # TODO run query!
     created_at = datetime.now(timezone.utc)
     query = Query(

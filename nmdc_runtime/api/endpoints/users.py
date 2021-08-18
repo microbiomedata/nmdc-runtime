@@ -9,13 +9,13 @@ from nmdc_runtime.api.core.auth import (
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
 )
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.site import authenticate_site_client
 from nmdc_runtime.api.models.user import (
     authenticate_user,
     User,
     get_current_active_user,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
 
 router = APIRouter()
 

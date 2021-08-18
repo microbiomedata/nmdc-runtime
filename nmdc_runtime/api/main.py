@@ -1,12 +1,11 @@
 import os
 from importlib import import_module
 
+import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 
 from nmdc_runtime.api.core.auth import get_password_hash
-from nmdc_runtime.api.core.idgen import generate_id_unique
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     ids,
@@ -22,6 +21,7 @@ from nmdc_runtime.api.endpoints import (
     queries,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
+from nmdc_runtime.api.models.user import UserInDB
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -223,10 +223,11 @@ async def ensure_initial_resources_on_boot():
     admin_ok = mdb.users.count_documents(({"username": username})) == 1
     if not admin_ok:
         mdb.users.insert_one(
-            {
-                "username": username,
-                "hashed_password": get_password_hash(os.getenv("API_ADMIN_PASS")),
-            }
+            UserInDB(
+                username=username,
+                hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
+                site_admin=os.getenv("API_SITE_ID"),
+            )
         )
         mdb.users.create_index("username")
 
