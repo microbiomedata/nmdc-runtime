@@ -35,6 +35,10 @@ def mint_ids(
     mdb: MongoDatabase = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
+    """Generate one or more identifiers.
+
+    Leaving `populator` blank will set it to the site ID of the request client.
+    """
     ids = generate_ids(
         mdb,
         owner=site.id,
