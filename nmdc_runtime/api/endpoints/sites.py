@@ -15,6 +15,7 @@ from nmdc_runtime.api.core.util import (
     expiry_dt_from_now,
     dotted_path_for,
     generate_secret,
+    API_SITE_ID,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import (
@@ -85,13 +86,15 @@ def get_site(
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
-@router.patch("/sites/{site_id}")
+@router.patch("/sites/{site_id}", include_in_schema=False)
 def update_site():
+    """Not yet implemented"""
     pass
 
 
-@router.put("/sites/{site_id}")
+@router.put("/sites/{site_id}", include_in_schema=False)
 def replace_site():
+    """Not yet implemented"""
     pass
 
 
@@ -131,6 +134,11 @@ def put_object_in_site(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    if site_id != API_SITE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"API-mediated object storage for site {site_id} is not enabled.",
+        )
     expires_in = 300
     object_id = generate_one_id(mdb, S3_ID_NS)
     url = presigned_url_to_put(
@@ -167,6 +175,11 @@ def get_site_object_link(
     access_method: AccessMethod,
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    if site_id != API_SITE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"API-mediated object storage for site {site_id} is not enabled.",
+        )
     url = presigned_url_to_get(
         f"{S3_ID_NS}/{access_method.access_id}",
         client=s3client,
