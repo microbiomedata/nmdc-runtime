@@ -27,6 +27,7 @@ from nmdc_runtime.dagster.resources import (
     get_runtime_api_site_client,
 )
 from nmdc_runtime.dagster.resources import terminus_resource
+from nmdc_runtime.dagster.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -199,3 +200,17 @@ def repo():
     ]
 
     return graph_jobs + schedules + sensors
+
+
+@repository
+def translation():
+    graph_jobs = [jgi_job]
+
+    return graph_jobs
+
+
+@repository
+def test_translation():
+    graph_jobs = [test_jgi_job]
+
+    return graph_jobs

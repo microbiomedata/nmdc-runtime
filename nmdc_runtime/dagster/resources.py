@@ -1,5 +1,6 @@
 from datetime import timedelta
 from functools import lru_cache
+from typing import Optional
 
 import requests
 from dagster import build_init_resource_context
@@ -139,7 +140,13 @@ def get_runtime_api_site_client(run_config: frozendict):
 
 
 class MongoDB:
-    def __init__(self, host: str, username: str, password: str, dbname: str):
+    def __init__(
+        self,
+        host: str,
+        dbname: str,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+    ):
         self.client = MongoClient(host=host, username=username, password=password)
         self.db = self.client[dbname]
 
@@ -168,8 +175,21 @@ class MongoDB:
 def mongo_resource(context):
     return MongoDB(
         host=context.resource_config["host"],
+        dbname=context.resource_config["dbname"],
         username=context.resource_config["username"],
         password=context.resource_config["password"],
+    )
+
+
+@resource(
+    config_schema={
+        "host": StringSource,
+        "dbname": StringSource,
+    }
+)
+def mongo_insecure_test_resource(context):
+    return MongoDB(
+        host=context.resource_config["host"],
         dbname=context.resource_config["dbname"],
     )
 
