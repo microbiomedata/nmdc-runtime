@@ -1,7 +1,7 @@
 import datetime
 import http
 from enum import Enum
-from typing import Optional, List, Dict, Union, TypeVar
+from typing import Optional, List, Dict
 
 from pydantic import (
     BaseModel,

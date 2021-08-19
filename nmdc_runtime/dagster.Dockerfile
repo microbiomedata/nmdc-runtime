@@ -29,8 +29,8 @@ RUN pip install --no-cache-dir --editable .
 # Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
 RUN mkdir -p $DAGSTER_HOME
-COPY nmdc_runtime/dagster.yaml $DAGSTER_HOME
-COPY nmdc_runtime/dagster_workspace.yaml $DAGSTER_HOME/workspace.yaml
+COPY nmdc_runtime/dagster/dagster.yaml $DAGSTER_HOME
+COPY nmdc_runtime/dagster/workspace.yaml $DAGSTER_HOME
 WORKDIR $DAGSTER_HOME
 
 # Best practices: Prepare for C crashes.
@@ -39,4 +39,4 @@ ENV PYTHONFAULTHANDLER=1
 # Run dagit server on port 3000
 EXPOSE 3000
 
-ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/entrypoint-dagit.sh"]
+ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/dagster/entrypoint-dagit.sh"]

@@ -1,25 +1,21 @@
-from datetime import timedelta, datetime, timezone
 from typing import List
-from uuid import uuid4
 
 import botocore
-from fastapi import APIRouter, Response, Depends, status, HTTPException
 import pymongo.database
+from fastapi import APIRouter, Depends, status, HTTPException
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
-    TokenExpires,
-    Token,
-    create_access_token,
-    get_access_token_expiration,
     ClientCredentials,
     get_password_hash,
 )
-from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
     expiry_dt_from_now,
     dotted_path_for,
+    generate_secret,
+    API_SITE_ID,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import (
@@ -28,47 +24,77 @@ from nmdc_runtime.api.db.s3 import (
     presigned_url_to_get,
     S3_ID_NS,
 )
+from nmdc_runtime.api.endpoints.util import exists, list_resources
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import (
-    Error,
-    ObjectPresignedUrl,
     AccessMethod,
     AccessURL,
     DrsObjectBase,
     DrsObjectIn,
 )
-from nmdc_runtime.api.models.operation import Operation, EmptyResult, ObjectPutMetadata
-from nmdc_runtime.api.models.site import get_current_client_site, Site
-from nmdc_runtime.api.models.user import (
-    get_current_active_user,
-    User,
+from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
+from nmdc_runtime.api.models.site import (
+    get_current_client_site,
+    Site,
+    SiteInDB,
 )
+from nmdc_runtime.api.models.user import get_current_active_user, User
+from nmdc_runtime.api.models.util import ListResponse, ListRequest
 
 router = APIRouter()
 
 
-@router.post("/sites")
-def create_site():
-    pass
+@router.post("/sites", status_code=status.HTTP_201_CREATED, response_model=SiteInDB)
+def create_site(
+    site: Site,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    if exists(mdb.sites, {"id": site.id}):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"site with supplied id {site.id} already exists",
+        )
+    mdb.sites.insert_one(site.dict())
+    rv = mdb.users.update_one(
+        {"username": user.username},
+        {"$addToSet": {"site_admin": site.id}},
+    )
+    if rv.modified_count != 1:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"failed to register user {user.username} as site_admin for site {site.id}.",
+        )
+    return mdb.sites.find_one({"id": site.id})
 
 
-@router.get("/sites")
-def list_sites():
-    pass
+@router.get(
+    "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
+)
+def list_sites(
+    req: ListRequest = Depends(),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    return list_resources(req, mdb, "sites")
 
 
-@router.get("/sites/{site_id}")
-def get_site():
-    pass
+@router.get("/sites/{site_id}", response_model=Site, response_model_exclude_unset=True)
+def get_site(
+    site_id: str,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
-@router.patch("/sites/{site_id}")
+@router.patch("/sites/{site_id}", include_in_schema=False)
 def update_site():
+    """Not yet implemented"""
     pass
 
 
-@router.put("/sites/{site_id}")
+@router.put("/sites/{site_id}", include_in_schema=False)
 def replace_site():
+    """Not yet implemented"""
     pass
 
 
@@ -108,8 +134,13 @@ def put_object_in_site(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    if site_id != API_SITE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"API-mediated object storage for site {site_id} is not enabled.",
+        )
     expires_in = 300
-    object_id = generate_id_unique(mdb, S3_ID_NS)
+    object_id = generate_one_id(mdb, S3_ID_NS)
     url = presigned_url_to_put(
         f"{S3_ID_NS}/{object_id}",
         client=s3client,
@@ -119,7 +150,7 @@ def put_object_in_site(
     # XXX ensures defaults are set, e.g. done:false
     op = Operation[DrsObjectIn, ObjectPutMetadata](
         **{
-            "id": generate_id_unique(mdb, "op"),
+            "id": generate_one_id(mdb, "op"),
             "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
             "metadata": {
                 "object_id": object_id,
@@ -144,6 +175,11 @@ def get_site_object_link(
     access_method: AccessMethod,
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    if site_id != API_SITE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"API-mediated object storage for site {site_id} is not enabled.",
+        )
     url = presigned_url_to_get(
         f"{S3_ID_NS}/{access_method.access_id}",
         client=s3client,
@@ -167,8 +203,9 @@ def generate_credentials_for_site_client(
             detail="You're not registered as an admin for this site",
         )
 
-    client_id = generate_id_unique(mdb, "site_clients")
-    client_secret = uuid4().hex
+    # XXX client_id must not contain a ':' because HTTPBasic auth splits on ':'.
+    client_id = local_part(generate_one_id(mdb, "site_clients"))
+    client_secret = generate_secret()
     hashed_secret = get_password_hash(client_secret)
     mdb.sites.update_one(
         {"id": site_id},

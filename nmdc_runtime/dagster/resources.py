@@ -1,14 +1,20 @@
 from datetime import timedelta
 from functools import lru_cache
 
-from dagster import resource, StringSource, build_init_resource_context
 import requests
+from dagster import build_init_resource_context
+from dagster import resource, StringSource
+from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
-from toolz import merge, get_in
+from pymongo import MongoClient, ReplaceOne
+from terminusdb_client import WOQLClient
+from toolz import get_in
+from toolz import merge
 
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
+from nmdc_runtime.util import nmdc_jsonschema_validate
 
 
 class RuntimeApiSiteClient:
@@ -130,3 +136,80 @@ def get_runtime_api_site_client(run_config: frozendict):
         )
     )
     return runtime_api_site_client_resource(resource_context)
+
+
+class MongoDB:
+    def __init__(self, host: str, username: str, password: str, dbname: str):
+        self.client = MongoClient(host=host, username=username, password=password)
+        self.db = self.client[dbname]
+
+    def add_docs(self, docs, validate=True):
+        try:
+            if validate:
+                nmdc_jsonschema_validate(docs)
+            rv = {}
+            for collection_name, docs in docs.items():
+                rv[collection_name] = self.db[collection_name].bulk_write(
+                    [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
+                )
+            return rv
+        except JsonSchemaValueException as e:
+            raise ValueError(e.message)
+
+
+@resource(
+    config_schema={
+        "host": StringSource,
+        "username": StringSource,
+        "password": StringSource,
+        "dbname": StringSource,
+    }
+)
+def mongo_resource(context):
+    return MongoDB(
+        host=context.resource_config["host"],
+        username=context.resource_config["username"],
+        password=context.resource_config["password"],
+        dbname=context.resource_config["dbname"],
+    )
+
+
+@lru_cache
+def get_mongo(run_config: frozendict):
+    resource_context = build_init_resource_context(
+        config=get_in(
+            ["resources", "mongo", "config"],
+            run_config,
+        )
+    )
+    return mongo_resource(resource_context)
+
+
+class TerminusDB:
+    def __init__(self, server_url, user, key, account, dbid):
+        self.client = WOQLClient(server_url=server_url)
+        self.client.connect(user=user, key=key, account=account)
+        db_info = self.client.get_database(dbid=dbid, account=account)
+        if db_info is None:
+            self.client.create_database(dbid=dbid, accountid=account, label=dbid)
+            self.client.create_graph(graph_type="inference", graph_id="main")
+        self.client.connect(user=user, key=key, account=account, db=dbid)
+
+
+@resource(
+    config_schema={
+        "server_url": StringSource,
+        "user": StringSource,
+        "key": StringSource,
+        "account": StringSource,
+        "dbid": StringSource,
+    }
+)
+def terminus_resource(context):
+    return TerminusDB(
+        server_url=context.resource_config["server_url"],
+        user=context.resource_config["user"],
+        key=context.resource_config["key"],
+        account=context.resource_config["account"],
+        dbid=context.resource_config["dbid"],
+    )

@@ -2,7 +2,7 @@ import pymongo
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
 
-from nmdc_runtime.api.core.idgen import generate_id_unique
+from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
     expiry_dt_from_now,
@@ -70,7 +70,7 @@ def claim_job(
         )
     op = Operation[ResultT, JobOperationMetadata](
         **{
-            "id": generate_id_unique(mdb, "op"),
+            "id": generate_one_id(mdb, "op"),
             "expire_time": expiry_dt_from_now(days=30),
             "metadata": {
                 "job": job.dict(exclude_unset=True),

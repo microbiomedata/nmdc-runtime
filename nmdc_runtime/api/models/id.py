@@ -4,16 +4,16 @@ from typing import Union, Any, Optional, Literal
 
 from pydantic import BaseModel, constr, PositiveInt, root_validator
 
-
 # NO i, l, o or u.
 base32_letters = "abcdefghjkmnpqrstvwxyz"
 
 NAA_VALUES = ["nmdc"]
-SHOULDER_PREFIXES = ["fk", "mga", "mta", "mba", "mpa", "oma"]
+_fake_shoulders = [f"fk{n}" for n in range(10)]
+SHOULDER_VALUES = _fake_shoulders + ["mga0", "mta0", "mba0", "mpa0", "oma0"]
 
 _naa = rf"(?P<naa>({'|'.join(NAA_VALUES)}))"
 pattern_naa = re.compile(_naa)
-_shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_PREFIXES)})+[0-9])"
+_shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_VALUES)}))"
 pattern_shoulder = re.compile(_shoulder)
 _blade = rf"(?P<blade>[0-9{base32_letters}]+)"
 pattern_blade = re.compile(_blade)
@@ -34,7 +34,7 @@ NameAssigningAuthority = Literal[tuple(NAA_VALUES)]
 class MintRequest(BaseModel):
     populator: str = ""
     naa: NameAssigningAuthority = "nmdc"
-    shoulder: Shoulder = "fk4"
+    shoulder: Shoulder = "fk0"
     number: PositiveInt = 1
 
 

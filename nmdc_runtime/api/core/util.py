@@ -1,6 +1,8 @@
-import os
-from datetime import datetime, timezone, timedelta
 import hashlib
+import os
+import secrets
+import string
+from datetime import datetime, timezone, timedelta
 from importlib import import_module
 
 from fastapi import HTTPException, status
@@ -61,3 +63,27 @@ def import_via_dotted_path(dotted_path: str):
 
 def dotted_path_for(member):
     return f"{member.__module__}.{member.__name__}"
+
+
+def generate_secret(length=12):
+    """Generate a secret.
+
+    With
+    - at least one lowercase character,
+    - at least one uppercase character, and
+    - at least three digits
+
+    """
+    if length < 8:
+        raise ValueError(f"{length=} must be >=8.")
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    # based on https://docs.python.org/3.8/library/secrets.html#recipes-and-best-practices
+    while True:
+        _secret = "".join(secrets.choice(alphabet) for i in range(length))
+        if (
+            any(c.islower() for c in _secret)
+            and any(c.isupper() for c in _secret)
+            and sum(c.isdigit() for c in _secret) >= 3
+        ):
+            break
+    return _secret
