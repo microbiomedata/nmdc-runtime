@@ -122,6 +122,7 @@ def local_file_to_api_object(context, file_info):
     if not rv.status_code == status.HTTP_200_OK:
         raise Failure(description=f"put_object_in_site failed: {rv.content}")
     op = rv.json()
+    context.log.info(f"put_object_in_site: {op}")
     rv = put_object(storage_path, op["metadata"]["url"])
     if not rv.status_code == status.HTTP_200_OK:
         raise Failure(description=f"put_object failed: {rv.content}")
@@ -130,6 +131,7 @@ def local_file_to_api_object(context, file_info):
     if not rv.status_code == status.HTTP_200_OK:
         raise Failure(description="update_operation failed")
     op = rv.json()
+    context.log.info(f"update_operation: {op}")
     rv = client.create_object_from_op(op)
     if rv.status_code != status.HTTP_201_CREATED:
         raise Failure(f"create_object_from_op failed")

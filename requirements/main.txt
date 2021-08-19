@@ -297,7 +297,9 @@ ecdsa==0.17.0 \
 entrypoints==0.3 \
     --hash=sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19 \
     --hash=sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451
-    # via nbconvert
+    # via
+    #   jupyter-client
+    #   nbconvert
 et-xmlfile==1.1.0 \
     --hash=sha256:8eb9e2bc2f8c97e37a2dc85a09ecdcdec9d8a396530a6d5a33b30b9a92da0c5c \
     --hash=sha256:a2ba85d1d6a74ef63837eed693bcb89c3f752169b0e3e7ae5b16ca5e1b3deada
@@ -680,9 +682,9 @@ jupyter==1.0.0 \
     --hash=sha256:5b290f93b98ffbc21c0c7e749f054b3267782166d72fa5e3ed1ed4eaf34a2b78 \
     --hash=sha256:d9dc4b3318f310e34c82951ea5d6683f67bed7def4b259fafbfe4f1beb1d8e5f
     # via -r requirements/main.in
-jupyter-client==6.1.12 \
-    --hash=sha256:c4bca1d0846186ca8be97f4d2fa6d2bae889cce4892a167ffa1ba6bd1f73e782 \
-    --hash=sha256:e053a2c44b6fa597feebe2b3ecb5eea3e03d1d91cc94351a52931ee1426aecfc
+jupyter-client==7.0.0 \
+    --hash=sha256:bdf99b6965782acd5f295cd5e58d7847de00eeddd3bcb1386064bd57635da76a \
+    --hash=sha256:fd042ba51ce1d1a198421f5d08f73773dfcfe85c986e605d414daa33760b61ed
     # via
     #   ipykernel
     #   jupyter-console
@@ -711,9 +713,9 @@ linkml==1.0.3 \
     # via
     #   -r requirements/main.in
     #   nmdc-schema
-linkml-runtime==1.0.12 \
-    --hash=sha256:961cf68272a20966d1f53430f7609013bdacab048e9e8102d518c5e5be9df765 \
-    --hash=sha256:f3fe6fb28e68e51256dcad6578b31551da1bc0d08754ed58ede80fe1778d789a
+linkml-runtime==1.0.13 \
+    --hash=sha256:df8bde9243b5b9b577b86c4fe30f866cd907a8a3cfb03361a4625b943661ad85 \
+    --hash=sha256:ebe3dfd0a009195ab3e8781d2320d7f14ebc208e88f8a634556975aecb7b33b1
     # via
     #   -r requirements/main.in
     #   linkml
@@ -861,6 +863,10 @@ nbformat==5.1.3 \
     #   ipywidgets
     #   nbconvert
     #   notebook
+nest-asyncio==1.5.1 \
+    --hash=sha256:76d6e972265063fe92a90b9cc4fb82616e07d586b346ed9d2c89a4187acea39c \
+    --hash=sha256:afc5a1c515210a23c461932765691ad39e8eba6551c055ac8d5546e69250d0aa
+    # via jupyter-client
 nmdc-schema==2021.7.1rc1 \
     --hash=sha256:0da31fcf5db356e422010ebd867d8535c8021ad878ceff22415dacf19127fe36 \
     --hash=sha256:3c552a564053cb9b2b482e6907cfe1f507618712299ad6073c36b635cf254ea0
@@ -1537,9 +1543,9 @@ tabulate==0.8.9 \
     --hash=sha256:d7c013fe7abbc5e491394e10fa845f8f32fe54f8dc60c6622c6cf482d25d47e4 \
     --hash=sha256:eb1d13f25760052e8931f2ef80aaf6045a6cceb47514db8beab24cded16f13a7
     # via dagster
-terminado==0.11.0 \
-    --hash=sha256:1e01183885f64c1bba3cf89a5a995ad4acfed4e5f00aebcce1bf7f089b0825a1 \
-    --hash=sha256:221eef83e6a504894842f7dccfa971ca2e98ec22a8a9118577e5257527674b42
+terminado==0.11.1 \
+    --hash=sha256:962b402edbb480718054dc37027bada293972ecadfb587b89f01e2b8660a2132 \
+    --hash=sha256:9e0457334863be3e6060c487ad60e0995fa1df54f109c67b24ff49a4f2f34df5
     # via notebook
 terminusdb-client==1.1.1 \
     --hash=sha256:c9dafd99d0a81f85d04a5af3468432fc58e907e8e08dcaf48f4b537dc27ba162
@@ -1665,28 +1671,30 @@ uvloop==0.16.0 \
     --hash=sha256:e814ac2c6f9daf4c36eb8e85266859f42174a4ff0d71b99405ed559257750382 \
     --hash=sha256:f74bc20c7b67d1c27c72601c78cf95be99d5c2cdd4514502b4f3eb0933ff1228
     # via uvicorn
-watchdog==2.1.3 \
-    --hash=sha256:0bcdf7b99b56a3ae069866c33d247c9994ffde91b620eaf0306b27e099bd1ae0 \
-    --hash=sha256:0bcfe904c7d404eb6905f7106c54873503b442e8e918cc226e1828f498bdc0ca \
-    --hash=sha256:201cadf0b8c11922f54ec97482f95b2aafca429c4c3a4bb869a14f3c20c32686 \
-    --hash=sha256:3a7d242a7963174684206093846537220ee37ba9986b824a326a8bb4ef329a33 \
-    --hash=sha256:3e305ea2757f81d8ebd8559d1a944ed83e3ab1bdf68bcf16ec851b97c08dc035 \
-    --hash=sha256:431a3ea70b20962e6dee65f0eeecd768cd3085ea613ccb9b53c8969de9f6ebd2 \
-    --hash=sha256:44acad6f642996a2b50bb9ce4fb3730dde08f23e79e20cd3d8e2a2076b730381 \
-    --hash=sha256:54e057727dd18bd01a3060dbf5104eb5a495ca26316487e0f32a394fd5fe725a \
-    --hash=sha256:6fe9c8533e955c6589cfea6f3f0a1a95fb16867a211125236c82e1815932b5d7 \
-    --hash=sha256:85b851237cf3533fabbc034ffcd84d0fa52014b3121454e5f8b86974b531560c \
-    --hash=sha256:8805a5f468862daf1e4f4447b0ccf3acaff626eaa57fbb46d7960d1cf09f2e6d \
-    --hash=sha256:9628f3f85375a17614a2ab5eac7665f7f7be8b6b0a2a228e6f6a2e91dd4bfe26 \
-    --hash=sha256:a12539ecf2478a94e4ba4d13476bb2c7a2e0a2080af2bb37df84d88b1b01358a \
-    --hash=sha256:acc4e2d5be6f140f02ee8590e51c002829e2c33ee199036fcd61311d558d89f4 \
-    --hash=sha256:b5fc5c127bad6983eecf1ad117ab3418949f18af9c8758bd10158be3647298a9 \
-    --hash=sha256:b8ddb2c9f92e0c686ea77341dcb58216fa5ff7d5f992c7278ee8a392a06e86bb \
-    --hash=sha256:bf84bd94cbaad8f6b9cbaeef43080920f4cb0e61ad90af7106b3de402f5fe127 \
-    --hash=sha256:d9456f0433845e7153b102fffeb767bde2406b76042f2216838af3b21707894e \
-    --hash=sha256:e4929ac2aaa2e4f1a30a36751160be391911da463a8799460340901517298b13 \
-    --hash=sha256:e5236a8e8602ab6db4b873664c2d356c365ab3cac96fbdec4970ad616415dd45 \
-    --hash=sha256:fd8c595d5a93abd441ee7c5bb3ff0d7170e79031520d113d6f401d0cf49d7c8f
+watchdog==2.1.4 \
+    --hash=sha256:073b379d74aecc7fcba3ee8c2a7b4ac5d56deca52bd47bab024464a47c084d34 \
+    --hash=sha256:0d4602a93e404b3b01e249297ce950ed249295a0c124cdb4b3fbc696032918fb \
+    --hash=sha256:1dd5e0e1577a0f3362f6ab986264d9695e40dfba247b994a522bfab254544fc1 \
+    --hash=sha256:2cca4c2725112d5a8b5b89ea24a51dad702db7048ae08dba0435b2c382f08e6d \
+    --hash=sha256:34e1517e745b223eb682d09a7ba2532cbb55ce9c8c778daba0955e1af37c903e \
+    --hash=sha256:39a0711a6439a6fa8d9c78c93759fbb07bc61bb06378eaa5a32148a1468a8e87 \
+    --hash=sha256:407524dc30d9e3bb46017987b100574eeb810d9cc50488aabf81a03ae70c4962 \
+    --hash=sha256:438efbbd929b6436add7ce89f3466ca836f31588220433efeb757b5947a9c979 \
+    --hash=sha256:47480f3a82694fe1f4d552b3da8420fecfc5273ba7996d7ceadd838d1970b31a \
+    --hash=sha256:536bca6bc9661279310e5946ad4c2dfa5b2b1624e44a7acdf8cb37a10cc45f00 \
+    --hash=sha256:60785287032cc2cbd428486c0ff0a4b5c098d1ad256449ffe5fdd69657f5a126 \
+    --hash=sha256:6c58d1cbf01884602afcbc631f79f709812e20ec100a6526c91895d3238d4474 \
+    --hash=sha256:73782538f9ab7d0fc1f78abd34fe94feea119bd2644c2659d71068d7252a774e \
+    --hash=sha256:78e36af08a94325b7852827004f4bea1a9b472a532498026a4b8529189797a15 \
+    --hash=sha256:9b332a20029ebdff605829219fe858070b128471d60a9b6cc4797bb167fe22ff \
+    --hash=sha256:9e0a159fedb9d83dee80b00759a82acd2596a3ed70247088f8a175ce46116096 \
+    --hash=sha256:a56c7631dde228d81834466ebf4ebcc8996678b0f794e3e6dc401e9e71e9388d \
+    --hash=sha256:afb03a13c8a75a74f2894a313298ee95ff09fba1f02081ead249e790a5304a18 \
+    --hash=sha256:becbe589b63891cfaa24afe8e31fa7ac0d541701644767c9c28f14da1d5489b7 \
+    --hash=sha256:bee7eb674850f052599d19f1efdd4db9bc4690593462b760662a38298f1d65b4 \
+    --hash=sha256:d8bd7eec21964687b2364e7ab38fda6b4567809d590a0506f74cc48b2a2dfce4 \
+    --hash=sha256:e6e6b3a9920ca84d6cc22b313c87fac426e92114d1927ade2909ada3de243d45 \
+    --hash=sha256:f743b2581c241f55b716e35b451f53076a07e15e1f2f0a83016c2ecaf6ace78e
     # via
     #   dagit
     #   dagster

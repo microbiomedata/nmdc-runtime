@@ -77,6 +77,11 @@ housekeeping_weekly = ScheduleDefinition(
 
 
 def asset_materialization_metadata(asset_event, key):
+    """Get metadata from an asset materialization event.
+
+    Example:
+    > object_id_latest = asset_materialization_metadata(asset_event, "object_id_latest").text
+    """
     for (
         e
     ) in (
@@ -143,7 +148,7 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
             run_config = merge(
                 run_config_frozen__normal_env,
                 {
-                    "solids": {
+                    "ops": {
                         "get_operation": {
                             "config": {
                                 "operation_id": operation["id"],
