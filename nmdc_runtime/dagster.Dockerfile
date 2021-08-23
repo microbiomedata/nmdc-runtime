@@ -29,8 +29,8 @@ RUN pip install --no-cache-dir --editable .
 # Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
 RUN mkdir -p $DAGSTER_HOME
-COPY nmdc_runtime/dagster/dagster.yaml $DAGSTER_HOME
-COPY nmdc_runtime/dagster/workspace.yaml $DAGSTER_HOME
+COPY nmdc_runtime/site/dagster.yaml $DAGSTER_HOME
+COPY nmdc_runtime/site/workspace.yaml $DAGSTER_HOME
 WORKDIR $DAGSTER_HOME
 
 # Best practices: Prepare for C crashes.
