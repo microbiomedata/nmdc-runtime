@@ -14,20 +14,20 @@ from toolz import merge
 
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
-from nmdc_runtime.dagster.graphs import (
+from nmdc_runtime.site.graphs import (
     gold_translation,
     gold_translation_curation,
     create_objects_from_site_object_puts,
     housekeeping,
     ensure_job,
 )
-from nmdc_runtime.dagster.resources import mongo_resource, get_mongo
-from nmdc_runtime.dagster.resources import (
+from nmdc_runtime.site.resources import mongo_resource, get_mongo
+from nmdc_runtime.site.resources import (
     runtime_api_site_client_resource,
     get_runtime_api_site_client,
 )
-from nmdc_runtime.dagster.resources import terminus_resource
-from nmdc_runtime.dagster.translation.jgi import jgi_job, test_jgi_job
+from nmdc_runtime.site.resources import terminus_resource
+from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {

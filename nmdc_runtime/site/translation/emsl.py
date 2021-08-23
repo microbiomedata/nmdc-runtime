@@ -7,7 +7,7 @@
 # from git_root import git_root
 #
 # # resources needed for ETL
-# from nmdc_runtime.dagster.translation.ops import load_nmdc_etl_class
+# from nmdc_runtime.site.translation.ops import load_nmdc_etl_class
 # from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 #
 #

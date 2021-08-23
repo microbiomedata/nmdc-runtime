@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: nmdc_runtime/dagster.Dockerfile
     container_name: dagster-dagit
-    entrypoint: ["tini", "--", "../lib/nmdc_runtime/dagster/entrypoint-dagit.sh"]
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
     expose:
       - "3000"
     ports:
@@ -46,7 +46,7 @@ services:
       context: .
       dockerfile: nmdc_runtime/dagster.Dockerfile
     container_name: dagster-daemon
-    entrypoint: ["tini", "--", "../lib/nmdc_runtime/dagster/entrypoint-daemon.sh"]
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
     env_file:
       - .env

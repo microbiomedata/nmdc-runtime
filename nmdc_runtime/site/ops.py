@@ -30,8 +30,8 @@ from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
 from nmdc_runtime.api.models.job import JobOperationMetadata, JobBase, Job
 from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
 from nmdc_runtime.api.models.util import ResultT
-from nmdc_runtime.dagster.resources import RuntimeApiSiteClient
-from nmdc_runtime.dagster.util import run_and_log
+from nmdc_runtime.site.resources import RuntimeApiSiteClient
+from nmdc_runtime.site.util import run_and_log
 from nmdc_runtime.util import put_object, drs_object_in_for
 
 

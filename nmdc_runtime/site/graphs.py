@@ -1,6 +1,6 @@
 from dagster import graph
 
-from nmdc_runtime.dagster.ops import (
+from nmdc_runtime.site.ops import (
     build_merged_db,
     run_etl,
     local_file_to_api_object,
