@@ -1,18 +1,17 @@
 import json
-from datetime import datetime, timezone
 import mimetypes
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import fastjsonschema
-import pkg_resources
+import nmdc_schema
 import requests
 from frozendict import frozendict
 from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
-import nmdc_schema
 
 # XXX change to use pkg_resources once pip package builds and deploys properly.
 # NMDC_JSON_SCHEMA_PATH = pkg_resources.resource_filename("nmdc_schema", "nmdc.schema.json")
@@ -45,7 +44,7 @@ def drs_metadata_for(filepath, base=None):
         )
     if "checksums" not in base:
         base["checksums"] = [
-            {"type": "sha-256", "checksum": sha256hash_from_file(filepath)}
+            {"type": "sha256", "checksum": sha256hash_from_file(filepath)}
         ]
     if "mime_type" not in base:
         base["mime_type"] = mimetypes.guess_type(filepath)[0]
