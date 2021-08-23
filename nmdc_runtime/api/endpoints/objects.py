@@ -52,6 +52,24 @@ def create_object(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
+    """Create a new DrsObject.
+
+    You may create a *blob* or a *bundle*.
+
+    A *blob* is like a file - it's a single blob of bytes, so there there is no `contents` array,
+    only one or more `access_methods`.
+
+    A *bundle* is like a folder - it's a gathering of other objects (blobs and/or bundles) in a
+    `contents` array, and `access_methods` is optional because a data consumer can fetch each of
+    the bundle contents individually.
+
+    At least one checksum is required. The names of supported checksum types are given by
+    the set of Python 3.8 `hashlib.algorithms_guaranteed`:
+    > blake2b | blake2s | md5 | sha1 | sha224 | sha256 | sha384 | sha3_224 | sha3_256 | sha3_384 | sha3_512 | sha512 | shake_128 | shake_256
+
+    Each provided `access_method` needs either an `access_url` or an `access_id`.
+
+    """
     id_supplied = supplied_object_id(
         mdb, client_site, object_in.dict(exclude_unset=True)
     )

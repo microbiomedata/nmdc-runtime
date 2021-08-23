@@ -1,11 +1,11 @@
 import datetime
+import hashlib
 import http
 from enum import Enum
 from typing import Optional, List, Dict
 
 from pydantic import (
     BaseModel,
-    Json,
     AnyUrl,
     constr,
     conint,
@@ -27,7 +27,7 @@ class AccessMethodType(str, Enum):
 
 
 class AccessURL(BaseModel):
-    headers: Optional[List[Json[Dict[str, str]]]]
+    headers: Optional[Dict[str, str]]
     url: AnyUrl
 
 
@@ -47,13 +47,13 @@ class AccessMethod(BaseModel):
         return values
 
 
-ChecksumType = (
-    str  # Cannot be an Enum because "sha-256" (contains a dash) is a valid value.
+ChecksumType = constr(
+    regex=rf"(?P<checksumtype>({'|'.join(sorted(hashlib.algorithms_guaranteed))}))"
 )
 
 
 class Checksum(BaseModel):
-    checksum: str
+    checksum: constr(min_length=1)
     type: ChecksumType
 
 
