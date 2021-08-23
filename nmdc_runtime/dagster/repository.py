@@ -16,10 +16,10 @@ from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
 from nmdc_runtime.dagster.graphs import (
     gold_translation,
-    ensure_job_p,
     gold_translation_curation,
     create_objects_from_site_object_puts,
     housekeeping,
+    ensure_job,
 )
 from nmdc_runtime.dagster.resources import mongo_resource, get_mongo
 from nmdc_runtime.dagster.resources import (
@@ -93,9 +93,39 @@ def asset_materialization_metadata(asset_event, key):
     return None
 
 
+@sensor(job=ensure_job.to_job(**preset_normal))
+def metaproteomics_analysis_activity_ingest(_context):
+    wf_id = "metap-metadata-1.0.0"
+    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    latest = mdb.objects.find_one(
+        {"types": "metaproteomics_analysis_activity_set"}, sort=[("created_time", -1)]
+    )
+    object_id_latest = latest["id"]
+    existing_job = mdb.jobs.find_one(
+        {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
+    )
+    if not existing_job:
+        run_config = merge(
+            run_config_frozen__normal_env,
+            {
+                "solids": {
+                    "construct_job": {
+                        "config": {
+                            "job_base": {"workflow": {"id": wf_id}},
+                            "object_id_latest": object_id_latest,
+                        }
+                    }
+                }
+            },
+        )
+        yield RunRequest(run_key=object_id_latest, run_config=run_config)
+    else:
+        yield SkipReason(f"Already ensured job for {object_id_latest} for {wf_id}")
+
+
 @asset_sensor(
     asset_key=AssetKey(["object", "nmdc_database.json.zip"]),
-    job=ensure_job_p.to_job(**preset_normal),
+    job=ensure_job.to_job(**preset_normal),
 )
 def ensure_gold_translation_job(_context, asset_event):
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
@@ -114,7 +144,7 @@ def ensure_gold_translation_job(_context, asset_event):
         run_config_frozen__normal_env,
         {
             "solids": {
-                "ensure_job": {
+                "construct_job": {
                     "config": {
                         "job_base": {"workflow": {"id": "gold-translation-1.0.0"}},
                         "object_id_latest": gold_etl_latest["id"],
@@ -197,6 +227,7 @@ def repo():
         done_object_put_ops,
         ensure_gold_translation_job,
         claim_and_run_gold_translation_curation,
+        metaproteomics_analysis_activity_ingest,
     ]
 
     return graph_jobs + schedules + sensors

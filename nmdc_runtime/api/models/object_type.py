@@ -1,7 +1,9 @@
 import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
+
+from nmdc_runtime.api.models.object import DrsObject
 
 
 class ObjectTypeBase(BaseModel):
@@ -12,3 +14,7 @@ class ObjectTypeBase(BaseModel):
 class ObjectType(ObjectTypeBase):
     id: str
     created_at: datetime.datetime
+
+
+class DrsObjectWithTypes(DrsObject):
+    types: Optional[List[str]]

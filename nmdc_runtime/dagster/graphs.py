@@ -14,7 +14,8 @@ from nmdc_runtime.dagster.ops import (
     mongo_stats,
     update_schema,
     filter_ops_undone_expired,
-    ensure_job,
+    construct_job,
+    maybe_post_job,
 )
 
 
@@ -70,5 +71,6 @@ def housekeeping():
 
 
 @graph
-def ensure_job_p():
-    ensure_job()
+def ensure_job():
+    job = construct_job()
+    maybe_post_job(job)
