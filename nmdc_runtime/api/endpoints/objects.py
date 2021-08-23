@@ -32,7 +32,7 @@ def supplied_object_id(mdb, client_site, obj_doc):
     if "access_methods" not in obj_doc:
         return None
     for method in obj_doc["access_methods"]:
-        if "access_id" in method and ":" in method["access_id"]:
+        if method.get("access_id") and ":" in method["access_id"]:
             site_id, _, object_id = method["access_id"].rpartition(":")
             if (
                 client_site.id == site_id

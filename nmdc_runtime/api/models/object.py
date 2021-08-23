@@ -32,7 +32,7 @@ class AccessURL(BaseModel):
 
 
 class AccessMethod(BaseModel):
-    access_id: Optional[str]
+    access_id: Optional[constr(min_length=1)]
     access_url: Optional[AccessURL]
     region: Optional[str]
     type: AccessMethodType = AccessMethodType.https
