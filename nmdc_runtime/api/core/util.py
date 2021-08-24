@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import secrets
 import string
@@ -6,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 from importlib import import_module
 
 from fastapi import HTTPException, status
+from pydantic import BaseModel
 from toolz import keyfilter
 
 API_SITE_ID = os.getenv("API_SITE_ID")
@@ -46,14 +48,17 @@ def raise404_if_none(doc, detail="Not found"):
     return doc
 
 
+def now(as_str=False):
+    dt = datetime.now(timezone.utc)
+    return dt.isoformat() if as_str else dt
+
+
 def expiry_dt_from_now(days=0, hours=0, minutes=0, seconds=0):
-    return datetime.now(timezone.utc) + timedelta(
-        days=days, hours=hours, minutes=minutes, seconds=seconds
-    )
+    return now() + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
 
 
 def has_passed(dt):
-    return datetime.now(timezone.utc) > dt
+    return now() > dt
 
 
 def import_via_dotted_path(dotted_path: str):
@@ -87,3 +92,11 @@ def generate_secret(length=12):
         ):
             break
     return _secret
+
+
+def json_clean(data, model, exclude_unset=False) -> dict:
+    """Run data through a JSON serializer for a pydantic model."""
+    if not isinstance(data, (dict, BaseModel)):
+        raise TypeError("`data` must be a pydantic model or its .dict()")
+    m = model(**data) if isinstance(data, dict) else data
+    return json.loads(m.json(exclude_unset=exclude_unset))

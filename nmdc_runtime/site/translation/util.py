@@ -2,8 +2,8 @@ from pathlib import Path
 
 from dagster import op
 
-from nmdc_runtime.dagster.resources import mongo_resource
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
+from nmdc_runtime.site.resources import mongo_resource
 
 mode_prod = {"resource_defs": {"mongo": mongo_resource}}
 mode_dev = {

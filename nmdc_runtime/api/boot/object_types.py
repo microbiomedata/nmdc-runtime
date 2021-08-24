@@ -9,6 +9,12 @@ _raw = [
         "name": "metadata submission",
         "description": "Input to the portal ETL process",
     },
+    {
+        "id": "metaproteomics_analysis_activity_set",
+        "created_at": datetime(2021, 8, 23, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        "description": "JSON documents satisfying schema for metaproteomics analysis activity",
+    },
 ]
 
 

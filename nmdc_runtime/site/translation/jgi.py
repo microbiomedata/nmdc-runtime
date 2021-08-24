@@ -3,13 +3,13 @@ Translates EMSL data into JSON conformant with the NMDC JSON schema
 """
 from dagster import op, graph
 
-from nmdc_runtime.dagster.translation.util import (
+from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
+from nmdc_runtime.site.translation.util import (
     load_nmdc_etl_class,
     load_mongo_collection,
     preset_prod,
     preset_test,
 )
-from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op

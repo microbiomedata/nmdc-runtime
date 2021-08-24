@@ -4,21 +4,22 @@ from typing import List
 import botocore
 import pymongo
 from fastapi import APIRouter, status, Depends, HTTPException
+from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
 
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.db.s3 import get_s3_client, S3_ID_NS, presigned_url_to_get
+from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObject,
-    AccessURL,
     DrsObjectIn,
+    AccessURL,
 )
-from nmdc_runtime.api.models.object_type import ObjectType
+from nmdc_runtime.api.models.object_type import ObjectType, DrsObjectWithTypes
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
@@ -141,16 +142,31 @@ def list_object_types(object_id: DrsId):
     return object_id
 
 
-@router.put("/objects/{object_id}/types", response_model=List[ObjectType])
-def replace_object_types(object_type_ids: List[str]):
-    return object_type_ids
+@router.put("/objects/{object_id}/types", response_model=DrsObjectWithTypes)
+def replace_object_types(
+    object_id: str,
+    object_type_ids: List[str],
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    unknown_type_ids = set(object_type_ids) - set(mdb.object_types.distinct("id"))
+    if unknown_type_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"unknown type ids: {unknown_type_ids}.",
+        )
+    doc_after = mdb.objects.find_one_and_update(
+        {"id": object_id},
+        {"$set": {"types": object_type_ids}},
+        return_document=ReturnDocument.AFTER,
+    )
+    return doc_after
 
 
 def object_access_id_ok(obj_doc, access_id):
     if "access_methods" not in obj_doc:
         return False
     for method in obj_doc["access_methods"]:
-        if "access_id" in method and method["access_id"] == access_id:
+        if method.get("access_id") and method["access_id"] == access_id:
             return True
     return False
 
@@ -170,7 +186,7 @@ def get_object_access(
         )
     if access_id.startswith(f"{API_SITE_ID}:"):
         url = presigned_url_to_get(
-            f"{S3_ID_NS}/{object_id}",
+            f"{S3_ID_NS}/{access_id.split(':', maxsplit=1)[1]}",
             client=s3client,
         )
         return {"url": url}

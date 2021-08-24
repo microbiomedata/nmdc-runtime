@@ -26,12 +26,12 @@ from terminusdb_client.woqlquery import WOQLQuery as WQ
 from toolz import get_in
 
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import dotted_path_for
+from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
 from nmdc_runtime.api.models.job import JobOperationMetadata, JobBase, Job
 from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
 from nmdc_runtime.api.models.util import ResultT
-from nmdc_runtime.dagster.resources import RuntimeApiSiteClient
-from nmdc_runtime.dagster.util import run_and_log
+from nmdc_runtime.site.resources import RuntimeApiSiteClient
+from nmdc_runtime.site.util import run_and_log
 from nmdc_runtime.util import put_object, drs_object_in_for
 
 
@@ -285,34 +285,69 @@ def delete_operations(context, op_docs: list):
 
 
 @op(required_resource_keys={"mongo"})
-def ensure_job(context):
+def construct_job(context) -> Job:
     mdb: MongoDatabase = context.resources.mongo.db
     job = JobBase(**context.solid_config["job_base"])
     object_id_latest = context.solid_config["object_id_latest"]
+    doc = {
+        "id": generate_one_id(mdb, "jobs"),
+        "workflow": {"id": job.workflow.id},
+        "config": {"object_id_latest": object_id_latest},
+        "created_at": now(),
+    }
+    return Job(**doc)
 
+
+@op(required_resource_keys={"mongo"})
+def maybe_post_job(context, job: Job):
+    mdb: MongoDatabase = context.resources.mongo.db
     job_docs = list(mdb.jobs.find({"workflow.id": job.workflow.id}))
-    job_docs_older = [
-        d
-        for d in job_docs
-        if get_in(["config", "object_id_latest"], d) != object_id_latest
-    ]
-    if len(job_docs) == len(job_docs_older):
-        doc = {
-            "id": generate_one_id(mdb, "jobs"),
-            "workflow": {"id": job.workflow.id},
-            "config": {"object_id_latest": object_id_latest},
-        }
-        job = Job(**doc)
-        mdb.jobs.insert_one(doc)
-        yield AssetMaterialization(
-            asset_key=AssetKey(["job", job.workflow.id]),
-            description=f"workflow job",
-            metadata={
-                "object_id_latest": EventMetadata.text(object_id_latest),
-            },
+    prev_object_ids = [get_in(["config", "object_id_latest"], d) for d in job_docs]
+    job_object_id = job.config.get("object_id_latest")
+    if job_object_id in prev_object_ids:
+        context.log.info(
+            f"{job.workflow.id} job for object id {job_object_id} already posted"
         )
-    if len(job_docs_older):
-        mdb.jobs.delete_many({"id": {"$in": [d["id"] for d in job_docs_older]}})
+        yield Output(None)
+        return
 
-    job = Job(**mdb.jobs.find_one({"workflow.id": job.workflow.id}))
-    yield Output(job.dict(exclude_unset=True))
+    object_id_timestamps = {
+        d["id"]: d["created_time"]
+        for d in mdb.objects.find(
+            {"id": {"$in": prev_object_ids + [job_object_id]}}, ["id", "created_time"]
+        )
+    }
+    candidate_job_object_id_timestamp = object_id_timestamps[job_object_id]
+    for id_, ts in object_id_timestamps.items():
+        if ts > candidate_job_object_id_timestamp:
+            context.log.info(
+                f"{job.workflow.id} job already posted for object id {id_} "
+                f"created later than {job_object_id}"
+            )
+            yield Output(None)
+            return
+
+    mdb.jobs.insert_one(json_clean(job, model=Job, exclude_unset=True))
+    yield AssetMaterialization(
+        asset_key=AssetKey(["job", job.workflow.id]),
+        description=f"workflow job",
+        metadata={
+            "object_id_latest": EventMetadata.text(job_object_id),
+        },
+    )
+    yield Output(job)
+
+
+@op(required_resource_keys={"mongo"})
+def remove_unclaimed_obsolete_jobs(context, job: Job):
+    mdb: MongoDatabase = context.resources.mongo.db
+    job_object_id = job.config.get("object_id_latest")
+    other_job_docs = list(
+        mdb.jobs.find(
+            {
+                "workflow.id": job.workflow.id,
+                "config.object_id_latest": {"$ne": job_object_id},
+            }
+        )
+    )
+    # TODO which of other_job_docs are unclaimed? (no operations)? Delete them.
