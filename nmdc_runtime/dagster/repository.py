@@ -9,6 +9,7 @@ from dagster import (
     RunRequest,
     sensor,
 )
+import nmdc_schema
 from starlette import status
 from toolz import merge
 
@@ -28,6 +29,7 @@ from nmdc_runtime.dagster.resources import (
 )
 from nmdc_runtime.dagster.resources import terminus_resource
 from nmdc_runtime.dagster.translation.jgi import jgi_job, test_jgi_job
+from nmdc_runtime.dagster.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -211,6 +213,6 @@ def translation():
 
 @repository
 def test_translation():
-    graph_jobs = [test_jgi_job]
+    graph_jobs = [test_jgi_job, test_gold_job]
 
     return graph_jobs
