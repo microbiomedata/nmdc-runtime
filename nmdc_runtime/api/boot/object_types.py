@@ -15,6 +15,12 @@ _raw = [
         "name": "metaP analysis activity",
         "description": "JSON documents satisfying schema for metaproteomics analysis activity",
     },
+    {
+        "id": "metagenome_raw_paired_end_reads",
+        "created_at": datetime(2021, 8, 24, tzinfo=timezone.utc),
+        "name": "Metagenome Raw Paired-End Reads Workflow Input",
+        "description": "workflow input",
+    },
 ]
 
 
