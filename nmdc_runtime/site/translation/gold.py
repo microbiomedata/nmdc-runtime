@@ -21,7 +21,7 @@ def transform_study(_context, nmdc_etl: NMDC_ETL) -> tuple:
 
 
 @op
-def transform_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_gold_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("gold.omics_processing_set", nmdc_etl.transform_omics_processing())
 
 
@@ -34,7 +34,7 @@ def transform_biosample(_context, nmdc_etl: NMDC_ETL) -> tuple:
 def gold():
     nmdc_etl = load_nmdc_etl_class()
     gold_study = transform_study(nmdc_etl)
-    gold_omics_processing = transform_omics_processing(nmdc_etl)
+    gold_omics_processing = transform_gold_omics_processing(nmdc_etl)
     gold_biosample = transform_biosample(nmdc_etl)
 
     # load data into mongo

@@ -13,12 +13,12 @@ from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op
-def transform_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_emsl_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("emsl.omics_processing_set", nmdc_etl.transform_emsl_omics_processing())
 
 
 @op
-def transform_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_emsl_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("emsl.data_object_set", nmdc_etl.transform_emsl_data_object())
 
 
@@ -26,8 +26,8 @@ def transform_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
 def emsl():
     # load_merged_data_source()
     nmdc_etl = load_nmdc_etl_class()
-    emsl_omics_processing = transform_omics_processing(nmdc_etl)
-    emsl_data_object = transform_data_object(nmdc_etl)
+    emsl_omics_processing = transform_emsl_omics_processing(nmdc_etl)
+    emsl_data_object = transform_emsl_data_object(nmdc_etl)
 
     # load data into mongo
     load_mongo_collection(emsl_omics_processing)
