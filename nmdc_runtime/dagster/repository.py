@@ -30,6 +30,7 @@ from nmdc_runtime.dagster.resources import (
 from nmdc_runtime.dagster.resources import terminus_resource
 from nmdc_runtime.dagster.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.dagster.translation.gold import gold_job, test_gold_job
+from nmdc_runtime.dagster.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -206,13 +207,13 @@ def repo():
 
 @repository
 def translation():
-    graph_jobs = [jgi_job]
+    graph_jobs = [jgi_job, gold_job, emsl_job]
 
     return graph_jobs
 
 
 @repository
 def test_translation():
-    graph_jobs = [test_jgi_job, test_gold_job]
+    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
 
     return graph_jobs
