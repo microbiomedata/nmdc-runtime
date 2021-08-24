@@ -137,6 +137,11 @@ def metaproteomics_analysis_activity_ingest(_context):
 
 @sensor(job=ensure_job.to_job(**preset_normal))
 def metagenomics_analysis_post(_context):
+    # TODO refactor to a universal sensor that reads from mdb.triggers
+    #   (sourced via nmdc_runtime.api.boot.triggers)
+    #   and duplicates the functionality of metagenomics_analysis_post,
+    #   metaproteomics_analysis_activity_ingest, and future similar sensors
+    #   that trigger one-to-one a workflow given a new object of an object_type.
     wf_id = "metag-1.0.0"
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
     latest = mdb.objects.find_one(
