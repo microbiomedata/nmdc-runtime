@@ -80,13 +80,13 @@ bleach==4.0.0 \
     --hash=sha256:c1685a132e6a9a38bf93752e5faab33a9517a6c0bb2f37b785e47bf253bdb51d \
     --hash=sha256:ffa9221c6ac29399cc50fcc33473366edd0cf8d5e2cbbbb63296dc327fb67cc8
     # via nbconvert
-boto3==1.18.27 \
-    --hash=sha256:7209b79833bdf13753aa24f76bf533890ffed2cc4fe1fe08619d223c209bbd11 \
-    --hash=sha256:f46c93d09acd4d4bfc6b9522ed852fecbdc508e0365f29ddfb3c146aae784b4e
+boto3==1.18.28 \
+    --hash=sha256:dc5c6266cf0400314669fd23d1590c6895cd87c2d1d4254a4a31dc2f249e55c1 \
+    --hash=sha256:fcae01a690561755e7b87946a4685d29f3eb82a9671826fd210dd237c981c6dc
     # via -r requirements/main.in
-botocore==1.21.27 \
-    --hash=sha256:8c99abd7093ab11ce8d09c68732aeeb6065a53d2fe371568452e99291817fff5 \
-    --hash=sha256:b9e2c90bad164d111c229102f58f995c28576e719dd116b446965e1b786f8fa5
+botocore==1.21.28 \
+    --hash=sha256:60e57f2d680961c1babe55c2620ec08d26c5f969cc625a06dc2b62d59ec7a5eb \
+    --hash=sha256:a4747637b74034298497b0e8bda4b196af730d2c44a6ab576501091ef5d0c887
     # via
     #   boto3
     #   s3transfer
@@ -411,10 +411,12 @@ graphql-relay==2.0.1 \
 graphql-server-core==1.2.0 \
     --hash=sha256:04ee90da0322949f7b49ff6905688e3a21a9efbd5a7d7835997e431a0afdbd11
     # via flask-graphql
-graphql-ws==0.4.4 \
-    --hash=sha256:2ad38db70f37964f54d7eb3e2ede86dbe3f2a1ed7ea0a9f9a3b8b17162a22852 \
-    --hash=sha256:b6f4c9f6968feba80762354068a2a36538a48ac72e4253971be43e0cba020506
-    # via dagit
+graphql-ws==0.3.1 \
+    --hash=sha256:2ce29b2dad178f288a469bc6e06b74b4a02edccfcc968c4b5cfaa820e6136b95 \
+    --hash=sha256:ad711b974511b229cbc0aabff6ed6dda0706a91df8892cc9e2fce21a827e69f0
+    # via
+    #   -r requirements/main.in
+    #   dagit
 graphviz==0.17 \
     --hash=sha256:5dadec94046d82adaae6019311a30e0487536d9d5a60d85451f0ba32f9fc6559 \
     --hash=sha256:ef6e2c5deb9cdcc0c7eece1d89625fd07b0f2208ea2bcb483520907ddf8b4e12

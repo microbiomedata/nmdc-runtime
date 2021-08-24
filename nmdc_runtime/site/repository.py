@@ -100,6 +100,44 @@ def metaproteomics_analysis_activity_ingest(_context):
     latest = mdb.objects.find_one(
         {"types": "metaproteomics_analysis_activity_set"}, sort=[("created_time", -1)]
     )
+    if latest is None:
+        yield SkipReason("No objects with type")
+        return
+
+    object_id_latest = latest["id"]
+    existing_job = mdb.jobs.find_one(
+        {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
+    )
+    if not existing_job:
+        run_config = merge(
+            run_config_frozen__normal_env,
+            {
+                "solids": {
+                    "construct_job": {
+                        "config": {
+                            "job_base": {"workflow": {"id": wf_id}},
+                            "object_id_latest": object_id_latest,
+                        }
+                    }
+                }
+            },
+        )
+        yield RunRequest(run_key=object_id_latest, run_config=run_config)
+    else:
+        yield SkipReason(f"Already ensured job for {object_id_latest} for {wf_id}")
+
+
+@sensor(job=ensure_job.to_job(**preset_normal))
+def metagenomics_analysis_post(_context):
+    wf_id = "metag-1.0.0"
+    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    latest = mdb.objects.find_one(
+        {"types": "metagenome_raw_paired_end_reads"}, sort=[("created_time", -1)]
+    )
+    if latest is None:
+        yield SkipReason("No objects with type")
+        return
+
     object_id_latest = latest["id"]
     existing_job = mdb.jobs.find_one(
         {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
@@ -228,6 +266,7 @@ def repo():
         ensure_gold_translation_job,
         claim_and_run_gold_translation_curation,
         metaproteomics_analysis_activity_ingest,
+        metagenomics_analysis_post,
     ]
 
     return graph_jobs + schedules + sensors

@@ -4,6 +4,11 @@ from nmdc_runtime.api.models.workflow import Workflow
 
 _raw = [
     {
+        "id": "metag-1.0.0",
+        "created_at": datetime(2021, 8, 24, tzinfo=timezone.utc),
+        "name": "Metagenome Analysis Workflow (v1.0.0)",
+    },
+    {
         "id": "readsqc-1.0.1",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Reads QC Workflow (v1.0.1)",
