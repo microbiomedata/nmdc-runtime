@@ -186,7 +186,7 @@ def get_object_access(
         )
     if access_id.startswith(f"{API_SITE_ID}:"):
         url = presigned_url_to_get(
-            f"{S3_ID_NS}/{object_id}",
+            f"{S3_ID_NS}/{access_id.split(':', maxsplit=1)[1]}",
             client=s3client,
         )
         return {"url": url}
