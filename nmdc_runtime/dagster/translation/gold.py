@@ -15,18 +15,18 @@ from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op
-def transform_study(context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_study(_context, nmdc_etl: NMDC_ETL) -> tuple:
     # return {"study_set": nmdc_etl.transform_study()}
     return ("gold.study_set", nmdc_etl.transform_study())
 
 
 @op
-def transform_omics_processing(context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("gold.omics_processing_set", nmdc_etl.transform_omics_processing())
 
 
 @op
-def transform_biosample(context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_biosample(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("gold.biosample_set", nmdc_etl.transform_biosample())
 
 

@@ -13,12 +13,12 @@ from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op
-def transform_omics_processing(context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_omics_processing(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("emsl.omics_processing_set", nmdc_etl.transform_emsl_omics_processing())
 
 
 @op
-def transform_data_object(context, nmdc_etl: NMDC_ETL) -> tuple:
+def transform_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("emsl.data_object_set", nmdc_etl.transform_emsl_data_object())
 
 
