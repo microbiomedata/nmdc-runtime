@@ -22,19 +22,6 @@ def transform_data_object(context, nmdc_etl: NMDC_ETL) -> tuple:
     return ("emsl.data_object_set", nmdc_etl.transform_emsl_data_object())
 
 
-@op
-def load_mongo_collection(context, mongo_db: pymongo.database.Database, data: tuple):
-    collecton_name = data[0]  # get collection name
-    documents = data[1]  # get data portion of tuple
-    collecton = mongo_db[collecton_name]  # get mongo collection
-
-    # drop collection if exists
-    collecton.drop()
-
-    # insert data
-    collecton.insert(documents)
-
-
 @graph
 def emsl():
     # load_merged_data_source()
