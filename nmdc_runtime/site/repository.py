@@ -27,15 +27,11 @@ from nmdc_runtime.site.resources import (
     runtime_api_site_client_resource,
     get_runtime_api_site_client,
 )
-<<<<<<< HEAD:nmdc_runtime/dagster/repository.py
-from nmdc_runtime.dagster.resources import terminus_resource
-from nmdc_runtime.dagster.translation.jgi import jgi_job, test_jgi_job
-from nmdc_runtime.dagster.translation.gold import gold_job, test_gold_job
-from nmdc_runtime.dagster.translation.emsl import emsl_job, test_emsl_job
-=======
+
 from nmdc_runtime.site.resources import terminus_resource
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
->>>>>>> main:nmdc_runtime/site/repository.py
+from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
+from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
