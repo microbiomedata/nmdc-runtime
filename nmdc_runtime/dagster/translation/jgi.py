@@ -1,3 +1,6 @@
+"""
+Translates EMSL data into JSON conformant with the NMDC JSON schema
+"""
 from dagster import op, graph
 
 from nmdc_runtime.dagster.translation.util import (
