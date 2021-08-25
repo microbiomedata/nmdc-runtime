@@ -168,9 +168,7 @@ def build_merged_db(context) -> str:
     yield AssetMaterialization(
         asset_key=AssetKey(["gold_translation", "merged_data.tsv.zip"]),
         description="input to metadata-translation run_etl",
-        metadata={
-            "path": EventMetadata.path(storage_path),
-        },
+        metadata={"path": EventMetadata.path(storage_path)},
     )
     yield Output(storage_path, "merged_data_path")
 

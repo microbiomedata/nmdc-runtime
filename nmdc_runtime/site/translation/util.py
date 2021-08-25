@@ -117,4 +117,9 @@ def schema_validate(context, data: tuple):
         return data
     except JsonSchemaValueException as e:
         context.log.error(str(e))
+
+        # yield AssetMaterialization(..)
+        # and/or
+        # -- have make_email_on_pipeline_failure_sensor
+        # -- make_slack_on_pipeline_failure_sensor
         raise Failure(str(e))
