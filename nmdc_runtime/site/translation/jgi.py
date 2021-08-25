@@ -9,6 +9,7 @@ from nmdc_runtime.site.translation.util import (
     load_mongo_collection,
     preset_prod,
     preset_test,
+    schema_validate,
 )
 
 
@@ -21,7 +22,8 @@ def transform_jgi_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
 def jgi():
     nmdc_etl = load_nmdc_etl_class()
     jgi_data_object = transform_jgi_data_object(nmdc_etl)
-    load_mongo_collection(jgi_data_object)
+    jgi_data_object_validated = schema_validate(jgi_data_object)
+    load_mongo_collection(jgi_data_object_validated)
 
 
 jgi_job = jgi.to_job(**preset_prod)
