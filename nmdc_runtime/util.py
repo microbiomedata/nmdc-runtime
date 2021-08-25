@@ -17,6 +17,10 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 # NMDC_JSON_SCHEMA_PATH = pkg_resources.resource_filename("nmdc_schema", "nmdc.schema.json")
 NMDC_JSON_SCHEMA_PATH = Path(nmdc_schema.__path__[0]).joinpath("nmdc.schema.json")
 
+# use the nmdc-schema library to get the jsonschema
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+
+# nmdc_jsonschema = get_nmdc_schema() # uncomment to test!
 
 with open(NMDC_JSON_SCHEMA_PATH) as f:
     nmdc_jsonschema = json.load(f)
