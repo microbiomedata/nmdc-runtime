@@ -45,8 +45,8 @@ def create_objects_from_site_object_puts():
 
 
 @graph
-def hello_pipeline():
-    hello()
+def hello_graph():
+    return hello()
 
 
 @graph

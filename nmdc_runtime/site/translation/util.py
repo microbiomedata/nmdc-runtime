@@ -1,9 +1,11 @@
 from pathlib import Path
 
-from dagster import op
+from dagster import op, Failure
+from fastjsonschema import JsonSchemaValueException
 
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 from nmdc_runtime.site.resources import mongo_resource
+from nmdc_runtime.util import nmdc_jsonschema_validate
 
 mode_prod = {"resource_defs": {"mongo": mongo_resource}}
 mode_dev = {
@@ -102,3 +104,17 @@ def load_mongo_collection(context, data: tuple):
     # insert data
     collection.insert(documents)
     context.log.info(f"inserted {len(documents)} documents into {collection.name}")
+    return collection_name
+
+
+@op()
+def schema_validate(context, data: tuple):
+    collection_name, documents = data
+    _, schema_collection_name = collection_name.split(".")
+    try:
+        nmdc_jsonschema_validate({schema_collection_name: documents})
+        context.log.info(f"all valid")
+        return data
+    except JsonSchemaValueException as e:
+        context.log.error(str(e))
+        raise Failure(str(e))
