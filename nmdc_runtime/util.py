@@ -5,22 +5,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import fastjsonschema
-import nmdc_schema
 import requests
 from frozendict import frozendict
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
-# XXX change to use pkg_resources once pip package builds and deploys properly.
-# NMDC_JSON_SCHEMA_PATH = pkg_resources.resource_filename("nmdc_schema", "nmdc.schema.json")
-NMDC_JSON_SCHEMA_PATH = Path(nmdc_schema.__path__[0]).joinpath("nmdc.schema.json")
-
-
-with open(NMDC_JSON_SCHEMA_PATH) as f:
-    nmdc_jsonschema = json.load(f)
-    nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
+nmdc_jsonschema_validate = fastjsonschema.compile(get_nmdc_schema())
 
 
 def put_object(filepath, url, mime_type=None):
