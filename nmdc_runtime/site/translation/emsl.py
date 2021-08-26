@@ -8,6 +8,7 @@ from nmdc_runtime.site.translation.util import (
     load_mongo_collection,
     preset_prod,
     preset_test,
+    schema_validate,
 )
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
@@ -27,11 +28,14 @@ def emsl():
     # load_merged_data_source()
     nmdc_etl = load_nmdc_etl_class()
     emsl_omics_processing = transform_emsl_omics_processing(nmdc_etl)
+    emsl_omics_processing_validated = schema_validate(emsl_omics_processing)
+
     emsl_data_object = transform_emsl_data_object(nmdc_etl)
+    emsl_data_object_validated = schema_validate(emsl_data_object)
 
     # load data into mongo
-    load_mongo_collection(emsl_omics_processing)
-    load_mongo_collection(emsl_data_object)
+    load_mongo_collection(emsl_omics_processing_validated)
+    load_mongo_collection(emsl_data_object_validated)
 
 
 emsl_job = emsl.to_job(**preset_prod)
