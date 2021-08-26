@@ -10,6 +10,7 @@ from nmdc_runtime.site.translation.util import (
     load_mongo_collection,
     preset_prod,
     preset_test,
+    schema_validate,
 )
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
@@ -34,13 +35,18 @@ def transform_biosample(_context, nmdc_etl: NMDC_ETL) -> tuple:
 def gold():
     nmdc_etl = load_nmdc_etl_class()
     gold_study = transform_study(nmdc_etl)
+    gold_study_validated = schema_validate(gold_study)
+
     gold_omics_processing = transform_gold_omics_processing(nmdc_etl)
+    gold_omics_processing_validated = schema_validate(gold_omics_processing)
+
     gold_biosample = transform_biosample(nmdc_etl)
+    gold_biosample_validated = schema_validate(gold_biosample)
 
     # load data into mongo
-    load_mongo_collection(gold_study)
-    load_mongo_collection(gold_omics_processing)
-    load_mongo_collection(gold_biosample)
+    load_mongo_collection(gold_study_validated)
+    load_mongo_collection(gold_omics_processing_validated)
+    load_mongo_collection(gold_biosample_validated)
 
 
 gold_job = gold.to_job(**preset_prod)
