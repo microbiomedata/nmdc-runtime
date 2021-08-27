@@ -2,6 +2,7 @@ from pathlib import Path
 
 from dagster import op, Failure, AssetMaterialization
 from dagster.core.definitions.events import AssetKey, Output
+from dagster.core.definitions.output import Out
 from fastjsonschema import JsonSchemaValueException
 
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
@@ -110,33 +111,23 @@ def load_mongo_collection(context, data: tuple):
 
 @op()
 def schema_validate(context, data: tuple):
+    def schema_validate_asset(collection_name, status, errors):
+        return AssetMaterialization(
+            asset_key=AssetKey(["translation", f"{collection_name}_translation"]),
+            description=f"{collection_name} translation validation",
+            metadata={"status": status, "errors": errors},
+        )
+
     collection_name, documents = data
     _, schema_collection_name = collection_name.split(".")
-
-    ### this works
-    # context.log.info(f"data for {collection_name} is valid")
-    # yield AssetMaterialization(
-    #     asset_key=AssetKey(
-    #         ["translation_error", f"{collection_name}_translation_error"]
-    #     ),
-    #     description=f"errors found for {collection_name}",
-    #     metadata={"errors": "some error happend"},
-    # )
-    # yield Output(data)
-    # return data  # do I need a return statement and an Output?
-
     try:
         nmdc_jsonschema_validate({schema_collection_name: documents})
         context.log.info(f"data for {collection_name} is valid")
-        return data
+        yield schema_validate_asset(collection_name, "valid", "none")
+        return data  # do I need a return statement and an Output?
     except JsonSchemaValueException as e:
         context.log.error("validation failed for {collection_name}" + str(e))
-        yield AssetMaterialization(
-            asset_key=AssetKey(
-                ["translation_error", f"{collection_name}_translation_error"]
-            ),
-            description=f"errors found for {collection_name}",
-            metadata={"errors": str(e)},
-        )
+        yield schema_validate_asset(collection_name, "not valid", str(e))
+        raise Failure(str(e))
+    finally:
         yield Output(data)
-        # raise Failure(str(e))
