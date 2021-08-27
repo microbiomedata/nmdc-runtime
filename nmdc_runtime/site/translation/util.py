@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from dagster import op, Failure
+from dagster import op, Failure, AssetMaterialization
+from dagster.core.definitions.events import AssetKey, Output
 from fastjsonschema import JsonSchemaValueException
 
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
@@ -111,15 +112,31 @@ def load_mongo_collection(context, data: tuple):
 def schema_validate(context, data: tuple):
     collection_name, documents = data
     _, schema_collection_name = collection_name.split(".")
+
+    ### this works
+    # context.log.info(f"data for {collection_name} is valid")
+    # yield AssetMaterialization(
+    #     asset_key=AssetKey(
+    #         ["translation_error", f"{collection_name}_translation_error"]
+    #     ),
+    #     description=f"errors found for {collection_name}",
+    #     metadata={"errors": "some error happend"},
+    # )
+    # yield Output(data)
+    # return data  # do I need a return statement and an Output?
+
     try:
         nmdc_jsonschema_validate({schema_collection_name: documents})
-        context.log.info(f"all valid")
+        context.log.info(f"data for {collection_name} is valid")
         return data
     except JsonSchemaValueException as e:
-        context.log.error(str(e))
-
-        # yield AssetMaterialization(..)
-        # and/or
-        # -- have make_email_on_pipeline_failure_sensor
-        # -- make_slack_on_pipeline_failure_sensor
-        raise Failure(str(e))
+        context.log.error("validation failed for {collection_name}" + str(e))
+        yield AssetMaterialization(
+            asset_key=AssetKey(
+                ["translation_error", f"{collection_name}_translation_error"]
+            ),
+            description=f"errors found for {collection_name}",
+            metadata={"errors": str(e)},
+        )
+        yield Output(data)
+        # raise Failure(str(e))
