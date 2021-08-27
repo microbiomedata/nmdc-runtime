@@ -15,6 +15,7 @@ from nmdc_runtime.site.translation.util import (
 
 @op
 def transform_jgi_data_object(_context, nmdc_etl: NMDC_ETL) -> tuple:
+    # return "jgi.data_object_set", [{"foo": "bar"}]  # used for testing failure
     return "jgi.data_object_set", nmdc_etl.transform_jgi_data_object()
 
 
