@@ -68,8 +68,8 @@ def test_iterate_collection():
     db = client["nmdc_etl_staging"]
     collection_name = "test.study_test"
     collection = db[collection_name]
-    # collection.insert_one({"id": "1234", "foo": "bar"})
 
+    # collection.insert_one({"id": "1234", "foo": "bar"})
     validate_schema = fastjsonschema.compile(get_nmdc_schema())
     try:
         for doc in collection.find({}, {"_id": 0}):
@@ -77,10 +77,14 @@ def test_iterate_collection():
             # validate_schema({"study_set": [doc]})
             validate({"study_set": [doc]}, get_nmdc_schema())
     except JsonSchemaException as je:
-        print(str(je))
+        # print(str(je))
+        assert False, str(je)
     except ValidationError as ve:
-        print(ve.message)
-        # print("failed")
+        # print(ve.message)
+        assert False, ve.message
+    except Exception as e:
+        # print(e)
+        assert False, str(e)
 
 
 if __name__ == "__main__":
