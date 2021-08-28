@@ -11,7 +11,7 @@ from nmdc_runtime.util import nmdc_jsonschema_validate
 from nmdc_schema import validate_nmdc_json
 
 # from nmdc_schema.validate_nmdc_json import jsonschema
-from jsonschema import validate, ValidationError
+from jsonschema import validate, ValidationError, Draft7Validator
 
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -69,16 +69,16 @@ def test_iterate_collection():
     collection_name = "test.study_test"
     collection = db[collection_name]
 
-    # collection.insert_one({"id": "1234", "foo": "bar"})
+    # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
     validate_schema = fastjsonschema.compile(get_nmdc_schema())
     try:
         for doc in collection.find({}, {"_id": 0}):
             print(len(doc))
-            # validate_schema({"study_set": [doc]})
-            validate({"study_set": [doc]}, get_nmdc_schema())
+            validate_schema({"study_set": [doc]})
+            # validate({"study_set": [doc]}, get_nmdc_schema())
     except JsonSchemaException as je:
-        # print(str(je))
-        assert False, str(je)
+        print(str(je))
+        # assert False, str(je)
     except ValidationError as ve:
         # print(ve.message)
         assert False, ve.message
@@ -87,6 +87,38 @@ def test_iterate_collection():
         assert False, str(e)
 
 
+def test_multiple_errors():
+    client = MongoClient(
+        host="localhost",
+        port=27018,
+        username="admin",
+        password="root",
+    )
+    db = client["nmdc_etl_staging"]
+    collection_name = "test.study_test"
+    collection = db[collection_name]
+
+    # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
+    # validate_schema = fastjsonschema.compile(get_nmdc_schema())
+    validator = Draft7Validator(get_nmdc_schema())
+    validation_errors = []
+
+    for doc in collection.find({}, {"_id": 0}):
+        print(len(doc))
+        try:
+            # fastjsonschema doesn't handle multiple errors!
+            # validate_schema({"study_set": [doc]})
+            errors = list(validator.iter_errors({"study_set": [doc]}))
+            if len(errors) > 0:
+                errors = {doc["id"]: [e.message for e in errors]}
+                validation_errors.append(errors)
+        except Exception as exception:
+            print(str(exception))
+
+    print(validation_errors)
+
+
 if __name__ == "__main__":
     # test_mongo_validate()
-    test_iterate_collection()
+    # test_iterate_collection()
+    test_multiple_errors()
