@@ -1,3 +1,4 @@
+import sys
 import json
 from pathlib import Path
 
@@ -119,6 +120,9 @@ def test_multiple_errors():
 
 
 if __name__ == "__main__":
-    # test_mongo_validate()
-    # test_iterate_collection()
-    test_multiple_errors()
+    if len(sys.argv) > 1:
+        eval(f"{sys.argv[1]}()")
+    else:
+        # test_mongo_validate()
+        # test_iterate_collection()
+        test_multiple_errors()
