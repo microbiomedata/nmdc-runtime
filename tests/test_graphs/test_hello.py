@@ -1,7 +1,7 @@
 from nmdc_runtime.site.graphs import hello_graph
 
 
-def test_hello_pipeline():
+def test_hello():
     """
     This is an example test for a Dagster pipeline.
 
