@@ -10,7 +10,6 @@ fastapi
 fastjsonschema
 frozendict
 git-root
-graphql-ws<0.4.0 # https://dagster.slack.com/archives/C01U954MEER/p1629810852225000?thread_ts=1629810179.224300&cid=C01U954MEER
 jq
 jsonasobj2
 jupyter
