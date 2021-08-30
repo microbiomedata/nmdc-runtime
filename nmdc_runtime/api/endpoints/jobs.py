@@ -1,3 +1,6 @@
+import json
+from typing import Optional
+
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
@@ -10,14 +13,14 @@ from nmdc_runtime.api.core.util import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources
-from nmdc_runtime.api.models.job import Job, JobOperationMetadata
-from nmdc_runtime.api.models.operation import (
-    Operation,
-    ResultT,
-    MetadataT,
+from nmdc_runtime.api.models.job import Job, JobOperationMetadata, JobClaim
+from nmdc_runtime.api.models.operation import Operation, MetadataT
+from nmdc_runtime.api.models.site import (
+    Site,
+    maybe_get_current_client_site,
+    get_current_client_site,
 )
-from nmdc_runtime.api.models.site import Site, get_current_client_site
-from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.api.models.util import ListRequest, ListResponse, ResultT
 
 router = APIRouter()
 
@@ -28,7 +31,16 @@ router = APIRouter()
 def list_jobs(
     req: ListRequest = Depends(),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
+    maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):
+    """List pre-configured workflow jobs.
+
+    If authenticated as a site client, `req.filter` defaults to fetch unclaimed jobs
+    that are claimable by the site client. This default can be overridden to view all jobs
+    by explicitly passing a `req.filter` of `{}`.
+    """
+    if isinstance(maybe_site, Site) and req.filter is None:
+        req.filter = json.dumps({"claims.site_id": {"$ne": maybe_site.id}})
     return list_resources(req, mdb, "jobs")
 
 
@@ -68,9 +80,11 @@ def claim_job(
                 "id": job_op_for_site["id"],
             },
         )
+    op_id = generate_one_id(mdb, "op")
+    job.claims.append(JobClaim(op_id=op_id, site_id=site.id))
     op = Operation[ResultT, JobOperationMetadata](
         **{
-            "id": generate_one_id(mdb, "op"),
+            "id": op_id,
             "expire_time": expiry_dt_from_now(days=30),
             "metadata": {
                 "job": job.dict(exclude_unset=True),
@@ -80,6 +94,7 @@ def claim_job(
         }
     )
     mdb.operations.insert_one(op.dict())
+    mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
     return op
 
 

@@ -13,7 +13,8 @@ from toolz import merge
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
-nmdc_jsonschema_validate = fastjsonschema.compile(get_nmdc_schema())
+nmdc_jsonschema = get_nmdc_schema()
+nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
 
 def put_object(filepath, url, mime_type=None):
