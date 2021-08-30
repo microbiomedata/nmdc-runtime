@@ -33,7 +33,6 @@ def list_resources(
 
     if mdb[collection_name].count_documents(filter=filter_) <= limit:
         rv = {"resources": list(mdb[collection_name].find(filter=filter_))}
-        print(rv)
         return rv
     else:
         if "id_1" not in mdb[collection_name].index_information():

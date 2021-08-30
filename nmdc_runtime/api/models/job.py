@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from pydantic import BaseModel
 
@@ -13,10 +13,16 @@ class JobBase(BaseModel):
     description: Optional[str]
 
 
+class JobClaim(BaseModel):
+    op_id: str
+    site_id: str
+
+
 class Job(JobBase):
     id: str
     created_at: Optional[datetime.datetime]
     config: Dict[str, Any]
+    claims: List[JobClaim] = []
 
 
 class JobExecution(BaseModel):

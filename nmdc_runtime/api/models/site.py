@@ -1,15 +1,15 @@
-import os
-from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import List
 
 import pymongo.database
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from jose import JWTError, jwt
-
-
 from pydantic import BaseModel
 
-from nmdc_runtime.api.core.auth import verify_password, TokenData
+from nmdc_runtime.api.core.auth import (
+    verify_password,
+    TokenData,
+    optional_oauth2_scheme,
+)
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.user import (
     oauth2_scheme,
@@ -72,3 +72,12 @@ async def get_current_client_site(
     if site is None:
         raise credentials_exception
     return site
+
+
+async def maybe_get_current_client_site(
+    token: str = Depends(optional_oauth2_scheme),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    if token is None:
+        return None
+    return await get_current_client_site(token, mdb)

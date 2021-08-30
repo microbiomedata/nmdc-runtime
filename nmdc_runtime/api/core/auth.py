@@ -110,6 +110,9 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
 
 
 oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(tokenUrl="token")
+optional_oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
+    tokenUrl="token", auto_error=False
+)
 
 
 async def basic_credentials(req: Request):
