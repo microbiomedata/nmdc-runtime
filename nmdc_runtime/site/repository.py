@@ -9,6 +9,7 @@ from dagster import (
     RunRequest,
     sensor,
 )
+from dagster.core.definitions import graph
 import nmdc_schema
 from starlette import status
 from toolz import merge
@@ -32,6 +33,7 @@ from nmdc_runtime.site.resources import terminus_resource
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
+from nmdc_runtime.site.validation.jgi import validate_jgi_job, test_validate_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -292,4 +294,16 @@ def translation():
 def test_translation():
     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
 
+    return graph_jobs
+
+
+@repository
+def validation():
+    graph_jobs = [validate_jgi_job]
+    return graph_jobs
+
+
+@repository
+def test_validation():
+    graph_jobs = [validate_jgi_job]
     return graph_jobs

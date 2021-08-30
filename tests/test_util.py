@@ -73,7 +73,7 @@ def test_iterate_collection():
     # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
     validate_schema = fastjsonschema.compile(get_nmdc_schema())
     try:
-        for doc in collection.find({}, {"_id": 0}):
+        for count, doc in enumerate(collection.find({}, {"_id": 0})):
             print(len(doc))
             validate_schema({"study_set": [doc]})
             # validate({"study_set": [doc]}, get_nmdc_schema())
