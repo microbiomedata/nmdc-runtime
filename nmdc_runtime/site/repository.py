@@ -15,6 +15,7 @@ from starlette import status
 from toolz import merge
 
 from nmdc_runtime.api.core.util import dotted_path_for
+from nmdc_runtime.util import frozendict_recursive
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
 from nmdc_runtime.site.graphs import (
     gold_translation,
@@ -34,7 +35,8 @@ from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.site.validation.jgi import validate_jgi_job, test_validate_jgi_job
-from nmdc_runtime.util import frozendict_recursive
+from nmdc_runtime.site.validation.gold import validate_gold_job, test_validate_gold_job
+from nmdc_runtime.site.validation.emsl import validate_emsl_job, test_validate_emsl_job
 
 preset_normal = {
     "config": {
@@ -299,11 +301,11 @@ def test_translation():
 
 @repository
 def validation():
-    graph_jobs = [validate_jgi_job]
+    graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
     return graph_jobs
 
 
 @repository
 def test_validation():
-    graph_jobs = [validate_jgi_job]
+    graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
     return graph_jobs
