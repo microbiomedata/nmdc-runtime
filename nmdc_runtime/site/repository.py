@@ -9,7 +9,6 @@ from dagster import (
     RunRequest,
     sensor,
 )
-import nmdc_schema
 from starlette import status
 from toolz import merge
 
@@ -27,11 +26,10 @@ from nmdc_runtime.site.resources import (
     runtime_api_site_client_resource,
     get_runtime_api_site_client,
 )
-
 from nmdc_runtime.site.resources import terminus_resource
-from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
-from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
+from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
+from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -140,6 +138,8 @@ def metagenomics_analysis_post(_context):
     #   that trigger one-to-one a workflow given a new object of an object_type.
     wf_id = "metag-1.0.0"
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    # TODO request a new job to be created for each unique object id of given type
+    #   i.e. ensure_job->ensure_jobs so that multiple jobs may be created for one sensor invocation.
     latest = mdb.objects.find_one(
         {"types": "metagenome_raw_paired_end_reads"}, sort=[("created_time", -1)]
     )
@@ -148,6 +148,7 @@ def metagenomics_analysis_post(_context):
         return
 
     object_id_latest = latest["id"]
+    # TODO config.object_id_latest -> config.object_id
     existing_job = mdb.jobs.find_one(
         {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
     )
