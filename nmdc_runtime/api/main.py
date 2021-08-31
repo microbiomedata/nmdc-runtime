@@ -226,8 +226,8 @@ async def ensure_initial_resources_on_boot():
             UserInDB(
                 username=username,
                 hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
-                site_admin=os.getenv("API_SITE_ID"),
-            )
+                site_admin=[os.getenv("API_SITE_ID")],
+            ).dict(exclude_unset=True)
         )
         mdb.users.create_index("username")
 
