@@ -10,17 +10,17 @@ from dagster import (
     sensor,
 )
 from starlette import status
-from toolz import merge
+from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import dotted_path_for
-from nmdc_runtime.util import frozendict_recursive
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
+from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.graphs import (
     gold_translation,
     gold_translation_curation,
     create_objects_from_site_object_puts,
     housekeeping,
-    ensure_job,
+    ensure_jobs,
 )
 from nmdc_runtime.site.resources import mongo_resource, get_mongo
 from nmdc_runtime.site.resources import (
@@ -28,12 +28,6 @@ from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
 from nmdc_runtime.site.resources import terminus_resource
-from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
-from nmdc_runtime.site.validation.jgi import validate_jgi_job, test_validate_jgi_job
-from nmdc_runtime.site.validation.gold import validate_gold_job, test_validate_gold_job
-from nmdc_runtime.site.validation.emsl import validate_emsl_job, test_validate_emsl_job
-from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
-from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 preset_normal = {
@@ -87,7 +81,7 @@ def asset_materialization_metadata(asset_event, key):
     """Get metadata from an asset materialization event.
 
     Example:
-    > object_id_latest = asset_materialization_metadata(asset_event, "object_id_latest").text
+    > object_id = asset_materialization_metadata(asset_event, "object_id").text
     """
     for (
         e
@@ -99,85 +93,62 @@ def asset_materialization_metadata(asset_event, key):
     return None
 
 
-@sensor(job=ensure_job.to_job(**preset_normal))
-def metaproteomics_analysis_activity_ingest(_context):
-    wf_id = "metap-metadata-1.0.0"
+@sensor(job=ensure_jobs.to_job(**preset_normal))
+def process_workflow_job_triggers(context):
+    """Post a workflow job for each new object with an object_type matching an active trigger.
+    (Source: nmdc_runtime.api.boot.triggers).
+    """
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
-    latest = mdb.objects.find_one(
-        {"types": "metaproteomics_analysis_activity_set"}, sort=[("created_time", -1)]
-    )
-    if latest is None:
-        yield SkipReason("No objects with type")
-        return
+    triggers = [Trigger(**d) for d in mdb.triggers.find()]
+    base_jobs = []
+    for t in triggers:
+        wf_id, object_type = t.workflow_id, t.object_type_id
+        # context.log.info(f"processing ({wf_id=}, {object_type=}) trigger")
+        object_ids_of_type = [
+            d["id"] for d in mdb.objects.find({"types": object_type}, ["id"])
+        ]
 
-    object_id_latest = latest["id"]
-    existing_job = mdb.jobs.find_one(
-        {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
-    )
-    if not existing_job:
+        if len(object_ids_of_type) == 0:
+            # context.log.info(f"No objects with type")
+            continue
+
+        object_ids_with_existing_jobs = [
+            get_in(["config", "object_id"], d)
+            for d in mdb.jobs.find(
+                {"workflow.id": wf_id, "config.object_id": {"$in": object_ids_of_type}},
+                ["config.object_id"],
+            )
+        ]
+        object_ids_needing_jobs = list(
+            set(object_ids_of_type) - set(object_ids_with_existing_jobs)
+        )
+        base_jobs.extend(
+            [
+                {
+                    "workflow": {"id": wf_id},
+                    "config": {"object_id": id_},
+                }
+                for id_ in object_ids_needing_jobs
+            ]
+        )
+
+    if len(base_jobs) > 0:
         run_config = merge(
             run_config_frozen__normal_env,
-            {
-                "solids": {
-                    "construct_job": {
-                        "config": {
-                            "job_base": {"workflow": {"id": wf_id}},
-                            "object_id_latest": object_id_latest,
-                        }
-                    }
-                }
-            },
+            {"ops": {"construct_jobs": {"config": {"base_jobs": base_jobs}}}},
         )
-        yield RunRequest(run_key=object_id_latest, run_config=run_config)
-    else:
-        yield SkipReason(f"Already ensured job for {object_id_latest} for {wf_id}")
-
-
-@sensor(job=ensure_job.to_job(**preset_normal))
-def metagenomics_analysis_post(_context):
-    # TODO refactor to a universal sensor that reads from mdb.triggers
-    #   (sourced via nmdc_runtime.api.boot.triggers)
-    #   and duplicates the functionality of metagenomics_analysis_post,
-    #   metaproteomics_analysis_activity_ingest, and future similar sensors
-    #   that trigger one-to-one a workflow given a new object of an object_type.
-    wf_id = "metag-1.0.0"
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
-    # TODO request a new job to be created for each unique object id of given type
-    #   i.e. ensure_job->ensure_jobs so that multiple jobs may be created for one sensor invocation.
-    latest = mdb.objects.find_one(
-        {"types": "metagenome_raw_paired_end_reads"}, sort=[("created_time", -1)]
-    )
-    if latest is None:
-        yield SkipReason("No objects with type")
-        return
-
-    object_id_latest = latest["id"]
-    # TODO config.object_id_latest -> config.object_id
-    existing_job = mdb.jobs.find_one(
-        {"workflow.id": wf_id, "config.object_id_latest": object_id_latest},
-    )
-    if not existing_job:
-        run_config = merge(
-            run_config_frozen__normal_env,
-            {
-                "solids": {
-                    "construct_job": {
-                        "config": {
-                            "job_base": {"workflow": {"id": wf_id}},
-                            "object_id_latest": object_id_latest,
-                        }
-                    }
-                }
-            },
+        run_key = tuple(
+            (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
+            for b in base_jobs
         )
-        yield RunRequest(run_key=object_id_latest, run_config=run_config)
+        yield RunRequest(run_key=run_key, run_config=run_config)
     else:
-        yield SkipReason(f"Already ensured job for {object_id_latest} for {wf_id}")
+        yield SkipReason(f"No new jobs required")
 
 
 @asset_sensor(
     asset_key=AssetKey(["object", "nmdc_database.json.zip"]),
-    job=ensure_job.to_job(**preset_normal),
+    job=ensure_jobs.to_job(**preset_normal),
 )
 def ensure_gold_translation_job(_context, asset_event):
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
@@ -196,10 +167,14 @@ def ensure_gold_translation_job(_context, asset_event):
         run_config_frozen__normal_env,
         {
             "solids": {
-                "construct_job": {
+                "construct_jobs": {
                     "config": {
-                        "job_base": {"workflow": {"id": "gold-translation-1.0.0"}},
-                        "object_id_latest": gold_etl_latest["id"],
+                        "base_jobs": [
+                            {
+                                "workflow": {"id": "gold-translation-1.0.0"},
+                                "config": {"object_id": gold_etl_latest["id"]},
+                            }
+                        ]
                     }
                 }
             }
@@ -279,34 +254,33 @@ def repo():
         done_object_put_ops,
         ensure_gold_translation_job,
         claim_and_run_gold_translation_curation,
-        metaproteomics_analysis_activity_ingest,
-        metagenomics_analysis_post,
+        process_workflow_job_triggers,
     ]
 
     return graph_jobs + schedules + sensors
 
 
-@repository
-def translation():
-    graph_jobs = [jgi_job, gold_job, emsl_job]
-
-    return graph_jobs
-
-
-@repository
-def test_translation():
-    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
-
-    return graph_jobs
-
-
-@repository
-def validation():
-    graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
-    return graph_jobs
-
-
-@repository
-def test_validation():
-    graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
-    return graph_jobs
+# @repository
+# def translation():
+#     graph_jobs = [jgi_job, gold_job, emsl_job]
+#
+#     return graph_jobs
+#
+#
+# @repository
+# def test_translation():
+#     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
+#
+#     return graph_jobs
+#
+#
+# @repository
+# def validation():
+#     graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
+#     return graph_jobs
+#
+#
+# @repository
+# def test_validation():
+#     graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
+#     return graph_jobs

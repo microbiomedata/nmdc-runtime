@@ -8,6 +8,16 @@ _raw = [
         "object_type_id": "metadata-in",
         "workflow_id": "portal-etl-1.0.0",
     },
+    {
+        "created_at": datetime(2021, 9, 1, tzinfo=timezone.utc),
+        "object_type_id": "metaproteomics_analysis_activity_set",
+        "workflow_id": "metap-metadata-1.0.0",
+    },
+    {
+        "created_at": datetime(2021, 9, 1, tzinfo=timezone.utc),
+        "object_type_id": "metagenome_raw_paired_end_reads",
+        "workflow_id": "metag-1.0.0",
+    },
 ]
 
 

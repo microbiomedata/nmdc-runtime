@@ -77,3 +77,20 @@ def frozendict_recursive(obj):
 
     msg = "Unsupported type: %r" % type(obj).__name__
     raise TypeError(msg)
+
+
+def pluralize(singular, using, pluralized=None):
+    """Pluralize a word for output.
+
+    >>> pluralize("job", 1)
+    'job'
+    >>> pluralize("job", 2)
+    'jobs'
+    >>> pluralize("datum", 2, "data")
+    'data'
+    """
+    return (
+        singular
+        if using == 1
+        else (pluralized if pluralized is not None else f"{singular}s")
+    )

@@ -14,8 +14,8 @@ from nmdc_runtime.site.ops import (
     mongo_stats,
     update_schema,
     filter_ops_undone_expired,
-    construct_job,
-    maybe_post_job,
+    construct_jobs,
+    maybe_post_jobs,
 )
 
 
@@ -71,6 +71,6 @@ def housekeeping():
 
 
 @graph
-def ensure_job():
-    job = construct_job()
-    maybe_post_job(job)
+def ensure_jobs():
+    jobs = construct_jobs()
+    maybe_post_jobs(jobs)
