@@ -201,6 +201,7 @@ def get_object_access(
 
 @router.patch("/objects/{object_id}", response_model=DrsObject)
 def update_object():
+    # TODO allow client of object _mgr_site to update object
     pass
 
 
