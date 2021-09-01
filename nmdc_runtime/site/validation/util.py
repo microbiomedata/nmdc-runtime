@@ -1,18 +1,9 @@
-from nmdc_runtime.site import validation
-from pathlib import Path
-
-from dagster import op, Failure, AssetMaterialization
-from dagster.core.definitions.events import AssetKey, Output
-from dagster.core.definitions.output import Out
-from fastjsonschema import JsonSchemaValueException
+from dagster import op, AssetMaterialization, AssetKey, EventMetadata
 from jsonschema import Draft7Validator
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from toolz import dissoc
 
-from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.util import nmdc_jsonschema_validate
-
 
 mode_prod = {"resource_defs": {"mongo": mongo_resource}}
 mode_dev = {
@@ -54,44 +45,14 @@ config_test = {
 preset_prod = dict(**mode_prod, config=config_prod)
 preset_test = dict(**mode_test, config=config_test)
 
-
-@op()
-def schema_validate(context, data: tuple):
-    def schema_validate_asset(collection_name, status, errors):
-        return AssetMaterialization(
-            asset_key=AssetKey(["translation", f"{collection_name}_translation"]),
-            description=f"{collection_name} translation validation",
-            metadata={"status": status, "errors": errors},
-        )
-
-    collection_name, documents = data
-    _, schema_collection_name = collection_name.split(".")
-    try:
-        nmdc_jsonschema_validate({schema_collection_name: documents})
-        context.log.info(f"data for {collection_name} is valid")
-        yield schema_validate_asset(collection_name, "valid", "none")
-        # return data  # do I need a return statement and an Output?
-    except JsonSchemaValueException as e:
-        context.log.error("validation failed for {collection_name}" + str(e))
-        yield schema_validate_asset(collection_name, "not valid", str(e))
-        raise Failure(str(e))
-    finally:
-        yield Output(data)
-
-
 # use this to set collection name via config
 # @op(required_resource_keys={"mongo"}, config_schema={"collection_name": str})
 # def validate_mongo_collection(context):
 
-# calling op using collection name paramater
+
 @op(required_resource_keys={"mongo"})
 def validate_mongo_collection(context, collection_name: str):
-    def schema_validate_asset(collection_name, status, errors):
-        return AssetMaterialization(
-            asset_key=AssetKey(["validation", f"{collection_name}_validation"]),
-            description=f"{collection_name} translation validation",
-            metadata={"status": status, "errors": str(errors)},
-        )
+    context.log.info(f"collection_name: {collection_name}")
 
     # use if passing in collection name via config
     # collection_name = context.solid_config["collection_name"]
@@ -106,24 +67,37 @@ def validate_mongo_collection(context, collection_name: str):
     for count, doc in enumerate(collection.find()):
         # add logging for progress?
         # e.g.: if count % 1000 == 0: context.log.info(“done X of Y")
-        try:
-            doc = dissoc(doc, "_id")  # dissoc _id
-            errors = list(validator.iter_errors({f"{db_set}": [doc]}))
-            if len(errors) > 0:
-                if "id" in doc.keys():
-                    errors = {doc["id"]: [e.message for e in errors]}
-                else:
-                    errors = {f"missing id ({count})": [e.message for e in errors]}
-                validation_errors.append(errors)
-        except Exception as exception:
-            print(str(exception))
-            context.log.error("ERROR: " + str(exception))
-            raise Failure(str(exception))
-        finally:
-            if len(validation_errors) > 0:
-                schema_validate_asset(collection_name, "not valid", validation_errors)
-                is_valid = False
+        doc = dissoc(doc, "_id")  # dissoc _id
+        errors = list(validator.iter_errors({f"{db_set}": [doc]}))
+        if len(errors) > 0:
+            if "id" in doc.keys():
+                errors = {doc["id"]: [e.message for e in errors]}
             else:
-                schema_validate_asset(collection_name, "valid", "none")
-                is_valid = True
-            Output(is_valid)
+                errors = {f"missing id ({count})": [e.message for e in errors]}
+            validation_errors.append(errors)
+
+    return {"collection_name": collection_name, "errors": validation_errors}
+
+
+@op
+def write_to_local_file(context):
+    # from tmpfile ...
+    pass
+
+
+@op
+def announce_validation_report(context, report, api_object):
+    collection_name = report["collection_name"]
+    return AssetMaterialization(
+        asset_key=AssetKey(["validation", f"{collection_name}_validation"]),
+        description=f"{collection_name} translation validation",
+        metadata={
+            # https://docs.dagster.io/_apidocs/solids#event-metadata
+            # also .json, .md, .path, .url, .python_artifact, ...
+            "n_errors": EventMetadata.int(len(report["errors"])),
+            "object_id": EventMetadata.text(api_object["id"]),
+        },
+    )
+
+
+# TODO asset_sensor for validation asset that sends an email.

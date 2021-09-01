@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes --output-file=requirements/main.txt requirements/main.in
 #
-alembic==1.7.0 \
-    --hash=sha256:10faf4d6a488d317f6e6439ed44c31e00473bc79bc5f255095a4ea5d12b8152c \
-    --hash=sha256:62c6cf107885ec0215f85b0855e9965cdc112aeb16b473e30e8f3476d5f05d34
+alembic==1.7.1 \
+    --hash=sha256:25f996b7408b11493d6a2d669fd9d2ff8d87883fe7434182bc7669d6caa526ab \
+    --hash=sha256:aea964d3dcc9c205b8759e4e9c1c3935ea3afeee259bffd7ed8414f8085140fb
     # via dagster
 aniso8601==7.0.0 \
     --hash=sha256:513d2b6637b7853806ae79ffaca6f3e8754bdd547048f5ccc1420aec4b714f1e \
@@ -69,13 +69,13 @@ bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
     --hash=sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994
     # via nbconvert
-boto3==1.18.31 \
-    --hash=sha256:203e86311253d291d39588ae2e8dce82eecc10b9f4567ef765d7c54ec02a3e2b \
-    --hash=sha256:59445d0e1d55c8c9675697ea41c98a0d82089a4be3076ea60e3a87cbe94dc141
+boto3==1.18.34 \
+    --hash=sha256:5116e9bdec19adcc5531a9b7b535be77d5314eef092aaf7033ace48a9be65036 \
+    --hash=sha256:658ddf4ba552f654fd4d48335fa95ff4e3e1a4e82f90021a1a1d3de4a5428ba4
     # via -r requirements/main.in
-botocore==1.21.31 \
-    --hash=sha256:58cd315e2ae0971acdb3d7cda9c9c36b41c73181f41943a7443812d6d3c9ad18 \
-    --hash=sha256:8bc35ae34256cac76828ab96c80bc6653b942f85ad1898e7e265196fe92b659e
+botocore==1.21.34 \
+    --hash=sha256:1b4999fb0e1a4c050c4d9118ebdaac8d83761ef32c3c0f13a25f9204045998fe \
+    --hash=sha256:ec2cdf1c8ed64a7f392f352125d248c76103fa9d137b275b7c76836776cedf56
     # via
     #   boto3
     #   s3transfer
@@ -562,9 +562,9 @@ importlib-resources==5.2.2 \
     --hash=sha256:2480d8e07d1890056cb53c96e3de44fead9c62f2ba949b0f2e4c4345f4afa977 \
     --hash=sha256:a65882a4d0fe5fbf702273456ba2ce74fe44892c25e42e057aca526b702a6d4b
     # via alembic
-ipykernel==6.3.0 \
-    --hash=sha256:5314690a638f893e2cc3bf3d25042920e9fbb873f7d8263033390264caeb95f4 \
-    --hash=sha256:e87cff7dff9a04453e1f21921d937a5ce57b978698cfd0d6b1c1e00c865fa0f6
+ipykernel==6.3.1 \
+    --hash=sha256:3d34530e031067f04e88b72715e92c27871368c15998692d665d57027ceb18d9 \
+    --hash=sha256:6dd4b107ab755ed9286c820b2f69c2cd895046ef2a25c878929ac8b5540477a1
     # via
     #   ipywidgets
     #   jupyter
@@ -582,13 +582,14 @@ ipython-genutils==0.2.0 \
     --hash=sha256:72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8 \
     --hash=sha256:eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8
     # via
+    #   ipykernel
+    #   ipywidgets
     #   nbformat
     #   notebook
     #   qtconsole
-    #   traitlets
-ipywidgets==7.6.3 \
-    --hash=sha256:9f1a43e620530f9e570e4a493677d25f08310118d315b00e25a18f12913c41f0 \
-    --hash=sha256:e6513cfdaf5878de30f32d57f6dc2474da395a2a2991b94d487406c0ab7f55ca
+ipywidgets==7.6.4 \
+    --hash=sha256:028bf014a0b1d77cb676fe163115f145aacdde0bb9a51c4166940e5b62a7d1d0 \
+    --hash=sha256:3ffd1baa741eb631e7a3a69d4df290de074ef697e0ef3176e33361b44cd91711
     # via jupyter
 isodate==0.6.0 \
     --hash=sha256:2e364a3d5759479cdb2d37cce6b9376ea504db2ff90252a2e5b7cc89cc9ff2d8 \
@@ -702,9 +703,9 @@ jupyter-core==4.7.1 \
     #   nbformat
     #   notebook
     #   qtconsole
-jupyterlab-widgets==1.0.0 \
-    --hash=sha256:5c1a29a84d3069208cb506b10609175b249b6486d6b1cbae8fcde2a11584fb78 \
-    --hash=sha256:caeaf3e6103180e654e7d8d2b81b7d645e59e432487c1d35a41d6d3ee56b3fef
+jupyterlab-widgets==1.0.1 \
+    --hash=sha256:841925a349bd9a9197c5506bd5461a321b09e6659a9b179a0096b561a92898c3 \
+    --hash=sha256:f94fb7fa1ddc8668e3f98d67a97cabe322e8d04b78b9eb988c7fde415d7a02df
     # via ipywidgets
 linkml==1.0.5 \
     --hash=sha256:a50f4a6b33bb7e1b887f8905c9715ce139a425abb1c9a5edd201f67421b0cfa2 \
@@ -1612,9 +1613,9 @@ tqdm==4.62.2 \
     # via
     #   -r requirements/main.in
     #   dagster
-traitlets==5.0.5 \
-    --hash=sha256:178f4ce988f69189f7e523337a3e11d91c786ded9360174a3d9ca83e79bc5396 \
-    --hash=sha256:69ff3f9d5351f31a7ad80443c2674b7099df13cc41fc5fa6e2f6d3b0330b0426
+traitlets==5.1.0 \
+    --hash=sha256:03f172516916220b58c9f19d7f854734136dd9528103d04e9bf139a92c9f54c4 \
+    --hash=sha256:bd382d7ea181fbbcce157c133db9a829ce06edffe097bcf3ab945b435452b46d
     # via
     #   ipykernel
     #   ipython
@@ -1630,10 +1631,10 @@ typing-compat==0.1.0 \
     --hash=sha256:a7159db80406de342bc128ab315fae3afe1ddc87cbc2df7a023763090fdfe5d2 \
     --hash=sha256:a8b94eb34c95982fbd34b8daa46fd78c43db33c075b98c79b6e1d77e8f7dd4d5
     # via dagster
-typing-extensions==3.10.0.1 \
-    --hash=sha256:045dd532231acfa03628df5e0c66dba64e2cc8fc8b844538d4ad6d5dd6cb82dc \
-    --hash=sha256:83af6730a045fda60f46510f7f1f094776d90321caa4d97d20ef38871bef4bd3 \
-    --hash=sha256:8bbffbd37fbeb9747a0241fdfde5ae99d4531ad1d1a41ccaea62100e15a5814c
+typing-extensions==3.10.0.2 \
+    --hash=sha256:49f75d16ff11f1cd258e1b988ccff82a3ca5570217d7ad8c5f48205dd99a677e \
+    --hash=sha256:d8226d10bc02a29bcc81df19a26e56a9647f8b0a6d4a83924139f4a8b01f17b7 \
+    --hash=sha256:f1d25edafde516b146ecd0613dabcc61409817af4766fbbcfb8d1ad4ec441a34
     # via pydantic
 urllib3==1.26.6 \
     --hash=sha256:39fb8672126159acb139a7718dd10806104dec1e2f0f6c88aab05d17df10c8d4 \
