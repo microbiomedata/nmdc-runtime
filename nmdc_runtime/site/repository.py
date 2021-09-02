@@ -94,7 +94,7 @@ def asset_materialization_metadata(asset_event, key):
 
 
 @sensor(job=ensure_jobs.to_job(**preset_normal))
-def process_workflow_job_triggers(context):
+def process_workflow_job_triggers(_context):
     """Post a workflow job for each new object with an object_type matching an active trigger.
     (Source: nmdc_runtime.api.boot.triggers).
     """
@@ -103,13 +103,11 @@ def process_workflow_job_triggers(context):
     base_jobs = []
     for t in triggers:
         wf_id, object_type = t.workflow_id, t.object_type_id
-        # context.log.info(f"processing ({wf_id=}, {object_type=}) trigger")
         object_ids_of_type = [
             d["id"] for d in mdb.objects.find({"types": object_type}, ["id"])
         ]
 
         if len(object_ids_of_type) == 0:
-            # context.log.info(f"No objects with type")
             continue
 
         object_ids_with_existing_jobs = [
@@ -138,8 +136,10 @@ def process_workflow_job_triggers(context):
             {"ops": {"construct_jobs": {"config": {"base_jobs": base_jobs}}}},
         )
         run_key = tuple(
-            (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
-            for b in base_jobs
+            sorted(
+                (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
+                for b in base_jobs
+            )
         )
         yield RunRequest(run_key=run_key, run_config=run_config)
     else:
