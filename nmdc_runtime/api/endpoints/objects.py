@@ -144,7 +144,7 @@ def list_object_types(
     object_id: DrsId, mdb: pymongo.database.Database = Depends(get_mongo_db)
 ):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}, ["types"]))
-    return list(mdb.object_types.find({"id": {"$in": doc["types"]}}))
+    return list(mdb.object_types.find({"id": {"$in": doc.get("types", [])}}))
 
 
 @router.put("/objects/{object_id}/types", response_model=DrsObjectWithTypes)

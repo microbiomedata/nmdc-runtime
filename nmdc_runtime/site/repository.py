@@ -135,10 +135,12 @@ def process_workflow_job_triggers(_context):
             run_config_frozen__normal_env,
             {"ops": {"construct_jobs": {"config": {"base_jobs": base_jobs}}}},
         )
-        run_key = tuple(
-            sorted(
-                (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
-                for b in base_jobs
+        run_key = str(
+            tuple(
+                sorted(
+                    (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
+                    for b in base_jobs
+                )
             )
         )
         yield RunRequest(run_key=run_key, run_config=run_config)
