@@ -7,6 +7,7 @@ from fastapi import APIRouter, status, Depends, HTTPException
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
+from toolz import merge
 
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
@@ -112,6 +113,7 @@ def list_objects(
     "/objects/{object_id}", response_model=DrsObject, response_model_exclude_unset=True
 )
 def get_object_info(
+    # TODO DrsId = Depends(normalize_id) # remove '-'s, i->1, lower(), etc.
     object_id: DrsId,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
@@ -200,9 +202,23 @@ def get_object_access(
 
 
 @router.patch("/objects/{object_id}", response_model=DrsObject)
-def update_object():
-    # TODO allow client of object _mgr_site to update object
-    pass
+def update_object(
+    object_id: str,
+    object_patch: DrsObjectIn,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    client_site: Site = Depends(get_current_client_site),
+):
+    doc = raise404_if_none(mdb.objects.find_one({"id": object_id}))
+    # A site client can update object iff its site_id is _mgr_site.
+    object_mgr_site = doc.get("_mgr_site")
+    if object_mgr_site != client_site.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"client authorized for different site_id than {object_mgr_site}",
+        )
+    doc_object_patched = merge(doc, object_patch.dict(exclude_unset=True))
+    mdb.operations.replace_one({"id": object_id}, doc_object_patched)
+    return doc_object_patched
 
 
 @router.put("/objects/{object_id}", response_model=DrsObject)

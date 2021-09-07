@@ -82,6 +82,7 @@ packaging==21.0 \
     #   -c requirements/main.txt
     #   bleach
     #   pytest
+    #   setuptools-scm
 pathspec==0.9.0 \
     --hash=sha256:7d15c4ddb0b5c802d161efc417ec1a2558ea2653c2e8ad9c19098201dc1c993a \
     --hash=sha256:e564499435a2673d586f6b2130bb5b95f04a3ba06f81b8f895b651a3c76aabb1
@@ -180,9 +181,9 @@ rfc3986==1.5.0 \
     --hash=sha256:270aaf10d87d0d4e095063c65bf3ddbc6ee3d0b226328ce21e036f946e421835 \
     --hash=sha256:a86d6e1f5b1dc238b218b012df0aa79409667bb209e58da56d0b94704e712a97
     # via twine
-setuptools-scm==6.0.1 \
-    --hash=sha256:c3bd5f701c8def44a5c0bfe8d407bef3f80342217ef3492b951f3777bd2d915c \
-    --hash=sha256:d1925a69cb07e9b29416a275b9fadb009a23c148ace905b2fb220649a6c18e92
+setuptools-scm==6.3.1 \
+    --hash=sha256:0f6a263912b13798c028b9a271d91af3bde0e42784091c797deccc3ad3a7f596 \
+    --hash=sha256:868c066ae7d48fb2193495723634ebcf79b458c909869b41a3bc09e2a778b9f9
     # via -r requirements/dev.in
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
@@ -198,7 +199,9 @@ toml==0.10.2 \
 tomli==1.2.1 \
     --hash=sha256:8dd0e9524d6f386271a36b41dbf6c57d8e32fd96fd22b6584679dc569d20899f \
     --hash=sha256:a5b75cb6f3968abb47af1b40c1819dc519ea82bcc065776a866e8d74c5ca9442
-    # via black
+    # via
+    #   black
+    #   setuptools-scm
 tqdm==4.62.2 \
     --hash=sha256:80aead664e6c1672c4ae20dc50e1cdc5e20eeff9b14aa23ecd426375b28be588 \
     --hash=sha256:a4d6d112e507ef98513ac119ead1159d286deab17dffedd96921412c2d236ff5
@@ -231,9 +234,7 @@ webencodings==0.5.1 \
 zipp==3.5.0 \
     --hash=sha256:957cfda87797e389580cb8b9e3870841ca991e2125350677b2ca83a0e99390a3 \
     --hash=sha256:f5812b1e007e48cff63449a5e9f4e7ebea716b4111f9c4f9a645f91d579bf0c4
-    # via
-    #   -c requirements/main.txt
-    #   importlib-metadata
+    # via importlib-metadata
 
 # WARNING: The following packages were not pinned, but pip requires them to be
 # pinned when the requirements file includes hashes. Consider using the --allow-unsafe flag.
