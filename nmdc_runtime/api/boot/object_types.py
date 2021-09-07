@@ -21,6 +21,12 @@ _raw = [
         "name": "Metagenome Raw Paired-End Reads Workflow Input",
         "description": "workflow input",
     },
+    {
+        "id": "metatranscriptome_raw_paired_end_reads",
+        "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
+        "name": "Metatranscriptome Raw Paired-End Reads Workflow Input",
+        "description": "workflow input",
+    },
 ]
 
 
