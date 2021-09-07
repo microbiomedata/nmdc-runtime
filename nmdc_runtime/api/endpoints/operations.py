@@ -1,8 +1,8 @@
 import pymongo
 from fastapi import APIRouter, Depends, status, HTTPException
-from toolz import get_in, merge
+from toolz import get_in, merge, assoc
 
-from nmdc_runtime.api.core.util import raise404_if_none
+from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.operation import (
@@ -50,7 +50,14 @@ def update_operation(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"client authorized for different site_id than {site_id_op}",
         )
-    doc_op_patched = merge(doc_op, op_patch.dict(exclude_unset=True))
+    op_patch_metadata = merge(
+        op_patch.dict(exclude_unset=True).get("metadata", {}),
+        pick(["site_id", "job", "model"], doc_op),
+    )
+    doc_op_patched = merge(
+        doc_op,
+        assoc(op_patch.dict(exclude_unset=True), "metadata", op_patch_metadata),
+    )
     mdb.operations.replace_one({"id": op_id}, doc_op_patched)
     return doc_op_patched
 
