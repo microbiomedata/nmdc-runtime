@@ -1,0 +1,63 @@
+﻿#formatVersion,https://ns.csv-ld.org/2021/09/csv-ld/core,,,,,
+#vocabBase,https://ns.csv-ld.org/2021/09/csv-ld/core#,,,,,
+#prefix,nmdc:,https://data.microbiomedata.org/,,,,
+#prefix,gold:,https://gold.jgi.doe.gov/,,,,
+#prefix,emsl:,https://www.emsl.pnnl.gov/,,,,
+#prefix,csvld:,https://ns.csv-ld.org/2021/09/csv-ld/core#,,,,
+#,,,,,,
+#,comment,"The first line in this file that does NOT start with a ""#""-prefixed cell, is the header row for the CSV data",,,,
+#,comment,"The lines above the CSV header row, aka the frontmatter, are of the form ""subject, predicate, object""",,,,
+#,comment,"""#"" is a surrogate identifier for THIS SHEET. Thus, rows of the form ""#, predicate, object"" state metadata for this sheet",,,,
+#,comment,You can visit the URL given to the #vocabBase directive to look up the meaning of any unqualified terms,,,,
+#,comment,"When looking up header row terms, if there is one and only one term in #vocabBase with a matching csvld:label, that works",,,,
+#,comment,The #prefix directive lets you qualify terms that are not found in the base vocabulary (given to #vocabBase),,,,
+#,,,,,,
+#,comment,"It's fine to have ""blank"" rows above the header row, as long as they have ""#"" as the first cell",,,,
+#,,,,,,
+#,type,NMDC Changesheet,,,,
+#id,nmdc:changesheet-ex-01,,,,,
+#,label,NMDC Changesheet Example 01,,,,
+#,,,,,,
+line,block,in or out,namespace,subject,predicate,object
+,,,,gold:Gs0114663,publications,https://doi.org/10.1371/journal.pone.0228165
+,,,,,description,"This research project, led by James Stegen at PNNL, aimed to understand how molecular-scale processes govern the biogeochemical function of subsurface groundwater-surface water mixing zones (i.e., the hyporheic zone). This project was conducted along the Columbia River in Eastern Washington State, which exhibits variation in microbiome composition, biogeochemical activity, and substrate biogeochemistry, making it an ideal environment for studying biogeochemical hotspots. To capture a range of biogeochemical activities, samples were collected from areas with dense vegetation and virtually no vegetation. This project’s long-term goal is to develop models that can simulate impacts of disturbance on river corridor hydro-biogeochemistry by understanding fundamental molecular processes that lead to emergent function. This project is part of PNNL’s River Corridor Hydrobiogeochemistry Science Focus Area (https://www.pnnl.gov/projects/river-corridor-hydrobiogeochemistry-science-focus-area)."
+,,,,gold:Gs0114675,description,"This project aims to improve the understanding of microbial diversity and metabolism in deep shale, with implications for novel enzyme discovery and energy development. This project was conducted along two Appalachian basin shales, the Marcellus and Utica/Point Pleasant formations in Pennsylvania and Ohio, respectively. Samples were collected from input and produced fluids up to a year after hydraulic fracturing at varying depths and locations (4 wells, 2 basin shales)."
+,,,,gold:Gs0135149,publications,https://doi.org/10.21952/WTR/1573029
+,,,,,description,"This research project aimed to understand how snow accumulation and snowmelt influences the mobilization of nitrogen through the soil microbiome in a mountainous catchment at the East River Watershed in Colorado. This project sought to identify bacteria, archaea, and fungi that were associated with the microbial biomass bloom that occurs during winter and the biomass crash following snowmelt. This project also sought to understand whether the traits that govern microbial community assembly during and after snowmelt were phylogenetically conserved. Samples were collected during winter, the snowmelt period, and after snowmelt in spring, from an area that transitioned from an upland hillslope to a riparian floodplain. This project is part of the Watershed Function Science Focus Area: https://watershed.lbl.gov/."
+,,,,gold:Gs0154044,description,The goal of this Bio-Scales Pilot Project study is to understand how plant traits modify the microbiome and in particular how the coupled plant-soil-microbial system influences nitrogen transformation patterns and fluxes.
+,,,,,websites,https://www.ornl.gov/staff-profile/mitchel-j-doktycz
+,,,,,websites,https://www.ornl.gov/section/bioimaging-and-analytics
+,,,,,websites,https://pmiweb.ornl.gov/
+,,,,,websites,https://www.ornl.gov/project/bio-scales
+,,,,,principal investigator,pi
+,,,,pi,profile image url,https://portal.nersc.gov/project/m3408/profile_images/doktycz_mitchel.jpg
+,,,,pi,name,Mitchel J. Doktycz
+,,,,gold:Gs0128850,websites,https://sc-programs.llnl.gov/biological-and-environmental-research-at-llnl/soil-microbiome
+,,,,,description,"The Microbes Persist: Systems Biology of the Soil Microbiome SFA seeks to understand how microbial ecophysiology, population dynamics, and microbe–mineral–organic matter interactions regulate the persistence of microbial residues in soil under changing moisture regimes."
+,,,,,principal investigator,pi2
+,,,,pi2,profile image url,https://portal.nersc.gov/project/m3408/profile_images/pett-ridge_jennifer.jpg
+,,,,pi2,name,Jennifer Pett-Ridge
+,,,,"gold: 	Gs0103573",websites,https://pmiweb.ornl.gov/pmi-project-aims/
+,,,,,description,The goal of the Plant-Microbe Interfaces SFA is to gain a deeper understanding of the diversity and functioning of mutually beneficial interactions between plants and microbes in the rhizosphere.
+,,,,gold:Gs0110138,websites,https://mnspruce.ornl.gov/project/overview
+,,,,,description,"The Spruce and Peatland Responses Under Changing Environments (SPRUCE) experiment is the primary component of the Terrestrial Ecosystem Science Scientific Focus Area of ORNL's Climate Change Program, focused on terrestrial ecosystems and the mechanisms that underlie their responses to climatic change. This project seeks to assess the response of northern peatland ecosystems to increases in temperature and exposures to elevated atmospheric CO2 concentrations."
+,,,,gold:Gs0149986,websites,https://watershed.lbl.gov/about/
+,,,,,description,"The Watershed Function Scientific SFA is developing a predictive understanding of how mountainous watersheds retain and release water, nutrients, carbon, and metals. In particular, the SFA is developing understanding and tools to measure and predict how droughts, early snowmelt, and other perturbations impact downstream water availability and biogeochemical cycling at episodic to decadal timescales."
+,,,,gold:Gs0154044,title,Bio-Scales: Defining plant gene function and its connection to ecosystem nitrogen and carbon cycle
+,,,,,doi,https://doi.org/10.46936/10.25585/60000017
+,,,,gold:Gs0128850,title,Microbial Carbon Transformations in Wet Tropical Soils: Effects of Redox Fluctuation
+,,,,,doi,https://doi.org/10.25585/1488160
+,,,,,description,"This study is part of the Microbes Persist: Systems Biology of the Soil Microbiome Science Focus Area, which seeks to understand how microbial ecophysiology, population dynamics, and microbe–mineral–organic matter interactions regulate the persistence of microbial residues in soil under changing moisture regimes."
+,,,,gold:Gs0103573,title,Defining the functional diversity of the Populus root microbiome
+,,,,,doi,https://doi.org/10.25585/1488096
+,,,,,description,"This study is part of the Plant-Microbe Interfaces Science Focus Area, which aims to gain a deeper understanding of the diversity and functioning of mutually beneficial interactions between plants and microbes in the rhizosphere. Ongoing efforts focus on characterizing and interpreting such interfaces using systems comprising plants and microbes, in particular the poplar tree (Populus) and its microbial community in the context of favorable plant microbe interactions."
+,,,,,publications,https://doi.org/10.1128/mSystems.00045-18
+,,,,gold:Gs0110138,title,"Fungal, bacterial, and archaeal communities mediating C cycling and trace gas flux in peatland ecosystems subject to climate change"
+,,,,,doi,https://doi.org/10.25585/1488099
+,,,,,description,"This study is part of the Spruce and Peatland Responses Under Changing Environments (SPRUCE) experiment, which is the primary component of the Terrestrial Ecosystem Science Focus Area of ORNL's Climate Change Program, focused on terrestrial ecosystems and the mechanisms that underlie their responses to climatic change. This project seeks to assess the response of northern peatland ecosystems to increases in temperature and exposures to elevated atmospheric CO2 concentrations."
+,wshedSFA,,staging,gold:Gs0149986,title,"Scaling microbial traits from genomes to watersheds through combined airborne hyperspectral imaging, soil biogeochemistry, and metagenome assembled genomes"
+,wshedSFA,,staging,,doi,https://doi.org/10.46936/10.25585/60000016
+,wshedSFA,,staging,,description,"This study is part of the Watershed Function Science Focus Area (SFA), which is developing a predictive understanding of how mountainous watersheds retain and release water, nutrients, carbon, and metals. In particular, the SFA is developing understanding and tools to measure and predict how droughts, early snowmelt, and other perturbations impact downstream water availability and biogeochemical cycling at episodic to decadal timescales."
+,wshedSFA,,staging,wshedSFA,comment,This study is currently embargoed. It should not be in the main database. Adding to staging.
+rmNSFwebsite,,~,,gold:Gs0114663,websites,https://nsf.gov
+,,,,rmNSFwebsite,comment,Not really sure how that website got added for that study!
