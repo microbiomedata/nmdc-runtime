@@ -9,6 +9,12 @@ router = APIRouter()
 
 @router.post("/changesheets/validate")
 async def validate_changesheet(sheet: UploadFile = File(...)):
+    """
+
+    Example changesheets:
+     - [nmdc-changesheet-ex-01.csv](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/examples/changesheet-ex-01.csv)
+
+    """
     content_type = sheet.content_type
     filename = sheet.filename
     if content_type != "text/csv":
