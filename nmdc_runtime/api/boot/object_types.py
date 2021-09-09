@@ -27,6 +27,12 @@ _raw = [
         "name": "Metatranscriptome Raw Paired-End Reads Workflow Input",
         "description": "workflow input",
     },
+    {
+        "id": "test",
+        "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
+        "name": "A test object type",
+        "description": "For use in unit and integration tests",
+    },
 ]
 
 

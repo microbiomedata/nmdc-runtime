@@ -23,6 +23,11 @@ _raw = [
         "object_type_id": "metatranscriptome_raw_paired_end_reads",
         "workflow_id": "metat-1.0.0",
     },
+    {
+        "created_at": datetime(2021, 9, 9, tzinfo=timezone.utc),
+        "object_type_id": "test",
+        "workflow_id": "test",
+    },
 ]
 
 

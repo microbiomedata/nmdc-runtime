@@ -30,6 +30,12 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.resources import terminus_resource
 from nmdc_runtime.util import frozendict_recursive
 
+resource_defs = {
+    "runtime_api_site_client": runtime_api_site_client_resource,
+    "terminus": terminus_resource,
+    "mongo": mongo_resource,
+}
+
 preset_normal = {
     "config": {
         "resources": {
@@ -60,11 +66,7 @@ preset_normal = {
             },
         },
     },
-    "resource_defs": {
-        "runtime_api_site_client": runtime_api_site_client_resource,
-        "terminus": terminus_resource,
-        "mongo": mongo_resource,
-    },
+    "resource_defs": resource_defs,
 }
 
 run_config_frozen__normal_env = frozendict_recursive(preset_normal["config"])

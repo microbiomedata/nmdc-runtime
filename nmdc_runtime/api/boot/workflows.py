@@ -66,6 +66,12 @@ _raw = [
         "name": "general metadata ETL",
         "description": "Ingest and validate metadata from JSON files",
     },
+    {
+        "id": "test",
+        "created_at": datetime(2021, 9, 9, tzinfo=timezone.utc),
+        "name": "A test workflow",
+        "description": "For use in unit and integration tests",
+    },
 ]
 
 

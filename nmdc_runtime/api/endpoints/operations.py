@@ -42,8 +42,17 @@ def update_operation(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
+    """
+
+    A site client can update an operation if and only if its site_id is the operation's
+    `metadata.site_id`.
+
+    The following fields in `metadata` are used by the system and are read-only:
+    - site_id
+    - job
+    - model
+    """
     doc_op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
-    # A site client can update operation iff its site_id is in op metadata.
     site_id_op = get_in(["metadata", "site_id"], doc_op)
     if site_id_op != client_site.id:
         raise HTTPException(
@@ -52,7 +61,7 @@ def update_operation(
         )
     op_patch_metadata = merge(
         op_patch.dict(exclude_unset=True).get("metadata", {}),
-        pick(["site_id", "job", "model"], doc_op),
+        pick(["site_id", "job", "model"], doc_op.get("metadata", {})),
     )
     doc_op_patched = merge(
         doc_op,
