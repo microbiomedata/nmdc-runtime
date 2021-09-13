@@ -16,6 +16,8 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 nmdc_jsonschema = get_nmdc_schema()
 nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
+REPO_ROOT_DIR = Path(__file__).parent.parent
+
 
 def put_object(filepath, url, mime_type=None):
     if mime_type is None:
