@@ -13,7 +13,7 @@ async def validate_changesheet(sheet: UploadFile = File(...)):
     """
 
     Example changesheets:
-     - [nmdc-changesheet-ex-01.csv](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/examples/changesheet-ex-01.csv)
+     - [changesheet-with-separator1.tsv](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-with-separator1.tsv)
 
     """
     content_types = {
