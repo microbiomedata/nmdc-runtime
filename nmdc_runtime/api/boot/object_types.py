@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
+from toolz import get_in
+
 from nmdc_runtime.api.models.object_type import ObjectType
+from nmdc_runtime.util import nmdc_jsonschema
 
 _raw = [
     {
@@ -34,6 +37,29 @@ _raw = [
         "description": "For use in unit and integration tests",
     },
 ]
+
+_raw.extend(
+    [
+        {
+            "id": key,
+            "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+            "name": key,
+            "description": spec["description"],
+        }
+        for key, spec in nmdc_jsonschema["properties"].items()
+        if key.endswith("_set")
+    ]
+)
+_raw.append(
+    {
+        "id": "schema#/definitions/Database",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "Bundle of one or more metadata `*_set`s.",
+        "description": get_in(
+            ["definitions", "Database", "description"], nmdc_jsonschema
+        ),
+    }
+)
 
 
 def construct():
