@@ -5,7 +5,7 @@ from pandas._typing import FilePathOrBuffer
 from toolz import assoc_in
 
 
-def load_changesheet(filename: FilePathOrBuffer, sep="\t") -> pd.DataFrame:
+def load_changesheet(filename: FilePathOrBuffer, sep="\t", dtype="string") -> pd.DataFrame:
     # load dataframe replacing NaN with ''
     df = pd.read_csv(filename, sep=sep).fillna("")
 
