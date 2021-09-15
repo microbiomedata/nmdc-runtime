@@ -5,7 +5,7 @@ from typing import Optional
 import pandas as pd
 from toolz import get_in
 
-from nmdc_runtime.api.core.changesheets import load_changesheet, update_data
+from nmdc_runtime.api.core.metadata import load_changesheet, update_data
 from nmdc_runtime.util import REPO_ROOT_DIR
 
 TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("metadata-translation", "notebooks", "data")

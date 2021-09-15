@@ -3,12 +3,12 @@ from io import StringIO
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from starlette import status
 
-from nmdc_runtime.api.core.changesheets import load_changesheet
+from nmdc_runtime.api.core.metadata import load_changesheet
 
 router = APIRouter()
 
 
-@router.post("/changesheets/validate")
+@router.post("/metadata/changesheets:validate")
 async def validate_changesheet(sheet: UploadFile = File(...)):
     """
 

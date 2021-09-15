@@ -19,7 +19,7 @@ from nmdc_runtime.api.endpoints import (
     triggers,
     workflows,
     queries,
-    changesheets,
+    metadata,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
@@ -36,7 +36,7 @@ api_router.include_router(workflows.router, tags=["workflows"])
 api_router.include_router(object_types.router, tags=["object types"])
 api_router.include_router(queries.router, tags=["queries"])
 api_router.include_router(ids.router, tags=["identifiers"])
-api_router.include_router(changesheets.router, tags=["changesheets"])
+api_router.include_router(metadata.router, tags=["metadata"])
 
 tags_metadata = [
     {
@@ -182,8 +182,8 @@ issue an update query).
         "description": "Tools for identifier generation and resolution.",
     },
     {
-        "name": "changesheets",
-        "description": "Tools for changesheet validation and registration.",
+        "name": "metadatata",
+        "description": "Tools for metadata validation and registration/submission.",
     },
 ]
 

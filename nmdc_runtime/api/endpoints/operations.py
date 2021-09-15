@@ -52,6 +52,7 @@ def update_operation(
     - job
     - model
     """
+    # TODO be able to make job "undone" and "redone" to re-trigger downstream ETL.
     doc_op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
     site_id_op = get_in(["metadata", "site_id"], doc_op)
     if site_id_op != client_site.id:
