@@ -1,0 +1,8 @@
+id	action	attribute	value
+gold:Gs0110115	update	name	soil study
+		ecosystem	soil
+gold:Gs0112340	update	doi	v1
+v1		has_raw_value	10.9999/8888
+	update	name	data for study 2
+	update	principal_investigator	v2
+v2		has_raw_value	investigator 1
