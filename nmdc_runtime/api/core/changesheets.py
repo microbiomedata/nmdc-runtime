@@ -104,10 +104,11 @@ def update_data(
     df_change = df_change.reset_index(drop=True)
 
     for i in range(len(df_change)):
-        attribute_path = df_change.loc[i, "attribute"].split(path_separator)
-        check_attribute_path(schema, attribute_path)
-        new_val = df_change.loc[i, "value"]
-        new_data = assoc_in(new_data, attribute_path, new_val)
+        attribute_path = df_change.loc[i, "path"].split(path_separator)
+        if len(attribute_path) > 0:
+            check_attribute_path(schema, attribute_path)
+            new_val = df_change.loc[i, "value"]
+            new_data = assoc_in(new_data, attribute_path, new_val)
 
     if print_update:
         print(new_data)
