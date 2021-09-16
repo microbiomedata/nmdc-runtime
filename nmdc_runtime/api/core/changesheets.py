@@ -30,10 +30,6 @@ def load_changesheet(
     except KeyError:
         raise ValueError("change sheet lacks 'action' column.")
 
-    # add path column used to hold the path in the data to the data that will be changed
-    # e.g. principal_investigator/name
-    df["path"] = ""
-
     # build dict to hold variables that have been defined
     # in the id column of the change sheet
     try:
@@ -43,8 +39,16 @@ def load_changesheet(
             if len(val) > 0 and ":" not in val
         }
     except KeyError:
+        # note the presence of the id column is checked above
         raise ValueError("change sheet lacks 'attribute' column.")
 
+    # add group_var column to hold values from the id column
+    # that are being used varialbe/blank nodes
+    df["group_var"] = df["id"].map(lambda x: x if not (":" in x) else "")
+
+    # add path column used to hold the path in the data to the data that will be changed
+    # e.g. principal_investigator/name
+    df["path"] = ""
     for ix, _id, attr, val in df[["id", "attribute", "value"]].itertuples():
         # case 1: a variable is in the id and value colums
         if _id in var_dict.keys() and val in var_dict.keys():
