@@ -1,14 +1,14 @@
 import copy
-import pandas as pd
+import pandas as pds
 from pandas._typing import FilePathOrBuffer
 from toolz import assoc_in, merge
 
 
 def load_changesheet(
     filename: FilePathOrBuffer, sep="\t", path_separator="/"
-) -> pd.DataFrame:
+) -> pds.DataFrame:
     # load dataframe replacing NaN with ''
-    df = pd.read_csv(filename, sep=sep, dtype="string").fillna("")
+    df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
 
     # add a group id column, but copy only IRIs (has ":" in it)
     try:
