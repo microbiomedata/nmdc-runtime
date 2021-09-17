@@ -109,39 +109,56 @@ def update_data_group(data, df_change, path_separator="/"):
     return assoc_in(data, attribute_path, value)
 
 
-def update_data(
-    data: dict,
-    df_change: pd.DataFrame,
-    group_var: str,
-    path_separator="/",
-    print_data=False,
-    print_update=False,
-    copy_input_data=False,
-) -> dict:
-    # make a copy of the data for testing purposes
-    if copy_input_data == True:
-        data = copy.deepcopy(data)
-
-    if print_data:
-        print(data)
-
-    schema = try_fetching_schema_for_id(data["id"])
+def update_var_group(data, var_group, schema=None, path_separator="/"):
+    # split the id group by the group variables
+    # var_group[0] -> the variable (if any) in the group_var column
+    # var_group[1] -> the dataframe with these variables
+    change_df = var_group[1]
 
     # the grouped dataframes may have indexes that don't
     # line with the row number, so reset the index
-    df_change = df_change.reset_index(drop=True)
-    print("group_var:", group_var)
-    if group_var.strip() == "" or len(df_change) == 1:
-        for i in range(len(df_change)):
-            attribute_path = df_change.loc[i, "path"].split(path_separator)
-            if len(attribute_path) > 0:
-                check_attribute_path(schema, attribute_path)
-                new_val = df_change.loc[i, "value"]
-                data = assoc_in(data, attribute_path, new_val)
-    else:
-        data = update_data_group(data, df_change, path_separator)
+    change_df = change_df.reset_index(drop=True)
 
-    if print_update:
-        print(data)
+    for i in range(len(change_df)):
+        attribute_path = change_df.loc[i, "path"].split(path_separator)
+        if len(attribute_path) > 0:
+            if schema:
+                check_attribute_path(schema, attribute_path)
+            new_val = change_df.loc[i, "value"]
+            data = assoc_in(data, attribute_path, new_val)
+
+    return data
+
+
+def update_data(
+    df_change: pds.DataFrame,
+    path_separator="/",
+    print_data=False,
+    print_update=False,
+    copy_data=False,
+) -> dict:
+    # split the change sheet by the group id values
+    id_group = df_change.groupby("group_id")
+    for ig in id_group:
+        # ig[0] -> id of the data
+        # ig[1] -> dataframe with rows with the id
+
+        schema = try_fetching_schema_for_id(ig[0])
+        # data = get_study_data(ig[0])  # retrieve data
+
+        # make a copy of the data for testing purposes
+        if copy_data == True:
+            data = copy.deepcopy(data)
+
+        if print_data:
+            print(data)
+
+        # split the id group by the group variables
+        var_group = ig[1].groupby("group_var")
+        for vg in var_group:
+            data = update_var_group(data, vg, schema, path_separator)
+
+        if print_update:
+            print(data)
 
     return data
