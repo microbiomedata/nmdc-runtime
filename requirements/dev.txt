@@ -10,10 +10,12 @@ attrs==21.2.0 \
     # via
     #   -c requirements/main.txt
     #   pytest
-black==21.8b0 \
-    --hash=sha256:2a0f9a8c2b2a60dbcf1ccb058842fb22bdbbcb2f32c6cc02d9578f90b92ce8b7 \
-    --hash=sha256:570608d28aa3af1792b98c4a337dbac6367877b47b12b88ab42095cfc1a627c2
-    # via -r requirements/dev.in
+black==21.9b0 \
+    --hash=sha256:380f1b5da05e5a1429225676655dddb96f5ae8c75bdf91e53d798871b902a115 \
+    --hash=sha256:7de4cfc7eb6b710de325712d40125689101d21d25283eed7e9998722cf10eb91
+    # via
+    #   -c requirements/main.txt
+    #   -r requirements/dev.in
 bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
     --hash=sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994
@@ -26,9 +28,9 @@ certifi==2021.5.30 \
     # via
     #   -c requirements/main.txt
     #   requests
-charset-normalizer==2.0.4 \
-    --hash=sha256:0c8911edd15d19223366a194a513099a302055a962bca2cec0f54b8b63175d8b \
-    --hash=sha256:f23667ebe1084be45f6ae0538e4a5a865206544097e4e8bbcacf42cd02a348f3
+charset-normalizer==2.0.5 \
+    --hash=sha256:7098e7e862f6370a2a8d1a6398cd359815c45d12626267652c3f13dec58e2367 \
+    --hash=sha256:fa471a601dfea0f492e4f4fca035cd82155e65dc45c9b83bf4322dfab63755dd
     # via
     #   -c requirements/main.txt
     #   requests
@@ -45,7 +47,9 @@ colorama==0.4.4 \
 docutils==0.17.1 \
     --hash=sha256:686577d2e4c32380bb50cbb22f575ed742d58168cee37e99117a854bcd88f125 \
     --hash=sha256:cf316c8370a737a022b72b56874f6602acf974a37a9fba42ec2876387549fc61
-    # via readme-renderer
+    # via
+    #   -c requirements/main.txt
+    #   readme-renderer
 idna==3.2 \
     --hash=sha256:14475042e284991034cb48e06f6851428fb14c4dc953acd9be9a5e95c7b6dd7a \
     --hash=sha256:467fbad99067910785144ce333826c71fb0e63a425657295239737f7ecd125f3
@@ -67,14 +71,16 @@ invoke==1.6.0 \
     --hash=sha256:769e90caeb1bd07d484821732f931f1ad8916a38e3f3e618644687fc09cb6317 \
     --hash=sha256:e6c9917a1e3e73e7ea91fdf82d5f151ccfe85bf30cc65cdb892444c02dbb5f74
     # via -r requirements/dev.in
-keyring==23.1.0 \
-    --hash=sha256:b32397fd7e7063f8dd74a26db910c9862fc2109285fa16e3b5208bcb42a3e579 \
-    --hash=sha256:b7e0156667f5dcc73c1f63a518005cd18a4eb23fe77321194fefcc03748b21a4
+keyring==23.2.1 \
+    --hash=sha256:6334aee6073db2fb1f30892697b1730105b5e9a77ce7e61fca6b435225493efe \
+    --hash=sha256:bd2145a237ed70c8ce72978b497619ddfcae640b6dcf494402d5143e37755c6e
     # via twine
 mypy-extensions==0.4.3 \
     --hash=sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d \
     --hash=sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8
-    # via black
+    # via
+    #   -c requirements/main.txt
+    #   black
 packaging==21.0 \
     --hash=sha256:7dc96269f53a4ccec5c0670940a4281106dd0bb343f47b7471f779df49c2fbe7 \
     --hash=sha256:c86254f9220d55e31cc94d69bade760f0847da8000def4dfe1c6b872fd14ff14
@@ -86,7 +92,9 @@ packaging==21.0 \
 pathspec==0.9.0 \
     --hash=sha256:7d15c4ddb0b5c802d161efc417ec1a2558ea2653c2e8ad9c19098201dc1c993a \
     --hash=sha256:e564499435a2673d586f6b2130bb5b95f04a3ba06f81b8f895b651a3c76aabb1
-    # via black
+    # via
+    #   -c requirements/main.txt
+    #   black
 pkginfo==1.7.1 \
     --hash=sha256:37ecd857b47e5f55949c41ed061eb51a0bee97a87c969219d144c0e023982779 \
     --hash=sha256:e7432f81d08adec7297633191bbf0bd47faf13cd8724c3a13250e51d542635bd
@@ -94,7 +102,9 @@ pkginfo==1.7.1 \
 platformdirs==2.3.0 \
     --hash=sha256:15b056538719b1c94bdaccb29e5f81879c7f7f0f4a153f46086d155dffcd4f0f \
     --hash=sha256:8003ac87717ae2c7ee1ea5a84a1a61e87f3fbd16eb5aadba194ea30a9019f648
-    # via black
+    # via
+    #   -c requirements/main.txt
+    #   black
 pluggy==1.0.0 \
     --hash=sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159 \
     --hash=sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3
@@ -165,7 +175,9 @@ regex==2021.8.28 \
     --hash=sha256:f3bf1bc02bc421047bfec3343729c4bbbea42605bcfd6d6bfe2c07ade8b12d2a \
     --hash=sha256:f585cbbeecb35f35609edccb95efd95a3e35824cd7752b586503f7e6087303f1 \
     --hash=sha256:f60667673ff9c249709160529ab39667d1ae9fd38634e006bec95611f632e759
-    # via black
+    # via
+    #   -c requirements/main.txt
+    #   black
 requests==2.26.0 \
     --hash=sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24 \
     --hash=sha256:b8aa58f8cf793ffd8782d3d8cb19e66ef36f7aba4353eec859e74678b01b07a7
@@ -181,9 +193,9 @@ rfc3986==1.5.0 \
     --hash=sha256:270aaf10d87d0d4e095063c65bf3ddbc6ee3d0b226328ce21e036f946e421835 \
     --hash=sha256:a86d6e1f5b1dc238b218b012df0aa79409667bb209e58da56d0b94704e712a97
     # via twine
-setuptools-scm==6.3.1 \
-    --hash=sha256:0f6a263912b13798c028b9a271d91af3bde0e42784091c797deccc3ad3a7f596 \
-    --hash=sha256:868c066ae7d48fb2193495723634ebcf79b458c909869b41a3bc09e2a778b9f9
+setuptools-scm==6.3.2 \
+    --hash=sha256:4c64444b1d49c4063ae60bfe1680f611c8b13833d556fd1d6050c0023162a119 \
+    --hash=sha256:a49aa8081eeb3514eb9728fa5040f2eaa962d6c6f4ec9c32f6c1fba88f88a0f2
     # via -r requirements/dev.in
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
@@ -200,6 +212,7 @@ tomli==1.2.1 \
     --hash=sha256:8dd0e9524d6f386271a36b41dbf6c57d8e32fd96fd22b6584679dc569d20899f \
     --hash=sha256:a5b75cb6f3968abb47af1b40c1819dc519ea82bcc065776a866e8d74c5ca9442
     # via
+    #   -c requirements/main.txt
     #   black
     #   setuptools-scm
 tqdm==4.62.2 \

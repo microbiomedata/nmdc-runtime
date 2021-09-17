@@ -69,17 +69,24 @@ def claim_job(
                 detail=f"client site does not have capability {cid} required to claim job",
             )
 
+    # For now, allow site to claim same job multiple times,
+    # to re-submit results given same job input config.
     job_op_for_site = mdb.operations.find_one(
         {"metadata.job.id": job.id, "metadata.site_id": site.id}
     )
     if job_op_for_site is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "msg": f"client site already claimed job -- see operation {job_op_for_site['id']}",
-                "id": job_op_for_site["id"],
-            },
-        )
+        # raise HTTPException(
+        #     status_code=status.HTTP_409_CONFLICT,
+        #     detail={
+        #         "msg": (
+        #             f"client site already claimed job -- "
+        #             f"see operation {job_op_for_site['id']}"
+        #         ),
+        #         "id": job_op_for_site["id"],
+        #     },
+        # )
+        pass
+
     op_id = generate_one_id(mdb, "op")
     job.claims.append(JobClaim(op_id=op_id, site_id=site.id))
     op = Operation[ResultT, JobOperationMetadata](
@@ -87,7 +94,13 @@ def claim_job(
             "id": op_id,
             "expire_time": expiry_dt_from_now(days=30),
             "metadata": {
-                "job": job.dict(exclude_unset=True),
+                "job": Job(
+                    **{
+                        "id": job.id,
+                        "workflow": {"id": job.workflow.id},
+                        "config": job.config,
+                    }
+                ).dict(exclude_unset=True),
                 "site_id": site.id,
                 "model": dotted_path_for(JobOperationMetadata),
             },
@@ -95,7 +108,7 @@ def claim_job(
     )
     mdb.operations.insert_one(op.dict())
     mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
-    return op
+    return op.dict(exclude_unset=True)
 
 
 @router.post("/jobs:preclaim", response_model=Operation[ResultT, MetadataT])
