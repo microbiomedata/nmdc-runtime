@@ -1,9 +1,11 @@
+import concurrent.futures
 import json
 import os.path
 import re
 import tempfile
 from io import StringIO
 
+import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from jsonschema import Draft7Validator
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
@@ -75,7 +77,7 @@ type_collections = {
 
 
 @router.post("/metadata/json:validate_urls_file")
-async def validate_changesheet(urls_file: UploadFile = File(...)):
+async def validate_json_urls_file(urls_file: UploadFile = File(...)):
     """
 
     Given a text file with one URL per line, will try to validate each URL target
@@ -96,9 +98,6 @@ async def validate_changesheet(urls_file: UploadFile = File(...)):
     stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
 
     urls = [line.strip() for line in stream if line.strip()]
-
-    import concurrent.futures
-    import requests
 
     def load_url(url, timeout):
         return requests.get(url, timeout=timeout)
