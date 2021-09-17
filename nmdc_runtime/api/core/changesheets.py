@@ -1,8 +1,7 @@
 import copy
-
 import pandas as pd
 from pandas._typing import FilePathOrBuffer
-from toolz import assoc_in
+from toolz import assoc_in, merge
 
 
 def load_changesheet(
@@ -92,9 +91,28 @@ def check_attribute_path(schema, attribute_path):
     return True
 
 
+def update_data_group(data, df_change, path_separator="/"):
+    value_dicts = []
+
+    for i in range(len(df_change)):
+        # get path and pop off the last element
+        attribute_path = str.split(df_change.loc[i, "path"], path_separator)
+        last_attr = attribute_path.pop()
+
+        # create a dict from the last attribute and value
+        value_dict = {last_attr: df_change.loc[i, "value"]}
+        value_dicts.append(value_dict)
+
+    # merge the value dicts into a single merged value
+    value = merge(value_dicts)
+
+    return assoc_in(data, attribute_path, value)
+
+
 def update_data(
     data: dict,
     df_change: pd.DataFrame,
+    group_var: str,
     path_separator="/",
     print_data=False,
     print_update=False,
@@ -102,25 +120,28 @@ def update_data(
 ) -> dict:
     # make a copy of the data for testing purposes
     if copy_input_data == True:
-        new_data = copy.deepcopy(data)
+        data = copy.deepcopy(data)
 
     if print_data:
-        print(new_data)
+        print(data)
 
     schema = try_fetching_schema_for_id(data["id"])
 
     # the grouped dataframes may have indexes that don't
     # line with the row number, so reset the index
     df_change = df_change.reset_index(drop=True)
-
-    for i in range(len(df_change)):
-        attribute_path = df_change.loc[i, "path"].split(path_separator)
-        if len(attribute_path) > 0:
-            check_attribute_path(schema, attribute_path)
-            new_val = df_change.loc[i, "value"]
-            new_data = assoc_in(new_data, attribute_path, new_val)
+    print("group_var:", group_var)
+    if group_var.strip() == "" or len(df_change) == 1:
+        for i in range(len(df_change)):
+            attribute_path = df_change.loc[i, "path"].split(path_separator)
+            if len(attribute_path) > 0:
+                check_attribute_path(schema, attribute_path)
+                new_val = df_change.loc[i, "value"]
+                data = assoc_in(data, attribute_path, new_val)
+    else:
+        data = update_data_group(data, df_change, path_separator)
 
     if print_update:
-        print(new_data)
+        print(data)
 
-    return new_data
+    return data
