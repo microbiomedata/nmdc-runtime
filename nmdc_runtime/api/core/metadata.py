@@ -91,24 +91,6 @@ def check_attribute_path(schema, attribute_path):
     return True
 
 
-def update_data_group(data, df_change, path_separator="/"):
-    value_dicts = []
-
-    for i in range(len(df_change)):
-        # get path and pop off the last element
-        attribute_path = str.split(df_change.loc[i, "path"], path_separator)
-        last_attr = attribute_path.pop()
-
-        # create a dict from the last attribute and value
-        value_dict = {last_attr: df_change.loc[i, "value"]}
-        value_dicts.append(value_dict)
-
-    # merge the value dicts into a single merged value
-    value = merge(value_dicts)
-
-    return assoc_in(data, attribute_path, value)
-
-
 def update_var_group(data, var_group, schema=None, path_separator="/"):
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
