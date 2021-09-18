@@ -102,12 +102,14 @@ def update_var_group(data, var_group, schema=None, path_separator="/"):
     change_df = change_df.reset_index(drop=True)
 
     for i in range(len(change_df)):
-        attribute_path = change_df.loc[i, "path"].split(path_separator)
+        attribute_path = change_df.loc[i, "path"]
         if len(attribute_path) > 0:
+            attribute_path = change_df.loc[i, "path"].split(path_separator)
             if schema:
                 check_attribute_path(schema, attribute_path)
             new_val = change_df.loc[i, "value"]
-            data = assoc_in(data, attribute_path, new_val)
+            if len(str(new_val)) > 0:
+                data = assoc_in(data, attribute_path, new_val)
 
     return data
 
