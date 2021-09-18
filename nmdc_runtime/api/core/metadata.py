@@ -1,7 +1,9 @@
 import copy
+import json
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
 from toolz import assoc_in, merge
+from pymongo import MongoClient
 
 
 def load_changesheet(
@@ -227,6 +229,15 @@ def update_mongo_db(
     print_update=False,
     print_query=False,
 ) -> dict:
+    ### connect to mongodb
+    # TODO: use mongo resource for this
+    client = MongoClient(
+        host="localhost",
+        port=27018,
+        username="admin",
+        password="root",
+    )
+    mongodb = client["nmdc_etl_staging"]
 
     # create a dict between collections names and ids
     id_dict = make_id_to_collection_dict(mongodb)
@@ -250,7 +261,6 @@ def update_mongo_db(
         var_group = ig[1].groupby("group_var")
         for vg in var_group:
             update = make_update_var_group(vg, collection_name, path_separator)
-
             if len(update) > 0:
                 updates.extend(update)
 
