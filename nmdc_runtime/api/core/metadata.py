@@ -146,3 +146,18 @@ def update_data(
             print(data)
 
     return data
+
+
+def make_update_query(collection_name: str, id_val: str, update_values: list):
+    update_query = {"update": f"{collection_name}", "updates": []}
+
+    for uv in update_values:
+        v = make_update_query_value(id_val, uv)
+        update_query["updates"].append(v)
+
+    return update_query
+
+
+def make_update_query_value(id_val: str, update_value: dict):
+    update_dict = {"q": {"id": f"{id_val}"}, "u": {"$set": update_value}}
+    return update_dict
