@@ -93,9 +93,9 @@ def check_attribute_path(schema, attribute_path):
     return True
 
 
-##################################
+####################################################################
 # functions for updating raw data
-##################################
+####################################################################
 
 
 def update_var_group(data, var_group, collection_name=None, path_separator="/") -> dict:
@@ -155,9 +155,9 @@ def update_data(
     return data
 
 
-##################################
+####################################################################
 # funcitons to update mongodb
-##################################
+####################################################################
 
 
 def make_update_query(collection_name: str, id_val: str, update_values: list):
@@ -182,7 +182,7 @@ def make_id_to_collection_dict(mongodb) -> dict:
     id_dict = {
         name: set(mongodb[name].distinct("id"))
         for name in collection_names
-        if "id_1" in mdb[name].index_information()
+        if "id_1" in mongodb[name].index_information()
     }
     return id_dict
 
