@@ -5,13 +5,16 @@ import re
 import tempfile
 from io import StringIO
 
+import pymongo
 import requests
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from jsonschema import Draft7Validator
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from starlette import status
 
-from nmdc_runtime.api.core.metadata import load_changesheet
+from nmdc_runtime.api.core.metadata import load_changesheet, update_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.util import nmdc_jsonschema
 
 router = APIRouter()
@@ -48,6 +51,40 @@ async def validate_changesheet(sheet: UploadFile = File(...)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
 
     return {"dataframe_as_dict": df.to_dict()}
+
+
+@router.post("/metadata/changesheets:submit")
+async def submit_changesheet(
+    sheet: UploadFile = File(...),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    site: Site = Depends(get_current_client_site),
+):
+    content_types = {
+        "text/csv": ",",
+        "text/tab-separated-values": "\t",
+    }
+    content_type = sheet.content_type
+    filename = sheet.filename
+    if content_type not in content_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"file {filename} has content type '{content_type}'. "
+                f"Only {list(content_types)} files are permitted."
+            ),
+        )
+    contents: bytes = await sheet.read()
+    stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
+
+    try:
+        df_change = load_changesheet(stream, sep=content_types[content_type])
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+
+    # TODO
+    update_mongo_db(df_change, mdb)
+
+    return "OK"
 
 
 url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")

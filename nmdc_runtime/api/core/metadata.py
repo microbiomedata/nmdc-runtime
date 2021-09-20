@@ -1,9 +1,10 @@
 import copy
 import json
+
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
-from toolz import assoc_in, merge
 from pymongo import MongoClient
+from toolz import assoc_in
 
 
 def load_changesheet(
@@ -171,6 +172,7 @@ def make_update_query(collection_name: str, id_val: str, update_values: list):
 
 
 def make_update_query_value(id_val: str, update_value: dict):
+    # TODO $set if non-array value, $addToSet otherwise.
     update_dict = {"q": {"id": f"{id_val}"}, "u": {"$set": update_value}}
     return update_dict
 
@@ -230,7 +232,7 @@ def update_mongo_db(
     print_query=False,
 ) -> dict:
     ### connect to mongodb
-    # TODO: use mongo resource for this
+    # TODO: take mongodb as parameter
     client = MongoClient(
         host="localhost",
         port=27018,
@@ -252,6 +254,9 @@ def update_mongo_db(
 
         #         schema = try_fetching_schema_for_id(ig[0])
         collection_name = get_collection_for_id(ig[0], id_dict)
+
+        if collection_name is None:
+            raise Exception("Cannot find ID", ig[0], "in any collection")
 
         if print_data:
             data = mongodb[collection_name].find_one({"id": ig[0]})
