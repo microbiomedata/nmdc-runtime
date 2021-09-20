@@ -104,7 +104,7 @@ class RuntimeApiSiteClient:
                 **self.get_object_access(object_id, method.access_id).json()
             )
         else:
-            access = AccessURL(url=method.access_url)
+            access = AccessURL(url=method.access_url.url)
         return requests.get(access.url)
 
     def claim_job(self, job_id):
