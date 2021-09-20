@@ -86,13 +86,13 @@ bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
     --hash=sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994
     # via nbconvert
-boto3==1.18.43 \
-    --hash=sha256:9b6679e3c54f8c32c09872948450ece87473cbc830cfd6c84dad58eb014329ba \
-    --hash=sha256:caa96b7c2be2168b6efc25ab1fb61c996174bcfbcab21b5f642608185daa6403
+boto3==1.18.44 \
+    --hash=sha256:3a270f002818703d5f2eef5296c2fd8b44ef21a3f3290a716ec2202da8dd464e \
+    --hash=sha256:8bc3211a7d7767c2c72ae9b226edb5eec5bb96989c83696832b8a5c35feb356a
     # via -r requirements/main.in
-botocore==1.21.43 \
-    --hash=sha256:b74d0a5fe0f7b73fa4b5670eaa9ff456b0bce70966d478dcd631c91458916eb6 \
-    --hash=sha256:de7bf9c9098578d386b785b5b6eab954acccd3f79fe3e2eb971da608c967082b
+botocore==1.21.44 \
+    --hash=sha256:2e134c9f799015e448086ed2b809fe50cc776f6600f093d1a44772288e61260f \
+    --hash=sha256:c7640cb49c0e009bea4ad767715acbe0d305b7007235f52422bf31b5d23be8f1
     # via
     #   boto3
     #   s3transfer
@@ -157,9 +157,9 @@ cffi==1.14.6 \
 cfgraph==0.2.1 \
     --hash=sha256:b57fe7044a10b8ff65aa3a8a8ddc7d4cd77bf511b42e57289cd52cbc29f8fe74
     # via pyshex
-charset-normalizer==2.0.5 \
-    --hash=sha256:7098e7e862f6370a2a8d1a6398cd359815c45d12626267652c3f13dec58e2367 \
-    --hash=sha256:fa471a601dfea0f492e4f4fca035cd82155e65dc45c9b83bf4322dfab63755dd
+charset-normalizer==2.0.6 \
+    --hash=sha256:5d209c0a931f215cee683b6445e2d77677e7e75e159f78def0db09d68fafcaa6 \
+    --hash=sha256:5ec46d183433dcbd0ab716f2d7f29d8dee50505b3fdb40c6b985c7c4f5a3591f
     # via requests
 click==7.1.2 \
     --hash=sha256:d2b5255c7c6349bc1bd1e59e08cd12acbbd63ce649f2588755783aa94dfb6b1a \
@@ -199,6 +199,7 @@ cryptography==3.4.8 \
     --hash=sha256:3520667fda779eb788ea00080124875be18f2d8f0848ec00733c0ec3bb8219fc \
     --hash=sha256:3fa3a7ccf96e826affdf1a0a9432be74dc73423125c8f96a909e3835a5ef194a \
     --hash=sha256:5b0fbfae7ff7febdb74b574055c7466da334a5371f253732d7e2e7525d570498 \
+    --hash=sha256:695104a9223a7239d155d7627ad912953b540929ef97ae0c34c7b8bf30857e89 \
     --hash=sha256:8695456444f277af73a4877db9fc979849cd3ee74c198d04fc0776ebc3db52b9 \
     --hash=sha256:94cc5ed4ceaefcbe5bf38c8fba6a21fc1d365bb8fb826ea1688e3370b2e24a1c \
     --hash=sha256:94fff993ee9bc1b2440d3b7243d488c6a3d9724cc2b09cdb297f6a886d040ef7 \
@@ -210,27 +211,27 @@ cryptography==3.4.8 \
     --hash=sha256:d9ec0e67a14f9d1d48dd87a2531009a9b251c02ea42851c060b25c782516ff06 \
     --hash=sha256:f44d141b8c4ea5eb4dbc9b3ad992d45580c1d22bf5e24363f2fbf50c2d7ae8a7
     # via python-jose
-dagit==0.12.10 \
-    --hash=sha256:b823bb58b5c210acf691dfea64c50b6b47cb9d760126ddeff0f976143757cefc \
-    --hash=sha256:fa6837966077d357b24c04de7170537303b13fbd5134949243380c8523208300
+dagit==0.12.11 \
+    --hash=sha256:0347ecd55ba58db8e05e1251e3ffbcd012c0c928905a954524941e2f91ea4b4f \
+    --hash=sha256:51734aa917fc09a2805b5624bd280c4fe6221c1bf4fa3575c0e12a583c473853
     # via -r requirements/main.in
-dagster==0.12.10 \
-    --hash=sha256:a1627150684f521338acb2f5fda936c3a612ac5990fefb81cd9f282a9f5dd809 \
-    --hash=sha256:ccb31e6c3312aba0d5a700b7cc088bc8c28fcea03d4fa39d2252c8350ea070b6
+dagster==0.12.11 \
+    --hash=sha256:243b4b6934c30c7dc9999e5770e7645df894fa2e0c462e9b4b0ebd20f42736cd \
+    --hash=sha256:ddb79e7b83ecb9b57232cd759203604323c1ee1e0f890d9e8992d6f12ef142ad
     # via
     #   -r requirements/main.in
     #   dagit
     #   dagster-graphql
     #   dagster-postgres
-dagster-graphql==0.12.10 \
-    --hash=sha256:cbab0a973be04d9869462d54a87f38c506b348a963cdbd110576c53693b5540f \
-    --hash=sha256:fe318c717fca56695c25b7d5832d1ea8582311852ab55066f604c1af790fafbf
+dagster-graphql==0.12.11 \
+    --hash=sha256:03fa5ecd3ca05a83b7c6344e1cc2193cb955482858c8451264038c7c3973027d \
+    --hash=sha256:ce3d6d1fcddf44ba5ed4b9cc1d30e15fe415bffa88a129d7757b3593e1d2f158
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.12.10 \
-    --hash=sha256:675e2de588264eb4c8e94a24dd76af500f1fbfb7e1ce34855c1134ae4df25ef1 \
-    --hash=sha256:7f0570636901f978fd50d172dce12a27f371b9717e0f9c06ed4f0b7a291b6554
+dagster-postgres==0.12.11 \
+    --hash=sha256:15193f79a5a4e133eed91ebb627d79792ecfda17354dbc553fc21b1a8a7b225f \
+    --hash=sha256:59bc51b64dd6b6981e279e6c06b18da464b2c676ad7624fa2abda5d60ff627f8
     # via -r requirements/main.in
 debugpy==1.4.3 \
     --hash=sha256:0c523fcbb6fb395403ee8508853767b74949335d5cdacc9f83d350670c2c0db2 \
@@ -538,9 +539,9 @@ httptools==0.2.0 \
     --hash=sha256:d5682eeb10cca0606c4a8286a3391d4c3c5a36f0c448e71b8bd05be4e1694bfb \
     --hash=sha256:fd3b8905e21431ad306eeaf56644a68fdd621bf8f3097eff54d0f6bdf7262065
     # via uvicorn
-humanfriendly==9.2 \
-    --hash=sha256:332da98c24cc150efcc91b5508b19115209272bfdf4b0764a56795932f854271 \
-    --hash=sha256:f7dba53ac7935fd0b4a2fc9a29e316ddd9ea135fb3052d3d0279d10c18ff9c48
+humanfriendly==10.0 \
+    --hash=sha256:1697e1a8a8f550fd43c2865cd84542fc175a61dcb779b6fee18cf6b6ccba1477 \
+    --hash=sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc
     # via coloredlogs
 idna==3.2 \
     --hash=sha256:14475042e284991034cb48e06f6851428fb14c4dc953acd9be9a5e95c7b6dd7a \
@@ -1472,9 +1473,9 @@ rdflib==5.0.0 \
     #   rdflib-pyldmod-compat
     #   sparqlslurper
     #   sparqlwrapper
-rdflib-jsonld==0.6.1 \
-    --hash=sha256:bcf84317e947a661bae0a3f2aee1eced697075fc4ac4db6065a3340ea0f10fc2 \
-    --hash=sha256:eda5a42a2e09f80d4da78e32b5c684bccdf275368f1541e6b7bcddfb1382a0e0
+rdflib-jsonld==0.6.2 \
+    --hash=sha256:011afe67672353ca9978ab9a4bee964dff91f14042f2d8a28c22a573779d2f8b \
+    --hash=sha256:107cd3019d41354c31687e64af5e3fd3c3e3fa5052ce635f5ce595fd31853a63
     # via
     #   linkml
     #   linkml-runtime
@@ -1696,8 +1697,8 @@ terminado==0.12.1 \
     --hash=sha256:09fdde344324a1c9c6e610ee4ca165c4bb7f5bbf982fceeeb38998a988ef8452 \
     --hash=sha256:b20fd93cc57c1678c799799d117874367cc07a3d2d55be95205b1a88fa08393f
     # via notebook
-terminusdb-client==10.0.5 \
-    --hash=sha256:d2991b8c084621f90180d6eb09caa8281938f23c28423d33f91cd3d65a0efd27
+terminusdb-client==10.0.6 \
+    --hash=sha256:82118a93976770d98ae01e132f9685a584574951181ebc9a308f6ef70ccd34f6
     # via -r requirements/main.in
 testfixtures==6.18.1 \
     --hash=sha256:0a6422737f6d89b45cdef1e2df5576f52ad0f507956002ce1020daa9f44211d6 \

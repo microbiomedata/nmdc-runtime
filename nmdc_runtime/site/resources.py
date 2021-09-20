@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from functools import lru_cache
 from typing import Optional
@@ -7,6 +8,7 @@ from dagster import build_init_resource_context
 from dagster import resource, StringSource
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
+from pydantic import BaseModel
 from pymongo import MongoClient, ReplaceOne
 from terminusdb_client import WOQLClient
 from toolz import get_in
@@ -15,6 +17,7 @@ from toolz import merge
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
+from nmdc_runtime.api.models.util import ListRequest
 from nmdc_runtime.util import nmdc_jsonschema_validate
 
 
@@ -32,6 +35,8 @@ class RuntimeApiSiteClient:
     def request(self, method, url_path, params_or_json_data=None):
         self.ensure_token()
         kwargs = {"url": self.base_url + url_path, "headers": self.headers}
+        if isinstance(params_or_json_data, BaseModel):
+            params_or_json_data = params_or_json_data.dict(exclude_unset=True)
         if method.upper() == "GET":
             kwargs["params"] = params_or_json_data
         else:
@@ -68,6 +73,13 @@ class RuntimeApiSiteClient:
             "POST", f"/sites/{self.site_id}:getObjectLink", access_method
         )
 
+    def get_operation(self, op_id):
+        return self.request("GET", f"/operations/{op_id}")
+
+    def operation_is_done(self, op_id):
+        op = self.get_operation(op_id).json()
+        return op.get("done") is True
+
     def update_operation(self, op_id, op_patch):
         return self.request("PATCH", f"/operations/{op_id}", op_patch)
 
@@ -90,6 +102,15 @@ class RuntimeApiSiteClient:
     def create_object_from_op(self, op_doc):
         return self.request("POST", "/objects", op_doc["result"])
 
+    def ensure_object_tag(self, object_id, tag_id):
+        object_type_ids = [
+            t["id"] for t in self.request("GET", f"/objects/{object_id}/types").json()
+        ]
+        if tag_id not in object_type_ids:
+            return self.request(
+                "PUT", f"/objects/{object_id}/types", object_type_ids + [tag_id]
+            )
+
     def get_object_info(self, object_id):
         return self.request("GET", f"/objects/{object_id}")
 
@@ -106,6 +127,15 @@ class RuntimeApiSiteClient:
         else:
             access = AccessURL(url=method.access_url.url)
         return requests.get(access.url)
+
+    def list_jobs(self, list_request=None):
+        if list_request is None:
+            params = {}
+        else:
+            if "filter" in list_request and isinstance(list_request["filter"], dict):
+                list_request["filter"] = json.dumps(list_request["filter"])
+            params = ListRequest(**list_request)
+        return self.request("GET", "/jobs", params)
 
     def claim_job(self, job_id):
         return self.request("POST", f"/jobs/{job_id}:claim")
