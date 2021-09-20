@@ -225,21 +225,12 @@ def make_update_var_group(var_group, collection_name=None, path_separator="/") -
 
 def update_mongo_db(
     df_change: pds.DataFrame,
-    # mongodb,
+    mongodb,
     path_separator="/",
     print_data=False,
     print_update=False,
     print_query=False,
 ) -> dict:
-    ### connect to mongodb
-    # TODO: take mongodb as parameter
-    client = MongoClient(
-        host="localhost",
-        port=27018,
-        username="admin",
-        password="root",
-    )
-    mongodb = client["nmdc_etl_staging"]
 
     # create a dict between collections names and ids
     id_dict = make_id_to_collection_dict(mongodb)
