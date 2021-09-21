@@ -1,10 +1,13 @@
 import copy
 import json
+from os import getenv
 
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
 from pymongo import MongoClient
 from toolz import assoc_in
+
+from nmdc_runtime.util import nmdc_jsonschema
 
 
 def load_changesheet(
@@ -161,9 +164,32 @@ def update_data(
 ####################################################################
 
 
-def make_update_query(collection_name: str, id_val: str, update_values: list):
-    update_query = {"update": f"{collection_name}", "updates": []}
+def fetch_schema_for_class(class_type: str) -> dict:
+    # find schema info for the class
+    if class_type not in nmdc_jsonschema["definitions"]:
+        raise Exception(f"{class_type} not found in the NMDC Schema")
+    else:
+        return nmdc_jsonschema["definitions"][class_type]
 
+
+def make_update_query(collection_name: str, data: dict, update_values: list):
+    # id value from the data
+    if "id" not in data.keys():
+        raise Exception("data does not have an ID")
+    else:
+        id_val = data["id"]
+
+    # find the type of class the data instantiates
+    if "type" in data.keys():
+        # get part after the ":"
+        class_type = data["type"].split(":")[-1]
+    else:
+        raise Exception("Cannot determine the type of class for ", id_val)
+
+    # get schema for the class
+    schema = fetch_schema_for_class(class_type)
+
+    update_query = {"update": f"{collection_name}", "updates": []}
     for uv in update_values:
         v = make_update_query_value(id_val, uv)
         update_query["updates"].append(v)
@@ -171,7 +197,8 @@ def make_update_query(collection_name: str, id_val: str, update_values: list):
     return update_query
 
 
-def make_update_query_value(id_val: str, update_value: dict):
+def make_update_query_value(id_val: str, update_value: dict, val_type="string"):
+    print("update values:", update_value)
     # TODO $set if non-array value, $addToSet otherwise.
     update_dict = {"q": {"id": f"{id_val}"}, "u": {"$set": update_value}}
     return update_dict
@@ -246,11 +273,13 @@ def update_mongo_db(
         #         schema = try_fetching_schema_for_id(ig[0])
         collection_name = get_collection_for_id(ig[0], id_dict)
 
+        # get data from mongodb with id value in ig[0]
         if collection_name is None:
             raise Exception("Cannot find ID", ig[0], "in any collection")
+        else:
+            data = mongodb[collection_name].find_one({"id": ig[0]})
 
         if print_data:
-            data = mongodb[collection_name].find_one({"id": ig[0]})
             print(data)
 
         # split the id group by the group variables
@@ -261,7 +290,7 @@ def update_mongo_db(
                 updates.extend(update)
 
         # update mongo
-        update_query = make_update_query(collection_name, ig[0], updates)
+        update_query = make_update_query(collection_name, data, updates)
         status = mongodb.command(update_query)
 
         if print_query:
