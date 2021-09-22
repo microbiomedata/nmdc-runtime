@@ -1,11 +1,11 @@
 import copy
 import json
-from os import getenv, pathconf_names
 
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
 from pymongo import MongoClient
 from toolz import assoc_in
+import jq
 
 from nmdc_runtime.util import nmdc_jsonschema
 
@@ -13,8 +13,10 @@ from nmdc_runtime.util import nmdc_jsonschema
 def load_changesheet(
     filename: FilePathOrBuffer, mongodb, sep="\t", path_separator="."
 ) -> pds.DataFrame:
+
     # load dataframe replacing NaN with ''
     df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
+    # df = pds.read_csv(filename, sep=sep, dtype="string")
 
     # add a group id column, but copy only IRIs (has ":" in it)
     try:
@@ -77,15 +79,103 @@ def load_changesheet(
                 )
             else:
                 df.loc[ix, "path"] = attr
-                
+
+    # create map between id and collection
+    id_dict = map_id_to_collection(mongodb)
+
+    # add collection for each id
+    df["collection_name"] = ""
+    prev_id = ""
+    for ix, group_id in df[["group_id"]].itertuples():
+        # check if there is a new id
+        if group_id != prev_id:
+            prev_id = group_id  # update prev id
+            collection_name = get_collection_for_id(group_id, id_dict)
+        df["collection_name"] = collection_name
+
     # add class name for each id
     df["class_name"] = ""
-    
-    for ix, _id in df[["id"]].itertuples():
-        class_name
-    
+    prev_id = ""
+    for ix, _id, collection_name in df[["group_id", "collection_name"]].itertuples():
+        # check if there is a new id
+        if _id != prev_id:
+            prev_id = _id  # update prev id
+            data = mongodb[collection_name].find_one({"id": _id})
+
+            # find the type of class the data instantiates
+            if "type" in list(data.keys()):
+                # get part after the ":"
+                class_name = data["type"].split(":")[-1]
+            else:
+                raise Exception("Cannot determine the type of class for ", _id)
+
+        # set class name for id
+        df["class_name"] = class_name
+
+    # add info about the level of property nesting, prop range
+    # and type of item for arrays
+    df["prop_depth"] = ""
+    df["prop_range"] = ""
+    df["item_type"] = ""
+    for ix, path, class_name in df[["path", "class_name"]].itertuples():
+        if len(path) > 0:
+            props = path.split(path_separator)
+            df.loc[ix, "prop_depth"] = len(props)
+
+            for p in props:
+                prop_range = get_schema_range(class_name, p)
+
+                # nested paths will have range None
+                # so, clean these up by getting range of base property
+                if prop_range is None:
+                    base_prop = path.split(path_separator)[0]
+                    prop_range = get_schema_range(class_name, base_prop)
+
+                # if the range is an array a tuple is returned
+                # the second element is the item type
+                if type(prop_range) == tuple:
+                    df.loc[ix, "prop_range"] = prop_range[0]
+                    df.loc[ix, "item_type"] = prop_range[1]
+                else:
+                    df.loc[ix, "prop_range"] = prop_range
 
     return df
+
+
+def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
+    # define jq query
+    query = f" .. | .{class_name}? | .properties | .{prop_name} | select(. != null)"
+    # print(query)
+
+    # find property
+    try:
+        prop_schema = jq.compile(query).input(schema).first()
+        # print("schema:", prop_schema)
+    except StopIteration:
+        prop_schema = None
+
+    # find property range/type
+    if prop_schema:
+        if "type" in prop_schema.keys():
+            rv = prop_schema["type"]
+        elif "$ref" in prop_schema.keys():
+            rv = prop_schema["$ref"].split("/")[-1]
+        else:
+            rv = ""
+    else:
+        rv = None
+
+    # find item types for arrays
+    if prop_schema is not None and "array" == rv:
+        if "items" in prop_schema.keys():
+            # create tuple with array item type info
+            if "type" in prop_schema["items"]:
+                rv = rv, prop_schema["items"]["type"]
+
+            if "$ref" in prop_schema["items"]:
+                rv = rv, prop_schema["items"]["$ref"].split("/")[-1]
+
+    return rv
 
 
 def try_fetching_schema_for_id(id_):
@@ -109,7 +199,7 @@ def check_attribute_path(schema, attribute_path):
 ####################################################################
 
 
-def update_var_group(data, var_group, collection_name=None, path_separator=".") -> dict:=""
+def update_var_group(data, var_group, collection_name=None, path_separator=".") -> dict:
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
     # var_group[1] -> the dataframe with these variables
@@ -171,12 +261,12 @@ def update_data(
 ####################################################################
 
 
-def fetch_schema_for_class(class_type: str) -> dict:
+def fetch_schema_for_class(class_name: str) -> dict:
     # find schema info for the class
-    if class_type not in nmdc_jsonschema["definitions"]:
-        raise Exception(f"{class_type} not found in the NMDC Schema")
+    if class_name not in nmdc_jsonschema["definitions"]:
+        raise Exception(f"{class_name} not found in the NMDC Schema")
     else:
-        return nmdc_jsonschema["definitions"][class_type]
+        return nmdc_jsonschema["definitions"][class_name]
 
 
 def make_update_query(collection_name: str, data: dict, update_values: list):
@@ -189,12 +279,12 @@ def make_update_query(collection_name: str, data: dict, update_values: list):
     # find the type of class the data instantiates
     if "type" in data.keys():
         # get part after the ":"
-        class_type = data["type"].split(":")[-1]
+        class_name = data["type"].split(":")[-1]
     else:
         raise Exception("Cannot determine the type of class for ", id_val)
 
     # get schema for the class
-    schema = fetch_schema_for_class(class_type)
+    schema = fetch_schema_for_class(class_name)
 
     update_query = {"update": f"{collection_name}", "updates": []}
     for uv in update_values:
@@ -205,7 +295,6 @@ def make_update_query(collection_name: str, data: dict, update_values: list):
 
 
 def make_update_query_value(id_val: str, update_value: dict, val_type="string"):
-    print("update values:", update_value)
     # TODO $set if non-array value, $addToSet otherwise.
     update_dict = {"q": {"id": f"{id_val}"}, "u": {"$set": update_value}}
     return update_dict
@@ -230,7 +319,7 @@ def get_collection_for_id(id_val, id_map):
     return None
 
 
-def make_update_var_group(var_group, collection_name=None, path_separator) -> list:=""
+def make_update_var_group(var_group, collection_name=None, path_separator=".") -> list:
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
     # var_group[1] -> the dataframe with these variables
