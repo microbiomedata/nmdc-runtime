@@ -11,7 +11,7 @@ from nmdc_runtime.util import nmdc_jsonschema
 
 
 def load_changesheet(
-    filename: FilePathOrBuffer, sep="\t", path_separator="."
+    filename: FilePathOrBuffer, mongodb, sep="\t", path_separator="."
 ) -> pds.DataFrame:
     # load dataframe replacing NaN with ''
     df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
@@ -77,6 +77,13 @@ def load_changesheet(
                 )
             else:
                 df.loc[ix, "path"] = attr
+                
+    # add class name for each id
+    df["class_name"] = ""
+    
+    for ix, _id in df[["id"]].itertuples():
+        class_name
+    
 
     return df
 
@@ -102,7 +109,7 @@ def check_attribute_path(schema, attribute_path):
 ####################################################################
 
 
-def update_var_group(data, var_group, collection_name=None, path_separator) -> dict:=""
+def update_var_group(data, var_group, collection_name=None, path_separator=".") -> dict:=""
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
     # var_group[1] -> the dataframe with these variables
@@ -127,7 +134,7 @@ def update_var_group(data, var_group, collection_name=None, path_separator) -> d
 
 def update_data(
     df_change: pds.DataFrame,
-    path_separator,="."
+    path_separator=".",
     print_data=False,
     print_update=False,
     copy_data=False,
@@ -204,7 +211,7 @@ def make_update_query_value(id_val: str, update_value: dict, val_type="string"):
     return update_dict
 
 
-def make_id_to_collection_dict(mongodb) -> dict:
+def map_id_to_collection(mongodb) -> dict:
     collection_names = [
         name for name in mongodb.list_collection_names() if name.endswith("_set")
     ]
@@ -253,14 +260,14 @@ def make_update_var_group(var_group, collection_name=None, path_separator) -> li
 def update_mongo_db(
     df_change: pds.DataFrame,
     mongodb,
-    path_separator,="."
+    path_separator=".",
     print_data=False,
     print_update=False,
     print_query=False,
 ) -> dict:
 
     # create a dict between collections names and ids
-    id_dict = make_id_to_collection_dict(mongodb)
+    id_dict = map_id_to_collection(mongodb)
 
     # split the change sheet by the group id values
     id_group = df_change.groupby("group_id")
