@@ -1,6 +1,6 @@
 import copy
 import json
-from os import getenv
+from os import getenv, pathconf_names
 
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
@@ -11,7 +11,7 @@ from nmdc_runtime.util import nmdc_jsonschema
 
 
 def load_changesheet(
-    filename: FilePathOrBuffer, sep="\t", path_separator="/"
+    filename: FilePathOrBuffer, sep="\t", path_separator="."
 ) -> pds.DataFrame:
     # load dataframe replacing NaN with ''
     df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
@@ -102,7 +102,7 @@ def check_attribute_path(schema, attribute_path):
 ####################################################################
 
 
-def update_var_group(data, var_group, collection_name=None, path_separator="/") -> dict:
+def update_var_group(data, var_group, collection_name=None, path_separator) -> dict:=""
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
     # var_group[1] -> the dataframe with these variables
@@ -127,7 +127,7 @@ def update_var_group(data, var_group, collection_name=None, path_separator="/") 
 
 def update_data(
     df_change: pds.DataFrame,
-    path_separator="/",
+    path_separator,="."
     print_data=False,
     print_update=False,
     copy_data=False,
@@ -223,7 +223,7 @@ def get_collection_for_id(id_val, id_map):
     return None
 
 
-def make_update_var_group(var_group, collection_name=None, path_separator="/") -> list:
+def make_update_var_group(var_group, collection_name=None, path_separator) -> list:=""
     # split the id group by the group variables
     # var_group[0] -> the variable (if any) in the group_var column
     # var_group[1] -> the dataframe with these variables
@@ -253,7 +253,7 @@ def make_update_var_group(var_group, collection_name=None, path_separator="/") -
 def update_mongo_db(
     df_change: pds.DataFrame,
     mongodb,
-    path_separator="/",
+    path_separator,="."
     print_data=False,
     print_update=False,
     print_query=False,
