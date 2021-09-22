@@ -72,6 +72,16 @@ _raw = [
         "name": "A test workflow",
         "description": "For use in unit and integration tests",
     },
+    {
+        "id": "gcms-metab-1.0.0",
+        "created_at": datetime(2021, 9, 20, tzinfo=timezone.utc),
+        "name": "GCMS-based metabolomics",
+    },
+    {
+        "id": "nom-1.0.0",
+        "created_at": datetime(2021, 9, 20, tzinfo=timezone.utc),
+        "name": "Natural Organic Matter characterization",
+    },
 ]
 
 

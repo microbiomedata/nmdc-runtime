@@ -28,6 +28,16 @@ _raw = [
         "object_type_id": "test",
         "workflow_id": "test",
     },
+    {
+        "created_at": datetime(2021, 9, 20, tzinfo=timezone.utc),
+        "object_type_id": "nom-input",
+        "workflow_id": "nom-1.0.0",
+    },
+    {
+        "created_at": datetime(2021, 9, 20, tzinfo=timezone.utc),
+        "object_type_id": "gcms-metab-input",
+        "workflow_id": "gcms-metab-1.0.0",
+    },
 ]
 
 

@@ -78,7 +78,7 @@ database, as a hub for data management and workflow automation.
 Ensure Docker (and Docker Compose) are installed.
 
 ```bash
-# optional: copy .env.dev to .env (gitignore'd) and set those vars
+# optional: copy .env.example to .env (gitignore'd) and set those vars
 make up-dev
 ```
 

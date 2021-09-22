@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from functools import lru_cache
 from typing import Optional
 
@@ -9,7 +9,7 @@ from dagster import resource, StringSource
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from pydantic import BaseModel
-from pymongo import MongoClient, ReplaceOne
+from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient
 from toolz import get_in
 from toolz import merge
@@ -180,14 +180,33 @@ class MongoDB:
         self.client = MongoClient(host=host, username=username, password=password)
         self.db = self.client[dbname]
 
-    def add_docs(self, docs, validate=True):
+    def add_docs(self, docs, validate=True, replace=True):
         try:
             if validate:
                 nmdc_jsonschema_validate(docs)
             rv = {}
             for collection_name, docs in docs.items():
                 rv[collection_name] = self.db[collection_name].bulk_write(
-                    [ReplaceOne({"id": d["id"]}, d, upsert=True) for d in docs]
+                    [
+                        (
+                            ReplaceOne({"id": d["id"]}, d, upsert=True)
+                            if replace
+                            else InsertOne(d)
+                        )
+                        for d in docs
+                    ]
+                )
+                now = datetime.now(timezone.utc)
+                self.db.txn_log.insert_many(
+                    [
+                        {
+                            "tgt": {"id": d.get("id"), "c": collection_name},
+                            "type": "upsert",
+                            "ts": now,
+                            # "dtl": {},
+                        }
+                        for d in docs
+                    ]
                 )
             return rv
         except JsonSchemaValueException as e:

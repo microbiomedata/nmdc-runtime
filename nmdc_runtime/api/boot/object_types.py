@@ -31,10 +31,19 @@ _raw = [
         "description": "workflow input",
     },
     {
-        "id": "test",
+        "id": "gcms-metab-input",
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
-        "name": "A test object type",
-        "description": "For use in unit and integration tests",
+        "name": "Raw GCMS MetaB Input",
+    },
+    {
+        "id": "gcms-metab-calibration",
+        "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
+        "name": "Raw GCMS MetaB Calibration",
+    },
+    {
+        "id": "nom-input",
+        "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
+        "name": "Raw FTMS MetaB Input",
     },
 ]
 
