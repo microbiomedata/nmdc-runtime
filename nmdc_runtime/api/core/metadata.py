@@ -1,18 +1,18 @@
-import copy
 import json
 
+import jq
 import pandas as pds
 from pandas._typing import FilePathOrBuffer
-from pymongo import MongoClient
 from toolz import assoc_in
-import jq
 from toolz.dicttoolz import merge
 
 from nmdc_runtime.util import nmdc_jsonschema
 
 
 def load_changesheet(
-    filename: FilePathOrBuffer, mongodb, sep="\t", path_separator="."
+    filename: FilePathOrBuffer,
+    mongodb,
+    sep="\t",
 ) -> pds.DataFrame:
 
     # load dataframe replacing NaN with ''
@@ -272,7 +272,6 @@ def get_collection_for_id(id_val, id_map):
 def update_mongo_db(
     df_change: pds.DataFrame,
     mongodb,
-    path_separator=".",
     print_data=False,
     print_update=False,
     print_query=False,
