@@ -9,8 +9,8 @@ v2		has_raw_value	foo bar
 	update	description	short description
 		websites	http://example.com
 		has_credit_associations	v3
-v3		applied_role	co-investigator
+v3		applied_role	Investigation
 v3		applies_to_person.name	foo bar
 		has_credit_associations	v4
-v4		applied_role	curator
+v4		applied_role	Data curation
 v4		applies_to_person.name	bazz blah

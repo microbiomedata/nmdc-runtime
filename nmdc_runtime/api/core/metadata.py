@@ -1,10 +1,12 @@
-import json
+from collections import defaultdict
 
 import jq
 import pandas as pds
+from jsonschema import Draft7Validator
 from pandas._typing import FilePathOrBuffer
+from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in
-from toolz.dicttoolz import merge
+from toolz.dicttoolz import merge, dissoc
 
 from nmdc_runtime.util import nmdc_jsonschema
 
@@ -269,50 +271,67 @@ def get_collection_for_id(id_val, id_map):
     return None
 
 
-def update_mongo_db(
-    df_change: pds.DataFrame,
-    mongodb,
-    print_data=False,
-    print_update=False,
-    print_query=False,
-) -> dict:
-
-    updates = []  # list of dicts to hold mongo update queries
+def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
+    update_cmd = {}  # list of dicts to hold mongo update queries
 
     # split the change sheet by the group id values
     id_group = df_change.groupby("group_id")
     for ig in id_group:
-        id_val = ig[0]
-        df_id = ig[1]
-
-        if print_data:
-            data = mongodb[df_id["collection_name"][0]].find_one({"id": id_val})
-            print(data)
+        id_val, df_id = ig
 
         # split the id group by the group variables
         var_group = df_id.groupby("group_var")
+        ig_updates = []
         for vg in var_group:
             # vg[0] -> group_var for data
             # vg[1] -> dataframe with rows having the group_var
-            update = make_updates(vg)
+            ig_updates.extend(make_updates(vg))
+        update_cmd[id_val] = {
+            "update": df_id["collection_name"][0],
+            "updates": ig_updates,
+        }
+    return update_cmd
 
-            if len(update) > 0:
-                updates.extend(update)
 
-        # print(json.dumps(updates, indent=2))
+def copy_docs_in_update_cmd(
+    update_cmd, mdb_from: MongoDatabase, mdb_to: MongoDatabase, drop_mdb_to=True
+):
+    """Useful to apply and inspect updates on a test database."""
+    doc_specs = defaultdict(list)
+    for id_, update_cmd_doc in update_cmd.items():
+        collection_name = update_cmd_doc["update"]
+        doc_specs[collection_name].append(id_)
 
-        # update mongo
-        # update_query = make_update_query(df_id["collection_name"][0], data, updates)
-        update_query = {"update": df_id["collection_name"][0], "updates": []}
-        update_query["updates"].extend(updates)
+    if drop_mdb_to:
+        mdb_to.client.drop_database(mdb_to.name)
+    results = {}
+    for collection_name, ids in doc_specs.items():
+        docs = [
+            dissoc(d, "_id")
+            for d in mdb_from[collection_name].find({"id": {"$in": ids}})
+        ]
+        results[collection_name] = mdb_to[collection_name].insert_many(docs)
+    return results
 
-        if print_query:
-            print(json.dumps(update_query, indent=2))
 
-        status = mongodb.command(update_query)
+def update_mongo_db(mdb: MongoDatabase, update_cmd) -> dict:
+    results = []
+    validator = Draft7Validator(nmdc_jsonschema)
 
-        if print_update:
-            data = mongodb[df_id["collection_name"][0]].find_one({"id": id_val})
-            print(data)
+    for id_, update_cmd_doc in update_cmd.items():
+        collection_name = update_cmd_doc["update"]
+        doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+        update_result = mdb.command(update_cmd_doc)
+        doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+        errors = list(validator.iter_errors({collection_name: [doc_after]}))
+        results.append(
+            {
+                "id": id_,
+                "doc_before": doc_before,
+                "update_info": update_result,
+                "doc_after": doc_after,
+                "validation_errors": [e.message for e in errors],
+            }
+        )
 
-    return status
+    return results

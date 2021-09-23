@@ -5,7 +5,12 @@ from typing import Optional
 import pandas as pd
 from toolz import dissoc
 
-from nmdc_runtime.api.core.metadata import load_changesheet, update_mongo_db
+from nmdc_runtime.api.core.metadata import (
+    load_changesheet,
+    update_mongo_db,
+    mongo_update_command_for,
+    copy_docs_in_update_cmd,
+)
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import REPO_ROOT_DIR
@@ -44,12 +49,14 @@ def test_update_01():
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
     assert study_doc["name"] != "soil study"
     assert study_doc["ecosystem"] != "soil"
-    test_db_name = "nmdc_runtime_test"
-    mdb.client.drop_database(test_db_name)
-    mdb_scratch = mdb.client[test_db_name]
-    mdb_scratch.study_set.insert_one(study_doc)
-    status = update_mongo_db(df, mdb_scratch)
-    assert status["nModified"] == 9
-    new_study_doc = dissoc(mdb_scratch.study_set.find_one({"id": id_}), "_id")
-    assert new_study_doc["name"] == "soil study"
-    assert new_study_doc["ecosystem"] == "soil"
+    update_cmd = mongo_update_command_for(df)
+    mdb_scratch = mdb.client["nmdc_runtime_test"]
+    copy_docs_in_update_cmd(
+        update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
+    )
+    results = update_mongo_db(mdb_scratch, update_cmd)
+    first_result = results[0]
+    assert first_result["update_info"]["nModified"] == 9
+    assert first_result["doc_after"]["name"] == "soil study"
+    assert first_result["doc_after"]["ecosystem"] == "soil"
+    assert first_result["validation_errors"] == []
