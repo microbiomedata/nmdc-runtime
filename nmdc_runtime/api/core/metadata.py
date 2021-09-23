@@ -250,12 +250,6 @@ def make_updates(var_group: tuple) -> list:
     return updates
 
 
-def make_update_query_value(id_val: str, update_value: dict, val_type="string"):
-    # TODO $set if non-array value, $addToSet otherwise.
-    update_dict = {"q": {"id": f"{id_val}"}, "u": {"$set": update_value}}
-    return update_dict
-
-
 def map_id_to_collection(mongodb) -> dict:
     collection_names = [
         name for name in mongodb.list_collection_names() if name.endswith("_set")
