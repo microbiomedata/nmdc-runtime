@@ -4,8 +4,13 @@ gold:Gs0110138	update	name	soil study
 	update	doi	v1
 v1		has_raw_value	10.9999/8888
 	update	principal_investigator	v2
-v2		name	v3
-v3		first	foo
-v3		last	bar
+v2		name	fizz buzz
 v2		has_raw_value	foo bar
 	update	description	short description
+		websites	http://example.com
+		has_credit_associations	v3
+v3		applied_role	co-investigator
+v3		applies_to_person.name	foo bar
+		has_credit_associations	v4
+v4		applied_role	curator
+v4		applies_to_person.name	bazz blah
