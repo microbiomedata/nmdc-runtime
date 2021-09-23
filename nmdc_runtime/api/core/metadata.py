@@ -310,7 +310,9 @@ def copy_docs_in_update_cmd(
             dissoc(d, "_id")
             for d in mdb_from[collection_name].find({"id": {"$in": ids}})
         ]
-        results[collection_name] = mdb_to[collection_name].insert_many(docs)
+        results[
+            collection_name
+        ] = f"{len(mdb_to[collection_name].insert_many(docs).inserted_ids)} docs inserted"
     return results
 
 
