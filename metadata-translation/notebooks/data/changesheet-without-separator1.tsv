@@ -1,7 +1,7 @@
 id	action	attribute	value
-gold:Gs0110115	update	name	NEW NAME 1
+gold:Gs0103573	update	name	NEW NAME 1
 		ecosystem	SOIL
-gold:Gs0112340	update	doi	v1
+gold:Gs0114663	update	doi	v1
 v1		has_raw_value	10.9999/8888
 	update	name	NEW NAME 2
 	update	principal_investigator	v2
