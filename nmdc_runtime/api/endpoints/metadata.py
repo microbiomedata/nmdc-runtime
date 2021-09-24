@@ -5,35 +5,36 @@ import re
 import tempfile
 from io import StringIO
 
-import pymongo
+import pandas as pd
 import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from jsonschema import Draft7Validator
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from pymongo.database import Database as MongoDatabase
 from starlette import status
 
-from nmdc_runtime.api.core.metadata import load_changesheet, update_mongo_db
+from nmdc_runtime.api.core.metadata import (
+    load_changesheet,
+    update_mongo_db,
+    mongo_update_command_for,
+    copy_docs_in_update_cmd,
+)
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.util import nmdc_jsonschema
 
 router = APIRouter()
 
 
-@router.post("/metadata/changesheets:validate")
-async def validate_changesheet(sheet: UploadFile = File(...)):
-    """
-
-    Example changesheets:
-     - [changesheet-with-separator1.tsv](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-with-separator1.tsv)
-
-    """
+async def load_uploaded_file_as_changesheet(
+    uploaded_file, mdb: MongoDatabase
+) -> pd.DataFrame:
     content_types = {
         "text/csv": ",",
         "text/tab-separated-values": "\t",
     }
-    content_type = sheet.content_type
-    filename = sheet.filename
+    content_type = uploaded_file.content_type
+    sep = content_types[content_type]
+    filename = uploaded_file.filename
     if content_type not in content_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -42,49 +43,59 @@ async def validate_changesheet(sheet: UploadFile = File(...)):
                 f"Only {list(content_types)} files are permitted."
             ),
         )
-    contents: bytes = await sheet.read()
+    contents: bytes = await uploaded_file.read()
     stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
-
     try:
-        df = load_changesheet(stream, sep=content_types[content_type])
-    except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        df = load_changesheet(stream, mdb, sep=sep)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return df
 
-    return {"dataframe_as_dict": df.to_dict()}
+
+@router.post("/metadata/changesheets:validate")
+async def validate_changesheet(
+    sheet: UploadFile = File(...),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """
+
+    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+
+    """
+    df_change = await load_uploaded_file_as_changesheet(sheet, mdb)
+
+    return {"mongo_update_command": mongo_update_command_for(df_change)}
 
 
 @router.post("/metadata/changesheets:submit")
 async def submit_changesheet(
     sheet: UploadFile = File(...),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
-    site: Site = Depends(get_current_client_site),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    content_types = {
-        "text/csv": ",",
-        "text/tab-separated-values": "\t",
+    """
+
+    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+
+    """
+    df_change = await load_uploaded_file_as_changesheet(sheet, mdb)
+
+    update_cmd = mongo_update_command_for(df_change)
+    mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
+    results_of_copy = copy_docs_in_update_cmd(
+        update_cmd,
+        mdb_from=mdb,
+        mdb_to=mdb_to_inspect,
+    )
+    results_of_updates = update_mongo_db(mdb_to_inspect, update_cmd)
+    rv = {
+        "update_cmd": update_cmd,
+        "inspection_info": {
+            "mdb_name": mdb_to_inspect.name,
+            "results_of_copy": results_of_copy,
+        },
+        "results_of_updates": results_of_updates,
     }
-    content_type = sheet.content_type
-    filename = sheet.filename
-    if content_type not in content_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"file {filename} has content type '{content_type}'. "
-                f"Only {list(content_types)} files are permitted."
-            ),
-        )
-    contents: bytes = await sheet.read()
-    stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
-
-    try:
-        df_change = load_changesheet(stream, sep=content_types[content_type])
-    except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
-
-    # TODO
-    update_mongo_db(df_change, mdb)
-
-    return "OK"
+    return rv
 
 
 url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")

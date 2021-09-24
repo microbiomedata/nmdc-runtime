@@ -3,9 +3,16 @@ from functools import lru_cache
 from typing import Optional
 
 import pandas as pd
-from toolz import get_in
+from toolz import dissoc
 
-from nmdc_runtime.api.core.metadata import load_changesheet, update_data
+from nmdc_runtime.api.core.metadata import (
+    load_changesheet,
+    update_mongo_db,
+    mongo_update_command_for,
+    copy_docs_in_update_cmd,
+)
+from nmdc_runtime.site.repository import run_config_frozen__normal_env
+from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import REPO_ROOT_DIR
 
 TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("metadata-translation", "notebooks", "data")
@@ -26,29 +33,30 @@ def get_study_by_id(id_: str) -> Optional[dict]:
 
 
 def test_load_changesheet():
-    df = load_changesheet(TEST_DATA_DIR.joinpath("changesheet-with-separator1.tsv"))
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    df = load_changesheet(
+        TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
+    )
     assert isinstance(df, pd.DataFrame)
 
 
-def test_toplevel_attribute_update():
-    df = load_changesheet(TEST_DATA_DIR.joinpath("changesheet-with-separator1.tsv"))
-    grouped = df.groupby("group_id")
-    id_, df_change = list(grouped)[0]
-    data = get_study_by_id(id_)
-    assert data["name"] != "soil study"
-    assert data["ecosystem"] != "soil"
-    new_data = update_data(data, df_change, print_data=True)
-    assert new_data["name"] == "soil study"
-    assert new_data["ecosystem"] == "soil"
-
-
-def test_nested_attribute_update():
-    df = load_changesheet(TEST_DATA_DIR.joinpath("changesheet-with-separator1.tsv"))
-    grouped = df.groupby("group_id")
-    id_, df_change = list(grouped)[1]
-    data = get_study_by_id(id_)
-    assert data["name"] != "data for study 2"
-    assert get_in(["doi", "has_raw_value"], data) != "10.9999/8888"
-    new_data = update_data(data, df_change, print_data=True)
-    assert new_data["name"] == "data for study 2"
-    assert get_in(["doi", "has_raw_value"], new_data) == "10.9999/8888"
+def test_update_01():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    df = load_changesheet(
+        TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
+    )
+    id_ = list(df.groupby("group_id"))[0][0]
+    study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
+    assert study_doc["name"] != "soil study"
+    assert study_doc["ecosystem"] != "soil"
+    update_cmd = mongo_update_command_for(df)
+    mdb_scratch = mdb.client["nmdc_runtime_test"]
+    copy_docs_in_update_cmd(
+        update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
+    )
+    results = update_mongo_db(mdb_scratch, update_cmd)
+    first_result = results[0]
+    assert first_result["update_info"]["nModified"] == 9
+    assert first_result["doc_after"]["name"] == "soil study"
+    assert first_result["doc_after"]["ecosystem"] == "soil"
+    assert first_result["validation_errors"] == []
