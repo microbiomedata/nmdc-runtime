@@ -1,16 +1,19 @@
 id	action	attribute	value
-gold:Gs0110138	update	name	soil study
-		ecosystem	soil
+gold:Gs0110138	update	name	NEW STUDY NAME
+	update	ecosystem	NEW ECOSYSTEM
+	update	ecosystem_type	NEW ECOSYSTEM_TYPE
+	update	ecosystem_subtype	NEW ECOSYSTEM_SUBTYPE
 	update	doi	v1
-v1		has_raw_value	10.9999/8888
+v1	update	has_raw_value	NEW DOI
 	update	principal_investigator	v2
-v2		name	fizz buzz
-v2		has_raw_value	foo bar
-	update	description	short description
-		websites	http://example.com
-		has_credit_associations	v3
-v3		applied_role	Investigation
-v3		applies_to_person.name	foo bar
-		has_credit_associations	v4
-v4		applied_role	Data curation
-v4		applies_to_person.name	bazz blah
+v2		name	NEW PI NAME
+v2		has_raw_value	NEW RAW NAME
+	update	description	NEW DESCRIPTION
+	update	websites	HTTP://TEST1.EXAMPLE.COM
+	update	websites	HTTP://TEST2.EXAMPLE.COM
+	update	has_credit_associations	v3
+v3		applied_role	NEW CO-INVESTIGATOR
+v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME
+	update	has_credit_associations	v4
+v4		applied_role	NEW CURATOR
+v4		applies_to_person.name	NEW CURATOR NAME
