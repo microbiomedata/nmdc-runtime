@@ -278,7 +278,6 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
     id_group = df_change.groupby("group_id")
     for ig in id_group:
         id_val, df_id = ig
-
         # split the id group by the group variables
         var_group = df_id.groupby("group_var")
         ig_updates = []
@@ -287,7 +286,7 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
             # vg[1] -> dataframe with rows having the group_var
             ig_updates.extend(make_updates(vg))
         update_cmd[id_val] = {
-            "update": df_id["collection_name"][0],
+            "update": df_id["collection_name"].values[0],
             "updates": ig_updates,
         }
     return update_cmd
