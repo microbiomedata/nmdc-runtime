@@ -60,3 +60,31 @@ def test_update_01():
     assert first_result["doc_after"]["name"] == "soil study"
     assert first_result["doc_after"]["ecosystem"] == "soil"
     assert first_result["validation_errors"] == []
+
+
+def test_changesheet_array_item_nested_attributes():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    df = load_changesheet(
+        TEST_DATA_DIR.joinpath("changesheet-array-item-nested-attributes.tsv"), mdb
+    )
+    id_ = list(df.groupby("group_id"))[0][0]
+    study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
+    assert study_doc.get("has_credit_associations", []) == []
+    update_cmd = mongo_update_command_for(df)
+    mdb_scratch = mdb.client["nmdc_runtime_test"]
+    copy_docs_in_update_cmd(
+        update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
+    )
+    results = update_mongo_db(mdb_scratch, update_cmd)
+    first_doc_after = results[0]["doc_after"]
+    assert "has_credit_associations" in first_doc_after
+    assert first_doc_after["has_credit_associations"] == [
+        {
+            "applied_role": "Conceptualization",
+            "applies_to_person": {
+                "name": "Kelly Wrighton",
+                "email": "Kelly.Wrighton@colostate.edu",
+                "orcid": "orcid:0000-0003-0434-4217",
+            },
+        }
+    ]
