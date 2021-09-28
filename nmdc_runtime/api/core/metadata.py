@@ -170,6 +170,7 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
         prop_schema = jq.compile(query).input(schema).first()
         # print("schema:", prop_schema)
     except StopIteration:
+        # TODO: Perhaps raise an error here
         prop_schema = None
 
     # find property range/type
@@ -194,14 +195,6 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
                 rv = rv, f"""object:{prop_schema["items"]["$ref"].split("/")[-1]}"""
 
     return rv
-
-
-def fetch_schema_for_class(class_name: str) -> dict:
-    # find schema info for the class
-    if class_name not in nmdc_jsonschema["definitions"]:
-        raise Exception(f"{class_name} not found in the NMDC Schema")
-    else:
-        return nmdc_jsonschema["definitions"][class_name]
 
 
 def make_updates(var_group: tuple) -> list:
@@ -239,13 +232,53 @@ def make_updates(var_group: tuple) -> list:
                 updates.append(update_dict)
 
     # add collected objects to updates
-    # these objects are added to an array
+    # these objects are added to an array above
     if len(objects) > 0:
-        key = list(objects[0].keys())[0]  # get key from first element
-        values_dict = merge([list(d.values())[0] for d in objects])
+        update_key = list(objects[0].keys())[0]  # get key from first element
+
+        # collect the values of each object into a list
+        # note the filter for the values being a dict
+        # e.g., the values in the objects are collected as:
+        # [{'applied_role': 'Conceptualization'},
+        #  {'applies_to_person': {'name': 'Kelly Wrighton'}},
+        #  {'applies_to_person': {'email': 'Kelly.Wrighton@colostate.edu'}},
+        #  {'applies_to_person': {'orcid': 'orcid:0000-0003-0434-4217'}}]
+        values = [
+            list(obj.values())[0]
+            for obj in filter(lambda obj: type(obj) == dict, objects)
+        ]
+
+        # put the values into a dict with each unique key mapped to a list of values
+        # e.g., the example above is tranformed to:
+        # {'applied_role': 'Conceptualization',
+        #  'applies_to_person': [{'name': 'Kelly Wrighton'},
+        #  {'email': 'Kelly.Wrighton@colostate.edu'},
+        #  {'orcid': 'orcid:0000-0003-0434-4217'}]}
+        value_dict = {}
+        for val in values:
+            for k, v in val.items():
+                if type(v) == dict:
+                    if k in value_dict.keys():
+                        value_dict[k].append(v)
+                    else:
+                        value_dict[k] = [v]
+                else:
+                    value_dict[k] = v
+
+        # now merge values with lists of dicts
+        # e.g., the value_dict above is transformed to:
+        # {'applied_role': 'Conceptualization',
+        #  'applies_to_person': {
+        #     'name': 'Kelly Wrighton',
+        #     'email': 'Kelly.Wrighton@colostate.edu',
+        #     'orcid': 'orcid:0000-0003-0434-4217'}}
+        for k, v in value_dict.items():
+            if type(v) == list and type(v[0]) == dict:
+                value_dict[k] = merge(v)
+
         update_dict = {
             "q": {"id": f"{id_val}"},
-            "u": {"$addToSet": {key: values_dict}},
+            "u": {"$addToSet": {update_key: value_dict}},
         }
         updates.append(update_dict)
 
