@@ -86,13 +86,13 @@ bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
     --hash=sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994
     # via nbconvert
-boto3==1.18.49 \
-    --hash=sha256:1a2908d2829268f1b2355bad3a96bfdc8e41523629b5d958bcedfc35d2d232dd \
-    --hash=sha256:e520655c9caf2f21853644d88b59b1c32bc44ccd58b20574883b25eb6256d938
+boto3==1.18.50 \
+    --hash=sha256:6c9f2b50827ba9233a143b71746b7f1caee0467cf5004d7b43d5a7d5f468827b \
+    --hash=sha256:f7ab057556461678dda5597ceb08b233a82b7bbfb29b47d18b2fa102bd5ad680
     # via -r requirements/main.in
-botocore==1.21.49 \
-    --hash=sha256:0161c3b64e34315928aae7fdbce49e684c9c2cfad2435cb22023b7ad87306f12 \
-    --hash=sha256:eab89183f7d94cabacde79a266060bb9429249e33a39b7ba4c1b15c965095477
+botocore==1.21.50 \
+    --hash=sha256:06e4d529071accac2ef93de1f9827dce0b41b0b6d9f81bd81d31aa2342d72631 \
+    --hash=sha256:3c24e20ad2b155c5a031db2ed060191df282369c5e59225ef20126cdfa6f082f
     # via
     #   boto3
     #   s3transfer
@@ -891,9 +891,9 @@ nest-asyncio==1.5.1 \
     --hash=sha256:76d6e972265063fe92a90b9cc4fb82616e07d586b346ed9d2c89a4187acea39c \
     --hash=sha256:afc5a1c515210a23c461932765691ad39e8eba6551c055ac8d5546e69250d0aa
     # via jupyter-client
-nmdc-schema==2021.9.21rc1 \
-    --hash=sha256:1f69d4d4546ea919e2dc79c88605f8129fe1a796fd7bf5bb568decdaa4a9c7aa \
-    --hash=sha256:f51921bba1a81ee94a03b281dfed824e0c963821cb557db508f107c3bc1b65fb
+nmdc-schema==2021.9.28rc1 \
+    --hash=sha256:38350658b37ae37d4334e11889a7967a1acda782d84c7bebe7aedd64ab204707 \
+    --hash=sha256:502bac73de98aaf3df08d9c1258ab766938db8dffd13189ddfd8c8e3db1e66b2
     # via -r requirements/main.in
 notebook==6.4.4 \
     --hash=sha256:26b0095c568e307a310fd78818ad8ebade4f00462dada4c0e34cbad632b9085d \
