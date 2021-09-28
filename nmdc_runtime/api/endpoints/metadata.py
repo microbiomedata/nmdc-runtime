@@ -95,6 +95,12 @@ async def submit_changesheet(
         },
         "results_of_updates": results_of_updates,
     }
+    for result in results_of_updates:
+        if len(result.get("validation_errors", [])) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=rv
+            )
+
     return rv
 
 
