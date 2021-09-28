@@ -276,21 +276,12 @@ def make_updates(var_group: tuple) -> list:
             if type(v) == list and type(v[0]) == dict:
                 value_dict[k] = merge(v)
 
-        # add the value_dict to updates
-        # e.g., the above update values look like:
-        # {'q': {'id': 'gold:1234'},
-        #  'u': {'$addToSet': {'has_associated_researchers': 'Conceptualization'}}}
-        # {'q': {'id': 'gold:1234'},
-        #  'u': {'$addToSet': {'has_associated_researchers':
-        #                         {'name': 'Kelly Wrighton',
-        #                          'email': 'Kelly.Wrighton@colostate.edu',
-        #                           'orcid': 'orcid:0000-0003-0434-4217'}}}}
-        for k, v in value_dict.items():
-            update_dict = {
-                "q": {"id": f"{id_val}"},
-                "u": {"$addToSet": {update_key: {k: v}}},
-            }
-            updates.append(update_dict)
+        update_dict = {
+            "q": {"id": f"{id_val}"},
+            "u": {"$addToSet": {update_key: value_dict}},
+        }
+        updates.append(update_dict)
+
     return updates
 
 
