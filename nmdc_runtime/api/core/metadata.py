@@ -232,17 +232,65 @@ def make_updates(var_group: tuple) -> list:
                 updates.append(update_dict)
 
     # add collected objects to updates
-    # these objects are added to an array
-    print(objects)
+    # these objects are added to an array above
     if len(objects) > 0:
-        key = list(objects[0].keys())[0]  # get key from first element
-        values_dict = merge([list(d.values())[0] for d in objects])
-        update_dict = {
-            "q": {"id": f"{id_val}"},
-            "u": {"$addToSet": {key: values_dict}},
-        }
-        updates.append(update_dict)
+        update_key = list(objects[0].keys())[0]  # get key from first element
 
+        # collect the values of each object into a list
+        # note the filter for the values being a dict
+        # e.g., the values in the objects are collected as:
+        # [{'applied_role': 'Conceptualization'},
+        #  {'applies_to_person': {'name': 'Kelly Wrighton'}},
+        #  {'applies_to_person': {'email': 'Kelly.Wrighton@colostate.edu'}},
+        #  {'applies_to_person': {'orcid': 'orcid:0000-0003-0434-4217'}}]
+        values = [
+            list(obj.values())[0]
+            for obj in filter(lambda obj: type(obj) == dict, objects)
+        ]
+
+        # put the values into a dict with each unique key mapped to a list of values
+        # e.g., the example above is tranformed to:
+        # {'applied_role': 'Conceptualization',
+        #  'applies_to_person': [{'name': 'Kelly Wrighton'},
+        #  {'email': 'Kelly.Wrighton@colostate.edu'},
+        #  {'orcid': 'orcid:0000-0003-0434-4217'}]}
+        value_dict = {}
+        for val in values:
+            for k, v in val.items():
+                if type(v) == dict:
+                    if k in value_dict.keys():
+                        value_dict[k].append(v)
+                    else:
+                        value_dict[k] = [v]
+                else:
+                    value_dict[k] = v
+
+        # now merge values with lists of dicts
+        # e.g., the value_dict above is transformed to:
+        # {'applied_role': 'Conceptualization',
+        #  'applies_to_person': {
+        #     'name': 'Kelly Wrighton',
+        #     'email': 'Kelly.Wrighton@colostate.edu',
+        #     'orcid': 'orcid:0000-0003-0434-4217'}}
+        for k, v in value_dict.items():
+            if type(v) == list and type(v[0]) == dict:
+                value_dict[k] = merge(v)
+
+        # add the value_dict to updates
+        # e.g., the above update values look like:
+        # {'q': {'id': 'gold:1234'},
+        #  'u': {'$addToSet': {'has_associated_researchers': 'Conceptualization'}}}
+        # {'q': {'id': 'gold:1234'},
+        #  'u': {'$addToSet': {'has_associated_researchers':
+        #                         {'name': 'Kelly Wrighton',
+        #                          'email': 'Kelly.Wrighton@colostate.edu',
+        #                           'orcid': 'orcid:0000-0003-0434-4217'}}}}
+        for k, v in value_dict.items():
+            update_dict = {
+                "q": {"id": f"{id_val}"},
+                "u": {"$addToSet": {update_key: {k: v}}},
+            }
+            updates.append(update_dict)
     return updates
 
 
