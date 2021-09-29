@@ -396,11 +396,11 @@ def make_project_dataframe(
         output_files.rename(columns={"file_id": "output_file_ids"}, inplace=True)
         output_files["output_file_ids"] = output_files["output_file_ids"].astype(str)
 
-        ## require output files for projects (i.e., inner join)
+        ## left join output files for projects
         temp2_df = pds.merge(
             temp2_df,
             output_files,
-            how="inner",
+            how="left",
             left_on="gold_id",
             right_on="gold_project_id",
         )
