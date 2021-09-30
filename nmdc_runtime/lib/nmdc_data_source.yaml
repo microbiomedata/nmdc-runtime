@@ -241,7 +241,7 @@ classes:
             - add_date
             - mod_date
     attributes:
-      - part of: [study_gold_id]
+      - part_of: [study_gold_id]
       - add_date
       - mod_date
       - collection_date:
