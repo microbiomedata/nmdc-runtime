@@ -20,6 +20,7 @@ from nmdc_runtime.api.core.metadata import (
     copy_docs_in_update_cmd,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.util import nmdc_jsonschema
 
 router = APIRouter()
@@ -62,21 +63,10 @@ async def validate_changesheet(
     Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
 
     """
-    df_change = await load_uploaded_file_as_changesheet(sheet, mdb)
-
-    return {"mongo_update_command": mongo_update_command_for(df_change)}
+    return _validate_changesheet(sheet, mdb)
 
 
-@router.post("/metadata/changesheets:submit")
-async def submit_changesheet(
-    sheet: UploadFile = File(...),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    """
-
-    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
-    """
+def _validate_changesheet(sheet: UploadFile, mdb: MongoDatabase):
     df_change = await load_uploaded_file_as_changesheet(sheet, mdb)
 
     update_cmd = mongo_update_command_for(df_change)
@@ -101,6 +91,40 @@ async def submit_changesheet(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=rv
             )
 
+    return rv
+
+
+@router.post("/metadata/changesheets:submit")
+async def submit_changesheet(
+    sheet: UploadFile = File(...),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    """
+
+    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+
+    """
+    allowed_to_submit = ("dehays", "dwinston")
+    if user.username not in allowed_to_submit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Only users {allowed_to_submit} "
+                "are allowed to apply changesheets at this time."
+            ),
+        )
+    rv = _validate_changesheet(
+        sheet, mdb
+    )  # raises HTTPException if any validation errors
+    # TODO
+    # 1. create object (backed by gridfs)
+    # 2. create apply-changesheet job
+    # 3. return job from this endpoint
+    #
+    # In nmdc-runtime...
+    # 1. claim job
+    # 2. update job operation with results and mark as done
     return rv
 
 

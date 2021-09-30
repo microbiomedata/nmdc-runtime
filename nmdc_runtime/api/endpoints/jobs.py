@@ -111,11 +111,6 @@ def claim_job(
     return op.dict(exclude_unset=True)
 
 
-@router.post("/jobs:preclaim", response_model=Operation[ResultT, MetadataT])
-def preclaim_job():
-    pass
-
-
 @router.get(
     "/jobs/{job_id}/executions",
     description=(
@@ -125,9 +120,11 @@ def preclaim_job():
     ),
 )
 def list_job_executions():
+    # TODO
     pass
 
 
 @router.get("/jobs/{job_id}/executions/{exec_id}")
 def get_job_execution():
+    # TODO
     pass
