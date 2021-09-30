@@ -13,6 +13,7 @@ from starlette import status
 from toolz import merge, get_in
 
 from nmdc_runtime.api.core.util import dotted_path_for
+from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.graphs import (
@@ -21,6 +22,7 @@ from nmdc_runtime.site.graphs import (
     create_objects_from_site_object_puts,
     housekeeping,
     ensure_jobs,
+    apply_changesheet,
 )
 from nmdc_runtime.site.resources import mongo_resource, get_mongo
 from nmdc_runtime.site.resources import (
@@ -28,6 +30,9 @@ from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
 from nmdc_runtime.site.resources import terminus_resource
+from nmdc_runtime.site.translation.emsl import emsl_job
+from nmdc_runtime.site.translation.gold import gold_job
+from nmdc_runtime.site.translation.jgi import jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 resource_defs = {
@@ -226,6 +231,68 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
         yield SkipReason("No job found")
 
 
+@sensor(job=apply_changesheet.to_job(**preset_normal))
+def claim_and_run_apply_changesheet_jobs(_context):
+    """
+    claims job, and updates job operations with results and marking as done
+    """
+    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
+    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "apply-changesheet-1.0.0"})]
+
+    if (
+        mdb.operations.count_documents(
+            {
+                "metadata.job.id": {"$in": [job.id for job in jobs]},
+                "metadata.site_id": client.site_id,
+            }
+        )
+        == len(jobs)
+    ):
+        yield SkipReason("All relevant jobs already claimed by this site")
+        return
+
+    yielded_run_request = False
+    skip_notes = []
+
+    for job in jobs:
+        job_op_for_site = mdb.operations.find_one(
+            {"metadata.job.id": job.id, "metadata.site_id": client.site_id}
+        )
+        if job_op_for_site is not None:
+            skip_notes.append(f"Job {job.id} found, but already claimed by this site")
+        else:
+            rv = client.claim_job(job.id)
+            if rv.status_code == status.HTTP_200_OK:
+                operation = rv.json()
+                run_config = merge(
+                    run_config_frozen__normal_env,
+                    {
+                        "ops": {
+                            "get_changesheet_in": {
+                                "config": {
+                                    "object_id": job.config.get("object_id"),
+                                }
+                            },
+                            "perform_changesheet_updates": {
+                                "config": {"operation_id": operation["id"]}
+                            },
+                        }
+                    },
+                )
+                yield RunRequest(run_key=operation["id"], run_config=run_config)
+                yielded_run_request = True
+            else:
+                skip_notes.append(
+                    f"Job {job.id} found and unclaimed by this site, but claim failed."
+                )
+    else:
+        skip_notes.append("No jobs found")
+
+    if not yielded_run_request:
+        yield SkipReason("; ".join(skip_notes))
+
+
 @sensor(job=create_objects_from_site_object_puts.to_job(**preset_normal))
 def done_object_put_ops(_context):
     client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
@@ -259,16 +326,19 @@ def repo():
         ensure_gold_translation_job,
         claim_and_run_gold_translation_curation,
         process_workflow_job_triggers,
+        claim_and_run_apply_changesheet_jobs,
     ]
 
     return graph_jobs + schedules + sensors
 
 
-# @repository
-# def translation():
-#     graph_jobs = [jgi_job, gold_job, emsl_job]
-#
-#     return graph_jobs
+@repository
+def translation():
+    graph_jobs = [jgi_job, gold_job, emsl_job]
+
+    return graph_jobs
+
+
 #
 #
 # @repository

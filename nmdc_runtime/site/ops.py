@@ -3,6 +3,7 @@ import mimetypes
 import os
 import subprocess
 import tempfile
+from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
 from zipfile import ZipFile
@@ -20,14 +21,18 @@ from dagster import (
     Failure,
     RetryPolicy,
 )
+from gridfs import GridFS
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
 from toolz import get_in
 
 from nmdc_runtime.api.core.idgen import generate_one_id
+from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
+from nmdc_runtime.api.endpoints.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.models.job import JobOperationMetadata, Job
+from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
@@ -348,3 +353,41 @@ def remove_unclaimed_obsolete_jobs(context, job: Job):
         )
     )
     # TODO which of other_job_docs are unclaimed? (no operations)? Delete them.
+
+
+@op(required_resource_keys={"mongo"})
+def get_changesheet_in(context) -> ChangesheetIn:
+    mdb: MongoDatabase = context.resources.mongo.db
+    object_id = context.solid_config.get("object_id")
+    mdb_fs = GridFS(mdb)
+    grid_out = mdb_fs.get(object_id)
+    return ChangesheetIn(
+        name=grid_out.filename, content_type=grid_out.content_type, text=grid_out.read()
+    )
+
+
+@op(required_resource_keys={"mongo"})
+def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
+    mdb: MongoDatabase = context.resources.mongo.db
+    op_id = context.solid_config.get("operation_id")
+    try:
+        df_change = df_from_sheet_in(sheet_in, mdb)
+        validation_result = _validate_changesheet(df_change, mdb)
+    except Exception as e:
+        raise Failure(str(e))
+
+    update_cmd = validation_result["update_cmd"]
+    results_of_updates = validation_result["results_of_updates"]
+
+    id_dict = map_id_to_collection(mdb)
+    docs_to_upsert = defaultdict(list)
+    for r in results_of_updates:
+        collection_name = get_collection_for_id(r["id"], id_dict)
+        docs_to_upsert[collection_name].append(r["doc_after"])
+    context.resources.mongo.add_docs(docs_to_upsert)
+    op = Operation(**mdb.operations.find_one({"id": op_id}))
+    op.done = True
+    op.result = {"update_cmd": json.dumps(update_cmd)}
+    op_doc = op.dict(exclude_unset=True)
+    mdb.operations.replace_one({"id": op_id}, op_doc)
+    return op_doc

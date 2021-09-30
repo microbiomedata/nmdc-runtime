@@ -82,6 +82,12 @@ _raw = [
         "created_at": datetime(2021, 9, 20, tzinfo=timezone.utc),
         "name": "Natural Organic Matter characterization",
     },
+    {
+        "id": "apply-changesheet-1.0.0",
+        "created_at": datetime(2021, 9, 30, tzinfo=timezone.utc),
+        "name": "apply metadata changesheet",
+        "description": "Validate and apply metadata changes from TSV/CSV files",
+    },
 ]
 
 

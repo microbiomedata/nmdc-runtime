@@ -2,7 +2,6 @@ from pathlib import Path
 
 from dagster import op, Failure, AssetMaterialization
 from dagster.core.definitions.events import AssetKey, Output
-from dagster.core.definitions.output import Out
 from fastjsonschema import JsonSchemaValueException
 
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
@@ -126,7 +125,8 @@ def schema_validate(context, data: tuple):
         yield schema_validate_asset(collection_name, "valid", "none")
         return data  # do I need a return statement and an Output?
     except JsonSchemaValueException as e:
-        context.log.error("validation failed for {collection_name}" + str(e))
+        context.log.error(f"validation failed for {schema_collection_name} " + str(e))
+        context.log.error(f"documents: {documents}")
         yield schema_validate_asset(collection_name, "not valid", str(e))
         raise Failure(str(e))
     finally:

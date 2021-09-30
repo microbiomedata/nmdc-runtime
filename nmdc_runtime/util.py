@@ -96,3 +96,8 @@ def pluralize(singular, using, pluralized=None):
         if using == 1
         else (pluralized if pluralized is not None else f"{singular}s")
     )
+
+
+def iterable_from_dict_keys(d, keys):
+    for k in keys:
+        yield d[k]

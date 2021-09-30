@@ -16,6 +16,8 @@ from nmdc_runtime.site.ops import (
     filter_ops_undone_expired,
     construct_jobs,
     maybe_post_jobs,
+    get_changesheet_in,
+    perform_changesheet_updates,
 )
 
 
@@ -74,3 +76,9 @@ def housekeeping():
 def ensure_jobs():
     jobs = construct_jobs()
     maybe_post_jobs(jobs)
+
+
+@graph
+def apply_changesheet():
+    sheet_in = get_changesheet_in()
+    perform_changesheet_updates(sheet_in)

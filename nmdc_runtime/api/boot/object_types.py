@@ -45,6 +45,12 @@ _raw = [
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
         "name": "Raw FTMS MetaB Input",
     },
+    {
+        "id": "metadata-changesheet",
+        "created_at": datetime(2021, 9, 30, tzinfo=timezone.utc),
+        "name": "metadata changesheet",
+        "description": "Specification for changes to existing metadata",
+    },
 ]
 
 _raw.extend(

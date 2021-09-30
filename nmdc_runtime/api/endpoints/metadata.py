@@ -4,15 +4,20 @@ import os.path
 import re
 import tempfile
 from io import StringIO
+from pathlib import Path
 
 import pandas as pd
 import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from gridfs import GridFS
 from jsonschema import Draft7Validator
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
+from starlette.responses import FileResponse
 
+from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.metadata import (
     load_changesheet,
     update_mongo_db,
@@ -20,22 +25,32 @@ from nmdc_runtime.api.core.metadata import (
     copy_docs_in_update_cmd,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.objects import HOSTNAME_EXTERNAL, _create_object
+from nmdc_runtime.api.models.metadata import ChangesheetIn
+from nmdc_runtime.api.models.object import DrsObjectIn, PortableFilename, DrsId
+from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.util import nmdc_jsonschema
+from nmdc_runtime.util import nmdc_jsonschema, drs_metadata_for
 
 router = APIRouter()
 
 
-async def load_uploaded_file_as_changesheet(
-    uploaded_file, mdb: MongoDatabase
-) -> pd.DataFrame:
+async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
+    content_type = uploaded_file.content_type
+    name = uploaded_file.filename
+    contents: bytes = await uploaded_file.read()
+    text = contents.decode()
+    return ChangesheetIn(name=name, content_type=content_type, text=text)
+
+
+def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFrame:
     content_types = {
         "text/csv": ",",
         "text/tab-separated-values": "\t",
     }
-    content_type = uploaded_file.content_type
+    content_type = sheet_in.content_type
     sep = content_types[content_type]
-    filename = uploaded_file.filename
+    filename = sheet_in.name
     if content_type not in content_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -44,31 +59,14 @@ async def load_uploaded_file_as_changesheet(
                 f"Only {list(content_types)} files are permitted."
             ),
         )
-    contents: bytes = await uploaded_file.read()
-    stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
     try:
-        df = load_changesheet(stream, mdb, sep=sep)
+        df = load_changesheet(StringIO(sheet_in.text), mdb, sep=sep)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return df
 
 
-@router.post("/metadata/changesheets:validate")
-async def validate_changesheet(
-    sheet: UploadFile = File(...),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    """
-
-    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
-    """
-    return _validate_changesheet(sheet, mdb)
-
-
-def _validate_changesheet(sheet: UploadFile, mdb: MongoDatabase):
-    df_change = await load_uploaded_file_as_changesheet(sheet, mdb)
-
+def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
     update_cmd = mongo_update_command_for(df_change)
     mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
     results_of_copy = copy_docs_in_update_cmd(
@@ -94,9 +92,24 @@ def _validate_changesheet(sheet: UploadFile, mdb: MongoDatabase):
     return rv
 
 
-@router.post("/metadata/changesheets:submit")
+@router.post("/metadata/changesheets:validate")
+async def validate_changesheet(
+    uploaded_file: UploadFile = File(...),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """
+
+    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+
+    """
+    sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
+    df_change = df_from_sheet_in(sheet_in, mdb)
+    return _validate_changesheet(df_change, mdb)
+
+
+@router.post("/metadata/changesheets:submit", response_model=DrsObjectWithTypes)
 async def submit_changesheet(
-    sheet: UploadFile = File(...),
+    uploaded_file: UploadFile = File(...),
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
@@ -114,18 +127,66 @@ async def submit_changesheet(
                 "are allowed to apply changesheets at this time."
             ),
         )
-    rv = _validate_changesheet(
-        sheet, mdb
-    )  # raises HTTPException if any validation errors
-    # TODO
-    # 1. create object (backed by gridfs)
-    # 2. create apply-changesheet job
-    # 3. return job from this endpoint
-    #
-    # In nmdc-runtime...
-    # 1. claim job
-    # 2. update job operation with results and mark as done
-    return rv
+    sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
+    df_change = df_from_sheet_in(sheet_in, mdb)
+    _ = _validate_changesheet(df_change, mdb)
+
+    # create object (backed by gridfs). use "gfs0" id shoulder for drs_object access_id.
+    sheet_id = generate_one_id(mdb, ns="changesheets", shoulder="gfs0")
+    mdb_fs = GridFS(mdb)
+    filename = re.sub(r"[^A-Za-z0-9\.\_\-]", "_", sheet_in.name)
+    PortableFilename(filename)  # validates
+    sheet_text = sheet_in.text
+    drs_id = local_part(sheet_id)
+    DrsId(drs_id)  # validates
+    mdb_fs.put(
+        sheet_text,
+        _id=drs_id,
+        filename=filename,
+        content_type=sheet_in.content_type,
+        encoding="utf-8",
+    )
+    with tempfile.TemporaryDirectory() as save_dir:
+        filepath = str(Path(save_dir).joinpath(filename))
+        with open(filepath, "w") as f:
+            f.write(sheet_text)
+        object_in = DrsObjectIn(
+            **drs_metadata_for(
+                filepath,
+                base={
+                    "description": f"changesheet submitted by {user.username}",
+                    "access_methods": [{"access_id": drs_id}],
+                },
+            )
+        )
+
+    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
+
+    drs_obj_doc = _create_object(
+        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+    )
+
+    doc_after = mdb.objects.find_one_and_update(
+        {"id": drs_obj_doc["id"]},
+        {"$set": {"types": ["metadata-changesheet"]}},
+        return_document=ReturnDocument.AFTER,
+    )
+    return doc_after
+
+
+@router.get("/metadata/changesheets/{object_id}", response_class=FileResponse)
+async def get_changesheet(
+    object_id: str,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    mdb_fs = GridFS(mdb)
+    grid_out = mdb_fs.get(object_id)
+    filename, content_type = grid_out.filename, grid_out.content_type
+    with tempfile.TemporaryDirectory() as save_dir:
+        filepath = str(Path(save_dir).joinpath(filename))
+        with open(filepath, "w") as f:
+            f.write(grid_out.read())
+        return FileResponse(filepath, media_type=content_type, filename=filename)
 
 
 url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")

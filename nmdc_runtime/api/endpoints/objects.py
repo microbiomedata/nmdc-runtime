@@ -4,6 +4,7 @@ from typing import List
 import botocore
 import pymongo
 from fastapi import APIRouter, status, Depends, HTTPException
+from gridfs import GridFS
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
@@ -79,12 +80,19 @@ def create_object(
         id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
     )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
-    print(drs_id)
+    return _create_object(
+        mdb, object_in, mgr_site=client_site.id, drs_id=drs_id, self_uri=self_uri
+    )
+
+
+def _create_object(
+    mdb: pymongo.database.Database, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
+):
     drs_obj = DrsObject(
         **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
     )
     doc = drs_obj.dict(exclude_unset=True)
-    doc["_mgr_site"] = client_site.id  # manager site
+    doc["_mgr_site"] = mgr_site  # manager site
     try:
         mdb.objects.insert_one(doc)
     except DuplicateKeyError as e:
@@ -195,6 +203,16 @@ def get_object_access(
             client=s3client,
         )
         return {"url": url}
+    if access_id.startswith("gfs0") and object_id == access_id:
+        mdb_fs = GridFS(mdb)
+        if mdb_fs.exists(_id=access_id):
+            return {"url": BASE_URL_EXTERNAL + f"/metadata/changesheets/{access_id}"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="access_id for object not found by gfs0 handler",
+            )
+
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="no site found to handle access_id for object",

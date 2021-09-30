@@ -2,9 +2,9 @@ load_from:
   - python_package:
       package_name: nmdc_runtime.site.repository
       attribute: repo
-#  - python_package:
-#      package_name: nmdc_runtime.site.repository
-#      attribute: translation
+  - python_package:
+      package_name: nmdc_runtime.site.repository
+      attribute: translation
 #  - python_package:
 #      package_name: nmdc_runtime.site.repository
 #      attribute: test_translation
