@@ -780,7 +780,7 @@ def dataframe_to_dict(
 
         Args:
             nmdc_record (namedtuple): the records that holds the data
-            nmdc_class ([type]): the class tha the object will instantiate
+            nmdc_class ([type]): the class that the object will instantiate
 
         Returns:
             an object of the type specified by class_type
