@@ -1,9 +1,9 @@
 id	action	attribute	value
-gold:Gs0110138	update	principal_investigator.has_raw_value	
-	update	principal_investigator.name	
-	update	principal_investigator.orcid	
-gold:Gs0103573	update	principal_investigator.has_raw_value	
-	update	principal_investigator.name	
-	update	principal_investigator.profile_image_url	
-	update	principal_investigator.orcid	
-	update	principal_investigator.websites	
+gold:Gs0110138	update	principal_investigator.has_raw_value	Christopher Schadt
+	update	principal_investigator.name	Christopher Schadt
+	update	principal_investigator.orcid	orcid:0000-0001-8759-2448
+gold:Gs0103573	update	principal_investigator.has_raw_value	Mitchel J. Doktycz
+	update	principal_investigator.name	Mitchel J. Doktycz
+	update	principal_investigator.profile_image_url	https://portal.nersc.gov/project/m3408/profile_images/doktycz_mitchel.jpg
+	update	principal_investigator.orcid	orcid:0000-0003-4856-8343
+	update	principal_investigator.websites	"[""https://www.ornl.gov/staff-profile/mitchel-j-doktycz""]"
