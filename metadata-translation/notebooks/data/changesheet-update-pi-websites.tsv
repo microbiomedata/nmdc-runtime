@@ -1,0 +1,9 @@
+id	action	attribute	value
+gold:Gs0110138	update	principal_investigator.has_raw_value	
+	update	principal_investigator.name	
+	update	principal_investigator.orcid	
+gold:Gs0103573	update	principal_investigator.has_raw_value	
+	update	principal_investigator.name	
+	update	principal_investigator.profile_image_url	
+	update	principal_investigator.orcid	
+	update	principal_investigator.websites	
