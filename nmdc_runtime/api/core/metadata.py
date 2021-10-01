@@ -1,12 +1,13 @@
 from collections import defaultdict
+import collections
 
 import jq
 import pandas as pds
 from jsonschema import Draft7Validator
 from pandas._typing import FilePathOrBuffer
 from pymongo.database import Database as MongoDatabase
-from toolz import assoc_in
-from toolz.dicttoolz import merge, dissoc
+from toolz.dicttoolz import merge, dissoc, assoc_in, get_in
+from functools import lru_cache
 
 from nmdc_runtime.util import nmdc_jsonschema
 
@@ -134,20 +135,59 @@ def load_changesheet(
     # add info about the level of property nesting, prop range
     # and type of item for arrays
     df["prop_depth"] = ""
+    df["base_range"] = ""
+    df["base_item_type"] = ""
     df["prop_range"] = ""
     df["item_type"] = ""
+    ##################################
     for ix, path, class_name in df[["path", "class_name"]].itertuples():
         if len(path) > 0:
             props = path.split(".")
-            df.loc[ix, "prop_depth"] = len(props)
+            prop_depth = len(props)
+            df.loc[ix, "prop_depth"] = prop_depth
+            # print("*** path:", path, "len:", len(props))
 
             if 1 == len(props):
                 prop_range = get_schema_range(class_name, props[0])
             else:
-                for p in props:
-                    prop_range = get_schema_range(class_name, p)
-                    base_prop = path.split(".")[0]
-                    prop_range = get_schema_range(class_name, base_prop)
+                # get the base range for the path (i.e., first part of path)
+                # and set the class name to the range of the base
+                base_range = get_schema_range(class_name, props[0])
+                if tuple == type(base_range):
+                    df.loc[ix, "base_range"] = base_range[0]
+                    df.loc[ix, "base_item_type"] = base_range[1]
+                    class_name = base_range[1]
+                else:
+                    df.loc[ix, "base_range"] = base_range
+                    class_name = base_range
+
+                # get the part of the class name after the ":"
+                # e.g, "object:Study" -> Study
+                if "object:" in class_name:
+                    class_name = class_name.split(":")[1]
+
+                # now find the ranges for the rest of the path
+                for prop in props[1:]:
+                    # class_name = get_schema_range(class_name, prop)
+                    prop_range = get_schema_range(class_name, prop)
+                    # print(class_name, prop, "->", prop_range)
+
+                    # tuple means the range was an array
+                    # so get the class out of the tuple
+                    if tuple == type(prop_range):
+                        class_name = prop_range[1]
+
+                    if "object:" in prop_range:
+                        class_name = prop_range.split(":")[1]
+
+                # print("###### base:", class_name)
+                # prop_range = get_schema_range(class_name, props[-1])
+
+                # for p in props:
+                # prop_range = get_schema_range(base_class, p)
+                # prop_range = get_schema_range(class_name, p)
+                # base_prop = path.split(".")[0]
+                # prop_range = get_schema_range(class_name, base_prop)
 
             # if the range is an array a tuple is returned
             # the second element is the item type
@@ -160,18 +200,25 @@ def load_changesheet(
     return df
 
 
+@lru_cache
 def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
-    # define jq query
-    query = f" .. | .{class_name}? | .properties | .{prop_name} | select(. != null)"
-    # print(query)
+    # find class schema
+    query = f" .. | .{class_name}? | select(. != null)"
+    try:
+        class_schema = jq.compile(query).input(schema).first()
+        # print("schema:", class_schema)
+    except StopIteration:
+        raise Exception(f"Could not find {class_name} in the schema")
 
     # find property
+    query = f" .properties | .{prop_name}"
     try:
-        prop_schema = jq.compile(query).input(schema).first()
+        prop_schema = jq.compile(query).input(class_schema).first()
         # print("schema:", prop_schema)
     except StopIteration:
-        # TODO: Perhaps raise an error here
-        prop_schema = None
+        raise Exception(f"Could not find {prop_name} in the schema")
+
+    # print("prop:", prop_name, "->", prop_schema)  #############
 
     # find property range/type
     if prop_schema:
@@ -184,6 +231,7 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
     else:
         rv = None
 
+    # print("rv1:", rv)  ###############
     # find item types for arrays
     if prop_schema is not None and "array" == rv:
         if "items" in prop_schema.keys():
@@ -194,22 +242,36 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
             if "$ref" in prop_schema["items"]:
                 rv = rv, f"""object:{prop_schema["items"]["$ref"].split("/")[-1]}"""
 
+    # print("rv2:", rv)  ###############
     return rv
 
 
 def make_updates(var_group: tuple) -> list:
     # group_var = var_group[0]  # the variable (if any) in the group_var column
     df = var_group[1]  # dataframe with group_var variables
-    id_val = df["group_id"].values[0]  # get id for group
+    id_ = df["group_id"].values[0]  # get id for group
 
     objects = []  # collected object groups
-    updates = []  # properties/values to updated
-    for ix, value, path, prop_range, item_type in df[
-        ["value", "path", "prop_range", "item_type"]
+    updates = []  # collected properties/values to updated
+    for ix, value, path, base_range, base_item_type, prop_range, item_type in df[
+        ["value", "path", "base_range", "base_item_type", "prop_range", "item_type"]
     ].itertuples():
         if len(path) > 0:
-            update_dict = {}
-            if "array" == prop_range:
+            update_dict = {}  # holds the values for the update query
+            if "array" == base_range:
+                if "object" in base_item_type:
+                    props = path.split(".")
+                    # gather values into dict (part after first ".")
+                    value_dict = assoc_in({}, props[1:], value)
+
+                    # add values list; props[0] is the first element in path
+                    objects.append({props[0]: value_dict})
+                else:
+                    update_dict = {
+                        "q": {"id": f"{id_}"},
+                        "u": {"$addToSet": {path: value}},
+                    }
+            elif "array" == prop_range:
                 if "object" in item_type:
                     props = path.split(".")
                     # gather values into dict (part after first ".")
@@ -219,12 +281,12 @@ def make_updates(var_group: tuple) -> list:
                     objects.append({props[0]: value_dict})
                 else:
                     update_dict = {
-                        "q": {"id": f"{id_val}"},
+                        "q": {"id": f"{id_}"},
                         "u": {"$addToSet": {path: value}},
                     }
             else:
                 update_dict = {
-                    "q": {"id": f"{id_val}"},
+                    "q": {"id": f"{id_}"},
                     "u": {"$set": {path: value}},
                 }
 
@@ -276,10 +338,16 @@ def make_updates(var_group: tuple) -> list:
             if type(v) == list and type(v[0]) == dict:
                 value_dict[k] = merge(v)
 
+        # we know we are updating an array b/c it
+        # was added to the objects list
         update_dict = {
-            "q": {"id": f"{id_val}"},
+            "q": {"id": f"{id_}"},
             "u": {"$addToSet": {update_key: value_dict}},
         }
+
+        # if update_key == "has_credit_associations":
+        #     print(update_dict)
+
         updates.append(update_dict)
 
     return updates
@@ -297,20 +365,19 @@ def map_id_to_collection(mongodb) -> dict:
     return id_dict
 
 
-def get_collection_for_id(id_val, id_map):
+def get_collection_for_id(id_, id_map):
     for collection_name in id_map:
-        if id_val in id_map[collection_name]:
+        if id_ in id_map[collection_name]:
             return collection_name
     return None
 
 
 def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
     update_cmd = {}  # list of dicts to hold mongo update queries
-
-    # split the change sheet by the group id values
     id_group = df_change.groupby("group_id")
     for ig in id_group:
-        id_val, df_id = ig
+        id_, df_id = ig
+
         # split the id group by the group variables
         var_group = df_id.groupby("group_var")
         ig_updates = []
@@ -318,7 +385,7 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
             # vg[0] -> group_var for data
             # vg[1] -> dataframe with rows having the group_var
             ig_updates.extend(make_updates(vg))
-        update_cmd[id_val] = {
+        update_cmd[id_] = {
             "update": df_id["collection_name"].values[0],
             "updates": ig_updates,
         }
