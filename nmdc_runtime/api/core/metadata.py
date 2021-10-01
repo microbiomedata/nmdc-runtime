@@ -134,19 +134,13 @@ def load_changesheet(
 
     # add info about the level of property nesting, prop range
     # and type of item for arrays
-    df["prop_depth"] = ""
     df["base_range"] = ""
     df["base_item_type"] = ""
     df["prop_range"] = ""
     df["item_type"] = ""
-    ##################################
     for ix, path, class_name in df[["path", "class_name"]].itertuples():
         if len(path) > 0:
             props = path.split(".")
-            prop_depth = len(props)
-            df.loc[ix, "prop_depth"] = prop_depth
-            # print("*** path:", path, "len:", len(props))
-
             if 1 == len(props):
                 prop_range = get_schema_range(class_name, props[0])
             else:
@@ -170,7 +164,6 @@ def load_changesheet(
                 for prop in props[1:]:
                     # class_name = get_schema_range(class_name, prop)
                     prop_range = get_schema_range(class_name, prop)
-                    # print(class_name, prop, "->", prop_range)
 
                     # tuple means the range was an array
                     # so get the class out of the tuple
@@ -179,15 +172,6 @@ def load_changesheet(
 
                     if "object:" in prop_range:
                         class_name = prop_range.split(":")[1]
-
-                # print("###### base:", class_name)
-                # prop_range = get_schema_range(class_name, props[-1])
-
-                # for p in props:
-                # prop_range = get_schema_range(base_class, p)
-                # prop_range = get_schema_range(class_name, p)
-                # base_prop = path.split(".")[0]
-                # prop_range = get_schema_range(class_name, base_prop)
 
             # if the range is an array a tuple is returned
             # the second element is the item type
@@ -218,8 +202,6 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
     except StopIteration:
         raise Exception(f"Could not find {prop_name} in the schema")
 
-    # print("prop:", prop_name, "->", prop_schema)  #############
-
     # find property range/type
     if prop_schema:
         if "type" in prop_schema.keys():
@@ -231,7 +213,6 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
     else:
         rv = None
 
-    # print("rv1:", rv)  ###############
     # find item types for arrays
     if prop_schema is not None and "array" == rv:
         if "items" in prop_schema.keys():
@@ -242,7 +223,6 @@ def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
             if "$ref" in prop_schema["items"]:
                 rv = rv, f"""object:{prop_schema["items"]["$ref"].split("/")[-1]}"""
 
-    # print("rv2:", rv)  ###############
     return rv
 
 
@@ -258,21 +238,8 @@ def make_updates(var_group: tuple) -> list:
     ].itertuples():
         if len(path) > 0:
             update_dict = {}  # holds the values for the update query
-            if "array" == base_range:
-                if "object" in base_item_type:
-                    props = path.split(".")
-                    # gather values into dict (part after first ".")
-                    value_dict = assoc_in({}, props[1:], value)
-
-                    # add values list; props[0] is the first element in path
-                    objects.append({props[0]: value_dict})
-                else:
-                    update_dict = {
-                        "q": {"id": f"{id_}"},
-                        "u": {"$addToSet": {path: value}},
-                    }
-            elif "array" == prop_range:
-                if "object" in item_type:
+            if "array" == base_range or "array" == prop_range:
+                if "object" in base_item_type or "object" in item_type:
                     props = path.split(".")
                     # gather values into dict (part after first ".")
                     value_dict = assoc_in({}, props[1:], value)
