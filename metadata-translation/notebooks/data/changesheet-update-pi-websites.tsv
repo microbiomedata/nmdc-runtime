@@ -1,0 +1,6 @@
+id	action	attribute	value
+gold:Gs0103573	update	principal_investigator.has_raw_value	NEW PI NAME
+	update	principal_investigator.name	NEW PI NAME
+	update	principal_investigator.profile_image_url	https://portal.nersc.gov/NEW-PI-NAME.jpg
+	update	principal_investigator.orcid	orcid:0000-0000-0000-0000
+	update	principal_investigator.websites	https://www.ornl.gov/staff-profile/NEW-PI-NAME
