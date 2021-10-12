@@ -30,6 +30,7 @@ from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.object import DrsObjectIn, PortableFilename, DrsId
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.util import nmdc_jsonschema, drs_metadata_for
 
 router = APIRouter()
@@ -292,3 +293,24 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
             return {"result": "All Okay!"}
         else:
             return {"result": "errors", "detail": validation_errors}
+
+
+@router.post("/metadata/json:validate")
+async def validate_json(docs: dict):
+    """
+
+    Validate a NMDC JSON Schema "nmdc:Database" object.
+
+    """
+
+    validator = Draft7Validator(get_nmdc_schema())
+    docs, validation_errors = specialize_activity_set_docs(docs)
+
+    for coll_name, coll_docs in docs.items():
+        errors = list(validator.iter_errors({coll_name: coll_docs}))
+        validation_errors[coll_name] = [e.message for e in errors]
+
+    if all(len(v) == 0 for v in validation_errors.values()):
+        return {"result": "All Okay!"}
+    else:
+        return {"result": "errors", "detail": validation_errors}

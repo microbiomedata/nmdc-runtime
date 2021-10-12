@@ -18,6 +18,8 @@ from nmdc_runtime.site.ops import (
     maybe_post_jobs,
     get_changesheet_in,
     perform_changesheet_updates,
+    get_json_in,
+    perform_mongo_updates,
 )
 
 
@@ -82,3 +84,8 @@ def ensure_jobs():
 def apply_changesheet():
     sheet_in = get_changesheet_in()
     perform_changesheet_updates(sheet_in)
+
+
+@graph
+def apply_metadata_in():
+    perform_mongo_updates(get_json_in())

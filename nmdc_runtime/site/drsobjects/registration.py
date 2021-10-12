@@ -99,24 +99,38 @@ def get_type_collections():
 
 
 def specialize_activity_set_docs(docs):
+    validation_errors = {}
     type_collections = get_type_collections()
     if "activity_set" in docs:
         for doc in docs["activity_set"]:
             doc_type = doc["type"]
-            collection_name = type_collections[doc_type]
+            try:
+                collection_name = type_collections[doc_type]
+            except KeyError:
+                msg = (
+                    f"activity_set doc {doc.get('id', '<id missing>')} "
+                    f"has type {doc_type}, which is not in NMDC Schema. "
+                    "Note: Case is sensitive."
+                )
+                if "activity_set" in validation_errors:
+                    validation_errors["activity_set"].append(msg)
+                else:
+                    validation_errors["activity_set"] = [msg]
+                continue
+
             if collection_name in docs:
                 docs[collection_name].append(doc)
             else:
                 docs[collection_name] = [doc]
         del docs["activity_set"]
-    return docs
+    return docs, validation_errors
 
 
 def validate_as_metadata_and_ensure_tags_for(
     drs_id, client, tags=("schema#/definitions/Database", "metadata-in")
 ):
     docs = client.get_object_bytes(drs_id).json()
-    docs = specialize_activity_set_docs(docs)
+    docs, _ = specialize_activity_set_docs(docs)
     _ = nmdc_jsonschema_validate(docs)
     return {tag: client.ensure_object_tag(drs_id, tag) for tag in tags}
 

@@ -1,4 +1,5 @@
 base32-lib
+beautifulsoup4
 boto3
 click~=7.0
 dagit

@@ -23,6 +23,7 @@ from nmdc_runtime.site.graphs import (
     housekeeping,
     ensure_jobs,
     apply_changesheet,
+    apply_metadata_in,
 )
 from nmdc_runtime.site.resources import mongo_resource, get_mongo
 from nmdc_runtime.site.resources import (
@@ -231,6 +232,69 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
         yield SkipReason("No job found")
 
 
+@sensor(job=apply_metadata_in.to_job(**preset_normal))
+def claim_and_run_metadata_in_jobs(_context):
+    """
+    claims job, and updates job operations with results and marking as done
+    """
+    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
+    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "metadata-in-1.0.0"})]
+
+    if (
+        mdb.operations.count_documents(
+            {
+                "metadata.job.id": {"$in": [job.id for job in jobs]},
+                "metadata.site_id": client.site_id,
+            }
+        )
+        == len(jobs)
+    ):
+        yield SkipReason("All relevant jobs already claimed by this site")
+        return
+
+    yielded_run_request = False
+    skip_notes = []
+
+    jobs = jobs[:5]  # at most five at a time
+    for job in jobs:
+        job_op_for_site = mdb.operations.find_one(
+            {"metadata.job.id": job.id, "metadata.site_id": client.site_id}
+        )
+        if job_op_for_site is not None:
+            skip_notes.append(f"Job {job.id} found, but already claimed by this site")
+        else:
+            rv = client.claim_job(job.id)
+            if rv.status_code == status.HTTP_200_OK:
+                operation = rv.json()
+                run_config = merge(
+                    run_config_frozen__normal_env,
+                    {
+                        "ops": {
+                            "get_json_in": {
+                                "config": {
+                                    "object_id": job.config.get("object_id"),
+                                }
+                            },
+                            "perform_mongo_updates": {
+                                "config": {"operation_id": operation["id"]}
+                            },
+                        }
+                    },
+                )
+                yield RunRequest(run_key=operation["id"], run_config=run_config)
+                yielded_run_request = True
+            else:
+                skip_notes.append(
+                    f"Job {job.id} found and unclaimed by this site, but claim failed."
+                )
+    else:
+        skip_notes.append("No jobs found")
+
+    if not yielded_run_request:
+        yield SkipReason("; ".join(skip_notes))
+
+
 @sensor(job=apply_changesheet.to_job(**preset_normal))
 def claim_and_run_apply_changesheet_jobs(_context):
     """
@@ -327,6 +391,7 @@ def repo():
         claim_and_run_gold_translation_curation,
         process_workflow_job_triggers,
         claim_and_run_apply_changesheet_jobs,
+        claim_and_run_metadata_in_jobs,
     ]
 
     return graph_jobs + schedules + sensors

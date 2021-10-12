@@ -6,7 +6,7 @@ _raw = [
     {
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "object_type_id": "metadata-in",
-        "workflow_id": "portal-etl-1.0.0",
+        "workflow_id": "metadata-in-1.0.0",
     },
     {
         "created_at": datetime(2021, 9, 1, tzinfo=timezone.utc),

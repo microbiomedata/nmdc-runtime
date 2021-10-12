@@ -21,6 +21,7 @@ from dagster import (
     Failure,
     RetryPolicy,
 )
+from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -33,11 +34,21 @@ from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
 from nmdc_runtime.api.endpoints.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.models.job import JobOperationMetadata, Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.api.models.operation import Operation, ObjectPutMetadata
+from nmdc_runtime.api.models.operation import (
+    Operation,
+    ObjectPutMetadata,
+    UpdateOperationRequest,
+)
 from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
-from nmdc_runtime.site.util import run_and_log
-from nmdc_runtime.util import put_object, drs_object_in_for, pluralize
+from nmdc_runtime.site.util import run_and_log, collection_indexed_on_id
+from nmdc_runtime.util import (
+    put_object,
+    drs_object_in_for,
+    pluralize,
+    nmdc_jsonschema_validate,
+)
 
 
 @op
@@ -391,3 +402,42 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     op_doc = op.dict(exclude_unset=True)
     mdb.operations.replace_one({"id": op_id}, op_doc)
     return op_doc
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def get_json_in(context):
+    object_id = context.solid_config.get("object_id")
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+    rv = client.get_object_bytes(object_id)
+    if rv.status_code != 200:
+        raise Failure(description=f"error code {rv.status_code}: {rv.content}")
+    return rv.json()
+
+
+@op(required_resource_keys={"runtime_api_site_client", "mongo"})
+def perform_mongo_updates(context, json_in):
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+    op_id = context.solid_config.get("operation_id")
+    try:
+        _ = nmdc_jsonschema_validate(json_in)
+    except JsonSchemaValueException as e:
+        raise Failure(str(e))
+    coll_has_id_index = collection_indexed_on_id()
+    if all(coll_has_id_index[coll] for coll in json_in.keys()):
+        replace = True
+    elif all(not coll_has_id_index[coll] for coll in json_in.keys()):
+        replace = False  # wasting time trying to upsert by `id`.
+    else:
+        raise Failure(
+            "Simultaneous addition of non-`id`ed collections and `id`-ed collections"
+            " is not supported at this time."
+        )
+    op_result = context.resources.mongo.add_docs(
+        json_in, validate=False, replace=replace
+    )
+    op_patch = UpdateOperationRequest(
+        done=True,
+        result=mongo_add_docs_result_as_dict(op_result),
+        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+    )
+    return client.update_operation(op_id, op_patch)

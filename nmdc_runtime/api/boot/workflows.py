@@ -61,10 +61,10 @@ _raw = [
         "description": "Ingest and validate metaP metadata",
     },
     {
-        "id": "metadata-etl-1.0.0",
-        "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
+        "id": "metadata-in-1.0.0",
+        "created_at": datetime(2021, 10, 12, tzinfo=timezone.utc),
         "name": "general metadata ETL",
-        "description": "Ingest and validate metadata from JSON files",
+        "description": "Validate and ingest metadata from JSON files",
     },
     {
         "id": "test",
