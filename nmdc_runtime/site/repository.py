@@ -266,7 +266,7 @@ def claim_and_run_metadata_in_jobs(_context):
             # Ensure claim listed in job doc
             op_id = job_op_for_site["id"]
             mdb.jobs.update_one(
-                {"id": op_id},
+                {"id": job.id},
                 {"$addToSet": {"claims": {"op_id": op_id, "site_id": client.site_id}}},
             )
         else:
