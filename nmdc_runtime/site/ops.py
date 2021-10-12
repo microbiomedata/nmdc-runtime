@@ -42,6 +42,7 @@ from nmdc_runtime.api.models.operation import (
 )
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
+from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
 from nmdc_runtime.site.util import run_and_log, collection_indexed_on_id
 from nmdc_runtime.util import (
@@ -440,6 +441,7 @@ def perform_mongo_updates(context, json_in):
     op_id = context.solid_config.get("operation_id")
 
     docs = prefilter_functional_annotation_set(json_in)
+    docs, _ = specialize_activity_set_docs(docs)
 
     try:
         _ = nmdc_jsonschema_validate(docs)
