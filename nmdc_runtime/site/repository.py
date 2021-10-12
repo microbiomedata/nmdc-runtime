@@ -263,6 +263,12 @@ def claim_and_run_metadata_in_jobs(_context):
         )
         if job_op_for_site is not None:
             skip_notes.append(f"Job {job.id} found, but already claimed by this site")
+            # Ensure claim listed in job doc
+            op_id = job_op_for_site["id"]
+            mdb.jobs.update_one(
+                {"id": op_id},
+                {"$addToSet": {"claims": {"op_id": op_id, "site_id": client.site_id}}},
+            )
         else:
             rv = client.claim_job(job.id)
             if rv.status_code == status.HTTP_200_OK:
@@ -355,6 +361,11 @@ def claim_and_run_apply_changesheet_jobs(_context):
 
     if not yielded_run_request:
         yield SkipReason("; ".join(skip_notes))
+
+
+# TODO ensure data_object_type values from file_type_enum
+#    see /metadata-translation/notebooks/202106_curation_updates.ipynb
+#    for details ("Create file_type_enum collection" section).
 
 
 @sensor(job=create_objects_from_site_object_puts.to_job(**preset_normal))
