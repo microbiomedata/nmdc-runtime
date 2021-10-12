@@ -1,6 +1,7 @@
 import json
 import mimetypes
 import os
+import re
 import subprocess
 import tempfile
 from collections import defaultdict
@@ -48,6 +49,7 @@ from nmdc_runtime.util import (
     drs_object_in_for,
     pluralize,
     nmdc_jsonschema_validate,
+    nmdc_jsonschema,
 )
 
 
@@ -414,27 +416,46 @@ def get_json_in(context):
     return rv.json()
 
 
+anno_func_pattern = re.compile(
+    nmdc_jsonschema["$defs"]["FunctionalAnnotation"]["properties"]["has_function"][
+        "pattern"
+    ]
+)
+
+
+def prefilter_functional_annotation_set(docs):
+    if "functional_annotation_set" in docs:
+        docs["functional_annotation_set"] = [
+            d
+            for d in docs["functional_annotation_set"]
+            if ("has_function" in d and re.match(anno_func_pattern, d["has_function"]))
+        ]
+    return docs
+
+
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
+    mongo = context.resources.mongo
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     op_id = context.solid_config.get("operation_id")
+
+    docs = prefilter_functional_annotation_set(json_in)
+
     try:
-        _ = nmdc_jsonschema_validate(json_in)
+        _ = nmdc_jsonschema_validate(docs)
     except JsonSchemaValueException as e:
         raise Failure(str(e))
-    coll_has_id_index = collection_indexed_on_id()
-    if all(coll_has_id_index[coll] for coll in json_in.keys()):
+    coll_has_id_index = collection_indexed_on_id(mongo.db)
+    if all(coll_has_id_index[coll] for coll in docs.keys()):
         replace = True
-    elif all(not coll_has_id_index[coll] for coll in json_in.keys()):
+    elif all(not coll_has_id_index[coll] for coll in docs.keys()):
         replace = False  # wasting time trying to upsert by `id`.
     else:
         raise Failure(
             "Simultaneous addition of non-`id`ed collections and `id`-ed collections"
             " is not supported at this time."
         )
-    op_result = context.resources.mongo.add_docs(
-        json_in, validate=False, replace=replace
-    )
+    op_result = mongo.add_docs(docs, validate=False, replace=replace)
     op_patch = UpdateOperationRequest(
         done=True,
         result=mongo_add_docs_result_as_dict(op_result),
