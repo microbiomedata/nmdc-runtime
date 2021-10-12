@@ -3,6 +3,7 @@ import json
 import os.path
 import re
 import tempfile
+from collections import defaultdict
 from io import StringIO
 from pathlib import Path
 
@@ -258,36 +259,21 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
                     )
 
         validator = Draft7Validator(get_nmdc_schema())
-        validation_errors = {}
+        validation_errors = defaultdict(list)
 
         for url in urls:
             docs = fetch_downloaded_json(url, temp_dir)
-            if "activity_set" in docs:
-                for doc in docs["activity_set"]:
-                    doc_type = doc["type"]
-                    try:
-                        collection_name = type_collections[doc_type]
-                    except KeyError:
-                        msg = (
-                            f"activity_set doc {doc.get('id', '<id missing>')} "
-                            f"has type {doc_type}, which is not in NMDC Schema. "
-                            "Note: Case is sensitive."
-                        )
-                        if "activity_set" in validation_errors:
-                            validation_errors["activity_set"].append(msg)
-                        else:
-                            validation_errors["activity_set"] = [msg]
-                        continue
+            docs, validation_errors_for_activity_set = specialize_activity_set_docs(
+                docs
+            )
 
-                    if collection_name in docs:
-                        docs[collection_name].append(doc)
-                    else:
-                        docs[collection_name] = [doc]
-                del docs["activity_set"]
+            validation_errors["activity_set"].extend(
+                validation_errors_for_activity_set["activity_set"]
+            )
 
             for coll_name, coll_docs in docs.items():
                 errors = list(validator.iter_errors({coll_name: coll_docs}))
-                validation_errors[coll_name] = [e.message for e in errors]
+                validation_errors[coll_name].extend([e.message for e in errors])
 
         if all(len(v) == 0 for v in validation_errors.values()):
             return {"result": "All Okay!"}
