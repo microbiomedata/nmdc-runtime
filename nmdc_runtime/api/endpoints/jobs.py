@@ -88,7 +88,7 @@ def claim_job(
         pass
 
     op_id = generate_one_id(mdb, "op")
-    job.claims.append(JobClaim(op_id=op_id, site_id=site.id))
+    job.claims = (job.claims or []) + [JobClaim(op_id=op_id, site_id=site.id)]
     op = Operation[ResultT, JobOperationMetadata](
         **{
             "id": op_id,
