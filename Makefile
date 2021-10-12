@@ -32,6 +32,12 @@ fastapi-deploy-spin:
 dagster-docker:
 	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
+dagster-deploy-spin:
+	export RANCHER_TOKEN=`jq -r .Servers.rancherDefault.tokenKey ~/.rancher/cli2.json`
+	export RANCHER_USERID=`curl -H "Authorization: Bearer $RANCHER_TOKEN" https://rancher2.spin.nersc.gov/v3/users?me=true | jq -r '.data[0].id'`
+	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
+
 publish:
 	invoke publish
 
