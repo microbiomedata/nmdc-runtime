@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Optional
 
 import pandas as pd
-from toolz import dissoc
+from toolz import dissoc, merge
 
 from nmdc_runtime.api.core.metadata import (
     load_changesheet,
@@ -50,6 +50,7 @@ def test_update_01():
 
     pi_info = {"has_raw_value": "NEW RAW NAME 2", "name": "NEW PI NAME 2"}
     assert study_doc["principal_investigator"] != pi_info
+    pi_info_prev = study_doc["principal_investigator"]
     assert study_doc["name"] != "NEW STUDY NAME 2"
     assert study_doc["ecosystem"] != "NEW ECOSYSTEM 2"
     assert study_doc["ecosystem_type"] != "NEW ECOSYSTEM_TYPE 2"
@@ -68,7 +69,9 @@ def test_update_01():
     first_result = results[0]
 
     assert first_result["update_info"]["nModified"] == 12
-    assert first_result["doc_after"]["principal_investigator"] == pi_info
+    assert first_result["doc_after"]["principal_investigator"] == merge(
+        pi_info_prev, pi_info
+    )
     assert first_result["doc_after"]["name"] == "NEW STUDY NAME 2"
     assert first_result["doc_after"]["ecosystem"] == "NEW ECOSYSTEM 2"
     assert first_result["doc_after"]["ecosystem_type"] == "NEW ECOSYSTEM_TYPE 2"
