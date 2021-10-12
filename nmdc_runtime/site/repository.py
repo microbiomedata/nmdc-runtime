@@ -239,17 +239,17 @@ def claim_and_run_metadata_in_jobs(_context):
     """
     client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
     mdb = get_mongo(run_config=run_config_frozen__normal_env).db
-    jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "metadata-in-1.0.0"})]
-
-    if (
-        mdb.operations.count_documents(
+    jobs = [
+        Job(**d)
+        for d in mdb.jobs.find(
             {
-                "metadata.job.id": {"$in": [job.id for job in jobs]},
-                "metadata.site_id": client.site_id,
+                "workflow.id": "metadata-in-1.0.0",
+                "claims.site_id": {"$ne": client.site_id},
             }
         )
-        == len(jobs)
-    ):
+    ]
+
+    if not jobs:
         yield SkipReason("All relevant jobs already claimed by this site")
         return
 
