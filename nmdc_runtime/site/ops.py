@@ -1,7 +1,6 @@
 import json
 import mimetypes
 import os
-import re
 import subprocess
 import tempfile
 from collections import defaultdict
@@ -50,7 +49,6 @@ from nmdc_runtime.util import (
     drs_object_in_for,
     pluralize,
     nmdc_jsonschema_validate,
-    nmdc_jsonschema,
 )
 
 
@@ -417,30 +415,13 @@ def get_json_in(context):
     return rv.json()
 
 
-anno_func_pattern = re.compile(
-    nmdc_jsonschema["$defs"]["FunctionalAnnotation"]["properties"]["has_function"][
-        "pattern"
-    ]
-)
-
-
-def prefilter_functional_annotation_set(docs):
-    if "functional_annotation_set" in docs:
-        docs["functional_annotation_set"] = [
-            d
-            for d in docs["functional_annotation_set"]
-            if ("has_function" in d and re.match(anno_func_pattern, d["has_function"]))
-        ]
-    return docs
-
-
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     op_id = context.solid_config.get("operation_id")
 
-    docs = prefilter_functional_annotation_set(json_in)
+    docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
 
     try:
