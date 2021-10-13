@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from zipfile import ZipFile
 
+import fastjsonschema
 from bson import json_util
 from dagster import (
     List,
@@ -23,10 +24,12 @@ from dagster import (
 )
 from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
-from toolz import get_in
+from toolz import get_in, merge, dissoc, assoc
 
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
@@ -48,7 +51,6 @@ from nmdc_runtime.util import (
     put_object,
     drs_object_in_for,
     pluralize,
-    nmdc_jsonschema_validate,
 )
 
 
@@ -415,6 +417,37 @@ def get_json_in(context):
     return rv.json()
 
 
+def ensure_data_object_type(docs: list, mdb: MongoDatabase):
+    """Does not ensure ordering of `docs`."""
+
+    class FileTypeEnumBase(BaseModel):
+        name: str
+        description: str
+        filter: str  # JSON-encoded data_object_set mongo collection filter document
+
+    class FileTypeEnum(FileTypeEnumBase):
+        id: str
+
+    def fte_matches(fte_filter: str):
+        return [
+            dissoc(d, "_id")
+            for d in mdb.data_object_set.find(
+                merge(json.loads(fte_filter), {"id": {"$in": [d["id"] for d in docs]}})
+            )
+        ]
+
+    docs_map = {d["id"]: d for d in docs}
+
+    for fte_doc in mdb.file_type_enum.find():
+        fte = FileTypeEnum(**fte_doc)
+        docs_matching = fte_matches(fte.filter)
+        for doc in docs_matching:
+            if "data_object_type" not in doc:
+                docs_map[doc["id"]] = assoc(doc, "data_object_type", fte.id)
+
+    return [v for v in docs_map.values()]
+
+
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
@@ -423,6 +456,13 @@ def perform_mongo_updates(context, json_in):
 
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
+    docs = ensure_data_object_type(docs, mongo.db)
+
+    nmdc_jsonschema = get_nmdc_schema()
+    nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
+        "id"
+    )
+    nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
     try:
         _ = nmdc_jsonschema_validate(docs)
