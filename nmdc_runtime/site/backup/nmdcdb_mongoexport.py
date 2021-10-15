@@ -11,12 +11,41 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import dagster
+from pymongo.database import Database as MongoDatabase
+from toolz import assoc
+
+from nmdc_runtime.api.core.util import pick
 
 warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import nmdc_jsonschema
+
+
+def collection_stats(mdb: MongoDatabase):
+    """Stats for each collection, with a scale factor of 1024, so sizes are in KB."""
+    names = [
+        n
+        for n in mdb.list_collection_names()
+        if n.endswith("_set") and mdb[n].estimated_document_count() > 0
+    ]
+    out = []
+    for n in names:
+        stats = pick(
+            [
+                "size",
+                "count",
+                "avgObjSize",
+                "storageSize",
+                "totalIndexSize",
+                "totalSize",
+                "scaleFactor",
+            ],
+            mdb.command({"collStats": n, "scale": 1024}),
+        )
+        out.append(assoc(stats, "collection", n))
+    return out
 
 
 def main():
