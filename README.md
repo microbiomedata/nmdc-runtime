@@ -23,19 +23,19 @@ references workflow code spread across several repositories, that take source da
 
 ## Data exports
 
-The NMDC metadata as of 2021-07 is available here:
+The NMDC metadata as of 2021-10 is available here:
 
-https://drs.microbiomedata.org/ga4gh/drs/v1/objects/y3ax-8bq3-60
+https://drs.microbiomedata.org/ga4gh/drs/v1/objects/sys086d541
 
 The link returns a [GA4GH DRS API bundle object record](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_drs_datatypes), with the NMDC metadata collections (study_set, biosample_set, etc.) as contents, each a DRS API blob object.
 
-For example the blob for the study_set collection export, named "study_set.json.bz2", is listed with DRS API ID "jh4z-z81d-76". Thus, it is retrievable via
+For example the blob for the study_set collection export, named "study_set.jsonl.gz", is listed with DRS API ID "sys0xsry70". Thus, it is retrievable via
 
-https://drs.microbiomedata.org/ga4gh/drs/v1/objects/jh4z-z81d-76
+https://drs.microbiomedata.org/ga4gh/drs/v1/objects/sys0xsry70
 
-The returned blob object record lists https://portal.nersc.gov/project/m3408/meta/mongoexports/2021-07/study_set.json.bz2 as the url for an access method.
+The returned blob object record lists https://nmdc-runtime.files.polyneme.xyz/nmdcdb-mongoexport/2021-10-14/study_set.jsonl.gz as the url for an access method.
 
-The 2021-07 exports are currently all accessible at https://portal.nersc.gov/project/m3408/meta/mongoexports/2021-07/ , but the DRS API indirection allows these links to change in the future, for mirroring via other URLs, etc. So, the DRS API links should be the links you share.
+The 2021-10 exports are currently all accessible at `https://nmdc-runtime.files.polyneme.xyz/nmdcdb-mongoexport/2021-10-14/${COLLECTION_NAME}.jsonl.gz`, but the DRS API indirection allows these links to change in the future, for mirroring via other URLs, etc. So, the DRS API links should be the links you share.
 
 ## Overview
 
