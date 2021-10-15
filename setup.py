@@ -33,6 +33,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "gen-terminusdb = nmdc_runtime.terminusdbgen:cli",
+            "nmdcdb-mongoexport = nmdc_runtime.site.backup.nmdcdb_mongoexport:main",
         ]
     },
 )
