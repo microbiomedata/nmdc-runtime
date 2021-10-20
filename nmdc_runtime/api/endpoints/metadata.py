@@ -16,7 +16,7 @@ from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from starlette.responses import FileResponse
+from starlette.responses import StreamingResponse
 
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.metadata import (
@@ -176,7 +176,7 @@ async def submit_changesheet(
     return doc_after
 
 
-@router.get("/metadata/changesheets/{object_id}", response_class=FileResponse)
+@router.get("/metadata/changesheets/{object_id}")
 async def get_changesheet(
     object_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -184,11 +184,15 @@ async def get_changesheet(
     mdb_fs = GridFS(mdb)
     grid_out = mdb_fs.get(object_id)
     filename, content_type = grid_out.filename, grid_out.content_type
-    with tempfile.TemporaryDirectory() as save_dir:
-        filepath = str(Path(save_dir).joinpath(filename))
-        with open(filepath, "w") as f:
-            f.write(grid_out.read())
-        return FileResponse(filepath, media_type=content_type, filename=filename)
+
+    def iter_grid_out():
+        yield from grid_out
+
+    return StreamingResponse(
+        iter_grid_out(),
+        media_type=content_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")
