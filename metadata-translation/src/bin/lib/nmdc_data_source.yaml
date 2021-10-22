@@ -224,11 +224,13 @@ classes:
         has_raw_value: lat_lon
         $class_type: GeolocationValue
     transforms:
-      pre:
-        - function: test_pre_transform
-          attributes:
-            - test_attribute
+      # perform functions on dataframes prior to transform
+      # pre: 
+      #   - function: test_pre_transform
+      #     attributes:
+      #       - test_attribute
       post:
+        # perform opertations on transformed data
         # note: attribute names must match names in nmdc.yaml
         - function: make_quantity_value
           attributes:
@@ -240,6 +242,10 @@ classes:
           attributes:
             - add_date
             - mod_date
+        - function: merge_value_range_fields
+          attributes:
+            - depth
+            - depth2
     attributes:
       - part_of: [study_gold_id]
       - add_date
@@ -326,7 +332,6 @@ classes:
       - soil_water_content_soil_meth:
           has_raw_value: soil_water_content_soil_meth
       - soluble_iron_micromol
-      - subsurface_depth2
       - tot_nitrogen:
           has_raw_value: tot_nitrogen # mixs:tot_nitro_content
       - tot_org_carbon:
