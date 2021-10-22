@@ -964,6 +964,8 @@ def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs) -> 
 
         return obj
 
+    print(f"*** executing merge_value_range_fields for attributes {tx_attributes}")
+
     if len(tx_attributes) != 2:
         raise Exception("This function only accepts two arguments.")
 
