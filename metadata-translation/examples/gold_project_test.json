@@ -7,18 +7,18 @@
       "has_input": [
         "gold:Gb0115217"
       ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
       "has_output": [
         "jgi:55d740280d8785342fcf7e39"
       ],
-      "part_of": [
-        "gold:Gs0114663"
-      ],
-      "add_date": "2015-05-28",
-      "mod_date": "2021-06-15",
       "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
+      "part_of": [
+        "gold:Gs0114663"
+      ],
       "principal_investigator": {
         "has_raw_value": "James Stegen"
       },
@@ -32,18 +32,18 @@
       "has_input": [
         "gold:Gb0115218"
       ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
       "has_output": [
         "jgi:55d817f20d8785342fcf826c"
       ],
-      "part_of": [
-        "gold:Gs0114663"
-      ],
-      "add_date": "2015-05-28",
-      "mod_date": "2021-06-15",
       "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_25-Nov-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
+      "part_of": [
+        "gold:Gs0114663"
+      ],
       "principal_investigator": {
         "has_raw_value": "James Stegen"
       },
@@ -57,18 +57,18 @@
       "has_input": [
         "gold:Gb0115219"
       ],
+      "add_date": "2015-05-28",
+      "mod_date": "2021-06-15",
       "has_output": [
         "jgi:55f23d820d8785306f964980"
       ],
-      "part_of": [
-        "gold:Gs0114663"
-      ],
-      "add_date": "2015-05-28",
-      "mod_date": "2021-06-15",
       "ncbi_project_name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_30-Apr-14",
       "omics_type": {
         "has_raw_value": "Metagenome"
       },
+      "part_of": [
+        "gold:Gs0114663"
+      ],
       "principal_investigator": {
         "has_raw_value": "James Stegen"
       },

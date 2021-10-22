@@ -10,13 +10,13 @@
       "has_output": [
         "emsl:output_446532"
       ],
-      "part_of": [
-        "gold:Gs0114675"
-      ],
       "instrument_name": "QExactP04",
       "omics_type": {
         "has_raw_value": "Proteomics"
       },
+      "part_of": [
+        "gold:Gs0114675"
+      ],
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     },
@@ -30,13 +30,13 @@
       "has_output": [
         "emsl:output_446533"
       ],
-      "part_of": [
-        "gold:Gs0114675"
-      ],
       "instrument_name": "QExactP04",
       "omics_type": {
         "has_raw_value": "Proteomics"
       },
+      "part_of": [
+        "gold:Gs0114675"
+      ],
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     },
@@ -50,13 +50,13 @@
       "has_output": [
         "emsl:output_446534"
       ],
-      "part_of": [
-        "gold:Gs0114675"
-      ],
       "instrument_name": "QExactP04",
       "omics_type": {
         "has_raw_value": "Proteomics"
       },
+      "part_of": [
+        "gold:Gs0114675"
+      ],
       "processing_institution": "Environmental Molecular Sciences Lab",
       "type": "nmdc:OmicsProcessing"
     }
