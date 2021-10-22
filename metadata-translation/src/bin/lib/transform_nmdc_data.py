@@ -865,7 +865,9 @@ def dataframe_to_dict(
     return nmdc_dicts
 
 
-def test_pre_transform(nmdc_df: pds.DataFrame, tx_attributes: list, **kwargs):
+def test_pre_transform(
+    nmdc_df: pds.DataFrame, tx_attributes: list, **kwargs
+) -> pds.DataFrame:
     """
     Dummy function to test pre-transform declarations.
     """
@@ -873,9 +875,32 @@ def test_pre_transform(nmdc_df: pds.DataFrame, tx_attributes: list, **kwargs):
     return nmdc_df
 
 
-def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
+def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     """
-    merge two value range fields
+    Takes each nmdc object (either a dict or class instance) and merges two
+    attributues into a single attribute separated by a "-".
+    Additionaly, the has_minuimum_numeric_value and has_maximum_numeric_value
+    attrubutes are given values.
+    The unit of the first attribute is preserved.
+    The second attribute is removed.
+
+    For example, if an object has the attributes "depth: 5.0, has_unit: meter"
+    and "depth2: 10.0", the two attribute are merged into a single attribute
+    with the form:
+
+      depth: 5.0-10.0
+      has_unit: meter
+      has_minimum_numeric_value: 5.0
+      has_maximum_numeric_value: 10.0
+
+    Args:
+        nmdc_objs (list): list of objects to be updated with has_numeric_value and/or has_unit values
+        tx_attributes (list): list of two attributes whose values need to be merged
+
+    Returns:
+        list: updated nmdc_objs with has_minimum_numeric_value and has_maximum_numeric_value values
+              in the first attribute; the second attriubte is removed
+
     """
 
     def has_range_fields(obj, field1, field2):
@@ -970,11 +995,11 @@ def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
 
 
     Args:
-        nmdc_objs (list): list of objects to be updated with has_numeric_value and/or c values
+        nmdc_objs (list): list of objects to be updated with has_numeric_value and/or has_unit values
         tx_attributes (list): list of attributes whose values need to updated
 
     Returns:
-        list: updated nmdc_objs with has_numeric_value and/or has_numeric_value values
+        list: updated nmdc_objs with has_numeric_value and/or has_unit values
     """
     print(f"*** executing make_quantity_value for attributes {tx_attributes}")
     for attribute in tx_attributes:
