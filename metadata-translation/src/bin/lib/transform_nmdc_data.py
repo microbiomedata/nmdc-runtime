@@ -5,6 +5,8 @@
 import os, sys, git_root
 from datetime import datetime
 
+from pandas.core.reshape.merge import merge
+
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))
 sys.path.append(git_root.git_root("./schema"))
@@ -863,18 +865,108 @@ def dataframe_to_dict(
     return nmdc_dicts
 
 
-def test_pre_transform(nmdc_df, tx_attributes, **kwargs):
+def test_pre_transform(nmdc_df: pds.DataFrame, tx_attributes: list, **kwargs):
     """
     Dummy function to test pre-transform declarations.
     """
-    print("*** test pre-transform ******")
+    print("*** test pre-transform ****")
     return nmdc_df
+
+
+def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
+    """
+    merge two value range fields
+    """
+
+    def has_range_fields(obj, field1, field2):
+        # check that keys exist
+        if type(obj) == type({}):
+            # check that keys have values
+            if field1 in obj.keys() and field2 in obj.keys():
+                # check if vals are None
+                if obj[field1] is not None and obj[field2] is not None:
+                    field_obj1 = obj[field1]
+                    field_obj2 = obj[field2]
+                    return (
+                        field_obj1["has_raw_value"] is not None
+                        and field_obj2["has_raw_value"]
+                    )
+            else:
+                return False
+        else:
+            # check that properties exist
+            if hasattr(obj, field1) and hasattr(obj, field2):
+                # get objects from fields and check if vals are None
+                field_obj1 = getattr(obj, field1)
+                field_obj2 = getattr(obj, field2)
+                return (
+                    getattr(field_obj1, "has_raw_value") is not None
+                    and getattr(field_obj2, "has_raw_value") is not None
+                )
+            else:
+                return False
+
+    def get_obj_field_values(obj, field1, field2):
+        if type(obj) == type({}):
+            return obj[field1], obj[field2]
+        else:
+            field_obj1 = getattr(obj, field1)
+            field_obj2 = getattr(obj, field2)
+            return getattr(field_obj1, "has_raw_value"), getattr(
+                field_obj2, "has_raw_value"
+            )
+
+    def format_val(val: str):
+        # if val is negative, put it in parens
+        return f"({val})" if val[0] == "-" else val
+
+    def add_min_max(obj, field, val1, val2):
+        # merge vals
+        merge_val = f"{format_val(val1)}-{format_val(val2)}"
+
+        if type(obj) == type({}):
+            pass
+        else:
+            # set value range and min/max numeric values
+            field_obj = getattr(obj, field)
+            setattr(field_obj, "has_raw_value", merge_val)  # e.g., {va1}-{val2}
+            setattr(field_obj, "has_minimum_numeric_value", float(val1))
+            setattr(field_obj, "has_maximum_numeric_value", float(val2))
+
+            # remove simple number value
+            if hasattr(field_obj, "has_numeric_value"):
+                delattr(field_obj, "has_numeric_value")
+
+        return obj
+
+    if len(tx_attributes) != 2:
+        raise Exception("This function only accepts two arguments.")
+
+    # get fields to be merged
+    field1 = tx_attributes[0]
+    field2 = tx_attributes[1]
+
+    for obj in nmdc_objs:
+        # test if fields exist
+        if has_range_fields(obj, field1, field2):
+            # get values from fields and merge
+            val1, val2 = get_obj_field_values(obj, field1, field2)
+
+            # modify obj's field1 to hold min/max ranges
+            obj = add_min_max(obj, field1, val1, val2)
+
+            # remove field2, no long needed
+            if type(obj) == type({}):
+                obj.pop(field2, None)
+            else:
+                delattr(obj, field2)
+
+    return nmdc_objs
 
 
 def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     """
-    Takes each nmdc object (either a dict or class instance) and
-    and adds has_numeric_value and has_unit information.
+    Takes each nmdc object (either a dict or class instance) and adds has_numeric_value and has_unit information.
 
 
     Args:
@@ -890,7 +982,7 @@ def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
             if has_raw_value(obj, attribute):
 
                 val = getattr(obj, attribute)
-                # print("*** pre ***", val)
+                # print("*** pre make_quantity_value ***", val)
 
                 ## split raw value after first space
                 if type(val) == type({}):
@@ -917,7 +1009,7 @@ def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
                     else:
                         val.has_unit = value_list[1].strip()
 
-                # print("*** post ***", val)
+                # print("*** post make_quantity_value ***", val)
 
     return nmdc_objs
 
