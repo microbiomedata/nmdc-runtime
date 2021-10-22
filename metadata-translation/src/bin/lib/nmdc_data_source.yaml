@@ -246,6 +246,10 @@ classes:
           attributes:
             - depth
             - depth2
+        - function: merge_value_range_fields
+          attributes:
+            - subsurface_depth
+            - subsurface_depth2
     attributes:
       - part_of: [study_gold_id]
       - add_date
