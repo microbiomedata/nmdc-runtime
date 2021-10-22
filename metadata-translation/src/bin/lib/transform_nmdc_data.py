@@ -880,7 +880,7 @@ def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
 
     def has_range_fields(obj, field1, field2):
         # check that keys exist
-        if type(obj) == type({}):
+        if isinstance(obj, dict):
             # check that keys have values
             if field1 in obj.keys() and field2 in obj.keys():
                 # check if vals are None
@@ -907,7 +907,7 @@ def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
                 return False
 
     def get_obj_field_values(obj, field1, field2):
-        if type(obj) == type({}):
+        if isinstance(obj, dict):
             return obj[field1], obj[field2]
         else:
             field_obj1 = getattr(obj, field1)
@@ -924,7 +924,7 @@ def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
         # merge vals
         merge_val = f"{format_val(val1)}-{format_val(val2)}"
 
-        if type(obj) == type({}):
+        if isinstance(obj, dict):
             pass
         else:
             # set value range and min/max numeric values
@@ -956,7 +956,7 @@ def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs):
             obj = add_min_max(obj, field1, val1, val2)
 
             # remove field2, no long needed
-            if type(obj) == type({}):
+            if isinstance(obj, dict):
                 obj.pop(field2, None)
             else:
                 delattr(obj, field2)
