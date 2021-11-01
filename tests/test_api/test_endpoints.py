@@ -70,3 +70,4 @@ def test_update_operation():
     assert get_in(["metadata", "model"], new_op) == dotted_path_for(
         JobOperationMetadata
     )
+    assert False
