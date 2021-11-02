@@ -21,7 +21,8 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        make init
+        pip-compile --output-file \
+        requirements/main.txt requirements/main.in
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
