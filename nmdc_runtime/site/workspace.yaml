@@ -8,9 +8,9 @@ load_from:
   - python_package:
       package_name: nmdc_runtime.site.repository
       attribute: test_translation
-  - python_package:
-      package_name: nmdc_runtime.site.repository
-      attribute: validation
-  - python_package:
-      package_name: nmdc_runtime.site.repository
-      attribute: test_validation
+#  - python_package:
+#      package_name: nmdc_runtime.site.repository
+#      attribute: validation
+#  - python_package:
+#      package_name: nmdc_runtime.site.repository
+#      attribute: test_validation
