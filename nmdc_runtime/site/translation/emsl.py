@@ -3,6 +3,7 @@ Translates EMSL data into JSON conformant with the NMDC JSON schema
 """
 from dagster import op, graph
 
+from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 from nmdc_runtime.site.translation.util import (
     load_nmdc_etl_class,
     load_mongo_collection,
@@ -10,7 +11,6 @@ from nmdc_runtime.site.translation.util import (
     preset_test,
     schema_validate,
 )
-from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op
@@ -39,4 +39,4 @@ def emsl():
 
 
 emsl_job = emsl.to_job(**preset_prod)
-test_emsl_job = emsl.to_job(**preset_test)
+test_emsl_job = emsl.to_job(name="test_emsl", **preset_test)

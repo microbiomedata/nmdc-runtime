@@ -5,6 +5,7 @@ Translate an export of the JGI GOLD [1] study, project, and biosample data into 
 
 from dagster import op, graph
 
+from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 from nmdc_runtime.site.translation.util import (
     load_nmdc_etl_class,
     load_mongo_collection,
@@ -12,7 +13,6 @@ from nmdc_runtime.site.translation.util import (
     preset_test,
     schema_validate,
 )
-from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 
 
 @op
@@ -50,4 +50,4 @@ def gold():
 
 
 gold_job = gold.to_job(**preset_prod)
-test_gold_job = gold.to_job(**preset_test)
+test_gold_job = gold.to_job(name="test_gold", **preset_test)
