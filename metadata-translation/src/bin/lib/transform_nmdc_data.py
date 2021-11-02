@@ -1,11 +1,12 @@
 ## author: Bill Duncan
 ## summary: Contians methods for transforming data in NMDC ETL pipeline.
 
-## add ./lib and rooth directory to sys.path so that local modules can be found
-import os, sys, git_root
+import os
+import sys
 from datetime import datetime
 
-from pandas.core.reshape.merge import merge
+## add ./lib and rooth directory to sys.path so that local modules can be found
+import git_root
 
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))
@@ -16,13 +17,8 @@ sys.path.append(git_root.git_root("./schema"))
 import pandas as pds
 import jsonasobj
 import json
-import jq
 import io
 import pkgutil
-import zipfile
-import yaml
-from yaml import CLoader as Loader, CDumper as Dumper
-from dotted_dict import DottedDict
 from collections import namedtuple
 import nmdc_dataframes
 
@@ -651,15 +647,15 @@ def make_object_from_list_item_dict(nmdc_record: namedtuple, item: dict) -> list
     ## dict(zip(['id', 'name'], [['gold:001', 'name 1'], ['gold:002', 'name 2']]))
     ## -> [{id: gold:001, name: 'name 1'}, {id: gold:002, name: 'name 2'}]
     obj_list = []
-    for rv in zip_longest(*record_values):
-        obj_dict = dict(zip(keys, rv))
-
-        if class_type is not None:
-            ## add the instantiated object to the list; e.g. obj_list.append(Study(id='gold:001'))
-            obj_list.append(class_type(**obj_dict))
-        else:
-            ## simply add the object; e.g., obj_list.append({id: gold:001, name: name1})
-            obj_list.append(obj_dict)
+    # for rv in zip_longest(*record_values):
+    #     obj_dict = dict(zip(keys, rv))
+    #
+    #     if class_type is not None:
+    #         ## add the instantiated object to the list; e.g. obj_list.append(Study(id='gold:001'))
+    #         obj_list.append(class_type(**obj_dict))
+    #     else:
+    #         ## simply add the object; e.g., obj_list.append({id: gold:001, name: name1})
+    #         obj_list.append(obj_dict)
 
     return obj_list
 
@@ -1129,5 +1125,5 @@ if __name__ == "__main__":
     file_path = "../output/nmdc_etl/test.json"
     # test_json = collapse_json_file(file_path, 'part_of')
     # test_json = collapse_json_file(file_path, 'has_input')
-    test_json = collapse_json_file(file_path, "has_output")
-    print(test_json)
+    # test_json = collapse_json_file(file_path, "has_output")
+    # print(test_json)
