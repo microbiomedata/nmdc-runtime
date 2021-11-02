@@ -6,7 +6,7 @@ _state = {"client": None}
 
 
 async def get_terminus_db():
-    if _state["client"] is None:
+if _state["client"] is None:
         server_url = os.getenv("TERMINUS_SERVER_URL")
         key = os.getenv("TERMINUS_KEY")
         user = os.getenv("TERMINUS_USER")
