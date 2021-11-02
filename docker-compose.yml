@@ -90,41 +90,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
 
-  terminus:
-    image: terminusdb/terminusdb-server:v4.2.0
-    container_name: terminus
-    ports:
-      - "6364:6363"
-    volumes:
-      - nmdc_runtime_terminus_storage:/app/terminusdb/storage
-    environment:
-      TERMINUSDB_SERVER_PORT: 6363
-      TERMINUSDB_ADMIN_PASS: root
-      TERMINUSDB_AUTOLOGIN_ENABLED: "true"
-      TERMINUSDB_HTTPS_ENABLED: "false"
-
-#  cordra:
-#    build:
-#      context: ./cordra-2.3.0
-#      dockerfile: docker/Dockerfile
-#    container_name: cordra
-#    env_file:
-#      - cordra-2.3.0/docker/variables.env
-#    depends_on:
-#      - mongo
-#    # Uncomment these lines to persist the Cordra data directory
-##    volumes:
-##      - ../data:/opt/cordra/data
-#    ports:
-#      - "8080:8080"
-#      - "8443:8443"
-#      - "2641:2641"
-#      - "9000:9000"
-
 volumes:
   nmdc_runtime_postgres_data:
     driver: local
   nmdc_runtime_mongo_data:
-    driver: local
-  nmdc_runtime_terminus_storage:
     driver: local
