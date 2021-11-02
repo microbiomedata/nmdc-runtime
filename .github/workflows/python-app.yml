@@ -23,7 +23,6 @@ jobs:
       run: |
         pip install --upgrade pip-tools pip setuptools
         pip-compile --output-file \
-        pip-compile --output-file \
         requirements/main.txt requirements/main.in
     - name: Lint with flake8
       run: |
