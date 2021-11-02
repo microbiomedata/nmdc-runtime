@@ -1,0 +1,11 @@
+site_name: nmdc-runtime docs
+site_url: https://microbiomedata.github.io/nmdc-runtime/
+theme:
+  name: material
+nav:
+  - index.md
+  - Jobs:
+    - jobs/emsl-translation-etl.md
+    - jobs/gold-translation-etl.md
+    - jobs/jgi-translation-etl.md
+  - contributing.md
