@@ -31,9 +31,12 @@ from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
 from nmdc_runtime.site.resources import terminus_resource
-from nmdc_runtime.site.translation.emsl import emsl_job
-from nmdc_runtime.site.translation.gold import gold_job
-from nmdc_runtime.site.translation.jgi import jgi_job
+from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
+from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
+from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
+from nmdc_runtime.site.validation.emsl import validate_emsl_job, test_validate_emsl_job
+from nmdc_runtime.site.validation.gold import validate_gold_job, test_validate_gold_job
+from nmdc_runtime.site.validation.jgi import validate_jgi_job, test_validate_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 resource_defs = {
@@ -415,22 +418,20 @@ def translation():
     return graph_jobs
 
 
-#
-#
-# @repository
-# def test_translation():
-#     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
-#
-#     return graph_jobs
-#
-#
-# @repository
-# def validation():
-#     graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
-#     return graph_jobs
-#
-#
-# @repository
-# def test_validation():
-#     graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
-#     return graph_jobs
+@repository
+def test_translation():
+    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
+
+    return graph_jobs
+
+
+@repository
+def validation():
+    graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
+    return graph_jobs
+
+
+@repository
+def test_validation():
+    graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
+    return graph_jobs
