@@ -16,6 +16,7 @@ jsonasobj2
 jupyter
 linkml
 linkml-runtime
+mkdocs-material
 mongospawn
 nmdc-schema
 openpyxl

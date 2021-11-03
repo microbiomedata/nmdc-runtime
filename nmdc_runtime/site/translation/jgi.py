@@ -28,4 +28,4 @@ def jgi():
 
 
 jgi_job = jgi.to_job(**preset_prod)
-test_jgi_job = jgi.to_job(**preset_test)
+test_jgi_job = jgi.to_job(name="test_jgi", **preset_test)

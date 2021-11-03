@@ -7,7 +7,6 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   build:
@@ -22,7 +21,9 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        make init
+        pip install --upgrade pip-tools pip setuptools
+        pip install --editable .[dev]
+        pip install flake8
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -31,4 +32,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        make up-test
+        make test

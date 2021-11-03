@@ -1,19 +1,18 @@
-import sys
 import json
+import sys
 from pathlib import Path
 
-import pytest
 import fastjsonschema
+import pytest
 from fastjsonschema import JsonSchemaValueException, JsonSchemaException
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
-from pymongo import MongoClient
-
-from nmdc_runtime.util import nmdc_jsonschema_validate
-from nmdc_schema import validate_nmdc_json
 
 # from nmdc_schema.validate_nmdc_json import jsonschema
-from jsonschema import validate, ValidationError, Draft7Validator
+from jsonschema import ValidationError, Draft7Validator
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 
+from nmdc_runtime.site.repository import run_config_frozen__normal_env
+from nmdc_runtime.site.resources import get_mongo
+from nmdc_runtime.util import nmdc_jsonschema_validate
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -36,13 +35,8 @@ def test_mongo_validate():
     # schema = {"$jsonSchema": schema}
     # print(type(schema))
     # return
-    client = MongoClient(
-        host="localhost",
-        port=27018,
-        username="admin",
-        password="root",
-    )
-    db = client["nmdc_etl_staging"]
+    mongo = get_mongo(run_config_frozen__normal_env)
+    db = mongo.client["nmdc_etl_staging"]
     collection_name = "test.study_test"
 
     db.drop_collection(collection_name)
@@ -60,13 +54,8 @@ def test_mongo_validate():
 
 
 def test_iterate_collection():
-    client = MongoClient(
-        host="localhost",
-        port=27018,
-        username="admin",
-        password="root",
-    )
-    db = client["nmdc_etl_staging"]
+    mongo = get_mongo(run_config_frozen__normal_env)
+    db = mongo.client["nmdc_etl_staging"]
     collection_name = "test.study_test"
     collection = db[collection_name]
 
@@ -89,13 +78,8 @@ def test_iterate_collection():
 
 
 def test_multiple_errors():
-    client = MongoClient(
-        host="localhost",
-        port=27018,
-        username="admin",
-        password="root",
-    )
-    db = client["nmdc_etl_staging"]
+    mongo = get_mongo(run_config_frozen__normal_env)
+    db = mongo.client["nmdc_etl_staging"]
     collection_name = "test.study_test"
     collection = db[collection_name]
 

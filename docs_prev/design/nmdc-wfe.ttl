@@ -1,0 +1,68 @@
+@prefix : <http://ns.polyneme.xyz/2021/04/nmdc/wfe#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <http://ns.polyneme.xyz/2021/04/nmdc/wfe> .
+
+<http://ns.polyneme.xyz/2021/04/nmdc/wfe> rdf:type owl:Ontology ;
+                                           rdfs:comment "Ontology for NMDC workflow execution." .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#ComputeResource
+:ComputeResource rdf:type owl:Class .
+
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#DataResource
+:DataResource rdf:type owl:Class .
+
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#Execution
+:Execution rdf:type owl:Class ;
+           rdfs:comment """A sub-resource of a job resource, the result of a successful run of that job.
+
+An execution resources may be retrieved by any site; however, it may be created and updated only by the site that ran its job.""" .
+
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#Job
+:Job rdf:type owl:Class ;
+     rdfs:comment """A job is a resource that isolates workflow configuration from execution.
+
+Rather than directly requesting a workflow execution by supplying a workflow ID along with configuration, one creates a job that pairs a workflow with configuration. Then, a workflow is executed by supplying a job ID without additional configuration.
+
+A job can have multiple executions, and a workflow's executions are precisely the executions of all jobs created for that workflow.""" .
+
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#Operation
+:Operation rdf:type owl:Class ;
+           rdfs:comment """An operation is a resource for tracking a request to run a job.
+
+When a request to run a job is issued, an operation resource is created.
+
+An operation is akin to a \"promise\" or \"future\" in that it should eventually resolve to either a successful result, i.e. an execution resource, or to an error.
+
+An operation is parameterized to return a result type, and a metadata type for storing progress information, that are both particular to the workflow type.
+
+Operations may be paused, resumed, and/or cancelled.
+
+Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that execution resources have longer lifetimes / not expire, so that information about successful results of operations are available.""" .
+
+
+###  http://ns.polyneme.xyz/2021/04/nmdc/wfe#Site
+:Site rdf:type owl:Class ;
+      rdfs:comment """A site corresponds to a physical place that may participate in workflow execution.
+
+A site may register compute resources and data resources with NMDC. It may also execute workflows, and may request that workflows be executed.
+
+A site must be able to service requests for any data resources it has registered.""" .
+
+
+

@@ -15,8 +15,28 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach
 
+up-test:
+	docker compose --file docker-compose.test.yml \
+		up --build --force-recreate --detach
+
+test-build:
+	docker compose --file docker-compose.test.yml \
+		up test --build --force-recreate --detach
+
+test-dbinit:
+	docker compose --file docker-compose.test.yml \
+		run --entrypoint ./tests/mongorestore-nmdc-testdb.sh test
+
+test-run:
+	docker compose --file docker-compose.test.yml run test
+
+test: test-build test-dbinit test-run
+
 down-dev:
 	docker compose down
+
+down-test:
+	docker compose --file docker-compose.test.yml down
 
 follow-fastapi:
 	docker compose logs fastapi -f
@@ -28,6 +48,7 @@ fastapi-deploy-spin:
 	export RANCHER_TOKEN=`jq -r .Servers.rancherDefault.tokenKey ~/.rancher/cli2.json`
 	export RANCHER_USERID=`curl -H "Authorization: Bearer $RANCHER_TOKEN" https://rancher2.spin.nersc.gov/v3/users?me=true | jq -r '.data[0].id'`
 	rancher kubectl rollout restart deployment/fastapi --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/drs --namespace=nmdc-runtime-dev
 
 dagster-docker:
 	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile

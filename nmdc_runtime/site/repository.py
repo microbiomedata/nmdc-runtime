@@ -31,9 +31,9 @@ from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
 from nmdc_runtime.site.resources import terminus_resource
-from nmdc_runtime.site.translation.emsl import emsl_job
-from nmdc_runtime.site.translation.gold import gold_job
-from nmdc_runtime.site.translation.jgi import jgi_job
+from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
+from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
+from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import frozendict_recursive
 
 resource_defs = {
@@ -51,15 +51,6 @@ preset_normal = {
                     "site_id": {"env": "API_SITE_ID"},
                     "client_id": {"env": "API_SITE_CLIENT_ID"},
                     "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
-                },
-            },
-            "terminus": {
-                "config": {
-                    "server_url": {"env": "TERMINUS_SERVER_URL"},
-                    "key": {"env": "TERMINUS_KEY"},
-                    "user": {"env": "TERMINUS_USER"},
-                    "account": {"env": "TERMINUS_ACCOUNT"},
-                    "dbid": {"env": "TERMINUS_DBID"},
                 },
             },
             "mongo": {
@@ -415,15 +406,13 @@ def translation():
     return graph_jobs
 
 
-#
-#
-# @repository
-# def test_translation():
-#     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
-#
-#     return graph_jobs
-#
-#
+@repository
+def test_translation():
+    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
+
+    return graph_jobs
+
+
 # @repository
 # def validation():
 #     graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
