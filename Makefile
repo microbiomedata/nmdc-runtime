@@ -15,8 +15,15 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach
 
+up-test:
+	docker compose --file docker-compose.test.yml \
+		up --build --force-recreate --detach
+
 down-dev:
 	docker compose down
+
+down-test:
+	docker compose --file docker-compose.test.yml down
 
 follow-fastapi:
 	docker compose logs fastapi -f

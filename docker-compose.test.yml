@@ -1,0 +1,96 @@
+version: "3.7"
+
+services:
+  # This service runs the postgres DB used by dagster for run storage, schedule storage,
+  # and event log storage.
+  # Tests use `postgres:11` image.
+  # https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
+  dagster-postgresql:
+    image: postgres:11
+    container_name: dagster-postgresql
+    volumes:
+      - nmdc_runtime_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "postgres_user"
+      POSTGRES_PASSWORD: "postgres_password"
+      POSTGRES_DB: "postgres_db"
+
+  # This service runs dagit.
+  # Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
+  # a queue and later dequeued and launched by dagster-daemon.
+  dagster-dagit:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/dagster.Dockerfile
+    container_name: dagster-dagit
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.test
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    depends_on:
+      - dagster-postgresql
+    volumes:
+      - ./:/opt/dagster/lib
+
+  # This service runs the dagster-daemon process, which is responsible for taking runs
+  # off of the queue and launching them, as well as creating runs from schedules or sensors.
+  dagster-daemon:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/dagster.Dockerfile
+    container_name: dagster-daemon
+    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
+    restart: on-failure
+    env_file:
+      - .env.test
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    depends_on:
+      - dagster-postgresql
+    volumes:
+      - ./:/opt/dagster/lib
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/fastapi.Dockerfile
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.test
+    command: ["/start-reload.sh"]
+    environment:
+      MODULE_NAME: "nmdc_runtime.api.main"
+      PORT: 8000
+    depends_on:
+      - mongo
+    volumes:
+      - .:/app
+
+  mongo:
+    image: mongo:4.4-bionic
+    container_name: mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - nmdc_runtime_mongo_data:/data/db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: root
+
+volumes:
+  nmdc_runtime_postgres_data:
+    driver: local
+  nmdc_runtime_mongo_data:
+    driver: local

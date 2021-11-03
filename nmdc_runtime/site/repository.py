@@ -53,15 +53,6 @@ preset_normal = {
                     "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
                 },
             },
-            "terminus": {
-                "config": {
-                    "server_url": {"env": "TERMINUS_SERVER_URL"},
-                    "key": {"env": "TERMINUS_KEY"},
-                    "user": {"env": "TERMINUS_USER"},
-                    "account": {"env": "TERMINUS_ACCOUNT"},
-                    "dbid": {"env": "TERMINUS_DBID"},
-                },
-            },
             "mongo": {
                 "config": {
                     "host": {"env": "MONGO_HOST"},
