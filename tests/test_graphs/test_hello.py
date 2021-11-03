@@ -12,4 +12,4 @@ def test_hello():
     result = job.execute_in_process()
 
     assert result.success
-    assert result.output_values["result"] == "Hello, NMDC!"
+    assert result.output_value("result") == "Hello, NMDC!"
