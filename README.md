@@ -97,7 +97,7 @@ http://localhost:8000/redoc/.
 Tests can be found in `tests` and are run with the following command:
 
 ```bash
-pytest tests
+make test
 ```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your
