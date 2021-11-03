@@ -33,6 +33,7 @@ def get_study_by_id(id_: str) -> Optional[dict]:
 
 
 def test_load_changesheet():
+    assert True == False
     mdb = get_mongo(run_config_frozen__normal_env).db
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
