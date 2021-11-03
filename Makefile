@@ -19,6 +19,19 @@ up-test:
 	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach
 
+test-build:
+	docker compose --file docker-compose.test.yml \
+		up test --build --force-recreate --detach
+
+test-dbinit:
+	docker compose --file docker-compose.test.yml \
+		run --entrypoint ./tests/mongorestore-nmdc-testdb.sh test
+
+test-run:
+	docker compose --file docker-compose.test.yml run test
+
+test: test-build test-dbinit test-run
+
 down-dev:
 	docker compose down
 

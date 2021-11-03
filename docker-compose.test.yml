@@ -89,6 +89,24 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
 
+  test:
+    build:
+      context: .
+      dockerfile: nmdc_runtime/test.Dockerfile
+    container_name: test
+    env_file:
+      - .env.test
+    profiles:
+      - donotstart
+    entrypoint: ["pytest", "-x"]
+    depends_on:
+      - mongo
+      - fastapi
+      - dagster-daemon
+      - dagster-dagit
+    volumes:
+      - .:/app
+
 volumes:
   nmdc_runtime_postgres_data:
     driver: local
