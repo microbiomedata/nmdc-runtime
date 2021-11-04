@@ -62,10 +62,8 @@ dagster-deploy-spin:
 publish:
 	invoke publish
 
-docs:
-	# assumes `make up-dev`.
-	# nvm use 14
-	redoc-cli bundle http://0.0.0.0:8000/openapi.json -o docs/design/redoc-static.html
+docs-dev:
+	mkdocs serve -a localhost:8080
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs
