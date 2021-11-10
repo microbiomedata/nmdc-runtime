@@ -1,9 +1,10 @@
 name: build-and-push-docker-images
-
 on:
   push:
     branches:
       - main
+    paths:
+      - 'BUILDS.md'
 
 jobs:
   docker:
