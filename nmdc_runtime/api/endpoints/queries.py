@@ -28,7 +28,7 @@ def unmongo(d: dict) -> dict:
 
 
 def check_can_delete(user: User):
-    can_delete = {"dehays, scanon", "dwinston"}
+    can_delete = {"dehays", "scanon", "dwinston"}
     if user.username not in can_delete:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
