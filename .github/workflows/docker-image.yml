@@ -1,0 +1,41 @@
+name: Refresh to latest Docker images on NERSC Spin
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'RELEASES.md'
+
+jobs:
+  rancher_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: restart fastapi
+        uses: colbyhill21/Rancher-Action@1.1
+        with: 
+          args: '"restart deployment/fastapi --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart drs
+        uses: colbyhill21/Rancher-Action@1.1
+        with: 
+          args: '"restart deployment/drs --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart dagit
+        uses: colbyhill21/Rancher-Action@1.1
+        with: 
+          args: '"restart deployment/dagit --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart dagster-daemon
+        uses: colbyhill21/Rancher-Action@1.1
+        with: 
+          args: '"restart deployment/dagster-daemon --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}          
