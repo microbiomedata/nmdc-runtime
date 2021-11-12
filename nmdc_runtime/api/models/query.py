@@ -1,20 +1,116 @@
 import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Dict, List, Union
 
-from pydantic import BaseModel, root_validator
+from pydantic import (
+    BaseModel,
+    root_validator,
+    conint,
+    PositiveInt,
+    NonNegativeInt,
+)
+
+Document = Dict[str, Any]
+
+OneOrZero = conint(ge=0, le=1)
+One = conint(ge=1, le=1)
+MinusOne = conint(ge=-1, le=-1)
+OneOrMinusOne = Union[One, MinusOne]
 
 
-class QueryBase(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    save: bool = False
-    query: Any
+# TODO need to figure out how to opt out of cursor sessions, or else get the cursor session id back.
+#   Okay, looks like I need to explicitly model and manage server sessions:
+#   https://docs.mongodb.com/manual/reference/server-sessions/
+#   Ugh. Fine. I can do this.
 
 
-class Query(QueryBase):
+class CommandBase(BaseModel):
+    comment: Optional[Any]
+
+
+class FindCommand(CommandBase):
+    find: str
+    filter: Optional[Document]
+    projection: Optional[Dict[str, OneOrZero]]
+    allowPartialResults: Optional[bool] = True
+    batchSize: Optional[PositiveInt] = 101
+    sort: Optional[Dict[str, OneOrMinusOne]]
+    limit: Optional[NonNegativeInt]
+
+
+class CommandResponse(BaseModel):
+    ok: OneOrZero
+
+
+class FindCommandResponseCursor(BaseModel):
+    firstBatch: List[Document]
+    partialResultsReturned: Optional[bool]
+    id: Optional[int]
+    ns: str
+
+
+class FindCommandResponse(CommandResponse):
+    cursor: FindCommandResponseCursor
+
+
+class DeleteCommandDelete(BaseModel):
+    q: Document
+    limit: OneOrZero
+    hint: Optional[Dict[str, OneOrMinusOne]]
+
+
+class DeleteCommand(CommandBase):
+    delete: str
+    deletes: List[DeleteCommandDelete]
+
+
+class DeleteCommandResponse(CommandResponse):
+    ok: OneOrZero
+    n: NonNegativeInt
+    writeErrors: Optional[List[Document]]
+
+
+class GetMoreCommand(CommandBase):
+    getMore: int
+    collection: str
+    batchSize: Optional[PositiveInt]
+
+
+class GetMoreCommandResponseCursor(BaseModel):
+    nextBatch: List[Document]
+    partialResultsReturned: Optional[bool]
+    id: Optional[int]
+    ns: str
+
+
+class GetMoreCommandResponse(CommandResponse):
+    cursor: GetMoreCommandResponseCursor
+
+
+QueryCmd = Union[FindCommand, GetMoreCommand, DeleteCommand]
+
+QueryResponseOptions = Union[
+    FindCommandResponse, GetMoreCommandResponse, DeleteCommandResponse
+]
+
+
+def command_response_for(type_):
+    d = {
+        FindCommand: FindCommandResponse,
+        GetMoreCommand: GetMoreCommandResponse,
+        DeleteCommand: DeleteCommandResponse,
+    }
+    return d.get(type_)
+
+
+class Query(BaseModel):
     id: str
-    created_at: datetime.datetime
-    last_ran: datetime.datetime
+    saved_at: datetime.datetime
+    cmd: QueryCmd
+
+
+class QueryRun(BaseModel):
+    qid: str
+    ran_at: datetime.datetime
     result: Optional[Any]
     error: Optional[Any]
 
