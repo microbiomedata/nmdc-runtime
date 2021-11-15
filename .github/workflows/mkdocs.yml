@@ -15,6 +15,6 @@ jobs:
         with:
           python-version: 3.x
       - run: |
-          git clone https://${{ secrets.GH_TOKEN_MKDOCS_MATERIAL_INSIDERS }}:x-oauth-basic@github.com/squidfunk/mkdocs-material-insiders.git mkdocs-material
+          git clone https://${{ secrets.GH_TOKEN_MKDOCS_MATERIAL_INSIDERS }}@github.com/squidfunk/mkdocs-material-insiders.git mkdocs-material
           pip install -e mkdocs-material
           mkdocs gh-deploy --force
