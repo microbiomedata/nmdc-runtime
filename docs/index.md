@@ -3,3 +3,8 @@
 Welcome to the documentation for the nmdc-runtime system.
 
 (Insert architecture / dataflow diagram here.)
+
+``` mermaid
+flowchart LR
+    Start --> Stop
+```
