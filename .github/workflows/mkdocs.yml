@@ -11,16 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Checkout mkdocs-material
+        uses: actions/checkout@v2
+        with:
+          repository: squidfunk/mkdocs-material-insiders
+          token: ${{ secrets.GH_TOKEN }}
+          path: mkdocs-material
       - uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      - run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
-          pip install git+https://${GH_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
-          mkdocs gh-deploy --force
-env:
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - run: pip install ./mkdocs-material
+      - run: mkdocs gh-deploy --force
+
 
 
 
