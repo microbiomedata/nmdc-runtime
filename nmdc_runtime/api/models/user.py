@@ -24,6 +24,10 @@ class User(BaseModel):
     disabled: Optional[bool] = None
 
 
+class UserIn(User):
+    password: str
+
+
 class UserInDB(User):
     hashed_password: str
 

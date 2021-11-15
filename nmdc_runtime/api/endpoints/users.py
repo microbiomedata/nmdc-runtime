@@ -9,8 +9,10 @@ from nmdc_runtime.api.core.auth import (
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
 )
+from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.site import authenticate_site_client
+from nmdc_runtime.api.models.user import UserInDB, UserIn
 from nmdc_runtime.api.models.user import (
     authenticate_user,
     User,
@@ -63,3 +65,27 @@ async def login_for_access_token(
 @router.get("/users/me/", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+
+def check_can_create_user(requester: User):
+    if "nmdc-runtime-useradmin" not in requester.site_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"only admins for site nmdc-runtime-useradmin are allowed to create users.",
+        )
+
+
+@router.post("/users", status_code=status.HTTP_201_CREATED, response_model=User)
+def create_user(
+    user_in: UserIn,
+    requester: User = Depends(get_current_active_user),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    check_can_create_user(requester)
+    mdb.users.insert_one(
+        UserInDB(
+            **user_in.dict(),
+            hashed_password=get_password_hash(user_in.password),
+        ).dict(exclude_unset=True)
+    )
+    return mdb.users.find_one({"username": user_in.username})

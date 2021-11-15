@@ -1,12 +1,14 @@
 import os
 
+import requests
+from starlette import status
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
-from nmdc_runtime.api.models.user import UserInDB
+from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
 
@@ -70,3 +72,42 @@ def test_update_operation():
     assert get_in(["metadata", "model"], new_op) == dotted_path_for(
         JobOperationMetadata
     )
+
+
+def test_create_user():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    base_url = os.getenv("API_HOST")
+    rv = requests.post(
+        base_url + "/token",
+        data={
+            "grant_type": "password",
+            "username": rs["user"]["username"],
+            "password": rs["user"]["password"],
+        },
+    )
+    token_response = rv.json()
+    headers = {"Authorization": f'Bearer {token_response["access_token"]}'}
+
+    user_in = UserIn(username="foo", password=generate_secret())
+    mdb.users.delete_one({"username": user_in.username})
+    mdb.users.update_one(
+        {"username": rs["user"]["username"]},
+        {"$addToSet": {"site_admin": "nmdc-runtime-useradmin"}},
+    )
+    rv = requests.request(
+        "POST",
+        url=(base_url + "/users"),
+        headers=headers,
+        json=user_in.dict(exclude_unset=True),
+    )
+
+    try:
+        assert rv.status_code == status.HTTP_201_CREATED
+        User(**rv.json())
+    finally:
+        mdb.users.delete_one({"username": user_in.username})
+        mdb.users.update_one(
+            {"username": rs["user"]["username"]},
+            {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
+        )
