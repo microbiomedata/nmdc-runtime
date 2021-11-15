@@ -1,11 +1,8 @@
 name: Refresh to latest Docker images on NERSC Spin
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'RELEASES.md'
+  repository_dispatch:
+    types: [trigger-workflow-release-to-spin]
 
 jobs:
   rancher_job:
