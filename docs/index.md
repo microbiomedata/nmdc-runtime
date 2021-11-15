@@ -2,7 +2,7 @@
 
 Welcome to the documentation for the nmdc-runtime system.
 
-Testing here:
+Testing:
 ``` mermaid
 flowchart LR
     Start --> Stop
