@@ -21,7 +21,7 @@ class User(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     site_admin: Optional[List[str]] = []
-    disabled: Optional[bool] = None
+    disabled: Optional[bool] = False
 
 
 class UserIn(User):

@@ -9,7 +9,9 @@ nav:
     - jobs/gold-translation-etl.md
     - jobs/jgi-translation-etl.md
   - contributing.md
+  - admin.md
 markdown_extensions:
+  - admonition
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

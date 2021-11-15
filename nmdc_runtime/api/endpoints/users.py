@@ -62,7 +62,7 @@ async def login_for_access_token(
     }
 
 
-@router.get("/users/me/", response_model=User)
+@router.get("/users/me/", response_model=User, response_model_exclude_unset=True)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
