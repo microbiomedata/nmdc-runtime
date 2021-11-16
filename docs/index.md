@@ -17,6 +17,8 @@ erDiagram
     nmdc_runtime_site ||--o{ metadata : ingests
 ```
 
+<!-- Can relate to prov:Entity, prov:Activity, and prov:Agent -->
+
 The above entity-relationship diagram shows various resources of the NMDC Runtime API.
 
 A *site* is a resource, administered by one or more *users*, that may (1) steward *data objects*,
@@ -36,3 +38,10 @@ includes either directly hosting URLs for payloads, or else obtaining URLs from 
 
 The NMDC Runtime site ingests metadata output by job executions. This ingestion may trigger the
 creation of new workflow jobs for sites to claim and execute.
+
+## Site Federation
+
+<figure markdown>
+  ![NMDC Runtime Site Federation](img/nmdc-runtime-federation.png)
+  <figcaption>NMDC Runtime Site Federation</figcaption>
+</figure>
