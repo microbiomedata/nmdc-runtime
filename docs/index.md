@@ -7,14 +7,14 @@ Welcome to the documentation for the NMDC Runtime.
 ```mermaid
 erDiagram
     user }|--o{ site : administers
-    site ||--o{ job_execution : claims
-    job ||--o{ job_execution : done_via
-    workflow ||--o{ job : configured_as
-    site ||--o{ data_object : stewards
-    nmdc_runtime_site ||--o{ job : creates
-    job_execution ||--o{ data_object : has_output
-    job_execution ||--o{ metadata : has_output
-    nmdc_runtime_site ||--o{ metadata : ingests
+    site ||--o{ job-execution : claims
+    job ||--o{ job-execution : done-via
+    workflow ||--o{ job : configured-as
+    site ||--o{ data-object : stewards
+    nmdc-runtime-site ||--o{ job : creates
+    job-execution ||--o{ data-object : has-output
+    job-execution ||--o{ metadata : has-output
+    nmdc-runtime-site ||--o{ metadata : ingests
 ```
 
 <!-- Can relate to prov:Entity, prov:Activity, and prov:Agent -->
