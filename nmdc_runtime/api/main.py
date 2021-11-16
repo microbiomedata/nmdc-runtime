@@ -202,13 +202,9 @@ app = FastAPI(
 app.include_router(api_router)
 
 
-origins = [
-    "http://localhost:8001",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
