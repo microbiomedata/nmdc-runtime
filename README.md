@@ -1,5 +1,9 @@
 A runtime system for NMDC data management and orchestration.
 
+## Service Status
+
+http://nmdcstatus.polyneme.xyz/
+
 ## How It Fits In
 
 * [nmdc-metadata](https://github.com/microbiomedata/nmdc-metadata)
