@@ -29,6 +29,13 @@ jobs:
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}
+      - name: restart dagit-readonly
+        uses: colbyhill21/Rancher-Action@1.1
+        with:
+          args: '"rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
       - name: restart dagster-daemon
         uses: colbyhill21/Rancher-Action@1.1
         with: 
