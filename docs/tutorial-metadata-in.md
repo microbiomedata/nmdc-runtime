@@ -102,7 +102,7 @@ And indeed it has been ingested! See
 <https://api.dev.microbiomedata.org/nmdcschema/biosample_set/fake> (unless we already deleted it --
 see section below).
 
-## Removing a metadata JSON document
+## Removing a JSON document
 
 !!! info
     You must be an authorized user to do this. Currently, `dehays`, `dwinston`, or `scanon`.
@@ -119,4 +119,14 @@ body
 ```
 
 will remove our fake document. Note that you need to be logged in as a *user*, NOT as a *site
-client*, to execute such a request.
+client*, to execute such a request. The syntax for the request is a subset of the [MongoDB `delete`
+command](https://docs.mongodb.com/v4.4/reference/command/delete/) syntax.
+
+!!! danger
+    People who can delete documents can currently delete a document from *any* collection. 
+    ```
+    {
+      "delete": "users",
+      "deletes": [{"q": {"username": "useridontlike"}, "limit": 1}]
+    }
+    ```
