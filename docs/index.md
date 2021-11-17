@@ -41,6 +41,8 @@ creation of new workflow jobs for sites to claim and execute.
 
 ## Site Federation
 
+Below is a figure that illustrates the federated nature of site interaction with the runtime.
+
 <figure markdown>
   ![NMDC Runtime Site Federation](img/nmdc-runtime-federation.png)
   <figcaption>NMDC Runtime Site Federation</figcaption>

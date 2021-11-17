@@ -1,5 +1,17 @@
 site_name: nmdc-runtime docs
 site_url: https://microbiomedata.github.io/nmdc-runtime/
+nav:
+  - index.md
+  - Jobs:
+    - jobs/emsl-translation-etl.md
+    - jobs/gold-translation-etl.md
+    - jobs/jgi-translation-etl.md
+  - tutorial-json.md
+  - tutorial-auth.md
+  #- tutorial-metadata-in.md
+  - contributing.md
+  - admin.md
+
 theme:
   name: material
   palette:
@@ -14,14 +26,6 @@ theme:
         icon: material/toggle-switch
         name: Switch to light mode
 
-nav:
-  - index.md
-  - Jobs:
-    - jobs/emsl-translation-etl.md
-    - jobs/gold-translation-etl.md
-    - jobs/jgi-translation-etl.md
-  - contributing.md
-  - admin.md
 markdown_extensions:
   - admonition
   - attr_list
