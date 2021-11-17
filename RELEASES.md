@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2021-11-17T08:05:00−05:00 Ensure `"disabled": false` is the default for new users.
 * 2021-11-15T12:25:00−05:00 Add nmdc schema collection endpoints; allow creating users
 * 2021-11-10T16:39:00−05:00 Fixed usernames check in api logic
 * 2021-11-10T16:01:00−05:00 Fixed cmd in github action.
