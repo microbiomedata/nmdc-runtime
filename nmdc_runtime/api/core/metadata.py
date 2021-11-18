@@ -444,13 +444,17 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
         value: list of update commands
     """
     update_cmd = {}  # list of dicts to hold mongo update queries
+
+    # split data into groups by values in the group_id column (e.g., gold:Gs0103573)
     id_group = df_change.groupby("group_id")
     for ig in id_group:
+        # ig[0] -> id_: group_id for data
+        # ig[1] -> df_id: dataframe with rows having the group_id
         id_, df_id = ig
 
-        # split the id group by the group variables
+        # split data into groups by values in the group_var column (e.g, v1, v2)
         var_group = df_id.groupby("group_var")
-        ig_updates = []
+        ig_updates = []  # update commands for the id group
         for vg in var_group:
             # vg[0] -> group_var for data
             # vg[1] -> dataframe with rows having the group_var
