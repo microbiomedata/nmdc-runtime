@@ -1,4 +1,4 @@
-# Contributing
+# Contributing to Documentation
 
 How to contribute to this documentation.
 

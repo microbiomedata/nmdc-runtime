@@ -10,7 +10,7 @@ nav:
   - tutorial-auth.md
   - tutorial-metadata-in.md
   - release-process.md
-  - contributing.md
+  - contributing-docs.md
   - admin.md
 
 theme:
