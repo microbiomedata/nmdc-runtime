@@ -2,7 +2,9 @@ import json
 from functools import lru_cache
 from typing import Optional
 
+import fastjsonschema
 import pandas as pd
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from toolz import dissoc, merge
 
 from nmdc_runtime.api.core.metadata import (
@@ -11,6 +13,7 @@ from nmdc_runtime.api.core.metadata import (
     mongo_update_command_for,
     copy_docs_in_update_cmd,
 )
+from nmdc_runtime.site.ops import ensure_data_object_type
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import REPO_ROOT_DIR
@@ -136,3 +139,25 @@ def test_update_pi_websites():
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
     assert first_result["doc_after"]["principal_investigator"] == pi_info
+
+
+def test_ensure_data_object_type():
+    docs_test = {
+        "data_object_set": [
+            {
+                "description": "Protein FAA for gold:Gp0116326",
+                "url": "https://data.microbiomedata.org/data/nmdc:mga06z11/annotation/nmdc_mga06z11_proteins.faa",
+                "md5_checksum": "87733039aa2ef02667987b398b8df08c",
+                "file_size_bytes": 1214244683,
+                "id": "nmdc:87733039aa2ef02667987b398b8df08c",
+                "name": "gold:Gp0116326_Protein FAA",
+            }
+        ]
+    }
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    docs, _ = ensure_data_object_type(docs_test, mdb)
+    nmdc_jsonschema = get_nmdc_schema()
+    nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
+    nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
+
+    _ = nmdc_jsonschema_validate(docs)  # raises JsonSchemaValueException if wrong

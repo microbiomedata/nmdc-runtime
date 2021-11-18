@@ -458,7 +458,9 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
 
     mdb.drop_collection(temp_collection_name)
     return (
-        assoc(docs, "data_object_set", [v for v in do_docs_map.values()]),
+        assoc(
+            docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
+        ),
         n_docs_with_types_added,
     )
 
@@ -473,6 +475,7 @@ def perform_mongo_updates(context, json_in):
     docs, _ = specialize_activity_set_docs(docs)
     docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
     context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
+    context.log.debug(f"{docs}")
 
     nmdc_jsonschema = get_nmdc_schema()
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
