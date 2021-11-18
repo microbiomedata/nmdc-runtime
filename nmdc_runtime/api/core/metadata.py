@@ -459,6 +459,8 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
             # vg[0] -> group_var for data
             # vg[1] -> dataframe with rows having the group_var
             ig_updates.extend(make_updates(vg))
+
+        # add update commands for the group id to dict
         update_cmd[id_] = {
             "update": df_id["collection_name"].values[0],
             "updates": ig_updates,
