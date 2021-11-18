@@ -9,7 +9,7 @@ from pandas.core.frame import DataFrame
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import merge, dissoc, assoc_in, get_in
 from functools import lru_cache
-from typing import Optional, Dict, List, AnyStr, Tuple
+from typing import Optional, Dict, List, Tuple
 
 from nmdc_runtime.util import nmdc_jsonschema
 
@@ -216,25 +216,25 @@ def load_changesheet(
 
 @lru_cache
 def get_schema_range(
-    class_name: AnyStr, prop_name: AnyStr, schema: Dict = nmdc_jsonschema
-) -> Optional[AnyStr]:
+    class_name: str, prop_name: str, schema: Dict = nmdc_jsonschema
+) -> Optional[str]:
     """
     Search the schema to find the range property (prop_name) associated with a class (class_name).
 
     Parameters
     ----------
-    class_name : AnyStr
+    class_name : str
         The name of class in the schema.
-    prop_name : AnyStr
+    prop_name : str
         The name of the property in the schema.
     schema : Dict
-        A dictionar of the schema. Defaults to the nmdc_jsonschema.
+        A dictionary of the schema. Defaults to the nmdc_jsonschema.
 
     Returns
     -------
-    String
+    Optional[str]
         Represents the data type of range of the property.
-        None is return if a range is not found.
+        None is returned if a range is not found.
 
     Raises
     ------
@@ -402,14 +402,47 @@ def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
     return id_dict
 
 
-def get_collection_for_id(id_: AnyStr, id_map: Dict):
+def get_collection_for_id(id_: str, id_map: Dict) -> Optional[str]:
+    """
+    Returns the name of the collect that contains the document idenfied by the id.
+
+    Parameters
+    ----------
+    id_ : str
+        The identifier of the document.
+    id_map : Dict
+        A dict mapping collection names to document ids.
+        key: collection name
+        value: set of document ids
+
+    Returns
+    -------
+    Optional[str]
+        Collection name containing the document.
+        None if the id was not found.
+    """
     for collection_name in id_map:
         if id_ in id_map[collection_name]:
             return collection_name
     return None
 
 
-def mongo_update_command_for(df_change: pds.DataFrame) -> Dict:
+def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
+    """
+    Creates a dictionary of update commands to be executed against the Mongo database.
+
+    Parameters
+    ----------
+    df_change : pds.DataFrame
+        A dataframe containing change sheet information
+
+    Returns
+    -------
+    Dict
+        A dict of the update commands to be executed.
+        key: collection name
+        value: list of update commands
+    """
     update_cmd = {}  # list of dicts to hold mongo update queries
     id_group = df_change.groupby("group_id")
     for ig in id_group:
@@ -431,10 +464,17 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> Dict:
 
 def copy_docs_in_update_cmd(
     update_cmd, mdb_from: MongoDatabase, mdb_to: MongoDatabase, drop_mdb_to: bool = True
-) -> Dict:
+) -> Dict[str, str]:
     """
     Copies data between Mongo databases.
     Useful to apply and inspect updates on a test database.
+
+    Parameters
+    ----------
+    mdb_from: MongoDatbase
+        Database from which data being copied (i.e., source).
+    mdb_to: MongoDatabase
+        Datbase which data is being copied into (i.e., destination).
 
     Returns
     -------
