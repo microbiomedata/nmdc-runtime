@@ -58,8 +58,7 @@ jq '{biosample_set:.}' gold.biosample_set.json \
     > gold.biosample_set.as_nmdcdb.2021-11-18.json
 ```
 
-Now, you may [submit this metadata as JSON through the
-API](https://microbiomedata.github.io/nmdc-runtime/tutorial-metadata-in/).
+Now, you may [submit this metadata as JSON through the API](../tutorial-metadata-in.md).
 
 In the tutorial linked to above, GitHub's Gist service is used to host and obtain a URL for the
 JSON. Here's let's walk through using the NMDC's `www` directory on NERSC to host the file and
