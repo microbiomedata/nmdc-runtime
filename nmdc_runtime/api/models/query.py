@@ -27,6 +27,11 @@ class CommandBase(BaseModel):
     comment: Optional[Any]
 
 
+class CountCommand(CommandBase):
+    count: str
+    query: Optional[Document]
+
+
 class FindCommand(CommandBase):
     find: str
     filter: Optional[Document]
@@ -39,6 +44,10 @@ class FindCommand(CommandBase):
 
 class CommandResponse(BaseModel):
     ok: OneOrZero
+
+
+class CountCommandResponse(CommandResponse):
+    n: NonNegativeInt
 
 
 class FindCommandResponseCursor(BaseModel):
@@ -86,15 +95,19 @@ class GetMoreCommandResponse(CommandResponse):
     cursor: GetMoreCommandResponseCursor
 
 
-QueryCmd = Union[FindCommand, GetMoreCommand, DeleteCommand]
+QueryCmd = Union[CountCommand, FindCommand, GetMoreCommand, DeleteCommand]
 
 QueryResponseOptions = Union[
-    FindCommandResponse, GetMoreCommandResponse, DeleteCommandResponse
+    CountCommandResponse,
+    FindCommandResponse,
+    GetMoreCommandResponse,
+    DeleteCommandResponse,
 ]
 
 
 def command_response_for(type_):
     d = {
+        CountCommand: CountCommandResponse,
         FindCommand: FindCommandResponse,
         GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
