@@ -3,9 +3,7 @@ site_url: https://microbiomedata.github.io/nmdc-runtime/
 nav:
   - index.md
   - Jobs:
-    - jobs/emsl-translation-etl.md
     - jobs/gold-translation-etl.md
-    - jobs/jgi-translation-etl.md
   - tutorial-json.md
   - tutorial-auth.md
   - tutorial-metadata-in.md
