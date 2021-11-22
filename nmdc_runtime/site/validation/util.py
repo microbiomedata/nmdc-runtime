@@ -1,6 +1,6 @@
 from dagster import op, AssetMaterialization, AssetKey, EventMetadata
 from jsonschema import Draft7Validator
-from nmdc_schema.nmdc_data import get_nmdc_dict
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import dissoc
 
 from nmdc_runtime.site.resources import mongo_resource

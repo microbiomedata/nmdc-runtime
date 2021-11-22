@@ -47,7 +47,6 @@ def load_changesheet(
     Exception
         If a class name cannot be determined.
     """
-
     # load dataframe replacing NaN with ''
     df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
     # df = pds.read_csv(filename, sep=sep, dtype="string")
