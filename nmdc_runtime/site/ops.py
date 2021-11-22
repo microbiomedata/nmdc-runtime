@@ -24,7 +24,7 @@ from dagster import (
 )
 from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_dict
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -465,7 +465,7 @@ def perform_mongo_updates(context, json_in):
     docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
     context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
 
-    nmdc_jsonschema = get_nmdc_schema()
+    nmdc_jsonschema = get_nmdc_dict()
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
         "id"
     )

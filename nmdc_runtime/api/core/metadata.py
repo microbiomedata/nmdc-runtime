@@ -128,7 +128,7 @@ def load_changesheet(
 
     # create map between id and collection
     id_dict = map_id_to_collection(mongodb)
-
+    # print("id_dict:", id_dict)
     # add collection for each id
     df["collection_name"] = ""
     prev_id = ""
@@ -171,6 +171,7 @@ def load_changesheet(
     for ix, path, class_name in df[["path", "class_name"]].itertuples():
         if len(path) > 0:
             props = path.split(".")
+            print("props:", props)
             if 1 == len(props):
                 prop_range = get_schema_range(class_name, props[0])
             else:
@@ -245,6 +246,8 @@ def get_schema_range(
     """
     # find class schema
     query = f" .. | .{class_name}? | select(. != null)"
+    print("class name:", class_name)
+    print(schema)
     try:
         class_schema = jq.compile(query).input(schema).first()
         # print("schema:", class_schema)

@@ -12,7 +12,7 @@ import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from gridfs import GridFS
 from jsonschema import Draft7Validator
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_dict
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -262,7 +262,7 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
                         detail=f"{url} generated an exception: {exc}",
                     )
 
-        validator = Draft7Validator(get_nmdc_schema())
+        validator = Draft7Validator(get_nmdc_dict())
         validation_errors = defaultdict(list)
 
         for url in urls:
@@ -293,7 +293,7 @@ async def validate_json(docs: dict):
 
     """
 
-    validator = Draft7Validator(get_nmdc_schema())
+    validator = Draft7Validator(get_nmdc_dict())
     docs, validation_errors = specialize_activity_set_docs(docs)
 
     for coll_name, coll_docs in docs.items():
