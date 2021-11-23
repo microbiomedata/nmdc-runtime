@@ -61,7 +61,7 @@ def validate_mongo_collection(context, collection_name: str):
     collection = mongo_db[collection_name]  # get mongo collection
     db_set = collection_name.split(".")[0]
 
-    validator = Draft7Validator(get_nmdc_dict())
+    validator = Draft7Validator(get_nmdc_jsonschema_dict())
     validation_errors = []
 
     for count, doc in enumerate(collection.find()):
