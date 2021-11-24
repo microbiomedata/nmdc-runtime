@@ -45,6 +45,18 @@ You can see what sites you administer via `GET /users/me` when logged in.
 Log in via your username and password, and `POST /users` to create a new user. The only required
 fields are `username` and `password`.
 
+## Modifying API permissions
+
+For fine-grained control over which users have access to particular API endpoints, you may currently
+do so at the code level. A suitable template for this is the [implementation of the POST
+/users](https://github.com/microbiomedata/nmdc-runtime/blob/1d0feb68fb5ed82ed82c06f9724ecc86f73d83ae/nmdc_runtime/api/endpoints/users.py#L78)
+endpoint. The endpoint code receives the requesting user model via the `get_current_active_user`
+dependency, and it uses the `check_can_create_user` function to verify that the requester can
+administer the "nmdc-runtime-useradmin" site. If not, a `403 Forbidden` expection is raised.
+Otherwise, the endpoint logic continues for the authorized user
+
+
+
 ## MongoDB Administration
 
 The MongoDB instance backing the runtime is deployed on NERSC Spin.
