@@ -53,8 +53,10 @@ do so at the code level. A suitable template for this is the [implementation of 
 endpoint. The endpoint code receives the requesting user model via the `get_current_active_user`
 dependency, and it uses the `check_can_create_user` function to verify that the requester can
 administer the "nmdc-runtime-useradmin" site. If not, a `403 Forbidden` expection is raised.
-Otherwise, the endpoint logic continues for the authorized user
+Otherwise, the endpoint logic continues for the authorized user.
 
+To add a site ID to an existing user's `site_admin` list, this must currently be done manually at
+the MongoDB document level, rather than via an admin-accessible API endpoint.
 
 
 ## MongoDB Administration
