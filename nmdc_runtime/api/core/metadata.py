@@ -1,7 +1,8 @@
-from collections import defaultdict
-import collections
+import os, sys
+from collections import defaultdict, namedtuple
 
 import jq
+import inspect
 import pandas as pds
 from jsonschema import Draft7Validator
 from pandas._typing import FilePathOrBuffer
@@ -9,9 +10,17 @@ from pandas.core.frame import DataFrame
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import merge, dissoc, assoc_in, get_in
 from functools import lru_cache
+from types import ModuleType
 from typing import Optional, Dict, List, Tuple
 
+from nmdc_schema import nmdc
 from nmdc_runtime.util import nmdc_jsonschema
+from linkml_runtime.utils.schemaview import SchemaView
+
+# custom named tuple to hold path property information
+SchemaPathProperties = namedtuple(
+    "SchemaPathProperties", ["slots", "ranges", "multivalues"]
+)
 
 
 def load_changesheet(
@@ -105,13 +114,13 @@ def load_changesheet(
     # i.e., same var name can be used with different ids
     group_ids = df.groupby("group_id")
     for group_id in group_ids:
-        df_id = group_id[1]  # dataframe of group_id
+        df_id = group_id[1]  # dataframe for value group_id
 
         # split into var groups
         var_groups = df_id.groupby("group_var")
         for var_group in var_groups:
             # var = var_group[0]  # value of group_var
-            df_var = var_group[1]  # dataframe of group_var
+            df_var = var_group[1]  # dataframe for value group_var
 
             for ix, attr, value, group_var in df_var[
                 ["attribute", "value", "group_var"]
@@ -142,75 +151,179 @@ def load_changesheet(
 
         df["collection_name"] = collection_name
 
-    # add class name for each id
-    df["class_name"] = ""
+    # add linkml class name for each id
+    df["linkml_class"] = ""
     prev_id = ""
-    for ix, _id, collection_name in df[["group_id", "collection_name"]].itertuples():
+    class_name_dict = map_schema_class_names(nmdc)
+    for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
         # check if there is a new id
-        if _id != prev_id:
-            prev_id = _id  # update prev id
-            data = mongodb[collection_name].find_one({"id": _id})
+        if id_ != prev_id:
+            prev_id = id_  # update prev id
+            data = mongodb[collection_name].find_one({"id": id_})
 
             # find the type of class the data instantiates
             if "type" in list(data.keys()):
                 # get part after the ":"
                 class_name = data["type"].split(":")[-1]
+                class_name = class_name_dict[class_name]
             else:
-                raise Exception("Cannot determine the type of class for ", _id)
+                raise Exception("Cannot determine the type of class for ", id_)
 
         # set class name for id
-        df["class_name"] = class_name
+        df["linkml_class"] = class_name
+
+    # info about properties of slots in the property path
+    df["linkml_slots"] = ""
+    df["ranges"] = ""
+    df["multivalues"] = ""
+    view = SchemaView(
+        os.path.join(os.path.dirname(sys.modules["nmdc_schema"].__file__), "nmdc.yaml")
+    )
+    for ix, path, class_name in df[["path", "linkml_class"]].itertuples():
+        # fetch the properites for the path
+        if len(path) > 0:
+            spp = fetch_schema_path_properties(view, path, class_name)
+            df.loc[ix, "linkml_slots"] = str.join("|", spp.slots)
+            df.loc[ix, "ranges"] = str.join("|", spp.ranges)
+            df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
 
     # add info about the level of property nesting, prop range
     # and type of item for arrays
-    df["base_range"] = ""
-    df["base_item_type"] = ""
-    df["prop_range"] = ""
-    df["item_type"] = ""
-    for ix, path, class_name in df[["path", "class_name"]].itertuples():
-        if len(path) > 0:
-            props = path.split(".")
-            if 1 == len(props):
-                prop_range = get_schema_range(class_name, props[0])
-            else:
-                # get the base range for the path (i.e., first part of path)
-                # and set the class name to the range of the base
-                base_range = get_schema_range(class_name, props[0])
-                if tuple == type(base_range):
-                    df.loc[ix, "base_range"] = base_range[0]
-                    df.loc[ix, "base_item_type"] = base_range[1]
-                    class_name = base_range[1]
-                else:
-                    df.loc[ix, "base_range"] = base_range
-                    class_name = base_range
+    # df["base_range"] = ""
+    # df["base_item_type"] = ""
+    # df["prop_range"] = ""
+    # df["item_type"] = ""
+    # for ix, path, class_name in df[["path", "class_name"]].itertuples():
+    #     if len(path) > 0:
+    #         props = path.split(".")
+    #         if 1 == len(props):
+    #             prop_range = get_schema_range(class_name, props[0])
+    #         else:
+    #             # get the base range for the path (i.e., first part of path)
+    #             # and set the class name to the range of the base
+    #             base_range = get_schema_range(class_name, props[0])
+    #             if tuple == type(base_range):
+    #                 df.loc[ix, "base_range"] = base_range[0]
+    #                 df.loc[ix, "base_item_type"] = base_range[1]
+    #                 class_name = base_range[1]
+    #             else:
+    #                 df.loc[ix, "base_range"] = base_range
+    #                 class_name = base_range
 
-                # get the part of the class name after the ":"
-                # e.g, "object:Study" -> Study
-                if "object:" in class_name:
-                    class_name = class_name.split(":")[1]
+    #             # get the part of the class name after the ":"
+    #             # e.g, "object:Study" -> Study
+    #             if "object:" in class_name:
+    #                 class_name = class_name.split(":")[1]
 
-                # now find the ranges for the rest of the path
-                for prop in props[1:]:
-                    # class_name = get_schema_range(class_name, prop)
-                    prop_range = get_schema_range(class_name, prop)
+    #             # now find the ranges for the rest of the path
+    #             for prop in props[1:]:
+    #                 # class_name = get_schema_range(class_name, prop)
+    #                 prop_range = get_schema_range(class_name, prop)
 
-                    # tuple means the range was an array
-                    # so get the class out of the tuple
-                    if tuple == type(prop_range):
-                        class_name = prop_range[1]
+    #                 # tuple means the range was an array
+    #                 # so get the class out of the tuple
+    #                 if tuple == type(prop_range):
+    #                     class_name = prop_range[1]
 
-                    if "object:" in prop_range:
-                        class_name = prop_range.split(":")[1]
+    #                 if "object:" in prop_range:
+    #                     class_name = prop_range.split(":")[1]
 
-            # if the range is an array a tuple is returned
-            # the second element is the item type
-            if type(prop_range) == tuple:
-                df.loc[ix, "prop_range"] = prop_range[0]
-                df.loc[ix, "item_type"] = prop_range[1]
-            else:
-                df.loc[ix, "prop_range"] = prop_range
+    #         # if the range is an array a tuple is returned
+    #         # the second element is the item type
+    #         if type(prop_range) == tuple:
+    #             df.loc[ix, "prop_range"] = prop_range[0]
+    #             df.loc[ix, "item_type"] = prop_range[1]
+    #         else:
+    #             df.loc[ix, "prop_range"] = prop_range
 
     return df
+
+
+def map_schema_class_names(nmdc_mod: ModuleType) -> Dict[str, str]:
+    class_dict = {}
+    for name, member in inspect.getmembers(nmdc_mod):
+        if inspect.isclass(member) and hasattr(member, "class_name"):
+            class_dict[name] = member.class_name
+    return class_dict
+
+
+@lru_cache
+def fetch_schema_path_properties(
+    view: SchemaView, schema_path: str, class_name: str
+) -> SchemaPathProperties:
+    """Returns properies for a slot in the linkml schema.
+
+    Parameters
+    ----------
+    view : SchemaView
+        The SchemaView object holding the linkml schema
+    schema_path : str
+        The path in Mongo database to the value
+    class_name : str
+        The name of the class with the slot(s)
+
+    Returns
+    -------
+    SchemaPathProperties
+        A namedtuple of form "SchemaPathProperties", ["slots", "ranges", "multivalues"]
+        that holds the property informaton about the slot.
+          slots: a list of the linkml slots, this may differ from the path names
+          ranges: a list of the range for slot in the slots list
+          multivalues: a list of True/False strings specifying if the slot is multivaued
+
+    Raises
+    ------
+    AttributeError
+        If the slot is not found in the linkml schema, an AttributeError is raised.
+    """
+    # lists to hold properties for a value in the path
+    slots = []
+    ranges = []
+    multivalues = []
+    paths = schema_path.split(".")
+    for path in paths:
+        schema_class = view.get_class(class_name)  # get class from schema
+
+        # first check if it is an induced slot
+        # i.e., if slot properties have been overridden
+        if path in schema_class.slot_usage.keys():
+            schema_slot = view.induced_slot(path, class_name)
+        elif path.replace("_", " ") in schema_class.slot_usage.keys():
+            schema_slot = view.induced_slot(path.replace("_", " "), class_name)
+
+        # if slot has not been overridden, check class attributes
+        if path in schema_class.attributes.keys():
+            schema_slot = view.induced_slot(path, class_name)
+        elif path.replace("_", " ") in schema_class.attributes.keys():
+            schema_slot = view.induced_slot(path.replace("_", " "), class_name)
+
+        # if slot has not been overridden or is an attribute, get slot properties from view
+        elif path in view.all_slots().keys():
+            schema_slot = view.get_slot(path)
+        elif path.replace("_", " ") in view.all_slots().keys():
+            schema_slot = view.get_slot(path.replace("_", " "))
+
+        # raise error if the slot is not found
+        else:
+            raise AttributeError(f"slot '{path}' not found for '{schema_class.name}'")
+
+        # properties to lists as strings (strings are needed for dataframe)
+        slots.append(str(schema_slot.name))
+
+        if schema_slot.range is None:
+            ranges.append("string")
+        else:
+            ranges.append(str(schema_slot.range))
+
+        if schema_slot.multivalued is None:
+            multivalues.append("False")
+        else:
+            multivalues.append(str(schema_slot.multivalued))
+
+        # update the class name to range of slot
+        class_name = schema_slot.range
+
+    return SchemaPathProperties(slots, ranges, multivalues)
 
 
 @lru_cache
@@ -309,19 +422,19 @@ def make_updates(var_group: Tuple) -> List:
         action,
         value,
         path,
-        base_range,
-        base_item_type,
-        prop_range,
-        item_type,
+        linkml_class,
+        limkml_slots,
+        ranges,
+        multivalues,
     ) in df[
         [
             "action",
             "value",
             "path",
-            "base_range",
-            "base_item_type",
-            "prop_range",
-            "item_type",
+            "linkml_class",
+            "limkml_slots",
+            "ranges",
+            "multivalues",
         ]
     ].itertuples():
         if len(path) > 0:
@@ -447,7 +560,9 @@ def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
     return id_dict
 
 
-def get_collection_for_id(id_: str, id_map: Dict) -> Optional[str]:
+def get_collection_for_id(
+    id_: str, id_map: Dict, replace_underscore: bool = False
+) -> Optional[str]:
     """
     Returns the name of the collect that contains the document idenfied by the id.
 
@@ -459,6 +574,8 @@ def get_collection_for_id(id_: str, id_map: Dict) -> Optional[str]:
         A dict mapping collection names to document ids.
         key: collection name
         value: set of document ids
+    replace_underscore : bool
+        If true, underscores in the collection name are replaced with spaces.
 
     Returns
     -------
@@ -468,7 +585,10 @@ def get_collection_for_id(id_: str, id_map: Dict) -> Optional[str]:
     """
     for collection_name in id_map:
         if id_ in id_map[collection_name]:
-            return collection_name
+            if replace_underscore == True:
+                return collection_name.replace("_", " ")
+            else:
+                return collection_name
     return None
 
 
@@ -522,14 +642,14 @@ def copy_docs_in_update_cmd(
 
     Parameters
     ----------
-    mdb_from: MongoDatbase
+    mdb_from : MongoDatbase
         Database from which data being copied (i.e., source).
     mdb_to: MongoDatabase
         Datbase which data is being copied into (i.e., destination).
 
     Returns
     -------
-    results: Dict
+    results : Dict
         Dict with collection name as the key, and a message of number of docs inserted as value.
     """
     doc_specs = defaultdict(list)
