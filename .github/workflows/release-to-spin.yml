@@ -1,11 +1,8 @@
 name: Refresh to latest Docker images on NERSC Spin
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'RELEASES.md'
+  repository_dispatch:
+    types: [trigger-workflow-release-to-spin]
 
 jobs:
   rancher_job:
@@ -29,6 +26,13 @@ jobs:
         uses: colbyhill21/Rancher-Action@1.1
         with: 
           args: '"rollout restart deployment/dagit --namespace=nmdc-runtime-dev"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart dagit-readonly
+        uses: colbyhill21/Rancher-Action@1.1
+        with:
+          args: '"rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev"'
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}

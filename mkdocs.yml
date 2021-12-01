@@ -1,11 +1,43 @@
 site_name: nmdc-runtime docs
 site_url: https://microbiomedata.github.io/nmdc-runtime/
-theme:
-  name: material
 nav:
   - index.md
   - Jobs:
-    - jobs/emsl-translation-etl.md
     - jobs/gold-translation-etl.md
-    - jobs/jgi-translation-etl.md
-  - contributing.md
+  - tutorial-json.md
+  - tutorial-auth.md
+  - tutorial-metadata-in.md
+  - release-process.md
+  - contributing-docs.md
+  - admin.md
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
+plugins:
+  - search
+  - mermaid2:
+      arguments:
+        securityLevel: 'loose'

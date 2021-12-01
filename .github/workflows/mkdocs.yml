@@ -6,13 +6,23 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      - '.github/workflows/mkdocs.yml'
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.event.repository.fork == false
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.x
-      - run: pip install mkdocs-material
+      - run: pip install git+https://${GH_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
+      - run: pip install mkdocs-mermaid2-plugin
       - run: mkdocs gh-deploy --force
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN_MKDOCS_MATERIAL_INSIDERS }}
+
+
+
+
+

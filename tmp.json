@@ -1,0 +1,61 @@
+{
+  "id": "gold:Gb0115217",
+  "location": "groundwater-surface water interaction zone in Washington, USA",
+  "env_medium": {
+    "has_raw_value": "ENVO:01000017"
+  },
+  "depth2": {
+    "has_raw_value": "1.0",
+    "has_numeric_value": 1,
+    "has_unit": "meter"
+  },
+  "env_broad_scale": {
+    "has_raw_value": "ENVO:01000253"
+  },
+  "alternative_identifiers": [
+    "img.taxon:3300042741"
+  ],
+  "ecosystem": "Engineered",
+  "ecosystem_category": "Artificial ecosystem",
+  "env_local_scale": {
+    "has_raw_value": "ENVO:01000621"
+  },
+  "community": "microbial communities",
+  "mod_date": "2021-06-17",
+  "ecosystem_subtype": "Unclassified",
+  "INSDC_biosample_identifiers": [
+    "biosample:SAMN06343863"
+  ],
+  "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
+  "collection_date": {
+    "has_raw_value": "2014-09-23"
+  },
+  "ecosystem_type": "Sand microcosm",
+  "sample_collection_site": "sand microcosm",
+  "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
+  "lat_lon": {
+    "has_raw_value": "46.37228379 -119.2717467",
+    "latitude": 46.37228379,
+    "longitude": -119.2717467
+  },
+  "specific_ecosystem": "Unclassified",
+  "identifier": "GW-RW T2_23-Sept-14",
+  "GOLD_sample_identifiers": [
+    "gold:Gb0115217"
+  ],
+  "add_date": "2015-05-28",
+  "habitat": "sand microcosm",
+  "type": "nmdc:Biosample",
+  "depth": {
+    "has_raw_value": "0.5",
+    "has_numeric_value": 0.5,
+    "has_unit": "meter"
+  },
+  "part_of": [
+    "gold:Gs0114663"
+  ],
+  "ncbi_taxonomy_name": "sediment metagenome",
+  "geo_loc_name": {
+    "has_raw_value": "USA: Columbia River, Washington"
+  }
+}

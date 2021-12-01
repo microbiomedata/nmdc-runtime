@@ -1,5 +1,9 @@
 A runtime system for NMDC data management and orchestration.
 
+## Service Status
+
+http://nmdcstatus.polyneme.xyz/
+
 ## How It Fits In
 
 * [nmdc-metadata](https://github.com/microbiomedata/nmdc-metadata)
@@ -77,30 +81,37 @@ database, as a hub for data management and workflow automation.
 
 Ensure Docker (and Docker Compose) are installed.
 
+Ensure you have a .env file for the docker services to source from. You may copy `.env.example` to
+`.env` (which is gitignore'd) to get started.
+
+If you are connecting to resources that require a ssh tunnel, for example a MongoDB that is only
+accessible on the NERSC network, `make nersc-ssh-tunnel` could be useful for you, directly or as a
+template.
+
+Finally,
 ```bash
-# optional: copy .env.example to .env (gitignore'd) and set those vars
 make up-dev
 ```
 
-Docker Compose is used to start local TerminusDB, MongoDB, and PostgresSQL (used by Dagster to log
-information) instances, as well as a Dagster web server (dagit) and daemon (dagster-daemon).
+Docker Compose is used to start local MongoDB and PostgresSQL (used by Dagster) instances, as well
+as a Dagster web server (dagit) and daemon (dagster-daemon).
 
 The Dagit web server is viewable at http://localhost:3000/.
-
-The TerminusDB browser console is viewable at http://localhost:6364/.
 
 The FastAPI service is viewable at http://localhost:8000/ -- e.g., rendered documentation at
 http://localhost:8000/redoc/.
 
 ## Local Testing
 
-Tests can be found in `tests` and are run with the following command:
+Tests can be found in `tests` and are run with the following commands:
 
 ```bash
-pytest tests
+make up-test
+make test
 ```
 
-As you create Dagster solids and pipelines, add tests in `tests/` to check that your
-code behaves as desired and does not break over time.
+As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
+desired and does not break over time.
 
-[For hints on how to write tests for solids and pipelines in Dagster, see their documentation tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+[For hints on how to write tests for solids and pipelines in Dagster, see their documentation
+tutorial on Testing](https://docs.dagster.io/tutorial/testable).

@@ -20,6 +20,7 @@ from nmdc_runtime.api.endpoints import (
     workflows,
     queries,
     metadata,
+    nmdcschema,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
@@ -37,6 +38,7 @@ api_router.include_router(object_types.router, tags=["object types"])
 api_router.include_router(queries.router, tags=["queries"])
 api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
+api_router.include_router(nmdcschema.router, tags=["metadata"])
 
 tags_metadata = [
     {
@@ -200,13 +202,9 @@ app = FastAPI(
 app.include_router(api_router)
 
 
-origins = [
-    "http://localhost:8001",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
