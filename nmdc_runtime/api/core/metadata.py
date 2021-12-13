@@ -195,6 +195,20 @@ def load_changesheet(
 
 
 def map_schema_class_names(nmdc_mod: ModuleType) -> Dict[str, str]:
+    """Returns dict that maps the classes in the nmdc.py module (within the NMDC Schema PyPI library)
+       to the class names used in the linkml schema.
+
+    Parameters
+    ----------
+    nmdc_mod : ModuleType
+        The nmdc.py module in the NMDC Schema library.
+
+    Returns
+    -------
+    Dict[str, str]
+        Maps the class as named in the module to the class name in the linkml schema.
+        E.g., BiosampleProcessing -> biosample processing
+    """
     class_dict = {}
     for name, member in inspect.getmembers(nmdc_mod):
         if inspect.isclass(member) and hasattr(member, "class_name"):
@@ -282,12 +296,24 @@ def fetch_schema_path_properties(
 
 
 def make_vargroup_updates(df: pds.DataFrame) -> List:
+    """Returns a list of update commands to execute on the Mongo database
+       when updates are grouped with a grouping varialbe.
+
+    Parameters
+    ----------
+    df : pds.DataFrame
+        The dataframe that contains the values associated with the grouping variable.
+
+    Returns
+    -------
+    List
+        A list of Mongo update commands for that grouping variable.
+    """
     id_ = df["group_id"].values[0]
     path_multivalued_dict = {}
     update_key = ""
     path_lists = []
     obj_dict = {}
-
     for (action, attribute, value, path, multivalues,) in df[
         [
             "action",
@@ -398,6 +424,22 @@ def make_updates(var_group: Tuple) -> List:
 
 
 def make_mongo_update_value(action: str, value: Any, multivalues_list: List) -> Any:
+    """Based on the params, determines of the value for a Mongo update operation needs to be a list.
+
+    Parameters
+    ----------
+    action : str
+        The type of update that will be performed (e.g., insert items, replace)
+    value : Any
+        The value used for the update operation.
+    multivalues_list : List
+        List of 'True'/'False' values indicating if the value is to be multivalued (i.e., an array).
+
+    Returns
+    -------
+    Any
+        The value which may or may not be encapsulated in a list.
+    """
     # if an array field is being updated, split based on pipe
     if (
         action in ["insert items", "remove items", "replace items"]
@@ -413,6 +455,24 @@ def make_mongo_update_value(action: str, value: Any, multivalues_list: List) -> 
 def make_mongo_update_command_dict(
     action: str, doc_id: str, update_key: str, update_value: Any
 ) -> Dict:
+    """Returns a dict of the command need to execute a Mongo update opertation.
+
+    Parameters
+    ----------
+    action : str
+        The kind of update being performed (e.g., insert item, replace).
+    doc_id : str
+        The id of Mongo document being updated.
+    update_key : str
+        The property of document whose values are being updated.
+    update_value : Any
+        The new value used for updating.
+
+    Returns
+    -------
+    Dict
+        The Mongo command that when executed will update the document.
+    """
     # build dict of update commands for Mongo
     if "insert items" == action:
         update_dict = {
@@ -446,6 +506,20 @@ def make_mongo_update_command_dict(
 
 
 def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
+    """Returns dict using the collection name as a key and the ids of documents as values.
+
+    Parameters
+    ----------
+    mongodb : MongoDatabase
+        The Mongo database on which to build the dict.
+
+    Returns
+    -------
+    Dict
+        Dict mapping collection names to the set of document ids in the collection.
+        key: collection name
+        value: set(id of document)
+    """
     collection_names = [
         name for name in mongodb.list_collection_names() if name.endswith("_set")
     ]
