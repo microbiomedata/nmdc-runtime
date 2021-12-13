@@ -1,0 +1,4 @@
+id	action	attribute	value
+gold:Gs0135149	insert items	ess_dive_datasets	doi:ESS_DIVE_1|doi:ESS_DIVE_2
+gold:Gs0135149	insert items	websites	http://WEBSITE_1|http://WEBSITE_2
+gold:Gs0135149	insert items	publications	PUBLICATION 1
