@@ -297,7 +297,7 @@ def fetch_schema_path_properties(
 
 def make_vargroup_updates(df: pds.DataFrame) -> List:
     """Returns a list of update commands to execute on the Mongo database
-       when updates are grouped with a grouping varialbe.
+       when updates are grouped with a grouping variable.
 
     Parameters
     ----------
