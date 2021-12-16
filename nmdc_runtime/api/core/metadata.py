@@ -441,11 +441,9 @@ def make_mongo_update_value(action: str, value: Any, multivalues_list: List) -> 
         The value which may or may not be encapsulated in a list.
     """
     # if an array field is being updated, split based on pipe
-    if (
-        action in ["insert items", "remove items", "replace items"]
-        or multivalues_list[-1] == "True"  # checks the last value of the multivalues
-    ):
-        value = [v.strip() for v in value.split("|")]
+    if multivalues_list[-1] == "True" or "|" in value:
+        # value = value.strip()  # ****
+        value = [v.strip() for v in value.split("|") if len(v.strip()) > 0]
     else:
         value = value.strip()  # remove extra white space
 
@@ -474,22 +472,22 @@ def make_mongo_update_command_dict(
         The Mongo command that when executed will update the document.
     """
     # build dict of update commands for Mongo
-    if "insert items" == action:
+    if action in ["insert", "insert items", "insert item"]:
         update_dict = {
             "q": {"id": f"{doc_id}"},
             "u": {"$addToSet": {update_key: {"$each": update_value}}},
         }
-    elif "remove items" == action:
+    elif action in ["remove items", "remove item"]:
         update_dict = {
             "q": {"id": f"{doc_id}"},
             "u": {"$pull": {update_key: {"$in": update_value}}},
         }
-    elif action in ["set", "replace", "replace items"]:
+    elif action in ["update", "set", "replace", "replace items"]:
         update_dict = {
             "q": {"id": f"{doc_id}"},
             "u": {"$set": {update_key: update_value}},
         }
-    elif "remove" == action:  # remove the property from the object
+    elif action in ["remove", "delete"]:  # remove the property from the object
         # note: the update_value in an $unset opertation doesn't matter
         # it is included so that we see it during debugging
         update_dict = {
@@ -497,10 +495,7 @@ def make_mongo_update_command_dict(
             "u": {"$unset": {update_key: update_value}},
         }
     else:
-        update_dict = {
-            "q": {"id": f"{doc_id}"},
-            "u": {"$set": {update_key: update_value}},
-        }
+        raise ValueError(f"cannot execute action '{action}'")
 
     return update_dict
 
