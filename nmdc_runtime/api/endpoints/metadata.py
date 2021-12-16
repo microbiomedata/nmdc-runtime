@@ -214,11 +214,13 @@ def fetch_downloaded_json(url, save_dir):
         return json.load(f)
 
 
-type_collections = {
-    f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
-    for collection_name, spec in nmdc_jsonschema["properties"].items()
-    if collection_name.endswith("_set")
-}
+# FIX: this variable does not seem to be used anywhere else.
+# Can it be deleted? Commenting out for now.
+# type_collections = {
+#     f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
+#     for collection_name, spec in nmdc_jsonschema["properties"].items()
+#     if collection_name.endswith("_set")
+# }
 
 
 @router.post("/metadata/json:validate_urls_file")
