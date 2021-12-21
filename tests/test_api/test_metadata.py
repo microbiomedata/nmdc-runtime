@@ -58,7 +58,7 @@ def test_update_01():
     assert study_doc["ecosystem_type"] != "NEW ECOSYSTEM_TYPE 2"
     assert study_doc["ecosystem_subtype"] != "NEW ECOSYSTEM_SUBTYPE 2"
 
-    website_info = ["HTTP://TEST3.EXAMPLE.COM", "HTTP://TEST4.EXAMPLE.COM"]
+    website_info = ["HTTP://TEST4.EXAMPLE.COM"]
     for website in website_info:
         assert website not in study_doc.get("websites", [])
 
