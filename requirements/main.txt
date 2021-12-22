@@ -110,19 +110,19 @@ bleach==4.1.0 \
     --hash=sha256:0900d8b37eba61a802ee40ac0061f8c2b5dee29c1927dd1d233e075ebf5a71da \
     --hash=sha256:4d2651ab93271d1129ac9cbc679f524565cc8a1b791909c4a51eac4446a15994
     # via nbconvert
-boto3==1.20.25 \
-    --hash=sha256:a03ab82efcbf457c36dab4afc545d0ddb72b5140c9993cffc78bc23b8d8baa40 \
-    --hash=sha256:fa686e8e0a0559124aa9f19dcc25e6cc428f18ff11f779bb7346b883b353fdc2
+boto3==1.20.26 \
+    --hash=sha256:9c13f5c8fadf29088fac5feab849399169b6e8438c3b9a2310abdb7e5013ab65 \
+    --hash=sha256:e8787a7f7c212d5b469dd8b998560c1b8e63badad5ceefb8331f4580386af044
     # via -r requirements/main.in
-botocore==1.23.25 \
-    --hash=sha256:98f8a23ca035edfbd8a8028e624eaf08ba22452dd78ad62eeb03fcd0bbd5f58d \
-    --hash=sha256:9eb71d5ee1ea335b3968751346601e923c66a7b324b1dc58e360d14e0d2ac136
+botocore==1.23.26 \
+    --hash=sha256:0a933e3af6ecf79666beb2dfcb52a60f8ad1fee7df507f2a9202fe26fe569483 \
+    --hash=sha256:298f4d4e29504f65f73e8f78084f830af45cec49087d7d8fcf09481e243b26ec
     # via
     #   boto3
     #   s3transfer
-cachetools==4.2.4 \
-    --hash=sha256:89ea6f1b638d5a73a4f9226be57ac5e4f399d22770b92355f92dcb0f7f001693 \
-    --hash=sha256:92971d3cb7d2a97efff7c7bb1657f21a8f5fb309a37530537c71b1774189f2d1
+cachetools==5.0.0 \
+    --hash=sha256:486471dfa8799eb7ec503a8059e263db000cdda20075ce5e48903087f79d5fd6 \
+    --hash=sha256:8fecd4203a38af17928be7b90689d8083603073622229ca7077b72d8e5a976e4
     # via pyldmod
 certifi==2021.10.8 \
     --hash=sha256:78884e7c1d4b00ce3cea67b44566851c4343c120abd683433ce934a68ea58872 \
@@ -186,6 +186,12 @@ cffi==1.15.0 \
 cfgraph==0.2.1 \
     --hash=sha256:b57fe7044a10b8ff65aa3a8a8ddc7d4cd77bf511b42e57289cd52cbc29f8fe74
     # via pyshex
+chardet==4.0.0 \
+    --hash=sha256:0d6f53a15db4120f2b08c94f11e7d93d2c911ee118b6b30a04ec3ee8310179fa \
+    --hash=sha256:f864054d66fd9118f2e67044ac8981a54775ec5b67aed0441892edb553d21da5
+    # via
+    #   pyshex
+    #   pyshexc
 charset-normalizer==2.0.9 \
     --hash=sha256:1eecaa09422db5be9e29d7fc65664e6c33bd06f9ced7838578ba40d58bdf3721 \
     --hash=sha256:b0b883e8e874edfdece9c28f314e3dd5badf067342e42fb162203335ae61aa2c
@@ -361,19 +367,9 @@ flask-sockets==0.2.1 \
     --hash=sha256:072927da8edca0e81e024f5787e643c87d80b351b714de95d723becb30e0643b \
     --hash=sha256:350a76d55f5889f64afd2ca9b32f262680b7960965f0830365576307d30cfe1e
     # via dagit
-frozendict==2.1.2 \
-    --hash=sha256:2cfe6d89d2af7b97726a5f789d73b5298eb067a9348a8cc8f0834fdc5349b125 \
-    --hash=sha256:2eb92fbe8dde37075ed0e5dd3dac88a850a04ccfc646d20f3412b72220ddbaf2 \
-    --hash=sha256:3b4ac7aafd613959a055818c3e9844822196c874b9c8bf118b6c1419ff1fbbdc \
-    --hash=sha256:3cbb8bd5ddbdd1db1caa670586b50f9e665e60b1c095add5aa04d9e2bedf5f00 \
-    --hash=sha256:3cdc8602e398d28887484226a493ae6e96ff3532b4368d4d49ab96c5ee7eb61d \
-    --hash=sha256:513a3f3a8ff2767492570c78c158845a1cc7b4c954fc9f78ed313b2463727cae \
-    --hash=sha256:79666516d594ced95a294869988dba2daff89d9d274061f7138e1c49e49428ce \
-    --hash=sha256:a0650a673ce6e320e8b25a38f4620f42382c081b2088051c81073a67f14bac32 \
-    --hash=sha256:afaaa4fc0343af15f1153d9e09660f6c388ab1d6d01147bbd7f7979e723258df \
-    --hash=sha256:bb1ebca998c68c3bf28ce70f14a392431bbe01bfa610e3e9e635176d9ecbba71 \
-    --hash=sha256:c0e09b7159fee7c6dafd727dec2ea7a135f47458dd3996705f9a64e3fca3bf73 \
-    --hash=sha256:f45f7a724e93653f0d446e0cc99e09bda4835f16de08eb1de3b007537e18daa1
+frozendict==2.1.3 \
+    --hash=sha256:7a12336ba271066e1261a70d8ba97d5178392f3b317b31c6686e401423e70670 \
+    --hash=sha256:cfa47860932d549947157d68f246898f60b05da392f67219a913b85d8c36b1b2
     # via
     #   -r requirements/main.in
     #   pyldmod
@@ -812,9 +808,9 @@ libcst==0.3.23 \
     --hash=sha256:2e1f77fbaaff93b889376c92f588b718edbdc21f956abbe27d10dfd1ff2d76c3 \
     --hash=sha256:330f9082a309bad808e283e80845a843200303bb256690185b98ca458a62c4f8
     # via shed
-linkml==1.1.14 \
-    --hash=sha256:1fa8555c430ab468615014314c762bded7f961be890546802ecc80f41f62c350 \
-    --hash=sha256:8a240f53927d0e81b08b52116017df761a66ad7a82a47161648d40bfc43abefd
+linkml==1.1.15 \
+    --hash=sha256:76a2497e64c814e0eb4507a22754659d2cf0781993f8274e67d00df5878c3ec7 \
+    --hash=sha256:b6b2b91bafabc4c42d326f4df8f8d2d66d2c15ee890174061bc413a7b56d15b6
     # via
     #   -r requirements/main.in
     #   nmdc-schema
@@ -1061,9 +1057,9 @@ nest-asyncio==1.5.4 \
     # via
     #   jupyter-client
     #   notebook
-nmdc-schema==2021.12.21rc1 \
-    --hash=sha256:43227295a3f6e2718146c7a2b0216a8b689b875a8e2ce95d1bb84c89f3cb0389 \
-    --hash=sha256:ec48dc7432087e60e8c5355925f7e6236e2d293dd21a366e444c5c9d9a3efe3d
+nmdc-schema==2021.12.22rc1 \
+    --hash=sha256:2e32bd0de08f07169c37aa1fe9b0a8fc91ffca959d339452e7f9c62ad314c414 \
+    --hash=sha256:cd50e54637de15849a2d7db8595133031a92fe46b449778c87350d129d85a35c
     # via -r requirements/main.in
 notebook==6.4.6 \
     --hash=sha256:5cad068fa82cd4fb98d341c052100ed50cd69fbfb4118cb9b8ab5a346ef27551 \
@@ -1120,6 +1116,7 @@ packaging==21.3 \
     #   bleach
     #   dagster
     #   mkdocs
+    #   qtpy
     #   sphinx
 pandas==1.3.5 \
     --hash=sha256:1e4285f5de1012de20ca46b188ccf33521bff61ba5c5ebd78b4fb28e5416a9f1 \
@@ -1493,13 +1490,13 @@ pyrsistent==0.18.0 \
     --hash=sha256:f3ef98d7b76da5eb19c37fda834d50262ff9167c65658d1d8f974d2e4d90676b \
     --hash=sha256:f4c8cabb46ff8e5d61f56a037974228e978f26bfefce4f61a4b1ac0ba7a2ab72
     # via jsonschema
-pyshex==0.7.20 \
-    --hash=sha256:3ea61c2a3f7436bac725bd5001072ba08d2dff5b836d5388ce9ff6f5251c2707 \
-    --hash=sha256:6c9cecd7726461c2105330a9b2d5fd054f0e7966bfc9e3a73e7136b8be63d089
+pyshex==0.8.0 \
+    --hash=sha256:1e158a55b6a5d375aeff86becb2a177ec37586677a9f0f5297fef3bfebaf05ce \
+    --hash=sha256:e1edc64806c88f8341a6358aa342315704f36ab528af6c28ec29bc14b90a0818
     # via linkml
-pyshexc==0.8.3 \
-    --hash=sha256:6f75e26dfda605c994031a72ca74b2b0079e1f7b12ab713e030078d8fa05dc3a \
-    --hash=sha256:ad83bb2a645f64becbf946d4bd170e35fd9b903616c7ee25d5a4ed188cf2d1dd
+pyshexc==0.9.0 \
+    --hash=sha256:238d30bf5c395d66f07557f7b9c1bac9c4782ef5ad495a2fbc6399347f1bd2d9 \
+    --hash=sha256:86fbd322248dd89b984163227fa81da8d7bceec0c58b49cdac3c21c920c8cafa
     # via
     #   linkml
     #   pyshex
@@ -1653,13 +1650,13 @@ qtconsole==5.2.2 \
     --hash=sha256:4aa6a3e600e0c8cf16853f2378311bc2371f57cb0f22ecfc28994f4cf409ee2e \
     --hash=sha256:8f9db97b27782184efd0a0f2d57ea3bd852d053747a2e442a9011329c082976d
     # via jupyter
-qtpy==1.11.3 \
-    --hash=sha256:d427addd37386a8d786db81864a5536700861d95bf085cb31d1bea855d699557 \
-    --hash=sha256:e121fbee8e95645af29c5a4aceba8d657991551fc1aa3b6b6012faf4725a1d20
+qtpy==2.0.0 \
+    --hash=sha256:74bf26be3288aadc843cf3381d5ef0b82f11417ecdcbf26718a408f32590f1ac \
+    --hash=sha256:777e333df4d711b2ec9743117ab319dadfbd743a5a0eee35923855ca3d35cd9d
     # via qtconsole
-rdflib==5.0.0 \
-    --hash=sha256:78149dd49d385efec3b3adfbd61c87afaf1281c30d3fcaf1b323b34f603fb155 \
-    --hash=sha256:88208ea971a87886d60ae2b1a4b2cdc263527af0454c422118d43fe64b357877
+rdflib==6.1.1 \
+    --hash=sha256:8dbfa0af2990b98471dacbc936d6494c997ede92fd8ed693fb84ee700ef6f754 \
+    --hash=sha256:fc81cef513cd552d471f2926141396b633207109d0154c8e77926222c70367fe
     # via
     #   cfgraph
     #   linkml
@@ -1677,8 +1674,6 @@ rdflib-jsonld==0.6.1 \
     # via
     #   linkml
     #   linkml-runtime
-    #   pyshex
-    #   pyshexc
     #   rdflib-shim
 rdflib-pyldmod-compat==0.1.2 \
     --hash=sha256:68aa05d4f4d8f46241e0c37e631b4747f18a356d8accc5bae204350d2f314196 \
@@ -1692,6 +1687,8 @@ rdflib-shim==1.0.3 \
     # via
     #   linkml
     #   linkml-runtime
+    #   pyshex
+    #   pyshexc
     #   sparqlslurper
 requests==2.26.0 \
     --hash=sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24 \
@@ -1762,9 +1759,9 @@ shed==0.6.0 \
     --hash=sha256:8be18b13e14ca9e102d46c93f0d35fc0cae22efd6ffd6e46dc700599bebc57ef \
     --hash=sha256:a8ad0027368cb843f871b762e4db479e3ba8ea4605d528c2473a331f031b4c7d
     # via terminusdb-client
-shexjsg==0.7.1 \
-    --hash=sha256:788991c4df2ca9b24258fb68c94107c3e140c70bbe398fb15f00338d2a9155e5 \
-    --hash=sha256:89fb39a4448f50fd4988108a0a2c7096aa51dd15cd89fef0bc3ad96e04929929
+shexjsg==0.8.1 \
+    --hash=sha256:33749e8c90a30cca2cb6e23f94268bed5217a6f7c04d584e64fcb6869b60972b \
+    --hash=sha256:3768c3b9ea011a832cb6f50ba3275678b27ce60a2024fc55cfc897e9031cf838
     # via
     #   linkml-runtime
     #   pyshex
@@ -1789,7 +1786,6 @@ six==1.16.0 \
     #   promise
     #   python-dateutil
     #   python-multipart
-    #   rdflib
 sniffio==1.2.0 \
     --hash=sha256:471b71698eac1c2112a40ce2752bb2f4a4814c22a54a3eed3676bc0f5ca9f663 \
     --hash=sha256:c4666eecec1d3f50960c6bdf61ab7bc350648da6c126e3cf6898d8cd4ddcd3de
@@ -1802,9 +1798,9 @@ soupsieve==2.3.1 \
     --hash=sha256:1a3cca2617c6b38c0343ed661b1fa5de5637f257d4fe22bd9f1338010a1efefb \
     --hash=sha256:b8d49b1cd4f037c7082a9683dfa1801aa2597fb11c3a1155b7a5b94829b4f1f9
     # via beautifulsoup4
-sparqlslurper==0.5.0 \
-    --hash=sha256:c97a373316a65cea18b41eab04b7f1dc5bfa33cceb5a9a300365be9858569700 \
-    --hash=sha256:de1ff48de42ef637724f0de5a12253d54d32aef5119447a9fe66f710973a22ac
+sparqlslurper==0.5.1 \
+    --hash=sha256:9282ebb064fc6152a58269d194cb1e7b275b0f095425a578d75b96dcc851f546 \
+    --hash=sha256:ae49b2d8ce3dd38df7a40465b228ad5d33fb7e11b3f248d195f9cadfc9cfff87
     # via pyshex
 sparqlwrapper==1.8.5 \
     --hash=sha256:357ee8a27bc910ea13d77836dbddd0b914991495b8cc1bf70676578155e962a8 \
