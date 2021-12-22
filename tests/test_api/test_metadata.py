@@ -4,7 +4,7 @@ from typing import Optional
 
 import fastjsonschema
 import pandas as pd
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import dissoc, merge
 
 from nmdc_runtime.api.core.metadata import (
@@ -53,13 +53,12 @@ def test_update_01():
 
     pi_info = {"has_raw_value": "NEW RAW NAME 2", "name": "NEW PI NAME 2"}
     assert study_doc["principal_investigator"] != pi_info
-    pi_info_prev = study_doc["principal_investigator"]
     assert study_doc["name"] != "NEW STUDY NAME 2"
     assert study_doc["ecosystem"] != "NEW ECOSYSTEM 2"
     assert study_doc["ecosystem_type"] != "NEW ECOSYSTEM_TYPE 2"
     assert study_doc["ecosystem_subtype"] != "NEW ECOSYSTEM_SUBTYPE 2"
 
-    website_info = ["HTTP://TEST3.EXAMPLE.COM", "HTTP://TEST4.EXAMPLE.COM"]
+    website_info = ["HTTP://TEST4.EXAMPLE.COM"]
     for website in website_info:
         assert website not in study_doc.get("websites", [])
 
@@ -70,11 +69,8 @@ def test_update_01():
     )
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
-
-    assert first_result["update_info"]["nModified"] == 12
-    assert first_result["doc_after"]["principal_investigator"] == merge(
-        pi_info_prev, pi_info
-    )
+    assert first_result["update_info"]["nModified"] == 11
+    assert first_result["doc_after"]["principal_investigator"] == pi_info
     assert first_result["doc_after"]["name"] == "NEW STUDY NAME 2"
     assert first_result["doc_after"]["ecosystem"] == "NEW ECOSYSTEM 2"
     assert first_result["doc_after"]["ecosystem_type"] == "NEW ECOSYSTEM_TYPE 2"
@@ -156,7 +152,7 @@ def test_ensure_data_object_type():
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
-    nmdc_jsonschema = get_nmdc_schema()
+    nmdc_jsonschema = get_nmdc_jsonschema_dict()
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 

@@ -1,0 +1,9 @@
+id	action	attribute	value
+gold:Gs0135149	insert items	ess_dive_datasets	doi:ESS_DIVE_1|doi:ESS_DIVE_2
+	insert items	websites	http://WEBSITE_1|http://WEBSITE_2
+	insert items	publications	PUBLICATION 1
+gold:Gs0114675	insert items	has_credit_associations	ca1
+ca1		applied_role	Conceptualization
+ca1		applies_to_person.name	CREDIT NAME 1
+ca1		applies_to_person.email	CREDIT_NAME_1@foo.edu
+ca1		applies_to_person.orcid	orcid:0000-0000-0000-0001

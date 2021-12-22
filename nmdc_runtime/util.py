@@ -7,13 +7,13 @@ from pathlib import Path
 import fastjsonschema
 import requests
 from frozendict import frozendict
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
-nmdc_jsonschema = get_nmdc_schema()
+nmdc_jsonschema = get_nmdc_jsonschema_dict()
 nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
 REPO_ROOT_DIR = Path(__file__).parent.parent

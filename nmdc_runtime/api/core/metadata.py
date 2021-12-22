@@ -1,23 +1,60 @@
-from collections import defaultdict
-import collections
+import os, sys
+from collections import defaultdict, namedtuple
 
-import jq
+import inspect
 import pandas as pds
 from jsonschema import Draft7Validator
 from pandas._typing import FilePathOrBuffer
+from pandas.core.frame import DataFrame
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import merge, dissoc, assoc_in, get_in
 from functools import lru_cache
+from types import ModuleType
+from typing import Optional, Dict, List, Tuple, Any
 
+from nmdc_schema import nmdc
 from nmdc_runtime.util import nmdc_jsonschema
+from linkml_runtime.utils.schemaview import SchemaView
+
+# custom named tuple to hold path property information
+SchemaPathProperties = namedtuple(
+    "SchemaPathProperties", ["slots", "ranges", "multivalues"]
+)
 
 
 def load_changesheet(
-    filename: FilePathOrBuffer,
-    mongodb,
-    sep="\t",
+    filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
 ) -> pds.DataFrame:
+    """
+    Creates a datafame from the input file that includes extra columns used for
+    determining the path for updating a Mongo document and the data type of the updated data.
 
+    Returns
+    -------
+    Pandas DataFrame
+
+    Parameters
+    ----------
+    filename : FilePathOrBuffer
+        Name of the file containing the change sheet.
+    mogodb : MongoDatabase
+        The Mongo database that the change sheet will update.
+    sep : str
+        Column separator in file.
+
+    Raises
+    ------
+    ValueError
+        If input file lacks an id column.
+    ValueError
+        If input file lacks an attribute column.
+    ValueError
+        If input file lacks an action column.
+    Exception
+        If a document id is not found in the Mongo database.
+    Exception
+        If a class name cannot be determined.
+    """
     # load dataframe replacing NaN with ''
     df = pds.read_csv(filename, sep=sep, dtype="string").fillna("")
     # df = pds.read_csv(filename, sep=sep, dtype="string")
@@ -76,13 +113,13 @@ def load_changesheet(
     # i.e., same var name can be used with different ids
     group_ids = df.groupby("group_id")
     for group_id in group_ids:
-        df_id = group_id[1]  # dataframe of group_id
+        df_id = group_id[1]  # dataframe for value group_id
 
         # split into var groups
         var_groups = df_id.groupby("group_var")
         for var_group in var_groups:
             # var = var_group[0]  # value of group_var
-            df_var = var_group[1]  # dataframe of group_var
+            df_var = var_group[1]  # dataframe for value group_var
 
             for ix, attr, value, group_var in df_var[
                 ["attribute", "value", "group_var"]
@@ -98,7 +135,7 @@ def load_changesheet(
 
     # create map between id and collection
     id_dict = map_id_to_collection(mongodb)
-
+    # print("id_dict:", id_dict)
     # add collection for each id
     df["collection_name"] = ""
     prev_id = ""
@@ -113,214 +150,371 @@ def load_changesheet(
 
         df["collection_name"] = collection_name
 
-    # add class name for each id
-    df["class_name"] = ""
+    # add linkml class name for each id
+    df["linkml_class"] = ""
     prev_id = ""
-    for ix, _id, collection_name in df[["group_id", "collection_name"]].itertuples():
+    class_name_dict = map_schema_class_names(nmdc)
+    for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
         # check if there is a new id
-        if _id != prev_id:
-            prev_id = _id  # update prev id
-            data = mongodb[collection_name].find_one({"id": _id})
+        if id_ != prev_id:
+            prev_id = id_  # update prev id
+            data = mongodb[collection_name].find_one({"id": id_})
 
             # find the type of class the data instantiates
             if "type" in list(data.keys()):
                 # get part after the ":"
                 class_name = data["type"].split(":")[-1]
+                class_name = class_name_dict[class_name]
             else:
-                raise Exception("Cannot determine the type of class for ", _id)
+                raise Exception("Cannot determine the type of class for ", id_)
 
         # set class name for id
-        df["class_name"] = class_name
+        df["linkml_class"] = class_name
 
-    # add info about the level of property nesting, prop range
-    # and type of item for arrays
-    df["base_range"] = ""
-    df["base_item_type"] = ""
-    df["prop_range"] = ""
-    df["item_type"] = ""
-    for ix, path, class_name in df[["path", "class_name"]].itertuples():
+    # info about properties of slots in the property path
+    df["linkml_slots"] = ""
+    df["ranges"] = ""
+    df["multivalues"] = ""
+    view = SchemaView(
+        os.path.join(os.path.dirname(sys.modules["nmdc_schema"].__file__), "nmdc.yaml")
+    )
+    for ix, attribute, path, class_name in df[
+        ["attribute", "path", "linkml_class"]
+    ].itertuples():
+        # fetch the properites for the path
         if len(path) > 0:
-            props = path.split(".")
-            if 1 == len(props):
-                prop_range = get_schema_range(class_name, props[0])
-            else:
-                # get the base range for the path (i.e., first part of path)
-                # and set the class name to the range of the base
-                base_range = get_schema_range(class_name, props[0])
-                if tuple == type(base_range):
-                    df.loc[ix, "base_range"] = base_range[0]
-                    df.loc[ix, "base_item_type"] = base_range[1]
-                    class_name = base_range[1]
-                else:
-                    df.loc[ix, "base_range"] = base_range
-                    class_name = base_range
+            spp = fetch_schema_path_properties(view, path, class_name)
+        else:
+            spp = fetch_schema_path_properties(view, attribute, class_name)
 
-                # get the part of the class name after the ":"
-                # e.g, "object:Study" -> Study
-                if "object:" in class_name:
-                    class_name = class_name.split(":")[1]
-
-                # now find the ranges for the rest of the path
-                for prop in props[1:]:
-                    # class_name = get_schema_range(class_name, prop)
-                    prop_range = get_schema_range(class_name, prop)
-
-                    # tuple means the range was an array
-                    # so get the class out of the tuple
-                    if tuple == type(prop_range):
-                        class_name = prop_range[1]
-
-                    if "object:" in prop_range:
-                        class_name = prop_range.split(":")[1]
-
-            # if the range is an array a tuple is returned
-            # the second element is the item type
-            if type(prop_range) == tuple:
-                df.loc[ix, "prop_range"] = prop_range[0]
-                df.loc[ix, "item_type"] = prop_range[1]
-            else:
-                df.loc[ix, "prop_range"] = prop_range
+        df.loc[ix, "linkml_slots"] = str.join("|", spp.slots)
+        df.loc[ix, "ranges"] = str.join("|", spp.ranges)
+        df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
 
     return df
 
 
+def map_schema_class_names(nmdc_mod: ModuleType) -> Dict[str, str]:
+    """Returns dict that maps the classes in the nmdc.py module (within the NMDC Schema PyPI library)
+       to the class names used in the linkml schema.
+
+    Parameters
+    ----------
+    nmdc_mod : ModuleType
+        The nmdc.py module in the NMDC Schema library.
+
+    Returns
+    -------
+    Dict[str, str]
+        Maps the class as named in the module to the class name in the linkml schema.
+        E.g., BiosampleProcessing -> biosample processing
+    """
+    class_dict = {}
+    for name, member in inspect.getmembers(nmdc_mod):
+        if inspect.isclass(member) and hasattr(member, "class_name"):
+            class_dict[name] = member.class_name
+    return class_dict
+
+
 @lru_cache
-def get_schema_range(class_name, prop_name, schema=nmdc_jsonschema):
-    # find class schema
-    query = f" .. | .{class_name}? | select(. != null)"
-    try:
-        class_schema = jq.compile(query).input(schema).first()
-        # print("schema:", class_schema)
-    except StopIteration:
-        raise Exception(f"Could not find {class_name} in the schema")
+def fetch_schema_path_properties(
+    view: SchemaView, schema_path: str, class_name: str
+) -> SchemaPathProperties:
+    """Returns properies for a slot in the linkml schema.
 
-    # find property
-    query = f" .properties | .{prop_name}"
-    try:
-        prop_schema = jq.compile(query).input(class_schema).first()
-        # print("schema:", prop_schema)
-    except StopIteration:
-        raise Exception(f"Could not find {prop_name} in the schema")
+    Parameters
+    ----------
+    view : SchemaView
+        The SchemaView object holding the linkml schema
+    schema_path : str
+        The path in Mongo database to the value
+    class_name : str
+        The name of the class with the slot(s)
 
-    # find property range/type
-    if prop_schema:
-        if "type" in prop_schema.keys():
-            rv = prop_schema["type"]
-        elif "$ref" in prop_schema.keys():
-            rv = f"""object:{prop_schema["$ref"].split("/")[-1]}"""
+    Returns
+    -------
+    SchemaPathProperties
+        A namedtuple of form "SchemaPathProperties", ["slots", "ranges", "multivalues"]
+        that holds the property informaton about the slot.
+          slots: a list of the linkml slots, this may differ from the path names
+          ranges: a list of the range for slot in the slots list
+          multivalues: a list of True/False strings specifying if the slot is multivaued
+
+    Raises
+    ------
+    AttributeError
+        If the slot is not found in the linkml schema, an AttributeError is raised.
+    """
+    # lists to hold properties for a value in the path
+    slots = []
+    ranges = []
+    multivalues = []
+    paths = schema_path.split(".")
+    for path in paths:
+        schema_class = view.get_class(class_name)  # get class from schema
+
+        # first check if it is an induced slot
+        # i.e., if slot properties have been overridden
+        if path in schema_class.slot_usage.keys():
+            schema_slot = view.induced_slot(path, class_name)
+        elif path.replace("_", " ") in schema_class.slot_usage.keys():
+            schema_slot = view.induced_slot(path.replace("_", " "), class_name)
+
+        # if slot has not been overridden, check class attributes
+        if path in schema_class.attributes.keys():
+            schema_slot = view.induced_slot(path, class_name)
+        elif path.replace("_", " ") in schema_class.attributes.keys():
+            schema_slot = view.induced_slot(path.replace("_", " "), class_name)
+
+        # if slot has not been overridden or is an attribute, get slot properties from view
+        elif path in view.all_slots().keys():
+            schema_slot = view.get_slot(path)
+        elif path.replace("_", " ") in view.all_slots().keys():
+            schema_slot = view.get_slot(path.replace("_", " "))
+
+        # raise error if the slot is not found
         else:
-            rv = ""
-    else:
-        rv = None
+            raise AttributeError(f"slot '{path}' not found for '{schema_class.name}'")
 
-    # find item types for arrays
-    if prop_schema is not None and "array" == rv:
-        if "items" in prop_schema.keys():
-            # create tuple with array item type info
-            if "type" in prop_schema["items"]:
-                rv = rv, prop_schema["items"]["type"]
+        # properties to lists as strings (strings are needed for dataframe)
+        slots.append(str(schema_slot.name))
 
-            if "$ref" in prop_schema["items"]:
-                rv = rv, f"""object:{prop_schema["items"]["$ref"].split("/")[-1]}"""
+        if schema_slot.range is None:
+            ranges.append("string")
+        else:
+            ranges.append(str(schema_slot.range))
 
-    return rv
+        if schema_slot.multivalued is None:
+            multivalues.append("False")
+        else:
+            multivalues.append(str(schema_slot.multivalued))
+
+        # update the class name to range of slot
+        class_name = schema_slot.range
+
+    return SchemaPathProperties(slots, ranges, multivalues)
 
 
-def make_updates(var_group: tuple) -> list:
-    # group_var = var_group[0]  # the variable (if any) in the group_var column
+def make_vargroup_updates(df: pds.DataFrame) -> List:
+    """Returns a list of update commands to execute on the Mongo database
+       when updates are grouped with a grouping variable.
+
+    Parameters
+    ----------
+    df : pds.DataFrame
+        The dataframe that contains the values associated with the grouping variable.
+
+    Returns
+    -------
+    List
+        A list of Mongo update commands for that grouping variable.
+    """
+    id_ = df["group_id"].values[0]
+    path_multivalued_dict = {}
+    update_key = ""
+    path_lists = []
+    obj_dict = {}
+    for (action, attribute, value, path, multivalues,) in df[
+        [
+            "action",
+            "attribute",
+            "value",
+            "path",
+            "multivalues",
+        ]
+    ].itertuples(index=False):
+        if len(path) < 1:
+            update_key = attribute
+        else:
+            # gather path lists
+            path_list = path.split(".")
+            path_lists.append(path_list)
+
+            # determine if value is a list
+            multivalues_list = multivalues.split("|")
+            value = make_mongo_update_value(action, value, multivalues_list)
+
+            # build dictionary that merges all keys and
+            # values into a single object, e.g:
+            # {'has_credit_associations': {
+            #     'applied_role': 'Conceptualization',
+            #     'applies_to_person': {
+            #         'name': 'CREDIT NAME 1',
+            #         'email': 'CREDIT_NAME_1@foo.edu',
+            #         'orcid': 'orcid:0000-0000-0000-0001'}}}
+            obj_dict = assoc_in(obj_dict, path_list, value)
+
+            # for each potential path in the path list
+            # deterimine if the value is multivalued
+            for i in range(len(path_list)):
+                key, value = ".".join(path_list[0 : i + 1]), multivalues_list[i]
+                path_multivalued_dict[key] = value
+
+    # sort path lists by length and reverse
+    path_lists = list(reversed(sorted(path_lists, key=len)))
+    longest = len(path_lists[0])
+
+    # modify the values to have correct arity
+    # start at the end of each path list and determine
+    # if that path's value is multivalued
+    for i in range(longest, 0, -1):
+        for path_list in path_lists:
+            # deermine if path is multivalued
+            # note the use of the 0 to i portion of path list
+            path_portion = path_list[0:i]
+            is_multivalued = path_multivalued_dict[".".join(path_portion)]
+
+            # modify object so that the key has correct multivalue
+            temp = get_in(path_portion, obj_dict)
+            if "True" == is_multivalued and (not isinstance(temp, list)):
+                obj_dict = assoc_in(obj_dict, path_portion, [temp])
+
+    update_dict = make_mongo_update_command_dict(
+        action, id_, update_key, obj_dict[update_key]
+    )
+
+    return [update_dict]
+
+
+def make_updates(var_group: Tuple) -> List:
+    """
+    Creates a list of update commands to execute on the Mongo database.
+
+    Parameters
+    ----------
+    var_group : Tuple
+        Group of change sheet record based on the id column (generated by pandas.groupby()).
+        var_group[0] -> the value (if any) in the group_var column
+        var_group[1] -> the dataframe with group_var variables
+
+    Returns
+    -------
+    List
+        A list of Mongo update commands.
+    """
+    # group_var = var_group[0]  # the value (if any) in the group_var column
     df = var_group[1]  # dataframe with group_var variables
     id_ = df["group_id"].values[0]  # get id for group
 
-    objects = []  # collected object groups
     updates = []  # collected properties/values to updated
-    for ix, value, path, base_range, base_item_type, prop_range, item_type in df[
-        ["value", "path", "base_range", "base_item_type", "prop_range", "item_type"]
-    ].itertuples():
+    for (action, value, path, multivalues,) in df[
+        [
+            "action",
+            "value",
+            "path",
+            "multivalues",
+        ]
+    ].itertuples(index=False):
+        # note: if a path is present, there is a value to be updated
         if len(path) > 0:
             update_dict = {}  # holds the values for the update query
-            if "array" == base_range or "array" == prop_range:
-                if "object" in base_item_type or "object" in item_type:
-                    props = path.split(".")
-                    # gather values into dict (part after first ".")
-                    value_dict = assoc_in({}, props[1:], value)
+            action = action.strip()  # remove extra white space
 
-                    # add values list; props[0] is the first element in path
-                    objects.append({props[0]: value_dict})
-                else:
-                    update_dict = {
-                        "q": {"id": f"{id_}"},
-                        "u": {"$addToSet": {path: value}},
-                    }
-            else:
-                update_dict = {
-                    "q": {"id": f"{id_}"},
-                    "u": {"$set": {path: value}},
-                }
+            # determine if value is a list
+            value = make_mongo_update_value(action, value, multivalues.split("|"))
 
-            if len(update_dict) > 0:
-                updates.append(update_dict)
-
-    # add collected objects to updates
-    # these objects are added to an array above
-    if len(objects) > 0:
-        update_key = list(objects[0].keys())[0]  # get key from first element
-
-        # collect the values of each object into a list
-        # note the filter for the values being a dict
-        # e.g., the values in the objects are collected as:
-        # [{'applied_role': 'Conceptualization'},
-        #  {'applies_to_person': {'name': 'Kelly Wrighton'}},
-        #  {'applies_to_person': {'email': 'Kelly.Wrighton@colostate.edu'}},
-        #  {'applies_to_person': {'orcid': 'orcid:0000-0003-0434-4217'}}]
-        values = [
-            list(obj.values())[0]
-            for obj in filter(lambda obj: type(obj) == dict, objects)
-        ]
-
-        # put the values into a dict with each unique key mapped to a list of values
-        # e.g., the example above is tranformed to:
-        # {'applied_role': 'Conceptualization',
-        #  'applies_to_person': [{'name': 'Kelly Wrighton'},
-        #  {'email': 'Kelly.Wrighton@colostate.edu'},
-        #  {'orcid': 'orcid:0000-0003-0434-4217'}]}
-        value_dict = {}
-        for val in values:
-            for k, v in val.items():
-                if type(v) == dict:
-                    if k in value_dict.keys():
-                        value_dict[k].append(v)
-                    else:
-                        value_dict[k] = [v]
-                else:
-                    value_dict[k] = v
-
-        # now merge values with lists of dicts
-        # e.g., the value_dict above is transformed to:
-        # {'applied_role': 'Conceptualization',
-        #  'applies_to_person': {
-        #     'name': 'Kelly Wrighton',
-        #     'email': 'Kelly.Wrighton@colostate.edu',
-        #     'orcid': 'orcid:0000-0003-0434-4217'}}
-        for k, v in value_dict.items():
-            if type(v) == list and type(v[0]) == dict:
-                value_dict[k] = merge(v)
-
-        # we know we are updating an array b/c it
-        # was added to the objects list
-        update_dict = {
-            "q": {"id": f"{id_}"},
-            "u": {"$addToSet": {update_key: value_dict}},
-        }
-
-        # if update_key == "has_credit_associations":
-        #     print(update_dict)
-
-        updates.append(update_dict)
+            # if a grouping variable (group_var) is present then a
+            # complex object is used to update db
+            # if len(group_var) > 0:
+            #     obj = {}
+            update_dict = make_mongo_update_command_dict(action, id_, path, value)
+            updates.append(update_dict)  # add update commands to list
 
     return updates
 
 
-def map_id_to_collection(mongodb) -> dict:
+def make_mongo_update_value(action: str, value: Any, multivalues_list: List) -> Any:
+    """Based on the params, determines of the value for a Mongo update operation needs to be a list.
+
+    Parameters
+    ----------
+    action : str
+        The type of update that will be performed (e.g., insert items, replace)
+    value : Any
+        The value used for the update operation.
+    multivalues_list : List
+        List of 'True'/'False' values indicating if the value is to be multivalued (i.e., an array).
+
+    Returns
+    -------
+    Any
+        The value which may or may not be encapsulated in a list.
+    """
+    # if an array field is being updated, split based on pipe
+    if multivalues_list[-1] == "True" or "|" in value:
+        # value = value.strip()  # ****
+        value = [v.strip() for v in value.split("|") if len(v.strip()) > 0]
+    else:
+        value = value.strip()  # remove extra white space
+
+    return value
+
+
+def make_mongo_update_command_dict(
+    action: str, doc_id: str, update_key: str, update_value: Any
+) -> Dict:
+    """Returns a dict of the command need to execute a Mongo update opertation.
+
+    Parameters
+    ----------
+    action : str
+        The kind of update being performed (e.g., insert item, replace).
+    doc_id : str
+        The id of Mongo document being updated.
+    update_key : str
+        The property of document whose values are being updated.
+    update_value : Any
+        The new value used for updating.
+
+    Returns
+    -------
+    Dict
+        The Mongo command that when executed will update the document.
+    """
+    # build dict of update commands for Mongo
+    if action in ["insert", "insert items", "insert item"]:
+        update_dict = {
+            "q": {"id": f"{doc_id}"},
+            "u": {"$addToSet": {update_key: {"$each": update_value}}},
+        }
+    elif action in ["remove items", "remove item"]:
+        update_dict = {
+            "q": {"id": f"{doc_id}"},
+            "u": {"$pull": {update_key: {"$in": update_value}}},
+        }
+    elif action in ["update", "set", "replace", "replace items"]:
+        update_dict = {
+            "q": {"id": f"{doc_id}"},
+            "u": {"$set": {update_key: update_value}},
+        }
+    elif action in ["remove", "delete"]:  # remove the property from the object
+        # note: the update_value in an $unset opertation doesn't matter
+        # it is included so that we see it during debugging
+        update_dict = {
+            "q": {"id": f"{doc_id}"},
+            "u": {"$unset": {update_key: update_value}},
+        }
+    else:
+        raise ValueError(f"cannot execute action '{action}'")
+
+    return update_dict
+
+
+def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
+    """Returns dict using the collection name as a key and the ids of documents as values.
+
+    Parameters
+    ----------
+    mongodb : MongoDatabase
+        The Mongo database on which to build the dict.
+
+    Returns
+    -------
+    Dict
+        Dict mapping collection names to the set of document ids in the collection.
+        key: collection name
+        value: set(id of document)
+    """
     collection_names = [
         name for name in mongodb.list_collection_names() if name.endswith("_set")
     ]
@@ -332,26 +526,75 @@ def map_id_to_collection(mongodb) -> dict:
     return id_dict
 
 
-def get_collection_for_id(id_, id_map):
+def get_collection_for_id(
+    id_: str, id_map: Dict, replace_underscore: bool = False
+) -> Optional[str]:
+    """
+    Returns the name of the collect that contains the document idenfied by the id.
+
+    Parameters
+    ----------
+    id_ : str
+        The identifier of the document.
+    id_map : Dict
+        A dict mapping collection names to document ids.
+        key: collection name
+        value: set of document ids
+    replace_underscore : bool
+        If true, underscores in the collection name are replaced with spaces.
+
+    Returns
+    -------
+    Optional[str]
+        Collection name containing the document.
+        None if the id was not found.
+    """
     for collection_name in id_map:
         if id_ in id_map[collection_name]:
-            return collection_name
+            if replace_underscore == True:
+                return collection_name.replace("_", " ")
+            else:
+                return collection_name
     return None
 
 
-def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
+def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
+    """
+    Creates a dictionary of update commands to be executed against the Mongo database.
+
+    Parameters
+    ----------
+    df_change : pds.DataFrame
+        A dataframe containing change sheet information
+
+    Returns
+    -------
+    Dict
+        A dict of the update commands to be executed.
+        key: collection name
+        value: list of update commands
+    """
     update_cmd = {}  # list of dicts to hold mongo update queries
+
+    # split data into groups by values in the group_id column (e.g., gold:Gs0103573)
     id_group = df_change.groupby("group_id")
     for ig in id_group:
+        # ig[0] -> id_: group_id for data
+        # ig[1] -> df_id: dataframe with rows having the group_id
         id_, df_id = ig
 
-        # split the id group by the group variables
+        # split data into groups by values in the group_var column (e.g, v1, v2)
         var_group = df_id.groupby("group_var")
-        ig_updates = []
+        ig_updates = []  # update commands for the id group
         for vg in var_group:
             # vg[0] -> group_var for data
             # vg[1] -> dataframe with rows having the group_var
-            ig_updates.extend(make_updates(vg))
+            if len(vg[0].strip()) > 0:
+                ig_updates.extend(make_vargroup_updates(vg[1]))
+            else:
+                ig_updates.extend(make_updates(vg))
+
+        # add update commands for the group id to dict
         update_cmd[id_] = {
             "update": df_id["collection_name"].values[0],
             "updates": ig_updates,
@@ -360,9 +603,24 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> dict:
 
 
 def copy_docs_in_update_cmd(
-    update_cmd, mdb_from: MongoDatabase, mdb_to: MongoDatabase, drop_mdb_to=True
-):
-    """Useful to apply and inspect updates on a test database."""
+    update_cmd, mdb_from: MongoDatabase, mdb_to: MongoDatabase, drop_mdb_to: bool = True
+) -> Dict[str, str]:
+    """
+    Copies data between Mongo databases.
+    Useful to apply and inspect updates on a test database.
+
+    Parameters
+    ----------
+    mdb_from : MongoDatbase
+        Database from which data being copied (i.e., source).
+    mdb_to: MongoDatabase
+        Datbase which data is being copied into (i.e., destination).
+
+    Returns
+    -------
+    results : Dict
+        Dict with collection name as the key, and a message of number of docs inserted as value.
+    """
     doc_specs = defaultdict(list)
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
@@ -382,7 +640,22 @@ def copy_docs_in_update_cmd(
     return results
 
 
-def update_mongo_db(mdb: MongoDatabase, update_cmd) -> dict:
+def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
+    """
+    Updates the Mongo database using commands in the update_cmd dict.
+
+    Parameters
+    ----------
+    mdb : MongoDatabase
+        Mongo database to be updated.
+    update_cmd : Dict
+        Contians update commands to be executed.
+
+    Returns
+    -------
+    results: Dict
+        Information about what was updated in the Mongo database.
+    """
     results = []
     validator = Draft7Validator(nmdc_jsonschema)
 

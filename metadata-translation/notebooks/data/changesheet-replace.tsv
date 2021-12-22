@@ -1,0 +1,14 @@
+id	action	attribute	value
+gold:Gs0135149	update	description	NEW DESCRIPTION
+	update	ess_dive_datasets	doi:ESS_DIVE_1|doi:ESS_DIVE_2
+	update	principal_investigator.orcid	orcid:0000-0000-0000-0000
+	update	principal_investigator.websites	https://www.ornl.gov/staff-profile/WEBSITE
+gold:Gs0103573	update	principal_investigator.has_raw_value	NEW PI NAME
+	update	principal_investigator.name	NEW PI NAME
+	update	principal_investigator.profile_image_url	https://portal.nersc.gov/NEW-PI-NAME.jpg
+	update	principal_investigator.websites	https://WEBSITE_1|WEBSITE_2
+gold:Gs0114675	update	has_credit_associations	ca1
+ca1	update	applied_role	Conceptualization
+ca1	update	applies_to_person.name	CREDIT NAME 1
+ca1	update	applies_to_person.email	CREDIT_NAME_1@foo.edu
+ca1	update	applies_to_person.orcid	orcid:0000-0000-0000-0001

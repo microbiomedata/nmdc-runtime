@@ -12,7 +12,7 @@ import requests
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from gridfs import GridFS
 from jsonschema import Draft7Validator
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -214,11 +214,13 @@ def fetch_downloaded_json(url, save_dir):
         return json.load(f)
 
 
-type_collections = {
-    f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
-    for collection_name, spec in nmdc_jsonschema["properties"].items()
-    if collection_name.endswith("_set")
-}
+# FIX (2021-12-16): this variable does not seem to be used anywhere else.
+# Can it be deleted? Commenting out for now.
+# type_collections = {
+#     f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
+#     for collection_name, spec in nmdc_jsonschema["properties"].items()
+#     if collection_name.endswith("_set")
+# }
 
 
 @router.post("/metadata/json:validate_urls_file")
@@ -262,7 +264,7 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
                         detail=f"{url} generated an exception: {exc}",
                     )
 
-        validator = Draft7Validator(get_nmdc_schema())
+        validator = Draft7Validator(get_nmdc_jsonschema_dict())
         validation_errors = defaultdict(list)
 
         for url in urls:
@@ -293,7 +295,7 @@ async def validate_json(docs: dict):
 
     """
 
-    validator = Draft7Validator(get_nmdc_schema())
+    validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs, validation_errors = specialize_activity_set_docs(docs)
 
     for coll_name, coll_docs in docs.items():
