@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-01-18T21:08:33−08:00 removed monkey path of schema based on mongo.db.file_type_enum
 * 2021-11-18T14:49:00−05:00 fix metadata-in process for data_object_set payloads
 * 2021-11-18T11:44:00−05:00 add `count` command option to /queries
 * 2021-11-17T08:05:00−05:00 Ensure `"disabled": false` is the default for new users.
