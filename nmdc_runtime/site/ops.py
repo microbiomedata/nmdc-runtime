@@ -478,9 +478,11 @@ def perform_mongo_updates(context, json_in):
     context.log.debug(f"{docs}")
 
     nmdc_jsonschema = get_nmdc_jsonschema_dict()
-    nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
-        "id"
-    )
+    
+    # commenting out the change to the schema dict with IDs from Mongo collection
+    # nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
+    #    "id"
+    # )
     nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
     try:
