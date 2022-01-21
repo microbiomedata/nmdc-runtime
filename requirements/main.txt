@@ -1088,9 +1088,9 @@ nest-asyncio==1.5.4 \
     #   ipykernel
     #   jupyter-client
     #   notebook
-nmdc-schema==2021.12.22rc1 \
-    --hash=sha256:2e32bd0de08f07169c37aa1fe9b0a8fc91ffca959d339452e7f9c62ad314c414 \
-    --hash=sha256:cd50e54637de15849a2d7db8595133031a92fe46b449778c87350d129d85a35c
+nmdc-schema==2022.01.18rc1 \
+    --hash=sha256:501d22aa743c4e7c5482a5505df11ec5f55881286cf1393d95fa8d27ded9aa7e \
+    --hash=sha256:d1aad82db0d97bcc3db6d668aee32e3380313a86c534f86df5656b61bb027f65
     # via -r requirements/main.in
 notebook==6.4.7 \
     --hash=sha256:968e9c09639fe4b9dbf4b9f028daf861b563c124d735a99d6d48c09317553f31 \

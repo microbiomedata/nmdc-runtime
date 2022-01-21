@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-01-20T20:17:00−08:00 Bump schema back to 2022.01.18rc1
 * 2022-01-20T20:13:00−08:00 Tweak module versions
 * 2022-01-20T17:45:00−08:00 Pin python module versions
 * 2022-01-19T09:45:00−05:00 update nmdc-schema to version 2022.01.18rc1
