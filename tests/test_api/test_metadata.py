@@ -4,8 +4,8 @@ from typing import Optional
 
 import fastjsonschema
 import pandas as pd
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
-from toolz import dissoc, merge
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from toolz import dissoc
 
 from nmdc_runtime.api.core.metadata import (
     load_changesheet,
@@ -152,7 +152,7 @@ def test_ensure_data_object_type():
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
-    nmdc_jsonschema = get_nmdc_jsonschema_dict()
+    nmdc_jsonschema = get_nmdc_schema()
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 

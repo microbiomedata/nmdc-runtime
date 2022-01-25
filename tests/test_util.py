@@ -8,7 +8,7 @@ from fastjsonschema import JsonSchemaValueException, JsonSchemaException
 
 # from nmdc_schema.validate_nmdc_json import jsonschema
 from jsonschema import ValidationError, Draft7Validator
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
@@ -27,7 +27,7 @@ def test_nmdc_jsonschema_validate():
 
 
 def test_mongo_validate():
-    schema = get_nmdc_jsonschema_dict()
+    schema = get_nmdc_schema()
     # schema["bsonType"] = "object"
     # schema.pop("$id", None)
     # schema.pop("$schema", None)
@@ -60,12 +60,12 @@ def test_iterate_collection():
     collection = db[collection_name]
 
     # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
-    validate_schema = fastjsonschema.compile(get_nmdc_jsonschema_dict())
+    validate_schema = fastjsonschema.compile(get_nmdc_schema())
     try:
         for count, doc in enumerate(collection.find({}, {"_id": 0})):
             print(len(doc))
             validate_schema({"study_set": [doc]})
-            # validate({"study_set": [doc]}, get_nmdc_jsonschema_dict())
+            # validate({"study_set": [doc]}, get_nmdc_schema())
     except JsonSchemaException as je:
         print(str(je))
         # assert False, str(je)
@@ -84,8 +84,8 @@ def test_multiple_errors():
     collection = db[collection_name]
 
     # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
-    # validate_schema = fastjsonschema.compile(get_nmdc_jsonschema_dict())
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
+    # validate_schema = fastjsonschema.compile(get_nmdc_schema())
+    validator = Draft7Validator(get_nmdc_schema())
     validation_errors = []
 
     for doc in collection.find({}, {"_id": 0}):
