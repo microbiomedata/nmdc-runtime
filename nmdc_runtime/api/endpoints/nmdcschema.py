@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
@@ -18,7 +18,7 @@ router = APIRouter()
 @lru_cache
 def nmdc_schema_collection_names(mdb: MongoDatabase):
     return set(mdb.list_collection_names()) & set(
-        get_nmdc_schema()["$defs"]["Database"]["properties"]
+        get_nmdc_jsonschema_dict()["$defs"]["Database"]["properties"]
     )
 
 

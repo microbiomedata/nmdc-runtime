@@ -6,8 +6,8 @@ from typing import Optional
 import requests
 from dagster import build_init_resource_context
 from dagster import resource, StringSource
-from dagster.utils import frozendict
 from fastjsonschema import JsonSchemaValueException
+from frozendict import frozendict
 from pydantic import BaseModel
 from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient
@@ -18,7 +18,7 @@ from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
-from nmdc_runtime.util import nmdc_jsonschema_validate
+from nmdc_runtime.util import nmdc_jsonschema_validate, unfreeze
 
 
 class RuntimeApiSiteClient:
@@ -246,9 +246,11 @@ def mongo_insecure_test_resource(context):
 @lru_cache
 def get_mongo(run_config: frozendict):
     resource_context = build_init_resource_context(
-        config=get_in(
-            ["resources", "mongo", "config"],
-            run_config,
+        config=unfreeze(
+            get_in(
+                ["resources", "mongo", "config"],
+                run_config,
+            )
         )
     )
     return mongo_resource(resource_context)

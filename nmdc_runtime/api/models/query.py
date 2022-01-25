@@ -17,12 +17,6 @@ MinusOne = conint(ge=-1, le=-1)
 OneOrMinusOne = Union[One, MinusOne]
 
 
-# TODO need to figure out how to opt out of cursor sessions, or else get the cursor session id back.
-#   Okay, looks like I need to explicitly model and manage server sessions:
-#   https://docs.mongodb.com/manual/reference/server-sessions/
-#   Ugh. Fine. I can do this.
-
-
 class CommandBase(BaseModel):
     comment: Optional[Any]
 
