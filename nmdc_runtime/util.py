@@ -7,13 +7,13 @@ from pathlib import Path
 import fastjsonschema
 import requests
 from frozendict import frozendict
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
-nmdc_jsonschema = get_nmdc_schema()
+nmdc_jsonschema = get_nmdc_jsonschema_dict()
 nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
 REPO_ROOT_DIR = Path(__file__).parent.parent
@@ -60,13 +60,11 @@ def drs_object_in_for(filepath, op_doc, base=None):
     return json.loads(drs_obj_in.json(exclude_unset=True))
 
 
-def frozendict_recursive(obj):
-    """Recursive function which turns dictionaries into
-    FrozenDict objects, lists into tuples, and sets
-    into frozensets.
-    Can also be used to turn JSON data into a hasahable value.
-    """
+def freeze(obj):
+    """Recursive function for dict → frozendict, set → frozenset, list → tuple.
 
+    For example, will turn JSON data into a hashable value.
+    """
     try:
         # See if the object is hashable
         hash(obj)
@@ -74,11 +72,27 @@ def frozendict_recursive(obj):
     except TypeError:
         pass
 
-    if isinstance(obj, dict):
-        return frozendict({k: frozendict_recursive(obj[k]) for k in obj})
+    if isinstance(obj, (dict, frozendict)):
+        return frozendict({k: freeze(obj[k]) for k in obj})
+    elif isinstance(obj, (set, frozenset)):
+        return frozenset({freeze(elt) for elt in obj})
+    elif isinstance(obj, (list, tuple)):
+        return tuple([freeze(elt) for elt in obj])
 
     msg = "Unsupported type: %r" % type(obj).__name__
     raise TypeError(msg)
+
+
+def unfreeze(obj):
+    """frozendict → dict, frozenset → set, tuple → list."""
+    if isinstance(obj, (dict, frozendict)):
+        return {k: unfreeze(v) for k, v in obj.items()}
+    elif isinstance(obj, (set, frozenset)):
+        return {unfreeze(elt) for elt in obj}
+    elif isinstance(obj, (list, tuple)):
+        return [unfreeze(elt) for elt in obj]
+    else:
+        return obj
 
 
 def pluralize(singular, using, pluralized=None):

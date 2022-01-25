@@ -25,16 +25,19 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
 )
-from nmdc_runtime.site.resources import mongo_resource, get_mongo
 from nmdc_runtime.site.resources import (
+    get_mongo,
     runtime_api_site_client_resource,
+    terminus_resource,
+    mongo_resource,
+)
+from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
-from nmdc_runtime.site.resources import terminus_resource
 from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
-from nmdc_runtime.util import frozendict_recursive
+from nmdc_runtime.util import freeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
@@ -66,7 +69,7 @@ preset_normal = {
     "resource_defs": resource_defs,
 }
 
-run_config_frozen__normal_env = frozendict_recursive(preset_normal["config"])
+run_config_frozen__normal_env = freeze(preset_normal["config"])
 
 housekeeping_weekly = ScheduleDefinition(
     name="housekeeping_weekly",
@@ -97,7 +100,7 @@ def process_workflow_job_triggers(_context):
     """Post a workflow job for each new object with an object_type matching an active trigger.
     (Source: nmdc_runtime.api.boot.triggers).
     """
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    mdb = get_mongo(run_config_frozen__normal_env).db
     triggers = [Trigger(**d) for d in mdb.triggers.find()]
     base_jobs = []
     for t in triggers:
@@ -152,7 +155,7 @@ def process_workflow_job_triggers(_context):
     job=ensure_jobs.to_job(**preset_normal),
 )
 def ensure_gold_translation_job(_context, asset_event):
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    mdb = get_mongo(run_config_frozen__normal_env).db
     gold_etl_latest = mdb.objects.find_one(
         {"name": "nmdc_database.json.zip"}, sort=[("created_time", -1)]
     )
@@ -189,8 +192,8 @@ def ensure_gold_translation_job(_context, asset_event):
     job=gold_translation_curation.to_job(**preset_normal),
 )
 def claim_and_run_gold_translation_curation(_context, asset_event):
-    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    client = get_runtime_api_site_client(run_config_frozen__normal_env)
+    mdb = get_mongo(run_config_frozen__normal_env).db
     object_id_latest = asset_materialization_metadata(
         asset_event, "object_id_latest"
     ).text
@@ -228,8 +231,8 @@ def claim_and_run_metadata_in_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
     """
-    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    client = get_runtime_api_site_client(run_config_frozen__normal_env)
+    mdb = get_mongo(run_config_frozen__normal_env).db
     jobs = [
         Job(**d)
         for d in mdb.jobs.find(
@@ -297,8 +300,8 @@ def claim_and_run_apply_changesheet_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
     """
-    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
-    mdb = get_mongo(run_config=run_config_frozen__normal_env).db
+    client = get_runtime_api_site_client(run_config_frozen__normal_env)
+    mdb = get_mongo(run_config_frozen__normal_env).db
     jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "apply-changesheet-1.0.0"})]
 
     if (
@@ -361,7 +364,7 @@ def claim_and_run_apply_changesheet_jobs(_context):
 
 @sensor(job=create_objects_from_site_object_puts.to_job(**preset_normal))
 def done_object_put_ops(_context):
-    client = get_runtime_api_site_client(run_config=run_config_frozen__normal_env)
+    client = get_runtime_api_site_client(run_config_frozen__normal_env)
     ops = [
         op.dict()
         for op in client.list_operations(
@@ -376,9 +379,10 @@ def done_object_put_ops(_context):
         )
     ]
     should_run = len(ops) > 0
+    run_config = merge(run_config_frozen__normal_env, {})  # ensures this is a dict
     if should_run:
         run_key = ",".join(sorted([op["id"] for op in ops]))
-        yield RunRequest(run_key=run_key, run_config=run_config_frozen__normal_env)
+        yield RunRequest(run_key=run_key, run_config=run_config)
 
 
 @repository

@@ -1,6 +1,6 @@
 from dagster import op, AssetMaterialization, AssetKey, EventMetadata
 from jsonschema import Draft7Validator
-from nmdc_schema.validate_nmdc_json import get_nmdc_schema
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import dissoc
 
 from nmdc_runtime.site.resources import mongo_resource
@@ -61,7 +61,7 @@ def validate_mongo_collection(context, collection_name: str):
     collection = mongo_db[collection_name]  # get mongo collection
     db_set = collection_name.split(".")[0]
 
-    validator = Draft7Validator(get_nmdc_schema())
+    validator = Draft7Validator(get_nmdc_jsonschema_dict())
     validation_errors = []
 
     for count, doc in enumerate(collection.find()):

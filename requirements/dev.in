@@ -1,5 +1,6 @@
 -c main.txt
 black
+flake8
 invoke
 pytest
 setuptools-scm

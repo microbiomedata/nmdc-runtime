@@ -12,6 +12,8 @@ update-deps:
 
 update: update-deps init
 
+# TODO `update-schema` target that only upgrades nmdc-schema package.
+
 up-dev:
 	docker compose up --build --force-recreate --detach
 
