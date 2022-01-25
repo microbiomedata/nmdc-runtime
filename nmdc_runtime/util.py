@@ -6,7 +6,7 @@ from pathlib import Path
 
 import fastjsonschema
 import requests
-from frozendict import frozendict
+from dagster.utils import frozendict
 from nmdc_schema.validate_nmdc_json import get_nmdc_schema
 from toolz import merge
 

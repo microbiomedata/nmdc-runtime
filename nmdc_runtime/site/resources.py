@@ -6,8 +6,8 @@ from typing import Optional
 import requests
 from dagster import build_init_resource_context
 from dagster import resource, StringSource
+from dagster.utils import frozendict
 from fastjsonschema import JsonSchemaValueException
-from frozendict import frozendict
 from pydantic import BaseModel
 from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient

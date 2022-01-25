@@ -1,25 +1,27 @@
-import os, sys
-from collections import defaultdict, namedtuple
-
 import inspect
-import pandas as pds
-from jsonschema import Draft7Validator
-from pandas._typing import FilePathOrBuffer
-from pandas.core.frame import DataFrame
-from pymongo.database import Database as MongoDatabase
-from toolz.dicttoolz import merge, dissoc, assoc_in, get_in
+import os
+import sys
+from collections import defaultdict, namedtuple
 from functools import lru_cache
 from types import ModuleType
-from typing import Optional, Dict, List, Tuple, Any
+from typing import Optional, Dict, List, Tuple, Any, Union
 
-from nmdc_schema import nmdc
-from nmdc_runtime.util import nmdc_jsonschema
+import pandas as pds
+from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
+from nmdc_schema import nmdc
+from pandas._typing import FilePath, ReadBuffer
+from pymongo.database import Database as MongoDatabase
+from toolz.dicttoolz import dissoc, assoc_in, get_in
+
+from nmdc_runtime.util import nmdc_jsonschema
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
     "SchemaPathProperties", ["slots", "ranges", "multivalues"]
 )
+
+FilePathOrBuffer = Union[FilePath, ReadBuffer]
 
 
 def load_changesheet(
