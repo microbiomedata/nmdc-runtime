@@ -12,10 +12,10 @@ v2		has_raw_value	NEW RAW NAME 1
 	update	websites	HTTP://TEST1.EXAMPLE.COM
 	update	websites	HTTP://TEST2.EXAMPLE.COM
 	update	has_credit_associations	v3
-v3		applied_role	Investigation
+v3		applied_roles	Investigation
 v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME 1
 	update	has_credit_associations	v4
-v4		applied_role	Investigation
+v4		applied_roles	Investigation
 v4		applies_to_person.name	NEW CURATOR NAME 1
 gold:Gs0103573	update	name	NEW STUDY NAME 2
 	update	ecosystem	NEW ECOSYSTEM 2
@@ -30,8 +30,8 @@ v2		has_raw_value	NEW RAW NAME 2
 	update	websites	HTTP://TEST3.EXAMPLE.COM
 	update	websites	HTTP://TEST4.EXAMPLE.COM
 	update	has_credit_associations	v3
-v3		applied_role	Investigation
+v3		applied_roles	Investigation
 v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME 2
 	update	has_credit_associations	v4
-v4		applied_role	Investigation
+v4		applied_roles	Investigation
 v4		applies_to_person.name	NEW CURATOR NAME 2
