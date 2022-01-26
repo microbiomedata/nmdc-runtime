@@ -8,9 +8,11 @@ on:
     branches: [ main ]
     paths:
       - '**.py'
+      - 'requirements/main.txt'      
   pull_request:
     paths:
       - '**.py'
+      - 'requirements/main.txt'
 
 
 jobs:
