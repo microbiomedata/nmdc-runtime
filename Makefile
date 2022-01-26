@@ -12,7 +12,10 @@ update-deps:
 
 update: update-deps init
 
-# TODO `update-schema` target that only upgrades nmdc-schema package.
+update-schema:
+	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes --output-file \
+		requirements/main.txt requirements/main.in
+	pip install -r requirements/main.txt
 
 up-dev:
 	docker compose up --build --force-recreate --detach
