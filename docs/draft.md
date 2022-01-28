@@ -2,10 +2,14 @@
 
 The following is a draft proposal to simplify the design of the Runtime API.
 
+## Job run &mdash;(1:N)&mdash; metadata submission
+
 Every metadata submission is associated with a job run. There is a special `custom` job in case you
 cannot associate your submission with a known job-to-be-done for a known workflow. You can mark a
 job for which you are submitting metadata as already done, so that you need only send one API
 request. See the sequence diagrams below for more elaboration on this.
+
+## Branch and merge
 
 All metadata submitted as part of a job run is staged separately from the main, validated metadata.
 You can consider each job run as having a "branch" that stores only how it differs from the "main"
@@ -17,7 +21,7 @@ the proposed new whole of the metadata, and that any JSON Schema validation fail
 merge error. Before a job run is marked done, metadata submissions for the run that fail schema
 validation will return warnings, but the submission will be accepted.
 
-## Registering a run of a workflow job, and submitting metadata for the run
+## Example: Registering a run of a workflow job, and submitting metadata for the run
 
 There is no need to "claim" a job. See a job you want to run, or that you have already run?
 POST a new (`done:false`, the default) run for the job `job_id` so that your intent is
@@ -34,7 +38,7 @@ sequenceDiagram
     API->>Agent: {done:false, status:waiting, id:<run_id>}<br/>…
 ```
 
-## Submitting metadata associated with a job run, and marking it done
+## Example: Submitting metadata associated with a job run, and marking it done
 
 When you have more metadata related to a job run, submit it by PATCHing the run ID `run_id`
 that represents the job run. If the run is done and there is no more metadata to submit,
@@ -49,7 +53,7 @@ sequenceDiagram
 ```
 
 
-## One-off custom metadata submission
+## Example: One-off custom metadata submission
 
 There is an evergreen job, with a `job_id` of `custom`, for custom metadata submission not
 associated with a specific job for a known workflow. For example, if you want to submit metadata
@@ -64,7 +68,7 @@ sequenceDiagram
     API->>Agent: {done:true, status:success, id:<run_id>}<br/>…
 ```
 
-## Multi-step custom metadata submission
+## Example: Multi-step custom metadata submission
 
 Just like with any job, you may spread metadata submissions for a `custom` job over multiple
 sessions, as long as you retain the run ID `run_id`. The benefit of the multi-step flow is that
