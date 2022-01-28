@@ -23,12 +23,11 @@ validation will return warnings, but the submission will be accepted.
 
 ## Example: Registering a run of a workflow job, and submitting metadata for the run
 
-There is no need to "claim" a job. See a job you want to run, or that you have already run?
-POST a new (`done:false`, the default) run for the job `job_id` so that your intent is
-registered. You may also provide metadata (in the POST `body`) associated with the job run.
-You will get back an run ID `run_id` to continue informing the Runtime about the status of and
-metadata for the job run. The `status` of the job run is that it is waiting to
-be marked `done:true`.
+There is no need to "claim" a job. If you see a job you want to run, or that you have already run,
+then POST a new (`done:false`, the default) run for the job `job_id` so that your intent is
+registered. You may also provide metadata (in the POST `body`) associated with the job run. You will
+get back an run ID `run_id` to continue informing the Runtime about the status of and metadata for
+the job run. The `status` of the job run is that it is waiting to be marked `done:true`.
 
 ```mermaid
 sequenceDiagram
