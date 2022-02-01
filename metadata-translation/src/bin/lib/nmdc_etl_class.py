@@ -1,7 +1,7 @@
-## author: Bill Duncan
-## summary: Contians class with methods and properties for transforming data in NMDC ETL pipeline.
+# author: Bill Duncan
+# summary: Contians class with methods and properties for transforming data in NMDC ETL pipeline.
 
-## add ./lib directory to sys.path so that local modules can be found
+# add ./lib directory to sys.path so that local modules can be found
 import pickle
 from git_root import git_root
 import os, sys
@@ -19,7 +19,7 @@ import load_nmdc_data as lx
 import nmdc_dataframes as nmdc_dfs
 from nmdc_schema import nmdc
 
-## system level modules
+# system level modules
 import pandas as pds
 import jq
 import jsonasobj
@@ -36,7 +36,7 @@ class NMDC_ETL:
     Encapsulations ETL operations on data.
     """
 
-    ####### BEGIN INNER CLASS #############
+    # BEGIN INNER CLASS
     class NMDC_DATA:
         """
         Encapsulates data used during ETL.
@@ -44,10 +44,10 @@ class NMDC_ETL:
         Using pickled data speeds up load times, and is useful for testing.
         """
 
-        ## merged datafame that holds all the data
+        # merged datafame that holds all the data
         merged_dataframe = None
 
-        ## tables from merged dataset
+        # tables from merged dataset
         study_table = None
         contact_table = None
         proposals_table = None
@@ -59,7 +59,7 @@ class NMDC_ETL:
         project_biosample_table = None
         biosample_table = None
 
-        ## dataframes built from tables
+        # dataframes built from tables
         study = None  # gold studies
         emsl = None  # emsl projects / data objects
         # data_objects = None # jgi data objects
@@ -68,11 +68,15 @@ class NMDC_ETL:
         project = None  # gold projects
 
         def __init__(self, merged_data_file, pickled_data=""):
-            ## create merged dataframe
-            self.merged_dataframe = pds.read_csv(merged_data_file, sep="\t", dtype=str)
+            # create merged dataframe
+            self.merged_dataframe = pds.read_csv(
+                merged_data_file, sep="\t", dtype=str
+            )
 
-            ## Extract tables from merged dataset
-            self.study_table = ex.extract_table(self.merged_dataframe, "study_table")
+            # Extract tables from merged dataset
+            self.study_table = ex.extract_table(
+                self.merged_dataframe, "study_table"
+            )
 
             self.contact_table = ex.extract_table(
                 self.merged_dataframe, "contact_table"
@@ -90,7 +94,9 @@ class NMDC_ETL:
                 self.merged_dataframe, "ficus_jgi_emsl"
             )
 
-            self.emsl_table = ex.extract_table(self.merged_dataframe, "ficus_emsl")
+            self.emsl_table = ex.extract_table(
+                self.merged_dataframe, "ficus_emsl"
+            )
 
             self.emsl_biosample_table = ex.extract_table(
                 self.merged_dataframe, "ficus_emsl_biosample"
@@ -116,7 +122,7 @@ class NMDC_ETL:
                 self.merged_dataframe, "water_package_table"
             )
 
-            ## build dataframes from tables
+            # build dataframes from tables
             self.study = nmdc_dfs.make_study_dataframe(
                 self.study_table, self.contact_table, self.proposals_table
             )  # gold studies
@@ -158,9 +164,9 @@ class NMDC_ETL:
             with open(save_path, "wb") as handle:
                 pickle.dump(self, handle)
 
-    ####### END INNER CLASS #############
+    # END INNER CLASS
 
-    ## dicts that result from transformation methods
+    # dicts that result from transformation methods
     study_dict = None
     omics_processing_dict = None
     biosample_dict = None
@@ -168,26 +174,30 @@ class NMDC_ETL:
     emsl_data_object_dict = None
     jgi_data_object_dict = None
 
-    ## dict to hold the datasource spec
+    # dict to hold the datasource spec
     data_source_spec = None
 
-    ## dict to hold sssom mappings
+    # dict to hold sssom mappings
     sssom_map = None
 
-    ## variable to hold nmdc data
+    # variable to hold nmdc data
     nmdc_data = None
 
     def __init__(
-        self, merged_data_file, data_source_spec_file, sssom_file, pickled_data=""
+        self,
+        merged_data_file,
+        data_source_spec_file,
+        sssom_file,
+        pickled_data="",
     ):
-        ## build data source specfication
+        # build data source specfication
         with open(data_source_spec_file, "r") as input_file:
             self.data_source_spec = yaml.load(input_file, Loader=Loader)
 
-        ## build sssom mapping
+        # build sssom mapping
         self.sssom_map = tx.make_attribute_map(sssom_file)
 
-        ## load NMDC DATA class
+        # load NMDC DATA class
         if len(pickled_data) > 0:
             with open(pickled_data, "rb") as handle:
                 self.nmdc_data = pickle.load(handle)
@@ -210,13 +220,13 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
 
-        ## used for testing
+        # used for testing
         if test_rows != 0:
             nmdc_df = nmdc_df.head(test_rows)
         if print_df:
             print(nmdc_df)
 
-        ## create nmdc dict of data from dataframe
+        # create nmdc dict of data from dataframe
         nmdc_dict = tx.dataframe_to_dict(
             nmdc_df,
             nmdc_class,
@@ -226,7 +236,7 @@ class NMDC_ETL:
             transform_map=transform_map,
         )
 
-        ## used for testing
+        # used for testing
         if print_dict:
             print(nmdc_dict)
 
@@ -239,9 +249,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
 
         self.study_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.study,
@@ -267,9 +281,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
         transform_map = self.data_source_spec["classes"][data_source_class][
             "transforms"
         ]
@@ -288,9 +306,13 @@ class NMDC_ETL:
         return self.omics_processing_dict
 
     def save_omics_processing(
-        self, file_path="output/nmdc_etl/gold_omics_processing.json", data_format="json"
+        self,
+        file_path="output/nmdc_etl/gold_omics_processing.json",
+        data_format="json",
     ):
-        return lx.save_nmdc_dict(self.omics_processing_dict, file_path, data_format)
+        return lx.save_nmdc_dict(
+            self.omics_processing_dict, file_path, data_format
+        )
 
     def transform_biosample(
         self,
@@ -299,9 +321,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
         transform_map = self.data_source_spec["classes"][data_source_class][
             "transforms"
         ]
@@ -320,7 +346,9 @@ class NMDC_ETL:
         return self.biosample_dict
 
     def save_biosample(
-        self, file_path="output/nmdc_etl/gold_biosample.json", data_format="json"
+        self,
+        file_path="output/nmdc_etl/gold_biosample.json",
+        data_format="json",
     ):
         return lx.save_nmdc_dict(self.biosample_dict, file_path, data_format)
 
@@ -331,9 +359,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
 
         self.emsl_omics_processing_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.emsl,
@@ -349,7 +381,9 @@ class NMDC_ETL:
         return self.emsl_omics_processing_dict
 
     def save_emsl_omics_processing(
-        self, file_path="output/nmdc_etl/emsl_omics_processing.json", data_format="json"
+        self,
+        file_path="output/nmdc_etl/emsl_omics_processing.json",
+        data_format="json",
     ):
         return lx.save_nmdc_dict(
             self.emsl_omics_processing_dict, file_path, data_format
@@ -362,9 +396,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
 
         self.emsl_data_object_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.emsl,
@@ -380,9 +418,13 @@ class NMDC_ETL:
         return self.emsl_data_object_dict
 
     def save_emsl_data_object(
-        self, file_path="output/nmdc_etl/emsl_data_objects.json", data_format="json"
+        self,
+        file_path="output/nmdc_etl/emsl_data_objects.json",
+        data_format="json",
     ):
-        return lx.save_nmdc_dict(self.emsl_data_object_dict, file_path, data_format)
+        return lx.save_nmdc_dict(
+            self.emsl_data_object_dict, file_path, data_format
+        )
 
     def transform_jgi_data_object(
         self,
@@ -391,9 +433,13 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-        ## specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
-        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
+        # specify constructor args and attributes
+        constructor = self.data_source_spec["classes"][data_source_class][
+            "constructor"
+        ]
+        attributes = self.data_source_spec["classes"][data_source_class][
+            "attributes"
+        ]
 
         self.jgi_data_object_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.fastq,
@@ -413,4 +459,6 @@ class NMDC_ETL:
         file_path="output/nmdc_etl/jgi_fastq_data_objects.json",
         data_format="json",
     ):
-        return lx.save_nmdc_dict(self.jgi_data_object_dict, file_path, data_format)
+        return lx.save_nmdc_dict(
+            self.jgi_data_object_dict, file_path, data_format
+        )

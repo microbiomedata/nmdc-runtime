@@ -2,7 +2,7 @@ import jsonschema
 from jsonschema import Draft7Validator
 import json
 
-## test using pytest; call with (python -m) pytest validate_json.py
+# test using pytest; call with (python -m) pytest validate_json.py
 # def test_always_pass():
 #     assert True
 
@@ -23,7 +23,9 @@ def validate_json(data_path, schema_path, log_file):
 
     if not valid:
         with open(log_file, "w") as fp:
-            for error in sorted(validator.iter_errors(data), key=lambda e: e.path):
+            for error in sorted(
+                validator.iter_errors(data), key=lambda e: e.path
+            ):
                 # print(error.message)
                 fp.write(error.message)
 
