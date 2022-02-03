@@ -84,9 +84,19 @@ Ensure Docker (and Docker Compose) are installed.
 Ensure you have a .env file for the docker services to source from. You may copy `.env.example` to
 `.env` (which is gitignore'd) to get started.
 
+```
+# To load env in your shell session
+# export $(grep -v '^#' .env | xargs)
+```
+
 If you are connecting to resources that require a ssh tunnel, for example a MongoDB that is only
-accessible on the NERSC network, `make nersc-ssh-tunnel` could be useful for you, directly or as a
-template.
+accessible on the NERSC network,
+
+```
+make nersc-ssh-tunnel
+```
+
+could be useful for you, directly or as a template.
 
 Finally,
 ```bash
