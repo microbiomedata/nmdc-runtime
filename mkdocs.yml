@@ -7,6 +7,8 @@ nav:
   - tutorial-json.md
   - tutorial-auth.md
   - tutorial-metadata-in.md
+  - guide-create-triggers.md
+  - guide-claim-and-run-jobs.md
   - release-process.md
   - contributing-docs.md
   - admin.md
