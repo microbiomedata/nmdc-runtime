@@ -1,25 +1,15 @@
-from functools import lru_cache
-
 from fastapi import APIRouter, Depends, HTTPException
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db, nmdc_schema_collection_names
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
-
-
-@lru_cache
-def nmdc_schema_collection_names(mdb: MongoDatabase):
-    return set(mdb.list_collection_names()) & set(
-        get_nmdc_jsonschema_dict()["$defs"]["Database"]["properties"]
-    )
 
 
 def verify_collection_name(
