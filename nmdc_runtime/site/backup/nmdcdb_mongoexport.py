@@ -15,12 +15,11 @@ from pymongo.database import Database as MongoDatabase
 from toolz import assoc
 
 from nmdc_runtime.api.core.util import pick
-
-warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
-
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import nmdc_jsonschema
+
+warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
 
 def collection_stats(mdb: MongoDatabase):

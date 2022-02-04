@@ -12,11 +12,11 @@ from pathlib import Path
 
 import dagster
 
-warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
-
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import nmdc_jsonschema
+
+warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
 
 def main():

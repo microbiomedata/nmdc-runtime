@@ -71,7 +71,7 @@ def check_can_create_user(requester: User):
     if "nmdc-runtime-useradmin" not in requester.site_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"only admins for site nmdc-runtime-useradmin are allowed to create users.",
+            detail="only admins for site nmdc-runtime-useradmin are allowed to create users.",
         )
 
 

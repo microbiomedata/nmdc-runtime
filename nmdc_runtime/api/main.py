@@ -46,7 +46,8 @@ tags_metadata = [
         "description": (
             """A site corresponds to a physical place that may participate in job execution.
 
-A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may update job operations with execution info.
+A site may register data objects and capabilties with NMDC. It may claim jobs to execute, and it may
+update job operations with execution info.
 
 A site must be able to service requests for any data objects it has registered.
 
@@ -137,7 +138,10 @@ pre-claimed type.
     {
         "name": "objects",
         "description": (
-            """A [Data Repository Service (DRS) object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes) represents content necessary for a workflow job to execute, and/or output from a job execution.
+            """\
+A [Data Repository Service (DRS)
+object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes)
+represents content necessary for a workflow job to execute, and/or output from a job execution.
 
 An object may be a *blob*, analogous to a file, or a *bundle*, analogous to a folder. Sites register
 objects, and sites must ensure that these objects are accessible to the NMDC data broker.
@@ -153,13 +157,17 @@ An object may be associated with one or more object types, useful for triggering
 
 When a job is claimed by a site for execution, an operation resource is created.
 
-An operation is akin to a "promise" or "future" in that it should eventually resolve to either a successful result, i.e. an execution resource, or to an error.
+An operation is akin to a "promise" or "future" in that it should eventually resolve to either a
+successful result, i.e. an execution resource, or to an error.
 
-An operation is parameterized to return a result type, and a metadata type for storing progress information, that are both particular to the job type.
+An operation is parameterized to return a result type, and a metadata type for storing progress
+information, that are both particular to the job type.
 
 Operations may be paused, resumed, and/or cancelled.
 
-Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that execution resources have longer lifetimes / not expire, so that information about successful results of operations are available.
+Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that
+execution resources have longer lifetimes / not expire, so that information about successful results
+of operations are available.
         """,
     },
     {

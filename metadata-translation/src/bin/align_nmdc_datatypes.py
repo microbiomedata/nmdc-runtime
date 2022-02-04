@@ -25,21 +25,21 @@ import lib.data_operations as dop
 
 
 def get_json(file_path):
-    ## load json
+    # load json
     with open(file_path, "r") as in_file:
         json_list = json.load(in_file)
     return json_list
 
 
 def save_json(json_list, file_path):
-    ## save json with changed data types
+    # save json with changed data types
     with open(file_path, "w") as out_file:
         json.dump(json_list, out_file, indent=2)
     return json_list
 
 
 def convert_env_triad(attribute_value):
-    ## replace '_' with ':' in curie
+    # replace '_' with ':' in curie
     curie_val = attribute_value_to_string(attribute_value)
     curie_val = curie_val.replace("_", ":")
 
@@ -76,7 +76,7 @@ def attribute_value_to_string(attribute_value):
 def align_data_object(file_path):
     json_list = get_json(file_path)  # load json
 
-    ## change file size bytes to int
+    # change file size bytes to int
     for item in json_list:
         item["file_size_bytes"]["has_raw_value"] = attribute_value_to_int(
             item["file_size_bytes"]
@@ -96,7 +96,7 @@ def align_jgi_data_object():
 def align_biosample(file_path):
     json_list = get_json(file_path)  # load json
 
-    ## change file size bytes to int
+    # change file size bytes to int
     for item in json_list:
         item["env_broad_scale"] = convert_env_triad(item["env_broad_scale"])
         item["env_local_scale"] = convert_env_triad(item["env_local_scale"])

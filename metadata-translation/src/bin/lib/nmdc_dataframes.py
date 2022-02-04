@@ -1,7 +1,7 @@
-## author: Bill Duncan
-## summary: Contians methods for creating dataframes needed for NMDC ETL pipeline.
+# author: Bill Duncan
+# summary: Contians methods for creating dataframes needed for NMDC ETL pipeline.
 
-## add ./lib directory to sys.path so that local modules can be found
+# add ./lib directory to sys.path so that local modules can be found
 import os, sys
 
 from pandas.core.dtypes.missing import notnull
@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))
 # print(sys.path)
 
-## system level modules
+# system level modules
 import pandas as pds
 import jsonasobj
 import json
@@ -56,18 +56,18 @@ def make_dataframe(
     Returns:
         Pandas dataframe
     """
-    ## normalize paramaters for use with pandas
+    # normalize paramaters for use with pandas
     if len(subset_cols) < 1:
         subset_cols = None
     if len(exclude_cols) < 1:
         exclude_cols = None
 
-    ## check if file is contained in an archive
+    # check if file is contained in an archive
     file_archive = None
     if len(file_archive_name) > 1:
         file_archive = zipfile.ZipFile(file_archive_name, "r")
 
-    ## load data from file
+    # load data from file
     if "tsv" == file_type.lower() or "csv" == file_type.lower():
         if None != file_archive:
             df = pds.read_csv(
@@ -121,17 +121,17 @@ def make_dataframe(
                 )
             )
 
-    ## clean column names
+    # clean column names
     df = clean_dataframe_column_names(
         df, lowercase_col_names, replace_spaces, replace_hash, strip_spaces
     )
 
-    ## create subset of columns
-    ## note: since column names are case sensitive, this needs to happen after cleaning column names
+    # create subset of columns
+    # note: since column names are case sensitive, this needs to happen after cleaning column names
     if subset_cols:
         df = df[subset_cols]
 
-    ## return dataframe
+    # return dataframe
     return df
 
 
@@ -157,7 +157,7 @@ def clean_dataframe_column_names(
       Pandas dataframe
     """
 
-    ## clean column names
+    # clean column names
     if lowercase_col_names:
         df.columns = [c.strip().lower() for c in df.columns]
 
@@ -186,7 +186,7 @@ def merge_dataframes(dataframes: list, data_source_names=[]):
             data_source_name = df.name
             data = df.data
 
-        ## convert data into an EAV structure
+        # convert data into an EAV structure
         eavdf = data.melt(id_vars=["nmdc_record_id"], var_name="attribute")
         eavdf["nmdc_data_source"] = data_source_name
         # print(data_source_name, len(eavdf))
@@ -271,7 +271,7 @@ def make_collection_date(year_val, month_val, day_val, hour_val="", minute_val="
     minute_val = minute_val.strip()
     return_val = ""
 
-    ## if a year isn't provided simply return the empty string
+    # if a year isn't provided simply return the empty string
     if len(year_val) < 1:
         return ""
     else:
@@ -280,11 +280,11 @@ def make_collection_date(year_val, month_val, day_val, hour_val="", minute_val="
     if len(month_val) > 0:
         return_val = return_val + "-" + pad_value(month_val)
 
-    ## we only days that have months assocated with them
+    # we only days that have months assocated with them
     if (len(month_val) > 0) and (len(day_val) > 0):
         return_val = return_val + "-" + pad_value(day_val)
 
-    ## we only want times with months and days associated with them
+    # we only want times with months and days associated with them
     if (len(month_val) > 0) and (len(day_val) > 0):
         if (len(hour_val) > 0) and (len(minute_val) > 0):
             return_val = return_val + "T" + pad_value(hour_val) + ":" + minute_val
@@ -309,13 +309,13 @@ def make_lat_lon(latitude, longitude):
 
 
 def make_study_dataframe(study_table, contact_table, proposals_table, result_cols=[]):
-    ## subset dataframes
+    # subset dataframes
     contact_table_splice = contact_table[
         ["contact_id", "principal_investigator_name"]
     ].copy()
     proposals_table_splice = proposals_table[["gold_study", "doi"]].copy()
 
-    ## make sure the contact ids are strings with the ".0" removed from the end (i.e., the strings aren't floats)
+    # make sure the contact ids are strings with the ".0" removed from the end (i.e., the strings aren't floats)
     study_table["contact_id"] = (
         study_table["contact_id"].astype(str).replace("\.0", "", regex=True)
     )
@@ -324,10 +324,10 @@ def make_study_dataframe(study_table, contact_table, proposals_table, result_col
     )
     # print(study_table[['contact_id', 'principal_investigator_name']].head())
 
-    ## left join data from contact
+    # left join data from contact
     temp1_df = pds.merge(study_table, contact_table_splice, how="left", on="contact_id")
 
-    ## left join data from proposals
+    # left join data from proposals
     temp2_df = pds.merge(
         temp1_df,
         proposals_table_splice,
@@ -336,7 +336,7 @@ def make_study_dataframe(study_table, contact_table, proposals_table, result_col
         right_on="gold_study",
     )
 
-    ## add prefix
+    # add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id
     temp2_df.gold_study = "gold:" + temp2_df.gold_study
 
@@ -355,16 +355,16 @@ def make_project_dataframe(
     biosample_table=None,
     result_cols=[],
 ):
-    ## subset data
+    # subset data
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
     contact_table_splice = contact_table[
         ["contact_id", "principal_investigator_name"]
     ].copy()
 
-    ## rename study.gold_id to study_gold_id
+    # rename study.gold_id to study_gold_id
     study_table_splice.rename(columns={"gold_id": "study_gold_id"}, inplace=True)
 
-    ## inner join on study (project must be part of study)
+    # inner join on study (project must be part of study)
     temp1_df = pds.merge(
         project_table,
         study_table_splice,
@@ -373,7 +373,7 @@ def make_project_dataframe(
         right_on="study_id",
     )
 
-    ## left join contact data
+    # left join contact data
     temp2_df = pds.merge(
         temp1_df,
         contact_table_splice,
@@ -382,19 +382,19 @@ def make_project_dataframe(
         right_on="contact_id",
     )
 
-    ## add prefix
+    # add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id
     temp2_df.study_gold_id = "gold:" + temp2_df.study_gold_id
 
-    ## if present join data objects as output of project
+    # if present join data objects as output of project
     if not (data_object_table is None):
-        ## make copy and add prefix
+        # make copy and add prefix
         data_object_table = data_object_table.copy()
         data_object_table.gold_project_id = data_object_table.gold_project_id.map(
             lambda x: x if "gold:" == x[0:5] else "gold:" + x
         )
 
-        ## create a group concat for all file ids in the data objects
+        # create a group concat for all file ids in the data objects
         groups = data_object_table.groupby("gold_project_id")["file_id"]
         output_files = (
             pds.DataFrame(groups.apply(lambda x: ",".join(filter(None, x))))
@@ -404,7 +404,7 @@ def make_project_dataframe(
         output_files.rename(columns={"file_id": "output_file_ids"}, inplace=True)
         output_files["output_file_ids"] = output_files["output_file_ids"].astype(str)
 
-        ## left join output files for projects
+        # left join output files for projects
         temp2_df = pds.merge(
             temp2_df,
             output_files,
@@ -413,21 +413,24 @@ def make_project_dataframe(
             right_on="gold_project_id",
         )
 
-    ## if present join biosamples as inputs to project
+    # if present join biosamples as inputs to project
     if (not (project_biosample_table is None)) and (not (biosample_table is None)):
-        ## make local copies & rename column
+        # make local copies & rename column
         project_biosample_table = project_biosample_table.copy()
         biosample_table = biosample_table[["biosample_id", "gold_id"]].copy()
         biosample_table.rename(columns={"gold_id": "biosample_gold_id"}, inplace=True)
 
-        ## add prefix
+        # add prefix
         biosample_table["biosample_gold_id"] = biosample_table["biosample_gold_id"].map(
             lambda x: x if "gold:" == x[0:5] else "gold:" + x
         )
 
-        ## join project biosamples to biosamples
+        # join project biosamples to biosamples
         input_samples = pds.merge(
-            project_biosample_table, biosample_table, how="inner", on="biosample_id"
+            project_biosample_table,
+            biosample_table,
+            how="inner",
+            on="biosample_id",
         )
         # require input samples (i.e., inner join)
         temp2_df = pds.merge(temp2_df, input_samples, how="inner", on="project_id")
@@ -468,7 +471,7 @@ def make_biosample_dataframe(
 
         return make_collection_date(year_val, month_val, day_val, hour_val, minute_val)
 
-    ## subset data
+    # subset data
     project_biosample_table_splice = project_biosample_table[
         ["biosample_id", "project_id"]
     ].copy()
@@ -477,15 +480,15 @@ def make_biosample_dataframe(
     ].copy()
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
 
-    ## add prefix
+    # add prefix
     project_table_splice.gold_id = "gold:" + project_table_splice.gold_id
     study_table_splice.gold_id = "gold:" + study_table_splice.gold_id
 
-    ## rename columns
+    # rename columns
     project_table_splice.rename(columns={"gold_id": "project_gold_id"}, inplace=True)
     study_table_splice.rename(columns={"gold_id": "study_gold_id"}, inplace=True)
 
-    ## inner join projects and studies
+    # inner join projects and studies
     project_table_splice = pds.merge(
         project_table_splice,
         study_table_splice,
@@ -494,12 +497,12 @@ def make_biosample_dataframe(
         right_on="study_id",
     )
 
-    ## drop biosample rows that don't have required fields
+    # drop biosample rows that don't have required fields
     biosample_table = biosample_table[biosample_table["env_broad_scale"].notnull()]
     biosample_table = biosample_table[biosample_table["env_local_scale"].notnull()]
     biosample_table = biosample_table[biosample_table["env_medium"].notnull()]
 
-    ## left join package tables to biosample table
+    # left join package tables to biosample table
     temp0_df = pds.merge(
         biosample_table, soil_package_table, how="left", on="soil_package_id"
     )
@@ -507,13 +510,16 @@ def make_biosample_dataframe(
         temp0_df, water_package_table, how="left", on="water_package_id"
     )
 
-    ## inner join on project_biosample and project; i.e., biosamples must be linked to project
+    # inner join on project_biosample and project; i.e., biosamples must be linked to project
     temp1_df = pds.merge(
-        temp0_df, project_biosample_table_splice, how="inner", on="biosample_id"
+        temp0_df,
+        project_biosample_table_splice,
+        how="inner",
+        on="biosample_id",
     )
     temp2_df = pds.merge(temp1_df, project_table_splice, how="inner", on="project_id")
 
-    ## add collection date and lat_lon columns
+    # add collection date and lat_lon columns
     temp2_df["collection_date"] = temp2_df.apply(
         lambda row: make_collection_date_from_row(row), axis=1
     )
@@ -521,7 +527,7 @@ def make_biosample_dataframe(
         lambda row: make_lat_lon(row.latitude, row.longitude), axis=1
     )
 
-    ## convert latitude and longitute columns to floats
+    # convert latitude and longitute columns to floats
     temp2_df["latitude"] = temp2_df["latitude"].map(
         lambda x: None if pds.isnull(x) else float(x)
     )
@@ -529,12 +535,12 @@ def make_biosample_dataframe(
         lambda x: None if pds.isnull(x) else float(x)
     )
 
-    ## add gold prefix
+    # add gold prefix
     temp2_df["gold_id"] = "gold:" + temp2_df["gold_id"]
 
-    ## biosample might belong to more than one project; so do the equivalent of a group_cat
-    ## see: https://queirozf.com/entries/pandas-dataframe-groupby-examples
-    ## see: https://stackoverflow.com/questions/18138693/replicating-group-concat-for-pandas-dataframe
+    # biosample might belong to more than one project; so do the equivalent of a group_cat
+    # see: https://queirozf.com/entries/pandas-dataframe-groupby-examples
+    # see: https://stackoverflow.com/questions/18138693/replicating-group-concat-for-pandas-dataframe
     groups = (
         temp2_df.groupby("biosample_id")["project_gold_id"]
         .apply(lambda pid: ",".join(filter(None, pid)))
@@ -545,14 +551,14 @@ def make_biosample_dataframe(
     # join concat groups to dataframe
     temp3_df = pds.merge(temp2_df, groups, how="left", on="biosample_id")
 
-    ## A biosample may belong to multiple projects
+    # A biosample may belong to multiple projects
     # E.g. see biosample_id 247352 with gold_id "Gb0247352", belongs to projects 467278, 467306
-    ## So, remove uneeded columns & drop dups
+    # So, remove uneeded columns & drop dups
     temp3_df.drop(columns=["project_gold_id"], inplace=True)
     temp3_df.drop(columns=["project_id"], inplace=True)
     temp3_df.drop_duplicates(inplace=True)
 
-    ## for 'env_broad_scale', 'env_local_scale', 'env_medium' fields change 'ENVO_' to 'ENVO:'
+    # for 'env_broad_scale', 'env_local_scale', 'env_medium' fields change 'ENVO_' to 'ENVO:'
     # temp3_df['env_broad_scale'] = temp3_df
     for idx in temp3_df.index:
         if pds.notnull(temp3_df.loc[idx, "env_broad_scale"]):
@@ -575,10 +581,10 @@ def make_biosample_dataframe(
 
 
 def make_jgi_emsl_dataframe(jgi_emsl_table, study_table, result_cols=[]):
-    ## subset data
+    # subset data
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
 
-    ## inner join jgi-emsl data on study (must be part of study)
+    # inner join jgi-emsl data on study (must be part of study)
     temp1_df = pds.merge(
         jgi_emsl_table,
         study_table_splice,
@@ -587,7 +593,7 @@ def make_jgi_emsl_dataframe(jgi_emsl_table, study_table, result_cols=[]):
         right_on="gold_id",
     )
 
-    ## add prefix
+    # add prefix
     temp1_df.gold_id = "gold:" + temp1_df.gold_id
     temp1_df.gold_study_id = "gold:" + temp1_df.gold_study_id
 
@@ -598,9 +604,13 @@ def make_jgi_emsl_dataframe(jgi_emsl_table, study_table, result_cols=[]):
 
 
 def make_emsl_dataframe(
-    emsl_table, jgi_emsl_table, study_table, emsl_biosample_table, result_cols=[]
+    emsl_table,
+    jgi_emsl_table,
+    study_table,
+    emsl_biosample_table,
+    result_cols=[],
 ):
-    ## subset data
+    # subset data
     study_table_splice = study_table[["study_id", "gold_id"]].copy()
     jgi_emsl_table_splice = jgi_emsl_table[["gold_study_id", "emsl_proposal_id"]].copy()
     biosample_slice = emsl_biosample_table[["dataset_id", "biosample_gold_id"]].copy()
@@ -608,7 +618,7 @@ def make_emsl_dataframe(
         "gold:" + biosample_slice["biosample_gold_id"]
     )  # add prefix
 
-    ## inner join jgi-emsl data on study (must be part of study)
+    # inner join jgi-emsl data on study (must be part of study)
     temp1_df = pds.merge(
         jgi_emsl_table_splice,
         study_table_splice,
@@ -617,10 +627,10 @@ def make_emsl_dataframe(
         right_on="gold_id",
     )
 
-    ## inner join emsl data on jgi-emsl proposal ids
+    # inner join emsl data on jgi-emsl proposal ids
     temp2_df = pds.merge(emsl_table, temp1_df, how="inner", on="emsl_proposal_id")
 
-    ## add data obect id column
+    # add data obect id column
     temp2_df["data_object_id"] = "output_"
     temp2_df["data_object_id"] = temp2_df["data_object_id"] + temp2_df[
         "dataset_id"
@@ -628,7 +638,7 @@ def make_emsl_dataframe(
         str
     )  # build data object id
 
-    ## add data object name column
+    # add data object name column
     temp2_df["data_object_name"] = "output: "
     temp2_df["data_object_name"] = temp2_df["data_object_name"] + temp2_df[
         "dataset_name"
@@ -636,10 +646,10 @@ def make_emsl_dataframe(
         str
     )  # build data object id
 
-    ## group concat & join the biosample ids that are inputs to the omics process
-    ## With filter function as None, the function defaults to Identity function,
-    ## and each element in random_list is checked if it's true or not.
-    ## see https://www.programiz.com/python-programming/methods/built-in/filter
+    # group concat & join the biosample ids that are inputs to the omics process
+    # With filter function as None, the function defaults to Identity function,
+    # and each element in random_list is checked if it's true or not.
+    # see https://www.programiz.com/python-programming/methods/built-in/filter
     groups = biosample_slice.groupby("dataset_id")["biosample_gold_id"]
     input_biosamples = (
         pds.DataFrame(groups.apply(lambda x: ",".join(filter(None, x))))
@@ -660,21 +670,21 @@ def make_emsl_dataframe(
 
     temp2_df = pds.merge(temp2_df, input_biosamples, how="left", on="dataset_id")
 
-    ## add "emsl:TBD" id for missing biosamples
+    # add "emsl:TBD" id for missing biosamples
     temp2_df["biosample_gold_ids"] = temp2_df["biosample_gold_ids"].map(
         lambda x: "emsl:TBD" if pds.isnull(x) else x
     )
 
-    ## add prefix
+    # add prefix
     temp2_df.gold_id = "gold:" + temp2_df.gold_id
     temp2_df.gold_study_id = "gold:" + temp2_df.gold_study_id
     temp2_df.dataset_id = "emsl:" + temp2_df.dataset_id
     temp2_df.data_object_id = "emsl:" + temp2_df.data_object_id
 
-    ## replace NaNs with None
+    # replace NaNs with None
     temp2_df = temp2_df.where(pds.notnull(temp2_df), None)
 
-    ## drop duplicates
+    # drop duplicates
     temp2_df.drop_duplicates(inplace=True)
 
     if len(result_cols) > 0:
@@ -686,23 +696,23 @@ def make_emsl_dataframe(
 def make_data_objects_dataframe(
     faa_table, fna_table, fastq_table, project_table, result_cols=[]
 ):
-    ## subset data
+    # subset data
     project_table_splice = project_table[["gold_id"]].copy()
 
-    ## copy tables
+    # copy tables
     faa_df = faa_table.copy()
     fna_df = fna_table.copy()
     fastq_df = fastq_table.copy()
 
-    ## add prefixes for faa, fna, and fastq files
+    # add prefixes for faa, fna, and fastq files
     faa_df.file_id = "nmdc:" + faa_df.file_id
     fna_df.file_id = "nmdc:" + fna_df.file_id
     fastq_df.file_id = "jgi:" + fastq_df.file_id
 
-    ## merge tables
+    # merge tables
     data_objects = pds.concat([faa_df, fna_df, fastq_df], axis=0)
 
-    ## inner joing data objects (e.g., faa, fna, fasq) to projects
+    # inner joing data objects (e.g., faa, fna, fasq) to projects
     temp1_df = pds.merge(
         data_objects,
         project_table_splice,
@@ -711,7 +721,7 @@ def make_data_objects_dataframe(
         right_on="gold_id",
     )
 
-    ## add prefix for gold
+    # add prefix for gold
     temp1_df.gold_project_id = "gold:" + temp1_df.gold_project_id
     temp1_df.gold_id = "gold:" + temp1_df.gold_id
 
@@ -722,16 +732,16 @@ def make_data_objects_dataframe(
 
 
 def make_jgi_fastq_dataframe(fastq_table, project_table, result_cols=[]):
-    ## subset data
+    # subset data
     project_table_splice = project_table[["gold_id"]].copy()
 
-    ## copy tables
+    # copy tables
     fastq_df = fastq_table.copy()
 
-    ## add prefixes for fastq file id
+    # add prefixes for fastq file id
     fastq_df.file_id = "jgi:" + fastq_df.file_id
 
-    ## inner join to projects
+    # inner join to projects
     temp1_df = pds.merge(
         fastq_df,
         project_table_splice,
@@ -740,7 +750,7 @@ def make_jgi_fastq_dataframe(fastq_table, project_table, result_cols=[]):
         right_on="gold_id",
     )
 
-    ## add prefix for gold
+    # add prefix for gold
     temp1_df.gold_project_id = "gold:" + temp1_df.gold_project_id
     temp1_df.gold_id = "gold:" + temp1_df.gold_id
 
@@ -758,7 +768,10 @@ def make_dataframe_from_spec_file(data_spec_file, nrows=None):
         if "file_archive_name" in data_source.keys():
             farchive = data_source["file_archive_name"]
             df = make_dataframe(
-                fname, file_archive_name=farchive, file_type=file_type, nrows=nrows
+                fname,
+                file_archive_name=farchive,
+                file_type=file_type,
+                nrows=nrows,
             )
         else:
             df = make_dataframe(fname, file_type=file_type, nrows=nrows)
@@ -773,16 +786,16 @@ def make_dataframe_from_spec_file(data_spec_file, nrows=None):
         if source_type not in data_source.keys():
             return None
 
-        ## get data from file
+        # get data from file
         if "file_name" in data_source.keys():
             df = make_df_from_file(data_source, nrows=nrows)
 
-        ## add extra columns
+        # add extra columns
         if "append_columns" in data.keys():
             for col in data["append_columns"]:
                 df[col["name"]] = col["value"]
 
-        ## filter rows by specific values
+        # filter rows by specific values
         if "filters" in data.keys():
             for fltr in data["filters"]:
                 if "include" in fltr:
@@ -796,16 +809,16 @@ def make_dataframe_from_spec_file(data_spec_file, nrows=None):
                 else:
                     df = df[df[fltr["field"]].isin(fltr["values"])]
 
-        ## select a subset of the columns
+        # select a subset of the columns
         if "subset_cols" in data.keys():
             df = df[data["subset_cols"]]
 
-        ## rename columns
+        # rename columns
         if "rename_slots" in data.keys():
             for slot in data["rename_slots"]:
                 df.rename(columns={slot["old_name"]: slot["new_name"]}, inplace=True)
 
-        ## add 'nmdc_record_id' as a primary key
+        # add 'nmdc_record_id' as a primary key
         if "id_key" in data.keys():
             df["nmdc_record_id"] = df[data["id_key"]]
             df["nmdc_record_id"] = df["nmdc_record_id"].astype(

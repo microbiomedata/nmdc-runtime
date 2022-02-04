@@ -2,7 +2,7 @@ import jsonschema
 from jsonschema import Draft7Validator
 import json
 
-## test using pytest; call with (python -m) pytest validate_json.py
+# test using pytest; call with (python -m) pytest validate_json.py
 # def test_always_pass():
 #     assert True
 

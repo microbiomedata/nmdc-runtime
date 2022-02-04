@@ -553,7 +553,7 @@ def get_collection_for_id(
     """
     for collection_name in id_map:
         if id_ in id_map[collection_name]:
-            if replace_underscore == True:
+            if replace_underscore is True:
                 return collection_name.replace("_", " ")
             else:
                 return collection_name

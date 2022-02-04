@@ -1,33 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys, click, pickle
+import os
+import sys
+import click
 from git_root import git_root
 
-sys.path.append(
-    os.path.abspath(git_root("schema"))
-)  # add path nmdc schema files and modules
-sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin")))
-sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin/lib")))
 # import nmdc
-
 from lib.nmdc_etl_class import NMDC_ETL
-import yaml
 import json
-from yaml import CLoader as Loader, CDumper as Dumper
-from collections import namedtuple
-from pprint import pprint
 import pandas as pds
-import jsonasobj
 import nmdc_dataframes
 
 # import align_nmdc_datatypes
 import jq
 from git_root import git_root
 
+# add path nmdc schema files and modules
+sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin")))
+sys.path.append(os.path.abspath(git_root("metadata-translation/src/bin/lib")))
+sys.path.append(os.path.abspath(git_root("schema")))
+
 
 def get_json(file_path, replace_single_quote=False):
-    ## load json
+    # load json
     with open(file_path, "r") as in_file:
         if replace_single_quote:  # json
             text = in_file.read()
@@ -38,7 +34,7 @@ def get_json(file_path, replace_single_quote=False):
 
 
 def save_json(json_data, file_path):
-    ## save json with changed data types
+    # save json with changed data types
     with open(file_path, "w") as out_file:
         json.dump(json_data, out_file, indent=2)
     return json_data
@@ -57,7 +53,7 @@ def make_test_merged_data_source(
     merged_df = pds.read_csv(merged_data_source, sep="\t", dtype=str)
     test_df = pds.DataFrame(columns=list(merged_df.columns))
 
-    ## get list of data sources
+    # get list of data sources
     data_sources = merged_df["nmdc_data_source"].unique()
     sample_dfs = []
     for ds in data_sources:
@@ -72,7 +68,7 @@ def make_test_merged_data_source(
 
         sample_dfs.append(temp_df)
 
-    ## concatenate all the sampled subsets & save
+    # concatenate all the sampled subsets & save
     test_df = pds.concat(sample_dfs)
     test_df.to_csv(save_path, sep="\t", index=False)
 
@@ -80,7 +76,8 @@ def make_test_merged_data_source(
 
 
 def make_merged_data_source(
-    spec_file="lib/nmdc_data_source.yaml", save_path="../data/nmdc_merged_data.tsv"
+    spec_file="lib/nmdc_data_source.yaml",
+    save_path="../data/nmdc_merged_data.tsv",
 ):
     """Create a new data source containing the merged data sources"""
     mdf = nmdc_dataframes.make_dataframe_from_spec_file(
@@ -91,7 +88,10 @@ def make_merged_data_source(
     compression_options = dict(method="zip", archive_name=f"{save_path}")
     # mdf.to_csv(save_path, sep='\t', index=False)
     mdf.to_csv(
-        f"{save_path}.zip", compression=compression_options, sep="\t", index=False
+        f"{save_path}.zip",
+        compression=compression_options,
+        sep="\t",
+        index=False,
     )
     print("merged data frame length:", len(mdf))
 
@@ -115,33 +115,36 @@ def make_test_datasets():
     readQC_activities = get_json("../data/aim-2-workflows/readQC_activities.json")
     readQC_data_objects = get_json("../data/aim-2-workflows/readQC_data_objects.json")
 
-    ## make study_test subset
+    # make study_test subset
     study_test = jq.compile(".[0:3] | .[]").input(gold_study).all()
     save_json({"study_set": study_test}, "output/study_test.json")
 
-    ## make biosample test
+    # make biosample test
     biosample_test = jq.compile(".[0:3] | .[]").input(gold_biosample).all()
     save_json({"biosample_set": biosample_test}, "output/biosample_test.json")
 
-    ## make gold omics processing test
+    # make gold omics processing test
     gold_project_test = jq.compile(".[0:3] | .[]").input(gold_project).all()
     save_json(
-        {"omics_processing_set": gold_project_test}, "output/gold_project_test.json"
+        {"omics_processing_set": gold_project_test},
+        "output/gold_project_test.json",
     )
 
-    ## make emsl omics processing test
+    # make emsl omics processing test
     emsl_project_test = jq.compile(".[0:3] | .[]").input(emsl_project).all()
     save_json(
-        {"omics_processing_set": emsl_project_test}, "output/emsl_project_test.json"
+        {"omics_processing_set": emsl_project_test},
+        "output/emsl_project_test.json",
     )
 
-    ## make emsl data objects test
+    # make emsl data objects test
     emsl_data_object_test = jq.compile(".[0:3] | .[]").input(emsl_data_object).all()
     save_json(
-        {"data_object_set": emsl_data_object_test}, "output/emsl_data_object_test.json"
+        {"data_object_set": emsl_data_object_test},
+        "output/emsl_data_object_test.json",
     )
 
-    ## make metagenome activities test
+    # make metagenome activities test
     mg_assembly_activities_test = (
         jq.compile(".[0:3] | .[]").input(mg_assembly_activities).all()
     )
@@ -150,7 +153,7 @@ def make_test_datasets():
         "output/mg_assembly_activities_test.json",
     )
 
-    ## make metagenome data objects test
+    # make metagenome data objects test
     mg_assembly_data_objects_test = (
         jq.compile(".[0:3] | .[]").input(mg_assembly_data_objects).all()
     )
@@ -159,14 +162,14 @@ def make_test_datasets():
         "output/mg_assembly_data_objects_test.json",
     )
 
-    ## make read QC activities test
+    # make read QC activities test
     readQC_activities_test = jq.compile(".[0:3] | .[]").input(readQC_activities).all()
     save_json(
         {"read_QC_analysis_activity_set": readQC_activities_test},
         "output/readQC_activities_test.json",
     )
 
-    ## make metagenome data objects test
+    # make metagenome data objects test
     readQC_data_objects_test = (
         jq.compile(".[0:3] | .[]").input(readQC_data_objects).all()
     )
@@ -184,7 +187,7 @@ def make_nmdc_database():
     emsl_data_object = get_json("output/nmdc_etl/emsl_data_objects.json")
     jgi_data_object = get_json("output/nmdc_etl/jgi_fastq_data_objects.json")
 
-    ## load aim 2 json files ## removed for GSP 02/2021
+    # load aim 2 json files -- removed for GSP 02/2021
     # mg_annotation_activities = get_json('../data/aim-2-workflows/metagenome_annotation_activities.json')
     # mg_annotation_data_objects = get_json('../data/aim-2-workflows/metagenome_annotation_data_objects.json')
 
@@ -198,7 +201,7 @@ def make_nmdc_database():
     readQC_activities = get_json("../data/aim-2-workflows/readQC_activities.json")
     readQC_data_objects = get_json("../data/aim-2-workflows/readQC_data_objects.json")
 
-    ## metaproteomic files ## removed for GSP 02/2021
+    # metaproteomic files -- removed for GSP 02/2021
     # hess_mp_analysis_activities = get_json('../data/aim-2-workflows/Hess_metaproteomic_analysis_activities.json')
     # hess_mp_data_objects = get_json('../data/aim-2-workflows/Hess_emsl_analysis_data_objects.json')
     # stegen_mp_analysis_activities = get_json('../data/aim-2-workflows/Stegen_metaproteomic_analysis_activities.json')
@@ -222,20 +225,20 @@ def make_nmdc_database():
 
 
 def make_nmdc_example_database():
-    ## load json files
+    # load json files
     biosample_json = get_json("output/nmdc_etl/gold_biosample.json")
     projects_json = get_json("output/nmdc_etl/gold_omics_processing.json")
     study_json = get_json("output/nmdc_etl/gold_study.json")
     data_objects_json = get_json("output/nmdc_etl/jgi_fastq_data_objects.json")
 
-    ## get a list of distinct omics processing study ids, and choose the first 3 studies
+    # get a list of distinct omics processing study ids, and choose the first 3 studies
     study_ids = set(
         jq.compile(".[] | .part_of[]").input(projects_json).all()
     )  # all returns a list
     study_ids = list(study_ids)[0:3]
     # study_ids =
 
-    ## build a test set of studies from the study ids
+    # build a test set of studies from the study ids
     study_test = (
         jq.compile(
             ".[] | select( .id == ("
@@ -246,8 +249,8 @@ def make_nmdc_example_database():
         .all()
     )  # all() returns a list
 
-    ## build a test set of projects from the study ids
-    ## note: the jq query only selects first omics found for a given study id
+    # build a test set of projects from the study ids
+    # note: the jq query only selects first omics found for a given study id
     projects_test = []
     for id in study_ids:
         j = (
@@ -257,7 +260,7 @@ def make_nmdc_example_database():
         )
         projects_test.append(*j)
 
-    ## get list of unique biossample ids from omics processing and build biosample test set
+    # get list of unique biossample ids from omics processing and build biosample test set
     biosample_ids = (
         jq.compile(".[] | .has_input[]?").input(projects_test).all()
     )  # all() returns a list
@@ -271,7 +274,7 @@ def make_nmdc_example_database():
         .all()
     )  # all() returns a list
 
-    ## get a list of data object ids and build data objects test set
+    # get a list of data object ids and build data objects test set
     data_objects_ids = (
         jq.compile(".[] | .has_output[]?").input(projects_test).all()
     )  # all() returns a list
@@ -285,7 +288,7 @@ def make_nmdc_example_database():
         .all()
     )  # all() returns a list
 
-    ## compile into database object
+    # compile into database object
     database = {
         "study_set": [*study_test],
         "omics_processing_set": [*projects_test],
@@ -333,7 +336,7 @@ def execute_etl(
         # nmdc_etl.transform_biosample(test_rows=1, print_df=True, print_dict=True)
         nmdc_etl.save_biosample("output/nmdc_etl/gold_biosample.json")
 
-        # align_nmdc_datatypes.align_gold_biosample() ########### currently broken
+        # align_nmdc_datatypes.align_gold_biosample() -- currently broken
 
     if "emsl_omics_processing" in etl_modules:
         nmdc_etl.transform_emsl_omics_processing()
@@ -353,7 +356,7 @@ def execute_etl(
         nmdc_etl.save_jgi_data_object("output/nmdc_etl/jgi_fastq_data_objects.json")
 
 
-################################# CLI interface ##########################################
+# CLI interface
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option(
     "--datafile",
@@ -462,7 +465,7 @@ if __name__ == "__main__":
     # make_merged_data_source()  # consolidates all nmdc data into a single tsv
     # make_test_merged_data_source()  # build a testing subset from merged data source
 
-    ## ------ testing specific etl modules -------- ##
+    # ------ testing specific etl modules --------
     # data_file = "../data/nmdc_merged_data.tsv.zip"
     # spec_file = "lib/nmdc_data_source.yaml"
     # nmdc_etl = NMDC_ETL(
@@ -472,25 +475,25 @@ if __name__ == "__main__":
     #     # pickled_data="nmdc_etl_data.pickle",  # uncomment to load pickled data; helps speed up testing
     # )
 
-    ## pickle nmdc data to speed up future loads
-    ## uncomment to create new pickled data
+    # pickle nmdc data to speed up future loads
+    # uncomment to create new pickled data
     # nmdc_etl.pickle_nmdc_data("nmdc_etl_data.pickle")
 
-    ## test GOLD biosample etl
+    # test GOLD biosample etl
     # nmdc_etl.transform_biosample(test_rows=100)
     # nmdc_etl.transform_biosample()
     # nmdc_etl.save_biosample("output/nmdc_etl/test.json")
 
-    ## test emsl omic processing etl
+    # test emsl omic processing etl
     # nmdc_etl.transform_emsl_omics_processing()
     # nmdc_etl.save_emsl_omics_processing("output/nmdc_etl/test.json")
     # print(nmdc_etl.nmdc_data.emsl.head())
 
-    ## test omic processing etl
+    # test omic processing etl
     # nmdc_etl.transform_omics_processing()
     # nmdc_etl.save_omics_processing("output/nmdc_etl/test.json")
 
-    ## test GOLD study etl
+    # test GOLD study etl
     # nmdc_etl.transform_study()
     # nmdc_etl.save_study("output/nmdc_etl/test.json")
     # print(list(nmdc_etl.study.columns))
