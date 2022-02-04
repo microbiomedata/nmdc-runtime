@@ -44,7 +44,7 @@ def response_to_json(response):
         raise HttpResponseNotOk()
     try:
         json_data = response.json()
-    except:
+    except ValueError:
         raise HttpResponseNotJson()
     return json_data
 
