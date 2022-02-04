@@ -9,6 +9,7 @@ nav:
   - tutorial-metadata-in.md
   - guide-create-triggers.md
   - guide-claim-and-run-jobs.md
+  - guide-update-sensors-ops.md
   - release-process.md
   - contributing-docs.md
   - admin.md
