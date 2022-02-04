@@ -62,9 +62,7 @@ def make_test_merged_data_source(
         ]  # extract data source subset
 
         if len(subset_df) > sample_size:
-            temp_df = subset_df.sample(
-                n=sample_size, random_state=random_state
-            )
+            temp_df = subset_df.sample(n=sample_size, random_state=random_state)
         else:
             temp_df = subset_df  # get a sample from the subset
 
@@ -114,12 +112,8 @@ def make_test_datasets():
     mg_assembly_data_objects = get_json(
         "../data/aim-2-workflows/metagenome_assembly_data_objects.json"
     )
-    readQC_activities = get_json(
-        "../data/aim-2-workflows/readQC_activities.json"
-    )
-    readQC_data_objects = get_json(
-        "../data/aim-2-workflows/readQC_data_objects.json"
-    )
+    readQC_activities = get_json("../data/aim-2-workflows/readQC_activities.json")
+    readQC_data_objects = get_json("../data/aim-2-workflows/readQC_data_objects.json")
 
     # make study_test subset
     study_test = jq.compile(".[0:3] | .[]").input(gold_study).all()
@@ -144,9 +138,7 @@ def make_test_datasets():
     )
 
     # make emsl data objects test
-    emsl_data_object_test = (
-        jq.compile(".[0:3] | .[]").input(emsl_data_object).all()
-    )
+    emsl_data_object_test = jq.compile(".[0:3] | .[]").input(emsl_data_object).all()
     save_json(
         {"data_object_set": emsl_data_object_test},
         "output/emsl_data_object_test.json",
@@ -171,9 +163,7 @@ def make_test_datasets():
     )
 
     # make read QC activities test
-    readQC_activities_test = (
-        jq.compile(".[0:3] | .[]").input(readQC_activities).all()
-    )
+    readQC_activities_test = jq.compile(".[0:3] | .[]").input(readQC_activities).all()
     save_json(
         {"read_QC_analysis_activity_set": readQC_activities_test},
         "output/readQC_activities_test.json",
@@ -208,12 +198,8 @@ def make_nmdc_database():
         "../data/aim-2-workflows/metagenome_assembly_data_objects.json"
     )
 
-    readQC_activities = get_json(
-        "../data/aim-2-workflows/readQC_activities.json"
-    )
-    readQC_data_objects = get_json(
-        "../data/aim-2-workflows/readQC_data_objects.json"
-    )
+    readQC_activities = get_json("../data/aim-2-workflows/readQC_activities.json")
+    readQC_data_objects = get_json("../data/aim-2-workflows/readQC_data_objects.json")
 
     # metaproteomic files -- removed for GSP 02/2021
     # hess_mp_analysis_activities = get_json('../data/aim-2-workflows/Hess_metaproteomic_analysis_activities.json')
@@ -362,16 +348,12 @@ def execute_etl(
     if "emsl_data_object" in etl_modules:
         nmdc_etl.transform_emsl_data_object()
         # nmdc_etl.transform_emsl_data_object(test_rows=1, print_df=True, print_dict=True)
-        nmdc_etl.save_emsl_data_object(
-            "output/nmdc_etl/emsl_data_objects.json"
-        )
+        nmdc_etl.save_emsl_data_object("output/nmdc_etl/emsl_data_objects.json")
 
     if "jgi_data_object" in etl_modules:
         nmdc_etl.transform_jgi_data_object()
         # nmdc_etl.transform_jgi_data_object(test_rows=1, print_df=True, print_dict=True)
-        nmdc_etl.save_jgi_data_object(
-            "output/nmdc_etl/jgi_fastq_data_objects.json"
-        )
+        nmdc_etl.save_jgi_data_object("output/nmdc_etl/jgi_fastq_data_objects.json")
 
 
 # CLI interface

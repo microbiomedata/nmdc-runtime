@@ -23,9 +23,7 @@ def validate_json(data_path, schema_path, log_file):
 
     if not valid:
         with open(log_file, "w") as fp:
-            for error in sorted(
-                validator.iter_errors(data), key=lambda e: e.path
-            ):
+            for error in sorted(validator.iter_errors(data), key=lambda e: e.path):
                 # print(error.message)
                 fp.write(error.message)
 

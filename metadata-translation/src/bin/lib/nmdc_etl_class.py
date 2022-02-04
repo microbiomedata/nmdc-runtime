@@ -69,14 +69,10 @@ class NMDC_ETL:
 
         def __init__(self, merged_data_file, pickled_data=""):
             # create merged dataframe
-            self.merged_dataframe = pds.read_csv(
-                merged_data_file, sep="\t", dtype=str
-            )
+            self.merged_dataframe = pds.read_csv(merged_data_file, sep="\t", dtype=str)
 
             # Extract tables from merged dataset
-            self.study_table = ex.extract_table(
-                self.merged_dataframe, "study_table"
-            )
+            self.study_table = ex.extract_table(self.merged_dataframe, "study_table")
 
             self.contact_table = ex.extract_table(
                 self.merged_dataframe, "contact_table"
@@ -94,9 +90,7 @@ class NMDC_ETL:
                 self.merged_dataframe, "ficus_jgi_emsl"
             )
 
-            self.emsl_table = ex.extract_table(
-                self.merged_dataframe, "ficus_emsl"
-            )
+            self.emsl_table = ex.extract_table(self.merged_dataframe, "ficus_emsl")
 
             self.emsl_biosample_table = ex.extract_table(
                 self.merged_dataframe, "ficus_emsl_biosample"
@@ -250,12 +244,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
 
         self.study_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.study,
@@ -282,12 +272,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
         transform_map = self.data_source_spec["classes"][data_source_class][
             "transforms"
         ]
@@ -310,9 +296,7 @@ class NMDC_ETL:
         file_path="output/nmdc_etl/gold_omics_processing.json",
         data_format="json",
     ):
-        return lx.save_nmdc_dict(
-            self.omics_processing_dict, file_path, data_format
-        )
+        return lx.save_nmdc_dict(self.omics_processing_dict, file_path, data_format)
 
     def transform_biosample(
         self,
@@ -322,12 +306,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
         transform_map = self.data_source_spec["classes"][data_source_class][
             "transforms"
         ]
@@ -360,12 +340,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
 
         self.emsl_omics_processing_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.emsl,
@@ -397,12 +373,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
 
         self.emsl_data_object_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.emsl,
@@ -422,9 +394,7 @@ class NMDC_ETL:
         file_path="output/nmdc_etl/emsl_data_objects.json",
         data_format="json",
     ):
-        return lx.save_nmdc_dict(
-            self.emsl_data_object_dict, file_path, data_format
-        )
+        return lx.save_nmdc_dict(self.emsl_data_object_dict, file_path, data_format)
 
     def transform_jgi_data_object(
         self,
@@ -434,12 +404,8 @@ class NMDC_ETL:
         print_dict=False,
     ) -> list:
         # specify constructor args and attributes
-        constructor = self.data_source_spec["classes"][data_source_class][
-            "constructor"
-        ]
-        attributes = self.data_source_spec["classes"][data_source_class][
-            "attributes"
-        ]
+        constructor = self.data_source_spec["classes"][data_source_class]["constructor"]
+        attributes = self.data_source_spec["classes"][data_source_class]["attributes"]
 
         self.jgi_data_object_dict = NMDC_ETL.transform_dataframe(
             nmdc_df=self.nmdc_data.fastq,
@@ -459,6 +425,4 @@ class NMDC_ETL:
         file_path="output/nmdc_etl/jgi_fastq_data_objects.json",
         data_format="json",
     ):
-        return lx.save_nmdc_dict(
-            self.jgi_data_object_dict, file_path, data_format
-        )
+        return lx.save_nmdc_dict(self.jgi_data_object_dict, file_path, data_format)

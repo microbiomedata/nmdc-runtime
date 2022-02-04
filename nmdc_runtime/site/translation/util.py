@@ -104,9 +104,7 @@ def load_mongo_collection(context, data: tuple):
 
     # insert data
     collection.insert(documents)
-    context.log.info(
-        f"inserted {len(documents)} documents into {collection.name}"
-    )
+    context.log.info(f"inserted {len(documents)} documents into {collection.name}")
     return collection_name
 
 
@@ -114,9 +112,7 @@ def load_mongo_collection(context, data: tuple):
 def schema_validate(context, data: tuple):
     def schema_validate_asset(collection_name, status, errors):
         return AssetMaterialization(
-            asset_key=AssetKey(
-                ["translation", f"{collection_name}_translation"]
-            ),
+            asset_key=AssetKey(["translation", f"{collection_name}_translation"]),
             description=f"{collection_name} translation validation",
             metadata={"status": status, "errors": errors},
         )
@@ -129,9 +125,7 @@ def schema_validate(context, data: tuple):
         yield schema_validate_asset(collection_name, "valid", "none")
         return data  # do I need a return statement and an Output?
     except JsonSchemaValueException as e:
-        context.log.error(
-            f"validation failed for {schema_collection_name} " + str(e)
-        )
+        context.log.error(f"validation failed for {schema_collection_name} " + str(e))
         context.log.error(f"documents: {documents}")
         yield schema_validate_asset(collection_name, "not valid", str(e))
         raise Failure(str(e))

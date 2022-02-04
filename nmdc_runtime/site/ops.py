@@ -154,7 +154,7 @@ def local_file_to_api_object(context, file_info):
     context.log.info(f"update_operation: {op}")
     rv = client.create_object_from_op(op)
     if rv.status_code != status.HTTP_201_CREATED:
-        raise Failure(f"create_object_from_op failed")
+        raise Failure("create_object_from_op failed")
     obj = rv.json()
     context.log.info(f'Created /objects/{obj["id"]}')
     mdb = context.resources.mongo.db
@@ -180,7 +180,7 @@ def local_file_to_api_object(context, file_info):
 def build_merged_db(context) -> str:
     context.log.info("metadata-translation: running `make build-merged-db`")
     run_and_log(
-        f"cd /opt/dagster/lib/metadata-translation/ && make build-merged-db", context
+        "cd /opt/dagster/lib/metadata-translation/ && make build-merged-db", context
     )
     storage_path = (
         "/opt/dagster/lib/metadata-translation/src/data/nmdc_merged_data.tsv.zip"
@@ -200,7 +200,7 @@ def run_etl(context, merged_data_path: str):
     context.log.info("metadata-translation: running `make run-etl`")
     if not os.path.exists(merged_data_path):
         raise Failure(description=f"merged_db not present at {merged_data_path}")
-    run_and_log(f"cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
+    run_and_log("cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
     storage_path = (
         "/opt/dagster/lib/metadata-translation/src/data/nmdc_database.json.zip"
     )
@@ -345,7 +345,7 @@ def maybe_post_jobs(context, jobs: List[Job]):
         mdb.jobs.insert_one(json_clean(job, model=Job, exclude_unset=True))
         yield AssetMaterialization(
             asset_key=AssetKey(["job", job.workflow.id]),
-            description=f"workflow job",
+            description="workflow job",
             metadata={
                 "object_id": EventMetadata.text(job_object_id),
             },
@@ -367,6 +367,7 @@ def remove_unclaimed_obsolete_jobs(context, job: Job):
             }
         )
     )
+    print(other_job_docs)
     # TODO which of other_job_docs are unclaimed? (no operations)? Delete them.
 
 

@@ -100,9 +100,7 @@ def coerce_value(value, dtype: str):
         return None
 
     if dtype != "str":  # only do the eval when it is not a string
-        return eval(
-            f"""{dtype}({value})"""
-        )  # convert value to specified datatype
+        return eval(f"""{dtype}({value})""")  # convert value to specified datatype
     else:
         return f"""{value}"""
 
@@ -165,9 +163,7 @@ def get_field_and_dtype_from_attribute_field(attribute_field) -> tuple:
     return field, dtype
 
 
-def get_record_attr(
-    record: namedtuple, attribute_field, return_field_if_none=True
-):
+def get_record_attr(record: namedtuple, attribute_field, return_field_if_none=True):
     """
     Returns the value specified by attribute_field in the record.
     E.g., get_record_attr(Record(id='gold:001', name='foo'), 'id') would return 'gold:001'.
@@ -185,10 +181,7 @@ def get_record_attr(
         the value of record's field
     """
     # check for constant
-    if (
-        type({}) == type(attribute_field)
-        and "$const" in attribute_field.keys()
-    ):
+    if type({}) == type(attribute_field) and "$const" in attribute_field.keys():
         field, dtype = get_field_and_dtype_from_attribute_field(
             attribute_field["$const"]
         )
@@ -235,18 +228,14 @@ def make_constructor_args_from_record(
             record_dict = make_record_dict(nmdc_record, field)
             # find constructors defined by the initialization key
             if "$class_type" in field.keys():
-                class_type = make_nmdc_class(
-                    field["$class_type"]
-                )  # get class type
+                class_type = make_nmdc_class(field["$class_type"])  # get class type
 
                 # update constructor dict
                 constructor_dict[key] = class_type(**record_dict)
             else:
                 constructor_dict[key] = record_dict
         elif type([]) == type(field) and len(field) > 0:
-            constructor_dict[key] = [
-                get_record_attr(nmdc_record, f) for f in field
-            ]
+            constructor_dict[key] = [get_record_attr(nmdc_record, f) for f in field]
         else:
             constructor_dict[key] = get_record_attr(nmdc_record, field)
 
@@ -321,9 +310,7 @@ def make_dict_from_nmdc_obj(nmdc_obj) -> dict:
             if type({}) == type(val):  # check values in dict
                 temp_dict[key] = {k: v for k, v in val.items() if is_value(v)}
             elif type([]) == type(val):  # check values in list
-                temp_dict[key] = [
-                    element for element in val if is_value(element)
-                ]
+                temp_dict[key] = [element for element in val if is_value(element)]
             else:
                 temp_dict[key] = val
 
@@ -364,9 +351,7 @@ def make_dict_from_nmdc_obj(nmdc_obj) -> dict:
             if type({}) == type(val):  # check values in dict
                 temp_dict[key] = {k: v for k, v in val.items() if is_value(v)}
             elif type([]) == type(val):  # check values in list
-                temp_dict[key] = [
-                    element for element in val if is_value(element)
-                ]
+                temp_dict[key] = [element for element in val if is_value(element)]
             else:
                 temp_dict[key] = val
 
@@ -453,9 +438,7 @@ def set_nmdc_object(
     return nmdc_obj
 
 
-def make_attribute_value_from_record(
-    nmdc_record: namedtuple, field, object_type=""
-):
+def make_attribute_value_from_record(nmdc_record: namedtuple, field, object_type=""):
     """
     Creates an attribute value object linked the value in the nmdc record's field.
 
@@ -493,18 +476,12 @@ def make_attribute_map(sssom_map_file: str = "") -> dict:
             sssom_map_file, comment_str="#"
         ).query("predicate_id == 'skos:exactMatch'")
     else:
-        sssom = io.BytesIO(
-            pkgutil.get_data("nmdc_schema", "gold-to-mixs.sssom.tsv")
-        )
-        mapping_df = pds.read_csv(
-            sssom, sep="\t", comment="#", encoding="utf-8"
-        )
+        sssom = io.BytesIO(pkgutil.get_data("nmdc_schema", "gold-to-mixs.sssom.tsv"))
+        mapping_df = pds.read_csv(sssom, sep="\t", comment="#", encoding="utf-8")
 
     attr_map = {
         subj: obj
-        for idx, subj, obj in mapping_df[
-            ["subject_label", "object_label"]
-        ].itertuples()
+        for idx, subj, obj in mapping_df[["subject_label", "object_label"]].itertuples()
     }  # build attribute dict
 
     return attr_map
@@ -606,9 +583,7 @@ def make_object_from_dict(nmdc_record: namedtuple, object_dict: dict):
     return obj
 
 
-def make_object_from_list_item_dict(
-    nmdc_record: namedtuple, item: dict
-) -> list:
+def make_object_from_list_item_dict(nmdc_record: namedtuple, item: dict) -> list:
     """
     When the item in the list is a dict; e.g.;
       [{id: 'gold_id, int', name: project_name, $class_type: Study}]
@@ -643,26 +618,19 @@ def make_object_from_list_item_dict(
     record_values = []
     for field_name in item.values():
         # get value in nmdc record
-        val = get_record_attr(
-            nmdc_record, field_name, return_field_if_none=False
-        )
+        val = get_record_attr(nmdc_record, field_name, return_field_if_none=False)
 
         if val is not None:
-            dtype = get_dtype_from_attribute_field(
-                field_name
-            )  # determine data type
+            dtype = get_dtype_from_attribute_field(field_name)  # determine data type
 
             # check for local spit val; e.g., [{id: {$field: 'gold_id, int', $split_val:'|'}}
             mysplit = (
                 field_name["$split_val"]
-                if type({}) == type(field_name)
-                and "$split_val" in field_name.keys()
+                if type({}) == type(field_name) and "$split_val" in field_name.keys()
                 else split_val
             )
 
-            rv = [
-                coerce_value(v.strip(), dtype) for v in str(val).split(mysplit)
-            ]
+            rv = [coerce_value(v.strip(), dtype) for v in str(val).split(mysplit)]
             record_values.append(rv)
         else:
             record_values.append([None])
@@ -692,9 +660,7 @@ def make_object_from_list_item_dict(
     return obj_list
 
 
-def make_value_from_list_item_dict(
-    nmdc_record: namedtuple, item: dict
-) -> list:
+def make_value_from_list_item_dict(nmdc_record: namedtuple, item: dict) -> list:
     """
     When the item in the list is a dict; e.g.;
       [{$field: 'data_object_id, int'}]
@@ -741,8 +707,7 @@ def make_value_from_list_item_dict(
                 record_val = str(record_val)
 
             return [
-                coerce_value(rv.strip(), dtype)
-                for rv in record_val.split(split_val)
+                coerce_value(rv.strip(), dtype) for rv in record_val.split(split_val)
             ]
         else:
             return [coerce_value(record_val.strip(), dtype)]
@@ -770,19 +735,13 @@ def make_object_from_list(nmdc_record: namedtuple, nmdc_list: list) -> list:
         if type({}) == type(val):
             if "$field" in val.keys():
                 # e.g., [{$field: data_object_id, $split=','}]
-                obj_list.extend(
-                    make_value_from_list_item_dict(nmdc_record, val)
-                )
+                obj_list.extend(make_value_from_list_item_dict(nmdc_record, val))
             else:
                 # e.g., [{id: gold_id, name: project_name, $class_type: Study}]
-                obj_list.extend(
-                    make_object_from_list_item_dict(nmdc_record, val)
-                )
+                obj_list.extend(make_object_from_list_item_dict(nmdc_record, val))
         else:
             # e.g., ['gold_id, str']
-            dtype = get_dtype_from_attribute_field(
-                val
-            )  # determine the data type
+            dtype = get_dtype_from_attribute_field(val)  # determine the data type
             record_val = get_record_attr(nmdc_record, val)
             if record_val is not None:
                 obj_list.extend(
@@ -849,9 +808,7 @@ def dataframe_to_dict(
 
         # get mappings for attribute fields
         for af in attribute_fields:
-            nmdc_obj = set_nmdc_object(
-                nmdc_obj, nmdc_record, attribute_map, af
-            )
+            nmdc_obj = set_nmdc_object(nmdc_obj, nmdc_record, attribute_map, af)
 
         return nmdc_obj
 
@@ -862,12 +819,8 @@ def dataframe_to_dict(
         "attribute_fields": attribute_fields,
         "attribute_map": attribute_map,
     }
-    pre_transforms = (
-        transform_map["pre"] if "pre" in transform_map.keys() else []
-    )
-    post_transforms = (
-        transform_map["post"] if "post" in transform_map.keys() else []
-    )
+    pre_transforms = transform_map["pre"] if "pre" in transform_map.keys() else []
+    post_transforms = transform_map["post"] if "post" in transform_map.keys() else []
 
     # execute specified pre transformations; note: this transforms the dataframe
     for transform in pre_transforms:
@@ -890,9 +843,7 @@ def dataframe_to_dict(
     for obj in nmdc_objs:
         for key, val in obj.__dict__.items():
             if type(val) == type({}):
-                if (not "id" in val.keys()) and (
-                    not "has_raw_value" in val.keys()
-                ):
+                if (not "id" in val.keys()) and (not "has_raw_value" in val.keys()):
                     obj.__dict__[key] = None
 
     # execute specified post transformations; note: this transforms the nmdc objects
@@ -920,9 +871,7 @@ def test_pre_transform(
     return nmdc_df
 
 
-def merge_value_range_fields(
-    nmdc_objs: list, tx_attributes: list, **kwargs
-) -> list:
+def merge_value_range_fields(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     """
     Takes each nmdc object (either a dict or class instance) and merges two
     attributues into a single attribute separated by a "-".
@@ -1001,9 +950,7 @@ def merge_value_range_fields(
         else:
             # set value range and min/max numeric values
             field_obj = getattr(obj, field)
-            setattr(
-                field_obj, "has_raw_value", merge_val
-            )  # e.g., {va1}-{val2}
+            setattr(field_obj, "has_raw_value", merge_val)  # e.g., {va1}-{val2}
             setattr(field_obj, "has_minimum_numeric_value", float(val1))
             setattr(field_obj, "has_maximum_numeric_value", float(val2))
 
@@ -1013,9 +960,7 @@ def merge_value_range_fields(
 
         return obj
 
-    print(
-        f"*** executing merge_value_range_fields for attributes {tx_attributes}"
-    )
+    print(f"*** executing merge_value_range_fields for attributes {tx_attributes}")
 
     if len(tx_attributes) != 2:
         raise Exception("This function only accepts two arguments.")
@@ -1042,9 +987,7 @@ def merge_value_range_fields(
     return nmdc_objs
 
 
-def make_quantity_value(
-    nmdc_objs: list, tx_attributes: list, **kwargs
-) -> list:
+def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     """
     Takes each nmdc object (either a dict or class instance) and adds has_numeric_value and has_unit information.
 
@@ -1068,9 +1011,7 @@ def make_quantity_value(
                 if type(val) == type({}):
                     value_list = str(val["has_raw_value"]).split(" ", 1)
                 else:
-                    value_list = str(getattr(val, "has_raw_value")).split(
-                        " ", 1
-                    )
+                    value_list = str(getattr(val, "has_raw_value")).split(" ", 1)
 
                 # assign numeric quantity value
                 if type(val) == type({}):
@@ -1096,9 +1037,7 @@ def make_quantity_value(
     return nmdc_objs
 
 
-def make_iso_8601_date_value(
-    nmdc_objs: list, tx_attributes: list, **kwargs
-) -> list:
+def make_iso_8601_date_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     """
     Converts date values in ISO-8601 format.
     E.g., "30-OCT-14 12.00.00.000000000 AM" -> "30-OCT-14" is converted to "2014-10-14".
@@ -1128,9 +1067,9 @@ def make_iso_8601_date_value(
                 # e.g.: "30-OCT-14" -> "2014-10-14"
                 if not (date_str is None) and date_str != "None":
                     try:
-                        date_val = datetime.strptime(
-                            date_str, "%d-%b-%y"
-                        ).strftime("%Y-%m-%d")
+                        date_val = datetime.strptime(date_str, "%d-%b-%y").strftime(
+                            "%Y-%m-%d"
+                        )
                         setattr(obj, attribute, date_val)
                     except Exception as ex:
                         print(

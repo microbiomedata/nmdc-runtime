@@ -101,7 +101,8 @@ async def validate_changesheet(
 ):
     """
 
-    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+    Example changesheet
+    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
 
     """
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
@@ -117,7 +118,8 @@ async def submit_changesheet(
 ):
     """
 
-    Example changesheet [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
+    Example changesheet
+    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
 
     """
     allowed_to_submit = ("dehays", "dwinston")

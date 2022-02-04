@@ -27,7 +27,7 @@ def test_nmdc_jsonschema_validate():
 
 
 def test_mongo_validate():
-    schema = get_nmdc_jsonschema_dict()
+    # schema = get_nmdc_jsonschema_dict()
     # schema["bsonType"] = "object"
     # schema.pop("$id", None)
     # schema.pop("$schema", None)

@@ -43,9 +43,7 @@ def convert_env_triad(attribute_value):
     curie_val = attribute_value_to_string(attribute_value)
     curie_val = curie_val.replace("_", ":")
 
-    obj = ControlledTermValue(
-        has_raw_value=curie_val, term=OntologyClass(id=curie_val)
-    )
+    obj = ControlledTermValue(has_raw_value=curie_val, term=OntologyClass(id=curie_val))
     return json.loads(jsonasobj.as_json(obj))
 
 

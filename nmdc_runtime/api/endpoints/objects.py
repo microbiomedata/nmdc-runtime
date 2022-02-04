@@ -68,7 +68,9 @@ def create_object(
 
     At least one checksum is required. The names of supported checksum types are given by
     the set of Python 3.8 `hashlib.algorithms_guaranteed`:
-    > blake2b | blake2s | md5 | sha1 | sha224 | sha256 | sha384 | sha3_224 | sha3_256 | sha3_384 | sha3_512 | sha512 | shake_128 | shake_256
+
+    > blake2b | blake2s | md5 | sha1 | sha224 | sha256 | sha384 | sha3_224 | sha3_256 | sha3_384 |
+    > sha3_512 | sha512 | shake_128 | shake_256
 
     Each provided `access_method` needs either an `access_url` or an `access_id`.
 

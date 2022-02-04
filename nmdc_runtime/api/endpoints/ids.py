@@ -164,7 +164,7 @@ def get_id_bindings(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - characters used outside of base32.",
         )
-    except ValueError as e:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid ID - failed checksum. Did you copy it incorrectly?",

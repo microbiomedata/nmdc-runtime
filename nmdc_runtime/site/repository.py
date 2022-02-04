@@ -147,7 +147,7 @@ def process_workflow_job_triggers(_context):
         )
         yield RunRequest(run_key=run_key, run_config=run_config)
     else:
-        yield SkipReason(f"No new jobs required")
+        yield SkipReason("No new jobs required")
 
 
 @asset_sensor(

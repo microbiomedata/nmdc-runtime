@@ -6,15 +6,11 @@ from tempfile import TemporaryDirectory
 
 import requests
 
-from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import nmdc_jsonschema
 
 
 def main():
     print("starting nmdcdb mongoexport...")
-    mongo = get_mongo(run_config_frozen__normal_env)
-    mdb = mongo.db
     print("connected to database...")
 
     collection_names = set(nmdc_jsonschema["$defs"]["Database"]["properties"])
