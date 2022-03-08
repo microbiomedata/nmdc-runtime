@@ -1,7 +1,7 @@
 """
 Usage:
 $ export $(grep -v '^#' .env | xargs)
-$ nmdcdb-mongoexport
+$ nmdcdb-mongodump
 """
 
 import os
@@ -37,7 +37,7 @@ def main():
     print(sorted(collection_names))
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    print(f"ensuring ~/mongoexport/{today} directory for exports")
+    print(f"ensuring ~/nmdcdb-mongodump/{today} directory for exports")
     today_dir = Path("~/nmdcdb-mongodump").expanduser().joinpath(today)
     os.makedirs(str(today_dir), exist_ok=True)
 
