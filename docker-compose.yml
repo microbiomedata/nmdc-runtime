@@ -77,6 +77,13 @@ services:
     volumes:
       - .:/app
 
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
   mongo:
     image: mongo:4.4-bionic
     container_name: mongo

@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from nmdc_runtime.api.v1.api import v1api_router
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
@@ -39,6 +40,7 @@ api_router.include_router(queries.router, tags=["queries"])
 api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
+api_router.include_router(v1api_router, prefix="v1")
 
 tags_metadata = [
     {
@@ -226,10 +228,14 @@ async def ensure_initial_resources_on_boot():
 
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
-        collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
+        collection_boot = import_module(
+            f"nmdc_runtime.api.boot.{collection_name}"
+        )
         for model in collection_boot.construct():
             doc = model.dict()
-            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+            mdb[collection_name].replace_one(
+                {"id": doc["id"]}, doc, upsert=True
+            )
 
     username = os.getenv("API_ADMIN_USER")
     admin_ok = mdb.users.count_documents(({"username": username})) == 1

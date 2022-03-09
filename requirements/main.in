@@ -1,6 +1,7 @@
 base32-lib
 beautifulsoup4
 boto3
+celery
 click
 dagit
 dagster
@@ -8,6 +9,7 @@ dagster-graphql
 dagster-postgres
 dotted-dict
 fastapi
+fastapi-utils
 fastjsonschema
 git-root
 jq
@@ -18,6 +20,7 @@ linkml-runtime
 mkdocs-material
 mkdocs-mermaid2-plugin
 mongospawn
+motor
 nmdc-schema
 openpyxl
 pandas
@@ -26,6 +29,7 @@ pymongo
 python-jose[cryptography]
 python-multipart
 pyyaml
+redis
 requests
 terminusdb-client
 toolz

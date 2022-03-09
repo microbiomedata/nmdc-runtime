@@ -3,5 +3,6 @@ black
 flake8
 invoke
 pytest
+jedi-language-server
 setuptools-scm
 twine
