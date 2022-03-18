@@ -24,6 +24,7 @@ from nmdc_runtime.site.graphs import (
     ensure_jobs,
     apply_changesheet,
     apply_metadata_in,
+    hello_graph,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -304,15 +305,12 @@ def claim_and_run_apply_changesheet_jobs(_context):
     mdb = get_mongo(run_config_frozen__normal_env).db
     jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "apply-changesheet-1.0.0"})]
 
-    if (
-        mdb.operations.count_documents(
-            {
-                "metadata.job.id": {"$in": [job.id for job in jobs]},
-                "metadata.site_id": client.site_id,
-            }
-        )
-        == len(jobs)
-    ):
+    if mdb.operations.count_documents(
+        {
+            "metadata.job.id": {"$in": [job.id for job in jobs]},
+            "metadata.site_id": client.site_id,
+        }
+    ) == len(jobs):
         yield SkipReason("All relevant jobs already claimed by this site")
         return
 
@@ -389,6 +387,7 @@ def done_object_put_ops(_context):
 def repo():
     graph_jobs = [
         gold_translation.to_job(**preset_normal),
+        hello_graph.to_job(name="hello_job"),
     ]
     schedules = [housekeeping_weekly]
     sensors = [
