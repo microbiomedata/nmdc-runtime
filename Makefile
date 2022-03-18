@@ -5,15 +5,15 @@ init:
 
 update-deps:
 	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
+	pip-compile --upgrade --build-isolation --output-file \
 		requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
+	pip-compile --upgrade --build-isolation --output-file \
 		requirements/dev.txt requirements/dev.in
 
 update: update-deps init
 
 update-schema:
-	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes --output-file \
+	pip-compile --upgrade-package nmdc-schema --build-isolation --output-file \
 		requirements/main.txt requirements/main.in
 	pip install -r requirements/main.txt
 
@@ -70,7 +70,7 @@ docs-dev:
 nersc-ssh-tunnel:
 	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
-		dtn01.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+		spin.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs

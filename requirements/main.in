@@ -9,6 +9,7 @@ dagster-postgres
 dotted-dict
 fastapi
 fastjsonschema
+frozendict
 git-root
 jq
 jsonasobj2
@@ -17,7 +18,6 @@ linkml
 linkml-runtime
 mkdocs-material
 mkdocs-mermaid2-plugin
-mongospawn
 nmdc-schema
 openpyxl
 pandas
@@ -27,7 +27,7 @@ python-jose[cryptography]
 python-multipart
 pyyaml
 requests
-terminusdb-client
+terminusdb-client @ git+https://github.com/polyneme/terminusdb-client-python.git@allow-click-8.x
 toolz
 tqdm
 uvicorn[standard]

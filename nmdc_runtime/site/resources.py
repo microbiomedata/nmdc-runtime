@@ -161,9 +161,11 @@ def runtime_api_site_client_resource(context):
 @lru_cache
 def get_runtime_api_site_client(run_config: frozendict):
     resource_context = build_init_resource_context(
-        config=get_in(
-            ["resources", "runtime_api_site_client", "config"],
-            run_config,
+        config=unfreeze(
+            get_in(
+                ["resources", "runtime_api_site_client", "config"],
+                run_config,
+            )
         )
     )
     return runtime_api_site_client_resource(resource_context)

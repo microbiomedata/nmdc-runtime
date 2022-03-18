@@ -3,6 +3,8 @@ import os
 import sys
 from collections import defaultdict, namedtuple
 from functools import lru_cache
+from io import StringIO
+from pathlib import Path
 from types import ModuleType
 from typing import Optional, Dict, List, Tuple, Any, Union
 
@@ -10,7 +12,6 @@ import pandas as pds
 from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
-from pandas._typing import FilePath, ReadBuffer
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
@@ -21,7 +22,7 @@ SchemaPathProperties = namedtuple(
     "SchemaPathProperties", ["slots", "ranges", "multivalues"]
 )
 
-FilePathOrBuffer = Union[FilePath, ReadBuffer]
+FilePathOrBuffer = Union[Path, StringIO]
 
 
 def load_changesheet(
@@ -39,7 +40,7 @@ def load_changesheet(
     ----------
     filename : FilePathOrBuffer
         Name of the file containing the change sheet.
-    mogodb : MongoDatabase
+    mongodb : MongoDatabase
         The Mongo database that the change sheet will update.
     sep : str
         Column separator in file.
