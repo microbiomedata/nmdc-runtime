@@ -3,46 +3,64 @@ import os
 from typing import Union, TextIO
 
 import click
-
-from linkml_model.meta import SchemaDefinition, ClassDefinition, SlotDefinition
-
-from linkml.utils.formatutils import camelcase, be, underscore
 from linkml.utils.generator import Generator, shared_arguments
-from terminusdb_client.woqlquery import WOQLQuery as WQ
+from linkml_runtime.linkml_model.meta import (
+    SchemaDefinition,
+    ClassDefinition,
+    SlotDefinition,
+)
+from linkml_runtime.utils.formatutils import camelcase, be, underscore
 
-# https://terminusdb.com/docs/terminusdb/#/reference/XSD_WHITELIST
+# http://books.xmlschemata.org/relaxng/relax-CHP-19.html
 XSD_Ok = {
-    f"xsd:{t}"
-    for t in [
-        "string",
-        "boolean",
-        "decimal",
-        "integer",
-        "double",
-        "float",
-        "dateTime",
-        "byte",
-        "short",
-        "integer",
-        "long",
-        "positiveInteger",
-        "nonNegativeInteger",
-        "negativeInteger",
-        "nonPositiveInteger",
-        "anyURI",
-    ]
+    "xsd:anyURI",
+    "xsd:base64Binary",
+    "xsd:boolean",
+    "xsd:byte",
+    "xsd:date",
+    "xsd:dateTime",
+    "xsd:decimal",
+    "xsd:double",
+    "xsd:duration",
+    "xsd:ENTITIES",
+    "xsd:ENTITY",
+    "xsd:float",
+    "xsd:gDay",
+    "xsd:gMonth",
+    "xsd:gMonthDay",
+    "xsd:gYear",
+    "xsd:gYearMonth",
+    "xsd:hexBinary",
+    "xsd:ID",
+    "xsd:IDREF",
+    "xsd:IDREFS",
+    "xsd:int",
+    "xsd:integer",
+    "xsd:language",
+    "xsd:long",
+    "xsd:Name",
+    "xsd:NCName",
+    "xsd:negativeInteger",
+    "xsd:NMTOKEN",
+    "xsd:NMTOKENS",
+    "xsd:nonNegativeInteger",
+    "xsd:nonPositiveInteger",
+    "xsd:normalizedString",
+    "xsd:NOTATION",
+    "xsd:positiveInteger",
+    "xsd:short",
+    "xsd:string",
+    "xsd:time",
+    "xsd:token",
+    "xsd:unsignedByte",
+    "xsd:unsignedInt",
+    "xsd:unsignedLong",
+    "xsd:unsignedShort",
 }
 
 
 class TerminusdbGenerator(Generator):
-    """Generates JSON-LD to pass to `WOQLQuery()`.
-
-    Assumes an "inference/main" graph if any slots have "is_a" values, because any statements with
-    rdfs:subPropertyOf as the predicate must live in a TerminusDB "inference" graph rather than the
-    "schema" graph. When creating a new TerminusDB database, only the "schema" and "instance" graphs
-    are created. Thus, you may need to e.g. `WOQLClient.create_graph("inference", "main")`.
-
-    """
+    """Generates JSON file to pass to WOQLClient.insert_document(..., graph_type="schema")`."""
 
     generatorname = os.path.basename(__file__)
     generatorversion = "0.1.0"
@@ -53,41 +71,31 @@ class TerminusdbGenerator(Generator):
         super().__init__(schema, **kwargs)
         self.classes = None
         self.raw_additions = None
-        self.clswq = None
+        self.cls_json = {}
 
     def visit_schema(self, inline: bool = False, **kwargs) -> None:
         self.classes = []
-        self.raw_additions = []
 
     def end_schema(self, **_) -> None:
-        print(
-            json.dumps(
-                WQ().woql_and(*self.classes, *self.raw_additions).to_dict(), indent=2
-            )
-        )
+        print(json.dumps(self.classes, indent=2))
 
     def visit_class(self, cls: ClassDefinition) -> bool:
-        self.clswq = (
-            WQ()
-            .add_class(camelcase(cls.name))
-            .label(camelcase(cls.name))
-            .description(be(cls.description))
-        )
+        self.cls_json = {
+            "@type": "Class",
+            "@id": camelcase(cls.name),
+            "@documentation": {
+                "@comment": be(cls.description),
+                "@properties": {},
+            },
+        }
         if cls.is_a:
-            self.clswq.parent(camelcase(cls.is_a))
+            self.cls_json["@inherits"] = camelcase(cls.is_a)
         if cls.abstract:
-            self.clswq.abstract()
-        if cls.broad_mappings:
-            if any(
-                str(self.namespaces.uri_for(m))
-                == "http://terminusdb.com/schema/system#Document"
-                for m in cls.broad_mappings
-            ):
-                self.clswq.parent("Document")
+            self.cls_json["@abstract"] = []
         return True
 
     def end_class(self, cls: ClassDefinition) -> None:
-        self.classes.append(self.clswq)
+        self.classes.append(self.cls_json)
 
     def visit_class_slot(
         self, cls: ClassDefinition, aliased_slot_name: str, slot: SlotDefinition
@@ -103,19 +111,22 @@ class TerminusdbGenerator(Generator):
         else:
             rng = "xsd:string"
 
-        name = (
-            f"{cls.name} {aliased_slot_name}"
-            if slot.is_usage_slot
-            else aliased_slot_name
-        )
+        # name = (
+        #     f"{cls.name} {aliased_slot_name}"
+        #     if slot.is_usage_slot
+        #     else aliased_slot_name
+        # )
+        name = aliased_slot_name
+        # TODO fork nmdc schema and make any slots NOT required in parent class
+        #  also NOT required in child classes. Can have opt-in entity validation logic in code.
 
-        # translate to terminusdb xsd builtins:
-        if rng == "xsd:int":
-            rng = "xsd:integer"
-        elif rng == "xsd:float":
-            rng = "xsd:double"
-        elif rng == "xsd:language":
-            rng = "xsd:string"
+        # # translate to terminusdb xsd builtins:
+        # if rng == "xsd:int":
+        #     rng = "xsd:integer"
+        # elif rng == "xsd:float":
+        #     rng = "xsd:double"
+        # elif rng == "xsd:language":
+        #     rng = "xsd:string"
 
         if rng not in XSD_Ok and slot.range not in self.schema.classes:
             raise Exception(
@@ -123,31 +134,20 @@ class TerminusdbGenerator(Generator):
                 f"Range {rng} is of type {type(rng)}."
             )
 
-        self.clswq.property(
-            f"scm:{underscore(name)}",
-            rng,
-            label=aliased_slot_name,
-            description=slot.description,
-        )
-        if not slot.multivalued:
-            self.clswq.max(1)
-        if slot.required:
-            self.clswq.min(1)
-        if slot.is_a:
-            self.raw_additions.append(
-                WQ().add_quad(
-                    underscore(name),
-                    "rdfs:subPropertyOf",
-                    self.clswq.iri(underscore(slot.is_a)),
-                    "inference/main",
-                )
-            )
+        self.cls_json[underscore(name)] = rng
+        self.cls_json["@documentation"]["@properties"][
+            underscore(name)
+        ] = slot.description
+        if not slot.required:
+            self.cls_json[underscore(name)] = {"@type": "Optional", "@class": rng}
+        if slot.multivalued:  # XXX what about an required multivalued field?
+            self.cls_json[underscore(name)] = {"@type": "Set", "@class": rng}
 
 
 @shared_arguments(TerminusdbGenerator)
 @click.command()
 def cli(yamlfile, **args):
-    """ Generate graphql representation of a biolink model """
+    """Generate graphql representation of a biolink model"""
     print(TerminusdbGenerator(yamlfile, **args).serialize(**args))
 
 
