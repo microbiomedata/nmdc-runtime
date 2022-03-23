@@ -54,9 +54,15 @@ black==22.1.0
     # via shed
 bleach==4.1.0
     # via nbconvert
+<<<<<<< Updated upstream
 boto3==1.21.21
     # via -r requirements/main.in
 botocore==1.24.21
+=======
+boto3==1.21.24
+    # via -r requirements/main.in
+botocore==1.24.24
+>>>>>>> Stashed changes
     # via
     #   boto3
     #   s3transfer
@@ -477,7 +483,7 @@ pyjsg==0.11.9
     #   linkml
     #   pyshexc
     #   shexjsg
-pymdown-extensions==9.2
+pymdown-extensions==9.3
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
@@ -514,7 +520,7 @@ python-jose[cryptography]==3.3.0
     # via -r requirements/main.in
 python-multipart==0.0.5
     # via -r requirements/main.in
-pytz==2021.3
+pytz==2022.1
     # via
     #   babel
     #   dagster
@@ -733,7 +739,7 @@ watchdog==2.1.6
     #   dagster
     #   linkml
     #   mkdocs
-watchgod==0.8
+watchgod==0.8.1
     # via uvicorn
 wcwidth==0.2.5
     # via prompt-toolkit
