@@ -35,6 +35,7 @@ from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
+from nmdc_runtime.util import unfreeze
 from starlette import status
 from toolz import merge, get_in
 
