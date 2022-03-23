@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-03-23T14:50:00−04:00 fix dagster JSON serialization error 
 * 2022-03-18T12:33:00−04:00 upgrade to nmdc-schema==3.2.0
 * 2022-03-08T15:00:00−05:00 add get_by_id endpoint in /nmdcschema
 * 2022-01-20T20:17:00−08:00 Bump schema back to 2022.01.18rc1
