@@ -232,22 +232,25 @@ async def ensure_initial_resources_on_boot():
             mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
 
     username = os.getenv("API_ADMIN_USER")
-    admin_ok = mdb.users.count_documents(({"username": username})) == 1
+    admin_ok = mdb.users.count_documents(({"username": username})) > 0
     if not admin_ok:
-        mdb.users.insert_one(
+        mdb.users.replace_one(
+            {"username": username},
             UserInDB(
                 username=username,
                 hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
                 site_admin=[os.getenv("API_SITE_ID")],
-            ).dict(exclude_unset=True)
+            ).dict(exclude_unset=True),
+            upsert=True,
         )
         mdb.users.create_index("username")
 
     site_id = os.getenv("API_SITE_ID")
-    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) == 1
+    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) > 0
     if not runtime_site_ok:
         client_id = os.getenv("API_SITE_CLIENT_ID")
-        mdb.sites.insert_one(
+        mdb.sites.replace_one(
+            {"id": site_id},
             SiteInDB(
                 id=site_id,
                 clients=[
@@ -258,7 +261,8 @@ async def ensure_initial_resources_on_boot():
                         ),
                     )
                 ],
-            ).dict()
+            ).dict(),
+            upsert=True,
         )
 
     # Ensure that any collections with an "id" field have an index on "id".
