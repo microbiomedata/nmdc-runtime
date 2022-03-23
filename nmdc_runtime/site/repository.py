@@ -9,6 +9,9 @@ from dagster import (
     RunRequest,
     sensor,
 )
+from starlette import status
+from toolz import merge, get_in
+
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
@@ -36,8 +39,6 @@ from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
-from starlette import status
-from toolz import merge, get_in
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
@@ -283,7 +284,7 @@ def claim_and_run_metadata_in_jobs(_context):
                     },
                 )
                 yield RunRequest(
-                    run_key=operation["id"], run_config=unfreeeze(run_config)
+                    run_key=operation["id"], run_config=unfreeze(run_config)
                 )
                 yielded_run_request = True
             else:
