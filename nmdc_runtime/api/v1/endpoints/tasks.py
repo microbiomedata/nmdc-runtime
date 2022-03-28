@@ -4,7 +4,9 @@ from fastapi import api_router
 
 from nmdc_runtime.models.task import TaskInit, Task, Tasks, TaskView
 
+
 router = APIRouter()
+
 
 @router.post("", status_code=201, response_model=UUID)
 async def post_task(

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, AnyUrl, DirectoryPath, Optional
 
+
 class TaskView(str, Enum):
     minimal = "MINIMAL"
     basic = "BASIC"
@@ -59,7 +60,8 @@ class Task(BaseModel):
 class TaskList(BaseModel):
     tasks: List[Task]
     next_page_token: int = 1
-      
+
+
 class TaskInit(BaseModel):
     name: Optional[str]
     description: Optional[str]
