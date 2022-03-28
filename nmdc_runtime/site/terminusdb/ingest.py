@@ -1,6 +1,10 @@
 import json
 
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from terminusdb_client import WOQLClient
+
+from nmdc_runtime.site.terminusdb.generate import TerminusdbGenerator
+from nmdc_runtime.util import REPO_ROOT_DIR
 
 team = "admin"
 client = WOQLClient(f"http://localhost:6364/")
@@ -19,11 +23,10 @@ prefixes = {
 
 
 def import_schema(client):
-    # Opening JSON file
-    schema = open(
-        "nmdc.json",
-    )
-    schema_objects = json.load(schema)
+    sd = get_nmdc_schema_definition()
+    sd.source_file = f"{REPO_ROOT_DIR.parent}/nmdc-schema/src/schema/nmdc.yaml"
+    print(sd.source_file)
+    schema_objects = json.loads(TerminusdbGenerator(sd).serialize())
 
     client.message = "Adding NMDC Schema"
     results = client.insert_document(schema_objects, graph_type="schema")

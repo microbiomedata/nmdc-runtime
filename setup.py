@@ -32,7 +32,7 @@ setuptools.setup(
     python_requires=">=3.8",
     entry_points={
         "console_scripts": [
-            "gen-terminusdb = nmdc_runtime.terminusdbgen:cli",
+            "schemagen-terminusdb = nmdc_runtime.site.terminusdb.generate:cli",
             "nmdcdb-mongoexport = nmdc_runtime.site.backup.nmdcdb_mongoexport:main",
             "nmdcdb-mongodump = nmdc_runtime.site.backup.nmdcdb_mongodump:main",
             "nmdcdb-mongoimport = nmdc_runtime.site.backup.nmdcdb_mongoimport:main",

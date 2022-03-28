@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Union, TextIO
+from typing import Union, TextIO, List
 
 import click
 from linkml.utils.generator import Generator, shared_arguments
@@ -59,6 +59,22 @@ XSD_Ok = {
 }
 
 
+def as_list(thing) -> list:
+    return thing if isinstance(thing, list) else [thing]
+
+
+def has_field(graph: List[dict], cls: dict, field: str) -> bool:
+    if field in cls:
+        return True
+    for parent_id in as_list(cls.get("@inherits", [])):
+        parent_cls = next(
+            graph_cls for graph_cls in graph if graph_cls.get("@id") == parent_id
+        )
+        if parent_cls and has_field(graph, parent_cls, field):
+            return True
+    return False
+
+
 class TerminusdbGenerator(Generator):
     """Generates JSON file to pass to WOQLClient.insert_document(..., graph_type="schema")`."""
 
@@ -69,15 +85,23 @@ class TerminusdbGenerator(Generator):
 
     def __init__(self, schema: Union[str, TextIO, SchemaDefinition], **kwargs) -> None:
         super().__init__(schema, **kwargs)
-        self.classes = None
-        self.raw_additions = None
+        self.graph = []
         self.cls_json = {}
 
     def visit_schema(self, inline: bool = False, **kwargs) -> None:
-        self.classes = []
+        self.graph.append(
+            {
+                "@type": "@context",
+                "@base": "terminusdb:///data/",
+                "@schema": "terminusdb:///schema#",
+            }
+        )
 
     def end_schema(self, **_) -> None:
-        print(json.dumps(self.classes, indent=2))
+        for cls in self.graph:
+            if has_field(self.graph, cls, "id"):
+                cls["@key"] = {"@type": "Lexical", "@fields": ["id"]}
+        print(json.dumps(self.graph, indent=2))
 
     def visit_class(self, cls: ClassDefinition) -> bool:
         self.cls_json = {
@@ -95,13 +119,24 @@ class TerminusdbGenerator(Generator):
         return True
 
     def end_class(self, cls: ClassDefinition) -> None:
-        self.classes.append(self.cls_json)
+        self.cls_json["@id"] = cls.definition_uri.split(":")[-1].rpartition("/")[-1]
+        self.graph.append(self.cls_json)
+
+    # sounding board as solist
+    # safe space to ask questions. more of a whatsapp group.
+    # both re: business, how to structure proposals, etc.
+    # And also technical content suggestions. R data pipeline / copy/paste in Figma
+    #  - how far do you go in automation in delivery
 
     def visit_class_slot(
         self, cls: ClassDefinition, aliased_slot_name: str, slot: SlotDefinition
     ) -> None:
         if slot not in self.own_slots(cls):
             return
+        if slot.is_usage_slot:
+            # TerminusDB does not support calling different things the same name.
+            # So, ignore usage overrides.
+            slot = self.schema.slots[aliased_slot_name]
 
         if slot.range in self.schema.classes:
             rng = camelcase(slot.range)
@@ -116,7 +151,7 @@ class TerminusdbGenerator(Generator):
         #     if slot.is_usage_slot
         #     else aliased_slot_name
         # )
-        name = aliased_slot_name
+        name = slot.name
         # TODO fork nmdc schema and make any slots NOT required in parent class
         #  also NOT required in child classes. Can have opt-in entity validation logic in code.
 
