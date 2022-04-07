@@ -4,3 +4,7 @@ docker-compose.yml
 .dockerignore
 docker-build.sh
 deployment
+.eggs
+.pytest_cache
+build
+dist
