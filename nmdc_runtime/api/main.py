@@ -21,7 +21,6 @@ from nmdc_runtime.api.endpoints import (
     queries,
     metadata,
     nmdcschema,
-    search,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
@@ -40,7 +39,6 @@ api_router.include_router(queries.router, tags=["queries"])
 api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
-api_router.include_router(search.router, tags=["data-consumer-api"])
 
 tags_metadata = [
     {
@@ -194,7 +192,7 @@ issue an update query).
         "description": "Tools for identifier generation and resolution.",
     },
     {
-        "name": "metadatata",
+        "name": "metadata",
         "description": "Tools for metadata validation and registration/submission.",
     },
 ]
