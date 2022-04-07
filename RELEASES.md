@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-04-07T17:30:00−04:00 update docker image bases
 * 2022-03-23T17:15:00−04:00 idempotent api startup
 * 2022-03-23T15:04:00−04:00 fix below...again
 * 2022-03-23T14:58:00−04:00 fix below
