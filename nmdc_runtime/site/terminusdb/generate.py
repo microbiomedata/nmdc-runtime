@@ -1,3 +1,9 @@
+"""
+Example usage:
+$ schemagen-terminusdb ../nmdc-schema/src/schema/nmdc.yaml \
+    > nmdc_runtime/site/terminusdb/nmdc.schema.terminusdb.json
+"""
+
 import json
 import os
 from typing import Union, TextIO, List

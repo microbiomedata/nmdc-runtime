@@ -76,7 +76,7 @@ docs-dev:
 
 nersc-ssh-tunnel:
 	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
-	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
+	ssh -L27027:mongo2-loadbalancer.nmdc-runtime.production.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \

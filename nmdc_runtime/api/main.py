@@ -228,6 +228,7 @@ async def ensure_initial_resources_on_boot():
 
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
+        mdb[collection_name].create_index("id", unique=True)
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
         for model in collection_boot.construct():
             doc = model.dict()
