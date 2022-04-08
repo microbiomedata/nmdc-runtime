@@ -14,7 +14,6 @@ import dagster
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
-from nmdc_runtime.util import nmdc_jsonschema
 
 warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
@@ -25,13 +24,19 @@ def main():
     mdb = mongo.db
     print("connected to database...")
 
-    collection_names = set(mdb.list_collection_names()) & set(
-        nmdc_jsonschema["$defs"]["Database"]["properties"]
-    )
+    # collection_names = set(mdb.list_collection_names()) & set(
+    #     nmdc_jsonschema["$defs"]["Database"]["properties"]
+    # )
+    collection_names = set(mdb.list_collection_names())
     print("retrieved relevant collection names...")
     print(sorted(collection_names))
     print(f"filtering {len(collection_names)} collections...")
-    heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
+    heavy_collection_names = {
+        "functional_annotation_set",
+        "genome_feature_set",
+        "functional_annotation_set_prev",
+        "functional_annotation_agg",
+    }
     collection_names = {c for c in collection_names if c not in heavy_collection_names}
     print(f"filtered collections to {len(collection_names)}:")
     print(sorted(collection_names))
