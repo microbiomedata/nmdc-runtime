@@ -1305,94 +1305,94 @@
       "@comment": "",
       "@properties": {
         "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
-        "mAGBin__bin_name": null,
-        "mAGBin__number_of_contig": null,
-        "mAGBin__completeness": null,
-        "mAGBin__contamination": null,
-        "mAGBin__gene_count": null,
-        "mAGBin__bin_quality": null,
-        "mAGBin__num_16s": null,
-        "mAGBin__num_5s": null,
-        "mAGBin__num_23s": null,
-        "mAGBin__num_tRNA": null,
-        "mAGBin__gtdbtk_domain": null,
-        "mAGBin__gtdbtk_phylum": null,
-        "mAGBin__gtdbtk_class": null,
-        "mAGBin__gtdbtk_order": null,
-        "mAGBin__gtdbtk_family": null,
-        "mAGBin__gtdbtk_genus": null,
-        "mAGBin__gtdbtk_species": null
+        "bin_name": null,
+        "number_of_contig": null,
+        "completeness": null,
+        "contamination": null,
+        "gene_count": null,
+        "bin_quality": null,
+        "num_16s": null,
+        "num_5s": null,
+        "num_23s": null,
+        "num_tRNA": null,
+        "gtdbtk_domain": null,
+        "gtdbtk_phylum": null,
+        "gtdbtk_class": null,
+        "gtdbtk_order": null,
+        "gtdbtk_family": null,
+        "gtdbtk_genus": null,
+        "gtdbtk_species": null
       }
     },
     "type": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__bin_name": {
+    "bin_name": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__number_of_contig": {
+    "number_of_contig": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__completeness": {
+    "completeness": {
       "@type": "Optional",
       "@class": "xsd:float"
     },
-    "mAGBin__contamination": {
+    "contamination": {
       "@type": "Optional",
       "@class": "xsd:float"
     },
-    "mAGBin__gene_count": {
+    "gene_count": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__bin_quality": {
+    "bin_quality": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__num_16s": {
+    "num_16s": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__num_5s": {
+    "num_5s": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__num_23s": {
+    "num_23s": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__num_tRNA": {
+    "num_tRNA": {
       "@type": "Optional",
       "@class": "xsd:integer"
     },
-    "mAGBin__gtdbtk_domain": {
+    "gtdbtk_domain": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_phylum": {
+    "gtdbtk_phylum": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_class": {
+    "gtdbtk_class": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_order": {
+    "gtdbtk_order": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_family": {
+    "gtdbtk_family": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_genus": {
+    "gtdbtk_genus": {
       "@type": "Optional",
       "@class": "xsd:string"
     },
-    "mAGBin__gtdbtk_species": {
+    "gtdbtk_species": {
       "@type": "Optional",
       "@class": "xsd:string"
     }

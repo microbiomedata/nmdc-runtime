@@ -161,6 +161,8 @@ class TerminusdbGenerator(Generator):
         # TODO fork nmdc schema and make any slots NOT required in parent class
         #  also NOT required in child classes. Can have opt-in entity validation logic in code.
 
+        # XXX MAG bin -> bin name goes to "mAGBin__bin_name", etc. Weird.
+
         # # translate to terminusdb xsd builtins:
         # if rng == "xsd:int":
         #     rng = "xsd:integer"
