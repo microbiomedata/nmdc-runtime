@@ -27,7 +27,7 @@ python-jose[cryptography]
 python-multipart
 pyyaml
 requests
-terminusdb-client @ git+https://github.com/polyneme/terminusdb-client-python.git@allow-click-8.x
+terminusdb-client
 toolz
 tqdm
 uvicorn[standard]

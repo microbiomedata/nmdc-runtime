@@ -958,7 +958,7 @@
     "@inherits": "NamedThing",
     "file_size_bytes": {
       "@type": "Optional",
-      "@class": "xsd:int"
+      "@class": "xsd:long"
     },
     "md5_checksum": {
       "@type": "Optional",

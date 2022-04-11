@@ -87,7 +87,7 @@ pygments==2.11.2
     #   -c requirements/main.txt
     #   readme-renderer
     #   rich
-pyparsing==3.0.7
+pyparsing==3.0.8
     # via
     #   -c requirements/main.txt
     #   packaging

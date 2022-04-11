@@ -46,7 +46,7 @@ base32-lib==1.0.2
     # via -r requirements/main.in
 bcrypt==3.2.0
     # via passlib
-beautifulsoup4==4.11.0
+beautifulsoup4==4.11.1
     # via
     #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
@@ -54,9 +54,9 @@ black==22.3.0
     # via shed
 bleach==5.0.0
     # via nbconvert
-boto3==1.21.36
+boto3==1.21.37
     # via -r requirements/main.in
-botocore==1.24.36
+botocore==1.24.37
     # via
     #   boto3
     #   s3transfer
@@ -170,7 +170,7 @@ graphql-core==2.3.2
     #   graphql-relay
 graphql-relay==2.0.1
     # via graphene
-graphviz==0.19.1
+graphviz==0.19.2
     # via linkml
 greenlet==1.1.2
     # via
@@ -206,7 +206,7 @@ importlib-metadata==4.11.3
     #   sphinx
 importlib-resources==5.6.0
     # via jsonschema
-ipykernel==6.12.1
+ipykernel==6.13.0
     # via
     #   ipywidgets
     #   jupyter
@@ -252,7 +252,7 @@ jmespath==1.0.0
     #   botocore
 jq==1.2.2
     # via -r requirements/main.in
-jsbeautifier==1.14.2
+jsbeautifier==1.14.3
     # via mkdocs-mermaid2-plugin
 json-flattener==0.1.9
     # via linkml-runtime
@@ -269,7 +269,7 @@ jsonpatch==1.32
     # via linkml-dataops
 jsonpath-ng==1.5.3
     # via linkml-dataops
-jsonpointer==2.2
+jsonpointer==2.3
     # via jsonpatch
 jsonschema==4.4.0
     # via
@@ -297,7 +297,7 @@ jupyterlab-widgets==1.1.0
     # via ipywidgets
 libcst==0.4.1
     # via shed
-linkml==1.2.6
+linkml==1.2.7
     # via
     #   -r requirements/main.in
     #   nmdc-schema
@@ -341,7 +341,7 @@ mkdocs==1.3.0
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
-mkdocs-material==8.2.8
+mkdocs-material==8.2.9
     # via
     #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
@@ -429,7 +429,7 @@ prefixcommons==0.1.9
     # via
     #   linkml
     #   linkml-runtime
-prometheus-client==0.14.0
+prometheus-client==0.14.1
     # via notebook
 promise==2.3
     # via
@@ -485,7 +485,7 @@ pymdown-extensions==9.3
     #   mkdocs-mermaid2-plugin
 pymongo==4.1.0
     # via -r requirements/main.in
-pyparsing==3.0.7
+pyparsing==3.0.8
     # via
     #   packaging
     #   rdflib
@@ -523,7 +523,7 @@ pytz==2022.1
     #   pandas
 pytzdata==2020.1
     # via pendulum
-pyupgrade==2.31.1
+pyupgrade==2.32.0
     # via shed
 pyyaml==6.0
     # via
@@ -670,7 +670,7 @@ tabulate==0.8.9
     # via dagster
 terminado==0.13.3
     # via notebook
-terminusdb-client @ git+https://github.com/polyneme/terminusdb-client-python.git@allow-click-8.x
+terminusdb-client==10.0.31
     # via -r requirements/main.in
 testpath==0.6.0
     # via nbconvert

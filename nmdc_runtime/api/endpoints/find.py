@@ -113,7 +113,7 @@ def find_activity_by_id(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     doc = None
-    for name in activity_collection_names():
+    for name in activity_collection_names(mdb):
         doc = mdb[name].find_one({"id": activity_id})
         if doc is not None:
             return strip_oid(doc)

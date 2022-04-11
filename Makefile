@@ -56,17 +56,17 @@ follow-fastapi:
 fastapi-docker:
 	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
 
-#fastapi-deploy-spin:
-#	rancher kubectl rollout restart deployment/fastapi --namespace=nmdc-runtime-dev
-#	rancher kubectl rollout restart deployment/drs --namespace=nmdc-runtime-dev
+fastapi-deploy-spin:
+	rancher kubectl rollout restart deployment/fastapi --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/drs --namespace=nmdc-runtime-dev
 
 dagster-docker:
 	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
-#dagster-deploy-spin:
-#	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-runtime-dev
-#	rancher kubectl rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev
-#	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
+dagster-deploy-spin:
+	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
 
 publish:
 	invoke publish
