@@ -46,7 +46,14 @@
 
 
 <form action="studies" method="get">
-    <label for="filter-studies">Filter studies: </label>
+    <label for="filter-studies">
+        Filter <a href="{{ doc_links.study_set.entity_url }}">studies</a>:
+    </label>
+    <p>
+        {% for attr in doc_links.study_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
     <h4>Indexed attributes (for faster filtering):</h4>
     <ul>
         {% for attr in indexed_entity_attributes.study_set %}
@@ -64,7 +71,14 @@
 
 
 <form action="biosamples" method="get">
-    <label for="filter-biosamples">Filter biosamples: </label>
+    <label for="filter-biosamples">
+        Filter  <a href="{{ doc_links.biosample_set.entity_url }}">biosamples</a>:
+    </label>
+    <p>
+        {% for attr in doc_links.biosample_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
     <h4>Indexed attributes (for faster filtering):</h4>
     <ul>
         {% for attr in indexed_entity_attributes.biosample_set %}
@@ -82,7 +96,14 @@
 
 
 <form action="data_objects" method="get">
-    <label for="filter-data_objects">Filter data_objects: </label>
+    <label for="filter-data_objects">
+        Filter  <a href="{{ doc_links.data_object_set.entity_url }}">data_objects</a>:
+        </label>
+    <p>
+        {% for attr in doc_links.data_object_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
     <h4>Indexed attributes (for faster filtering):</h4>
     <ul>
         {% for attr in indexed_entity_attributes.data_object_set %}
@@ -100,7 +121,19 @@
 
 
 <form action="activities" method="get">
-    <label for="filter-activities">Filter activities: </label>
+    <label for="filter-activities">
+        Filter  <a href="https://microbiomedata.github.io/nmdc-schema/Activity">activities</a>:
+    </label>
+    <p>
+        {% for cname in activity_collection_names %}
+        <a href="{{ doc_links.activity_set[cname].entity_url }}">{{ doc_links.activity_set[cname].entity_name }}</a>{% if not loop.last %}, {% endif %}
+        <br/>
+            {% for attr in doc_links.activity_set[cname].entity_attrs %}
+            <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        <br/>
+        {% endfor %}
+    </p>
     <a href="#help-activities">Help with searching for activities</a>
     <h4>Indexed attributes (for faster filtering):</h4>
     <ul>

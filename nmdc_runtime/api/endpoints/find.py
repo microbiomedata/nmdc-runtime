@@ -1,8 +1,11 @@
+from operator import itemgetter
+
 from fastapi import APIRouter, Depends
 from jinja2 import Environment, PackageLoader, select_autoescape
+from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
-from toolz import merge
+from toolz import merge, assoc_in
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names
@@ -135,6 +138,43 @@ def attr_index_sort_key(attr):
     return "_" if attr == "id" else attr
 
 
+def documentation_links(jsonschema_dict, collection_names):
+    rv = {"Activity": []}
+    for cn in collection_names:
+        last_part = jsonschema_dict["$defs"]["Database"]["properties"][cn]["items"][
+            "$ref"
+        ].split("/")[-1]
+        entity_attrs = list(
+            get_nmdc_jsonschema_dict()["$defs"][last_part]["properties"]
+        )
+        if last_part in ("Biosample", "Study", "DataObject"):
+            assoc_path = [cn]
+        else:
+            assoc_path = ["activity_set", cn]
+        rv = assoc_in(
+            rv,
+            assoc_path,
+            {
+                "collection_name": cn,
+                "entity_url": "https://microbiomedata.github.io/nmdc-schema/"
+                + last_part,
+                "entity_name": last_part,
+                "entity_attrs": sorted(
+                    [
+                        {
+                            "url": f"https://microbiomedata.github.io/nmdc-schema/{a}",
+                            "attr_name": a,
+                        }
+                        for a in entity_attrs
+                    ],
+                    key=itemgetter("attr_name"),
+                ),
+            },
+        )
+
+    return rv
+
+
 @router.get("/search", response_class=HTMLResponse)
 def search_page(
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -147,8 +187,16 @@ def search_page(
             for coll, attrs in entity_attributes_to_index.items()
         },
     )
+    doc_links = documentation_links(
+        get_nmdc_jsonschema_dict(),
+        (
+            list(activity_collection_names(mdb))
+            + ["biosample_set", "study_set", "data_object_set"]
+        ),
+    )
     html_content = template.render(
-        activity_collection_names=activity_collection_names(mdb),
+        activity_collection_names=sorted(activity_collection_names(mdb)),
         indexed_entity_attributes=indexed_entity_attributes,
+        doc_links=doc_links,
     )
     return HTMLResponse(content=html_content, status_code=200)
