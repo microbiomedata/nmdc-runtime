@@ -133,8 +133,19 @@ def timeit(cursor):
 def find_resources(
     req: FindRequest, mdb: pymongo.database.Database, collection_name: str
 ):
-    # TODO handle req.group_by
-    # TODO handle req.search
+    if req.group_by:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail="I don't yet know how to ?group_by=",
+        )
+    if req.search:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail=(
+                "I don't yet know how to ?search=. "
+                "Use ?filter=<attribute>.search:<spec> instead."
+            ),
+        )
 
     filter_ = get_mongo_filter(req.filter)
     sort_ = get_mongo_sort(req.sort)
