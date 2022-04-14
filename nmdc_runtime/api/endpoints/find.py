@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from jinja2 import Environment, PackageLoader, select_autoescape
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
+from toolz import merge
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names
@@ -11,7 +12,11 @@ from nmdc_runtime.api.endpoints.util import (
     find_resources_spanning,
 )
 from nmdc_runtime.api.models.metadata import Doc
-from nmdc_runtime.api.models.util import FindResponse, FindRequest
+from nmdc_runtime.api.models.util import (
+    FindResponse,
+    FindRequest,
+    entity_attributes_to_index,
+)
 
 router = APIRouter()
 
@@ -126,12 +131,24 @@ jinja_env = Environment(
 )
 
 
+def attr_index_sort_key(attr):
+    return "_" if attr == "id" else attr
+
+
 @router.get("/search", response_class=HTMLResponse)
 def search_page(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     template = jinja_env.get_template("search.html")
+    indexed_entity_attributes = merge(
+        {n: {"id"} for n in activity_collection_names(mdb)},
+        {
+            coll: sorted(attrs | {"id"}, key=attr_index_sort_key)
+            for coll, attrs in entity_attributes_to_index.items()
+        },
+    )
     html_content = template.render(
-        activity_collection_names=activity_collection_names(mdb)
+        activity_collection_names=activity_collection_names(mdb),
+        indexed_entity_attributes=indexed_entity_attributes,
     )
     return HTMLResponse(content=html_content, status_code=200)

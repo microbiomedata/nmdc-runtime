@@ -43,8 +43,16 @@
 <body>
 <h1>NMDC Runtime Search API</h1>
 <p><a href="#help">Help below</a></p>
+
+
 <form action="studies" method="get">
     <label for="filter-studies">Filter studies: </label>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.study_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
     <h4>Copy-and-paste Examples:</h4>
     <ul>
         <li>funding_sources.search:Department of Energy</li>
@@ -53,8 +61,16 @@
     <input type="text" name="filter" id="filter-studies">
     <input type="submit" value="Search">
 </form>
+
+
 <form action="biosamples" method="get">
     <label for="filter-biosamples">Filter biosamples: </label>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.biosample_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
     <h4>Copy-and-paste Examples:</h4>
     <ul>
         <li>id.search:^igsn</li>
@@ -63,8 +79,16 @@
     <input type="text" name="filter" id="filter-biosamples">
     <input type="submit" value="Search">
 </form>
+
+
 <form action="data_objects" method="get">
     <label for="filter-data_objects">Filter data_objects: </label>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.data_object_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
     <h4>Copy-and-paste Examples:</h4>
     <ul>
         <li>description.search:GFF</li>
@@ -73,9 +97,23 @@
     <input type="text" name="filter" id="filter-data_objects">
     <input type="submit" value="Search">
 </form>
+
+
 <form action="activities" method="get">
     <label for="filter-activities">Filter activities: </label>
-    <a href="#help-activities">Which activities?</a>
+    <a href="#help-activities">Help with searching for activities</a>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for collection_name in activity_collection_names %}
+        <li>{{ collection_name }}:
+            <ul>
+                {% for attr in indexed_entity_attributes[collection_name] %}
+                <li>{{ attr }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
     <h4>Copy-and-paste Examples:</h4>
     <ul>
         <li>processing_institution:Joint Genome Institute</li>
@@ -84,6 +122,8 @@
     <input type="text" name="filter" id="filter-activities">
     <input type="submit" value="Search">
 </form>
+
+
 <h2 id="help">Help</h2>
 <p>
     Filters are of the form <code>attribute:spec</code>, that is, an attribute followed by a colon

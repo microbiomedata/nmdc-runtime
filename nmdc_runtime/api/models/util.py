@@ -43,3 +43,41 @@ class FindResponse(BaseModel):
     meta: dict
     results: List[dict]
     group_by: List[dict]
+
+
+# Note: For MongoDB, a single collection can have no more than 64 indexes
+# Note: Each collection has a unique index set on "id" elsewhere.
+entity_attributes_to_index = {
+    "biosample_set": {
+        "alternative_identifiers",
+        "env_broad_scale.has_raw_value",
+        "env_local_scale.has_raw_value",
+        "env_medium.has_raw_value",
+        "collection_date.has_raw_value",
+        "ecosystem",
+        "ecosystem_category",
+        "ecosystem_type",
+        "ecosystem_subtype",
+        "specific_ecosystem",
+        # Note: if `lat_lon` was GeoJSON, i.e. {type,coordinates}, MongoDB has a "2dsphere" index
+        "lat_lon.latitude",
+        "lat_lon.longitude",
+    },
+    "study_set": {
+        "has_credit_associations.applied_roles",
+        "has_credit_associations.applies_to_person.name",
+        "has_credit_associations.applies_to_person.orcid",
+    },
+    "data_object_set": {
+        "data_object_type",
+        "file_size_bytes",
+        "md5_checksum",
+        "url",
+    },
+    "omics_processing_set": {
+        "has_input",
+        "has_output",
+        "instrument_name",
+        "alternative_identifiers",
+    },
+}
