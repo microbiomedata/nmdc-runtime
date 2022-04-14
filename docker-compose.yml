@@ -87,7 +87,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: root
 
   terminus:
-    image: terminusdb/terminusdb-server:v10.0.19
+    image: terminusdb/terminusdb-server:dev-6c95d265db7041b93471cbe122a742db52867f74
     container_name: terminus
     ports:
       - "6364:6363"

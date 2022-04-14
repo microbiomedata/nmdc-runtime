@@ -10,7 +10,7 @@ alembic==1.6.5
     # via dagster
 aniso8601==7.0.0
     # via graphene
-antlr4-python3-runtime==4.9.3
+antlr4-python3-runtime==4.10
     # via
     #   pyjsg
     #   pyshexc
@@ -54,9 +54,9 @@ black==22.3.0
     # via shed
 bleach==5.0.0
     # via nbconvert
-boto3==1.21.37
+boto3==1.21.40
     # via -r requirements/main.in
-botocore==1.24.37
+botocore==1.24.40
     # via
     #   boto3
     #   s3transfer
@@ -204,7 +204,7 @@ importlib-metadata==4.11.3
     #   markdown
     #   mkdocs
     #   sphinx
-importlib-resources==5.6.0
+importlib-resources==5.7.0
     # via jsonschema
 ipykernel==6.13.0
     # via
@@ -303,7 +303,7 @@ linkml==1.2.7
     #   nmdc-schema
 linkml-dataops==0.1.0
     # via linkml
-linkml-runtime==1.2.5
+linkml-runtime==1.2.6
     # via
     #   -r requirements/main.in
     #   linkml
@@ -331,7 +331,7 @@ matplotlib-inline==0.1.3
     #   ipython
 mdit-py-plugins==0.3.0
     # via myst-parser
-mdurl==0.1.0
+mdurl==0.1.1
     # via markdown-it-py
 mergedeep==1.3.4
     # via mkdocs
@@ -483,7 +483,7 @@ pymdown-extensions==9.3
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
-pymongo==4.1.0
+pymongo==4.1.1
     # via -r requirements/main.in
 pyparsing==3.0.8
     # via
@@ -597,7 +597,7 @@ s3transfer==0.5.2
     # via boto3
 send2trash==1.8.0
     # via notebook
-shed==0.9.4
+shed==0.9.5
     # via terminusdb-client
 shexjsg==0.8.1
     # via
@@ -624,7 +624,7 @@ sniffio==1.2.0
     # via anyio
 snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.3.2
+soupsieve==2.3.2.post1
     # via beautifulsoup4
 sparqlslurper==0.5.1
     # via pyshex
@@ -639,7 +639,7 @@ sphinx==4.5.0
     #   numpydoc
     #   sphinx-click
     #   sphinx-rtd-theme
-sphinx-click==4.0.0
+sphinx-click==4.0.2
     # via linkml
 sphinx-rtd-theme==1.0.0
     # via linkml
@@ -670,7 +670,7 @@ tabulate==0.8.9
     # via dagster
 terminado==0.13.3
     # via notebook
-terminusdb-client==10.0.31
+terminusdb-client==10.0.32
     # via -r requirements/main.in
 testpath==0.6.0
     # via nbconvert

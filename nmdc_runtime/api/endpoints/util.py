@@ -104,17 +104,6 @@ def find_resources(
 ):
     filter_ = get_mongo_filter(req.filter)
 
-    if req.cursor and req.page:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="cannot use cursor- and page-based pagination together",
-        )
-    elif (not req.cursor) and (not req.page):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="find query needs to request one of page or cursor",
-        )
-
     total_count = mdb[collection_name].count_documents(filter=filter_)
 
     if req.page:
@@ -169,10 +158,24 @@ def find_resources(
             mdb[collection_name].find(filter=filter_, limit=limit, sort=[("id", 1)])
         )
         last_id = results[-1]["id"]
-        token = generate_one_id(mdb, "page_tokens")
-        mdb.page_tokens.insert_one(
-            {"_id": token, "ns": collection_name, "last_id": last_id}
+
+        # Is this the last id overall? Then next_cursor should be None.
+        filter_eager = filter_
+        if "id" in filter_:
+            filter_eager["id"] = merge(filter_["id"], {"$gt": last_id})
+        else:
+            filter_eager = merge(filter_, {"id": {"$gt": last_id}})
+        more_results = (
+            mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
         )
+        if more_results:
+            token = generate_one_id(mdb, "page_tokens")
+            mdb.page_tokens.insert_one(
+                {"_id": token, "ns": collection_name, "last_id": last_id}
+            )
+        else:
+            token = None
+
         rv = {
             "meta": {
                 "mongo_filter_dict": filter_,

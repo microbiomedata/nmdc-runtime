@@ -79,5 +79,11 @@ nersc-ssh-tunnel:
 	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
+mongorestore-nmdcdb-lite-archive:
+	wget https://portal.nersc.gov/project/m3408/meta/mongodumps/nmdcdb.lite.archive.gz
+	mongorestore --host localhost:27018 --username admin --password root --drop --gzip \
+		--archive=nmdcdb.lite.archive.gz
+	rm nmdcdb.lite.archive.gz
+
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs
