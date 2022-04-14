@@ -1,7 +1,7 @@
 import logging
 import re
 from time import time_ns
-from typing import Set
+from typing import Set, Optional, List, Tuple
 
 import pymongo
 from bson import json_util
@@ -60,13 +60,16 @@ def maybe_unstring(val):
         return val
 
 
+def get_pairs(s):
+    return re.split(r"\s*,\s*", s)  # comma, perhaps surrounded by whitespace
+
+
 def get_mongo_filter(filter_str):
     filter_ = {}
     if not filter_str:
         return filter_
 
-    pairs = re.split(r"\s*,\s*", filter_str)  # comma, perhaps surrounded by whitespace
-
+    pairs = get_pairs(filter_str)
     if not all(len(split) == 2 for split in (p.split(":", maxsplit=1) for p in pairs)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,6 +90,34 @@ def get_mongo_filter(filter_str):
     return filter_
 
 
+def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
+    sort_ = []
+    if not sort_str:
+        return None
+
+    pairs = get_pairs(sort_str)
+    for p in pairs:
+        components = p.split(":", maxsplit=1)
+        if len(components) == 1:
+            attr, spec = components[0], ""
+        else:
+            attr, spec = components
+        for op, key in {("", 1), ("asc", 1), ("desc", -1)}:
+            if spec == op:
+                sort_.append((attr, key))
+                break
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Sort must be of form: attribute:spec[,attribute:spec]* "
+                    "where spec is `asc` (ascending -- the default if no spec) "
+                    "or `desc` (descending).",
+                ),
+            )
+    return sort_
+
+
 def strip_oid(doc):
     return dissoc(doc, "_id")
 
@@ -102,7 +133,11 @@ def timeit(cursor):
 def find_resources(
     req: FindRequest, mdb: pymongo.database.Database, collection_name: str
 ):
+    # TODO handle req.group_by
+    # TODO handle req.search
+
     filter_ = get_mongo_filter(req.filter)
+    sort_ = get_mongo_sort(req.sort)
 
     total_count = mdb[collection_name].count_documents(filter=filter_)
 
@@ -115,11 +150,14 @@ def find_resources(
             )
         limit = req.per_page
         results, db_response_time_ms = timeit(
-            mdb[collection_name].find(filter=filter_, skip=skip, limit=limit)
+            mdb[collection_name].find(
+                filter=filter_, skip=skip, limit=limit, sort=sort_
+            )
         )
         rv = {
             "meta": {
                 "mongo_filter_dict": filter_,
+                "mongo_sort_list": [[a, s] for a, s in sort_] if sort_ else None,
                 "count": total_count,
                 "db_response_time_ms": db_response_time_ms,
                 "page": req.page,
@@ -154,8 +192,9 @@ def find_resources(
             )
 
         limit = req.per_page
+        sort_for_cursor = (sort_ or []) + [("id", 1)]
         results, db_response_time_ms = timeit(
-            mdb[collection_name].find(filter=filter_, limit=limit, sort=[("id", 1)])
+            mdb[collection_name].find(filter=filter_, limit=limit, sort=sort_for_cursor)
         )
         last_id = results[-1]["id"]
 
@@ -179,6 +218,7 @@ def find_resources(
         rv = {
             "meta": {
                 "mongo_filter_dict": filter_,
+                "mongo_sort_list": sort_for_cursor,
                 "count": total_count,
                 "db_response_time_ms": db_response_time_ms,
                 "page": None,
