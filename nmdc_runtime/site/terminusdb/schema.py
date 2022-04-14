@@ -5,6 +5,7 @@
 # use 'terminusdb sync' to change this file according to
 # the exsisting database schema
 ####
+from datetime import datetime
 from typing import Optional, Set
 
 from terminusdb_client.woqlschema import DocumentTemplate, LexicalKey
