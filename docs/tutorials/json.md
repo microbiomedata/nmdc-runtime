@@ -1,4 +1,4 @@
-# Tutorial - Validate JSON and Fetch JSON
+# Validate JSON and Fetch JSON
 
 Let's dive in and get acquainted with the NMDC Runtime API.
 
@@ -18,24 +18,24 @@ Let's validate it. Go to the [POST
 /metadata/json:validate](https://api.dev.microbiomedata.org/docs#/metadata/validate_json_metadata_json_validate_post)
 endpoint at <https://api.dev.microbiomedata.org/docs> and click "Try it out":
 
-![Try it Out](img/validate-json-try-it-out.png)
+![Try it Out](../img/validate-json-try-it-out.png)
 
 Now, copy the above JSON object, paste it into the `Request body` field, and hit `Execute`:
 
-![Paste Body and Execute](img/validate-json-copy-paste-execute.png)
+![Paste Body and Execute](../img/validate-json-copy-paste-execute.png)
 
 This gives us a response where the result is "errors". Looks like a biosample `id` needs to be a
 string value, and we are missing required properties. We also get a display of a `curl` command
 to reproduce the request on the command line:
 
-![Validation Response](img/validate-json-response.png)
+![Validation Response](../img/validate-json-response.png)
 
 Let's see what a "valid" response looks like. The [GET
 /nmdcschema/{collection_name}/{doc_id}](https://api.dev.microbiomedata.org/docs#/metadata/get_from_collection_by_id_nmdcschema__collection_name___doc_id__get)
 endpoint allows us to get the NMDC-schema-validated JSON object for one of the NMDC metadata
 collections:
 
-![Get one valid](img/validate-json-get-one-valid.png)
+![Get one valid](../img/validate-json-get-one-valid.png)
 
 For example,
 [https://api.dev.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217](https://api.dev.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217)
@@ -132,7 +132,7 @@ The [GET
 /nmdcschema/{collection_name}](https://api.dev.microbiomedata.org/docs#/metadata/list_from_collection_nmdcschema__collection_name__get)
 endpoint allows you to get a filtered list of documents from one of the NMDC Schema collections:
 
-![List from collections](img/list-from-collection.png)
+![List from collections](../img/list-from-collection.png)
 
 The `collection_name` must be one defined for a
 [nmdc:Database](https://microbiomedata.github.io/nmdc-schema/Database/), in the form expected by the
@@ -145,7 +145,7 @@ The `filter`, if provided, is a JSON document in the form of the
 the filter `{"part_of": "gold:Gs0114663"}` on collection_name `biosample_set` will list biosamples
 that are part of the `gold:Gs0114663` study:
 
-![List from collection, with filter](img/list-from-collection-filter.png)
+![List from collection, with filter](../img/list-from-collection-filter.png)
 
 When I execute that query, I use the default `max_page_size` of 20, meaning at most 20 documents are
 returned at a time. A much larger `max_page_size` is fine for programs/scripts, but can make your
@@ -168,7 +168,7 @@ has two fields, `resources` and `next_page_token`:
 `resources` is a list of documents. `next_page_token` is a value you can plug into a subsequent
 request as the `page_token` parameter:
 
-![List from collection, with filter and page token](img/list-from-collection-page-token.png)
+![List from collection, with filter and page token](../img/list-from-collection-page-token.png)
 
 This will return the next page of results. You do need to keep the other request parameters the
 same. In this way, you can page through and retrieve all documents that match a given filter (or no

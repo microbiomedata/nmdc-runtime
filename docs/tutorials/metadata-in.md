@@ -1,4 +1,4 @@
-# Tutorial - Submit Metadata as JSON
+# Submit Metadata as JSON
 
 ## Create a Data Repository Service (DRS) Object
 
@@ -73,7 +73,7 @@ Now, go to [PUT
 and ensure the types array for the object is `["metadata-in"]`. This lets the Runtime know that you
 intend for this object to be ingested as NMDC metadata.
 
-![metadata-in-put-types](img/metadata-in-put-types.png)
+![metadata-in-put-types](../img/metadata-in-put-types.png)
 
 ## Monitor the progress of metadata ingest
 
@@ -96,7 +96,7 @@ you can administer the underlying Dagster orchestrator via its Dagit web UI via
 
 Here's an example of the general Runs view after our new metadata has been ingested:
 
-![metadata-in-dagit-runs](img/metadata-in-dagit-runs.png)
+![metadata-in-dagit-runs](../img/metadata-in-dagit-runs.png)
 
 And indeed it has been ingested! See
 <https://api.dev.microbiomedata.org/nmdcschema/biosample_set/fake> (unless we already deleted it --

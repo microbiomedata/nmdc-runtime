@@ -11,29 +11,29 @@ make up-dev
 
 Load <http://localhost:3000/workspace> and ensure the `translation` repository is loaded:
 
-![dagster-workspace-repo-loaded](../img/dagster-workspace-repo-loaded.png)
+![dagster-workspace-repo-loaded](../../img/dagster-workspace-repo-loaded.png)
 
 
 Next, navigate to the Jobs page for the `translation` repository:
 
-![dagster-translation-repo-jobs](../img/dagster-translation-repo-jobs.png)
+![dagster-translation-repo-jobs](../../img/dagster-translation-repo-jobs.png)
 
 And finally, select the `gold` job from the table:
 
-![dagster-translation-gold-job](../img/dagster-translation-gold-job.png)
+![dagster-translation-gold-job](../../img/dagster-translation-gold-job.png)
 
 This will bring you to an overview of the job. Specifically, you will see the *graph* of
 *operations* that the job uses, as well as information about the *resources* needed for the
 operations. Click on the `Lauchpad` tab to examine the job's configuration:
 
-![dagster-translation-gold-overview](../img/dagster-translation-gold-overview.png)
+![dagster-translation-gold-overview](../../img/dagster-translation-gold-overview.png)
 
 In the launchpad, we see the configuration for the job, which includes a reference to a
 `nmdc_merged_data.tsv.zip` input file that was present in the nmdc-runtime git repository,
 accessible via the `/opt/dagster/lib/` path. We also see a button to launch a run of the job, i.e. a
 run of the graph of operations configured with the YAML shown:
 
-![dagster-translation-gold-launchpad](../img/dagster-translation-gold-launchpad.png)
+![dagster-translation-gold-launchpad](../../img/dagster-translation-gold-launchpad.png)
 
 This job is being run manually. Other jobs in the Runtime system may be launched via Dagster
 *sensors* that `yield RunRequest(run_key=..., run_config=...)` in the body of the sensor logic.
@@ -58,7 +58,7 @@ jq '{biosample_set:.}' gold.biosample_set.json \
     > gold.biosample_set.as_nmdcdb.2021-11-18.json
 ```
 
-Now, you may [submit this metadata as JSON through the API](../tutorial-metadata-in.md).
+Now, you may [submit this metadata as JSON through the API](../tutorials/tutorial-metadata-in.md).
 
 In the tutorial linked to above, GitHub's Gist service is used to host and obtain a URL for the
 JSON. Here's let's walk through using the NMDC's `www` directory on NERSC to host the file and

@@ -1,6 +1,6 @@
-# Contributing to Documentation
+# Contributing to the Docs
 
-How to contribute to this documentation.
+Reference for contributing to this documentation.
 
 ## Commands
 

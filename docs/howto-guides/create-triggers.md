@@ -1,4 +1,4 @@
-# Guide - Create Workflow Triggers To Spawn Jobs
+# Create Workflow Triggers To Spawn Jobs
 
 Jobs represent work to be done. Specifically, a [Job](https://api.dev.microbiomedata.org/docs#/jobs)
 is a request to run a [Workflow](https://api.dev.microbiomedata.org/docs#/workflows) given a certain
@@ -11,7 +11,7 @@ spawn a new Job when:
 4. through a [Trigger](https://api.dev.microbiomedata.org/docs#/triggers).
 
 <figure markdown style="max-width: 25em">
-  ![Job Triggering](img/job-triggering.png)
+  ![Job Triggering](../img/job-triggering.png)
   <figcaption>Job Triggering</figcaption>
 </figure>
 
