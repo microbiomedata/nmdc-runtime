@@ -11,6 +11,7 @@ nav:
     - howto-guides/claim-and-run-jobs.md
     - howto-guides/update-sensors-ops.md
     - howto-guides/release-process.md
+    - howto-guides/improving-search-api.md
     - Specific Jobs:
       - howto-guides/jobs/gold-translation-etl.md
   - Reference:
