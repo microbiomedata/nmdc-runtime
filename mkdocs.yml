@@ -14,6 +14,8 @@ nav:
     - howto-guides/improving-search-api.md
     - Specific Jobs:
       - howto-guides/jobs/gold-translation-etl.md
+  - Explanations:
+      - explanation/journeys.md
   - Reference:
     - contributing-docs.md
     - admin.md
