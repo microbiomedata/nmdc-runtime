@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-04-21T15:57:00-04:00 draft /runs and /run-events API resources
 * 2022-04-14T21:38:00−04:00 test re-deploy with refreshed credentials
 * 2022-04-14T13:05:00−04:00 add sort to search api. fix cursor-based pagination.
 * 2022-04-08T14:15:00−04:00 init basic search api
