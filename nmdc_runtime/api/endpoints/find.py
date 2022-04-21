@@ -1,6 +1,6 @@
 from operator import itemgetter
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
@@ -13,12 +13,15 @@ from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
     find_resources_spanning,
+    pipeline_find_resources,
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
     entity_attributes_to_index,
+    PipelineFindRequest,
+    PipelineFindResponse,
 )
 
 router = APIRouter()
@@ -199,4 +202,39 @@ def search_page(
         indexed_entity_attributes=indexed_entity_attributes,
         doc_links=doc_links,
     )
+    return HTMLResponse(content=html_content, status_code=200)
+
+
+@router.post(
+    "/pipeline_search",
+    response_model=PipelineFindResponse,
+    response_model_exclude_unset=True,
+)
+def pipeline_search(
+    req: PipelineFindRequest = Depends(),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    return pipeline_find_resources(req, mdb)
+
+
+@router.post(
+    "/pipeline_search_form",
+    response_model=PipelineFindResponse,
+    response_model_exclude_unset=True,
+)
+def pipeline_search(
+    pipeline_spec: str = Form(...),
+    description: str = Form(...),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    req = PipelineFindRequest(pipeline_spec=pipeline_spec, description=description)
+    return pipeline_find_resources(req, mdb)
+
+
+@router.get("/pipeline_search", response_class=HTMLResponse)
+def pipeline_search(
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    template = jinja_env.get_template("pipeline_search.html")
+    html_content = template.render()
     return HTMLResponse(content=html_content, status_code=200)

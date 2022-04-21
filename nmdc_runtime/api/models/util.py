@@ -39,10 +39,20 @@ class FindRequest(BaseModel):
         return values
 
 
+class PipelineFindRequest(BaseModel):
+    pipeline_spec: str
+    description: str
+
+
 class FindResponse(BaseModel):
     meta: dict
     results: List[dict]
     group_by: List[dict]
+
+
+class PipelineFindResponse(BaseModel):
+    meta: dict
+    results: List[dict]
 
 
 # Note: For MongoDB, a single collection can have no more than 64 indexes

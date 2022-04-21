@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NMDC Runtime Search API</title>
+    <style>
+        input {
+            display: block;
+            margin-top: 1em;
+            width: 90%;
+            font-size: 1.5em;
+        }
+        textarea {
+            display: block;
+            margin-top: 1em;
+            width: 90%;
+            font-size: 1.5em;
+        }
+        code {
+            display: block;
+            white-space: pre-wrap
+        }
+    </style>
+</head>
+<body>
+<h1>NMDC Runtime Pipeline-Search Form</h1>
+<p><a href="#examples">Examples below</a></p>
+
+
+<form action="pipeline_search_form" method="post">
+    <textarea name="pipeline_spec" rows="5", cols="40">
+    </textarea>
+    <input type="text" name="description">
+    <input type="submit" value="Search">
+</form>
+
+<h2 id="examples">Examples</h2>
+<p>
+    <code>
+    /biosamples?depth.has_numeric_value:>100,depth.has_unit:meter
+
+    | part_of->id
+
+    /studies
+    </code>
+</p>
+</body>
+</html>
