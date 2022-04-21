@@ -22,6 +22,7 @@ from nmdc_runtime.api.endpoints import (
     metadata,
     nmdcschema,
     find,
+    runs,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
@@ -42,6 +43,7 @@ api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
+api_router.include_router(runs.router, tags=["runs"])
 
 tags_metadata = [
     {
@@ -201,6 +203,13 @@ issue an update query).
     {
         "name": "find",
         "description": "Find NMDC metadata entities.",
+    },
+    {
+        "name": "runs",
+        "description": (
+            "[WORK IN PROGRESS] Run simple jobs. "
+            "For off-site job runs, keep the Runtime appraised of run events."
+        ),
     },
 ]
 
