@@ -147,9 +147,7 @@ def documentation_links(jsonschema_dict, collection_names):
         last_part = jsonschema_dict["$defs"]["Database"]["properties"][cn]["items"][
             "$ref"
         ].split("/")[-1]
-        entity_attrs = list(
-            get_nmdc_jsonschema_dict()["$defs"][last_part]["properties"]
-        )
+        entity_attrs = list(jsonschema_dict["$defs"][last_part]["properties"])
         if last_part in ("Biosample", "Study", "DataObject"):
             assoc_path = [cn]
         else:
