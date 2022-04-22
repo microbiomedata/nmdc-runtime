@@ -1,20 +1,20 @@
-# Tutorial - User/Site Login and Authentication
+# User/Site Login and Authentication
 
 ## Log in as a User
 
 Open <https://api.dev.microbiomedata.org/docs> and click on the `Authorize` button near the top of
 the page:
 
-![auth button](img/auth-button.png)
+![auth button](../img/auth-button.png)
 
 In the modal dialog, enter your given `username` and `password` in the first form, and click
 `Authorize`:
 
-![auth-username](img/auth-username.png)
+![auth-username](../img/auth-username.png)
 
 Once authorized, hit `Close` to get back to the interactive API documentation:
 
-![auth-close-modal](img/auth-close-modal.png)
+![auth-close-modal](../img/auth-close-modal.png)
 
 ## Create a User
 
@@ -78,7 +78,7 @@ Click on the `Authorize` button near the top of <https://api.dev.microbiomedata.
 need to `Logout` first. Scroll all the way down to the second form, the one with only two fields,
 `client_id` and `client_secret`:
 
-![auth-client-id](img/auth-client-id.png)
+![auth-client-id](../img/auth-client-id.png)
 
 Note that the form is for the `clientCredentials` flow, whereas the first form is for the `password`
 flow. In this clientCredentials form, enter your site client credentials and `Authorize`. You are

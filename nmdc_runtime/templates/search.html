@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NMDC Runtime Search API</title>
+    <style>
+        p {
+            max-width: 40em;
+        }
+        form {
+            margin-top: 2em;
+        }
+        label {
+            display: block;
+            font-size: 2em;
+        }
+        input[type="text"] {
+            height: 2em;
+            width: 90%;
+            display: block;
+            font-size: 1.5em;
+        }
+        input[type="submit"] {
+            display: block;
+            height: 3em;
+            margin-top: 0.5em;
+        }
+        code {
+            font-weight: bold;
+            background-color: #ccc;
+        }
+        #help {
+            margin-top: 3em;
+        }
+        h4 {
+            margin-bottom: 0;
+        }
+        ul {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+<h1>NMDC Runtime Search API</h1>
+<p><a href="#help">Help below</a></p>
+
+
+<form action="studies" method="get">
+    <label for="filter-studies">
+        Filter <a href="{{ doc_links.study_set.entity_url }}">studies</a>:
+    </label>
+    <p>
+        {% for attr in doc_links.study_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.study_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
+    <h4>Copy-and-paste Examples:</h4>
+    <ul>
+        <li>funding_sources.search:Department of Energy</li>
+        <li>ecosystem_type:Soil</li>
+    </ul>
+    <input type="text" name="filter" id="filter-studies">
+    <input type="submit" value="Search">
+</form>
+
+
+<form action="biosamples" method="get">
+    <label for="filter-biosamples">
+        Filter  <a href="{{ doc_links.biosample_set.entity_url }}">biosamples</a>:
+    </label>
+    <p>
+        {% for attr in doc_links.biosample_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.biosample_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
+    <h4>Copy-and-paste Examples:</h4>
+    <ul>
+        <li>id.search:^igsn</li>
+        <li>depth.has_numeric_value:>100,depth.has_unit:meter</li>
+    </ul>
+    <input type="text" name="filter" id="filter-biosamples">
+    <input type="submit" value="Search">
+</form>
+
+
+<form action="data_objects" method="get">
+    <label for="filter-data_objects">
+        Filter  <a href="{{ doc_links.data_object_set.entity_url }}">data_objects</a>:
+        </label>
+    <p>
+        {% for attr in doc_links.data_object_set.entity_attrs %}
+        <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for attr in indexed_entity_attributes.data_object_set %}
+        <li>{{ attr }}</li>
+        {% endfor %}
+    </ul>
+    <h4>Copy-and-paste Examples:</h4>
+    <ul>
+        <li>description.search:GFF</li>
+        <li>data_object_type.search:Enzyme Commission</li>
+    </ul>
+    <input type="text" name="filter" id="filter-data_objects">
+    <input type="submit" value="Search">
+</form>
+
+
+<form action="activities" method="get">
+    <label for="filter-activities">
+        Filter  <a href="https://microbiomedata.github.io/nmdc-schema/Activity">activities</a>:
+    </label>
+    <p>
+        {% for cname in activity_collection_names %}
+        <a href="{{ doc_links.activity_set[cname].entity_url }}">{{ doc_links.activity_set[cname].entity_name }}</a>{% if not loop.last %}, {% endif %}
+        <br/>
+            {% for attr in doc_links.activity_set[cname].entity_attrs %}
+            <a href="{{ attr.url }}">{{ attr.attr_name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        <br/>
+        {% endfor %}
+    </p>
+    <a href="#help-activities">Help with searching for activities</a>
+    <h4>Indexed attributes (for faster filtering):</h4>
+    <ul>
+        {% for collection_name in activity_collection_names %}
+        <li>{{ collection_name }}:
+            <ul>
+                {% for attr in indexed_entity_attributes[collection_name] %}
+                <li>{{ attr }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
+    <h4>Copy-and-paste Examples:</h4>
+    <ul>
+        <li>processing_institution:Joint Genome Institute</li>
+        <li>type:nmdc:NomAnalysisActivity,execution_resource:EMSL-RZR</li>
+    </ul>
+    <input type="text" name="filter" id="filter-activities">
+    <input type="submit" value="Search">
+</form>
+
+
+<h2 id="help">Help</h2>
+<p>
+    Filters are of the form <code>attribute:spec</code>, that is, an attribute followed by a colon
+    (<code>:</code>) followed by a specification of value.
+</p>
+<p>
+    The attributes available depend on the collection resource(s) being filtered.
+</p>
+<p>
+    Some attributes that are of type string (i.e., not numbers) may be annotated
+    with <code>.search</code> to indicate that the specification of value is to be
+    interpreted as a full-text search of the field.
+</p>
+<p>
+    The specification may be:
+    <ul>
+        <li> a simple value, or</li>
+        <li>
+            if the attribute type is a number or a date, the specification may be a value
+            preceded by <code><</code>, <code><=</code>, <code><</code>, or <code>>=</code>,</li>
+    </ul>
+</p>
+<p>
+    You can combine filters by separating them with a comma (<code>,</code>).
+</p>
+<h2 id="help-activities">Searching for Activities</h2>
+The Activities endpoint searches each of the following collections:
+<ul>
+{% for name in activity_collection_names %}
+<li>{{ name }}</li>
+{% endfor %}
+</ul>
+Activities search results are combined and returned. Each result will have a <code>type</code> field
+to let you
+know what kind of document it is.
+</body>
+</html>

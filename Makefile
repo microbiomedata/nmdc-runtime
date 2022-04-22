@@ -37,6 +37,13 @@ test-run:
 
 test: test-build test-dbinit test-run
 
+lint:
+	# Python syntax errors or undefined names
+	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
+	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
+		--statistics --extend-exclude="./build/" --extend-ignore=F722
+
 down-dev:
 	docker compose down
 
@@ -70,7 +77,13 @@ docs-dev:
 nersc-ssh-tunnel:
 	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
-		spin.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+
+mongorestore-nmdcdb-lite-archive:
+	wget https://portal.nersc.gov/project/m3408/meta/mongodumps/nmdcdb.lite.archive.gz
+	mongorestore --host localhost:27018 --username admin --password root --drop --gzip \
+		--archive=nmdcdb.lite.archive.gz
+	rm nmdcdb.lite.archive.gz
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs

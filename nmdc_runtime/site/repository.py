@@ -39,6 +39,7 @@ from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
+from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
@@ -146,7 +147,7 @@ def process_workflow_job_triggers(_context):
                 )
             )
         )
-        yield RunRequest(run_key=run_key, run_config=run_config)
+        yield RunRequest(run_key=run_key, run_config=unfreeze(run_config))
     else:
         yield SkipReason("No new jobs required")
 
@@ -185,7 +186,7 @@ def ensure_gold_translation_job(_context, asset_event):
             }
         },
     )
-    yield RunRequest(run_key=sensed_object_id, run_config=run_config)
+    yield RunRequest(run_key=sensed_object_id, run_config=unfreeze(run_config))
 
 
 @asset_sensor(
@@ -220,7 +221,7 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
                     }
                 },
             )
-            yield RunRequest(run_key=operation["id"], run_config=run_config)
+            yield RunRequest(run_key=operation["id"], run_config=unfreeze(run_config))
         else:
             yield SkipReason("Job found, but already claimed by this site")
     else:
@@ -283,7 +284,9 @@ def claim_and_run_metadata_in_jobs(_context):
                         }
                     },
                 )
-                yield RunRequest(run_key=operation["id"], run_config=run_config)
+                yield RunRequest(
+                    run_key=operation["id"], run_config=unfreeze(run_config)
+                )
                 yielded_run_request = True
             else:
                 skip_notes.append(
@@ -342,7 +345,9 @@ def claim_and_run_apply_changesheet_jobs(_context):
                         }
                     },
                 )
-                yield RunRequest(run_key=operation["id"], run_config=run_config)
+                yield RunRequest(
+                    run_key=operation["id"], run_config=unfreeze(run_config)
+                )
                 yielded_run_request = True
             else:
                 skip_notes.append(
@@ -380,7 +385,7 @@ def done_object_put_ops(_context):
     run_config = merge(run_config_frozen__normal_env, {})  # ensures this is a dict
     if should_run:
         run_key = ",".join(sorted([op["id"] for op in ops]))
-        yield RunRequest(run_key=run_key, run_config=run_config)
+        yield RunRequest(run_key=run_key, run_config=unfreeze(run_config))
 
 
 @repository

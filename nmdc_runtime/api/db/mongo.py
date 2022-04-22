@@ -1,5 +1,6 @@
 import os
 from functools import lru_cache
+from typing import Set
 
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo import MongoClient
@@ -17,7 +18,7 @@ def get_mongo_db() -> MongoDatabase:
 
 
 @lru_cache
-def nmdc_schema_collection_names(mdb: MongoDatabase):
+def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
     names = set(mdb.list_collection_names()) & set(
         get_nmdc_jsonschema_dict()["$defs"]["Database"]["properties"]
     )
@@ -26,4 +27,15 @@ def nmdc_schema_collection_names(mdb: MongoDatabase):
         "nmdc_schema_version",
         "date_created",
         "etl_software_version",
+    }
+
+
+@lru_cache
+def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
+    return nmdc_schema_collection_names(mdb) - {
+        "biosample_set",
+        "study_set",
+        "data_object_set",
+        "functional_annotation_set",
+        "genome_feature_set",
     }

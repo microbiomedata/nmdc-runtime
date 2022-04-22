@@ -12,13 +12,14 @@ aniso8601==7.0.0
     # via graphene
 antlr4-python3-runtime==4.9.3
     # via
+    #   linkml
     #   pyjsg
     #   pyshexc
 anyio==3.5.0
     # via
     #   starlette
     #   watchgod
-appnope==0.1.2
+appnope==0.1.3
     # via
     #   ipykernel
     #   ipython
@@ -33,12 +34,10 @@ asgiref==3.5.0
 asttokens==2.0.5
     # via stack-data
 attrs==21.4.0
-    # via
-    #   jsonschema
-    #   markdown-it-py
+    # via jsonschema
 autoflake==1.4
     # via shed
-babel==2.9.1
+babel==2.10.1
     # via sphinx
 backcall==0.2.0
     # via ipython
@@ -46,17 +45,17 @@ base32-lib==1.0.2
     # via -r requirements/main.in
 bcrypt==3.2.0
     # via passlib
-beautifulsoup4==4.10.0
+beautifulsoup4==4.11.1
     # via
     #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
-black==22.1.0
+black==22.3.0
     # via shed
-bleach==4.1.0
+bleach==5.0.0
     # via nbconvert
-boto3==1.21.22
+boto3==1.21.44
     # via -r requirements/main.in
-botocore==1.24.22
+botocore==1.24.44
     # via
     #   boto3
     #   s3transfer
@@ -75,7 +74,7 @@ chardet==4.0.0
     #   pyshexc
 charset-normalizer==2.0.12
     # via requests
-click==8.0.4
+click==8.1.2
     # via
     #   -r requirements/main.in
     #   black
@@ -96,21 +95,21 @@ croniter==1.3.4
     # via dagster
 cryptography==36.0.2
     # via python-jose
-dagit==0.14.5
+dagit==0.14.9
     # via -r requirements/main.in
-dagster==0.14.5
+dagster==0.14.9
     # via
     #   -r requirements/main.in
     #   dagit
     #   dagster-graphql
     #   dagster-postgres
-dagster-graphql==0.14.5
+dagster-graphql==0.14.9
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.14.5
+dagster-postgres==0.14.9
     # via -r requirements/main.in
-debugpy==1.5.1
+debugpy==1.6.0
     # via ipykernel
 decorator==5.1.1
     # via
@@ -142,11 +141,11 @@ et-xmlfile==1.1.0
     # via openpyxl
 executing==0.8.3
     # via stack-data
-fastapi==0.75.0
+fastapi==0.75.2
     # via -r requirements/main.in
 fastjsonschema==2.15.3
     # via -r requirements/main.in
-frozendict==2.3.0
+frozendict==2.3.2
     # via -r requirements/main.in
 gevent==21.12.0
     # via
@@ -170,7 +169,7 @@ graphql-core==2.3.2
     #   graphql-relay
 graphql-relay==2.0.1
     # via graphene
-graphviz==0.19.1
+graphviz==0.20
     # via linkml
 greenlet==1.1.2
     # via
@@ -204,16 +203,16 @@ importlib-metadata==4.11.3
     #   markdown
     #   mkdocs
     #   sphinx
-importlib-resources==5.4.0
+importlib-resources==5.7.1
     # via jsonschema
-ipykernel==6.9.2
+ipykernel==6.13.0
     # via
     #   ipywidgets
     #   jupyter
     #   jupyter-console
     #   notebook
     #   qtconsole
-ipython==8.1.1
+ipython==8.2.0
     # via
     #   ipykernel
     #   ipywidgets
@@ -252,7 +251,7 @@ jmespath==1.0.0
     #   botocore
 jq==1.2.2
     # via -r requirements/main.in
-jsbeautifier==1.14.0
+jsbeautifier==1.14.3
     # via mkdocs-mermaid2-plugin
 json-flattener==0.1.9
     # via linkml-runtime
@@ -269,7 +268,7 @@ jsonpatch==1.32
     # via linkml-dataops
 jsonpath-ng==1.5.3
     # via linkml-dataops
-jsonpointer==2.2
+jsonpointer==2.3
     # via jsonpatch
 jsonschema==4.4.0
     # via
@@ -278,7 +277,7 @@ jsonschema==4.4.0
     #   nbformat
 jupyter==1.0.0
     # via -r requirements/main.in
-jupyter-client==7.1.2
+jupyter-client==7.2.2
     # via
     #   ipykernel
     #   jupyter-console
@@ -286,7 +285,7 @@ jupyter-client==7.1.2
     #   qtconsole
 jupyter-console==6.4.3
     # via jupyter
-jupyter-core==4.9.2
+jupyter-core==4.10.0
     # via
     #   jupyter-client
     #   nbconvert
@@ -297,13 +296,13 @@ jupyterlab-widgets==1.1.0
     # via ipywidgets
 libcst==0.4.1
     # via shed
-linkml==1.2.3
+linkml==1.2.8
     # via
     #   -r requirements/main.in
     #   nmdc-schema
 linkml-dataops==0.1.0
     # via linkml
-linkml-runtime==1.2.2
+linkml-runtime==1.2.7
     # via
     #   -r requirements/main.in
     #   linkml
@@ -316,7 +315,7 @@ markdown==3.3.6
     #   mkdocs
     #   mkdocs-material
     #   pymdown-extensions
-markdown-it-py==2.0.1
+markdown-it-py==2.1.0
     # via
     #   mdit-py-plugins
     #   myst-parser
@@ -331,29 +330,29 @@ matplotlib-inline==0.1.3
     #   ipython
 mdit-py-plugins==0.3.0
     # via myst-parser
-mdurl==0.1.0
+mdurl==0.1.1
     # via markdown-it-py
 mergedeep==1.3.4
     # via mkdocs
 mistune==0.8.4
     # via nbconvert
-mkdocs==1.2.3
+mkdocs==1.3.0
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
-mkdocs-material==8.2.5
+mkdocs-material==8.2.9
     # via
     #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
 mkdocs-material-extensions==1.0.3
     # via mkdocs-material
-mkdocs-mermaid2-plugin==0.5.2
+mkdocs-mermaid2-plugin==0.6.0
     # via -r requirements/main.in
 mypy-extensions==0.4.3
     # via
     #   black
     #   typing-inspect
-myst-parser==0.17.0
+myst-parser==0.17.2
     # via linkml
 nbconvert==5.6.1
     # via
@@ -366,20 +365,20 @@ nbformat==5.1.3
     #   ipywidgets
     #   nbconvert
     #   notebook
-nest-asyncio==1.5.4
+nest-asyncio==1.5.5
     # via
     #   ipykernel
     #   jupyter-client
     #   notebook
 nmdc-schema==3.2.0
     # via -r requirements/main.in
-notebook==6.4.10
+notebook==6.4.11
     # via
     #   jupyter
     #   widgetsnbextension
 numpy==1.22.3
     # via pandas
-numpydoc==1.2
+numpydoc==1.2.1
     # via terminusdb-client
 openpyxl==3.0.7
     # via
@@ -388,16 +387,16 @@ openpyxl==3.0.7
     #   nmdc-schema
 packaging==21.3
     # via
-    #   bleach
     #   dagster
+    #   ipykernel
     #   mkdocs
     #   qtpy
     #   sphinx
-pandas==1.4.1
+pandas==1.4.2
     # via
     #   -r requirements/main.in
     #   linkml
-pandoc==2.1
+pandoc==2.2
     # via nmdc-schema
 pandocfilters==1.5.0
     # via nbconvert
@@ -417,7 +416,7 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-platformdirs==2.5.1
+platformdirs==2.5.2
     # via black
 plumbum==1.7.2
     # via pandoc
@@ -429,18 +428,18 @@ prefixcommons==0.1.9
     # via
     #   linkml
     #   linkml-runtime
-prometheus-client==0.13.1
+prometheus-client==0.14.1
     # via notebook
 promise==2.3
     # via
     #   gql
     #   graphql-core
     #   graphql-relay
-prompt-toolkit==3.0.28
+prompt-toolkit==3.0.29
     # via
     #   ipython
     #   jupyter-console
-protobuf==3.19.4
+protobuf==3.20.0
     # via
     #   dagster
     #   grpcio-health-checking
@@ -474,26 +473,26 @@ pygments==2.11.2
     #   nbconvert
     #   qtconsole
     #   sphinx
-pyjsg==0.11.9
+pyjsg==0.11.10
     # via
     #   linkml
     #   pyshexc
     #   shexjsg
-pymdown-extensions==9.2
+pymdown-extensions==9.3
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
-pymongo==4.0.2
+pymongo==4.1.1
     # via -r requirements/main.in
-pyparsing==3.0.7
+pyparsing==3.0.8
     # via
     #   packaging
     #   rdflib
 pyrsistent==0.18.1
     # via jsonschema
-pyshex==0.8.0
+pyshex==0.8.1
     # via linkml
-pyshexc==0.9.0
+pyshexc==0.9.1
     # via
     #   linkml
     #   pyshex
@@ -508,7 +507,7 @@ python-dateutil==2.8.2
     #   linkml
     #   pandas
     #   pendulum
-python-dotenv==0.19.2
+python-dotenv==0.20.0
     # via uvicorn
 python-editor==1.0.4
     # via alembic
@@ -516,16 +515,16 @@ python-jose[cryptography]==3.3.0
     # via -r requirements/main.in
 python-multipart==0.0.5
     # via -r requirements/main.in
-pytz==2021.3
+pytz==2022.1
     # via
     #   babel
     #   dagster
     #   pandas
 pytzdata==2020.1
     # via pendulum
-pyupgrade==2.31.1
+pyupgrade==2.32.0
     # via shed
-pyyaml==5.4.1
+pyyaml==6.0
     # via
     #   -r requirements/main.in
     #   dagit
@@ -547,7 +546,7 @@ pyzmq==22.3.0
     #   jupyter-client
     #   notebook
     #   qtconsole
-qtconsole==5.2.2
+qtconsole==5.3.0
     # via jupyter
 qtpy==2.0.1
     # via qtconsole
@@ -556,8 +555,6 @@ rdflib==6.1.1
     #   cfgraph
     #   linkml
     #   linkml-runtime
-    #   pyshex
-    #   pyshexc
     #   rdflib-jsonld
     #   rdflib-shim
     #   sparqlslurper
@@ -597,9 +594,9 @@ s3transfer==0.5.2
     # via boto3
 send2trash==1.8.0
     # via notebook
-shed==0.9.4
+shed==0.9.5
     # via terminusdb-client
-shexjsg==0.8.1
+shexjsg==0.8.2
     # via
     #   pyshex
     #   pyshexc
@@ -624,7 +621,7 @@ sniffio==1.2.0
     # via anyio
 snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.3.1
+soupsieve==2.3.2.post1
     # via beautifulsoup4
 sparqlslurper==0.5.1
     # via pyshex
@@ -632,14 +629,14 @@ sparqlwrapper==2.0.0
     # via
     #   pyshex
     #   sparqlslurper
-sphinx==4.4.0
+sphinx==4.5.0
     # via
     #   linkml
     #   myst-parser
     #   numpydoc
     #   sphinx-click
     #   sphinx-rtd-theme
-sphinx-click==3.1.0
+sphinx-click==4.0.3
     # via linkml
 sphinx-rtd-theme==1.0.0
     # via linkml
@@ -655,7 +652,7 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-sqlalchemy==1.4.32
+sqlalchemy==1.4.35
     # via
     #   alembic
     #   dagster
@@ -670,7 +667,7 @@ tabulate==0.8.9
     # via dagster
 terminado==0.13.3
     # via notebook
-terminusdb-client @ git+https://github.com/polyneme/terminusdb-client-python.git@allow-click-8.x
+terminusdb-client==10.0.32
     # via -r requirements/main.in
 testpath==0.6.0
     # via nbconvert
@@ -688,7 +685,7 @@ tornado==6.1
     #   jupyter-client
     #   notebook
     #   terminado
-tqdm==4.63.0
+tqdm==4.64.0
     # via
     #   -r requirements/main.in
     #   dagster
@@ -709,7 +706,7 @@ typeguard==2.13.3
     # via terminusdb-client
 typing-compat==0.1.0
     # via dagster
-typing-extensions==4.1.1
+typing-extensions==4.2.0
     # via
     #   black
     #   libcst
@@ -729,19 +726,19 @@ uvicorn[standard]==0.17.6
     #   dagit
 uvloop==0.16.0
     # via uvicorn
-watchdog==2.1.6
+watchdog==2.1.7
     # via
     #   dagit
     #   dagster
     #   linkml
     #   mkdocs
-watchgod==0.8
+watchgod==0.8.2
     # via uvicorn
 wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1
     # via bleach
-websockets==10.2
+websockets==10.3
     # via uvicorn
 widgetsnbextension==3.6.0
     # via ipywidgets
@@ -751,7 +748,7 @@ xlrd==2.0.1
     # via -r requirements/main.in
 xlsxwriter==3.0.3
     # via -r requirements/main.in
-zipp==3.7.0
+zipp==3.8.0
     # via
     #   importlib-metadata
     #   importlib-resources

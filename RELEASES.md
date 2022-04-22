@@ -14,6 +14,15 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-04-21T15:57:00-04:00 draft /runs and /run-events API resources
+* 2022-04-14T21:38:00−04:00 test re-deploy with refreshed credentials
+* 2022-04-14T13:05:00−04:00 add sort to search api. fix cursor-based pagination.
+* 2022-04-08T14:15:00−04:00 init basic search api
+* 2022-04-07T17:30:00−04:00 update docker image bases
+* 2022-03-23T17:15:00−04:00 idempotent api startup
+* 2022-03-23T15:04:00−04:00 fix below...again
+* 2022-03-23T14:58:00−04:00 fix below
+* 2022-03-23T14:50:00−04:00 fix dagster JSON serialization error 
 * 2022-03-18T12:33:00−04:00 upgrade to nmdc-schema==3.2.0
 * 2022-03-08T15:00:00−05:00 add get_by_id endpoint in /nmdcschema
 * 2022-01-20T20:17:00−08:00 Bump schema back to 2022.01.18rc1

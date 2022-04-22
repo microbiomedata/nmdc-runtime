@@ -1,0 +1,2683 @@
+[
+  {
+    "@type": "@context",
+    "@base": "terminusdb:///data/",
+    "@schema": "terminusdb:///schema#"
+  },
+  {
+    "@type": "Class",
+    "@id": "Activity",
+    "@documentation": {
+      "@comment": "a provence-generating activity",
+      "@properties": {
+        "id": "A unique identifier for a thing. Must be either a CURIE shorthand for a URI or a complete URI",
+        "name": "A human readable label for an entity",
+        "started_at_time": null,
+        "ended_at_time": null,
+        "was_informed_by": null,
+        "was_associated_with": null,
+        "used": null
+      }
+    },
+    "id": "xsd:string",
+    "name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "started_at_time": {
+      "@type": "Optional",
+      "@class": "xsd:dateTime"
+    },
+    "ended_at_time": {
+      "@type": "Optional",
+      "@class": "xsd:dateTime"
+    },
+    "was_informed_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    },
+    "was_associated_with": {
+      "@type": "Optional",
+      "@class": "Agent"
+    },
+    "used": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Agent",
+    "@documentation": {
+      "@comment": "a provence-generating agent",
+      "@properties": {
+        "acted_on_behalf_of": null,
+        "was_informed_by": null
+      }
+    },
+    "acted_on_behalf_of": {
+      "@type": "Optional",
+      "@class": "Agent"
+    },
+    "was_informed_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "AttributeValue",
+    "@documentation": {
+      "@comment": "The value for any value of a attribute for a sample. This object can hold both the un-normalized atomic value and the structured value",
+      "@properties": {
+        "has_raw_value": "The value that was specified for an annotation in raw form, i.e. a string. E.g. \"2 cm\" or \"2-4 cm\"",
+        "was_generated_by": null,
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects."
+      }
+    },
+    "has_raw_value": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "was_generated_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Biosample",
+    "@documentation": {
+      "@comment": "A material sample. It may be environmental (encompassing many organisms) or isolate or tissue.   An environmental sample containing genetic material from multiple individuals is commonly referred to as a biosample.",
+      "@properties": {
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "part_of": "Links a resource to another resource that either logically or physically includes it.",
+        "agrochem_addition": "Addition of fertilizers, pesticides, etc. - amount and time of applications",
+        "alkalinity": "Alkalinity, the ability of a solution to neutralize acids to the equivalence point of carbonate or bicarbonate",
+        "alkalinity_method": "Method used for alkalinity measurement",
+        "alkyl_diethers": "Concentration of alkyl diethers ",
+        "alt": "Altitude is a term used to identify heights of objects such as airplanes, space shuttles, rockets, atmospheric balloons and heights of places such as atmospheric layers and clouds. It is used to measure the height of an object which is above the earthbs surface. In this context, the altitude measurement is the vertical distance between the earth's surface above sea level and the sampled position in the air",
+        "al_sat": "Aluminum saturation (esp. For tropical soils)",
+        "al_sat_meth": "Reference or method used in determining Al saturation",
+        "aminopept_act": "Measurement of aminopeptidase activity",
+        "ammonium": "Concentration of ammonium in the sample",
+        "annual_precpt": "The average of all annual precipitation values known, or an estimated equivalent value derived by such methods as regional indexes or Isohyetal maps.",
+        "annual_temp": "Mean annual temperature",
+        "bacteria_carb_prod": "Measurement of bacterial carbon production",
+        "bishomohopanol": "Concentration of bishomohopanol ",
+        "bromide": "Concentration of bromide ",
+        "calcium": "Concentration of calcium in the sample",
+        "carb_nitro_ratio": "Ratio of amount or concentrations of carbon to nitrogen",
+        "chem_administration": "List of chemical compounds administered to the host or site where sampling occurred, and when (e.g. Antibiotics, n fertilizer, air filter); can include multiple compounds. For chemical entities of biological interest ontology (chebi) (v 163), http://purl.bioontology.org/ontology/chebi",
+        "chloride": "Concentration of chloride in the sample",
+        "chlorophyll": "Concentration of chlorophyll",
+        "collection_date": "The time of sampling, either as an instance (single point in time) or interval. In case no exact time is available, the date/time can be right truncated i.e. all of these are valid times: 2008-01-23T19:23:10+00:00; 2008-01-23T19:23:10; 2008-01-23; 2008-01; 2008; Except: 2008-01; 2008 all are ISO8601 compliant",
+        "cur_land_use": "Present state of sample site",
+        "cur_vegetation": "Vegetation classification from one or more standard classification systems, or agricultural crop",
+        "cur_vegetation_meth": "Reference or method used in vegetation classification ",
+        "crop_rotation": "Whether or not crop is rotated, and if yes, rotation schedule",
+        "density": "Density of the sample, which is its mass per unit volume (aka volumetric mass density)",
+        "depth": "Depth is defined as the vertical distance below local surface, e.g. For sediment or soil samples depth is measured from sediment or soil surface, respectively. Depth can be reported as an interval for subsurface samples",
+        "diss_carb_dioxide": "Concentration of dissolved carbon dioxide in the sample or liquid portion of the sample",
+        "diss_hydrogen": "Concentration of dissolved hydrogen",
+        "diss_inorg_carb": "Dissolved inorganic carbon concentration in the sample, typically measured after filtering the sample using a 0.45 micrometer filter",
+        "diss_inorg_phosp": "Concentration of dissolved inorganic phosphorus in the sample",
+        "diss_org_carb": "Concentration of dissolved organic carbon in the sample, liquid portion of the sample, or aqueous phase of the fluid",
+        "diss_org_nitro": "Dissolved organic nitrogen concentration measured as; total dissolved nitrogen - NH4 - NO3 - NO2",
+        "diss_oxygen": "Concentration of dissolved oxygen",
+        "drainage_class": "Drainage classification from a standard system such as the USDA system",
+        "elev": "Elevation of the sampling site is its height above a fixed reference point, most commonly the mean sea level. Elevation is mainly used when referring to points on the earth's surface, while altitude is used for points above the surface, such as an aircraft in flight or a spacecraft in orbit",
+        "env_package": "MIxS extension for reporting of measurements and observations obtained from one or more of the environments where the sample was obtained. All environmental packages listed here are further defined in separate subtables. By giving the name of the environmental package, a selection of fields can be made from the subtables and can be reported",
+        "env_broad_scale": "In this field, report which major environmental system your sample or specimen came from. The systems identified should have a coarse spatial grain, to provide the general environmental context of where the sampling was done (e.g. were you in the desert or a rainforest?). We recommend using subclasses of ENVOUs biome class: http://purl.obolibrary.org/obo/ENVO_00000428. Format (one term): termLabel [termID], Format (multiple terms): termLabel [termID]|termLabel [termID]|termLabel [termID]. Example: Annotating a water sample from the photic zone in middle of the Atlantic Ocean, consider: oceanic epipelagic zone biome [ENVO:01000033]. Example: Annotating a sample from the Amazon rainforest consider: tropical moist broadleaf forest biome [ENVO:01000228]. If needed, request new terms on the ENVO tracker, identified here: http://www.obofoundry.org/ontology/envo.html",
+        "env_local_scale": "In this field, report the entity or entities which are in your sample or specimenUs local vicinity and which you believe have significant causal influences on your sample or specimen. Please use terms that are present in ENVO and which are of smaller spatial grain than your entry for env_broad_scale. Format (one term): termLabel [termID]; Format (multiple terms): termLabel [termID]|termLabel [termID]|termLabel [termID]. Example: Annotating a pooled sample taken from various vegetation layers in a forest consider: canopy [ENVO:00000047]|herb and fern layer [ENVO:01000337]|litter layer [ENVO:01000338]|understory [01000335]|shrub layer [ENVO:01000336]. If needed, request new terms on the ENVO tracker, identified here: http://www.obofoundry.org/ontology/envo.html",
+        "env_medium": "In this field, report which environmental material or materials (pipe separated) immediately surrounded your sample or specimen prior to sampling, using one or more subclasses of ENVOUs environmental material class: http://purl.obolibrary.org/obo/ENVO_00010483. Format (one term): termLabel [termID]; Format (multiple terms): termLabel [termID]|termLabel [termID]|termLabel [termID]. Example: Annotating a fish swimming in the upper 100 m of the Atlantic Ocean, consider: ocean water [ENVO:00002151]. Example: Annotating a duck on a pond consider: pond water [ENVO:00002228]|air ENVO_00002005. If needed, request new terms on the ENVO tracker, identified here: http://www.obofoundry.org/ontology/envo.html",
+        "extreme_event": "Unusual physical events that may have affected microbial populations",
+        "fao_class": "Soil classification from the FAO World Reference Database for Soil Resources. The list can be found at http://www.fao.org/nr/land/sols/soil/wrb-soil-maps/reference-groups",
+        "fire": "Historical and/or physical evidence of fire",
+        "flooding": "Historical and/or physical evidence of flooding",
+        "geo_loc_name": "The geographical origin of the sample as defined by the country or sea name followed by specific region name. Country or sea names should be chosen from the INSDC country list (http://insdc.org/country.html), or the GAZ ontology (v 1.512) (http://purl.bioontology.org/ontology/GAZ)",
+        "glucosidase_act": "Measurement of glucosidase activity",
+        "heavy_metals": "Heavy metals present and concentrationsany drug used by subject and the frequency of usage; can include multiple heavy metals and concentrations",
+        "heavy_metals_meth": "Reference or method used in determining heavy metals",
+        "horizon": "Specific layer in the land area which measures parallel to the soil surface and possesses physical characteristics which differ from the layers above and beneath",
+        "horizon_meth": "Reference or method used in determining the horizon",
+        "lat_lon": "The geographical origin of the sample as defined by latitude and longitude. The values should be reported in decimal degrees and in WGS84 system",
+        "link_addit_analys": "Link to additional analysis results performed on the sample",
+        "link_class_info": "Link to digitized soil maps or other soil classification information",
+        "link_climate_info": "Link to climate resource",
+        "local_class": "Soil classification based on local soil classification system",
+        "local_class_meth": "Reference or method used in determining the local soil classification ",
+        "magnesium": "Concentration of magnesium in the sample",
+        "mean_frict_vel": "Measurement of mean friction velocity",
+        "mean_peak_frict_vel": "Measurement of mean peak friction velocity",
+        "microbial_biomass": "The part of the organic matter in the soil that constitutes living microorganisms smaller than 5-10 micrometer. If you keep this, you would need to have correction factors used for conversion to the final units",
+        "microbial_biomass_meth": "Reference or method used in determining microbial biomass",
+        "misc_param": "Any other measurement performed or parameter collected, that is not listed here",
+        "n_alkanes": "Concentration of n-alkanes; can include multiple n-alkanes",
+        "nitrate": "Concentration of nitrate in the sample",
+        "nitrite": "Concentration of nitrite in the sample",
+        "org_matter": "Concentration of organic matter ",
+        "org_nitro": "Concentration of organic nitrogen",
+        "organism_count": "Total cell count of any organism (or group of organisms) per gram, volume or area of sample, should include name of organism followed by count. The method that was used for the enumeration (e.g. qPCR, atp, mpn, etc.) Should also be provided. (example: total prokaryotes; 3.5e7 cells per ml; qpcr)",
+        "oxy_stat_samp": "Oxygenation status of sample",
+        "part_org_carb": "Concentration of particulate organic carbon",
+        "perturbation": "Type of perturbation, e.g. chemical administration, physical disturbance, etc., coupled with perturbation regimen including how many times the perturbation was repeated, how long each perturbation lasted, and the start and end time of the entire perturbation period; can include multiple perturbation types",
+        "petroleum_hydrocarb": "Concentration of petroleum hydrocarbon",
+        "ph": "Ph measurement of the sample, or liquid portion of sample, or aqueous phase of the fluid",
+        "ph_meth": "Reference or method used in determining ph",
+        "phaeopigments": "Concentration of phaeopigments; can include multiple phaeopigments",
+        "phosplipid_fatt_acid": "Concentration of phospholipid fatty acids; can include multiple values",
+        "pool_dna_extracts": "Indicate whether multiple DNA extractions were mixed. If the answer yes, the number of extracts that were pooled should be given",
+        "potassium": "Concentration of potassium in the sample",
+        "pressure": "Pressure to which the sample is subject to, in atmospheres",
+        "previous_land_use": "Previous land use and dates",
+        "previous_land_use_meth": "Reference or method used in determining previous land use and dates",
+        "profile_position": "Cross-sectional position in the hillslope where sample was collected.sample area position in relation to surrounding areas",
+        "redox_potential": "Redox potential, measured relative to a hydrogen cell, indicating oxidation or reduction potential",
+        "salinity": "Salinity is the total concentration of all dissolved salts in a water sample. While salinity can be measured by a complete chemical analysis, this method is difficult and time consuming. More often, it is instead derived from the conductivity measurement. This is known as practical salinity. These derivations compare the specific conductance of the sample to a salinity standard such as seawater",
+        "salinity_meth": "Reference or method used in determining salinity",
+        "samp_collect_device": "The method or device employed for collecting the sample",
+        "samp_mat_process": "Any processing applied to the sample during or after retrieving the sample from environment. This field accepts OBI, for a browser of OBI (v 2018-02-12) terms please see http://purl.bioontology.org/ontology/OBI",
+        "samp_store_dur": "Duration for which the sample was stored",
+        "samp_store_loc": "Location at which sample was stored, usually name of a specific freezer/room",
+        "samp_store_temp": "Temperature at which sample was stored, e.g. -80 degree Celsius",
+        "samp_vol_we_dna_ext": "Volume (ml), weight (g) of processed sample, or surface area swabbed from sample for DNA extraction",
+        "season_temp": "Mean seasonal temperature",
+        "season_precpt": "The average of all seasonal precipitation values known, or an estimated equivalent value derived by such methods as regional indexes or Isohyetal maps.",
+        "sieving": "Collection design of pooled samples and/or sieve size and amount of sample sieved ",
+        "size_frac_low": "Refers to the mesh/pore size used to pre-filter/pre-sort the sample. Materials larger than the size threshold are excluded from the sample",
+        "size_frac_up": "Refers to the mesh/pore size used to retain the sample. Materials smaller than the size threshold are excluded from the sample",
+        "slope_gradient": "Commonly called 'slope'. The angle between ground surface and a horizontal line (in percent). This is the direction that overland water would flow. This measure is usually taken with a hand level meter or clinometer",
+        "slope_aspect": "The direction a slope faces. While looking down a slope use a compass to record the direction you are facing (direction or degrees); e.g., nw or 315 degrees. This measure provides an indication of sun and wind exposure that will influence soil temperature and evapotranspiration.",
+        "sodium": "Sodium concentration in the sample",
+        "soil_type": "Soil series name or other lower-level classification",
+        "soil_type_meth": "Reference or method used in determining soil series name or other lower-level classification",
+        "store_cond": "Explain how and for how long the soil sample was stored before DNA extraction",
+        "sulfate": "Concentration of sulfate in the sample",
+        "sulfide": "Concentration of sulfide in the sample",
+        "temp": "Temperature of the sample at the time of sampling",
+        "texture": "The relative proportion of different grain sizes of mineral particles in a soil, as described using a standard system; express as % sand (50 um to 2 mm), silt (2 um to 50 um), and clay (<2 um) with textural name (e.g., silty clay loam) optional.",
+        "texture_meth": "Reference or method used in determining soil texture",
+        "tillage": "Note method(s) used for tilling",
+        "tidal_stage": "Stage of tide",
+        "tot_carb": "Total carbon content",
+        "tot_depth_water_col": "Measurement of total depth of water column",
+        "tot_diss_nitro": "Total dissolved nitrogen concentration, reported as nitrogen, measured by: total dissolved nitrogen = NH4 + NO3NO2 + dissolved organic nitrogen",
+        "tot_org_carb": "Definition for soil: total organic carbon content of the soil, definition otherwise: total organic carbon content",
+        "tot_org_c_meth": "Reference or method used in determining total organic carbon",
+        "tot_nitro_content": "Total nitrogen content of the sample",
+        "tot_nitro_content_meth": "Reference or method used in determining the total nitrogen",
+        "tot_phosp": "Total phosphorus concentration in the sample, calculated by: total phosphorus = total dissolved phosphorus + particulate phosphorus",
+        "water_content": "Water content measurement",
+        "water_content_soil_meth": "Reference or method used in determining the water content of soil",
+        "ecosystem": "An ecosystem is a combination of a physical environment (abiotic factors) and all the organisms (biotic factors) that interact with this environment. Ecosystem is in position 1/5 in a GOLD path.",
+        "ecosystem_category": "Ecosystem categories represent divisions within the ecosystem based on specific characteristics of the environment from where an organism or sample is isolated. Ecosystem category is in position 2/5 in a GOLD path.",
+        "ecosystem_type": "Ecosystem types represent things having common characteristics within the Ecosystem Category. These common characteristics based grouping is still broad but specific to the characteristics of a given environment. Ecosystem type is in position 3/5 in a GOLD path.",
+        "ecosystem_subtype": "Ecosystem subtypes represent further subdivision of Ecosystem types into more distinct subtypes. Ecosystem subtype is in position 4/5 in a GOLD path.",
+        "specific_ecosystem": "Specific ecosystems represent specific features of the environment like aphotic zone in an ocean or gastric mucosa within a host digestive system. Specific ecosystem is in position 5/5 in a GOLD path.",
+        "add_date": "The date on which the information was added to the database.",
+        "community": null,
+        "depth2": null,
+        "habitat": null,
+        "host_name": null,
+        "identifier": null,
+        "location": null,
+        "mod_date": "The last date on which the database information was modified.",
+        "ncbi_taxonomy_name": null,
+        "proport_woa_temperature": null,
+        "salinity_category": "Categorcial description of the sample's salinity. Examples: halophile, halotolerant, hypersaline, huryhaline",
+        "sample_collection_site": null,
+        "soluble_iron_micromol": null,
+        "subsurface_depth": null,
+        "subsurface_depth2": null,
+        "GOLD_sample_identifiers": "identifiers for corresponding sample in GOLD",
+        "INSDC_biosample_identifiers": "identifiers for corresponding sample in INSDC",
+        "INSDC_secondary_sample_identifiers": "secondary identifiers for corresponding sample in INSDC"
+      }
+    },
+    "@inherits": "NamedThing",
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "part_of": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "agrochem_addition": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "alkalinity": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "alkalinity_method": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "alkyl_diethers": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "alt": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "al_sat": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "al_sat_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "aminopept_act": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "ammonium": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "annual_precpt": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "annual_temp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "bacteria_carb_prod": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "bishomohopanol": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "bromide": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "calcium": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "carb_nitro_ratio": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "chem_administration": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "chloride": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "chlorophyll": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "collection_date": {
+      "@type": "Optional",
+      "@class": "TimestampValue"
+    },
+    "cur_land_use": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "cur_vegetation": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "cur_vegetation_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "crop_rotation": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "density": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "depth": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_carb_dioxide": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_hydrogen": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_inorg_carb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_inorg_phosp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_org_carb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_org_nitro": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "diss_oxygen": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "drainage_class": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "elev": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "env_package": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "env_broad_scale": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "env_local_scale": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "env_medium": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "extreme_event": {
+      "@type": "Optional",
+      "@class": "TimestampValue"
+    },
+    "fao_class": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "fire": {
+      "@type": "Optional",
+      "@class": "TimestampValue"
+    },
+    "flooding": {
+      "@type": "Optional",
+      "@class": "TimestampValue"
+    },
+    "geo_loc_name": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "glucosidase_act": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "heavy_metals": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "heavy_metals_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "horizon": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "horizon_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "lat_lon": {
+      "@type": "Optional",
+      "@class": "GeolocationValue"
+    },
+    "link_addit_analys": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "link_class_info": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "link_climate_info": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "local_class": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "local_class_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "magnesium": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "mean_frict_vel": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "mean_peak_frict_vel": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "microbial_biomass": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "microbial_biomass_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "misc_param": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "n_alkanes": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "nitrate": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "nitrite": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "org_matter": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "org_nitro": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "organism_count": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "oxy_stat_samp": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "part_org_carb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "perturbation": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "petroleum_hydrocarb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "ph": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "ph_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "phaeopigments": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "phosplipid_fatt_acid": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "pool_dna_extracts": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "potassium": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "pressure": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "previous_land_use": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "previous_land_use_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "profile_position": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "redox_potential": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "salinity": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "salinity_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "samp_collect_device": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "samp_mat_process": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "samp_store_dur": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "samp_store_loc": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "samp_store_temp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "samp_vol_we_dna_ext": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "season_temp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "season_precpt": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "sieving": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "size_frac_low": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "size_frac_up": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "slope_gradient": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "slope_aspect": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "sodium": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "soil_type": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "soil_type_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "store_cond": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "sulfate": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "sulfide": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "temp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "texture": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "texture_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "tillage": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "tidal_stage": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "tot_carb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "tot_depth_water_col": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "tot_diss_nitro": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "tot_org_carb": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "tot_org_c_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "tot_nitro_content": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "tot_nitro_content_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "tot_phosp": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "water_content": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "water_content_soil_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "ecosystem": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_category": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_subtype": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "specific_ecosystem": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "add_date": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "community": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "depth2": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "habitat": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "host_name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "identifier": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "location": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "mod_date": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ncbi_taxonomy_name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "proport_woa_temperature": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "salinity_category": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "sample_collection_site": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "soluble_iron_micromol": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "subsurface_depth": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "subsurface_depth2": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "GOLD_sample_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "INSDC_biosample_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "INSDC_secondary_sample_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "BiosampleProcessing",
+    "@documentation": {
+      "@comment": "A process that takes one or more biosamples as inputs and generates one or as outputs. Examples of outputs include samples cultivated from another sample or data objects created by instruments runs.",
+      "@properties": {
+        "has_input": "An input to a process."
+      }
+    },
+    "@inherits": "NamedThing",
+    "has_input": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "BooleanValue",
+    "@documentation": {
+      "@comment": "A value that is a boolean",
+      "@properties": {
+        "has_boolean_value": "Links a quantity value to a boolean"
+      }
+    },
+    "@inherits": "AttributeValue",
+    "has_boolean_value": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ChemicalEntity",
+    "@documentation": {
+      "@comment": "An atom or molecule that can be represented with a chemical formula. Include lipids, glycans, natural products, drugs. There may be different terms for distinct acid-base forms, protonation states",
+      "@properties": {
+        "inchi": null,
+        "inchi_key": null,
+        "smiles": "A string encoding of a molecular graph, no chiral or isotopic information. There are usually a large number of valid SMILES which represent a given structure. For example, CCO, OCC and C(O)C all specify the structure of ethanol.",
+        "chemical_formula": "A generic grouping for miolecular formulae and empirican formulae"
+      }
+    },
+    "@inherits": "OntologyClass",
+    "inchi": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "inchi_key": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "smiles": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "chemical_formula": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ControlledTermValue",
+    "@documentation": {
+      "@comment": "A controlled term or class from an ontology",
+      "@properties": {
+        "term": "pointer to an ontology class"
+      }
+    },
+    "@inherits": "AttributeValue",
+    "term": {
+      "@type": "Optional",
+      "@class": "OntologyClass"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "CreditAssociation",
+    "@documentation": {
+      "@comment": "This class supports binding associated researchers to studies. There will be at least a slot for a CRediT Contributor Role (https://casrai.org/credit/) and for a person value Specifically see the associated researchers tab on the NMDC_SampleMetadata-V4_CommentsForUpdates at https://docs.google.com/spreadsheets/d/1INlBo5eoqn2efn4H2P2i8rwRBtnbDVTqXrochJEAPko/edit#gid=0",
+      "@properties": {
+        "applies_to_person": null,
+        "applied_role": null,
+        "applied_roles": null,
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects."
+      }
+    },
+    "applies_to_person": "PersonValue",
+    "applied_role": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "applied_roles": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "DataObject",
+    "@documentation": {
+      "@comment": "An object that primarily consists of symbols that represent information.   Files, records, and omics data are examples of data objects.",
+      "@properties": {
+        "file_size_bytes": "Size of the file in bytes",
+        "md5_checksum": "MD5 checksum of file (pre-compressed)",
+        "data_object_type": "The type of file represented by the data object.",
+        "compression_type": "If provided, specifies the compression type",
+        "was_generated_by": null,
+        "url": null,
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "name": "A human readable label for an entity",
+        "description": "a human-readable description of a thing"
+      }
+    },
+    "@inherits": "NamedThing",
+    "file_size_bytes": {
+      "@type": "Optional",
+      "@class": "xsd:long"
+    },
+    "md5_checksum": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "data_object_type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "compression_type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "was_generated_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    },
+    "url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "description": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Database",
+    "@documentation": {
+      "@comment": "An abstract holder for any set of metadata and data. It does not need to correspond to an actual managed databse top level holder class. When translated to JSON-Schema this is the 'root' object. It should contain pointers to other objects of interest",
+      "@properties": {
+        "biosample_set": "This property links a database object to the set of samples within it.",
+        "study_set": "This property links a database object to the set of studies within it.",
+        "data_object_set": "This property links a database object to the set of data objects within it.",
+        "activity_set": "This property links a database object to the set of workflow activities.",
+        "mags_activity_set": "This property links a database object to the set of MAGs analysis activities.",
+        "metabolomics_analysis_activity_set": "This property links a database object to the set of metabolomics analysis activities.",
+        "metaproteomics_analysis_activity_set": "This property links a database object to the set of metaproteomics analysis activities.",
+        "metagenome_annotation_activity_set": "This property links a database object to the set of metagenome annotation activities.",
+        "metagenome_assembly_set": "This property links a database object to the set of metagenome assembly activities.",
+        "metatranscriptome_activity_set": "This property links a database object to the set of metatranscriptome analysis activities.",
+        "read_QC_analysis_activity_set": "This property links a database object to the set of read QC analysis activities.",
+        "read_based_analysis_activity_set": "This property links a database object to the set of read based analysis activities.\n  ",
+        "nom_analysis_activity_set": "This property links a database object to the set of natural organic matter (NOM) analysis activities.",
+        "omics_processing_set": "This property links a database object to the set of omics processings within it.",
+        "functional_annotation_set": "This property links a database object to the set of all functional annotations",
+        "genome_feature_set": "This property links a database object to the set of all features",
+        "nmdc_schema_version": "TODO",
+        "date_created": "TODO",
+        "etl_software_version": "TODO"
+      }
+    },
+    "biosample_set": {
+      "@type": "Set",
+      "@class": "Biosample"
+    },
+    "study_set": {
+      "@type": "Set",
+      "@class": "Study"
+    },
+    "data_object_set": {
+      "@type": "Set",
+      "@class": "DataObject"
+    },
+    "activity_set": {
+      "@type": "Set",
+      "@class": "WorkflowExecutionActivity"
+    },
+    "mags_activity_set": {
+      "@type": "Set",
+      "@class": "MAGsAnalysisActivity"
+    },
+    "metabolomics_analysis_activity_set": {
+      "@type": "Set",
+      "@class": "MetabolomicsAnalysisActivity"
+    },
+    "metaproteomics_analysis_activity_set": {
+      "@type": "Set",
+      "@class": "MetaproteomicsAnalysisActivity"
+    },
+    "metagenome_annotation_activity_set": {
+      "@type": "Set",
+      "@class": "MetagenomeAnnotationActivity"
+    },
+    "metagenome_assembly_set": {
+      "@type": "Set",
+      "@class": "MetagenomeAssembly"
+    },
+    "metatranscriptome_activity_set": {
+      "@type": "Set",
+      "@class": "MetatranscriptomeActivity"
+    },
+    "read_QC_analysis_activity_set": {
+      "@type": "Set",
+      "@class": "ReadQCAnalysisActivity"
+    },
+    "read_based_analysis_activity_set": {
+      "@type": "Set",
+      "@class": "ReadBasedAnalysisActivity"
+    },
+    "nom_analysis_activity_set": {
+      "@type": "Set",
+      "@class": "NomAnalysisActivity"
+    },
+    "omics_processing_set": {
+      "@type": "Set",
+      "@class": "OmicsProcessing"
+    },
+    "functional_annotation_set": {
+      "@type": "Set",
+      "@class": "FunctionalAnnotation"
+    },
+    "genome_feature_set": {
+      "@type": "Set",
+      "@class": "GenomeFeature"
+    },
+    "nmdc_schema_version": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "date_created": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "etl_software_version": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "EnvironmentalMaterialTerm",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {}
+    },
+    "@inherits": "OntologyClass",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "FunctionalAnnotation",
+    "@documentation": {
+      "@comment": "An assignment of a function term (e.g. reaction or pathway) that is executed by a gene product, or which the gene product plays an active role in. Functional annotations can be assigned manually by curators, or automatically in workflows. In the context of NMDC, all function annotation is performed automatically, typically using HMM or Blast type methods",
+      "@properties": {
+        "was_generated_by": null,
+        "subject": null,
+        "has_function": null,
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects."
+      }
+    },
+    "was_generated_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    },
+    "subject": {
+      "@type": "Optional",
+      "@class": "GeneProduct"
+    },
+    "has_function": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "FunctionalAnnotationTerm",
+    "@documentation": {
+      "@comment": "Abstract grouping class for any term/descriptor that can be applied to a functional unit of a genome (protein, ncRNA, complex).",
+      "@properties": {}
+    },
+    "@inherits": "OntologyClass",
+    "@abstract": [],
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "GeneProduct",
+    "@documentation": {
+      "@comment": "A molecule encoded by a gene that has an evolved function",
+      "@properties": {}
+    },
+    "@inherits": "NamedThing",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "GenomeFeature",
+    "@documentation": {
+      "@comment": "A feature localized to an interval along a genome",
+      "@properties": {
+        "seqid": "The ID of the landmark used to establish the coordinate system for the current feature.",
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "start": "The start of the feature in positive 1-based integer coordinates",
+        "end": "The end of the feature in positive 1-based integer coordinates",
+        "strand": "The strand on which a feature is located. Has a value of '+' (sense strand or forward strand) or '-' (anti-sense strand or reverse strand).",
+        "phase": "The phase for a coding sequence entity. For example, phase of a CDS as represented in a GFF3 with a value of 0, 1 or 2.",
+        "encodes": "The gene product encoded by this feature. Typically this is used for a CDS feature or gene feature which will encode a protein. It can also be used by a nc transcript ot gene feature that encoded a ncRNA",
+        "feature_type": "TODO: Yuri to write"
+      }
+    },
+    "seqid": "xsd:string",
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "start": "xsd:integer",
+    "end": "xsd:integer",
+    "strand": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "phase": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "encodes": {
+      "@type": "Optional",
+      "@class": "GeneProduct"
+    },
+    "feature_type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "GeolocationValue",
+    "@documentation": {
+      "@comment": "A normalized value for a location on the earth's surface",
+      "@properties": {
+        "latitude": "latitude",
+        "longitude": "longitude",
+        "has_raw_value": "The value that was specified for an annotation in raw form, i.e. a string. E.g. \"2 cm\" or \"2-4 cm\""
+      }
+    },
+    "@inherits": "AttributeValue",
+    "latitude": {
+      "@type": "Optional",
+      "@class": "xsd:decimal"
+    },
+    "longitude": {
+      "@type": "Optional",
+      "@class": "xsd:decimal"
+    },
+    "has_raw_value": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ImageValue",
+    "@documentation": {
+      "@comment": "An attribute value representing an image.",
+      "@properties": {
+        "url": null,
+        "description": "a human-readable description of a thing",
+        "display_order": "When rendering information, this attribute to specify the order in which the information should be rendered."
+      }
+    },
+    "@inherits": "AttributeValue",
+    "url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "description": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "display_order": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Instrument",
+    "@documentation": {
+      "@comment": "A material entity that is designed to perform a function in a scientific investigation, but is not a reagent[OBI].",
+      "@properties": {}
+    },
+    "@inherits": "NamedThing",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "IntegerValue",
+    "@documentation": {
+      "@comment": "A value that is an integer",
+      "@properties": {
+        "has_numeric_value": "Links a quantity value to a number"
+      }
+    },
+    "@inherits": "AttributeValue",
+    "has_numeric_value": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MAGBin",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "bin_name": null,
+        "number_of_contig": null,
+        "completeness": null,
+        "contamination": null,
+        "gene_count": null,
+        "bin_quality": null,
+        "num_16s": null,
+        "num_5s": null,
+        "num_23s": null,
+        "num_tRNA": null,
+        "gtdbtk_domain": null,
+        "gtdbtk_phylum": null,
+        "gtdbtk_class": null,
+        "gtdbtk_order": null,
+        "gtdbtk_family": null,
+        "gtdbtk_genus": null,
+        "gtdbtk_species": null
+      }
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "bin_name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "number_of_contig": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "completeness": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "contamination": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gene_count": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "bin_quality": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "num_16s": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "num_5s": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "num_23s": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "num_tRNA": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "gtdbtk_domain": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_phylum": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_class": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_order": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_family": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_genus": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "gtdbtk_species": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MAGsAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "input_contig_num": null,
+        "binned_contig_num": null,
+        "too_short_contig_num": null,
+        "lowDepth_contig_num": null,
+        "unbinned_contig_num": null,
+        "mags_list": null
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "input_contig_num": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "binned_contig_num": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "too_short_contig_num": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "lowDepth_contig_num": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "unbinned_contig_num": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "mags_list": {
+      "@type": "Set",
+      "@class": "MAGBin"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetaboliteQuantification",
+    "@documentation": {
+      "@comment": "This is used to link a metabolomics analysis workflow to a specific metabolite",
+      "@properties": {
+        "alternative_identifiers": "A list of alternative identifiers for the entity.",
+        "metabolite_quantified": "the specific metabolite identifier",
+        "highest_similarity_score": "TODO: Yuri to fill in"
+      }
+    },
+    "alternative_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "metabolite_quantified": {
+      "@type": "Optional",
+      "@class": "ChemicalEntity"
+    },
+    "highest_similarity_score": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetabolomicsAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "used": null,
+        "has_metabolite_quantifications": null,
+        "has_calibration": "TODO: Yuri to fill in"
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "used": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_metabolite_quantifications": {
+      "@type": "Set",
+      "@class": "MetaboliteQuantification"
+    },
+    "has_calibration": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetagenomeAnnotationActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {}
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetagenomeAssembly",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "asm_score": "A score for comparing metagenomic assembly quality from same sample.",
+        "scaffolds": "Total sequence count of all scaffolds.",
+        "scaf_logsum": "The sum of the (length*log(length)) of all scaffolds, times some constant.  Increase the contiguity, the score will increase",
+        "scaf_powsum": "Powersum of all scaffolds is the same as logsum except that it uses the sum of (length*(length^P)) for some power P (default P=0.25).",
+        "scaf_max": "Maximum scaffold length.",
+        "scaf_bp": "Total size in bp of all scaffolds.",
+        "scaf_N50": "Given a set of scaffolds, each with its own length, the N50 count is defined as the smallest number of scaffolds whose length sum makes up half of genome size.",
+        "scaf_N90": "Given a set of scaffolds, each with its own length, the N90 count is defined as the smallest number of scaffolds whose length sum makes up 90% of genome size.",
+        "scaf_L50": "Given a set of scaffolds, the L50 is defined as the sequence length of the shortest scaffold at 50% of the total genome length.",
+        "scaf_L90": "The L90 statistic is less than or equal to the L50 statistic; it is the length for which the collection of all scaffolds of that length or longer contains at least 90% of the sum of the lengths of all scaffolds.",
+        "scaf_n_gt50K": "Total sequence count of scaffolds greater than 50 KB.",
+        "scaf_l_gt50K": "Total size in bp of all scaffolds greater than 50 KB.",
+        "scaf_pct_gt50K": "Total sequence size percentage of scaffolds greater than 50 KB.",
+        "contigs": "The sum of the (length*log(length)) of all contigs, times some constant.  Increase the contiguity, the score will increase",
+        "contig_bp": "Total size in bp of all contigs.",
+        "ctg_N50": "Given a set of contigs, each with its own length, the N50 count is defined as the smallest number of contigs whose length sum makes up half of genome size.",
+        "ctg_L50": "Given a set of contigs, the L50 is defined as the sequence length of the shortest contig at 50% of the total genome length.",
+        "ctg_N90": "Given a set of contigs, each with its own length, the N90 count is defined as the smallest number of contigs whose length sum makes up 90% of genome size.",
+        "ctg_L90": "The L90 statistic is less than or equal to the L50 statistic; it is the length for which the collection of all contigs of that length or longer contains at least 90% of the sum of the lengths of all contigs.",
+        "ctg_logsum": "Maximum contig length.",
+        "ctg_powsum": "Powersum of all contigs is the same as logsum except that it uses the sum of (length*(length^P)) for some power P (default P=0.25).",
+        "ctg_max": "Maximum contig length.",
+        "gap_pct": "The gap size percentage of all scaffolds.",
+        "gc_std": "Standard deviation of GC content of all contigs.",
+        "gc_avg": "Average of GC content of all contigs.",
+        "num_input_reads": "The sequence count number of input reads for assembly.",
+        "num_aligned_reads": "The sequence count number of input reads aligned to assembled contigs.",
+        "INSDC_assembly_identifiers": null
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "asm_score": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaffolds": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_logsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_powsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_max": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_bp": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_N50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_N90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_L50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_L90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_n_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_l_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_pct_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "contigs": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "contig_bp": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_N50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_L50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_N90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_L90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_logsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_powsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_max": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gap_pct": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gc_std": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gc_avg": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "num_input_reads": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "num_aligned_reads": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "INSDC_assembly_identifiers": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetaproteomicsAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "used": null,
+        "has_peptide_quantifications": null
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "used": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_peptide_quantifications": {
+      "@type": "Set",
+      "@class": "PeptideQuantification"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetatranscriptomeActivity",
+    "@documentation": {
+      "@comment": "A metatranscriptome activity that e.g. pools assembly and annotation activity.",
+      "@properties": {}
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetatranscriptomeAnnotationActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {}
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "MetatranscriptomeAssembly",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "asm_score": "A score for comparing metagenomic assembly quality from same sample.",
+        "scaffolds": "Total sequence count of all scaffolds.",
+        "scaf_logsum": "The sum of the (length*log(length)) of all scaffolds, times some constant.  Increase the contiguity, the score will increase",
+        "scaf_powsum": "Powersum of all scaffolds is the same as logsum except that it uses the sum of (length*(length^P)) for some power P (default P=0.25).",
+        "scaf_max": "Maximum scaffold length.",
+        "scaf_bp": "Total size in bp of all scaffolds.",
+        "scaf_N50": "Given a set of scaffolds, each with its own length, the N50 count is defined as the smallest number of scaffolds whose length sum makes up half of genome size.",
+        "scaf_N90": "Given a set of scaffolds, each with its own length, the N90 count is defined as the smallest number of scaffolds whose length sum makes up 90% of genome size.",
+        "scaf_L50": "Given a set of scaffolds, the L50 is defined as the sequence length of the shortest scaffold at 50% of the total genome length.",
+        "scaf_L90": "The L90 statistic is less than or equal to the L50 statistic; it is the length for which the collection of all scaffolds of that length or longer contains at least 90% of the sum of the lengths of all scaffolds.",
+        "scaf_n_gt50K": "Total sequence count of scaffolds greater than 50 KB.",
+        "scaf_l_gt50K": "Total size in bp of all scaffolds greater than 50 KB.",
+        "scaf_pct_gt50K": "Total sequence size percentage of scaffolds greater than 50 KB.",
+        "contigs": "The sum of the (length*log(length)) of all contigs, times some constant.  Increase the contiguity, the score will increase",
+        "contig_bp": "Total size in bp of all contigs.",
+        "ctg_N50": "Given a set of contigs, each with its own length, the N50 count is defined as the smallest number of contigs whose length sum makes up half of genome size.",
+        "ctg_L50": "Given a set of contigs, the L50 is defined as the sequence length of the shortest contig at 50% of the total genome length.",
+        "ctg_N90": "Given a set of contigs, each with its own length, the N90 count is defined as the smallest number of contigs whose length sum makes up 90% of genome size.",
+        "ctg_L90": "The L90 statistic is less than or equal to the L50 statistic; it is the length for which the collection of all contigs of that length or longer contains at least 90% of the sum of the lengths of all contigs.",
+        "ctg_logsum": "Maximum contig length.",
+        "ctg_powsum": "Powersum of all contigs is the same as logsum except that it uses the sum of (length*(length^P)) for some power P (default P=0.25).",
+        "ctg_max": "Maximum contig length.",
+        "gap_pct": "The gap size percentage of all scaffolds.",
+        "gc_std": "Standard deviation of GC content of all contigs.",
+        "gc_avg": "Average of GC content of all contigs.",
+        "num_input_reads": "The sequence count number of input reads for assembly.",
+        "num_aligned_reads": "The sequence count number of input reads aligned to assembled contigs.",
+        "INSDC_assembly_identifiers": null
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "asm_score": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaffolds": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_logsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_powsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_max": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_bp": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_N50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_N90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_L50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_L90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_n_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_l_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "scaf_pct_gt50K": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "contigs": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "contig_bp": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_N50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_L50": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_N90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_L90": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_logsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_powsum": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "ctg_max": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gap_pct": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gc_std": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "gc_avg": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "num_input_reads": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "num_aligned_reads": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "INSDC_assembly_identifiers": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "NamedThing",
+    "@documentation": {
+      "@comment": "a databased entity or concept/class",
+      "@properties": {
+        "id": "A unique identifier for a thing. Must be either a CURIE shorthand for a URI or a complete URI",
+        "name": "A human readable label for an entity",
+        "description": "a human-readable description of a thing",
+        "alternative_identifiers": "A list of alternative identifiers for the entity."
+      }
+    },
+    "@abstract": [],
+    "id": "xsd:string",
+    "name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "description": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "alternative_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "NomAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "used": null,
+        "has_calibration": "TODO: Yuri to fill in"
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "used": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_calibration": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "OmicsProcessing",
+    "@documentation": {
+      "@comment": "The methods and processes used to generate omics data from a biosample or organism.",
+      "@properties": {
+        "add_date": "The date on which the information was added to the database.",
+        "mod_date": "The last date on which the database information was modified.",
+        "has_input": "An input to a process.",
+        "has_output": "An output biosample to a processing step",
+        "instrument_name": "The name of the instrument that was used for processing the sample.\n   ",
+        "ncbi_project_name": null,
+        "omics_type": "The type of omics data",
+        "part_of": "Links a resource to another resource that either logically or physically includes it.",
+        "principal_investigator": "Principal Investigator who led the study and/or generated the dataset.",
+        "processing_institution": "The organization that processed the sample.",
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "GOLD_sequencing_project_identifiers": "identifiers for corresponding sequencing project in GOLD",
+        "INSDC_experiment_identifiers": null,
+        "samp_vol_we_dna_ext": "Volume (ml), weight (g) of processed sample, or surface area swabbed from sample for DNA extraction",
+        "nucl_acid_ext": "A link to a literature reference, electronic resource or a standard operating procedure (SOP), that describes the material separation to recover the nucleic acid fraction from a sample",
+        "nucl_acid_amp": "A link to a literature reference, electronic resource or a standard operating procedure (SOP), that describes the enzymatic amplification (PCR, TMA, NASBA) of specific nucleic acids",
+        "target_gene": "Targeted gene or locus name for marker gene studies",
+        "target_subfragment": "Name of subfragment of a gene or locus. Important to e.g. identify special regions on marker genes like V6 on 16S rRNA",
+        "pcr_primers": "PCR primers that were used to amplify the sequence of the targeted gene, locus or subfragment. This field should contain all the primers used for a single PCR reaction if multiple forward or reverse primers are present in a single PCR reaction. The primer sequence should be reported in uppercase letters",
+        "pcr_cond": "Description of reaction conditions and components of PCR in the form of  'initial denaturation:94degC_1.5min; annealing=...'",
+        "seq_meth": "Sequencing method used; e.g. Sanger, pyrosequencing, ABI-solid",
+        "seq_quality_check": "Indicate if the sequence has been called by automatic systems (none) or undergone a manual editing procedure (e.g. by inspecting the raw data or chromatograms). Applied only for sequences that are not submitted to SRA,ENA or DRA",
+        "chimera_check": "A chimeric sequence, or chimera for short, is a sequence comprised of two or more phylogenetically distinct parent sequences. Chimeras are usually PCR artifacts thought to occur when a prematurely terminated amplicon reanneals to a foreign DNA strand and is copied to completion in the following PCR cycles. The point at which the chimeric sequence changes from one parent to the next is called the breakpoint or conversion point"
+      }
+    },
+    "@inherits": "BiosampleProcessing",
+    "add_date": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "mod_date": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_input": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "has_output": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "instrument_name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ncbi_project_name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "omics_type": {
+      "@type": "Optional",
+      "@class": "ControlledTermValue"
+    },
+    "part_of": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "principal_investigator": {
+      "@type": "Optional",
+      "@class": "PersonValue"
+    },
+    "processing_institution": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "GOLD_sequencing_project_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "INSDC_experiment_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "samp_vol_we_dna_ext": {
+      "@type": "Optional",
+      "@class": "QuantityValue"
+    },
+    "nucl_acid_ext": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "nucl_acid_amp": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "target_gene": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "target_subfragment": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "pcr_primers": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "pcr_cond": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "seq_meth": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "seq_quality_check": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "chimera_check": {
+      "@type": "Optional",
+      "@class": "TextValue"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "OntologyClass",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {}
+    },
+    "@inherits": "NamedThing",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "OrthologyGroup",
+    "@documentation": {
+      "@comment": "A set of genes or gene products in which all members are orthologous",
+      "@properties": {}
+    },
+    "@inherits": "FunctionalAnnotationTerm",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Pathway",
+    "@documentation": {
+      "@comment": "A pathway is a sequence of steps/reactions carried out by an organism or community of organisms",
+      "@properties": {
+        "has_part": "A pathway can be broken down to a series of reaction step"
+      }
+    },
+    "@inherits": "FunctionalAnnotationTerm",
+    "has_part": {
+      "@type": "Set",
+      "@class": "Reaction"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "PeptideQuantification",
+    "@documentation": {
+      "@comment": "This is used to link a metaproteomics analysis workflow to a specific peptide sequence and related information",
+      "@properties": {
+        "peptide_sequence": null,
+        "best_protein": "the specific protein identifier most correctly associated with the peptide sequence",
+        "all_proteins": "the list of protein identifiers that are associated with the peptide sequence",
+        "min_q_value": "smallest Q-Value associated with the peptide sequence as provided by MSGFPlus tool",
+        "peptide_spectral_count": "sum of filter passing MS2 spectra associated with the peptide sequence within a given LC-MS/MS data file",
+        "peptide_sum_masic_abundance": "combined MS1 extracted ion chromatograms derived from MS2 spectra associated with the peptide sequence from a given LC-MS/MS data file using the MASIC tool"
+      }
+    },
+    "peptide_sequence": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "best_protein": {
+      "@type": "Optional",
+      "@class": "GeneProduct"
+    },
+    "all_proteins": {
+      "@type": "Set",
+      "@class": "GeneProduct"
+    },
+    "min_q_value": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "peptide_spectral_count": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "peptide_sum_masic_abundance": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Person",
+    "@documentation": {
+      "@comment": "represents a person, such as a researcher",
+      "@properties": {
+        "id": "A unique identifier for a thing. Must be either a CURIE shorthand for a URI or a complete URI"
+      }
+    },
+    "@inherits": "NamedThing",
+    "id": "xsd:string",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "PersonValue",
+    "@documentation": {
+      "@comment": "An attribute value representing a person",
+      "@properties": {
+        "orcid": "The ORICD of a person.",
+        "profile_image_url": "A url that points to an image of a person.",
+        "email": "An email address for an entity such as a person. This should be the primarly email address used.",
+        "name": "A human readable label for an entity",
+        "websites": "A list of websites that are assocatiated with the entity.",
+        "has_raw_value": "The value that was specified for an annotation in raw form, i.e. a string. E.g. \"2 cm\" or \"2-4 cm\""
+      }
+    },
+    "@inherits": "AttributeValue",
+    "orcid": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "profile_image_url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "email": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "name": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "websites": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "has_raw_value": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ProteinQuantification",
+    "@documentation": {
+      "@comment": "This is used to link a metaproteomics analysis workflow to a specific protein",
+      "@properties": {
+        "best_protein": "the specific protein identifier most correctly associated with the peptide sequence",
+        "all_proteins": "the list of protein identifiers that are associated with the peptide sequence",
+        "peptide_sequence_count": "count of peptide sequences grouped to the best_protein",
+        "protein_spectral_count": "sum of filter passing MS2 spectra associated with the best protein within a given LC-MS/MS data file",
+        "protein_sum_masic_abundance": "combined MS1 extracted ion chromatograms derived from MS2 spectra associated with the best protein from a given LC-MS/MS data file using the MASIC tool"
+      }
+    },
+    "best_protein": {
+      "@type": "Optional",
+      "@class": "GeneProduct"
+    },
+    "all_proteins": {
+      "@type": "Set",
+      "@class": "GeneProduct"
+    },
+    "peptide_sequence_count": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "protein_spectral_count": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    },
+    "protein_sum_masic_abundance": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "QuantityValue",
+    "@documentation": {
+      "@comment": "A simple quantity, e.g. 2cm",
+      "@properties": {
+        "has_unit": "Links a quantity value to a unit",
+        "has_numeric_value": "Links a quantity value to a number",
+        "has_minimum_numeric_value": "The minimum value part, expressed as number, of the quantity value when the value covers a range.",
+        "has_maximum_numeric_value": "The maximum value part, expressed as number, of the quantity value when the value covers a range.",
+        "has_raw_value": "The value that was specified for an annotation in raw form, i.e. a string. E.g. \"2 cm\" or \"2-4 cm\""
+      }
+    },
+    "@inherits": "AttributeValue",
+    "has_unit": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_numeric_value": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "has_minimum_numeric_value": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "has_maximum_numeric_value": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "has_raw_value": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Reaction",
+    "@documentation": {
+      "@comment": "An individual biochemical transformation carried out by a functional unit of an organism, in which a collection of substrates are transformed into a collection of products. Can also represent transporters",
+      "@properties": {
+        "left_participants": null,
+        "right_participants": null,
+        "direction": "One of l->r, r->l, bidirectional, neutral",
+        "smarts_string": null,
+        "is_diastereoselective": null,
+        "is_stereo": null,
+        "is_balanced": null,
+        "is_transport": null,
+        "is_fully_characterized": "False if includes R-groups"
+      }
+    },
+    "@inherits": "FunctionalAnnotationTerm",
+    "left_participants": {
+      "@type": "Set",
+      "@class": "ReactionParticipant"
+    },
+    "right_participants": {
+      "@type": "Set",
+      "@class": "ReactionParticipant"
+    },
+    "direction": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "smarts_string": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "is_diastereoselective": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    },
+    "is_stereo": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    },
+    "is_balanced": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    },
+    "is_transport": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    },
+    "is_fully_characterized": {
+      "@type": "Optional",
+      "@class": "xsd:boolean"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ReactionParticipant",
+    "@documentation": {
+      "@comment": "Instances of this link a reaction to a chemical entity participant",
+      "@properties": {
+        "chemical": null,
+        "stoichiometry": null
+      }
+    },
+    "chemical": {
+      "@type": "Optional",
+      "@class": "ChemicalEntity"
+    },
+    "stoichiometry": {
+      "@type": "Optional",
+      "@class": "xsd:integer"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ReadBasedAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {}
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "ReadQCAnalysisActivity",
+    "@documentation": {
+      "@comment": "",
+      "@properties": {
+        "input_read_count": "The sequence count number of input reads for QC analysis.",
+        "input_base_count": "The nucleotide base count number of input reads for QC analysis.",
+        "output_read_count": "After QC analysis sequence count number. ",
+        "output_base_count": "After QC analysis nucleotide base count number.",
+        "input_read_bases": "TODO",
+        "output_read_bases": "TODO",
+        "has_input": "An input to a process.",
+        "has_output": "An output biosample to a processing step"
+      }
+    },
+    "@inherits": "WorkflowExecutionActivity",
+    "input_read_count": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "input_base_count": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "output_read_count": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "output_base_count": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "input_read_bases": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "output_read_bases": {
+      "@type": "Optional",
+      "@class": "xsd:float"
+    },
+    "has_input": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "has_output": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "Study",
+    "@documentation": {
+      "@comment": "A study summarizes the overall goal of a research initiative and outlines the key objective of its underlying projects.",
+      "@properties": {
+        "ecosystem": "An ecosystem is a combination of a physical environment (abiotic factors) and all the organisms (biotic factors) that interact with this environment. Ecosystem is in position 1/5 in a GOLD path.",
+        "ecosystem_category": "Ecosystem categories represent divisions within the ecosystem based on specific characteristics of the environment from where an organism or sample is isolated. Ecosystem category is in position 2/5 in a GOLD path.",
+        "ecosystem_type": "Ecosystem types represent things having common characteristics within the Ecosystem Category. These common characteristics based grouping is still broad but specific to the characteristics of a given environment. Ecosystem type is in position 3/5 in a GOLD path.",
+        "ecosystem_subtype": "Ecosystem subtypes represent further subdivision of Ecosystem types into more distinct subtypes. Ecosystem subtype is in position 4/5 in a GOLD path.",
+        "specific_ecosystem": "Specific ecosystems represent specific features of the environment like aphotic zone in an ocean or gastric mucosa within a host digestive system. Specific ecosystem is in position 5/5 in a GOLD path.",
+        "principal_investigator": "Principal Investigator who led the study and/or generated the dataset.",
+        "doi": null,
+        "title": "A name given to the entity that differs from the name/label programatically assigned to it. For example, when extracting study information for GOLD, the GOLD system has assigned a name/label. However, for display purposes, we may also wish the capture the title of the proposal that was used to fund the study.",
+        "alternative_titles": "A list of alternative titles for the entity. The distinction between title and alternative titles is application-specific.",
+        "alternative_descriptions": "A list of alternative descriptions for the entity. The distinction between desciption and alternative descriptions is application-specific.",
+        "alternative_names": "A list of alternative names used to refer to the entity. The distinction between name and alternative names is application-specific.",
+        "abstract": "The abstract of manuscript/grant associated with the entity; i.e., a summary of the resource.",
+        "objective": "The scientific objectives associated with the entity. It SHOULD correspond to scientific norms for objectives field in a structured abstract.",
+        "websites": "A list of websites that are assocatiated with the entity.",
+        "publications": "A list of publications that are assocatiated with the entity. The publicatons SHOULD be given using an identifier, such as a DOI or Pubmed ID, if possible.",
+        "ess_dive_datasets": "List of ESS-DIVE dataset DOIs",
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "relevant_protocols": null,
+        "funding_sources": null,
+        "INSDC_bioproject_identifiers": "identifiers for corresponding project in INSDC Bioproject",
+        "INSDC_SRA_ENA_study_identifiers": "identifiers for corresponding project in INSDC SRA / ENA",
+        "GOLD_study_identifiers": "identifiers for corresponding project in GOLD",
+        "MGnify_project_identifiers": "identifiers for corresponding project in MGnify",
+        "has_credit_associations": "This slot links a study to a credit association.  The credit association will be linked to a person value and to a CRediT Contributor Roles term. Overall semantics: person should get credit X for their participation in the study",
+        "study_image": "Links a study to one or more images."
+      }
+    },
+    "@inherits": "NamedThing",
+    "ecosystem": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_category": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "ecosystem_subtype": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "specific_ecosystem": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "principal_investigator": {
+      "@type": "Optional",
+      "@class": "PersonValue"
+    },
+    "doi": {
+      "@type": "Optional",
+      "@class": "AttributeValue"
+    },
+    "title": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "alternative_titles": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "alternative_descriptions": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "alternative_names": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "abstract": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "objective": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "websites": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "publications": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "ess_dive_datasets": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "relevant_protocols": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "funding_sources": {
+      "@type": "Set",
+      "@class": "xsd:string"
+    },
+    "INSDC_bioproject_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "INSDC_SRA_ENA_study_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "GOLD_study_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "MGnify_project_identifiers": {
+      "@type": "Set",
+      "@class": "xsd:anyURI"
+    },
+    "has_credit_associations": {
+      "@type": "Set",
+      "@class": "CreditAssociation"
+    },
+    "study_image": {
+      "@type": "Set",
+      "@class": "ImageValue"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "TextValue",
+    "@documentation": {
+      "@comment": "A basic string value",
+      "@properties": {
+        "language": "Should use ISO 639-1 code e.g. \"en\", \"fr\""
+      }
+    },
+    "@inherits": "AttributeValue",
+    "language": {
+      "@type": "Optional",
+      "@class": "xsd:language"
+    }
+  },
+  {
+    "@type": "Class",
+    "@id": "TimestampValue",
+    "@documentation": {
+      "@comment": "A value that is a timestamp. The range should be ISO-8601",
+      "@properties": {}
+    },
+    "@inherits": "AttributeValue"
+  },
+  {
+    "@type": "Class",
+    "@id": "UrlValue",
+    "@documentation": {
+      "@comment": "A value that is a string that conforms to URL syntax",
+      "@properties": {}
+    },
+    "@inherits": "AttributeValue"
+  },
+  {
+    "@type": "Class",
+    "@id": "WorkflowExecutionActivity",
+    "@documentation": {
+      "@comment": "Represents an instance of an execution of a particular workflow",
+      "@properties": {
+        "execution_resource": "Example: NERSC-Cori",
+        "git_url": "Example: https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+        "has_input": "An input to a process.",
+        "has_output": "An output biosample to a processing step",
+        "part_of": "Links a resource to another resource that either logically or physically includes it.",
+        "type": "An optional string that specifies the type object.  This is used to allow for searches for different kinds of objects.",
+        "was_associated_with": null,
+        "started_at_time": null,
+        "ended_at_time": null,
+        "was_informed_by": null
+      }
+    },
+    "@inherits": "Activity",
+    "execution_resource": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "git_url": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "has_input": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "has_output": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "part_of": {
+      "@type": "Set",
+      "@class": "NamedThing"
+    },
+    "type": {
+      "@type": "Optional",
+      "@class": "xsd:string"
+    },
+    "was_associated_with": {
+      "@type": "Optional",
+      "@class": "Agent"
+    },
+    "started_at_time": {
+      "@type": "Optional",
+      "@class": "xsd:dateTime"
+    },
+    "ended_at_time": {
+      "@type": "Optional",
+      "@class": "xsd:dateTime"
+    },
+    "was_informed_by": {
+      "@type": "Optional",
+      "@class": "Activity"
+    },
+    "@key": {
+      "@type": "Lexical",
+      "@fields": [
+        "id"
+      ]
+    }
+  }
+]
+

@@ -76,7 +76,7 @@ namespace on the Spin k8s development cluster
 
 ## Deployment
 
-The [release process](release-process.md) is administered by the [NMDC architecture working group
+The [release process](howto-guides/release-process.md) is administered by the [NMDC architecture working group
 GitHub team](https://github.com/orgs/microbiomedata/teams/architecture-wg). Members of this team
 have full access to repository administration, including the GitHub Actions.
 

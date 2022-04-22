@@ -1,4 +1,4 @@
-# Guide - Claim and Run Jobs
+# Claim and Run Jobs
 
 The Runtime advertises jobs to be done, where a [Job](https://api.dev.microbiomedata.org/docs#/jobs)
 is a [Workflow](https://api.dev.microbiomedata.org/docs#/workflows) paired with a chosen input

@@ -66,16 +66,13 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
+    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     env_file:
       - .env
-    command: ["/start-reload.sh"]
-    environment:
-      MODULE_NAME: "nmdc_runtime.api.main"
-      PORT: 8000
     depends_on:
       - mongo
     volumes:
-      - .:/app
+      - .:/code
 
   mongo:
     image: mongo:4.4-bionic
@@ -89,8 +86,25 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
 
+  terminus:
+    image: terminusdb/terminusdb-server:dev-6c95d265db7041b93471cbe122a742db52867f74
+    container_name: terminus
+    ports:
+      - "6364:6363"
+    tty: true
+    volumes:
+      - nmdc_runtime_terminus_data:/app/terminusdb/storage
+    restart: always
+    environment:
+      TERMINUSDB_SERVER_PORT: 6363
+      TERMINUSDB_ADMIN_PASS: root
+      TERMINUSDB_AUTOLOGIN_ENABLED: "true"
+      TERMINUSDB_HTTPS_ENABLED: "false"
+
 volumes:
   nmdc_runtime_postgres_data:
     driver: local
   nmdc_runtime_mongo_data:
+    driver: local
+  nmdc_runtime_terminus_data:
     driver: local

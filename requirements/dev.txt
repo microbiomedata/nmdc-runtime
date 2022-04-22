@@ -8,11 +8,11 @@ attrs==21.4.0
     # via
     #   -c requirements/main.txt
     #   pytest
-black==22.1.0
+black==22.3.0
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
-bleach==4.1.0
+bleach==5.0.0
     # via
     #   -c requirements/main.txt
     #   readme-renderer
@@ -24,12 +24,12 @@ charset-normalizer==2.0.12
     # via
     #   -c requirements/main.txt
     #   requests
-click==8.0.4
+click==8.1.2
     # via
     #   -c requirements/main.txt
     #   black
-colorama==0.4.4
-    # via twine
+commonmark==0.9.1
+    # via rich
 docutils==0.17.1
     # via
     #   -c requirements/main.txt
@@ -47,7 +47,7 @@ importlib-metadata==4.11.3
     #   twine
 iniconfig==1.1.1
     # via pytest
-invoke==1.6.0
+invoke==1.7.0
     # via -r requirements/dev.in
 keyring==23.5.0
     # via twine
@@ -60,7 +60,6 @@ mypy-extensions==0.4.3
 packaging==21.3
     # via
     #   -c requirements/main.txt
-    #   bleach
     #   pytest
     #   setuptools-scm
 pathspec==0.9.0
@@ -69,7 +68,7 @@ pathspec==0.9.0
     #   black
 pkginfo==1.8.2
     # via twine
-platformdirs==2.5.1
+platformdirs==2.5.2
     # via
     #   -c requirements/main.txt
     #   black
@@ -87,13 +86,14 @@ pygments==2.11.2
     # via
     #   -c requirements/main.txt
     #   readme-renderer
-pyparsing==3.0.7
+    #   rich
+pyparsing==3.0.8
     # via
     #   -c requirements/main.txt
     #   packaging
 pytest==7.1.1
     # via -r requirements/dev.in
-readme-renderer==34.0
+readme-renderer==35.0
     # via twine
 requests==2.27.1
     # via
@@ -103,6 +103,8 @@ requests==2.27.1
 requests-toolbelt==0.9.1
     # via twine
 rfc3986==2.0.0
+    # via twine
+rich==12.2.0
     # via twine
 setuptools-scm==6.4.2
     # via -r requirements/dev.in
@@ -116,16 +118,13 @@ tomli==2.0.1
     #   black
     #   pytest
     #   setuptools-scm
-tqdm==4.63.0
-    # via
-    #   -c requirements/main.txt
-    #   twine
-twine==3.8.0
+twine==4.0.0
     # via -r requirements/dev.in
-typing-extensions==4.1.1
+typing-extensions==4.2.0
     # via
     #   -c requirements/main.txt
     #   black
+    #   rich
 urllib3==1.26.9
     # via
     #   -c requirements/main.txt
@@ -135,7 +134,7 @@ webencodings==0.5.1
     # via
     #   -c requirements/main.txt
     #   bleach
-zipp==3.7.0
+zipp==3.8.0
     # via
     #   -c requirements/main.txt
     #   importlib-metadata

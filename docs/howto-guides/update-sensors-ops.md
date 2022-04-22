@@ -1,4 +1,4 @@
-# Guide - Update Sensors, Jobs, Graphs, and Ops
+# Update Sensors, Jobs, Graphs, and Ops
 
 This guide will walk through the operation of the underlying [Dagster](https://docs.dagster.io)
 orchestrator used by the Runtime, using a particular
@@ -65,7 +65,7 @@ def apply_changesheet():
 which is rendered in Dagster's [Dagit UI](https://docs.dagster.io/concepts/dagit/dagit) as a graph:
 
 <figure markdown style="max-width: 25em">
-  ![Dagit UI rendering of `apply_changesheet` job](img/dagit-apply-changesheet-job.png)
+  ![Dagit UI rendering of `apply_changesheet` job](../img/dagit-apply-changesheet-job.png)
   <figcaption>Dagit UI rendering of `apply_changesheet` job</figcaption>
 </figure>
 

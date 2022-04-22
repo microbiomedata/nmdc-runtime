@@ -1,18 +1,28 @@
 import logging
+import re
+from time import time_ns
+from typing import Set, Optional, List, Tuple
+from urllib.parse import urlparse, parse_qs
 
-import pymongo
 from bson import json_util
 from fastapi import HTTPException
+from pymongo.collection import Collection as MongoCollection
+from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import merge
+from toolz import merge, dissoc, concat
 
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.models.util import ListRequest
+from nmdc_runtime.api.db.mongo import activity_collection_names
+from nmdc_runtime.api.models.util import (
+    ListRequest,
+    FindRequest,
+    PipelineFindRequest,
+    PipelineFindResponse,
+    FindResponse,
+)
 
 
-def list_resources(
-    req: ListRequest, mdb: pymongo.database.Database, collection_name: str
-):
+def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     limit = req.max_page_size
     filter_ = json_util.loads(req.filter) if req.filter else {}
     if req.page_token:
@@ -50,5 +60,262 @@ def list_resources(
         return {"resources": resources, "next_page_token": token}
 
 
-def exists(collection: pymongo.collection.Collection, filter_: dict):
+def maybe_unstring(val):
+    try:
+        return float(val)
+    except ValueError:
+        return val
+
+
+def get_pairs(s):
+    return re.split(r"\s*,\s*", s)  # comma, perhaps surrounded by whitespace
+
+
+def get_mongo_filter(filter_str):
+    filter_ = {}
+    if not filter_str:
+        return filter_
+
+    pairs = get_pairs(filter_str)
+    if not all(len(split) == 2 for split in (p.split(":", maxsplit=1) for p in pairs)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Filter must be of form: attribute:spec[,attribute:spec]*",
+        )
+
+    for attr, spec in (p.split(":", maxsplit=1) for p in pairs):
+        if attr.endswith(".search"):
+            actual_attr = attr[: -len(".search")]
+            filter_[actual_attr] = {"$regex": spec}
+        else:
+            for op, key in {("<", "$lt"), ("<=", "$lte"), (">", "$gt"), (">=", "$gte")}:
+                if spec.startswith(op):
+                    filter_[attr] = {key: maybe_unstring(spec[len(op) :])}
+                    break
+            else:
+                filter_[attr] = spec
+    return filter_
+
+
+def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
+    sort_ = []
+    if not sort_str:
+        return None
+
+    pairs = get_pairs(sort_str)
+    for p in pairs:
+        components = p.split(":", maxsplit=1)
+        if len(components) == 1:
+            attr, spec = components[0], ""
+        else:
+            attr, spec = components
+        for op, key in {("", 1), ("asc", 1), ("desc", -1)}:
+            if spec == op:
+                sort_.append((attr, key))
+                break
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Sort must be of form: attribute:spec[,attribute:spec]* "
+                    "where spec is `asc` (ascending -- the default if no spec) "
+                    "or `desc` (descending).",
+                ),
+            )
+    return sort_
+
+
+def strip_oid(doc):
+    return dissoc(doc, "_id")
+
+
+def timeit(cursor):
+    """Collect from cursor and return time taken in milliseconds."""
+    tic = time_ns()
+    results = list(cursor)
+    toc = time_ns()
+    return results, int(round((toc - tic) / 1e6))
+
+
+def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+    if req.group_by:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail="I don't yet know how to ?group_by=",
+        )
+    if req.search:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail=(
+                "I don't yet know how to ?search=. "
+                "Use ?filter=<attribute>.search:<spec> instead."
+            ),
+        )
+
+    filter_ = get_mongo_filter(req.filter)
+    sort_ = get_mongo_sort(req.sort)
+
+    total_count = mdb[collection_name].count_documents(filter=filter_)
+
+    if req.page:
+        skip = (req.page - 1) * req.per_page
+        if skip > 10_000:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Use cursor-based pagination for paging beyond 10,000 items",
+            )
+        limit = req.per_page
+        results, db_response_time_ms = timeit(
+            mdb[collection_name].find(
+                filter=filter_, skip=skip, limit=limit, sort=sort_
+            )
+        )
+        rv = {
+            "meta": {
+                "mongo_filter_dict": filter_,
+                "mongo_sort_list": [[a, s] for a, s in sort_] if sort_ else None,
+                "count": total_count,
+                "db_response_time_ms": db_response_time_ms,
+                "page": req.page,
+                "per_page": req.per_page,
+            },
+            "results": [strip_oid(d) for d in results],
+            "group_by": [],
+        }
+
+    else:  # req.cursor is not None
+        if req.cursor != "*":
+            doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
+            if doc is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
+                )
+            last_id = doc["last_id"]
+            mdb.page_tokens.delete_one({"_id": req.cursor})
+        else:
+            last_id = None
+
+        if last_id is not None:
+            if "id" in filter_:
+                filter_["id"] = merge(filter_["id"], {"$gt": last_id})
+            else:
+                filter_ = merge(filter_, {"id": {"$gt": last_id}})
+
+        if "id_1" not in mdb[collection_name].index_information():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cursor-based pagination is not enabled for this resource.",
+            )
+
+        limit = req.per_page
+        sort_for_cursor = (sort_ or []) + [("id", 1)]
+        results, db_response_time_ms = timeit(
+            mdb[collection_name].find(filter=filter_, limit=limit, sort=sort_for_cursor)
+        )
+        last_id = results[-1]["id"]
+
+        # Is this the last id overall? Then next_cursor should be None.
+        filter_eager = filter_
+        if "id" in filter_:
+            filter_eager["id"] = merge(filter_["id"], {"$gt": last_id})
+        else:
+            filter_eager = merge(filter_, {"id": {"$gt": last_id}})
+        more_results = (
+            mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
+        )
+        if more_results:
+            token = generate_one_id(mdb, "page_tokens")
+            mdb.page_tokens.insert_one(
+                {"_id": token, "ns": collection_name, "last_id": last_id}
+            )
+        else:
+            token = None
+
+        rv = {
+            "meta": {
+                "mongo_filter_dict": filter_,
+                "mongo_sort_list": sort_for_cursor,
+                "count": total_count,
+                "db_response_time_ms": db_response_time_ms,
+                "page": None,
+                "per_page": req.per_page,
+                "next_cursor": token,
+            },
+            "results": [strip_oid(d) for d in results],
+            "group_by": [],
+        }
+    return rv
+
+
+def find_resources_spanning(
+    req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
+):
+    if req.cursor or not req.page:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This resource only supports page-based pagination",
+        )
+
+    responses = {name: find_resources(req, mdb, name) for name in collection_names}
+    rv = {
+        "meta": {
+            "mongo_filter_dict": next(
+                r["meta"]["mongo_filter_dict"] for r in responses.values()
+            ),
+            "count": sum(r["meta"]["count"] for r in responses.values()),
+            "db_response_time_ms": sum(
+                r["meta"]["db_response_time_ms"] for r in responses.values()
+            ),
+            "page": req.page,
+            "per_page": req.per_page,
+        },
+        "results": list(concat(r["results"] for r in responses.values())),
+        "group_by": [],
+    }
+    return rv
+
+
+def exists(collection: MongoCollection, filter_: dict):
     return collection.count_documents(filter_) > 0
+
+
+def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
+    if resource == "biosamples":
+        return find_resources(req, mdb, "biosample_set")
+    elif resource == "studies":
+        return find_resources(req, mdb, "study_set")
+    elif resource == "data_objects":
+        return find_resources(req, mdb, "data_object_set")
+    elif resource == "activities":
+        return find_resources_spanning(req, mdb, activity_collection_names(mdb))
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Unknown API resource '{resource}'. "
+                f"Known resources: {{activities, biosamples, data_objects, studies}}."
+            ),
+        )
+
+
+def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
+    description = req.description
+    components = [c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)]
+    print(components)
+    for c in components:
+        if c.startswith("/"):
+            parse_result = urlparse(c)
+            resource = parse_result.path[1:]
+            request_params_dict = {
+                p: v[0] for p, v in parse_qs(parse_result.query).items()
+            }
+            req = FindRequest(**request_params_dict)
+            resp = FindResponse(**find_for(resource, req, mdb))
+            break
+    components = [
+        "NOTE: This method is yet to be implemented! Only the first stage is run!"
+    ] + components
+    return PipelineFindResponse(
+        meta=merge(resp.meta, {"description": description, "components": components}),
+        results=resp.results,
+    )

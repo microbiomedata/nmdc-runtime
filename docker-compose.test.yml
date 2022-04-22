@@ -68,14 +68,10 @@ services:
       - "8000:8000"
     env_file:
       - .env.test
-    command: ["/start-reload.sh"]
-    environment:
-      MODULE_NAME: "nmdc_runtime.api.main"
-      PORT: 8000
     depends_on:
       - mongo
     volumes:
-      - .:/app
+      - .:/code
 
   mongo:
     image: mongo:4.4-bionic
@@ -105,7 +101,7 @@ services:
       - dagster-daemon
       - dagster-dagit
     volumes:
-      - .:/app
+      - .:/code
 
 volumes:
   nmdc_runtime_postgres_data:

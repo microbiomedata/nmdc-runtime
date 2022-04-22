@@ -21,10 +21,12 @@ from nmdc_runtime.api.endpoints import (
     queries,
     metadata,
     nmdcschema,
+    find,
     runs,
 )
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
+from nmdc_runtime.api.models.util import entity_attributes_to_index
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -40,6 +42,7 @@ api_router.include_router(queries.router, tags=["queries"])
 api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
+api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
 
 tags_metadata = [
@@ -194,8 +197,19 @@ issue an update query).
         "description": "Tools for identifier generation and resolution.",
     },
     {
-        "name": "metadatata",
+        "name": "metadata",
         "description": "Tools for metadata validation and registration/submission.",
+    },
+    {
+        "name": "find",
+        "description": "Find NMDC metadata entities.",
+    },
+    {
+        "name": "runs",
+        "description": (
+            "[WORK IN PROGRESS] Run simple jobs. "
+            "For off-site job runs, keep the Runtime appraised of run events."
+        ),
     },
 ]
 
@@ -228,28 +242,32 @@ async def ensure_initial_resources_on_boot():
 
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
+        mdb[collection_name].create_index("id", unique=True)
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
         for model in collection_boot.construct():
             doc = model.dict()
             mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
 
     username = os.getenv("API_ADMIN_USER")
-    admin_ok = mdb.users.count_documents(({"username": username})) == 1
+    admin_ok = mdb.users.count_documents(({"username": username})) > 0
     if not admin_ok:
-        mdb.users.insert_one(
+        mdb.users.replace_one(
+            {"username": username},
             UserInDB(
                 username=username,
                 hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
                 site_admin=[os.getenv("API_SITE_ID")],
-            ).dict(exclude_unset=True)
+            ).dict(exclude_unset=True),
+            upsert=True,
         )
         mdb.users.create_index("username")
 
     site_id = os.getenv("API_SITE_ID")
-    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) == 1
+    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) > 0
     if not runtime_site_ok:
         client_id = os.getenv("API_SITE_CLIENT_ID")
-        mdb.sites.insert_one(
+        mdb.sites.replace_one(
+            {"id": site_id},
             SiteInDB(
                 id=site_id,
                 clients=[
@@ -260,11 +278,14 @@ async def ensure_initial_resources_on_boot():
                         ),
                     )
                 ],
-            ).dict()
+            ).dict(),
+            upsert=True,
         )
 
     # Ensure that any collections with an "id" field have an index on "id".
     for collection_name in mdb.list_collection_names():
+        if collection_name.startswith("system."):  # reserved by mongodb
+            continue
         doc = mdb[collection_name].find_one({}, ["id"])
         if doc and doc.get("id") is not None:
             mdb[collection_name].create_index("id", unique=True)
@@ -273,6 +294,19 @@ async def ensure_initial_resources_on_boot():
     mdb.objects.create_index(
         [("checksums.type", 1), ("checksums.checksum", 1)], unique=True
     )
+
+
+@app.on_event("startup")
+async def ensure_indexes():
+    mdb = get_mongo_db()
+    for collection_name, index_specs in entity_attributes_to_index.items():
+        for spec in index_specs:
+            if not isinstance(spec, str):
+                raise ValueError(
+                    "only supports basic single-key ascending index specs at this time."
+                )
+
+            mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
 
 
 if __name__ == "__main__":

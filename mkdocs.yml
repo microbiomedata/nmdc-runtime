@@ -2,17 +2,24 @@ site_name: nmdc-runtime docs
 site_url: https://microbiomedata.github.io/nmdc-runtime/
 nav:
   - index.md
-  - Jobs:
-    - jobs/gold-translation-etl.md
-  - tutorial-json.md
-  - tutorial-auth.md
-  - tutorial-metadata-in.md
-  - guide-create-triggers.md
-  - guide-claim-and-run-jobs.md
-  - guide-update-sensors-ops.md
-  - release-process.md
-  - contributing-docs.md
-  - admin.md
+  - Tutorials:
+    - tutorials/auth.md
+    - tutorials/json.md
+    - tutorials/metadata-in.md
+  - How-to Guides:
+    - howto-guides/create-triggers.md
+    - howto-guides/claim-and-run-jobs.md
+    - howto-guides/update-sensors-ops.md
+    - howto-guides/release-process.md
+    - howto-guides/improving-search-api.md
+    - Specific Jobs:
+      - howto-guides/jobs/gold-translation-etl.md
+  - Explanations:
+      - explanation/journeys.md
+  - Reference:
+    - contributing-docs.md
+    - admin.md
+
 
 theme:
   name: material

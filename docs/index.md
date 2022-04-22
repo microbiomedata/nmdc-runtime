@@ -1,4 +1,4 @@
-# Welcome
+# Introduction
 
 Welcome to the documentation for the NMDC Runtime.
 
