@@ -8,7 +8,6 @@ from toolz import concat, merge
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import raise404_if_none, pick, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.run import (
     RunRequest,
     RunSummary,
@@ -16,7 +15,7 @@ from nmdc_runtime.api.models.run import (
     Run,
     get_dagster_graphql_client,
 )
-from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.api.models.util import ListResponse
 
 router = APIRouter()
 
@@ -133,14 +132,6 @@ def post_run_event(
         )
     mdb.run_events.insert_one(run_event.dict())
     return _get_run_summary(run_event.run.id, mdb)
-
-
-@router.get("/run-events", response_model=ListResponse[RunEvent])
-def list_run_events(
-    req: ListRequest = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    return list_resources(req, mdb, "run_events")
 
 
 def _request_dagster_run(
