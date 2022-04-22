@@ -1,5 +1,3 @@
-import os
-
 from dagster import PipelineRunStatus
 from dagster_graphql import DagsterGraphQLClientError
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,9 +19,6 @@ from nmdc_runtime.api.models.run import (
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
-
-DAGIT_HOSTNAME, DAGIT_PORT = os.getenv("DAGIT_HOST").split("://", 1)[-1].split(":", 1)
-DAGIT_PORT = int(DAGIT_PORT)
 
 PRODUCER_URL_BASE_DEFAULT = (
     "https://github.com/microbiomedata/nmdc-runtime/tree/main/nmdc_runtime/"
