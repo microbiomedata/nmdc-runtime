@@ -25,6 +25,13 @@ SchemaPathProperties = namedtuple(
 FilePathOrBuffer = Union[Path, StringIO]
 
 
+collection_name_to_class_name = {
+    db_prop: db_prop["items"]["$ref"].split("/")[-1]
+    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
+    if "items" in db_prop and "$ref" in db_prop["items"]
+}
+
+
 def load_changesheet(
     filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
 ) -> pds.DataFrame:
@@ -169,7 +176,9 @@ def load_changesheet(
                 class_name = data["type"].split(":")[-1]
                 class_name = class_name_dict[class_name]
             else:
-                raise Exception("Cannot determine the type of class for ", id_)
+                class_name = class_name_dict[
+                    collection_name_to_class_name[collection_name]
+                ]
 
         # set class name for id
         df["linkml_class"] = class_name
