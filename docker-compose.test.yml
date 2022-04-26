@@ -94,7 +94,6 @@ services:
       - .env.test
     profiles:
       - donotstart
-    entrypoint: ["pytest", "-x"]
     depends_on:
       - mongo
       - fastapi

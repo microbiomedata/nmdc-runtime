@@ -1,6 +1,4 @@
 import inspect
-import os
-import sys
 from collections import defaultdict, namedtuple
 from functools import lru_cache
 from io import StringIO
@@ -12,10 +10,11 @@ import pandas as pds
 from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
-from nmdc_runtime.util import nmdc_jsonschema
+from nmdc_runtime.util import nmdc_jsonschema, REPO_ROOT_DIR
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -23,6 +22,12 @@ SchemaPathProperties = namedtuple(
 )
 
 FilePathOrBuffer = Union[Path, StringIO]
+
+collection_name_to_class_name = {
+    db_prop: db_prop["items"]["$ref"].split("/")[-1]
+    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
+    if "items" in db_prop and "$ref" in db_prop["items"]
+}
 
 
 collection_name_to_class_name = {
@@ -162,23 +167,17 @@ def load_changesheet(
 
     # add linkml class name for each id
     df["linkml_class"] = ""
-    prev_id = ""
     class_name_dict = map_schema_class_names(nmdc)
     for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
-        # check if there is a new id
-        if id_ != prev_id:
-            prev_id = id_  # update prev id
-            data = mongodb[collection_name].find_one({"id": id_})
+        data = mongodb[collection_name].find_one({"id": id_})
 
-            # find the type of class the data instantiates
-            if "type" in list(data.keys()):
-                # get part after the ":"
-                class_name = data["type"].split(":")[-1]
-                class_name = class_name_dict[class_name]
-            else:
-                class_name = class_name_dict[
-                    collection_name_to_class_name[collection_name]
-                ]
+        # find the type of class the data instantiates
+        if "type" in list(data.keys()):
+            # get part after the ":"
+            class_name = data["type"].split(":")[-1]
+            class_name = class_name_dict[class_name]
+        else:
+            class_name = class_name_dict[collection_name_to_class_name[collection_name]]
 
         # set class name for id
         df["linkml_class"] = class_name
@@ -187,9 +186,9 @@ def load_changesheet(
     df["linkml_slots"] = ""
     df["ranges"] = ""
     df["multivalues"] = ""
-    view = SchemaView(
-        os.path.join(os.path.dirname(sys.modules["nmdc_schema"].__file__), "nmdc.yaml")
-    )
+    sd = get_nmdc_schema_definition()
+    sd.source_file = f"{REPO_ROOT_DIR}/nmdc_schema_yaml_src/nmdc.yaml"
+    view = SchemaView(sd)
     for ix, attribute, path, class_name in df[
         ["attribute", "path", "linkml_class"]
     ].itertuples():
@@ -202,7 +201,6 @@ def load_changesheet(
         df.loc[ix, "linkml_slots"] = str.join("|", spp.slots)
         df.loc[ix, "ranges"] = str.join("|", spp.ranges)
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
-
     return df
 
 

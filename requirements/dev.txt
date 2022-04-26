@@ -91,7 +91,7 @@ pyparsing==3.0.8
     # via
     #   -c requirements/main.txt
     #   packaging
-pytest==7.1.1
+pytest==7.1.2
     # via -r requirements/dev.in
 readme-renderer==35.0
     # via twine

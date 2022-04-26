@@ -24,6 +24,7 @@ from nmdc_runtime.site.graphs import (
     ensure_jobs,
     apply_changesheet,
     apply_metadata_in,
+    hello_graph,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -391,6 +392,8 @@ def done_object_put_ops(_context):
 def repo():
     graph_jobs = [
         gold_translation.to_job(**preset_normal),
+        hello_graph.to_job(name="hello_job"),
+        ensure_jobs.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [

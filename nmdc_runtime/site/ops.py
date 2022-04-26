@@ -63,7 +63,8 @@ def hello(context):
     For more hints about writing Dagster solids, see our documentation overview on Solids:
     https://docs.dagster.io/overview/solids-pipelines/solids
     """
-    out = "Hello, NMDC!"
+    name = context.op_config.get("name", "NMDC") if context.op_config else "NMDC"
+    out = f"Hello, {name}!"
     context.log.info(out)
     return out
 

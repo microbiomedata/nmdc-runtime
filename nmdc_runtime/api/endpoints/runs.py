@@ -1,13 +1,21 @@
-from fastapi import APIRouter, Depends
+from dagster import PipelineRunStatus
+from dagster_graphql import DagsterGraphQLClientError
+from fastapi import APIRouter, Depends, HTTPException
 from pymongo.database import Database as MongoDatabase
+from starlette import status
 from toolz import concat, merge
 
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import raise404_if_none, pick, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import list_resources
-from nmdc_runtime.api.models.run import RunRequest, RunSummary, RunEvent, Run
-from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.api.models.run import (
+    RunRequest,
+    RunSummary,
+    RunEvent,
+    Run,
+    get_dagster_graphql_client,
+)
+from nmdc_runtime.api.models.util import ListResponse
 
 router = APIRouter()
 
@@ -88,7 +96,7 @@ def _get_run_summary(run_id, mdb):
 
 
 @router.get(
-    "/run/{run_id}", response_model=RunSummary, response_model_exclude_unset=True
+    "/runs/{run_id}", response_model=RunSummary, response_model_exclude_unset=True
 )
 def get_run_summary(
     run_id: str,
@@ -97,7 +105,7 @@ def get_run_summary(
     return _get_run_summary(run_id, mdb)
 
 
-@router.get("/run-events/{run_id}", response_model=ListResponse[RunEvent])
+@router.get("/runs/{run_id}/events", response_model=ListResponse[RunEvent])
 def list_events_for_run(
     run_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -109,18 +117,55 @@ def list_events_for_run(
     }
 
 
-@router.post("/run-events", response_model=RunEvent, response_model_exclude_unset=True)
+@router.post(
+    "/runs/{run_id}/events", response_model=RunEvent, response_model_exclude_unset=True
+)
 def post_run_event(
+    run_id: str,
     run_event: RunEvent = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    if run_id != run_event.run.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Supplied run_event.run.id does not match run_id given in request URL.",
+        )
     mdb.run_events.insert_one(run_event.dict())
     return _get_run_summary(run_event.run.id, mdb)
 
 
-@router.get("/run-events", response_model=ListResponse[RunEvent])
-def list_run_events(
-    req: ListRequest = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+def _request_dagster_run(
+    job_name: str,
+    run_config_data: dict,
+    repository_location_name="nmdc_runtime.site.repository:repo",
+    repository_name="repo",
 ):
-    return list_resources(req, mdb, "run_events")
+    """
+    Example 1:
+    - job_name: hello_job
+    - run_config_data: {"ops": {"hello": {"config": {"name": "Donny"}}}}
+
+    Example 2:
+    - job_name: hello_job
+    - run_config_data: {}
+    """
+    dagster_client = get_dagster_graphql_client()
+    try:
+        run_id: str = dagster_client.submit_job_execution(
+            job_name,
+            repository_location_name=repository_location_name,
+            repository_name=repository_name,
+            run_config=run_config_data,
+        )
+        return {"type": "success", "detail": {"run_id": run_id}}
+    except DagsterGraphQLClientError as exc:
+        return {"type": "error", "detail": str(exc)}
+
+
+def _get_dagster_run_status(run_id: str):
+    dagster_client = get_dagster_graphql_client()
+    try:
+        run_status: PipelineRunStatus = dagster_client.get_run_status(run_id)
+        return {"type": "success", "detail": str(run_status.value)}
+    except DagsterGraphQLClientError as exc:
+        return {"type": "error", "detail": str(exc)}

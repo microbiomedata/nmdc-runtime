@@ -1,18 +1,29 @@
 import logging
+import os
 import re
+import tempfile
+from pathlib import Path
 from time import time_ns
 from typing import Set, Optional, List, Tuple
 from urllib.parse import urlparse, parse_qs
 
 from bson import json_util
 from fastapi import HTTPException
+from gridfs import GridFS
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
+from pymongo.errors import DuplicateKeyError
 from starlette import status
 from toolz import merge, dissoc, concat
 
-from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.db.mongo import activity_collection_names
+from nmdc_runtime.api.core.idgen import generate_one_id, local_part
+from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
+from nmdc_runtime.api.models.object import (
+    PortableFilename,
+    DrsId,
+    DrsObjectIn,
+    DrsObject,
+)
 from nmdc_runtime.api.models.util import (
     ListRequest,
     FindRequest,
@@ -20,6 +31,10 @@ from nmdc_runtime.api.models.util import (
     PipelineFindResponse,
     FindResponse,
 )
+from nmdc_runtime.util import drs_metadata_for
+
+BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
+HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
@@ -319,3 +334,67 @@ def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
         meta=merge(resp.meta, {"description": description, "components": components}),
         results=resp.results,
     )
+
+
+def persist_content_and_get_drs_object(
+    content: str,
+    username="(anonymous)",
+    filename=None,
+    content_type="application/json",
+    id_ns="json-metadata-in",
+):
+    mdb = get_mongo_db()
+    drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
+    filename = filename or drs_id
+    PortableFilename(filename)  # validates
+    DrsId(drs_id)  # validates
+
+    mdb_fs = GridFS(mdb)
+    mdb_fs.put(
+        content,
+        _id=drs_id,
+        filename=filename,
+        content_type=content_type,
+        encoding="utf-8",
+    )
+    with tempfile.TemporaryDirectory() as save_dir:
+        filepath = str(Path(save_dir).joinpath(filename))
+        with open(filepath, "w") as f:
+            f.write(content)
+        object_in = DrsObjectIn(
+            **drs_metadata_for(
+                filepath,
+                base={
+                    "description": f"metadata submitted by {username}",
+                    "access_methods": [{"access_id": drs_id}],
+                },
+            )
+        )
+    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
+    return _create_object(
+        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+    )
+
+
+def _create_object(
+    mdb: MongoDatabase, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
+):
+    drs_obj = DrsObject(
+        **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
+    )
+    doc = drs_obj.dict(exclude_unset=True)
+    doc["_mgr_site"] = mgr_site  # manager site
+    try:
+        mdb.objects.insert_one(doc)
+    except DuplicateKeyError as e:
+        if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="provided checksum matches existing object",
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="duplicate key error",
+            )
+    return doc

@@ -1,4 +1,3 @@
-import os
 from typing import List
 
 import botocore
@@ -6,7 +5,6 @@ import pymongo
 from fastapi import APIRouter, status, Depends, HTTPException
 from gridfs import GridFS
 from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
 from starlette.responses import RedirectResponse
 from toolz import merge
 
@@ -14,7 +12,12 @@ from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
-from nmdc_runtime.api.endpoints.util import list_resources
+from nmdc_runtime.api.endpoints.util import (
+    list_resources,
+    _create_object,
+    HOSTNAME_EXTERNAL,
+    BASE_URL_EXTERNAL,
+)
 from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObject,
@@ -26,9 +29,6 @@ from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
 router = APIRouter()
-
-BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
-HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def supplied_object_id(mdb, client_site, obj_doc):
@@ -85,30 +85,6 @@ def create_object(
     return _create_object(
         mdb, object_in, mgr_site=client_site.id, drs_id=drs_id, self_uri=self_uri
     )
-
-
-def _create_object(
-    mdb: pymongo.database.Database, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
-):
-    drs_obj = DrsObject(
-        **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
-    )
-    doc = drs_obj.dict(exclude_unset=True)
-    doc["_mgr_site"] = mgr_site  # manager site
-    try:
-        mdb.objects.insert_one(doc)
-    except DuplicateKeyError as e:
-        if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="provided checksum matches existing object",
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="duplicate key error",
-            )
-    return doc
 
 
 @router.get("/objects", response_model=ListResponse[DrsObject])
