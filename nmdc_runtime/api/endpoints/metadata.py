@@ -118,7 +118,7 @@ async def submit_changesheet(
     [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
 
     """
-    allowed_to_submit = ("dehays", "dwinston")
+    allowed_to_submit = ("dehays", "dwinston", "pajau", "montana")
     if user.username not in allowed_to_submit:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
