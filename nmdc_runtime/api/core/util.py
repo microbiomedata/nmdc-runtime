@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from toolz import keyfilter
 
 API_SITE_ID = os.getenv("API_SITE_ID")
+API_SITE_CLIENT_ID = os.getenv("API_SITE_CLIENT_ID")
 
 
 def omit(blacklist, d):

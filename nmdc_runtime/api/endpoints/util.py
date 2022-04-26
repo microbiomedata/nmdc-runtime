@@ -8,6 +8,8 @@ from typing import Set, Optional, List, Tuple
 from urllib.parse import urlparse, parse_qs
 
 from bson import json_util
+from dagster import PipelineRunStatus
+from dagster_graphql import DagsterGraphQLClientError
 from fastapi import HTTPException
 from gridfs import GridFS
 from pymongo.collection import Collection as MongoCollection
@@ -17,22 +19,33 @@ from starlette import status
 from toolz import merge, dissoc, concat
 
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
+from nmdc_runtime.api.core.util import (
+    raise404_if_none,
+    expiry_dt_from_now,
+    dotted_path_for,
+)
 from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
+from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     PortableFilename,
     DrsId,
     DrsObjectIn,
     DrsObject,
 )
+from nmdc_runtime.api.models.operation import Operation
+from nmdc_runtime.api.models.run import get_dagster_graphql_client
+from nmdc_runtime.api.models.site import Site
 from nmdc_runtime.api.models.util import (
     ListRequest,
     FindRequest,
     PipelineFindRequest,
     PipelineFindResponse,
     FindResponse,
+    ResultT,
 )
 from nmdc_runtime.util import drs_metadata_for
 
+BASE_URL_INTERNAL = os.getenv("API_HOST")
 BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
@@ -398,3 +411,94 @@ def _create_object(
                 detail="duplicate key error",
             )
     return doc
+
+
+def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
+    job_doc = raise404_if_none(mdb.jobs.find_one({"id": job_id}))
+    job = Job(**job_doc)
+    # check that site satisfies the job's workflow's required capabilities.
+    capabilities_required = job.workflow.capability_ids or []
+    for cid in capabilities_required:
+        if cid not in site.capability_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"client site does not have capability {cid} required to claim job",
+            )
+
+    # For now, allow site to claim same job multiple times,
+    # to re-submit results given same job input config.
+    job_op_for_site = mdb.operations.find_one(
+        {"metadata.job.id": job.id, "metadata.site_id": site.id}
+    )
+    if job_op_for_site is not None:
+        # raise HTTPException(
+        #     status_code=status.HTTP_409_CONFLICT,
+        #     detail={
+        #         "msg": (
+        #             f"client site already claimed job -- "
+        #             f"see operation {job_op_for_site['id']}"
+        #         ),
+        #         "id": job_op_for_site["id"],
+        #     },
+        # )
+        pass
+
+    op_id = generate_one_id(mdb, "op")
+    job.claims = (job.claims or []) + [JobClaim(op_id=op_id, site_id=site.id)]
+    op = Operation[ResultT, JobOperationMetadata](
+        **{
+            "id": op_id,
+            "expire_time": expiry_dt_from_now(days=30),
+            "metadata": {
+                "job": Job(
+                    **{
+                        "id": job.id,
+                        "workflow": {"id": job.workflow.id},
+                        "config": job.config,
+                    }
+                ).dict(exclude_unset=True),
+                "site_id": site.id,
+                "model": dotted_path_for(JobOperationMetadata),
+            },
+        }
+    )
+    mdb.operations.insert_one(op.dict())
+    mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
+    return op.dict(exclude_unset=True)
+
+
+def _request_dagster_run(
+    job_name: str,
+    run_config_data: dict,
+    repository_location_name=None,
+    repository_name=None,
+):
+    """
+    Example 1:
+    - job_name: hello_job
+    - run_config_data: {"ops": {"hello": {"config": {"name": "Donny"}}}}
+
+    Example 2:
+    - job_name: hello_job
+    - run_config_data: {}
+    """
+    dagster_client = get_dagster_graphql_client()
+    try:
+        run_id: str = dagster_client.submit_job_execution(
+            job_name,
+            repository_location_name=repository_location_name,
+            repository_name=repository_name,
+            run_config=run_config_data,
+        )
+        return {"type": "success", "detail": {"run_id": run_id}}
+    except DagsterGraphQLClientError as exc:
+        return {"type": "error", "detail": str(exc)}
+
+
+def _get_dagster_run_status(run_id: str):
+    dagster_client = get_dagster_graphql_client()
+    try:
+        run_status: PipelineRunStatus = dagster_client.get_run_status(run_id)
+        return {"type": "success", "detail": str(run_status.value)}
+    except DagsterGraphQLClientError as exc:
+        return {"type": "error", "detail": str(exc)}

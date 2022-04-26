@@ -6,8 +6,8 @@ import tempfile
 from collections import defaultdict
 from io import StringIO
 
-import pandas as pd
 import requests
+from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from gridfs import GridFS
 from jsonschema import Draft7Validator
@@ -16,19 +16,27 @@ from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from starlette.responses import StreamingResponse
+from toolz import merge
 
 from nmdc_runtime.api.core.metadata import (
-    load_changesheet,
-    update_mongo_db,
-    mongo_update_command_for,
-    copy_docs_in_update_cmd,
+    df_from_sheet_in,
+    _validate_changesheet,
 )
+from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.endpoints.util import (
+    persist_content_and_get_drs_object,
+    _claim_job,
+    _request_dagster_run,
+)
+from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
+from nmdc_runtime.api.models.site import get_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
+from nmdc_runtime.site.repository import run_config_frozen__normal_env, repo
+from nmdc_runtime.util import unfreeze
 
 router = APIRouter()
 
@@ -39,55 +47,6 @@ async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
     contents: bytes = await uploaded_file.read()
     text = contents.decode()
     return ChangesheetIn(name=name, content_type=content_type, text=text)
-
-
-def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFrame:
-    content_types = {
-        "text/csv": ",",
-        "text/tab-separated-values": "\t",
-    }
-    content_type = sheet_in.content_type
-    sep = content_types[content_type]
-    filename = sheet_in.name
-    if content_type not in content_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"file {filename} has content type '{content_type}'. "
-                f"Only {list(content_types)} files are permitted."
-            ),
-        )
-    try:
-        df = load_changesheet(StringIO(sheet_in.text), mdb, sep=sep)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return df
-
-
-def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
-    update_cmd = mongo_update_command_for(df_change)
-    mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
-    results_of_copy = copy_docs_in_update_cmd(
-        update_cmd,
-        mdb_from=mdb,
-        mdb_to=mdb_to_inspect,
-    )
-    results_of_updates = update_mongo_db(mdb_to_inspect, update_cmd)
-    rv = {
-        "update_cmd": update_cmd,
-        "inspection_info": {
-            "mdb_name": mdb_to_inspect.name,
-            "results_of_copy": results_of_copy,
-        },
-        "results_of_updates": results_of_updates,
-    }
-    for result in results_of_updates:
-        if len(result.get("validation_errors", [])) > 0:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=rv
-            )
-
-    return rv
 
 
 @router.post("/metadata/changesheets:validate")
@@ -147,8 +106,8 @@ async def submit_changesheet(
     return doc_after
 
 
-@router.get("/metadata/changesheets/{object_id}")
-async def get_changesheet(
+@router.get("/metadata/stored_files/{object_id}")
+async def get_stored_metadata_object(
     object_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
@@ -287,44 +246,67 @@ async def validate_json(docs: dict):
 async def submit_json(
     docs: dict,
     user: User = Depends(get_current_active_user),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
 
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    raise HTTPException(
-        status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="not yet implemented"
+    rv = _validate_json(docs)
+    if rv["result"] == "errors":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(rv),
+        )
+    drs_obj_doc = persist_content_and_get_drs_object(
+        content=json.dumps(docs),
+        username=user.username,
+        filename=None,
+        content_type="application/json",
+        id_ns="json-metadata-in",
     )
+    job_spec = {
+        "workflow": {"id": "metadata-in-1.0.0"},
+        "config": {"object_id": drs_obj_doc["id"]},
+    }
+    run_config = merge(
+        unfreeze(run_config_frozen__normal_env),
+        {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
+    )
+    dagster_result: ExecuteInProcessResult = repo.get_job(
+        "ensure_jobs"
+    ).execute_in_process(run_config=run_config)
+    job = Job(**mdb.jobs.find_one(job_spec))
+    if not dagster_result.success or job is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'failed to complete metadata-in-1.0.0/{drs_obj_doc["id"]} job',
+        )
 
-    # rv = _validate_json(docs)
-    # if rv["result"] == "errors":
-    #     raise HTTPException(
-    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    #         detail=rv["validation_errors"],
-    #     )
-    # drs_obj_doc = persist_content_and_get_drs_object(
-    #     content=json.dumps(docs),
-    #     username=user.username,
-    #     filename=None,
-    #     content_type="application/json",
-    #     id_ns="json-metadata-in",
-    # )
-    # dagster_job = repo.get_job("ensure_jobs")
-    # # TODO ensure_jobs.to_job.execute_in_process(
-    # #          {workflow.id=metadata-in-1.0.0,config.object_id=drs_obj_doc.id})
-    # base_jobs = [
-    #     {
-    #         "workflow": {"id": "metadata-in-1.0.0"},
-    #         "config": {"object_id": drs_obj_doc["id"]},
-    #     }
-    # ]
-    # run_config = merge(
-    #     run_config_frozen__normal_env,
-    #     {"ops": {"construct_jobs": {"config": {"base_jobs": base_jobs}}}},
-    # )
-    # dagster_job.execute_in_process(run_config=unfreeze(run_config))
-    #
-    # # TODO get_runtime_api_site_client.claim_job,
-    # #      dagster_client.submit_job_execution(apply_metadata_in.to_job)
-    # # TODO return run_id of requested metadata-in job.
+    site = get_site(mdb, client_id=API_SITE_CLIENT_ID)
+    operation = _claim_job(job.id, mdb, site)
+    run_config = merge(
+        unfreeze(run_config_frozen__normal_env),
+        {
+            "ops": {
+                "get_json_in": {
+                    "config": {
+                        "object_id": job.config.get("object_id"),
+                    }
+                },
+                "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
+            }
+        },
+    )
+    requested = _request_dagster_run("apply_metadata_in", run_config_data=run_config)
+    if requested["type"] == "success":
+        return requested
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                f"failed to submit apply_metadata_in job to runtime. "
+                f'Detail: {requested["detail"]}'
+            ),
+        )
