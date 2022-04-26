@@ -1,6 +1,4 @@
 import inspect
-import os
-import sys
 from collections import defaultdict, namedtuple
 from functools import lru_cache
 from io import StringIO
@@ -12,10 +10,11 @@ import pandas as pds
 from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from pymongo.database import Database as MongoDatabase
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
-from nmdc_runtime.util import nmdc_jsonschema
+from nmdc_runtime.util import nmdc_jsonschema, REPO_ROOT_DIR
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -155,7 +154,6 @@ def load_changesheet(
 
     # add linkml class name for each id
     df["linkml_class"] = ""
-    prev_id = ""
     class_name_dict = map_schema_class_names(nmdc)
     for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
         # check if there is a new id
@@ -178,9 +176,9 @@ def load_changesheet(
     df["linkml_slots"] = ""
     df["ranges"] = ""
     df["multivalues"] = ""
-    view = SchemaView(
-        os.path.join(os.path.dirname(sys.modules["nmdc_schema"].__file__), "nmdc.yaml")
-    )
+    sd = get_nmdc_schema_definition()
+    sd.source_file = f"{REPO_ROOT_DIR}/nmdc_schema_yaml_src/nmdc.yaml"
+    view = SchemaView(sd)
     for ix, attribute, path, class_name in df[
         ["attribute", "path", "linkml_class"]
     ].itertuples():
@@ -193,7 +191,6 @@ def load_changesheet(
         df.loc[ix, "linkml_slots"] = str.join("|", spp.slots)
         df.loc[ix, "ranges"] = str.join("|", spp.ranges)
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
-
     return df
 
 

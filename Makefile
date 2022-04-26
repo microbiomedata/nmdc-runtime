@@ -17,6 +17,12 @@ update-schema:
 		requirements/main.txt requirements/main.in
 	pip install -r requirements/main.txt
 
+update-schema-yaml:
+	# XXX depends on git checkout of nmdc-schema repo in sibling directory.
+	# XXX you likely want to `git checkout vX.Y.Z`, where nmdc-schema==X.Y.Z is installed
+	rm -rf nmdc_schema_yaml_src
+	cp -r ../nmdc-schema/src/schema/ nmdc_schema_yaml_src
+
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
