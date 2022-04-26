@@ -5,7 +5,6 @@ import re
 import tempfile
 from collections import defaultdict
 from io import StringIO
-from pathlib import Path
 
 import pandas as pd
 import requests
@@ -18,7 +17,6 @@ from pymongo.database import Database as MongoDatabase
 from starlette import status
 from starlette.responses import StreamingResponse
 
-from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.metadata import (
     load_changesheet,
     update_mongo_db,
@@ -26,13 +24,11 @@ from nmdc_runtime.api.core.metadata import (
     copy_docs_in_update_cmd,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.objects import HOSTNAME_EXTERNAL, _create_object
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.api.models.object import DrsObjectIn, PortableFilename, DrsId
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.util import drs_metadata_for
 
 router = APIRouter()
 
@@ -135,39 +131,12 @@ async def submit_changesheet(
     df_change = df_from_sheet_in(sheet_in, mdb)
     _ = _validate_changesheet(df_change, mdb)
 
-    # create object (backed by gridfs). use "gfs0" id shoulder for drs_object access_id.
-    sheet_id = generate_one_id(mdb, ns="changesheets", shoulder="gfs0")
-    mdb_fs = GridFS(mdb)
-    filename = re.sub(r"[^A-Za-z0-9\.\_\-]", "_", sheet_in.name)
-    PortableFilename(filename)  # validates
-    sheet_text = sheet_in.text
-    drs_id = local_part(sheet_id)
-    DrsId(drs_id)  # validates
-    mdb_fs.put(
-        sheet_text,
-        _id=drs_id,
-        filename=filename,
+    drs_obj_doc = persist_content_and_get_drs_object(
+        content=sheet_in.text,
+        username=user.username,
+        filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
         content_type=sheet_in.content_type,
-        encoding="utf-8",
-    )
-    with tempfile.TemporaryDirectory() as save_dir:
-        filepath = str(Path(save_dir).joinpath(filename))
-        with open(filepath, "w") as f:
-            f.write(sheet_text)
-        object_in = DrsObjectIn(
-            **drs_metadata_for(
-                filepath,
-                base={
-                    "description": f"changesheet submitted by {user.username}",
-                    "access_methods": [{"access_id": drs_id}],
-                },
-            )
-        )
-
-    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
-
-    drs_obj_doc = _create_object(
-        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+        id_ns="changesheets",
     )
 
     doc_after = mdb.objects.find_one_and_update(
@@ -289,14 +258,7 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
             return {"result": "errors", "detail": validation_errors}
 
 
-@router.post("/metadata/json:validate")
-async def validate_json(docs: dict):
-    """
-
-    Validate a NMDC JSON Schema "nmdc:Database" object.
-
-    """
-
+def _validate_json(docs: dict):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs, validation_errors = specialize_activity_set_docs(docs)
 
@@ -308,3 +270,61 @@ async def validate_json(docs: dict):
         return {"result": "All Okay!"}
     else:
         return {"result": "errors", "detail": validation_errors}
+
+
+@router.post("/metadata/json:validate")
+async def validate_json(docs: dict):
+    """
+
+    Validate a NMDC JSON Schema "nmdc:Database" object.
+
+    """
+
+    return _validate_json(docs)
+
+
+@router.post("/metadata/json:submit")
+async def submit_json(
+    docs: dict,
+    user: User = Depends(get_current_active_user),
+):
+    """
+
+    Submit a NMDC JSON Schema "nmdc:Database" object.
+
+    """
+    raise HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED, detail="not yet implemented"
+    )
+
+    # rv = _validate_json(docs)
+    # if rv["result"] == "errors":
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail=rv["validation_errors"],
+    #     )
+    # drs_obj_doc = persist_content_and_get_drs_object(
+    #     content=json.dumps(docs),
+    #     username=user.username,
+    #     filename=None,
+    #     content_type="application/json",
+    #     id_ns="json-metadata-in",
+    # )
+    # dagster_job = repo.get_job("ensure_jobs")
+    # # TODO ensure_jobs.to_job.execute_in_process(
+    # #          {workflow.id=metadata-in-1.0.0,config.object_id=drs_obj_doc.id})
+    # base_jobs = [
+    #     {
+    #         "workflow": {"id": "metadata-in-1.0.0"},
+    #         "config": {"object_id": drs_obj_doc["id"]},
+    #     }
+    # ]
+    # run_config = merge(
+    #     run_config_frozen__normal_env,
+    #     {"ops": {"construct_jobs": {"config": {"base_jobs": base_jobs}}}},
+    # )
+    # dagster_job.execute_in_process(run_config=unfreeze(run_config))
+    #
+    # # TODO get_runtime_api_site_client.claim_job,
+    # #      dagster_client.submit_job_execution(apply_metadata_in.to_job)
+    # # TODO return run_id of requested metadata-in job.

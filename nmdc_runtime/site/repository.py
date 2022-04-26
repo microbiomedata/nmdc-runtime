@@ -393,6 +393,7 @@ def repo():
     graph_jobs = [
         gold_translation.to_job(**preset_normal),
         hello_graph.to_job(name="hello_job"),
+        ensure_jobs.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [
