@@ -23,6 +23,12 @@ SchemaPathProperties = namedtuple(
 
 FilePathOrBuffer = Union[Path, StringIO]
 
+collection_name_to_class_name = {
+    db_prop: db_prop["items"]["$ref"].split("/")[-1]
+    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
+    if "items" in db_prop and "$ref" in db_prop["items"]
+}
+
 
 def load_changesheet(
     filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
@@ -156,18 +162,15 @@ def load_changesheet(
     df["linkml_class"] = ""
     class_name_dict = map_schema_class_names(nmdc)
     for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
-        # check if there is a new id
-        if id_ != prev_id:
-            prev_id = id_  # update prev id
-            data = mongodb[collection_name].find_one({"id": id_})
+        data = mongodb[collection_name].find_one({"id": id_})
 
-            # find the type of class the data instantiates
-            if "type" in list(data.keys()):
-                # get part after the ":"
-                class_name = data["type"].split(":")[-1]
-                class_name = class_name_dict[class_name]
-            else:
-                raise Exception("Cannot determine the type of class for ", id_)
+        # find the type of class the data instantiates
+        if "type" in list(data.keys()):
+            # get part after the ":"
+            class_name = data["type"].split(":")[-1]
+            class_name = class_name_dict[class_name]
+        else:
+            class_name = class_name_dict[collection_name_to_class_name[collection_name]]
 
         # set class name for id
         df["linkml_class"] = class_name
