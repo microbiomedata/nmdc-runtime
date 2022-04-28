@@ -394,6 +394,7 @@ def repo():
         gold_translation.to_job(**preset_normal),
         hello_graph.to_job(name="hello_job"),
         ensure_jobs.to_job(**preset_normal),
+        apply_metadata_in.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [

@@ -33,9 +33,9 @@ from terminusdb_client.woqlquery import WOQLQuery as WQ
 from toolz import get_in, dissoc, assoc
 
 from nmdc_runtime.api.core.idgen import generate_one_id
+from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
-from nmdc_runtime.api.endpoints.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.models.job import JobOperationMetadata, Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
@@ -416,7 +416,9 @@ def get_json_in(context):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     rv = client.get_object_bytes(object_id)
     if rv.status_code != 200:
-        raise Failure(description=f"error code {rv.status_code}: {rv.content}")
+        raise Failure(
+            description=f"error code {rv.status_code} for {rv.request.url}: {rv.text}"
+        )
     return rv.json()
 
 

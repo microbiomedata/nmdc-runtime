@@ -184,7 +184,7 @@ def get_object_access(
     if access_id.startswith("gfs0") and object_id == access_id:
         mdb_fs = GridFS(mdb)
         if mdb_fs.exists(_id=access_id):
-            return {"url": BASE_URL_EXTERNAL + f"/metadata/changesheets/{access_id}"}
+            return {"url": BASE_URL_EXTERNAL + f"/metadata/stored_files/{access_id}"}
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

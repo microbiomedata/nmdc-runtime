@@ -1,5 +1,4 @@
-from dagster import PipelineRunStatus
-from dagster_graphql import DagsterGraphQLClientError
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import APIRouter, Depends, HTTPException
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -13,7 +12,6 @@ from nmdc_runtime.api.models.run import (
     RunSummary,
     RunEvent,
     Run,
-    get_dagster_graphql_client,
 )
 from nmdc_runtime.api.models.util import ListResponse
 
@@ -132,40 +130,3 @@ def post_run_event(
         )
     mdb.run_events.insert_one(run_event.dict())
     return _get_run_summary(run_event.run.id, mdb)
-
-
-def _request_dagster_run(
-    job_name: str,
-    run_config_data: dict,
-    repository_location_name="nmdc_runtime.site.repository:repo",
-    repository_name="repo",
-):
-    """
-    Example 1:
-    - job_name: hello_job
-    - run_config_data: {"ops": {"hello": {"config": {"name": "Donny"}}}}
-
-    Example 2:
-    - job_name: hello_job
-    - run_config_data: {}
-    """
-    dagster_client = get_dagster_graphql_client()
-    try:
-        run_id: str = dagster_client.submit_job_execution(
-            job_name,
-            repository_location_name=repository_location_name,
-            repository_name=repository_name,
-            run_config=run_config_data,
-        )
-        return {"type": "success", "detail": {"run_id": run_id}}
-    except DagsterGraphQLClientError as exc:
-        return {"type": "error", "detail": str(exc)}
-
-
-def _get_dagster_run_status(run_id: str):
-    dagster_client = get_dagster_graphql_client()
-    try:
-        run_status: PipelineRunStatus = dagster_client.get_run_status(run_id)
-        return {"type": "success", "detail": str(run_status.value)}
-    except DagsterGraphQLClientError as exc:
-        return {"type": "error", "detail": str(exc)}

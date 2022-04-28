@@ -6,14 +6,18 @@ from pathlib import Path
 from types import ModuleType
 from typing import Optional, Dict, List, Tuple, Any, Union
 
+import pandas as pd
 import pandas as pds
+from fastapi import HTTPException
 from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from pymongo.database import Database as MongoDatabase
+from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
+from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.util import nmdc_jsonschema, REPO_ROOT_DIR
 
 # custom named tuple to hold path property information
@@ -686,3 +690,52 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
         )
 
     return results
+
+
+def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
+    update_cmd = mongo_update_command_for(df_change)
+    mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
+    results_of_copy = copy_docs_in_update_cmd(
+        update_cmd,
+        mdb_from=mdb,
+        mdb_to=mdb_to_inspect,
+    )
+    results_of_updates = update_mongo_db(mdb_to_inspect, update_cmd)
+    rv = {
+        "update_cmd": update_cmd,
+        "inspection_info": {
+            "mdb_name": mdb_to_inspect.name,
+            "results_of_copy": results_of_copy,
+        },
+        "results_of_updates": results_of_updates,
+    }
+    for result in results_of_updates:
+        if len(result.get("validation_errors", [])) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=rv
+            )
+
+    return rv
+
+
+def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFrame:
+    content_types = {
+        "text/csv": ",",
+        "text/tab-separated-values": "\t",
+    }
+    content_type = sheet_in.content_type
+    sep = content_types[content_type]
+    filename = sheet_in.name
+    if content_type not in content_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"file {filename} has content type '{content_type}'. "
+                f"Only {list(content_types)} files are permitted."
+            ),
+        )
+    try:
+        df = load_changesheet(StringIO(sheet_in.text), mdb, sep=sep)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return df
