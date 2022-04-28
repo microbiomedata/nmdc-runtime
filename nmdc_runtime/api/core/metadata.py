@@ -34,13 +34,6 @@ collection_name_to_class_name = {
 }
 
 
-collection_name_to_class_name = {
-    db_prop: db_prop["items"]["$ref"].split("/")[-1]
-    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
-    if "items" in db_prop and "$ref" in db_prop["items"]
-}
-
-
 def load_changesheet(
     filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
 ) -> pds.DataFrame:
