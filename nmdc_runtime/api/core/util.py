@@ -82,7 +82,7 @@ def generate_secret(length=12):
     """
     if length < 8:
         raise ValueError(f"{length=} must be >=8.")
-    alphabet = string.ascii_letters + string.digits + string.punctuation
+    alphabet = string.ascii_letters + string.digits + "!@#$%^*-_+="
     # based on https://docs.python.org/3.8/library/secrets.html#recipes-and-best-practices
     while True:
         _secret = "".join(secrets.choice(alphabet) for i in range(length))
