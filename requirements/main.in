@@ -7,7 +7,7 @@ dagster
 dagster-graphql
 dagster-postgres
 dotted-dict
-fastapi
+fastapi<0.76.0 # until using starlette >=0.20.2
 fastjsonschema
 frozendict
 git-root
