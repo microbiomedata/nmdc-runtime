@@ -5,15 +5,15 @@ init:
 
 update-deps:
 	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --output-file \
+	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
 		requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --output-file \
+	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
 		requirements/dev.txt requirements/dev.in
 
 update: update-deps init
 
 update-schema:
-	pip-compile --upgrade-package nmdc-schema --build-isolation --output-file \
+	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes --output-file \
 		requirements/main.txt requirements/main.in
 	pip install -r requirements/main.txt
 
