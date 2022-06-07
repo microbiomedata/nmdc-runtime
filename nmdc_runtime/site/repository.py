@@ -97,7 +97,7 @@ def asset_materialization_metadata(asset_event, key):
     return None
 
 
-@sensor(job=ensure_jobs.to_job(**preset_normal))
+@sensor(job=ensure_jobs.to_job(name="ensure_job_triggered", **preset_normal))
 def process_workflow_job_triggers(_context):
     """Post a workflow job for each new object with an object_type matching an active trigger.
     (Source: nmdc_runtime.api.boot.triggers).
@@ -154,7 +154,7 @@ def process_workflow_job_triggers(_context):
 
 @asset_sensor(
     asset_key=AssetKey(["object", "nmdc_database.json.zip"]),
-    job=ensure_jobs.to_job(**preset_normal),
+    job=ensure_jobs.to_job(name="ensure_gold_translation", **preset_normal),
 )
 def ensure_gold_translation_job(_context, asset_event):
     mdb = get_mongo(run_config_frozen__normal_env).db
@@ -228,7 +228,7 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
         yield SkipReason("No job found")
 
 
-@sensor(job=apply_metadata_in.to_job(**preset_normal))
+@sensor(job=apply_metadata_in.to_job(name="apply_metadata_in_sensed", **preset_normal))
 def claim_and_run_metadata_in_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
