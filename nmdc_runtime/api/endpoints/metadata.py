@@ -9,7 +9,7 @@ from io import StringIO
 import requests
 from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from gridfs import GridFS
+from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
@@ -112,7 +112,13 @@ async def get_stored_metadata_object(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     mdb_fs = GridFS(mdb)
-    grid_out = mdb_fs.get(object_id)
+    try:
+        grid_out = mdb_fs.get(object_id)
+    except NoFile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Metadata stored file {object_id} not found",
+        )
     filename, content_type = grid_out.filename, grid_out.content_type
 
     def iter_grid_out():
