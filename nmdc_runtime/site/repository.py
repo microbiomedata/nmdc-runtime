@@ -8,6 +8,9 @@ from dagster import (
     SkipReason,
     RunRequest,
     sensor,
+    run_status_sensor,
+    DagsterRunStatus,
+    RunStatusSensorContext,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -15,7 +18,9 @@ from toolz import merge, get_in
 from nmdc_runtime.api.core.util import dotted_path_for
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
+from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
+from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
     gold_translation,
     gold_translation_curation,
@@ -67,6 +72,7 @@ preset_normal = {
                 },
             },
         },
+        "ops": {},
     },
     "resource_defs": resource_defs,
 }
@@ -388,6 +394,19 @@ def done_object_put_ops(_context):
         yield RunRequest(run_key=run_key, run_config=unfreeze(run_config))
 
 
+@run_status_sensor(pipeline_run_status=DagsterRunStatus.FAILURE)
+def on_run_fail(context: RunStatusSensorContext):
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    dagster_run_id = context.dagster_run.run_id
+    run_event_doc = mdb.run_events.find_one(
+        {"run.facets.nmdcRuntime_dagsterRunId": dagster_run_id}
+    )
+    if run_event_doc is not None:
+        nmdc_run_id = run_event_doc["run"]["id"]
+        _add_run_fail_event(run_id=nmdc_run_id, mdb=mdb)
+        return nmdc_run_id
+
+
 @repository
 def repo():
     graph_jobs = [
@@ -395,6 +414,7 @@ def repo():
         hello_graph.to_job(name="hello_job"),
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
+        export_study_biosamples_metadata.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [
@@ -404,6 +424,7 @@ def repo():
         process_workflow_job_triggers,
         claim_and_run_apply_changesheet_jobs,
         claim_and_run_metadata_in_jobs,
+        on_run_fail,
     ]
 
     return graph_jobs + schedules + sensors

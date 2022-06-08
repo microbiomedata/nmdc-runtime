@@ -88,6 +88,12 @@ _raw = [
         "name": "apply metadata changesheet",
         "description": "Validate and apply metadata changes from TSV/CSV files",
     },
+    {
+        "id": "export-study-biosamples-as-csv-1.0.0",
+        "created_at": datetime(2022, 6, 8, tzinfo=timezone.utc),
+        "name": "export study biosamples metadata as CSV",
+        "description": "Export study biosamples metadata as CSV",
+    },
 ]
 
 

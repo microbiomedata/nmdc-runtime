@@ -115,3 +115,37 @@ def pluralize(singular, using, pluralized=None):
 def iterable_from_dict_keys(d, keys):
     for k in keys:
         yield d[k]
+
+
+def flatten(d):
+    """Flatten a nested JSON-able dict into a flat dict of dotted-pathed keys."""
+    # assumes plain-json-able
+    d = json.loads(json.dumps(d))
+
+    # atomic values are already "flattened"
+    if not isinstance(d, (dict, list)):
+        return d
+
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, list):
+            for i, elt in enumerate(v):
+                if isinstance(elt, dict):
+                    for k_inner, v_inner in flatten(elt).items():
+                        out[f"{k}.{i}.{k_inner}"] = v_inner
+                elif isinstance(elt, list):
+                    raise ValueError("Can't handle lists in lists at this time")
+                else:
+                    out[f"{k}.{i}"] = elt
+        elif isinstance(v, dict):
+            for kv, vv in v.items():
+                if isinstance(vv, dict):
+                    for kv_inner, vv_inner in flatten(vv).items():
+                        out[f"{k}.{kv}.{kv_inner}"] = vv_inner
+                elif isinstance(vv, list):
+                    raise ValueError("Can't handle lists in sub-dicts at this time")
+                else:
+                    out[f"{k}.{kv}"] = vv
+        else:
+            out[k] = v
+    return out

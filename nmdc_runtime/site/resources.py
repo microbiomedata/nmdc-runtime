@@ -1,11 +1,11 @@
 import json
+import os
 from datetime import timedelta, datetime, timezone
 from functools import lru_cache
 from typing import Optional
 
 import requests
-from dagster import build_init_resource_context
-from dagster import resource, StringSource
+from dagster import build_init_resource_context, resource, StringSource
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from pydantic import BaseModel
@@ -124,6 +124,12 @@ class RuntimeApiSiteClient:
             access = AccessURL(
                 **self.get_object_access(object_id, method.access_id).json()
             )
+            if access.url.startswith(
+                os.getenv("API_HOST_EXTERNAL")
+            ) and self.base_url == os.getenv("API_HOST"):
+                access.url = access.url.replace(
+                    os.getenv("API_HOST_EXTERNAL"), os.getenv("API_HOST")
+                )
         else:
             access = AccessURL(url=method.access_url.url)
         return requests.get(access.url)

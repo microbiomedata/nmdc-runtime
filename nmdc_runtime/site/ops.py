@@ -22,6 +22,7 @@ from dagster import (
     Output,
     Failure,
     RetryPolicy,
+    OpExecutionContext,
 )
 from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
@@ -43,6 +44,7 @@ from nmdc_runtime.api.models.operation import (
     ObjectPutMetadata,
     UpdateOperationRequest,
 )
+from nmdc_runtime.api.models.run import _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
@@ -407,7 +409,7 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     op.result = {"update_cmd": json.dumps(update_cmd)}
     op_doc = op.dict(exclude_unset=True)
     mdb.operations.replace_one({"id": op_id}, op_doc)
-    return op_doc
+    return ["/operations/" + op_doc["id"]]
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
@@ -509,4 +511,18 @@ def perform_mongo_updates(context, json_in):
         result=mongo_add_docs_result_as_dict(op_result),
         metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
     )
-    return client.update_operation(op_id, op_patch)
+    op_doc = client.update_operation(op_id, op_patch).json()
+    return ["/operations/" + op_doc["id"]]
+
+
+@op(required_resource_keys={"mongo"})
+def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
+    mdb = context.resources.mongo.db
+    run_event_doc = mdb.run_events.find_one(
+        {"run.facets.nmdcRuntime_dagsterRunId": context.run_id}
+    )
+    if run_event_doc:
+        nmdc_run_id = run_event_doc["run"]["id"]
+        return _add_run_complete_event(run_id=nmdc_run_id, mdb=mdb, outputs=outputs)
+    else:
+        context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")

@@ -95,6 +95,7 @@ async def submit_changesheet(
         username=user.username,
         filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
         content_type=sheet_in.content_type,
+        description="changesheet",
         id_ns="changesheets",
     )
 
@@ -270,6 +271,7 @@ async def submit_json(
         username=user.username,
         filename=None,
         content_type="application/json",
+        description="JSON metadata in",
         id_ns="json-metadata-in",
     )
     job_spec = {
@@ -292,27 +294,31 @@ async def submit_json(
 
     site = get_site(mdb, client_id=API_SITE_CLIENT_ID)
     operation = _claim_job(job.id, mdb, site)
-    run_config = merge(
-        unfreeze(run_config_frozen__normal_env),
-        {
-            "ops": {
-                "get_json_in": {
-                    "config": {
-                        "object_id": job.config.get("object_id"),
-                    }
-                },
-                "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
-            }
-        },
+    extra_run_config_data = {
+        "ops": {
+            "get_json_in": {
+                "config": {
+                    "object_id": job.config.get("object_id"),
+                }
+            },
+            "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
+        }
+    }
+
+    requested = _request_dagster_run(
+        nmdc_workflow_id="metadata-in-1.0.0",
+        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
+        extra_run_config_data=extra_run_config_data,
+        mdb=mdb,
+        user=user,
     )
-    requested = _request_dagster_run("apply_metadata_in", run_config_data=run_config)
     if requested["type"] == "success":
         return requested
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                f"failed to submit apply_metadata_in job to runtime. "
+                f"Runtime failed to start metadata-in-1.0.0 job. "
                 f'Detail: {requested["detail"]}'
             ),
         )

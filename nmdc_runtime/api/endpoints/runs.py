@@ -1,85 +1,51 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi import APIRouter, Depends, HTTPException
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import concat, merge
+from toolz import concat
 
-from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import raise404_if_none, pick, now
+from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import _request_dagster_run
 from nmdc_runtime.api.models.run import (
-    RunRequest,
     RunSummary,
     RunEvent,
-    Run,
+    RunUserSpec,
 )
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import ListResponse
 
 router = APIRouter()
 
-PRODUCER_URL_BASE_DEFAULT = (
-    "https://github.com/microbiomedata/nmdc-runtime/tree/main/nmdc_runtime/"
-)
-SCHEMA_URL_BASE_DEFAULT = (
-    "https://github.com/microbiomedata/nmdc-runtime/tree/main/nmdc_runtime/"
-)
-
-PRODUCER_URL = PRODUCER_URL_BASE_DEFAULT.replace("/main/", "/v0-0-1/") + "producer"
-SCHEMA_URL = SCHEMA_URL_BASE_DEFAULT.replace("/main/", "/v0-0-1/") + "schema.json"
-
 
 @router.post("/runs", response_model=RunSummary)
 def request_run(
-    run_request: RunRequest = Depends(),
+    run_user_spec: RunUserSpec = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
-    # XXX what we consider a "job" here, is currently a "workflow" elsewhere...
-    job = raise404_if_none(mdb.workflows.find_one({"id": run_request.job_id}))
-    run_id = generate_one_id(mdb, "runs")
-    event = RunEvent(
-        producer="user",
-        schemaURL=SCHEMA_URL,
-        run=Run(id=run_id),
-        job=merge(
-            pick(["id", "description"], job),
-            {"producer": PRODUCER_URL, "schemaURL": SCHEMA_URL},
-        ),
-        type="REQUESTED",
-        time=now(as_str=True),
-        inputs=run_request.inputs,
+    requested = _request_dagster_run(
+        nmdc_workflow_id=run_user_spec.job_id,
+        nmdc_workflow_inputs=run_user_spec.inputs,
+        extra_run_config_data=run_user_spec.run_config,
+        mdb=mdb,
+        user=user,
     )
-    mdb.run_events.insert_one(event.dict())
-    requested = mdb.run_events.find_one({"run.id": run_id}, sort=[("time", -1)])
-    mdb.run_events.insert_one(
-        RunEvent(
-            producer=PRODUCER_URL,
-            schemaURL=SCHEMA_URL,
-            run=requested["run"],
-            job=requested["job"],
-            type="STARTED",
-            time=now(as_str=True),
-            inputs=[],
-        ).dict()
-    )
-    started = mdb.run_events.find_one({"run.id": run_id}, sort=[("time", -1)])
-    # TODO request async work and put details here. worker will complete.
-    mdb.run_events.insert_one(
-        RunEvent(
-            producer=PRODUCER_URL,
-            schemaURL=SCHEMA_URL,
-            run=started["run"],
-            job=started["job"],
-            type="COMPLETED",
-            time=now(as_str=True),
-            inputs=[],
-            outputs=["PARTY"],
-        ).dict()
-    )
-    return _get_run_summary(run_id, mdb)
+    if requested["type"] == "success":
+        return _get_run_summary(requested["detail"]["run_id"], mdb)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                f"Runtime failed to start {run_user_spec.job_id} job. "
+                f'Detail: {requested["detail"]}'
+            ),
+        )
 
 
 def _get_run_summary(run_id, mdb):
     events_in_order = list(mdb.run_events.find({"run.id": run_id}, sort=[("time", 1)]))
+    raise404_if_none(events_in_order or None)
+    # TODO put relevant outputs in outputs! (for get_study_metadata job)
     return {
         "id": run_id,
         "status": events_in_order[-1]["type"],

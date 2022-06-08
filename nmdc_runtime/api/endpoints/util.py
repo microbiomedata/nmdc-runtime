@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 from time import time_ns
 from typing import Set, Optional, List, Tuple
@@ -16,7 +17,7 @@ from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import DuplicateKeyError
 from starlette import status
-from toolz import merge, dissoc, concat
+from toolz import merge, dissoc, concat, get_in, assoc_in
 
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.util import (
@@ -33,8 +34,15 @@ from nmdc_runtime.api.models.object import (
     DrsObject,
 )
 from nmdc_runtime.api.models.operation import Operation
+from nmdc_runtime.api.models.run import (
+    _add_run_requested_event,
+    _add_run_started_event,
+    _add_run_fail_event,
+    RunUserSpec,
+)
 from nmdc_runtime.api.models.run import get_dagster_graphql_client
 from nmdc_runtime.api.models.site import Site
+from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.models.util import (
     ListRequest,
     FindRequest,
@@ -351,6 +359,7 @@ def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
 
 def persist_content_and_get_drs_object(
     content: str,
+    description: str,
     username="(anonymous)",
     filename=None,
     content_type="application/json",
@@ -378,7 +387,7 @@ def persist_content_and_get_drs_object(
             **drs_metadata_for(
                 filepath,
                 base={
-                    "description": f"metadata submitted by {username}",
+                    "description": description + f" (created by/for {username})",
                     "access_methods": [{"access_id": drs_id}],
                 },
             )
@@ -403,7 +412,7 @@ def _create_object(
         if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="provided checksum matches existing object",
+                detail=f"provided checksum matches existing object: {e.details['keyValue']}",
             )
         else:
             raise HTTPException(
@@ -467,32 +476,105 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
     return op.dict(exclude_unset=True)
 
 
-def _request_dagster_run(
-    job_name: str,
+@lru_cache
+def nmdc_workflow_id_to_dagster_job_name_map():
+    return {
+        "metadata-in-1.0.0": "apply_metadata_in",
+        "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
+    }
+
+
+def ensure_run_config_data(
+    nmdc_workflow_id: str,
+    nmdc_workflow_inputs: List[str],
     run_config_data: dict,
+    mdb: MongoDatabase,
+    user: User,
+):
+    if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
+        run_config_data = assoc_in(
+            run_config_data,
+            ["ops", "get_study_biosamples_metadata", "config", "study_id"],
+            nmdc_workflow_inputs[0],
+        )
+        run_config_data = assoc_in(
+            run_config_data,
+            ["ops", "get_study_biosamples_metadata", "config", "username"],
+            user.username,
+        )
+        return run_config_data
+    else:
+        return run_config_data
+
+
+def inputs_for(nmdc_workflow_id, run_config_data):
+    if nmdc_workflow_id == "metadata-in-1.0.0":
+        return [
+            "/objects/"
+            + get_in(["ops", "get_json_in", "config", "object_id"], run_config_data)
+        ]
+    if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
+        return [
+            "/studies/"
+            + get_in(
+                ["ops", "get_study_biosamples_metadata", "config", "study_id"],
+                run_config_data,
+            )
+        ]
+
+
+def _request_dagster_run(
+    nmdc_workflow_id: str,
+    nmdc_workflow_inputs: List[str],
+    extra_run_config_data: dict,
+    mdb: MongoDatabase,
+    user: User,
     repository_location_name=None,
     repository_name=None,
 ):
-    """
-    Example 1:
-    - job_name: hello_job
-    - run_config_data: {"ops": {"hello": {"config": {"name": "Donny"}}}}
+    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
 
-    Example 2:
-    - job_name: hello_job
-    - run_config_data: {}
-    """
+    extra_run_config_data = ensure_run_config_data(
+        nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
+    )
+
+    # add REQUESTED RunEvent
+    nmdc_run_id = _add_run_requested_event(
+        run_spec=RunUserSpec(
+            job_id=nmdc_workflow_id,
+            run_config=extra_run_config_data,
+            inputs=inputs_for(nmdc_workflow_id, extra_run_config_data),
+        ),
+        mdb=mdb,
+        user=user,
+    )
+
     dagster_client = get_dagster_graphql_client()
     try:
-        run_id: str = dagster_client.submit_job_execution(
-            job_name,
+        dagster_run_id: str = dagster_client.submit_job_execution(
+            dagster_job_name,
             repository_location_name=repository_location_name,
             repository_name=repository_name,
-            run_config=run_config_data,
+            run_config=extra_run_config_data,
         )
-        return {"type": "success", "detail": {"run_id": run_id}}
+
+        # add STARTED RunEvent
+        _add_run_started_event(run_id=nmdc_run_id, mdb=mdb)
+        mdb.run_events.find_one_and_update(
+            filter={"run.id": nmdc_run_id, "type": "STARTED"},
+            update={"$set": {"run.facets.nmdcRuntime_dagsterRunId": dagster_run_id}},
+            sort=[("time", -1)],
+        )
+
+        return {"type": "success", "detail": {"run_id": nmdc_run_id}}
     except DagsterGraphQLClientError as exc:
-        return {"type": "error", "detail": str(exc)}
+        # add FAIL RunEvent
+        _add_run_fail_event(run_id=nmdc_run_id, mdb=mdb)
+
+        return {
+            "type": "error",
+            "detail": {"run_id": nmdc_run_id, "error_detail": str(exc)},
+        }
 
 
 def _get_dagster_run_status(run_id: str):

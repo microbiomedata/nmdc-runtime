@@ -20,6 +20,7 @@ from nmdc_runtime.site.ops import (
     perform_changesheet_updates,
     get_json_in,
     perform_mongo_updates,
+    add_output_run_event,
 )
 
 
@@ -83,9 +84,11 @@ def ensure_jobs():
 @graph
 def apply_changesheet():
     sheet_in = get_changesheet_in()
-    perform_changesheet_updates(sheet_in)
+    outputs = perform_changesheet_updates(sheet_in)
+    add_output_run_event(outputs)
 
 
 @graph
 def apply_metadata_in():
-    perform_mongo_updates(get_json_in())
+    outputs = perform_mongo_updates(get_json_in())
+    add_output_run_event(outputs)
