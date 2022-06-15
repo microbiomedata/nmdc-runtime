@@ -57,6 +57,12 @@ _raw = [
         "name": "metadata changesheet",
         "description": "Specification for changes to existing metadata",
     },
+    {
+        "id": "gff-in",
+        "created_at": datetime(2021, 9, 30, tzinfo=timezone.utc),
+        "name": "gff file",
+        "description": "gff file",
+    },
 ]
 
 _raw.extend(

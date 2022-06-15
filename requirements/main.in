@@ -4,6 +4,7 @@ beautifulsoup4
 beanie
 boto3
 click
+celery[redis]
 dagit
 dagster
 dagster-graphql
