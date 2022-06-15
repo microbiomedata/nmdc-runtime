@@ -3,6 +3,7 @@ bcbio-gff
 beautifulsoup4
 boto3
 click
+celery[redis]
 dagit
 dagster
 dagster-graphql
