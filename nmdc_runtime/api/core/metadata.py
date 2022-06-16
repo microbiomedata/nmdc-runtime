@@ -169,6 +169,11 @@ def load_changesheet(
         data = mongodb[collection_name].find_one({"id": id_})
 
         # find the type of class the data instantiates
+        # TODO it's possible to get data == None here when e.g.
+        #    the ID is a valid nmdc:Study but the collection_name has been
+        #    set to biosample_set based on the attribute update requested
+        #    in the changesheet line. The resulting error is inscrutable
+        #    to the API user: NoneType has no attribute 'keys'.
         if "type" in list(data.keys()):
             # get part after the ":"
             class_name = data["type"].split(":")[-1]
