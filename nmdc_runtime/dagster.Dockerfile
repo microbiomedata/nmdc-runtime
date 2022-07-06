@@ -39,4 +39,4 @@ ENV PYTHONFAULTHANDLER=1
 # Run dagit server on port 3000
 EXPOSE 3000
 
-ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/dagster/entrypoint-dagit.sh"]
+ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
