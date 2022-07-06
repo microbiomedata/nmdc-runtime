@@ -7,6 +7,7 @@ nav:
     - tutorials/json.md
     - tutorials/metadata-in.md
   - How-to Guides:
+    - howto-guides/author-changesheets.md
     - howto-guides/create-triggers.md
     - howto-guides/claim-and-run-jobs.md
     - howto-guides/update-sensors-ops.md
