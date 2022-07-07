@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Dict
 from zipfile import ZipFile
 
@@ -34,11 +34,18 @@ from terminusdb_client.woqlquery import WOQLQuery as WQ
 from toolz import get_in, dissoc, assoc
 
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
-from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
+from nmdc_runtime.api.core.metadata import (
+    df_from_sheet_in,
+    _validate_changesheet,
+)
+from nmdc_runtime.api.core.metadata import (
+    map_id_to_collection,
+    get_collection_for_id,
+)
 from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
 from nmdc_runtime.api.models.job import JobOperationMetadata, Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
+from nmdc_runtime.lib import gff_to_json
 from nmdc_runtime.api.models.operation import (
     Operation,
     ObjectPutMetadata,
@@ -47,7 +54,9 @@ from nmdc_runtime.api.models.operation import (
 from nmdc_runtime.api.models.run import _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
-from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
+from nmdc_runtime.site.drsobjects.registration import (
+    specialize_activity_set_docs,
+)
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
 from nmdc_runtime.site.util import run_and_log, collection_indexed_on_id
 from nmdc_runtime.util import (
@@ -65,7 +74,9 @@ def hello(context):
     For more hints about writing Dagster solids, see our documentation overview on Solids:
     https://docs.dagster.io/overview/solids-pipelines/solids
     """
-    name = context.op_config.get("name", "NMDC") if context.op_config else "NMDC"
+    name = (
+        context.op_config.get("name", "NMDC") if context.op_config else "NMDC"
+    )
     out = f"Hello, {name}!"
     context.log.info(out)
     return out
@@ -183,11 +194,10 @@ def local_file_to_api_object(context, file_info):
 def build_merged_db(context) -> str:
     context.log.info("metadata-translation: running `make build-merged-db`")
     run_and_log(
-        "cd /opt/dagster/lib/metadata-translation/ && make build-merged-db", context
+        "cd /opt/dagster/lib/metadata-translation/ && make build-merged-db",
+        context,
     )
-    storage_path = (
-        "/opt/dagster/lib/metadata-translation/src/data/nmdc_merged_data.tsv.zip"
-    )
+    storage_path = "/opt/dagster/lib/metadata-translation/src/data/nmdc_merged_data.tsv.zip"
     yield AssetMaterialization(
         asset_key=AssetKey(["gold_translation", "merged_data.tsv.zip"]),
         description="input to metadata-translation run_etl",
@@ -202,8 +212,12 @@ def build_merged_db(context) -> str:
 def run_etl(context, merged_data_path: str):
     context.log.info("metadata-translation: running `make run-etl`")
     if not os.path.exists(merged_data_path):
-        raise Failure(description=f"merged_db not present at {merged_data_path}")
-    run_and_log("cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
+        raise Failure(
+            description=f"merged_db not present at {merged_data_path}"
+        )
+    run_and_log(
+        "cd /opt/dagster/lib/metadata-translation/ && make run-etl", context
+    )
     storage_path = (
         "/opt/dagster/lib/metadata-translation/src/data/nmdc_database.json.zip"
     )
@@ -248,7 +262,9 @@ def produce_curated_db(context, op: Operation):
     rv = client.get_object_bytes(o_id)
 
     with ZipFile(BytesIO(rv.content)) as myzip:
-        name = next(n for n in myzip.namelist() if n.endswith("nmdc_database.json"))
+        name = next(
+            n for n in myzip.namelist() if n.endswith("nmdc_database.json")
+        )
         with myzip.open(name) as f:
             nmdc_database = json.load(f)
 
@@ -299,7 +315,9 @@ def list_operations(context, filter_: str) -> list:
 @op(required_resource_keys={"mongo"})
 def delete_operations(context, op_docs: list):
     mdb = context.resources.mongo.db
-    rv = mdb.operations.delete_many({"id": {"$in": [doc["id"] for doc in op_docs]}})
+    rv = mdb.operations.delete_many(
+        {"id": {"$in": [doc["id"] for doc in op_docs]}}
+    )
     context.log.info(f"Deleted {rv.deleted_count} of {len(op_docs)}")
     if rv.deleted_count != len(op_docs):
         context.log.error("Didn't delete all.")
@@ -321,7 +339,9 @@ def maybe_post_jobs(context, jobs: List[Job]):
     n_posted = 0
     for job in jobs:
         job_docs = list(mdb.jobs.find({"workflow.id": job.workflow.id}))
-        posted_job_object_ids = [get_in(["config", "object_id"], d) for d in job_docs]
+        posted_job_object_ids = [
+            get_in(["config", "object_id"], d) for d in job_docs
+        ]
         job_object_id = job.config.get("object_id")
         if job_object_id in posted_job_object_ids:
             context.log.info(
@@ -381,7 +401,9 @@ def get_changesheet_in(context) -> ChangesheetIn:
     mdb_fs = GridFS(mdb)
     grid_out = mdb_fs.get(object_id)
     return ChangesheetIn(
-        name=grid_out.filename, content_type=grid_out.content_type, text=grid_out.read()
+        name=grid_out.filename,
+        content_type=grid_out.content_type,
+        text=grid_out.read(),
     )
 
 
@@ -410,6 +432,18 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     op_doc = op.dict(exclude_unset=True)
     mdb.operations.replace_one({"id": op_id}, op_doc)
     return ["/operations/" + op_doc["id"]]
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def get_object_as_text(context):
+    object_id = context.solid_config.get("object_id")
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+    rv = client.get_object_bytes(object_id)
+    if rv.status_code != 200:
+        raise Failure(
+            description=f"error code {rv.status_code} for {rv.request.url}: {rv.text}"
+        )
+    return StringIO(rv.text)
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
@@ -447,7 +481,8 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
 
     def fte_matches(fte_filter: str):
         return [
-            dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
+            dissoc(d, "_id")
+            for d in mdb.temp_collection.find(json.loads(fte_filter))
         ]
 
     do_docs_map = {d["id"]: d for d in do_docs}
@@ -465,7 +500,9 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     mdb.drop_collection(temp_collection_name)
     return (
         assoc(
-            docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
+            docs,
+            "data_object_set",
+            [dissoc(v, "_id") for v in do_docs_map.values()],
         ),
         n_docs_with_types_added,
     )
@@ -480,7 +517,9 @@ def perform_mongo_updates(context, json_in):
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
     docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
-    context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
+    context.log.info(
+        f"added `data_object_type` to {n_docs_with_types_added} docs"
+    )
     context.log.debug(f"{docs}")
 
     nmdc_jsonschema = get_nmdc_jsonschema_dict()
@@ -509,7 +548,9 @@ def perform_mongo_updates(context, json_in):
     op_patch = UpdateOperationRequest(
         done=True,
         result=mongo_add_docs_result_as_dict(op_result),
-        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+        metadata={
+            "done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
+        },
     )
     op_doc = client.update_operation(op_id, op_patch).json()
     return ["/operations/" + op_doc["id"]]
@@ -523,6 +564,19 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
     )
     if run_event_doc:
         nmdc_run_id = run_event_doc["run"]["id"]
-        return _add_run_complete_event(run_id=nmdc_run_id, mdb=mdb, outputs=outputs)
+        return _add_run_complete_event(
+            run_id=nmdc_run_id, mdb=mdb, outputs=outputs
+        )
     else:
-        context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")
+        context.log.info(
+            f"No NMDC RunEvent doc for Dagster Run {context.run_id}"
+        )
+
+
+@op(required_resource_keys={"mongo"})
+def gff_filelike_to_jsondict(context: OpExecutionContext, gff: StringIO):
+    gff_to_json.generate_counts(
+        gff,
+        context.op_config.get("md5sum"),
+        context.op_config.get("activity_id"),
+    )

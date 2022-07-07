@@ -19,8 +19,10 @@ from nmdc_runtime.site.ops import (
     get_changesheet_in,
     perform_changesheet_updates,
     get_json_in,
+    get_object_as_text,
     perform_mongo_updates,
     add_output_run_event,
+    gff_filelike_to_jsondict,
 )
 
 
@@ -92,3 +94,10 @@ def apply_changesheet():
 def apply_metadata_in():
     outputs = perform_mongo_updates(get_json_in())
     add_output_run_event(outputs)
+
+
+@graph
+def submit_gff_file():
+    outputs = gff_filelike_to_jsondict(get_object_as_text())
+    result = perform_mongo_updates(outputs)
+    add_output_run_event(result)

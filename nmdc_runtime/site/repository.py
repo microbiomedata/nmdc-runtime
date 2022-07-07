@@ -20,7 +20,9 @@ from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.operation import ObjectPutMetadata
 from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
-from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
+from nmdc_runtime.site.export.study_metadata import (
+    export_study_biosamples_metadata,
+)
 from nmdc_runtime.site.graphs import (
     gold_translation,
     gold_translation_curation,
@@ -30,6 +32,7 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
+    submit_gff_file,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -123,7 +126,10 @@ def process_workflow_job_triggers(_context):
         object_ids_with_existing_jobs = [
             get_in(["config", "object_id"], d)
             for d in mdb.jobs.find(
-                {"workflow.id": wf_id, "config.object_id": {"$in": object_ids_of_type}},
+                {
+                    "workflow.id": wf_id,
+                    "config.object_id": {"$in": object_ids_of_type},
+                },
                 ["config.object_id"],
             )
         ]
@@ -148,7 +154,10 @@ def process_workflow_job_triggers(_context):
         run_key = str(
             tuple(
                 sorted(
-                    (get_in(["workflow", "id"], b), get_in(["config", "object_id"], b))
+                    (
+                        get_in(["workflow", "id"], b),
+                        get_in(["config", "object_id"], b),
+                    )
                     for b in base_jobs
                 )
             )
@@ -167,7 +176,9 @@ def ensure_gold_translation_job(_context, asset_event):
     gold_etl_latest = mdb.objects.find_one(
         {"name": "nmdc_database.json.zip"}, sort=[("created_time", -1)]
     )
-    sensed_object_id = asset_materialization_metadata(asset_event, "object_id").text
+    sensed_object_id = asset_materialization_metadata(
+        asset_event, "object_id"
+    ).text
     if gold_etl_latest is None:
         yield SkipReason("can't find sensed asset object_id in database")
         return
@@ -227,14 +238,20 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
                     }
                 },
             )
-            yield RunRequest(run_key=operation["id"], run_config=unfreeze(run_config))
+            yield RunRequest(
+                run_key=operation["id"], run_config=unfreeze(run_config)
+            )
         else:
             yield SkipReason("Job found, but already claimed by this site")
     else:
         yield SkipReason("No job found")
 
 
-@sensor(job=apply_metadata_in.to_job(name="apply_metadata_in_sensed", **preset_normal))
+@sensor(
+    job=apply_metadata_in.to_job(
+        name="apply_metadata_in_sensed", **preset_normal
+    )
+)
 def claim_and_run_metadata_in_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
@@ -264,12 +281,18 @@ def claim_and_run_metadata_in_jobs(_context):
             {"metadata.job.id": job.id, "metadata.site_id": client.site_id}
         )
         if job_op_for_site is not None:
-            skip_notes.append(f"Job {job.id} found, but already claimed by this site")
+            skip_notes.append(
+                f"Job {job.id} found, but already claimed by this site"
+            )
             # Ensure claim listed in job doc
             op_id = job_op_for_site["id"]
             mdb.jobs.update_one(
                 {"id": job.id},
-                {"$addToSet": {"claims": {"op_id": op_id, "site_id": client.site_id}}},
+                {
+                    "$addToSet": {
+                        "claims": {"op_id": op_id, "site_id": client.site_id}
+                    }
+                },
             )
         else:
             rv = client.claim_job(job.id)
@@ -312,7 +335,10 @@ def claim_and_run_apply_changesheet_jobs(_context):
     """
     client = get_runtime_api_site_client(run_config_frozen__normal_env)
     mdb = get_mongo(run_config_frozen__normal_env).db
-    jobs = [Job(**d) for d in mdb.jobs.find({"workflow.id": "apply-changesheet-1.0.0"})]
+    jobs = [
+        Job(**d)
+        for d in mdb.jobs.find({"workflow.id": "apply-changesheet-1.0.0"})
+    ]
 
     if mdb.operations.count_documents(
         {
@@ -331,7 +357,9 @@ def claim_and_run_apply_changesheet_jobs(_context):
             {"metadata.job.id": job.id, "metadata.site_id": client.site_id}
         )
         if job_op_for_site is not None:
-            skip_notes.append(f"Job {job.id} found, but already claimed by this site")
+            skip_notes.append(
+                f"Job {job.id} found, but already claimed by this site"
+            )
         else:
             rv = client.claim_job(job.id)
             if rv.status_code == status.HTTP_200_OK:
@@ -388,7 +416,9 @@ def done_object_put_ops(_context):
         )
     ]
     should_run = len(ops) > 0
-    run_config = merge(run_config_frozen__normal_env, {})  # ensures this is a dict
+    run_config = merge(
+        run_config_frozen__normal_env, {}
+    )  # ensures this is a dict
     if should_run:
         run_key = ",".join(sorted([op["id"] for op in ops]))
         yield RunRequest(run_key=run_key, run_config=unfreeze(run_config))
@@ -415,6 +445,7 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
+        submit_gff_file.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [

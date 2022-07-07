@@ -62,10 +62,13 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     limit = req.max_page_size
     filter_ = json_util.loads(req.filter) if req.filter else {}
     if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
+        doc = mdb.page_tokens.find_one(
+            {"_id": req.page_token, "ns": collection_name}
+        )
         if doc is None:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Bad page_token",
             )
         last_id = doc["last_id"]
         mdb.page_tokens.delete_one({"_id": req.page_token})
@@ -87,7 +90,11 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             )
         resources = list(
             mdb[collection_name].find(
+<<<<<<< HEAD
                 filter=filter_, limit=limit, sort=[("id", 1)], allow_disk_use=True
+=======
+                filter=filter_, limit=limit, sort=[("id", 1)]
+>>>>>>> 0d03bbd (feat(runtime/api): add gff->json to dagster)
             )
         )
         last_id = resources[-1]["id"]
@@ -115,7 +122,9 @@ def get_mongo_filter(filter_str):
         return filter_
 
     pairs = get_pairs(filter_str)
-    if not all(len(split) == 2 for split in (p.split(":", maxsplit=1) for p in pairs)):
+    if not all(
+        len(split) == 2 for split in (p.split(":", maxsplit=1) for p in pairs)
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Filter must be of form: attribute:spec[,attribute:spec]*",
@@ -126,7 +135,12 @@ def get_mongo_filter(filter_str):
             actual_attr = attr[: -len(".search")]
             filter_[actual_attr] = {"$regex": spec}
         else:
-            for op, key in {("<", "$lt"), ("<=", "$lte"), (">", "$gt"), (">=", "$gte")}:
+            for op, key in {
+                ("<", "$lt"),
+                ("<=", "$lte"),
+                (">", "$gt"),
+                (">=", "$gte"),
+            }:
                 if spec.startswith(op):
                     filter_[attr] = {key: maybe_unstring(spec[len(op) :])}
                     break
@@ -211,7 +225,9 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         rv = {
             "meta": {
                 "mongo_filter_dict": filter_,
-                "mongo_sort_list": [[a, s] for a, s in sort_] if sort_ else None,
+                "mongo_sort_list": [[a, s] for a, s in sort_]
+                if sort_
+                else None,
                 "count": total_count,
                 "db_response_time_ms": db_response_time_ms,
                 "page": req.page,
@@ -223,10 +239,13 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
     else:  # req.cursor is not None
         if req.cursor != "*":
-            doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
+            doc = mdb.page_tokens.find_one(
+                {"_id": req.cursor, "ns": collection_name}
+            )
             if doc is None:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Bad cursor value",
                 )
             last_id = doc["last_id"]
             mdb.page_tokens.delete_one({"_id": req.cursor})
@@ -248,7 +267,9 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         limit = req.per_page
         sort_for_cursor = (sort_ or []) + [("id", 1)]
         results, db_response_time_ms = timeit(
-            mdb[collection_name].find(filter=filter_, limit=limit, sort=sort_for_cursor)
+            mdb[collection_name].find(
+                filter=filter_, limit=limit, sort=sort_for_cursor
+            )
         )
         last_id = results[-1]["id"]
 
@@ -259,7 +280,10 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_eager = merge(filter_, {"id": {"$gt": last_id}})
         more_results = (
-            mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
+            mdb[collection_name].count_documents(
+                filter=filter_eager, limit=limit
+            )
+            > 0
         )
         if more_results:
             token = generate_one_id(mdb, "page_tokens")
@@ -294,7 +318,9 @@ def find_resources_spanning(
             detail="This resource only supports page-based pagination",
         )
 
-    responses = {name: find_resources(req, mdb, name) for name in collection_names}
+    responses = {
+        name: find_resources(req, mdb, name) for name in collection_names
+    }
     rv = {
         "meta": {
             "mongo_filter_dict": next(
@@ -325,7 +351,9 @@ def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
     elif resource == "data_objects":
         return find_resources(req, mdb, "data_object_set")
     elif resource == "activities":
-        return find_resources_spanning(req, mdb, activity_collection_names(mdb))
+        return find_resources_spanning(
+            req, mdb, activity_collection_names(mdb)
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -338,7 +366,9 @@ def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
 
 def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
     description = req.description
-    components = [c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)]
+    components = [
+        c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)
+    ]
     print(components)
     for c in components:
         if c.startswith("/"):
@@ -354,7 +384,9 @@ def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
         "NOTE: This method is yet to be implemented! Only the first stage is run!"
     ] + components
     return PipelineFindResponse(
-        meta=merge(resp.meta, {"description": description, "components": components}),
+        meta=merge(
+            resp.meta, {"description": description, "components": components}
+        ),
         results=resp.results,
     )
 
@@ -389,14 +421,19 @@ def persist_content_and_get_drs_object(
             **drs_metadata_for(
                 filepath,
                 base={
-                    "description": description + f" (created by/for {username})",
+                    "description": description
+                    + f" (created by/for {username})",
                     "access_methods": [{"access_id": drs_id}],
                 },
             )
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     return _create_object(
-        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+        mdb,
+        object_in,
+        mgr_site="nmdc-runtime",
+        drs_id=drs_id,
+        self_uri=self_uri,
     )
 
 
@@ -411,7 +448,10 @@ def _create_object(
     try:
         mdb.objects.insert_one(doc)
     except DuplicateKeyError as e:
-        if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
+        if e.details["keyPattern"] == {
+            "checksums.type": 1,
+            "checksums.checksum": 1,
+        }:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"provided checksum matches existing object: {e.details['keyValue']}",
@@ -483,6 +523,7 @@ def nmdc_workflow_id_to_dagster_job_name_map():
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
+        "convert-gff-to-summary-json-1.0.0": "submit_gff_file",
     }
 
 
@@ -513,7 +554,17 @@ def inputs_for(nmdc_workflow_id, run_config_data):
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
             "/objects/"
-            + get_in(["ops", "get_json_in", "config", "object_id"], run_config_data)
+            + get_in(
+                ["ops", "get_json_in", "config", "object_id"], run_config_data
+            )
+        ]
+    if nmdc_workflow_id == "convert-gff-to-summary-json-1.0.0":
+        return [
+            "/objects/"
+            + get_in(
+                ["ops", "get_object_as_text", "config", "object_id"],
+                run_config_data,
+            )
         ]
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
         return [
@@ -534,10 +585,16 @@ def _request_dagster_run(
     repository_location_name=None,
     repository_name=None,
 ):
-    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
+    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[
+        nmdc_workflow_id
+    ]
 
     extra_run_config_data = ensure_run_config_data(
-        nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
+        nmdc_workflow_id,
+        nmdc_workflow_inputs,
+        extra_run_config_data,
+        mdb,
+        user,
     )
 
     # add REQUESTED RunEvent
@@ -564,7 +621,9 @@ def _request_dagster_run(
         _add_run_started_event(run_id=nmdc_run_id, mdb=mdb)
         mdb.run_events.find_one_and_update(
             filter={"run.id": nmdc_run_id, "type": "STARTED"},
-            update={"$set": {"run.facets.nmdcRuntime_dagsterRunId": dagster_run_id}},
+            update={
+                "$set": {"run.facets.nmdcRuntime_dagsterRunId": dagster_run_id}
+            },
             sort=[("time", -1)],
         )
 

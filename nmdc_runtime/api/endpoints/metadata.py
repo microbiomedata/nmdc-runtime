@@ -5,10 +5,11 @@ import re
 import tempfile
 from collections import defaultdict
 from io import StringIO
+from typing import Tuple, Dict
 
 import requests
 from dagster import ExecuteInProcessResult
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
@@ -32,11 +33,13 @@ from nmdc_runtime.api.endpoints.util import (
     users_allowed,
 )
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.metadata import ChangesheetIn
+from nmdc_runtime.api.models.metadata import ChangesheetIn, GffIn
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.site import get_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
+from nmdc_runtime.site.drsobjects.registration import (
+    specialize_activity_set_docs,
+)
 from nmdc_runtime.site.repository import run_config_frozen__normal_env, repo
 from nmdc_runtime.util import unfreeze
 
@@ -49,6 +52,14 @@ async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
     contents: bytes = await uploaded_file.read()
     text = contents.decode()
     return ChangesheetIn(name=name, content_type=content_type, text=text)
+
+
+async def name_and_contents_from_uploaded_file(
+    uploaded_file: UploadFile,
+) -> Tuple[str, bytes, str]:
+    name = uploaded_file.filename
+    contents: bytes = await uploaded_file.read()
+    return name, contents, uploaded_file.content_type
 
 
 @router.post("/metadata/changesheets:validate")
@@ -67,7 +78,9 @@ async def validate_changesheet(
     return _validate_changesheet(df_change, mdb)
 
 
-@router.post("/metadata/changesheets:submit", response_model=DrsObjectWithTypes)
+@router.post(
+    "/metadata/changesheets:submit", response_model=DrsObjectWithTypes
+)
 async def submit_changesheet(
     uploaded_file: UploadFile = File(...),
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -180,7 +193,9 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
             ),
         )
     contents: bytes = await urls_file.read()
-    stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
+    stream = StringIO(
+        contents.decode()
+    )  # can e.g. import csv; csv.reader(stream)
 
     urls = [line.strip() for line in stream if line.strip()]
 
@@ -190,7 +205,9 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
     with tempfile.TemporaryDirectory() as temp_dir:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_url = {executor.submit(load_url, url, 5): url for url in urls}
+            future_to_url = {
+                executor.submit(load_url, url, 5): url for url in urls
+            }
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -207,9 +224,10 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
 
         for url in urls:
             docs = fetch_downloaded_json(url, temp_dir)
-            docs, validation_errors_for_activity_set = specialize_activity_set_docs(
-                docs
-            )
+            (
+                docs,
+                validation_errors_for_activity_set,
+            ) = specialize_activity_set_docs(docs)
 
             validation_errors["activity_set"].extend(
                 validation_errors_for_activity_set["activity_set"]
@@ -217,7 +235,9 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
 
             for coll_name, coll_docs in docs.items():
                 errors = list(validator.iter_errors({coll_name: coll_docs}))
-                validation_errors[coll_name].extend([e.message for e in errors])
+                validation_errors[coll_name].extend(
+                    [e.message for e in errors]
+                )
 
         if all(len(v) == 0 for v in validation_errors.values()):
             return {"result": "All Okay!"}
@@ -302,12 +322,96 @@ async def submit_json(
                     "object_id": job.config.get("object_id"),
                 }
             },
-            "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
+            "perform_mongo_updates": {
+                "config": {"operation_id": operation["id"]}
+            },
         }
     }
 
     requested = _request_dagster_run(
         nmdc_workflow_id="metadata-in-1.0.0",
+        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
+        extra_run_config_data=extra_run_config_data,
+        mdb=mdb,
+        user=user,
+    )
+    if requested["type"] == "success":
+        return requested
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                f"Runtime failed to start metadata-in-1.0.0 job. "
+                f'Detail: {requested["detail"]}'
+            ),
+        )
+
+
+@router.post("/metadata/gff:submit")
+async def submit_gff(
+    md5sum: str = Form(...),
+    activity_id: str = Form(...),
+    uploaded_file: UploadFile = File(...),
+    user: User = Depends(get_current_active_user),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """
+
+    Submit a NMDC JSON Schema "nmdc:Database" object.
+
+    """
+    name, content, content_type = await name_and_contents_from_uploaded_file(
+        uploaded_file
+    )
+    drs_obj_doc = persist_content_and_get_drs_object(
+        content=content.decode(),
+        username=user.username,
+        filename=name,
+        content_type=content_type,
+        description="GFF metadata in",
+        id_ns="gff-in",
+    )
+    job_spec = {
+        "workflow": {"id": "convert-gff-to-summary-json-1.0.0"},
+        "config": {"object_id": drs_obj_doc["id"]},
+    }
+    run_config = merge(
+        unfreeze(run_config_frozen__normal_env),
+        {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
+    )
+    dagster_result: ExecuteInProcessResult = repo.get_job(
+        "ensure_jobs"
+    ).execute_in_process(run_config=run_config)
+    job = Job(**mdb.jobs.find_one(job_spec))
+    if not dagster_result.success or job is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'failed to convert-gff-to-summary-json-1.0.0/{drs_obj_doc["id"]} job',
+        )
+
+    site = get_site(mdb, client_id=API_SITE_CLIENT_ID)
+    operation = _claim_job(job.id, mdb, site)
+    extra_run_config_data = {
+        "ops": {
+            "get_object_as_text": {
+                "config": {
+                    "object_id": drs_obj_doc["id"],
+                }
+            },
+            "gff_filelike_to_jsondict": {
+                "config": {
+                    "md5sum": md5sum,
+                    "activity_id": activity_id,
+                }
+            },
+            "perform_mongo_updates": {
+                "config": {"operation_id": operation["id"]}
+            },
+        }
+    }
+
+    requested = _request_dagster_run(
+        nmdc_workflow_id="convert-gff-to-summary-json-1.0.0",
         nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
         extra_run_config_data=extra_run_config_data,
         mdb=mdb,
