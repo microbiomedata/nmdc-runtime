@@ -89,6 +89,12 @@ _raw = [
         "description": "Validate and apply metadata changes from TSV/CSV files",
     },
     {
+        "id": "convert-gff-to-summary-json-1.0.0",
+        "created_at": datetime(2022, 6, 8, tzinfo=timezone.utc),
+        "name": "convert gff file to summary json",
+        "description": "Export study biosamples metadata as CSV",
+    },
+    {
         "id": "export-study-biosamples-as-csv-1.0.0",
         "created_at": datetime(2022, 6, 8, tzinfo=timezone.utc),
         "name": "export study biosamples metadata as CSV",
