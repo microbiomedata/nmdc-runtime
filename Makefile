@@ -24,7 +24,7 @@ update-schema-yaml:
 	cp -r ../nmdc-schema/src/schema/ nmdc_schema_yaml_src
 
 up-dev:
-	docker compose up --build --force-recreate --detach --remove-orphans
+	docker-compose up --build --force-recreate --detach --remove-orphans
 
 up-test:
 	docker compose --file docker-compose.test.yml \
