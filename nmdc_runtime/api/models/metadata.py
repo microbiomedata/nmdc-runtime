@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Extra
+from fastapi import UploadFile, File
 
 
 class ChangesheetIn(BaseModel):
@@ -10,3 +11,8 @@ class ChangesheetIn(BaseModel):
 class Doc(BaseModel):
     class Config:
         extra = Extra.allow
+
+
+class GffIn(BaseModel):
+    md5sum: str
+    activity_id: str
