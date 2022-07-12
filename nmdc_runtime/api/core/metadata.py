@@ -160,7 +160,7 @@ def load_changesheet(
             if collection_name is None:
                 raise Exception("Cannot find ID", group_id, "in any collection")
 
-        df["collection_name"] = collection_name
+        df.loc[ix, "collection_name"] = collection_name
 
     # add linkml class name for each id
     df["linkml_class"] = ""
@@ -169,11 +169,6 @@ def load_changesheet(
         data = mongodb[collection_name].find_one({"id": id_})
 
         # find the type of class the data instantiates
-        # TODO it's possible to get data == None here when e.g.
-        #    the ID is a valid nmdc:Study but the collection_name has been
-        #    set to biosample_set based on the attribute update requested
-        #    in the changesheet line. The resulting error is inscrutable
-        #    to the API user: NoneType has no attribute 'keys'.
         if "type" in list(data.keys()):
             # get part after the ":"
             class_name = data["type"].split(":")[-1]
@@ -203,6 +198,10 @@ def load_changesheet(
         df.loc[ix, "linkml_slots"] = str.join("|", spp.slots)
         df.loc[ix, "ranges"] = str.join("|", spp.ranges)
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
+    df = df.astype({"value": object})
+    for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
+        if ranges.endswith("float"):
+            df.at[ix, "value"] = float(value)
     return df
 
 
@@ -453,10 +452,10 @@ def make_mongo_update_value(action: str, value: Any, multivalues_list: List) -> 
         The value which may or may not be encapsulated in a list.
     """
     # if an array field is being updated, split based on pipe
-    if multivalues_list[-1] == "True" or "|" in value:
+    if multivalues_list[-1] == "True" or (isinstance(value, str) and "|" in value):
         # value = value.strip()  # ****
         value = [v.strip() for v in value.split("|") if len(v.strip()) > 0]
-    else:
+    elif isinstance(value, str):
         value = value.strip()  # remove extra white space
 
     return value
@@ -707,12 +706,19 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
         },
         "results_of_updates": results_of_updates,
     }
+    validation_errors = []
     for result in results_of_updates:
         if len(result.get("validation_errors", [])) > 0:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=rv
-            )
+            validation_errors.append(result["validation_errors"])
 
+    if validation_errors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "update_cmd": rv["update_cmd"],
+                "validation_errors": validation_errors,
+            },
+        )
     return rv
 
 
