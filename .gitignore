@@ -156,3 +156,4 @@ cordra-2.3.0/
 !nmdc_runtime/lib
 
 repl.ipynb
+*.crt

@@ -1,0 +1,58 @@
+GET /biosamples/_search
+
+
+POST _analyze
+{
+  "tokenizer": "whitespace",
+  "filter" : ["lowercase", {
+      "type": "length",
+      "min": 2
+    }, "snowball"],
+  "text": "ENVO:01000253 > ENVO:01000621 > ENVO:01000017 : freshwater river biome > microcosm > sand"
+}
+
+POST _analyze
+{
+  "tokenizer": "whitespace",
+  "filter" : ["lowercase",  {
+      "type": "length",
+      "min": 2
+    }, "snowball"],
+  "text": "5874 : Engineered > Artificial ecosystem > Sand microcosm > Unclassified > Unclassified"
+}
+
+GET /biosamples/_settings
+
+GET /biosamples/_mapping/field/mixs_triad
+
+GET /biosamples/_mapping/field/ecosystem_path
+
+GET /biosamples/_search
+{
+  "query": {
+    "combined_fields": {
+      "query": "desert",
+      "fields": [
+        "mixs_triad",
+        "ecosystem_path"
+      ]
+    }
+  }
+}
+
+GET /biosamples/_search
+{
+  "suggest": {
+    "text": "dessert",
+    "mixs_triad_term": {
+      "term": {
+        "field": "mixs_triad"
+      }
+    },
+    "ecosystem_path_phrase": {
+      "term": {
+        "field": "ecosystem_path"
+      }
+    }
+  }
+}
