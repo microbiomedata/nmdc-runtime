@@ -1,11 +1,13 @@
 base32-lib
 beautifulsoup4
+beanie
 boto3
 click
 dagit
 dagster
 dagster-graphql
 dagster-postgres
+dependency-injector
 dotted-dict
 fastapi<0.76.0 # until using starlette >=0.20.2
 fastjsonschema
@@ -18,11 +20,13 @@ linkml
 linkml-runtime
 mkdocs-material
 mkdocs-mermaid2-plugin
+motor
 nmdc-schema
 openpyxl
 pandas
 passlib[bcrypt]
 pymongo
+pydantic[email]
 python-jose[cryptography]
 python-multipart
 pyyaml
