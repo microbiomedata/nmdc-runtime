@@ -13,5 +13,5 @@ class IUserQueries(ABC):
 
     @abstractmethod
     async def update(self, user: UserUpdate) -> UserOut:
-        """Get a user by email"""
+        """Update user data"""
         raise NotImplementedError
