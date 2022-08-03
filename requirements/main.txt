@@ -388,6 +388,10 @@ deprecated==1.2.13 \
     --hash=sha256:43ac5335da90c31c24ba028af536a91d41d53f9e6901ddb021bcc572ce44e38d \
     --hash=sha256:64756e3e14c8c5eea9795d93c524551432a0be75629f8f29e67ab8caf076c76d
     # via linkml-runtime
+dnspython==2.2.1 \
+    --hash=sha256:0f7569a4a6ff151958b64304071d370daa3243d15941a7beedf0c9fe5105603e \
+    --hash=sha256:a851e51367fb93e9e1361732c1d60dab63eff98712e503ea7d92e6eccb109b4f
+    # via email-validator
 docstring-parser==0.14.1 \
     --hash=sha256:14ac6ec1f1ba6905c4d8cb90fd0bc55394f5678183752c90e44812bf28d7a515 \
     --hash=sha256:2c77522e31b7c88b1ab457a1f3c9ae38947ad719732260ba77ee8a3deb58622a
@@ -411,6 +415,10 @@ editorconfig==0.12.3 \
     --hash=sha256:57f8ce78afcba15c8b18d46b5170848c88d56fd38f05c2ec60dbbfcb8996e89e \
     --hash=sha256:6b0851425aa875b08b16789ee0eeadbd4ab59666e9ebe728e526314c4a2e52c1
     # via jsbeautifier
+email-validator==1.2.1 \
+    --hash=sha256:6757aea012d40516357c0ac2b1a4c31219ab2f899d26831334c5d069e8b6c3d8 \
+    --hash=sha256:c8589e691cf73eb99eed8d10ce0e9cbb05a0886ba920c8bcb7c82873f4c5789c
+    # via pydantic
 entrypoints==0.4 \
     --hash=sha256:b706eddaa9218a19ebcd67b56818f05bb27589b1ca9e8d797b74affad4ccacd4 \
     --hash=sha256:f174b5ff827504fd3cd97cc3f8649f3693f51538c7e4bdf3ef002c8429d42f9f
@@ -653,6 +661,7 @@ idna==3.3 \
     --hash=sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d
     # via
     #   anyio
+    #   email-validator
     #   requests
     #   yarl
 imagesize==1.4.1 \
@@ -1421,7 +1430,7 @@ pycparser==2.21 \
     --hash=sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9 \
     --hash=sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206
     # via cffi
-pydantic==1.9.1 \
+pydantic[email]==1.9.1 \
     --hash=sha256:02eefd7087268b711a3ff4db528e9916ac9aa18616da7bca69c1871d0b7a091f \
     --hash=sha256:059b6c1795170809103a1538255883e1983e5b831faea6558ef873d4955b4a74 \
     --hash=sha256:0bf07cab5b279859c253d26a9194a8906e6f4a210063b84b433cf90a569de0c1 \
@@ -1458,6 +1467,7 @@ pydantic==1.9.1 \
     --hash=sha256:f0f047e11febe5c3198ed346b507e1d010330d56ad615a7e0a89fae604065a0e \
     --hash=sha256:fe4670cb32ea98ffbf5a1262f14c3e102cccd92b1869df3bb09538158ba90fe6
     # via
+    #   -r requirements/main.in
     #   beanie
     #   fastapi
     #   linkml
