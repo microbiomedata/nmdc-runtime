@@ -37,6 +37,7 @@ class UserQueries(IUserQueries):
     """Implementation of the User query interface"""
 
     async def create(self, user: UserAuth) -> UserOut:
+
         auth_user = await User.get(user.username)
         if not auth_user:
             auth_user = User(
