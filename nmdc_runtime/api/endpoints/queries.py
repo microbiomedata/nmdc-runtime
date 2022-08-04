@@ -8,6 +8,7 @@ from pymongo.database import Database as MongoDatabase
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import now, raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import permitted, users_allowed
 from nmdc_runtime.api.models.query import (
     Query,
     QueryResponseOptions,
@@ -28,11 +29,13 @@ def unmongo(d: dict) -> dict:
 
 
 def check_can_delete(user: User):
-    can_delete = {"scanon", "dwinston"}
-    if user.username not in can_delete:
+    if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"only users {can_delete} are allowed to issue delete commands.",
+            detail=(
+                f"only users {users_allowed('/queries:run(query_cmd:DeleteCommand)')} "
+                "are allowed to issue delete commands.",
+            ),
         )
 
 

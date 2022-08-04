@@ -236,6 +236,32 @@ app.add_middleware(
 
 
 @app.on_event("startup")
+async def ensure_default_api_perms():
+    db = get_mongo_db()
+    if db["_runtime.api.allow"].count_documents({}):
+        return
+
+    allowed = {
+        "/metadata/changesheets:submit": [
+            "mam",
+            "dwinston",
+            "pajau",
+            "montana",
+            "spatil",
+        ],
+        "/queries:run(query_cmd:DeleteCommand)": ["scanon", "dwinston"],
+    }
+    for doc in [
+        {"username": username, "action": action}
+        for action, usernames in allowed.items()
+        for username in usernames
+    ]:
+        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
+        db["_runtime.api.allow"].create_index("username")
+        db["_runtime.api.allow"].create_index("action")
+
+
+@app.on_event("startup")
 async def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
     mdb = get_mongo_db()

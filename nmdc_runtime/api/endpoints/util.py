@@ -584,3 +584,16 @@ def _get_dagster_run_status(run_id: str):
         return {"type": "success", "detail": str(run_status.value)}
     except DagsterGraphQLClientError as exc:
         return {"type": "error", "detail": str(exc)}
+
+
+def permitted(username: str, action: str):
+    db: MongoDatabase = get_mongo_db()
+    filter_ = {"username": username, "action": action}
+    denied = db["_runtime.api.deny"].find_one(filter_) is not None
+    allowed = db["_runtime.api.allow"].find_one(filter_) is not None
+    return (not denied) and allowed
+
+
+def users_allowed(action: str):
+    db: MongoDatabase = get_mongo_db()
+    return db["_runtime.api.allow"].distinct("username", {"action": action})

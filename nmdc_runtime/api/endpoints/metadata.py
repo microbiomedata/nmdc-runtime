@@ -28,6 +28,8 @@ from nmdc_runtime.api.endpoints.util import (
     persist_content_and_get_drs_object,
     _claim_job,
     _request_dagster_run,
+    permitted,
+    users_allowed,
 )
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -77,12 +79,11 @@ async def submit_changesheet(
     [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
 
     """
-    allowed_to_submit = ("mam", "dwinston", "pajau", "montana", "spatil")
-    if user.username not in allowed_to_submit:
+    if not permitted(user.username, "/metadata/changesheets:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Only users {allowed_to_submit} "
+                f"Only users {users_allowed('/metadata/changesheets:submit')} "
                 "are allowed to apply changesheets at this time."
             ),
         )
