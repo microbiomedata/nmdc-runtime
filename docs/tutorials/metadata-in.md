@@ -14,6 +14,7 @@ biosample:
     "env_local_scale" : {
         "term" : {"id": "ENVO:01000621"}
     }, 
+    }, 
     "env_medium" : {
         "term" : {"id": "ENVO:01000017"}
     }}
@@ -105,7 +106,16 @@ see section below).
 ## Removing a JSON document
 
 !!! info
-    You must be an authorized user to do this. Currently, `dehays`, `dwinston`, or `scanon`.
+    You must be authorized to do this. Specifically, a document of the form 
+    ```json
+    {
+        "username" : <YOUR_USERNAME>,
+        "action" : "/queries:run(query_cmd:DeleteCommand)",
+    }
+    ```
+    must be present in the `_runtime.api.allow` database collection.
+    Ask a [database administrator](../admin.md) to be added.
+    Any to-be-deleted documents are backed up to a separate database immediately prior to deletion.
 
 A call to [POST
 /queries:run](https://api.dev.microbiomedata.org/docs#/queries/run_query_queries_run_post) with the
