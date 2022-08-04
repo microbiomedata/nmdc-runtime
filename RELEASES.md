@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-08-04T12:56:00-04:00 api perms to db; back up docs on /queries:run(query_cmd:DeleteCommand)
 * 2022-08-03T12:06:00-04:00 change perms 
 * 2022-07-12T12:28:00-04:00 fix: multi-collection and float-value-range-containing changesheets
 * 2022-06-16T16:14:00-04:00 /runs soft release; perms mod
