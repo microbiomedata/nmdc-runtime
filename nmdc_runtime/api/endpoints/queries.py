@@ -113,6 +113,24 @@ def rerun_query(
 def _run_query(query, mdb) -> CommandResponse:
     q_type = type(query.cmd)
     ran_at = now()
+    if q_type is DeleteCommand:
+        collection_name = query.cmd.delete
+        find_specs = [
+            {"filter": dcd.q, "limit": dcd.limit} for dcd in query.cmd.deletes
+        ]
+        for spec in find_specs:
+            docs = list(mdb[collection_name].find(**spec))
+            if not docs:
+                continue
+            insert_many_result = mdb.client["nmdc_deleted"][
+                collection_name
+            ].insert_many({"doc": d, "deleted_at": ran_at} for d in docs)
+            if len(insert_many_result.inserted_ids) != len(docs):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to back up to-be-deleted documents. operation aborted.",
+                )
+
     q_response = mdb.command(query.cmd.dict(exclude_unset=True))
     cmd_response: CommandResponse = command_response_for(q_type)(**q_response)
     query_run = (
