@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
 
 @click.command()
-@click.option("--just-schema-collections", is_flag=True, default=True)
+@click.option("--just-schema-collections", is_flag=True, default=False)
 def main(just_schema_collections):
     print("starting nmdcdb mongodump...")
     mongo = get_mongo(run_config_frozen__normal_env)
@@ -58,7 +58,8 @@ def main(just_schema_collections):
         ["--excludeCollection=" + c for c in collections_excluded]
     )
 
-    filepath = today_dir.joinpath("nmdcdb.lite.archive.gz")
+    filename = f'nmdcdb.{"" if just_schema_collections else "less"}lite.archive.gz'
+    filepath = today_dir.joinpath(filename)
     cmd = (
         f"mongodump --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
         f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
