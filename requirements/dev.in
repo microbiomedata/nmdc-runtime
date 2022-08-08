@@ -1,7 +1,10 @@
 -c main.txt
 black
+coverage
 flake8
 invoke
 pytest
+pytest-asyncio
+pytest-cov
 setuptools-scm
 twine
