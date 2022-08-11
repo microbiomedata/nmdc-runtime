@@ -2,6 +2,7 @@ import os
 
 import requests
 from starlette import status
+from tenacity import wait_random_exponential, retry
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -78,16 +79,28 @@ def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
-    rv = requests.post(
-        base_url + "/token",
-        data={
-            "grant_type": "password",
-            "username": rs["user"]["username"],
-            "password": rs["user"]["password"],
-        },
-    )
-    token_response = rv.json()
-    headers = {"Authorization": f'Bearer {token_response["access_token"]}'}
+
+    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    def get_token():
+        """
+
+        Randomly wait up to 2^x * 1 seconds between each retry until the range reaches 60
+        seconds, then randomly up to 60 seconds afterwards
+
+        """
+
+        _rv = requests.post(
+            base_url + "/token",
+            data={
+                "grant_type": "password",
+                "username": rs["user"]["username"],
+                "password": rs["user"]["password"],
+            },
+        )
+        token_response = _rv.json()
+        return token_response["access_token"]
+
+    headers = {"Authorization": f"Bearer {get_token()}"}
 
     user_in = UserIn(username="foo", password=generate_secret())
     mdb.users.delete_one({"username": user_in.username})

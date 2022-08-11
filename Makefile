@@ -28,7 +28,7 @@ up-dev:
 
 up-test:
 	docker compose --file docker-compose.test.yml \
-		up --build --force-recreate --detach
+		up --build --force-recreate --detach --remove-orphans
 
 test-build:
 	docker compose --file docker-compose.test.yml \

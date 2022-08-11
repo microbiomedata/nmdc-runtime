@@ -9,7 +9,7 @@ from typing import Set, Optional, List, Tuple
 from urllib.parse import urlparse, parse_qs
 
 from bson import json_util
-from dagster import PipelineRunStatus
+from dagster import DagsterRunStatus
 from dagster_graphql import DagsterGraphQLClientError
 from fastapi import HTTPException
 from gridfs import GridFS
@@ -580,7 +580,7 @@ def _request_dagster_run(
 def _get_dagster_run_status(run_id: str):
     dagster_client = get_dagster_graphql_client()
     try:
-        run_status: PipelineRunStatus = dagster_client.get_run_status(run_id)
+        run_status: DagsterRunStatus = dagster_client.get_run_status(run_id)
         return {"type": "success", "detail": str(run_status.value)}
     except DagsterGraphQLClientError as exc:
         return {"type": "error", "detail": str(exc)}

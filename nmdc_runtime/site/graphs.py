@@ -38,7 +38,7 @@ def gold_translation():
 def gold_translation_curation():
     # TODO
     #   - have produce_curated_db do actual curation (see notebook), persisting to db.
-    #   - more steps in pipeline? Or handoff via run_status_sensor on PipelineRunStatus.SUCCESS.
+    #   - more steps in pipeline? Or handoff via run_status_sensor on DagsterRunStatus.SUCCESS.
     produce_curated_db(get_operation())
 
 

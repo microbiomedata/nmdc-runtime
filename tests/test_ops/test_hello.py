@@ -1,10 +1,8 @@
-from dagster import execute_solid
+from dagster import build_op_context
 
 from nmdc_runtime.site.ops import hello
 
 
 def test_hello():
-    result = execute_solid(hello)
-
-    assert result.success
-    assert result.output_value() == "Hello, NMDC!"
+    context = build_op_context()
+    assert hello(context) == "Hello, NMDC!"

@@ -18,7 +18,7 @@ from dagster import (
     Out,
     AssetMaterialization,
     AssetKey,
-    EventMetadata,
+    MetadataValue,
     Output,
     Failure,
     RetryPolicy,
@@ -167,7 +167,7 @@ def local_file_to_api_object(context, file_info):
     yield AssetMaterialization(
         asset_key=AssetKey(["object", obj["name"]]),
         description="output of metadata-translation run_etl",
-        metadata={"object_id": EventMetadata.text(obj["id"])},
+        metadata={"object_id": MetadataValue.text(obj["id"])},
     )
     yield Output(obj)
 
@@ -191,7 +191,7 @@ def build_merged_db(context) -> str:
     yield AssetMaterialization(
         asset_key=AssetKey(["gold_translation", "merged_data.tsv.zip"]),
         description="input to metadata-translation run_etl",
-        metadata={"path": EventMetadata.path(storage_path)},
+        metadata={"path": MetadataValue.path(storage_path)},
     )
     yield Output(storage_path, "merged_data_path")
 
@@ -216,7 +216,7 @@ def run_etl(context, merged_data_path: str):
         asset_key=AssetKey(["gold_translation", "database.json.zip"]),
         description="output of metadata-translation run_etl",
         metadata={
-            "path": EventMetadata.path(storage_path),
+            "path": MetadataValue.path(storage_path),
         },
     )
     yield Output({"storage_path": storage_path})
@@ -350,7 +350,7 @@ def maybe_post_jobs(context, jobs: List[Job]):
             asset_key=AssetKey(["job", job.workflow.id]),
             description="workflow job",
             metadata={
-                "object_id": EventMetadata.text(job_object_id),
+                "object_id": MetadataValue.text(job_object_id),
             },
         )
         n_posted += 1

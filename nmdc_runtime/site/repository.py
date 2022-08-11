@@ -394,7 +394,7 @@ def done_object_put_ops(_context):
         yield RunRequest(run_key=run_key, run_config=unfreeze(run_config))
 
 
-@run_status_sensor(pipeline_run_status=DagsterRunStatus.FAILURE)
+@run_status_sensor(run_status=DagsterRunStatus.FAILURE)
 def on_run_fail(context: RunStatusSensorContext):
     mdb = get_mongo(run_config_frozen__normal_env).db
     dagster_run_id = context.dagster_run.run_id
