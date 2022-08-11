@@ -10,7 +10,5 @@ class UserService:
     async def create_user(self, user: UserAuth) -> UserOut:
         return await self.__user_queries.create(user)
 
-    async def update_user(
-        self, username: str, new_user: UserUpdate
-    ) -> UserOut:
+    async def update_user(self, username: str, new_user: UserUpdate) -> UserOut:
         pass
