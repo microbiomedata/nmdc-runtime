@@ -1,7 +1,6 @@
 init:
 	pip install --upgrade pip-tools pip setuptools
 	pip install --editable .
-	pip install --editable nmdc_runtime_client/
 	pip install --upgrade -r requirements/main.txt  -r requirements/dev.txt
 
 update-deps:
