@@ -75,11 +75,8 @@ dagster-deploy-spin:
 	rancher kubectl rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev
 	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
 
-publish-all:
+publish:
 	invoke publish
-
-publish-client:
-	cd nmdc_runtime_client && invoke publish
 
 docs-dev:
 	mkdocs serve -a localhost:8080
