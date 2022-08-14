@@ -12,7 +12,9 @@ with open("requirements/dev.in") as f:
 setuptools.setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
-    packages=setuptools.find_packages(exclude=["tests"]),
+    packages=setuptools.find_namespace_packages(
+        include=["nmdc_runtime.*"], exclude=["tests"]
+    ),
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     author="Donny Winston",
