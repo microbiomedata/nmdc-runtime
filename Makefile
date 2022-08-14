@@ -1,6 +1,7 @@
 init:
 	pip install --upgrade pip-tools pip setuptools
 	pip install --editable .
+	pip install --editable nmdc_runtime_client/
 	pip install --upgrade -r requirements/main.txt  -r requirements/dev.txt
 
 update-deps:
@@ -74,8 +75,11 @@ dagster-deploy-spin:
 	rancher kubectl rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev
 	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
 
-publish:
+publish-all:
 	invoke publish
+
+publish-client:
+	cd nmdc_runtime_client && invoke publish
 
 docs-dev:
 	mkdocs serve -a localhost:8080
