@@ -86,7 +86,9 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
                 f"list_resources: no index set on 'id' for collection {collection_name}"
             )
         resources = list(
-            mdb[collection_name].find(filter=filter_, limit=limit, sort=[("id", 1)])
+            mdb[collection_name].find(
+                filter=filter_, limit=limit, sort=[("id", 1)], allow_disk_use=True
+            )
         )
         last_id = resources[-1]["id"]
         token = generate_one_id(mdb, "page_tokens")
