@@ -13,6 +13,8 @@ nav:
     - howto-guides/update-sensors-ops.md
     - howto-guides/release-process.md
     - howto-guides/improving-search-api.md
+    - nb/get_data.ipynb
+    - nb/queue_and_trigger_data_jobs.ipynb
     - Specific Jobs:
       - howto-guides/jobs/gold-translation-etl.md
   - Explanations:
@@ -52,3 +54,4 @@ plugins:
   - mermaid2:
       arguments:
         securityLevel: 'loose'
+  - mkdocs-jupyter
