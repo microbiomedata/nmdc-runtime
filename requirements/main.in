@@ -9,7 +9,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi<0.76.0 # until using starlette >=0.20.2
+fastapi<0.76.0 # until using starlette >=0.20.3
 fastjsonschema
 fnc
 frozendict
@@ -24,7 +24,7 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema
+nmdc-schema==3.2.0
 openpyxl
 pandas
 passlib[bcrypt]
