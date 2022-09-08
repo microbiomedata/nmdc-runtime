@@ -46,6 +46,12 @@ _raw = [
         "name": "Raw FTMS MetaB Input",
     },
     {
+        "id": "test",
+        "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
+        "name": "A test object type",
+        "description": "For use in unit and integration tests",
+    },
+    {
         "id": "metadata-changesheet",
         "created_at": datetime(2021, 9, 30, tzinfo=timezone.utc),
         "name": "metadata changesheet",
