@@ -90,11 +90,10 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             )
         resources = list(
             mdb[collection_name].find(
-<<<<<<< HEAD
-                filter=filter_, limit=limit, sort=[("id", 1)], allow_disk_use=True
-=======
-                filter=filter_, limit=limit, sort=[("id", 1)]
->>>>>>> 0d03bbd (feat(runtime/api): add gff->json to dagster)
+                filter=filter_,
+                limit=limit,
+                sort=[("id", 1)],
+                allow_disk_use=True,
             )
         )
         last_id = resources[-1]["id"]

@@ -44,6 +44,11 @@ _raw = [
         "workflow_id": "apply-changesheet-1.0.0",
     },
     {
+        "created_at": datetime(2022, 9, 14, tzinfo=timezone.utc),
+        "object_type_id": "Metagenome Raw Reads",
+        "workflow_id": "metag-1.0.0",
+    },
+    {
         "created_at": datetime(2021, 9, 30, tzinfo=timezone.utc),
         "object_type_id": "gff-in",
         "workflow_id": "convert-gff-to-json-1.0.0",

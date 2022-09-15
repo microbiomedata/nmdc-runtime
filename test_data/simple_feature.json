@@ -1,0 +1,12 @@
+{
+  "feature_set": [
+    {
+      "seqid": "NMDC:Ga0185794_41",
+      "start": 48,
+      "end": 1037,
+      "strand": "+",
+      "type": "SO:0000316",
+      "encodes": "NMDC:Ga0185794_41_48_1037"
+    }
+  ]
+}

@@ -6,14 +6,16 @@ import os
 from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from nmdc_runtime.infrastructure.database.impl.mongo.models import User
+# from nmdc_runtime.infrastructure.database.impl.mongo.models import User
+from components.workflow.workflow.core import get_beanie_document
 
 
-async def mongo_init(app):
+async def mongo_beanie_init(app):
     """Initialize database service"""
+    document_models = get_beanie_document()
     app.db = AsyncIOMotorClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_DBNAME"),
+        password=os.getenv("MONGO_PASSWORD"),
     ).account
-    await init_beanie(app.db, document_models=[User])
+    await init_beanie(app.db, document_models=document_models)

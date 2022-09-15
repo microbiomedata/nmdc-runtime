@@ -36,6 +36,7 @@ python-jose[cryptography]
 python-multipart
 pyyaml
 requests
+semver==3.0.0.dev3
 tenacity
 terminusdb-client
 toolz

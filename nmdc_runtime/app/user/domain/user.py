@@ -1,0 +1,52 @@
+from typing import Union, NoReturn, Optional
+
+from sqlalchemy import Column, Unicode, BigInteger, Boolean
+
+from nmdc_runtime.app.user.exception.user import PasswordDoesNotMatchException
+from nmdc_runtime.core.db import Base
+from nmdc_runtime.core.db.mixins import TimestampMixin
+
+
+class User(Base, TimestampMixin):
+    __tablename__ = "users"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    password = Column(Unicode(255), nullable=False)
+    email = Column(Unicode(255), nullable=False, unique=True)
+    nickname = Column(Unicode(255), nullable=False, unique=True)
+    is_admin = Column(Boolean, default=False)
+
+    @classmethod
+    def _is_password_match(cls, password1: str, password2: str) -> bool:
+        return password1 == password2
+
+    @classmethod
+    def create(
+        cls,
+        password1: str,
+        password2: str,
+        email: str,
+        nickname: str,
+        is_admin: bool = False,
+    ) -> Union["User", NoReturn]:
+        if not cls._is_password_match(
+            password1=password1, password2=password2
+        ):
+            raise PasswordDoesNotMatchException
+
+        return cls(
+            password=password1,
+            email=email,
+            nickname=nickname,
+            is_admin=is_admin,
+        )
+
+    def change_password(
+        self, password1: str, password2: str
+    ) -> Optional[NoReturn]:
+        if not self._is_password_match(
+            password1=password1, password2=password2
+        ):
+            raise PasswordDoesNotMatchException
+
+        self.password = password1
