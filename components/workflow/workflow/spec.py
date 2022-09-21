@@ -25,7 +25,7 @@ class MetaGenomeSequencingActivity(BaseModel):
     version: str
     has_output: List[str]
     was_informed_by: str
-    id: str
+    activity_id: str
     name: str
     started_at_time: datetime
     ended_at_time: datetime
@@ -154,4 +154,18 @@ class IWorkflowQueries(ABC):
 
     @abstractmethod
     async def fetch_by_name(workflow_id: str, query) -> WorkflowOut:
+        pass
+
+
+class IMetagenomeSequencingActivityQueries(ABC):
+    """Query interface for interacting with metagenome activies"""
+
+    @abstractmethod
+    async def create_activity(
+        self, metagenome_sequencing_activity: MetaGenomeSequencingActivity
+    ):
+        pass
+
+    @abstractmethod
+    async def by_id(self, id: str) -> MetaGenomeSequencingActivity:
         pass

@@ -19,6 +19,13 @@ class DataObjectInDb(Document, DataObject):
         name = "data_object_set"
 
 
+class MetagenomeSequencingActivityInDb(Document, MetaGenomeSequencingActivity):
+    activity_id: Indexed(str, unique=True)
+
+    class Collection:
+        name = "mgs_activity_set"
+
+
 class DataObjectQueries(IDataObjectQueries):
     async def create_data_object(self, data_object: DataObject) -> bool:
         try:
@@ -34,5 +41,30 @@ class DataObjectQueries(IDataObjectQueries):
                 DataObjectInDb.data_object_id == id
             )
             return DataObjectInDb
-        except ValidationError as E:
+        except ValidationError as e:
+            raise ValidationError from e
+
+
+class MetagenomeSequencingActivityQueries(
+    IMetaGenomeSequencingActivityQueries
+):
+    async def create_activity(
+        self, metagenome_sequencing_activity: MetaGenomeSequencingActivity
+    ) -> bool:
+        try:
+            new_activity = MetagenomeSequencingActivityInDb(
+                **metagenome_sequencing_activity.dict()
+            )
+            result = await new_activity.insert()
+            return True
+        except ValidationError as e:
+            raise ValidationError from e
+
+    async def by_id(self, id: str) -> MetaGenomeSequencingActivity:
+        try:
+            new_activity = await MetagenomeSequencingActivityInDb.find_one(
+                MetagenomeSequencingActivityInDb.activity_id == id
+            )
+            return MetaGenomeSequencingActivity(**new_activity.dict())
+        except ValidationError as e:
             raise ValidationError from e
