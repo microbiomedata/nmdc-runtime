@@ -24,22 +24,22 @@ update-schema-yaml:
 	cp -r ../nmdc-schema/src/schema/ nmdc_schema_yaml_src
 
 up-dev:
-	docker compose up --build --force-recreate --detach --remove-orphans
+	docker-compose up --build --force-recreate --detach --remove-orphans
 
 up-test:
-	docker compose --file docker-compose.test.yml \
+	docker-compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
 test-build:
-	docker compose --file docker-compose.test.yml \
+	docker-compose --file docker-compose.test.yml \
 		up test --build --force-recreate --detach
 
 test-dbinit:
-	docker compose --file docker-compose.test.yml \
+	docker-compose --file docker-compose.test.yml \
 		run --entrypoint ./tests/mongorestore-nmdc-testdb.sh test
 
 test-run:
-	docker compose --file docker-compose.test.yml run test
+	docker-compose --file docker-compose.test.yml run test
 
 test: test-build test-dbinit test-run
 
@@ -51,13 +51,13 @@ lint:
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
 down-dev:
-	docker compose down
+	docker-compose down
 
 down-test:
-	docker compose --file docker-compose.test.yml down
+	docker-compose --file docker-compose.test.yml down
 
 follow-fastapi:
-	docker compose logs fastapi -f
+	docker-compose logs fastapi -f
 
 fastapi-docker:
 	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
