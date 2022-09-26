@@ -24,9 +24,12 @@ from nmdc_runtime.api.endpoints import (
     find,
     runs,
 )
+from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
+
+from components.infrastructure.database.impl.mongo.db import mongo_beanie_init
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -44,6 +47,7 @@ api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
+api_router.include_router(router_v1, tags=["v1"])
 
 tags_metadata = [
     {
@@ -269,10 +273,14 @@ async def ensure_initial_resources_on_boot():
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
         mdb[collection_name].create_index("id", unique=True)
-        collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
+        collection_boot = import_module(
+            f"nmdc_runtime.api.boot.{collection_name}"
+        )
         for model in collection_boot.construct():
             doc = model.dict()
-            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+            mdb[collection_name].replace_one(
+                {"id": doc["id"]}, doc, upsert=True
+            )
 
     username = os.getenv("API_ADMIN_USER")
     admin_ok = mdb.users.count_documents(({"username": username})) > 0
@@ -332,7 +340,14 @@ async def ensure_indexes():
                     "only supports basic single-key ascending index specs at this time."
                 )
 
-            mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
+            mdb[collection_name].create_index(
+                [(spec, 1)], name=spec, background=True
+            )
+
+
+@app.on_event("startup")
+async def init_beanie():
+    await mongo_beanie_init(app)
 
 
 if __name__ == "__main__":

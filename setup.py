@@ -13,7 +13,7 @@ setuptools.setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
     packages=setuptools.find_namespace_packages(
-        include=["nmdc_runtime.*"], exclude=["tests"]
+        include=["nmdc_runtime.*", "components.*"], exclude=["tests"]
     ),
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
