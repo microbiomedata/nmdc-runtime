@@ -2,6 +2,8 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Depends, Response, status
 
+from nmdc_runtime.api.models.user import User, get_current_active_user
+
 from .models.ingest import Ingest
 
 from nmdc_runtime.api.endpoints.util import (
