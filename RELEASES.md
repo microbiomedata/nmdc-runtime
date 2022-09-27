@@ -14,9 +14,10 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-09-11T16:03:00-04:00 add workflow and infrastructure components
 * 2022-08-11T16:03:00-04:00 upgrade to dagster 1.0.x
 * 2022-08-04T12:56:00-04:00 api perms to db; back up docs on /queries:run(query_cmd:DeleteCommand)
-* 2022-08-03T12:06:00-04:00 change perms 
+* 2022-08-03T12:06:00-04:00 change perms
 * 2022-07-12T12:28:00-04:00 fix: multi-collection and float-value-range-containing changesheets
 * 2022-06-16T16:14:00-04:00 /runs soft release; perms mod
 * 2022-04-21T15:57:00-04:00 draft /runs and /run-events API resources
@@ -27,7 +28,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 * 2022-03-23T17:15:00−04:00 idempotent api startup
 * 2022-03-23T15:04:00−04:00 fix below...again
 * 2022-03-23T14:58:00−04:00 fix below
-* 2022-03-23T14:50:00−04:00 fix dagster JSON serialization error 
+* 2022-03-23T14:50:00−04:00 fix dagster JSON serialization error
 * 2022-03-18T12:33:00−04:00 upgrade to nmdc-schema==3.2.0
 * 2022-03-08T15:00:00−05:00 add get_by_id endpoint in /nmdcschema
 * 2022-01-20T20:17:00−08:00 Bump schema back to 2022.01.18rc1
@@ -42,6 +43,3 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 * 2021-11-10T16:39:00−05:00 Fixed usernames check in api logic
 * 2021-11-10T16:01:00−05:00 Fixed cmd in github action.
 * 2021-11-10T15:58:00−05:00 Testing github action.
-
-
-
