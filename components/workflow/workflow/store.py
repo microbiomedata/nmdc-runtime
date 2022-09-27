@@ -27,7 +27,7 @@ class ReadsQCSequencingActivityInDb(Document, ReadsQCSequencingActivity):
     id: Indexed(str)
 
     class Collection:
-        name = "reads_qc_activity_set"
+        name = "reads_QC_analysis_activity_set"
 
 
 class DataObjectQueries(IDataObjectQueries):
