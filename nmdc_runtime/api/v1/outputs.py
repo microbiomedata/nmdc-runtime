@@ -34,7 +34,6 @@ async def ingest(
     try:
         drs_obj_doc = persist_content_and_get_drs_object(
             content=json.dumps(ingest.dict()),
-            username=user.username,
             filename=None,
             content_type="application/json",
             description="JSON metadata in",
