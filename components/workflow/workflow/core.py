@@ -48,7 +48,8 @@ class ReadsQCSequencingActivityService:
         self, mgs_activity: Dict[str, Any]
     ) -> Dict[str, Any]:
         new_activity = ReadsQCSequencingActivity.parse_obj(mgs_activity)
-        return await self.__queries.create_activity(new_activity)
+        result = await self.__queries.create_activity(new_activity)
+        return result.dict()
 
     async def by_id(self, id: str) -> Dict[str, Any]:
         result = await self.__queries.by_id(id)

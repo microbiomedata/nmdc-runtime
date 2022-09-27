@@ -50,13 +50,13 @@ class DataObjectQueries(IDataObjectQueries):
 class ReadsQCSequencingActivityQueries(IReadsQCSequencingActivityQueries):
     async def create_activity(
         self, metagenome_sequencing_activity: ReadsQCSequencingActivity
-    ) -> bool:
+    ) -> ReadsQCSequencingActivity:
         try:
             new_activity = ReadsQCSequencingActivityInDb(
                 **metagenome_sequencing_activity.dict()
             )
             result = await new_activity.insert()
-            return True
+            return ReadsQCSequencingActivity(**result.dict())
         except ValidationError as e:
             raise ValidationError from e
 
