@@ -14,6 +14,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 
 ## Release Log
 
+* 2022-09-27T16:05:00-04:00 fix api endpoint for outputs
 * 2022-09-11T16:04:00-04:00 fix api endpoint for outputs
 * 2022-09-11T16:03:00-04:00 add workflow and infrastructure components
 * 2022-08-11T16:03:00-04:00 upgrade to dagster 1.0.x
