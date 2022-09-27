@@ -4,6 +4,13 @@ from fastapi import APIRouter, HTTPException, Depends, Response, status
 
 from .models.ingest import Ingest
 
+from nmdc_runtime.api.endpoints.util import (
+    persist_content_and_get_drs_object,
+    _claim_job,
+    _request_dagster_run,
+    permitted,
+    users_allowed,
+)
 from components.workflow.workflow.core import (
     DataObjectService,
     ReadsQCSequencingActivityService,
@@ -19,8 +26,17 @@ router = APIRouter(prefix="/outputs", tags=["outputs"])
 )
 async def ingest(
     ingest: Ingest,
+    user: User = Depends(get_current_active_user),
 ):
     try:
+        drs_obj_doc = persist_content_and_get_drs_object(
+            content=json.dumps(ingest.dict()),
+            username=user.username,
+            filename=None,
+            content_type="application/json",
+            description="JSON metadata in",
+            id_ns="readsqc-in",
+        )
         mgs_service = ReadsQCSequencingActivityService()
         data_object_service = DataObjectService()
         object_dict = [member.dict() for member in ingest.data_object_set]
@@ -35,10 +51,8 @@ async def ingest(
             await mgs_service.create_mgs_activity(activity)
             for activity in activity_dict
         ]
-        return {
-            "objects_created": object_result,
-            "activities_created": activity_result,
-        }
+        return drs_obj_doc
+
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500)
