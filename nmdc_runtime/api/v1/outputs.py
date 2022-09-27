@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Depends, Response, status
+from bson import json_util
 
 from nmdc_runtime.api.models.user import User, get_current_active_user
 
@@ -33,7 +34,7 @@ async def ingest(
 ):
     try:
         drs_obj_doc = persist_content_and_get_drs_object(
-            content=json.dumps(ingest.dict()),
+            content=ingest.json(),
             filename=None,
             content_type="application/json",
             description="JSON metadata in",
@@ -53,7 +54,7 @@ async def ingest(
             await mgs_service.create_mgs_activity(activity)
             for activity in activity_dict
         ]
-        return drs_obj_doc
+        return json.loads(json_util.dumps(drs_obj_doc))
 
     except Exception as e:
         print(e)
