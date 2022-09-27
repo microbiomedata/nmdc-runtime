@@ -29,12 +29,10 @@ router = APIRouter(prefix="/outputs", tags=["outputs"])
 )
 async def ingest(
     ingest: Ingest,
-    user: User = Depends(get_current_active_user),
 ):
     try:
         drs_obj_doc = persist_content_and_get_drs_object(
             content=json.dumps(ingest.dict()),
-            username=user.username,
             filename=None,
             content_type="application/json",
             description="JSON metadata in",
