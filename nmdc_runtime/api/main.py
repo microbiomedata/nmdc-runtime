@@ -273,14 +273,11 @@ async def ensure_initial_resources_on_boot():
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
         mdb[collection_name].create_index("id", unique=True)
-        collection_boot = import_module(
-            f"nmdc_runtime.api.boot.{collection_name}"
-        )
+        collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
+
         for model in collection_boot.construct():
             doc = model.dict()
-            mdb[collection_name].replace_one(
-                {"id": doc["id"]}, doc, upsert=True
-            )
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
 
     username = os.getenv("API_ADMIN_USER")
     admin_ok = mdb.users.count_documents(({"username": username})) > 0
@@ -340,9 +337,7 @@ async def ensure_indexes():
                     "only supports basic single-key ascending index specs at this time."
                 )
 
-            mdb[collection_name].create_index(
-                [(spec, 1)], name=spec, background=True
-            )
+            mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
 
 
 @app.on_event("startup")

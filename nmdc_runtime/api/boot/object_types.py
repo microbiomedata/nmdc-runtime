@@ -57,6 +57,12 @@ _raw = [
         "name": "metadata changesheet",
         "description": "Specification for changes to existing metadata",
     },
+    {
+        "id": "readsqc-in",
+        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
+        "name": "metadata needed for Reads QC Workflow",
+        "description": "metadata, in the form of a nmdc:Database, needed for Reads QC Workflow",
+    },
 ]
 
 _raw.extend(

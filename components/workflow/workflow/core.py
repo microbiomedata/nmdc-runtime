@@ -17,9 +17,7 @@ class DataObjectService:
     ) -> None:
         self.__queries = data_object_queries
 
-    async def create_data_object(
-        self, data_object: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def create_data_object(self, data_object: Dict[str, Any]) -> Dict[str, Any]:
         """A function to create a new workflow job
 
         :param data_object: Dict[str, Any] dictionary of fields for data object creation
@@ -44,9 +42,7 @@ class ReadsQCSequencingActivityService:
     ) -> None:
         self.__queries = activity_queries
 
-    async def create_mgs_activity(
-        self, mgs_activity: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def create_mgs_activity(self, mgs_activity: Dict[str, Any]) -> Dict[str, Any]:
         new_activity = ReadsQCSequencingActivity.parse_obj(mgs_activity)
         result = await self.__queries.create_activity(new_activity)
         return result.dict()
