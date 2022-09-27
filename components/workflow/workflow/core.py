@@ -1,11 +1,11 @@
 from typing import Any, Dict
 
-from .spec import DataObject, MetaGenomeSequencingActivity
+from .spec import DataObject, ReadsQCSequencingActivity
 from .store import (
     DataObjectInDb,
     DataObjectQueries,
-    MetagenomeSequencingActivityInDb,
-    MetagenomeSequencingActivityQueries,
+    ReadsQCSequencingActivityInDb,
+    ReadsQCSequencingActivityQueries,
 )
 
 
@@ -35,19 +35,19 @@ class DataObjectService:
         return result.dict()
 
 
-class MetagenomeSequencingActivityService:
+class ReadsQCSequencingActivityService:
     """Service for handling nmdc metagenome activities in nmdc runtime."""
 
     def __init__(
         self,
-        activity_queries: MetagenomeSequencingActivityQueries = MetagenomeSequencingActivityQueries(),
+        activity_queries: ReadsQCSequencingActivityQueries = ReadsQCSequencingActivityQueries(),
     ) -> None:
         self.__queries = activity_queries
 
     async def create_mgs_activity(
         self, mgs_activity: Dict[str, Any]
     ) -> Dict[str, Any]:
-        new_activity = MetaGenomeSequencingActivity.parse_obj(mgs_activity)
+        new_activity = ReadsQCSequencingActivity.parse_obj(mgs_activity)
         return await self.__queries.create_activity(new_activity)
 
     async def by_id(self, id: str) -> Dict[str, Any]:
@@ -56,7 +56,7 @@ class MetagenomeSequencingActivityService:
 
 
 def get_beanie_documents():
-    return [DataObjectInDb, MetagenomeSequencingActivityInDb]
+    return [DataObjectInDb, ReadsQCSequencingActivityInDb]
 
 
 def get_data_object_service():

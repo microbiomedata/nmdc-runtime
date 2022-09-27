@@ -6,9 +6,9 @@ from pydantic import DirectoryPath, HttpUrl, ValidationError
 
 from .spec import (
     DataObject,
-    MetaGenomeSequencingActivity,
+    ReadsQCSequencingActivity,
     IDataObjectQueries,
-    IMetaGenomeSequencingActivityQueries,
+    IReadsQCSequencingActivityQueries,
 )
 
 
@@ -23,11 +23,11 @@ class DataObjectInDb(Document, DataObject):
         name = "data_object_set"
 
 
-class MetagenomeSequencingActivityInDb(Document, MetaGenomeSequencingActivity):
+class ReadsQCSequencingActivityInDb(Document, ReadsQCSequencingActivity):
     id: Indexed(str)
 
     class Collection:
-        name = "metagenome_activity_set"
+        name = "reads_qc_activity_set"
 
 
 class DataObjectQueries(IDataObjectQueries):
@@ -47,14 +47,12 @@ class DataObjectQueries(IDataObjectQueries):
             raise ValidationError from e
 
 
-class MetagenomeSequencingActivityQueries(
-    IMetaGenomeSequencingActivityQueries
-):
+class ReadsQCSequencingActivityQueries(IReadsQCSequencingActivityQueries):
     async def create_activity(
-        self, metagenome_sequencing_activity: MetaGenomeSequencingActivity
+        self, metagenome_sequencing_activity: ReadsQCSequencingActivity
     ) -> bool:
         try:
-            new_activity = MetagenomeSequencingActivityInDb(
+            new_activity = ReadsQCSequencingActivityInDb(
                 **metagenome_sequencing_activity.dict()
             )
             result = await new_activity.insert()
@@ -62,11 +60,11 @@ class MetagenomeSequencingActivityQueries(
         except ValidationError as e:
             raise ValidationError from e
 
-    async def by_id(self, id: str) -> MetaGenomeSequencingActivity:
+    async def by_id(self, id: str) -> ReadsQCSequencingActivity:
         try:
-            new_activity = await MetagenomeSequencingActivityInDb.find_one(
-                MetagenomeSequencingActivityInDb.id == id
+            new_activity = await ReadsQCSequencingActivityInDb.find_one(
+                ReadsQCSequencingActivityInDb.id == id
             )
-            return MetaGenomeSequencingActivity(**new_activity.dict())
+            return ReadsQCSequencingActivity(**new_activity.dict())
         except ValidationError as e:
             raise ValidationError from e

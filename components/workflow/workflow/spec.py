@@ -10,6 +10,7 @@ from semver import Version
 
 class DataObject(BaseModel):
     id: str
+    md5_checksum: str
     name: str
     description: str
     file_size_bytes: int
@@ -18,18 +19,20 @@ class DataObject(BaseModel):
     url: HttpUrl
 
 
-class MetaGenomeSequencingActivity(BaseModel):
+class ReadsQCSequencingActivity(BaseModel):
     has_input: List[str]
     part_of: List[str]
     git_url: Optional[HttpUrl]
     version: str
     has_output: List[str]
+    input_read_bases: int
     was_informed_by: str
     id: str
     name: str
     started_at_time: datetime
     ended_at_time: datetime
     type: str
+    execution_resource: str
 
 
 class WorkflowInput(BaseModel):
@@ -105,12 +108,12 @@ class IMetaGenomeSequencingActivityQueries(ABC):
 
     @abstractmethod
     async def create_activity(
-        metagenome_sequencing_activity: MetaGenomeSequencingActivity,
+        metagenome_sequencing_activity: ReadsQCSequencingActivity,
     ):
         pass
 
     @abstractmethod
-    async def by_id(id: str) -> MetaGenomeSequencingActivity:
+    async def by_id(id: str) -> ReadsQCSequencingActivity:
         pass
 
 
@@ -157,15 +160,15 @@ class IWorkflowQueries(ABC):
         pass
 
 
-class IMetagenomeSequencingActivityQueries(ABC):
+class IReadsQCSequencingActivityQueries(ABC):
     """Query interface for interacting with metagenome activies"""
 
     @abstractmethod
     async def create_activity(
-        self, metagenome_sequencing_activity: MetaGenomeSequencingActivity
+        self, metagenome_sequencing_activity: ReadsQCSequencingActivity
     ):
         pass
 
     @abstractmethod
-    async def by_id(self, id: str) -> MetaGenomeSequencingActivity:
+    async def by_id(self, id: str) -> ReadsQCSequencingActivity:
         pass

@@ -6,7 +6,7 @@ from .models.ingest import Ingest
 
 from components.workflow.workflow.core import (
     DataObjectService,
-    MetagenomeSequencingActivityService,
+    ReadsQCSequencingActivityService,
 )
 
 router = APIRouter(prefix="/outputs", tags=["outputs"])
@@ -21,12 +21,11 @@ async def ingest(
     ingest: Ingest,
 ):
     try:
-        mgs_service = MetagenomeSequencingActivityService()
+        mgs_service = ReadsQCSequencingActivityService()
         data_object_service = DataObjectService()
         object_dict = [member.dict() for member in ingest.data_object_set]
         activity_dict = [
-            member.dict()
-            for member in ingest.metagenome_sequencing_activity_set
+            member.dict() for member in ingest.reads_qc_analysis_activity_set
         ]
         object_result = [
             await data_object_service.create_data_object(data_object)
