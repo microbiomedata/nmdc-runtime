@@ -13,7 +13,7 @@ from .spec import (
 
 
 class DataObjectInDb(Document, DataObject):
-    id: Indexed(str)
+    id: str
 
     # @classmethod
     # def create(cls, data_object: DataObject) -> "DataObject" :
@@ -24,10 +24,10 @@ class DataObjectInDb(Document, DataObject):
 
 
 class ReadsQCSequencingActivityInDb(Document, ReadsQCSequencingActivity):
-    id: Indexed(str)
+    id: str
 
     class Collection:
-        name = "reads_QC_analysis_activity_set"
+        name = "read_QC_analysis_activity_set"
 
 
 class DataObjectQueries(IDataObjectQueries):
