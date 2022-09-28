@@ -45,8 +45,8 @@ _raw = [
     },
     {
         "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "object_type_id": "readsqc-in",
-        "workflow_id": "readsqc-1.0.1",
+        "object_type_id": "readqc-in",
+        "workflow_id": "readqc-1.0.1",
     },
 ]
 

@@ -43,13 +43,13 @@ async def ingest(
             filename=None,
             content_type="application/json",
             description="JSON metadata in",
-            id_ns="json-readsqc-in",
+            id_ns="json-readqc-in",
         )
         mgs_service = ReadsQCSequencingActivityService()
         data_object_service = DataObjectService()
         object_dict = [member.dict() for member in ingest.data_object_set]
         activity_dict = [
-            member.dict() for member in ingest.reads_qc_analysis_activity_set
+            member.dict() for member in ingest.read_QC_analysis_activity_set
         ]
         object_result = [
             await data_object_service.create_data_object(data_object)
@@ -60,20 +60,18 @@ async def ingest(
             for activity in activity_dict
         ]
 
-        job_spec = {
-            "workflow": {"id": "readsqc-1.0.1"},
-            "config": {"object_id": drs_obj_doc["id"]},
-        }
-        run_config = merge(
-            unfreeze(run_config_frozen__normal_env),
-            {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
-        )
-        dagster_result: ExecuteInProcessResult = repo.get_job(
-            "ensure_jobs"
-        ).execute_in_process(run_config=run_config)
+        # job_spec = {
+        #     "workflow": {"id": "readsqc-1.0.1"},
+        #     "config": {"object_id": drs_obj_doc["id"]},
+        # }
+        # run_config = merge(
+        #     unfreeze(run_config_frozen__normal_env),
+        #     {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
+        # )
+        # dagster_result: ExecuteInProcessResult = repo.get_job(
+        #     "ensure_jobs"
+        # ).execute_in_process(run_config=run_config)
         return json.loads(json_util.dumps(drs_obj_doc))
 
     except DuplicateKeyError as e:
-        raise HTTPException(status_code=400, detail=e.details)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.details)
+        raise HTTPException(status_code=409, detail=e.details)

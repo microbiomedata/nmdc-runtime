@@ -17,5 +17,5 @@ async def mongo_beanie_init(app):
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
-    ).account
+    )[os.getenv("MONGO_DBNAME")]
     await init_beanie(app.db, document_models=document_models)
