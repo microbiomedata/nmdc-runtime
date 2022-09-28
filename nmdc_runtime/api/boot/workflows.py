@@ -9,7 +9,7 @@ _raw = [
         "name": "Metagenome Analysis Workflow (v1.0.0)",
     },
     {
-        "id": "readsqc-1.0.1",
+        "id": "readqc-1.0.1",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Reads QC Workflow (v1.0.1)",
     },
