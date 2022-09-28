@@ -9,7 +9,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi<0.76.0 # until using starlette >=0.20.3
+fastapi>=0.85.0 # using starlette >=0.20.3 for working colon-containing URL paths.
 fastjsonschema
 fnc
 frozendict
