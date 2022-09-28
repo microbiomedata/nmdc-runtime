@@ -2,9 +2,14 @@ import json
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Depends, Response, status
+from pydantic import ValidationError
+from dagster import ExecuteInProcessResult
 from bson import json_util
+from toolz import merge
+from pymongo.errors import DuplicateKeyError
 
 from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.util import unfreeze
 
 from .models.ingest import Ingest
 
@@ -15,6 +20,7 @@ from nmdc_runtime.api.endpoints.util import (
     permitted,
     users_allowed,
 )
+from nmdc_runtime.site.repository import run_config_frozen__normal_env, repo
 from components.workflow.workflow.core import (
     DataObjectService,
     ReadsQCSequencingActivityService,
@@ -37,7 +43,7 @@ async def ingest(
             filename=None,
             content_type="application/json",
             description="JSON metadata in",
-            id_ns="readsqc-in",
+            id_ns="json-readsqc-in",
         )
         mgs_service = ReadsQCSequencingActivityService()
         data_object_service = DataObjectService()
@@ -53,8 +59,21 @@ async def ingest(
             await mgs_service.create_mgs_activity(activity)
             for activity in activity_dict
         ]
+
+        job_spec = {
+            "workflow": {"id": "readsqc-1.0.1"},
+            "config": {"object_id": drs_obj_doc["id"]},
+        }
+        run_config = merge(
+            unfreeze(run_config_frozen__normal_env),
+            {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
+        )
+        dagster_result: ExecuteInProcessResult = repo.get_job(
+            "ensure_jobs"
+        ).execute_in_process(run_config=run_config)
         return json.loads(json_util.dumps(drs_obj_doc))
 
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500)
+    except DuplicateKeyError as e:
+        raise HTTPException(status_code=400, detail=e.details)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.details)
