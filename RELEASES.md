@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2022-09-28T16:37:00-04:00 use env-supplied db name, etc.
 * 2022-09-28T16:42:00-04:00 update outputs endpoint
 * 2022-09-28T15:42:00-04:00 remove user
 * 2022-09-28T15:42:00-04:00 return serialized object
