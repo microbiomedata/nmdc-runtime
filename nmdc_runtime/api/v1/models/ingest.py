@@ -10,4 +10,4 @@ from components.workflow.workflow.core import (
 
 class Ingest(BaseModel):
     data_object_set: List[DataObject] = []
-    reads_qc_analysis_activity_set: List[ReadsQCSequencingActivity] = []
+    read_QC_analysis_activity_set: List[ReadsQCSequencingActivity] = []
