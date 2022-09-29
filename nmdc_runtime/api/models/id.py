@@ -6,13 +6,19 @@ from pydantic import BaseModel, constr, PositiveInt, root_validator
 
 # NO i, l, o or u.
 # ref: https://www.crockford.com/base32.html
+from toolz import concat
+
 base32_letters = "abcdefghjkmnpqrstvwxyz"
+base32_chars = "0123456789" + base32_letters
 
 # Archival Resource Key (ARK) identifier scheme
 # ref: https://www.ietf.org/archive/id/draft-kunze-ark-35.html
 #
-# NAA - Name Assigning Authority
-NAA_VALUES = ["nmdc"]
+# NAAN - Name Assigning Authority Number
+# ref: https://n2t.net/e/pub/naan_registry.txt
+NAAN = {
+    "nmdc": "76954",
+}
 
 # The base compact name assigned by the NAA consists of
 # (a) a "shoulder", and (b) a final string known as the "blade".
@@ -41,61 +47,88 @@ LEGACY_SHOULDER_VALUES = LEGACY_FAKE_SHOULDERS + LEGACY_ALLOCATED_SHOULDERS
 TYPECODES = {
     "nmdc:Sample": ["sa"],
     "nmdc:Study": ["st"],
+    "prov:Activity": ["a"],
+    "prov:Agent": ["p"],  # "Party"
+    "prov:Entity": ["e"],
 }
 
 FAKE_SHOULDERS = [f"{n}fk{n}" for n in range(10)]
 ALLOCATED_SHOULDERS = ["11"]
 SHOULDER_VALUES = FAKE_SHOULDERS + ALLOCATED_SHOULDERS
 
-_naa = rf"(?P<naa>({'|'.join(NAA_VALUES)}))"
-pattern_naa = re.compile(_naa)
-_typecode = rf"(?P<typecode>({'|'.join(SHOULDER_VALUES)}))"
-_shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_VALUES)}))"
-pattern_shoulder = re.compile(_shoulder)
-_blade = rf"(?P<blade>[0-9{base32_letters}]+)"
-pattern_blade = re.compile(_blade)
-_assigned_base_name = f"{_shoulder}{_blade}"
-pattern_assigned_base_name = re.compile(_assigned_base_name)
-_base_object_name = f"{_naa}:{_shoulder}{_blade}"
-pattern_base_object_name = re.compile(_base_object_name)
+_naa = rf"(?P<naa>({'|'.join(list(NAAN.keys()))}))"
+_blade = rf"(?P<blade>[{base32_chars}]{{4,}})"
 
-Naa = constr(regex=_naa)
-Shoulder = constr(regex=rf"^{_shoulder}$", min_length=2)
+_legacy_shoulder = rf"(?P<shoulder>({'|'.join(LEGACY_SHOULDER_VALUES)}))"
+_legacy_assigned_base_name = rf"{_legacy_shoulder}{_blade}"
+_legacy_base_object_name = rf"{_naa}:{_legacy_assigned_base_name}"
+
+_typecode = rf"(?P<typecode>({'|'.join(list(concat(TYPECODES.values())))}))"
+_shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_VALUES)}))"
+_assigned_base_name = rf"{_typecode}{_shoulder}{_blade}"
+_base_object_name = rf"{_naa}:{_assigned_base_name}"
+
+pattern = {
+    "naa": re.compile(_naa),
+    "blade": re.compile(_blade),
+    "legacy": {
+        "shoulder": re.compile(_legacy_shoulder),
+        "assigned_base_name": re.compile(_legacy_assigned_base_name),
+        "base_object_name": re.compile(_legacy_base_object_name),
+    },
+    "typecode": re.compile(_typecode),
+    "shoulder": re.compile(_shoulder),
+    "assigned_base_name": re.compile(_assigned_base_name),
+    "base_object_name": re.compile(_base_object_name),
+}
+
+Naa = Enum("Naa", names=zip(NAAN, NAAN), type=str)
 Blade = constr(regex=_blade, min_length=4)
+
+LegacyShoulder = Enum(
+    "LegacyShoulder",
+    names=zip(LEGACY_SHOULDER_VALUES, LEGACY_SHOULDER_VALUES),
+    type=str,
+)
+LegacyAssignedBaseName = constr(regex=_legacy_assigned_base_name)
+LegacyBaseObjectName = constr(regex=_legacy_base_object_name)
+
+Typecode = Enum(
+    "Typecode",
+    names=zip(concat(TYPECODES.values()), concat(TYPECODES.values())),
+    type=str,
+)
+# Shoulder = constr(regex=rf"^{_shoulder}$", min_length=2)
+Shoulder = Enum("Shoulder", names=zip(SHOULDER_VALUES, SHOULDER_VALUES), type=str)
 AssignedBaseName = constr(regex=_assigned_base_name)
 BaseObjectName = constr(regex=_base_object_name)
 
-NameAssigningAuthority = Literal[tuple(NAA_VALUES)]
+NameAssigningAuthority = Literal[tuple(NAAN.keys())]
 
 
 class MintRequest(BaseModel):
     populator: str = ""
     naa: NameAssigningAuthority = "nmdc"
-    shoulder: Shoulder = "fk0"
+    typecode: Typecode = "a"  # (generic) prov:Activity
+    shoulder: Shoulder = "1fk1"  # "fake" shoulder
     number: PositiveInt = 1
 
 
-class IdThreeParts(BaseModel):
+class LegacyStructuredId(BaseModel):
     naa: Naa
+    shoulder: LegacyShoulder
+    blade: Blade
+
+
+class StructuredId(BaseModel):
+    naa: Naa
+    typecode: Typecode
     shoulder: Shoulder
     blade: Blade
 
 
-class IdTwoParts(BaseModel):
-    naa: Naa
-    assigned_base_name: AssignedBaseName
-
-
-class IdWhole(BaseModel):
-    base_object_name: BaseObjectName
-
-
-class Id(BaseModel):
-    id: Union[IdWhole, IdTwoParts, IdThreeParts]
-
-
 class IdBindings(BaseModel):
-    where: BaseObjectName
+    where: Union[LegacyBaseObjectName, BaseObjectName]
 
 
 class IdBindingOp(str, Enum):
@@ -106,7 +139,7 @@ class IdBindingOp(str, Enum):
 
 
 class IdBindingRequest(BaseModel):
-    i: BaseObjectName
+    i: Union[LegacyBaseObjectName, BaseObjectName]
     o: IdBindingOp = IdBindingOp.set
     a: Optional[str]
     v: Any

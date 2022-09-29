@@ -60,6 +60,7 @@ SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
 
 def collection_name(naa, shoulder):
+    # TODO add typecode?
     return f"ids_{naa}_{shoulder}"
 
 
@@ -70,8 +71,10 @@ def generate_ids(
     number: int,
     ns: str = "",
     naa: str = "nmdc",
-    shoulder: str = "fk4",
+    shoulder: str = "1fk1",
+    typecode: str = "a",
 ) -> List[str]:
+    # TODO incorporate typecode
     collection = mdb.get_collection(collection_name(naa, shoulder))
     n_chars = next(
         (

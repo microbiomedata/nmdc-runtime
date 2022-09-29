@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
@@ -16,13 +16,11 @@ from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.id import (
     MintRequest,
-    pattern_shoulder,
+    pattern,
     AssignedBaseName,
-    pattern_assigned_base_name,
     IdBindingRequest,
-    pattern_base_object_name,
-    IdThreeParts,
-    pattern_naa,
+    StructuredId,
+    LegacyStructuredId,
 )
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 
@@ -46,6 +44,7 @@ def mint_ids(
         number=mint_req.number,
         naa=mint_req.naa,
         shoulder=mint_req.shoulder,
+        typecode=mint_req.typecode,
     )
     return ids
 
@@ -56,19 +55,29 @@ def set_id_bindings(
     mdb: MongoDatabase = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
-    bons = [r.i for r in binding_requests]
-    ids: List[IdThreeParts] = []
+    bons = [r.i for r in binding_requests]  # "Base Object Names"
+    ids: List[Union[StructuredId, LegacyStructuredId]] = []
     for bon in bons:
-        m = re.match(pattern_base_object_name, bon)
-        ids.append(
-            IdThreeParts(
-                naa=m.group("naa"),
-                shoulder=m.group("shoulder"),
-                blade=m.group("blade"),
+        if m := re.match(pattern["base_object_name"], bon):
+            ids.append(
+                StructuredId(
+                    naa=m.group("naa"),
+                    typecode=m.group("typecode"),
+                    shoulder=m.group("shoulder"),
+                    blade=m.group("blade"),
+                )
             )
-        )
+        elif m := re.match(pattern["legacy"]["base_object_name"], bon):
+            ids.append(
+                LegacyStructuredId(
+                    naa=m.group("naa"),
+                    shoulder=m.group("shoulder"),
+                    blade=m.group("blade"),
+                )
+            )
     # Ensure that user owns all supplied identifiers.
     for id_, r in zip(ids, binding_requests):
+        # TODO check typecode if non-legacy ID
         collection = mdb.get_collection(collection_name(id_.naa, id_.shoulder))
         doc = collection.find_one({"_id": decode_id(str(id_.blade))}, ["__ao"])
         if doc is None:
@@ -120,6 +129,7 @@ def get_id_bindings(
     rest: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    # TODO legacy/non-legacy handling
     cleaned = rest.replace("-", "")
     parts = cleaned.split(":")
     if len(parts) != 2:
@@ -138,13 +148,13 @@ def get_id_bindings(
         assigned_base_name = suffix_parts[0]
         attribute = None
 
-    if re.match(pattern_naa, naa) is None:
+    if re.match(pattern["naa"], naa) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid ID - invalid name assigning authority (NAA) '{naa}'.",
         )
     print(assigned_base_name)
-    if re.match(pattern_shoulder, assigned_base_name) is None:
+    if re.match(pattern["shoulder"], assigned_base_name) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
@@ -156,7 +166,9 @@ def get_id_bindings(
             ),
         )
     try:
-        m = re.match(pattern_assigned_base_name, AssignedBaseName(assigned_base_name))
+        m = re.match(
+            pattern["assigned_base_name"], AssignedBaseName(assigned_base_name)
+        )
         shoulder, blade = m.group("shoulder"), m.group("blade")
         id_decoded = decode_id(blade)
     except (AttributeError, ValidationError):
