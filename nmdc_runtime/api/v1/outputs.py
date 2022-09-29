@@ -56,14 +56,14 @@ async def ingest(
         activity_dict = [
             member.dict() for member in ingest.read_QC_analysis_activity_set
         ]
-        _ = [
-            await data_object_service.create_data_object(data_object)
-            for data_object in object_dict
-        ]
-        _ = [
-            await mgs_service.create_mgs_activity(activity)
-            for activity in activity_dict
-        ]
+        # _ = [
+        #     await data_object_service.create_data_object(data_object)
+        #     for data_object in object_dict
+        # ]
+        # _ = [
+        #     await mgs_service.create_mgs_activity(activity)
+        #     for activity in activity_dict
+        # ]
 
         doc_after = mdb.objects.find_one_and_update(
             {"id": drs_obj_doc["id"]},
