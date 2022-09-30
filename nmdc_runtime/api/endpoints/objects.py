@@ -11,7 +11,7 @@ from toolz import merge
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
+from nmdc_runtime.api.db.s3 import S3_ID_TYPECODE, presigned_url_to_get, get_s3_client
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
     _create_object,
@@ -40,8 +40,8 @@ def supplied_object_id(mdb, client_site, obj_doc):
             if (
                 client_site.id == site_id
                 and mdb.sites.count_documents({"id": site_id})
-                and mdb.ids.count_documents(
-                    {"_id": decode_id(object_id), "ns": S3_ID_NS}
+                and mdb[f"ids_nmdc_do_11"].count_documents(
+                    {"_id": decode_id(object_id), "ns": S3_ID_TYPECODE}
                 )
                 and mdb.objects.count_documents({"id": object_id}) == 0
             ):
@@ -79,7 +79,7 @@ def create_object(
         mdb, client_site, object_in.dict(exclude_unset=True)
     )
     drs_id = local_part(
-        id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
+        id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_TYPECODE)
     )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     return _create_object(
@@ -177,7 +177,7 @@ def get_object_access(
         )
     if access_id.startswith(f"{API_SITE_ID}:"):
         url = presigned_url_to_get(
-            f"{S3_ID_NS}/{access_id.split(':', maxsplit=1)[1]}",
+            f"{S3_ID_TYPECODE}/{access_id.split(':', maxsplit=1)[1]}",
             client=s3client,
         )
         return {"url": url}

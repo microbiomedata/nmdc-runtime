@@ -22,7 +22,7 @@ from nmdc_runtime.api.db.s3 import (
     get_s3_client,
     presigned_url_to_put,
     presigned_url_to_get,
-    S3_ID_NS,
+    S3_ID_TYPECODE,
 )
 from nmdc_runtime.api.endpoints.util import exists, list_resources
 from nmdc_runtime.api.models.capability import Capability
@@ -140,9 +140,9 @@ def put_object_in_site(
             detail=f"API-mediated object storage for site {site_id} is not enabled.",
         )
     expires_in = 300
-    object_id = generate_one_id(mdb, S3_ID_NS)
+    object_id = generate_one_id(mdb, S3_ID_TYPECODE)
     url = presigned_url_to_put(
-        f"{S3_ID_NS}/{object_id}",
+        f"{S3_ID_TYPECODE}/{object_id}",
         client=s3client,
         mime_type=object_in.mime_type,
         expires_in=expires_in,
@@ -150,7 +150,7 @@ def put_object_in_site(
     # XXX ensures defaults are set, e.g. done:false
     op = Operation[DrsObjectIn, ObjectPutMetadata](
         **{
-            "id": generate_one_id(mdb, "op"),
+            "id": generate_one_id(mdb, "sysop"),
             "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
             "metadata": {
                 "object_id": object_id,
@@ -181,7 +181,7 @@ def get_site_object_link(
             detail=f"API-mediated object storage for site {site_id} is not enabled.",
         )
     url = presigned_url_to_get(
-        f"{S3_ID_NS}/{access_method.access_id}",
+        f"{S3_ID_TYPECODE}/{access_method.access_id}",
         client=s3client,
     )
     return {"url": url}
@@ -204,7 +204,7 @@ def generate_credentials_for_site_client(
         )
 
     # XXX client_id must not contain a ':' because HTTPBasic auth splits on ':'.
-    client_id = local_part(generate_one_id(mdb, "site_clients"))
+    client_id = local_part(generate_one_id(mdb, "syssc"))
     client_secret = generate_secret()
     hashed_secret = get_password_hash(client_secret)
     mdb.sites.update_one(

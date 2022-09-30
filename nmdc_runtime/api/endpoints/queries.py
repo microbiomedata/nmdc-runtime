@@ -68,7 +68,7 @@ def run_query(
     if isinstance(query_cmd, DeleteCommand):
         check_can_delete(user)
 
-    qid = generate_one_id(mdb, "qy")
+    qid = generate_one_id(mdb, "sysqy")
     saved_at = now()
     query = Query(
         cmd=query_cmd,

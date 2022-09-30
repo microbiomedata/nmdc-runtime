@@ -1,12 +1,13 @@
 import re
 from enum import Enum
+from functools import lru_cache
 from typing import Union, Any, Optional, Literal
 
 from pydantic import BaseModel, constr, PositiveInt, root_validator
 
 # NO i, l, o or u.
 # ref: https://www.crockford.com/base32.html
-from toolz import concat
+from toolz import concat, pluck
 
 base32_letters = "abcdefghjkmnpqrstvwxyz"
 base32_chars = "0123456789" + base32_letters
@@ -44,16 +45,95 @@ LEGACY_FAKE_SHOULDERS = [f"fk{n}" for n in range(10)]
 LEGACY_ALLOCATED_SHOULDERS = ["mga0", "mta0", "mba0", "mpa0", "oma0"]
 LEGACY_SHOULDER_VALUES = LEGACY_FAKE_SHOULDERS + LEGACY_ALLOCATED_SHOULDERS
 
-TYPECODES = {
-    "nmdc:Sample": ["sa"],
-    "nmdc:Study": ["st"],
-    "prov:Activity": ["a"],
-    "prov:Agent": ["p"],  # "Party"
-    "prov:Entity": ["e"],
-}
+TYPECODES = [
+    {
+        "codes": ["sa"],
+        "type": "nmdc:Biosample",
+        "note": "a sample",
+    },
+    {
+        "codes": ["st"],
+        "type": "nmdc:Study",
+        "note": "a study",
+    },
+    {
+        "codes": ["saw"],
+        "type": "prov:NamedThing",
+        "note": "the workflow/plan for sampling / sample prep",
+    },
+    {
+        "codes": ["saa"],
+        "type": "prov:BiosampleProcessing",
+        "note": (
+            "sample activity (sa prov:wasGeneratedBy saa, saa prov:used saw) "
+            "- the execution of the plan"
+        ),
+    },
+    {
+        "codes": ["p"],
+        "type": "nmdc:Agent",
+        "note": "party (e.g. instrument, person, software agent)",
+    },
+    {
+        "codes": ["do"],
+        "type": "nmdc:DataObject",
+        "note": "data object",
+    },
+    {
+        "codes": ["opw"],
+        "type": "nmdc:NamedThing",
+        "note": "omics processing - the workflow/plan for data object (do) production",
+    },
+    {
+        "codes": ["opa"],
+        "type": "nmdc:OmicsProcessing",
+        "note": (
+            "omics processing activity (opa prov:used sample, do prov:wasGeneratedBy opa) "
+            "- the execution of the plan"
+        ),
+    },
+    {
+        "codes": ["oaw"],
+        "type": "nmdc:NamedThing",
+        "note": "omics analysis - the (computational) workflow/plan",
+    },
+    {
+        "codes": ["oaa"],
+        "type": "nmdc:WorkflowExecutionActivity",
+        "note": (
+            "omics analysis activity (oaa prov:used do, oaa prov:used oa, "
+            "do prov:wasGeneratedBy oaa) - "
+            "the execution of the plan"
+        ),
+    },
+    {
+        "codes": [
+            "sys",
+            "sysqy",
+            "sysop",
+            "syssc",
+            "syspt",
+            "sysdo",
+            "sysjob",
+            "sysrun",
+        ],
+        "type": "nmdc:NamedThing",
+        "note": "for internal use by the nmdc-runtime site",
+    },
+]
+
+
+@lru_cache
+def typecode_type(typecode):
+    for t in TYPECODES:
+        if typecode in t["codes"]:
+            return t["type"], t["note"]
+    else:
+        raise ValueError(f"typecode '{typecode}' not found")
+
 
 FAKE_SHOULDERS = [f"{n}fk{n}" for n in range(10)]
-ALLOCATED_SHOULDERS = ["11"]
+ALLOCATED_SHOULDERS = ["11"]  # '11' is allocated to central NMDC ID minter
 SHOULDER_VALUES = FAKE_SHOULDERS + ALLOCATED_SHOULDERS
 
 _naa = rf"(?P<naa>({'|'.join(list(NAAN.keys()))}))"
@@ -63,7 +143,7 @@ _legacy_shoulder = rf"(?P<shoulder>({'|'.join(LEGACY_SHOULDER_VALUES)}))"
 _legacy_assigned_base_name = rf"{_legacy_shoulder}{_blade}"
 _legacy_base_object_name = rf"{_naa}:{_legacy_assigned_base_name}"
 
-_typecode = rf"(?P<typecode>({'|'.join(list(concat(TYPECODES.values())))}))"
+_typecode = rf"(?P<typecode>({'|'.join(concat(pluck('codes', TYPECODES)))})"
 _shoulder = rf"(?P<shoulder>({'|'.join(SHOULDER_VALUES)}))"
 _assigned_base_name = rf"{_typecode}{_shoulder}{_blade}"
 _base_object_name = rf"{_naa}:{_assigned_base_name}"
@@ -95,7 +175,7 @@ LegacyBaseObjectName = constr(regex=_legacy_base_object_name)
 
 Typecode = Enum(
     "Typecode",
-    names=zip(concat(TYPECODES.values()), concat(TYPECODES.values())),
+    names=zip(concat(pluck("codes", TYPECODES)), concat(pluck("codes", TYPECODES))),
     type=str,
 )
 # Shoulder = constr(regex=rf"^{_shoulder}$", min_length=2)
@@ -109,7 +189,7 @@ NameAssigningAuthority = Literal[tuple(NAAN.keys())]
 class MintRequest(BaseModel):
     populator: str = ""
     naa: NameAssigningAuthority = "nmdc"
-    typecode: Typecode = "a"  # (generic) prov:Activity
+    typecode: Typecode = "oaa"
     shoulder: Shoulder = "1fk1"  # "fake" shoulder
     number: PositiveInt = 1
 

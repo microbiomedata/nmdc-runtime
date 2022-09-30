@@ -4,6 +4,8 @@ from typing import List
 import base32_lib as base32
 from pymongo.database import Database as MongoDatabase
 
+from nmdc_runtime.api.models.id import typecode_type
+
 
 def generate_id(length=10, split_every=4, checksum=True) -> str:
     """Generate random base32 string: a user-shareable ID for a database entity.
@@ -59,9 +61,8 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
 SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
 
-def collection_name(naa, shoulder):
-    # TODO add typecode?
-    return f"ids_{naa}_{shoulder}"
+def collection_name(naa, typecode, shoulder):
+    return f"ids_{naa}_{typecode}_{shoulder}"
 
 
 def generate_ids(
@@ -69,13 +70,11 @@ def generate_ids(
     owner: str,
     populator: str,
     number: int,
-    ns: str = "",
     naa: str = "nmdc",
     shoulder: str = "1fk1",
-    typecode: str = "a",
+    typecode: str = "oaa",
 ) -> List[str]:
-    # TODO incorporate typecode
-    collection = mdb.get_collection(collection_name(naa, shoulder))
+    collection = mdb.get_collection(collection_name(naa, typecode, shoulder))
     n_chars = next(
         (
             n
@@ -103,20 +102,22 @@ def generate_ids(
             # All attribute names beginning with "__a" are reserved...
             # https://github.com/jkunze/n2t-eggnog/blob/0f0f4c490e6dece507dba710d3557e29b8f6627e/egg#L1882
             # XXX mongo is a pain with '.'s in field names, so not using e.g. "_.e" names.
+            tc_type, tc_note = typecode_type(typecode)
             docs = [
                 {
                     "@context": "https://n2t.net/e/n2t_apidoc.html#identifier-metadata",
                     "_id": eid_decoded,
                     "who": populator,
-                    "what": (f"{ns}/{eid}" if ns else "(:tba) Work in progress"),
+                    "what": f"{tc_type} -- {tc_note}",
                     "when": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                     "how": shoulder,
-                    "where": f"{naa}:{shoulder}{eid}",
+                    "where": f"{naa}:{typecode}{shoulder}{eid}",
                     "__as": "reserved",  # status, public|reserved|unavailable
                     "__ao": owner,  # owner
                     "__ac": datetime.now(timezone.utc).isoformat(
                         timespec="seconds"
                     ),  # created
+                    "__at": typecode,
                 }
                 for eid, eid_decoded in not_taken
             ]
@@ -129,8 +130,8 @@ def generate_ids(
 
 def generate_one_id(
     mdb: MongoDatabase = None,
-    ns: str = "",
-    shoulder: str = "sys0",
+    typecode: str = "oaa",
+    shoulder: str = "11",
 ) -> str:
     """Generate unique Crockford Base32-encoded ID for mdb repository.
 
@@ -142,9 +143,9 @@ def generate_one_id(
         owner="_system",
         populator="_system",
         number=1,
-        ns=ns,
         naa="nmdc",
         shoulder=shoulder,
+        typecode=typecode,
     )[0]
 
 

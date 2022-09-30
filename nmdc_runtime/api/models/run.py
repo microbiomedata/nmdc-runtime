@@ -72,7 +72,7 @@ def get_dagster_graphql_client() -> DagsterGraphQLClient:
 def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: User):
     # XXX what we consider a "job" here, is currently a "workflow" elsewhere...
     job = raise404_if_none(mdb.workflows.find_one({"id": run_spec.job_id}))
-    run_id = generate_one_id(mdb, "runs")
+    run_id = generate_one_id(mdb, "sysrun")
     event = RunEvent(
         producer=user.username,
         schemaURL=SCHEMA_URL,

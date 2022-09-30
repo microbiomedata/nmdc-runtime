@@ -309,7 +309,7 @@ def delete_operations(context, op_docs: list):
 def construct_jobs(context) -> List[Job]:
     mdb: MongoDatabase = context.resources.mongo.db
     docs = [
-        dict(**base, id=generate_one_id(mdb, "jobs"), created_at=now())
+        dict(**base, id=generate_one_id(mdb, "sysjob"), created_at=now())
         for base in context.solid_config["base_jobs"]
     ]
     return [Job(**d) for d in docs]

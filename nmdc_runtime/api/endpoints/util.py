@@ -91,7 +91,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             )
         )
         last_id = resources[-1]["id"]
-        token = generate_one_id(mdb, "page_tokens")
+        token = generate_one_id(mdb, "syspt")
         mdb.page_tokens.insert_one(
             {"_id": token, "ns": collection_name, "last_id": last_id}
         )
@@ -262,7 +262,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
         )
         if more_results:
-            token = generate_one_id(mdb, "page_tokens")
+            token = generate_one_id(mdb, "syspt")
             mdb.page_tokens.insert_one(
                 {"_id": token, "ns": collection_name, "last_id": last_id}
             )
@@ -368,7 +368,7 @@ def persist_content_and_get_drs_object(
     id_ns="json-metadata-in",
 ):
     mdb = get_mongo_db()
-    drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
+    drs_id = local_part(generate_one_id(mdb, "sysdo"))
     filename = filename or drs_id
     PortableFilename(filename)  # validates
     DrsId(drs_id)  # validates
@@ -454,7 +454,7 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
         # )
         pass
 
-    op_id = generate_one_id(mdb, "op")
+    op_id = generate_one_id(mdb, "sysop")
     job.claims = (job.claims or []) + [JobClaim(op_id=op_id, site_id=site.id)]
     op = Operation[ResultT, JobOperationMetadata](
         **{
