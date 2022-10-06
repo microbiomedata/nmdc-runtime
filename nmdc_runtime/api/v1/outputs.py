@@ -15,6 +15,12 @@ from nmdc_runtime.util import unfreeze
 
 from .models.ingest import Ingest
 
+from nmdc_runtime.api.models.site import (
+    Site,
+    maybe_get_current_client_site,
+    get_current_client_site,
+)
+
 from nmdc_runtime.api.endpoints.util import (
     persist_content_and_get_drs_object,
     _claim_job,
@@ -41,8 +47,13 @@ router = APIRouter(prefix="/outputs", tags=["outputs"])
 async def ingest(
     ingest: Ingest,
     mdb: MongoDatabase = Depends(get_mongo_db),
+    site: Site = Depends(get_current_client_site),
 ):
     try:
+
+        if site is None:
+            raise HTTPException(status_code=401, detail="Client site not found")
+
         drs_obj_doc = persist_content_and_get_drs_object(
             content=ingest.json(),
             filename=None,
