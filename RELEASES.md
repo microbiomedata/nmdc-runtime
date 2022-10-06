@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2022-10-27T11:05:00-04:00 return workflow after claiming job
 * 2022-09-29T11:05:00-04:00 remove second call to mongo
 * 2022-09-28T16:37:00-04:00 use env-supplied db name, etc.
 * 2022-09-28T16:42:00-04:00 update outputs endpoint
