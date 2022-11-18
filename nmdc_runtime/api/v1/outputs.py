@@ -1,30 +1,14 @@
-import json
-from typing import Any, Dict, List
-
-from fastapi import APIRouter, HTTPException, Depends, Response, status
-from pydantic import ValidationError
-from dagster import ExecuteInProcessResult
-from bson import json_util
-from toolz import merge
+from fastapi import APIRouter, Depends, HTTPException
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.models.site import Site, get_current_client_site
+from pymongo import ReturnDocument
+from pymongo.database import Database as MongoDatabase
 from pymongo.errors import DuplicateKeyError
+from starlette import status
 
-from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.util import unfreeze
-
+from ..db.mongo import get_mongo_db
+from ..models.object_type import DrsObjectWithTypes
 from .models.ingest import Ingest
-
-from nmdc_runtime.api.endpoints.util import (
-    persist_content_and_get_drs_object,
-    _claim_job,
-    _request_dagster_run,
-    permitted,
-    users_allowed,
-)
-from nmdc_runtime.site.repository import run_config_frozen__normal_env, repo
-from components.workflow.workflow.core import (
-    DataObjectService,
-    ReadsQCSequencingActivityService,
-)
 
 router = APIRouter(prefix="/outputs", tags=["outputs"])
 
@@ -32,48 +16,32 @@ router = APIRouter(prefix="/outputs", tags=["outputs"])
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
-    response_model=Dict[str, Any],
+    response_model=DrsObjectWithTypes,
 )
 async def ingest(
     ingest: Ingest,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+    site: Site = Depends(get_current_client_site),
 ):
     try:
+
+        if site is None:
+            raise HTTPException(status_code=401, detail="Client site not found")
+
         drs_obj_doc = persist_content_and_get_drs_object(
             content=ingest.json(),
             filename=None,
             content_type="application/json",
-            description="JSON metadata in",
-            id_ns="json-readsqc-in",
+            description="input metadata for readqc-in wf",
+            id_ns="json-readqc-in",
         )
-        mgs_service = ReadsQCSequencingActivityService()
-        data_object_service = DataObjectService()
-        object_dict = [member.dict() for member in ingest.data_object_set]
-        activity_dict = [
-            member.dict() for member in ingest.reads_qc_analysis_activity_set
-        ]
-        object_result = [
-            await data_object_service.create_data_object(data_object)
-            for data_object in object_dict
-        ]
-        activity_result = [
-            await mgs_service.create_mgs_activity(activity)
-            for activity in activity_dict
-        ]
 
-        job_spec = {
-            "workflow": {"id": "readsqc-1.0.1"},
-            "config": {"object_id": drs_obj_doc["id"]},
-        }
-        run_config = merge(
-            unfreeze(run_config_frozen__normal_env),
-            {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
+        doc_after = mdb.objects.find_one_and_update(
+            {"id": drs_obj_doc["id"]},
+            {"$set": {"types": ["readqc-in"]}},
+            return_document=ReturnDocument.AFTER,
         )
-        dagster_result: ExecuteInProcessResult = repo.get_job(
-            "ensure_jobs"
-        ).execute_in_process(run_config=run_config)
-        return json.loads(json_util.dumps(drs_obj_doc))
+        return doc_after
 
     except DuplicateKeyError as e:
-        raise HTTPException(status_code=400, detail=e.details)
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.details)
+        raise HTTPException(status_code=409, detail=e.details)

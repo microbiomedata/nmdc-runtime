@@ -87,3 +87,9 @@ cluster as part of the NMDC's `m3408` project, under the `nmdc-runtime-dev` name
 
 The go-to people to troubleshoot deployment issues within NERSC Spin at this time are `dehays`,
 `dwinston`, and `scanon`.
+
+## Databases
+
+Data is stored in the `nmdc` database.
+
+If you need to delete objects copy it to `nmdc_deleted` database under the corresponding collection

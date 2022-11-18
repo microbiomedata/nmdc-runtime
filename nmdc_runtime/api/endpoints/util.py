@@ -5,53 +5,52 @@ import tempfile
 from functools import lru_cache
 from pathlib import Path
 from time import time_ns
-from typing import Set, Optional, List, Tuple
-from urllib.parse import urlparse, parse_qs
+from typing import List, Optional, Set, Tuple
+from urllib.parse import parse_qs, urlparse
 
 from bson import json_util
 from dagster import DagsterRunStatus
 from dagster_graphql import DagsterGraphQLClientError
 from fastapi import HTTPException
 from gridfs import GridFS
-from pymongo.collection import Collection as MongoCollection
-from pymongo.database import Database as MongoDatabase
-from pymongo.errors import DuplicateKeyError
-from starlette import status
-from toolz import merge, dissoc, concat, get_in, assoc_in
-
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.util import (
-    raise404_if_none,
-    expiry_dt_from_now,
     dotted_path_for,
+    expiry_dt_from_now,
+    raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
-    PortableFilename,
     DrsId,
-    DrsObjectIn,
     DrsObject,
+    DrsObjectIn,
+    PortableFilename,
 )
 from nmdc_runtime.api.models.operation import Operation
 from nmdc_runtime.api.models.run import (
+    RunUserSpec,
+    _add_run_fail_event,
     _add_run_requested_event,
     _add_run_started_event,
-    _add_run_fail_event,
-    RunUserSpec,
+    get_dagster_graphql_client,
 )
-from nmdc_runtime.api.models.run import get_dagster_graphql_client
 from nmdc_runtime.api.models.site import Site
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.models.util import (
-    ListRequest,
     FindRequest,
+    FindResponse,
+    ListRequest,
     PipelineFindRequest,
     PipelineFindResponse,
-    FindResponse,
     ResultT,
 )
 from nmdc_runtime.util import drs_metadata_for
+from pymongo.collection import Collection as MongoCollection
+from pymongo.database import Database as MongoDatabase
+from pymongo.errors import DuplicateKeyError
+from starlette import status
+from toolz import assoc_in, concat, dissoc, get_in, merge
 
 BASE_URL_INTERNAL = os.getenv("API_HOST")
 BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
@@ -475,7 +474,8 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
     )
     mdb.operations.insert_one(op.dict())
     mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
-    return op.dict(exclude_unset=True)
+
+    return raise404_if_none(mdb.workflows.find_one({"id": job.workflow.id}))
 
 
 @lru_cache
