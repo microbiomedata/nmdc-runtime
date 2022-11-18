@@ -14,22 +14,37 @@ from dagster_graphql import DagsterGraphQLClientError
 from fastapi import HTTPException
 from gridfs import GridFS
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
-from nmdc_runtime.api.core.util import (dotted_path_for, expiry_dt_from_now,
-                                        raise404_if_none)
+from nmdc_runtime.api.core.util import (
+    dotted_path_for,
+    expiry_dt_from_now,
+    raise404_if_none,
+)
 from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
-from nmdc_runtime.api.models.object import (DrsId, DrsObject, DrsObjectIn,
-                                            PortableFilename)
+from nmdc_runtime.api.models.object import (
+    DrsId,
+    DrsObject,
+    DrsObjectIn,
+    PortableFilename,
+)
 from nmdc_runtime.api.models.operation import Operation
-from nmdc_runtime.api.models.run import (RunUserSpec, _add_run_fail_event,
-                                         _add_run_requested_event,
-                                         _add_run_started_event,
-                                         get_dagster_graphql_client)
+from nmdc_runtime.api.models.run import (
+    RunUserSpec,
+    _add_run_fail_event,
+    _add_run_requested_event,
+    _add_run_started_event,
+    get_dagster_graphql_client,
+)
 from nmdc_runtime.api.models.site import Site
 from nmdc_runtime.api.models.user import User
-from nmdc_runtime.api.models.util import (FindRequest, FindResponse,
-                                          ListRequest, PipelineFindRequest,
-                                          PipelineFindResponse, ResultT)
+from nmdc_runtime.api.models.util import (
+    FindRequest,
+    FindResponse,
+    ListRequest,
+    PipelineFindRequest,
+    PipelineFindResponse,
+    ResultT,
+)
 from nmdc_runtime.util import drs_metadata_for
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase

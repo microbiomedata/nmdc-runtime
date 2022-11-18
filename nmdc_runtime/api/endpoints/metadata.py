@@ -11,20 +11,22 @@ from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
-from nmdc_runtime.api.core.metadata import (_validate_changesheet,
-                                            df_from_sheet_in)
+from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
 from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import (
-    _claim_job, _request_dagster_run, permitted,
-    persist_content_and_get_drs_object, users_allowed)
+    _claim_job,
+    _request_dagster_run,
+    permitted,
+    persist_content_and_get_drs_object,
+    users_allowed,
+)
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.site import get_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.site.drsobjects.registration import \
-    specialize_activity_set_docs
+from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
 from nmdc_runtime.util import unfreeze
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
