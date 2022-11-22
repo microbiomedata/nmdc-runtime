@@ -273,7 +273,7 @@ async def submit_json(
     )
     job_spec = {
         "workflow": {"id": "metadata-in-1.0.0"},
-        "config": drs_obj_doc,
+        "config": {"object_id": drs_obj_doc["id"]},
     }
     run_config = merge(
         unfreeze(run_config_frozen__normal_env),
