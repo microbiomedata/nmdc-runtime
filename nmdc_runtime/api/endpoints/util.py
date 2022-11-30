@@ -475,7 +475,7 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
     mdb.operations.insert_one(op.dict())
     mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
 
-    return raise404_if_none(mdb.workflows.find_one({"id": job.workflow.id}))
+    return op.dict(exclude_unset=True)
 
 
 @lru_cache
