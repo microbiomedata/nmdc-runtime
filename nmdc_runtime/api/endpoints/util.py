@@ -463,7 +463,7 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
                 "job": Job(
                     **{
                         "id": job.id,
-                        "workflow": {"id": job.workflow.id},
+                        "workflow": job.workflow,
                         "config": job.config,
                     }
                 ).dict(exclude_unset=True),
