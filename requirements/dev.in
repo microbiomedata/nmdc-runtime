@@ -6,5 +6,6 @@ invoke
 pytest
 pytest-asyncio
 pytest-cov
+requests-mock
 setuptools-scm
 twine

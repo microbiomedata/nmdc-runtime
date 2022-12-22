@@ -30,10 +30,12 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
+    get_gold_biosample_ids,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
+    gold_api_client_resource,
     terminus_resource,
     mongo_resource,
 )
@@ -48,6 +50,7 @@ from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
+    "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
 }
@@ -442,6 +445,32 @@ def test_translation():
     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
 
     return graph_jobs
+
+@repository
+def biosample_submission_ingest():
+    return [
+        get_gold_biosample_ids.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": {
+                    "gold_api_client": {
+                        "config": {
+                            "base_url": {"env": "GOLD_API_BASE_URL"},
+                            "username": {"env": "GOLD_API_USERNAME"},
+                            "password": {"env": "GOLD_API_PASSWORD"}
+                        },
+                    },
+                },
+                "ops": {
+                    "gold_biosamples_by_study": {
+                        "config": {
+                            "study_id": "Gs0149396"
+                        }
+                    }
+                },
+            }
+        )
+    ]
 
 
 # @repository

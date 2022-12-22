@@ -12,6 +12,7 @@ from zipfile import ZipFile
 import fastjsonschema
 from bson import json_util, ObjectId
 from dagster import (
+    Any,
     List,
     String,
     op,
@@ -48,7 +49,7 @@ from nmdc_runtime.api.models.run import _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.site.resources import RuntimeApiSiteClient
+from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiSiteClient
 from nmdc_runtime.site.util import run_and_log, collection_indexed_on_id
 from nmdc_runtime.util import (
     put_object,
@@ -526,3 +527,22 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         return _add_run_complete_event(run_id=nmdc_run_id, mdb=mdb, outputs=outputs)
     else:
         context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")
+
+
+@op(required_resource_keys={"gold_api_client"}, config_schema={"study_id": str})
+def gold_biosamples_by_study(context: OpExecutionContext):
+    client: GoldApiClient = context.resources.gold_api_client
+    return client.fetch_biosamples_by_study(context.op_config["study_id"])
+
+
+@op(required_resource_keys={"gold_api_client"}, config_schema={"study_id": str})
+def gold_projects_by_study(context: OpExecutionContext):
+    client: GoldApiClient = context.resources.gold_api_client
+    return client.fetch_projects_by_study(context.op_config["study_id"])
+
+@op
+def gold_biosample_ids(context, docs: List[Dict[str, Any]]):
+    return unique_field_values(docs, "biosampleGoldId")
+
+def unique_field_values(docs: List[Dict[str, Any]], field: str):
+    return {doc[field] for doc in docs if field in doc}
