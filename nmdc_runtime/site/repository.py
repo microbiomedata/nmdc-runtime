@@ -38,6 +38,7 @@ from nmdc_runtime.site.resources import (
     gold_api_client_resource,
     terminus_resource,
     mongo_resource,
+    nmdc_database
 )
 from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
@@ -47,12 +48,14 @@ from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
+from nmdc_runtime.site.etl.gold import gold_nmdc_etl
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
     "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
+    "nmdc_database": nmdc_database
 }
 
 preset_normal = {
@@ -463,6 +466,27 @@ def biosample_submission_ingest():
                 },
                 "ops": {
                     "gold_biosamples_by_study": {
+                        "config": {
+                            "study_id": "Gs0149396"
+                        }
+                    }
+                },
+            }
+        ),
+        gold_nmdc_etl.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": {
+                    "gold_api_client": {
+                        "config": {
+                            "base_url": {"env": "GOLD_API_BASE_URL"},
+                            "username": {"env": "GOLD_API_USERNAME"},
+                            "password": {"env": "GOLD_API_PASSWORD"}
+                        },
+                    },
+                },
+                "ops": {
+                    "compute_nmdc_study_set": {
                         "config": {
                             "study_id": "Gs0149396"
                         }

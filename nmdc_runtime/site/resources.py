@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import Optional
 
 import requests
+import nmdc_schema.nmdc as nmdc
 from requests.auth import HTTPBasicAuth
 from dagster import build_init_resource_context, resource, StringSource, InitResourceContext
 from fastjsonschema import JsonSchemaValueException
@@ -209,6 +210,11 @@ class GoldApiClient(BasicAuthClient):
         :return: LocalId
         """
         return id.replace("gold:", "")
+    
+    def fetch_study(self, study_id: str):
+        id = self._normalize_id(study_id)
+        results = self.request("/studies", params={"studyGoldId": id})
+        return results[0]
 
     def fetch_biosamples_by_study(self, study_id: str):
         id = self._normalize_id(study_id)
@@ -235,6 +241,9 @@ def gold_api_client_resource(context: InitResourceContext):
         password=context.resource_config["password"]
     )
 
+@resource()
+def nmdc_database():
+    return nmdc.Database()
 
 class MongoDB:
     def __init__(
