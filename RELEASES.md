@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2022-01-09T11:05:00-04:00 update pinned dependencies
 * 2022-01-09T11:05:00-04:00 revert outputs
 * 2022-12-18T11:05:00-04:00 revert outputs
 * 2022-11-30T11:05:00-04:00 return op.dict in util
