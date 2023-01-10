@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
 
-from toolz import get_in
-
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.util import nmdc_jsonschema
+from toolz import get_in
 
 _raw = [
     {
@@ -62,6 +61,18 @@ _raw = [
         "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
         "name": "metadata needed for Reads QC Workflow",
         "description": "metadata, in the form of a nmdc:Database, needed for nmdc:ReadQcAnalysisActivity",
+    },
+    {
+        "id": "mgasmb-in",
+        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
+        "name": "metadata needed for Metagenome Assembly Workflow",
+        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:MetagenomeAssembly",
+    },
+    {
+        "id": "mgasmbgen-in",
+        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
+        "name": "metadata needed for Metagenome Assembled Genomes",
+        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:MetagenomeAssembledGenomes",
     },
 ]
 

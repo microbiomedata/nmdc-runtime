@@ -24,12 +24,12 @@ _raw = [
         "name": "Metagenome Assembly (v1.0.1)",
     },
     {
-        "id": "mganno-1.0.0",
+        "id": "mganno-1.0.1",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Metagenome Annotation (v1.0.0)",
     },
     {
-        "id": "mgasmbgen-1.0.2",
+        "id": "mgasmbgen-1.0.1",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Metagenome Assembled Genomes (v1.0.2)",
     },
