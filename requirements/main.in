@@ -1,6 +1,6 @@
 base32-lib
 beautifulsoup4
-beanie
+beanie>=1.11.0
 boto3
 click
 dagit
@@ -29,7 +29,7 @@ openpyxl
 pandas
 passlib[bcrypt]
 pymongo
-pydantic[email]
+pydantic[email]>=1.9.0
 python-jose[cryptography]
 python-multipart
 pyyaml
