@@ -62,7 +62,7 @@ async def ingest(
             "ensure_jobs"
         ).execute_in_process(run_config=run_config)
 
-        return dagster_result
+        return drs_obj_doc
 
     except DuplicateKeyError as e:
         raise HTTPException(status_code=409, detail=e.details)
