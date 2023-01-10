@@ -32,13 +32,13 @@ router = APIRouter(prefix="/outputs", tags=["outputs"])
 async def ingest(
     ingest: Ingest,
     mdb: MongoDatabase = Depends(get_mongo_db),
-    # site: Site = Depends(get_current_client_site),
+    site: Site = Depends(get_current_client_site),
 ):
     """Ingest activity set."""
     try:
 
-        # if site is None:
-        #     raise HTTPException(status_code=401, detail="Client site not found")
+        if site is None:
+            raise HTTPException(status_code=401, detail="Client site not found")
         input_dict = {
             "readqc-in": ["mgasmb", "rba"],
             "mgasmb-in": ["mganno"],
