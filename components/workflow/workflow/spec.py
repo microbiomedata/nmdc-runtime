@@ -23,7 +23,6 @@ class ReadsQCSequencingActivity(BaseModel):
     has_input: List[str]
     part_of: List[str]
     git_url: Optional[HttpUrl]
-    version: str
     has_output: List[str]
     input_read_bases: int
     was_informed_by: str
