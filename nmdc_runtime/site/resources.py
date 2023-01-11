@@ -242,7 +242,7 @@ def gold_api_client_resource(context: InitResourceContext):
     )
 
 @resource()
-def nmdc_database():
+def nmdc_database_resource(context: InitResourceContext):
     return nmdc.Database()
 
 class MongoDB:

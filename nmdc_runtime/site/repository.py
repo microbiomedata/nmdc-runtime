@@ -38,7 +38,7 @@ from nmdc_runtime.site.resources import (
     gold_api_client_resource,
     terminus_resource,
     mongo_resource,
-    nmdc_database
+    nmdc_database_resource
 )
 from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
@@ -55,7 +55,7 @@ resource_defs = {
     "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
-    "nmdc_database": nmdc_database
+    "nmdc_database": nmdc_database_resource
 }
 
 preset_normal = {
