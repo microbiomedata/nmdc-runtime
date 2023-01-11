@@ -37,8 +37,8 @@ async def ingest(
     """Ingest activity set."""
     try:
 
-        if site is None:
-            raise HTTPException(status_code=401, detail="Client site not found")
+        # if site is None:
+        #     raise HTTPException(status_code=401, detail="Client site not found")
         input_dict = {
             "readqc-in": ["mgasmb", "rba"],
             "mgasmb-in": ["mganno"],
@@ -46,28 +46,39 @@ async def ingest(
         }
 
         metadata_type = None
+        analysis_set = []
 
         if ingest.read_qc_analysis_activity_set:
             metadata_type = "readqc-in"
+            analysis_set = ingest.read_qc_analysis_activity_set
 
         if ingest.metagenome_assembly_activity_set:
             metadata_type = "mgasmb-in"
+            analysis_set = ingest.metagenome_assembly_activity_set
 
         if ingest.metagenome_annotation_activity_set:
             metadata_type = "mganno-in"
+            analysis_set = ingest.metagenome_annotation_activity_set
 
         drs_obj_doc = persist_content_and_get_drs_object(
             content=ingest.json(),
-            filename=None,
+            filename="something.json",
             content_type="application/json",
             description=f"input metadata for {metadata_type} wf",
-            id_ns=f"json-{metadata_type}-1.0.1",
+            id_ns=f"json-{input_dict[metadata_type]}-1.0.1",
         )
 
         for workflow_job in input_dict[metadata_type]:
             job_spec = {
                 "workflow": {"id": f"{workflow_job}-1.0.1"},
-                "config": {"object_id": drs_obj_doc["id"]},
+                "config": {
+                    "object_id": drs_obj_doc["id"],
+                    "activity_id": analysis_set[0].id,
+                    "git_repo": analysis_set[0].git_url,
+                    "was_informed_by": analysis_set[0].was_informed_by,
+                    "trigger_activity": analysis_set[0].type,
+                    "inputs": ingest.data_object_set,
+                },
             }
 
             run_config = merge(
@@ -79,7 +90,12 @@ async def ingest(
                 "ensure_jobs"
             ).execute_in_process(run_config=run_config)
 
-        return json.loads(json_util.dumps(drs_obj_doc))
+        doc_after = mdb.objects.find_one_and_update(
+            {"id": drs_obj_doc["id"]},
+            {"$set": {"types": [metadata_type]}},
+            return_document=ReturnDocument.AFTER,
+        )
+        return json.loads(json_util.dumps(doc_after))
 
     except DuplicateKeyError as e:
         raise HTTPException(status_code=409, detail=e.details)
