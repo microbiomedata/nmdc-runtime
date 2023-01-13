@@ -76,8 +76,10 @@ async def ingest(
                     "activity_id": analysis_set[0].id,
                     "git_repo": analysis_set[0].git_url,
                     "was_informed_by": analysis_set[0].was_informed_by,
-                    "trigger_activity": analysis_set[0].type,
+                    "type": analysis_set[0].type,
                     "inputs": ingest.data_object_set,
+                    "started_at_time": analysis_set[0].started_at_time,
+                    "ended_at_time": analysis_set[0].ended_at_time,
                 },
             }
 
