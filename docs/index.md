@@ -2,6 +2,17 @@
 
 Welcome to the documentation for the NMDC Runtime.
 
+The documentation uses the [Diátaxis](https://diataxis.fr/) framework. Content here is partitioned into:
+
+- Practical steps:
+    - Learning-oriented *tutorials*
+    - Task-oriented *how-to guides*
+- Theoretical knowledge:
+    - Information-oriented *reference*
+    - Understanding-oriented *explanation*
+
+Explore these using the site navigation.
+
 # API Resource Diagram
 
 ```mermaid
