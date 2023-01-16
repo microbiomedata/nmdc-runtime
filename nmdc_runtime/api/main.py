@@ -7,10 +7,23 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints import (capabilities, find, ids, jobs,
-                                        metadata, nmdcschema, object_types,
-                                        objects, operations, queries, runs,
-                                        sites, triggers, users, workflows)
+from nmdc_runtime.api.endpoints import (
+    capabilities,
+    find,
+    ids,
+    jobs,
+    metadata,
+    nmdcschema,
+    object_types,
+    objects,
+    operations,
+    queries,
+    runs,
+    sites,
+    triggers,
+    users,
+    workflows,
+)
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index

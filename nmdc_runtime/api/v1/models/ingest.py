@@ -1,7 +1,6 @@
 from typing import List, Optional
 
-from components.workflow.workflow.core import (DataObject,
-                                               ReadsQCSequencingActivity)
+from components.workflow.workflow.core import DataObject, ReadsQCSequencingActivity
 from pydantic import BaseModel
 
 

@@ -6,8 +6,12 @@ from bson import json_util
 from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, Depends, HTTPException
 from nmdc_runtime.api.endpoints.util import (
-    _claim_job, _request_dagster_run, permitted,
-    persist_content_and_get_drs_object, users_allowed)
+    _claim_job,
+    _request_dagster_run,
+    permitted,
+    persist_content_and_get_drs_object,
+    users_allowed,
+)
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
 from nmdc_runtime.util import unfreeze
