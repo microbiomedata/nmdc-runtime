@@ -1,5 +1,5 @@
 # Best practice: Choose a stable base image and tag.
-FROM python:3.9-slim-bullseye
+FROM python:3.10-slim-bullseye
 
 # Install security updates, and some useful packages.
 #

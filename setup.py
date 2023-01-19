@@ -34,7 +34,7 @@ setup(
     extras_require={
         "dev": dev_requires,
     },
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     entry_points={
         "console_scripts": [
             "schemagen-terminusdb = nmdc_runtime.site.terminusdb.generate:cli",

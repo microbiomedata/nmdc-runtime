@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+
+from nmdc_runtime.api.endpoints.util import (
+    _claim_job,
+    _request_dagster_run,
+    permitted,
+    persist_content_and_get_drs_object,
+    users_allowed,
+)
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase

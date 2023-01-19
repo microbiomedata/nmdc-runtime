@@ -9,6 +9,8 @@ from fastjsonschema import JsonSchemaValueException, JsonSchemaException
 # from nmdc_schema.validate_nmdc_json import jsonschema
 from jsonschema import ValidationError, Draft7Validator
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from pymongo.database import Database as MongoDatabase
+from pymongo.write_concern import WriteConcern
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
@@ -36,7 +38,9 @@ def test_mongo_validate():
     # print(type(schema))
     # return
     mongo = get_mongo(run_config_frozen__normal_env)
-    db = mongo.client["nmdc_etl_staging"]
+    db = MongoDatabase(
+        mongo.client, name="nmdc_etl_staging", write_concern=WriteConcern(fsync=True)
+    )
     collection_name = "test.study_test"
 
     db.drop_collection(collection_name)
