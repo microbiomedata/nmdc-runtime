@@ -6,29 +6,17 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints import (
-    capabilities,
-    find,
-    ids,
-    jobs,
-    metadata,
-    nmdcschema,
-    object_types,
-    objects,
-    operations,
-    queries,
-    runs,
-    sites,
-    triggers,
-    users,
-    workflows,
-)
+from nmdc_runtime.api.endpoints import (capabilities, find, ids, jobs,
+                                        metadata, nmdcschema, object_types,
+                                        objects, operations, queries, runs,
+                                        sites, triggers, users, workflows)
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
-from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+
+# from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -47,7 +35,7 @@ api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
 api_router.include_router(router_v1, tags=["v1"])
-api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
+# api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
 
 tags_metadata = [
     {
