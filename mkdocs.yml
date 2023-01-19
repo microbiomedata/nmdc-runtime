@@ -6,7 +6,7 @@ nav:
     - tutorials/auth.md
     - tutorials/json.md
     - tutorials/metadata-in.md
-  - How-to Guides:
+  - How-to guides:
     - howto-guides/author-changesheets.md
     - howto-guides/create-triggers.md
     - howto-guides/claim-and-run-jobs.md
@@ -18,12 +18,12 @@ nav:
     - nb/wf_automation.ipynb
     - Specific Jobs:
       - howto-guides/jobs/gold-translation-etl.md
-  - Explanations:
-      - explanation/journeys.md
   - Reference:
     - contributing-docs.md
     - admin.md
-
+  - Explanation:
+    - explanation/journeys.md
+    - explanation/identifiers.md
 
 theme:
   name: material
