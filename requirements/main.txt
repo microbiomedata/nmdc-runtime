@@ -8,15 +8,9 @@ alabaster==0.7.13 \
     --hash=sha256:1ee19aca801bbabb5ba3f5f258e4422dfa86f82f3e9cefb0859b283cdd7f62a3 \
     --hash=sha256:a27a4a084d5e690e16e01e03ad2b2e552c61a65469419b907243193de1a84ae2
     # via sphinx
-<<<<<<< HEAD
-alembic==1.9.1 \
-    --hash=sha256:a9781ed0979a20341c2cbb56bd22bd8db4fc1913f955e705444bd3a97c59fa32 \
-    --hash=sha256:f9f76e41061f5ebe27d4fe92600df9dd612521a7683f904dab328ba02cffa5a2
-=======
 alembic==1.9.2 \
     --hash=sha256:6880dec4f28dd7bd999d2ed13fbe7c9d4337700a44d11a524c0ce0c59aaf0dbd \
     --hash=sha256:e8a6ff9f3b1887e1fed68bfb8fb9a000d8f61c21bdcc85b67bb9f87fcbc4fce3
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via dagster
 aniso8601==9.0.1 \
     --hash=sha256:1d2b7ef82963909e93c4f24ce48d4de9e66009a21bf1c1e1c85bdd0812fe412f \
@@ -124,9 +118,9 @@ bcrypt==4.0.1 \
     --hash=sha256:e9a51bbfe7e9802b5f3508687758b564069ba937748ad7b9e890086290d2f79e \
     --hash=sha256:fbdaec13c5105f0c4e5c52614d04f0bca5f5af007910daa8b6b12095edaa67b3
     # via passlib
-beanie==1.16.8 \
-    --hash=sha256:3c016c5f226d6fcb1a603b93dc1f1dd17e350ca854e95ac7143cf076178a4309 \
-    --hash=sha256:de97c50adf510960e71a229433a084b2c79e62538d60c1823e2e487166410e7a
+beanie==1.17.0 \
+    --hash=sha256:5f758785ce813838a0f25e171957afb6e70fa142dda937531427e0a530d03c64 \
+    --hash=sha256:a0711775051c72324fc4555120355da9a3c081d41db14ddaa8e9f368303436ef
     # via -r requirements/main.in
 beautifulsoup4==4.11.1 \
     --hash=sha256:58d5c3d29f5a36ffeb94f02f0d786cd53014cf9b3b3951d42e0080d8a9498d30 \
@@ -153,23 +147,13 @@ bleach==5.0.1 \
     --hash=sha256:085f7f33c15bd408dd9b17a4ad77c577db66d76203e5984b1bd59baeee948b2a \
     --hash=sha256:0d03255c47eb9bd2f26aa9bb7f2107732e7e8fe195ca2f64709fcf3b0a4a085c
     # via nbconvert
-<<<<<<< HEAD
-boto3==1.26.46 \
-    --hash=sha256:96055651f7be882175aa334ad46528e1ad79fb8ca33fa9c3998cc1d985b34eab \
-    --hash=sha256:e24d65c31780c208768ebcd152d8a0181591c9c8e7d971e23f318d7f41910ba1
+boto3==1.26.52 \
+    --hash=sha256:0b1f82d4565ed875c7975ac0be5665e8d948613c01bcb0e49df6d4f5af670cc8 \
+    --hash=sha256:319ddb274f8f83b035b88a3b127c465bf6fe3e3fc2d668869b489e992c47ca77
     # via -r requirements/main.in
-botocore==1.29.46 \
-    --hash=sha256:78bf25933e35eb6354a9e80fe156f86dce4d346a92afe364dfce25c17ab0639f \
-    --hash=sha256:dbac2fde265f13beb9191ec3ff63b90b515e9ed63875edc3afbd72c5f585e48b
-=======
-boto3==1.26.51 \
-    --hash=sha256:b4aefdc72191c40a0155511b9ce933c94dcbdd1834ffc1204e90a30e7849ef13 \
-    --hash=sha256:d599ce626b03e7236b0cda051c3cedc128fd75e0ec2f799fab9b2eabdf32d945
-    # via -r requirements/main.in
-botocore==1.29.51 \
-    --hash=sha256:bbb92420902b4d9e4b854fcfae20d1029f1c3396e0579894f115278bc51d6198 \
-    --hash=sha256:f2f521fbd2343879f3c2d42392c88f1e7f15ea147a6dc5a3dab7b8686d90fcb6
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
+botocore==1.29.52 \
+    --hash=sha256:a0b89a33305cfa6251c6e1142deb7567e216e37e25363159f45fb81dc5b474e5 \
+    --hash=sha256:de55b6333fb13c66da9055972d7e4efff5dcc5a087478a2b70e99d888b29a24c
     # via
     #   boto3
     #   s3transfer
@@ -402,57 +386,31 @@ cryptography==39.0.0 \
     --hash=sha256:f964c7dcf7802d133e8dbd1565914fa0194f9d683d82411989889ecd701e8adf \
     --hash=sha256:fec8b932f51ae245121c4671b4bbc030880f363354b2f0e0bd1366017d891458
     # via python-jose
-<<<<<<< HEAD
-curies==0.4.1 \
-    --hash=sha256:074d8243a26b44cb23f45b6939b4d1874004798913dcf4689261c7fecffe5031 \
-    --hash=sha256:1790408f24ea53cd0d9003e0b1cd6424e41fd8cc8fc4a66e87d7cd6cda175df7
-    # via linkml-runtime
-dagit==1.1.9 \
-    --hash=sha256:23d83c2d0d1e8b18e216731b7d056cde46c90b10fd7a0fadf3ee85e095023727 \
-    --hash=sha256:e6096e93d825364887786dc529bbbb0b182cbe7805a95dbc8e506a420fe292db
-    # via -r requirements/main.in
-dagster==1.1.9 \
-    --hash=sha256:73a5f1c3f6d6ba154757cfca4245fdd7b1992ad32cccbad4273f8cd9371f02f3 \
-    --hash=sha256:cb9d106ec541b3b09fa532c3d095399a3ad989f9a6179b585d6daf1561e106a5
-=======
 curies==0.4.2 \
     --hash=sha256:91d6993a59270c3c280d3689e26001eb7c098d319f9a9f102c060943fa2bc44b \
     --hash=sha256:bdf862d9320b3f0c1d4a81532b07457da5370aa72bc6189099480ac0db80a6f7
     # via linkml-runtime
-dagit==1.1.10 \
-    --hash=sha256:283f6f9c25b07acb072f4962d4cb3bdeda23d9a178b98e115b8b9399ef1ea9dd \
-    --hash=sha256:71b755d2ea214222266e95b7dafb5c8c07c933ca1a4d3ea16ab975aefcdbd7c1
+dagit==1.1.11 \
+    --hash=sha256:84c3b34ae657108bc7049591f201c973787f94e3bb0694fc0b5478dba2e2ab4e \
+    --hash=sha256:eaabb0a4cbcfa2216754f54a44c95e874ecec34498cbdf78ee92b44dfa4796c2
     # via -r requirements/main.in
-dagster==1.1.10 \
-    --hash=sha256:17d647432548b6eb78c12c0d0d9efaf3c3f2694293488b80670c1ad1233c3b20 \
-    --hash=sha256:8a20d6da0adba8b947fc07d62d84e468252b8137016dea60bebae4024760c056
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
+dagster==1.1.11 \
+    --hash=sha256:281b6091e755a842fb999b08c433c7812488b2866dcf1f6dc4a8a988c521b289 \
+    --hash=sha256:e3c51ac70eceee47718d8204a4ffa4b722709a62d7642269e9559eb71156fbd1
     # via
     #   -r requirements/main.in
     #   dagit
     #   dagster-graphql
     #   dagster-postgres
-<<<<<<< HEAD
-dagster-graphql==1.1.9 \
-    --hash=sha256:114adadc0862f81950a2229fea7c37d952c8fe628ea24b28b216be501643036f \
-    --hash=sha256:91db616593cdf834e54430112869e0029f6227cad0829ee97d75d85f59de30d4
+dagster-graphql==1.1.11 \
+    --hash=sha256:216e3893249cf8f540d8bc5a0cf2f9377e0b2b4f7ce80f2c00e002c7deadd290 \
+    --hash=sha256:523043a3f153b4d591ae53a77fe72c56413aef19f5e8928007c6a4b4d7707fd2
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.17.9 \
-    --hash=sha256:b4abf757a7dd7c9d8caebd02fa2c37d8be66bed03ef7f034178b4de7f489d911 \
-    --hash=sha256:db63995b3ff1395c624e2b708dd6f57f3d7f01b6772bee8434af175ebd113d9e
-=======
-dagster-graphql==1.1.10 \
-    --hash=sha256:3d58430e4ecb47fc8ccf73da8cdc665d376b8c442d4ac04a53b2e3b1ab6c807b \
-    --hash=sha256:a0cdd869deb1271ae7e01ef879e960364a93b6dc48f5bccc48bb66f414ee2106
-    # via
-    #   -r requirements/main.in
-    #   dagit
-dagster-postgres==0.17.10 \
-    --hash=sha256:4565baadc43c23a2de956a27b119f56b994884fbc2c9e27c856e873b0485c197 \
-    --hash=sha256:c1f1221dc42feadfb7f41b36e1770b0ae35f88eb0eaba8737dd8bde927a74f9c
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
+dagster-postgres==0.17.11 \
+    --hash=sha256:269e3e9aec3a79f65b0b43f4f4f3851d819ccfbcae85b9b593053a35847c0889 \
+    --hash=sha256:bc94f30dc5a17e70e51bcc62abbac3abc60962ce771c5edd6133cd56f955f7b5
     # via -r requirements/main.in
 debugpy==1.6.5 \
     --hash=sha256:048368f121c08b00bbded161e8583817af5055982d2722450a69efe2051621c2 \
@@ -564,15 +522,9 @@ distlib==0.3.6 \
     --hash=sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46 \
     --hash=sha256:f35c4b692542ca110de7ef0bea44d73981caeb34ca0b9b6b2e6d7790dda8f80e
     # via virtualenv
-<<<<<<< HEAD
-dnspython==2.2.1 \
-    --hash=sha256:0f7569a4a6ff151958b64304071d370daa3243d15941a7beedf0c9fe5105603e \
-    --hash=sha256:a851e51367fb93e9e1361732c1d60dab63eff98712e503ea7d92e6eccb109b4f
-=======
 dnspython==2.3.0 \
     --hash=sha256:224e32b03eb46be70e12ef6d64e0be123a64e621ab4c0822ff6d450d52a540b9 \
     --hash=sha256:89141536394f909066cabd112e3e1a37e4e654db00a25308b0f130bc3152eb46
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   email-validator
     #   pymongo
@@ -665,9 +617,9 @@ frozendict==2.3.4 \
     --hash=sha256:dae686722c144b333c4dbdc16323a5de11406d26b76d2be1cc175f90afacb5ba \
     --hash=sha256:dbbe1339ac2646523e0bb00d1896085d1f70de23780e4927ca82b36ab8a044d3
     # via -r requirements/main.in
-fsspec==2022.11.0 \
-    --hash=sha256:259d5fd5c8e756ff2ea72f42e7613c32667dc2049a4ac3d84364a7ca034acb8b \
-    --hash=sha256:d6e462003e3dcdcb8c7aa84c73a228f8227e72453cd22570e2363e8844edfe7b
+fsspec==2023.1.0 \
+    --hash=sha256:b833e2e541e9e8cde0ab549414187871243177feb3d344f9d27b25a93f5d8139 \
+    --hash=sha256:fbae7f20ff801eb5f7d0bedf81f25c787c0dfac5e982d98fa3884a9cde2b5411
     # via universal-pathlib
 ghp-import==2.1.0 \
     --hash=sha256:8337dd7b50877f163d4c0289bc1f1c7f127550241988d568c1db512c4324a619 \
@@ -900,15 +852,9 @@ iniconfig==2.0.0 \
     --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
     --hash=sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374
     # via pytest
-<<<<<<< HEAD
-ipykernel==6.20.1 \
-    --hash=sha256:a314e6782a4f9e277783382976b3a93608a3787cd70a235b558b47f875134be1 \
-    --hash=sha256:f6016ecbf581d0ea6e29ba16cee6cc1a9bbde3835900c46c6571a791692f4139
-=======
 ipykernel==6.20.2 \
     --hash=sha256:1893c5b847033cd7a58f6843b04a9349ffb1031bc6588401cadc9adb58da428e \
     --hash=sha256:5d0675d5f48bf6a95fd517d7b70bcb3b2c5631b2069949b5c2d6e1d7477fb5a0
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   ipywidgets
     #   jupyter
@@ -1087,15 +1033,9 @@ jupyter==1.0.0 \
     --hash=sha256:5b290f93b98ffbc21c0c7e749f054b3267782166d72fa5e3ed1ed4eaf34a2b78 \
     --hash=sha256:d9dc4b3318f310e34c82951ea5d6683f67bed7def4b259fafbfe4f1beb1d8e5f
     # via -r requirements/main.in
-<<<<<<< HEAD
-jupyter-client==7.4.8 \
-    --hash=sha256:109a3c33b62a9cf65aa8325850a0999a795fac155d9de4f7555aef5f310ee35a \
-    --hash=sha256:d4a67ae86ee014bcb96bd8190714f6af921f2b0f52f4208b086aa5acfd9f8d65
-=======
 jupyter-client==7.4.9 \
     --hash=sha256:214668aaea208195f4c13d28eb272ba79f945fc0cf3f11c7092c20b2ca1980e7 \
     --hash=sha256:52be28e04171f07aed8f20e1616a5a552ab9fee9cbbe6c1896ae170c3880d392
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   ipykernel
     #   jupyter-console
@@ -1121,15 +1061,6 @@ jupyter-core==5.1.3 \
     #   nbformat
     #   notebook
     #   qtconsole
-<<<<<<< HEAD
-jupyter-events==0.6.0 \
-    --hash=sha256:587f3055fe965f023b23b9929b22d2070e8b5c79ef0a42e37bdb12199862f63c \
-    --hash=sha256:bee793d06e124c5a80da3346f96f17aec5e0f28b632a514682b2a18ff548c69a
-    # via jupyter-server
-jupyter-server==2.0.6 \
-    --hash=sha256:6a4c9a3f9fa8679015954586944a568b911a98d7480ae1d56ff55a6a4f055254 \
-    --hash=sha256:8dd75992e90b7ca556794a1ed5cca51263c697abc6d0df561af574aa1c0a033f
-=======
 jupyter-events==0.6.3 \
     --hash=sha256:57a2749f87ba387cd1bfd9b22a0875b889237dbf2edc2121ebb22bde47036c17 \
     --hash=sha256:9a6e9995f75d1b7146b436ea24d696ce3a35bfa8bfe45e0c33c334c79464d0b3
@@ -1137,7 +1068,6 @@ jupyter-events==0.6.3 \
 jupyter-server==2.1.0 \
     --hash=sha256:90cd6f2bd0581ddd9b2dbe82026a0f4c228a1d95c86e22460efbfdfc931fcf56 \
     --hash=sha256:efaae5e4f0d5f22c7f2f2dc848635036ee74a2df02abed52d30d9d95121ad382
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   jupyterlab
     #   jupyterlab-server
@@ -1155,15 +1085,9 @@ jupyterlab-pygments==0.2.2 \
     --hash=sha256:2405800db07c9f770863bcf8049a529c3dd4d3e28536638bd7c1c01d2748309f \
     --hash=sha256:7405d7fde60819d905a9fa8ce89e4cd830e318cdad22a0030f7a901da705585d
     # via nbconvert
-<<<<<<< HEAD
-jupyterlab-server==2.18.0 \
-    --hash=sha256:2ce377afe6c5f762e933de1d942cad1ec07a1fbace4b586cd7a905fd57892695 \
-    --hash=sha256:7830f085debc9417a72ebf482dc5cb477d6bf76884826c73182fa457c7829df4
-=======
 jupyterlab-server==2.19.0 \
     --hash=sha256:51f6922e34f9f3db875051f4f7b57539a04ddd030f42d9ce6062dedf67bf7f2f \
     --hash=sha256:9aec21a2183bbedd9f91a86628355449575f1862d88b28ad5f905019d31e6c21
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via jupyterlab
 jupyterlab-widgets==3.0.5 \
     --hash=sha256:a04a42e50231b355b7087e16a818f541e53589f7647144ea0344c4bf16f300e5 \
@@ -1209,32 +1133,17 @@ libcst==0.4.9 \
     --hash=sha256:f6ce794483d4c605ef0f5b199a49fb6996f9586ca938b7bfef213bd13858d7ab \
     --hash=sha256:f9679177391ccb9b0cdde3185c22bf366cb672457c4b7f4031fcb3b5e739fbd6
     # via shed
-<<<<<<< HEAD
-linkml==1.4.1 \
-    --hash=sha256:071488b462f4b71d8b0296d3517fae2edf7e0d3041fb1a2ab5d5debf206e01f8 \
-    --hash=sha256:b936126fbf3942ff138ddb20d25a45ddaf024d00072e8ee14057f041e1f3ccd4
-    # via
-    #   -r requirements/main.in
-    #   nmdc-schema
-=======
 linkml==1.4.2 \
     --hash=sha256:4fd809a56b34b3489ae9180bc83f74a66dcac26fd00eebf294b10a8ad2527086 \
     --hash=sha256:f4eefa657c13ddb279402db9f7660acafdf2d021c17ae2fa3c36b274832dfe21
     # via -r requirements/main.in
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 linkml-dataops==0.1.0 \
     --hash=sha256:193cf7f659e5f07946d2c2761896910d5f7151d91282543b1363801f68307f4c \
     --hash=sha256:4550eab65e78b70dc3b9c651724a94ac2b1d1edb2fbe576465f1d6951a54ed04
     # via linkml
-<<<<<<< HEAD
-linkml-runtime==1.4.1 \
-    --hash=sha256:1c5eedcfcf0de4d3f0527ad256f230b872ab117b4391a9057246a045d180e4a6 \
-    --hash=sha256:ad106bc1aaf41debdb247d0d89b41d8bb2ed71feeb2ab7d326772177cbfc2974
-=======
 linkml-runtime==1.4.2 \
     --hash=sha256:40d0a6deaafcb90599f426aa7e3099c5379fe49f125c3868e19536d10549163c \
     --hash=sha256:d21fa31b0e6b0610e877d15c266a776f8ca31b6420810a44a05f73228ba3e6d2
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   -r requirements/main.in
     #   linkml
@@ -1552,15 +1461,9 @@ nbconvert==6.5.4 \
     #   mkdocs-jupyter
     #   nbclassic
     #   notebook
-<<<<<<< HEAD
-nbformat==5.7.1 \
-    --hash=sha256:3810a0130453ed031970521d20989b8a592f3c2e73283a8280ae34ae1f75b3f8 \
-    --hash=sha256:e52ab802ce7f7a2863861e914642f021b9d7c23ad9726d14c36df92a79acd754
-=======
 nbformat==5.7.3 \
     --hash=sha256:22a98a6516ca216002b0a34591af5bcb8072ca6c63910baffc901cfa07fefbf0 \
     --hash=sha256:4b021fca24d3a747bf4e626694033d792d594705829e5e35b14ee3369f9f6477
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   jupyter-server
     #   jupytext
@@ -1645,41 +1548,35 @@ packaging==23.0 \
     #   qtpy
     #   sphinx
     #   tox
-pandas==1.5.2 \
-    --hash=sha256:0183cb04a057cc38fde5244909fca9826d5d57c4a5b7390c0cc3fa7acd9fa883 \
-    --hash=sha256:1fc87eac0541a7d24648a001d553406f4256e744d92df1df8ebe41829a915028 \
-    --hash=sha256:220b98d15cee0b2cd839a6358bd1f273d0356bf964c1a1aeb32d47db0215488b \
-    --hash=sha256:2552bffc808641c6eb471e55aa6899fa002ac94e4eebfa9ec058649122db5824 \
-    --hash=sha256:315e19a3e5c2ab47a67467fc0362cb36c7c60a93b6457f675d7d9615edad2ebe \
-    --hash=sha256:344021ed3e639e017b452aa8f5f6bf38a8806f5852e217a7594417fb9bbfa00e \
-    --hash=sha256:375262829c8c700c3e7cbb336810b94367b9c4889818bbd910d0ecb4e45dc261 \
-    --hash=sha256:457d8c3d42314ff47cc2d6c54f8fc0d23954b47977b2caed09cd9635cb75388b \
-    --hash=sha256:4aed257c7484d01c9a194d9a94758b37d3d751849c05a0050c087a358c41ad1f \
-    --hash=sha256:530948945e7b6c95e6fa7aa4be2be25764af53fba93fe76d912e35d1c9ee46f5 \
-    --hash=sha256:5ae7e989f12628f41e804847a8cc2943d362440132919a69429d4dea1f164da0 \
-    --hash=sha256:71f510b0efe1629bf2f7c0eadb1ff0b9cf611e87b73cd017e6b7d6adb40e2b3a \
-    --hash=sha256:73f219fdc1777cf3c45fde7f0708732ec6950dfc598afc50588d0d285fddaefc \
-    --hash=sha256:8092a368d3eb7116e270525329a3e5c15ae796ccdf7ccb17839a73b4f5084a39 \
-    --hash=sha256:82ae615826da838a8e5d4d630eb70c993ab8636f0eff13cb28aafc4291b632b5 \
-    --hash=sha256:9608000a5a45f663be6af5c70c3cbe634fa19243e720eb380c0d378666bc7702 \
-    --hash=sha256:a40dd1e9f22e01e66ed534d6a965eb99546b41d4d52dbdb66565608fde48203f \
-    --hash=sha256:b4f5a82afa4f1ff482ab8ded2ae8a453a2cdfde2001567b3ca24a4c5c5ca0db3 \
-    --hash=sha256:c009a92e81ce836212ce7aa98b219db7961a8b95999b97af566b8dc8c33e9519 \
-    --hash=sha256:c218796d59d5abd8780170c937b812c9637e84c32f8271bbf9845970f8c1351f \
-    --hash=sha256:cc3cd122bea268998b79adebbb8343b735a5511ec14efb70a39e7acbc11ccbdc \
-    --hash=sha256:d0d8fd58df5d17ddb8c72a5075d87cd80d71b542571b5f78178fb067fa4e9c72 \
-    --hash=sha256:e18bc3764cbb5e118be139b3b611bc3fbc5d3be42a7e827d1096f46087b395eb \
-    --hash=sha256:e2b83abd292194f350bb04e188f9379d36b8dfac24dd445d5c87575f3beaf789 \
-    --hash=sha256:e7469271497960b6a781eaa930cba8af400dd59b62ec9ca2f4d31a19f2f91090 \
-    --hash=sha256:e9dbacd22555c2d47f262ef96bb4e30880e5956169741400af8b306bbb24a273 \
-    --hash=sha256:f6257b314fc14958f8122779e5a1557517b0f8e500cfb2bd53fa1f75a8ad0af2
+pandas==1.5.3 \
+    --hash=sha256:14e45300521902689a81f3f41386dc86f19b8ba8dd5ac5a3c7010ef8d2932813 \
+    --hash=sha256:26d9c71772c7afb9d5046e6e9cf42d83dd147b5cf5bcb9d97252077118543792 \
+    --hash=sha256:3749077d86e3a2f0ed51367f30bf5b82e131cc0f14260c4d3e499186fccc4406 \
+    --hash=sha256:41179ce559943d83a9b4bbacb736b04c928b095b5f25dd2b7389eda08f46f373 \
+    --hash=sha256:478ff646ca42b20376e4ed3fa2e8d7341e8a63105586efe54fa2508ee087f328 \
+    --hash=sha256:50869a35cbb0f2e0cd5ec04b191e7b12ed688874bd05dd777c19b28cbea90996 \
+    --hash=sha256:565fa34a5434d38e9d250af3c12ff931abaf88050551d9fbcdfafca50d62babf \
+    --hash=sha256:5f2b952406a1588ad4cad5b3f55f520e82e902388a6d5a4a91baa8d38d23c7f6 \
+    --hash=sha256:5fbcb19d6fceb9e946b3e23258757c7b225ba450990d9ed63ccceeb8cae609f7 \
+    --hash=sha256:6973549c01ca91ec96199e940495219c887ea815b2083722821f1d7abfa2b4dc \
+    --hash=sha256:74a3fd7e5a7ec052f183273dc7b0acd3a863edf7520f5d3a1765c04ffdb3b0b1 \
+    --hash=sha256:7a0a56cef15fd1586726dace5616db75ebcfec9179a3a55e78f72c5639fa2a23 \
+    --hash=sha256:7cec0bee9f294e5de5bbfc14d0573f65526071029d036b753ee6507d2a21480a \
+    --hash=sha256:87bd9c03da1ac870a6d2c8902a0e1fd4267ca00f13bc494c9e5a9020920e1d51 \
+    --hash=sha256:972d8a45395f2a2d26733eb8d0f629b2f90bebe8e8eddbb8829b180c09639572 \
+    --hash=sha256:9842b6f4b8479e41968eced654487258ed81df7d1c9b7b870ceea24ed9459b31 \
+    --hash=sha256:9f69c4029613de47816b1bb30ff5ac778686688751a5e9c99ad8c7031f6508e5 \
+    --hash=sha256:a50d9a4336a9621cab7b8eb3fb11adb82de58f9b91d84c2cd526576b881a0c5a \
+    --hash=sha256:bc4c368f42b551bf72fac35c5128963a171b40dce866fb066540eeaf46faa003 \
+    --hash=sha256:c39a8da13cede5adcd3be1182883aea1c925476f4e84b2807a46e2775306305d \
+    --hash=sha256:c3ac844a0fe00bfaeb2c9b51ab1424e5c8744f89860b138434a363b1f620f354 \
+    --hash=sha256:c4c00e0b0597c8e4f59e8d461f797e5d70b4d025880516a8261b2817c47759ee \
+    --hash=sha256:c74a62747864ed568f5a82a49a23a8d7fe171d0c69038b38cedf0976831296fa \
+    --hash=sha256:dd05f7783b3274aa206a1af06f0ceed3f9b412cf665b7247eacd83be41cf7bf0 \
+    --hash=sha256:dfd681c5dc216037e0b0a2c821f5ed99ba9f03ebcf119c7dac0e9a7b960b9ec9 \
+    --hash=sha256:e474390e60ed609cec869b0da796ad94f420bb057d86784191eefc62b65819ae \
+    --hash=sha256:f76d097d12c82a535fda9dfe5e8dd4127952b45fea9b0276cb30cca5ea313fbc
     # via -r requirements/main.in
-<<<<<<< HEAD
-pandoc==2.3 \
-    --hash=sha256:e772c2c6d871146894579828dbaf1efd538eb64fc7e71d4a6b3a11a18baef90d
-    # via nmdc-schema
-=======
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 pandocfilters==1.5.0 \
     --hash=sha256:0b679503337d233b4339a817bfc8c50064e2eff681314376a47cb582305a7a38 \
     --hash=sha256:33aae3f25fd1a026079f5d27bdd52496f0e0803b3469282162bafdcbdf6ef14f
@@ -1743,23 +1640,10 @@ pluggy==1.0.0 \
     # via
     #   pytest
     #   tox
-<<<<<<< HEAD
-plumbum==1.8.1 \
-    --hash=sha256:07cf5f50bf739e91fb83ce304fc66b41dbd12db4d4546ff5266087dd9d148314 \
-    --hash=sha256:88a40fc69247d0cd585e21ca169b3820f46c484535102e16455d2202727bb37b
-    # via pandoc
-ply==3.11 \
-    --hash=sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3 \
-    --hash=sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce
-    # via
-    #   jsonpath-ng
-    #   pandoc
-=======
 ply==3.11 \
     --hash=sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3 \
     --hash=sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce
     # via jsonpath-ng
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 prefixcommons==0.1.12 \
     --hash=sha256:16dbc0a1f775e003c724f19a694fcfa3174608f5c8b0e893d494cf8098ac7f8b \
     --hash=sha256:22c4e2d37b63487b3ab48f0495b70f14564cb346a15220f23919eb0c1851f69f
@@ -1990,15 +1874,9 @@ pyjsg==0.11.10 \
     #   linkml
     #   pyshexc
     #   shexjsg
-<<<<<<< HEAD
-pymdown-extensions==9.9 \
-    --hash=sha256:0f8fb7b74a37a61cc34e90b2c91865458b713ec774894ffad64353a5fce85cfc \
-    --hash=sha256:ac698c15265680db5eb13cd4342abfcde2079ac01e5486028f47a1b41547b859
-=======
 pymdown-extensions==9.9.1 \
     --hash=sha256:8a8973933ab45b6fe8f5f8da1de25766356b1f91dee107bf4a34efd158dc340b \
     --hash=sha256:abed29926960bbb3b40f5ed5fa6375e29724d4e3cb86ced7c2bbd37ead1afeea
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
@@ -2083,13 +1961,7 @@ pymongo==4.3.3 \
 pyparsing==3.0.9 \
     --hash=sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb \
     --hash=sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc
-<<<<<<< HEAD
-    # via
-    #   packaging
-    #   rdflib
-=======
     # via rdflib
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 pyrsistent==0.19.3 \
     --hash=sha256:016ad1afadf318eb7911baa24b049909f7f3bb2c5b1ed7b6a8f21db21ea3faa8 \
     --hash=sha256:1a2994773706bbb4995c31a97bc94f1418314923bd1048c6d964837040376440 \
@@ -2129,15 +2001,9 @@ pyshexc==0.9.1 \
     # via
     #   linkml
     #   pyshex
-<<<<<<< HEAD
-pytest==7.2.0 \
-    --hash=sha256:892f933d339f068883b6fd5a459f03d85bfcb355e4981e146d2c7616c21fef71 \
-    --hash=sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59
-=======
 pytest==7.2.1 \
     --hash=sha256:c7c6ca206e93355074ae32f7403e8ea12163b1163c976fee7d4d84027c162be5 \
     --hash=sha256:d45e0952f3727241918b8fd0f376f5ff6b301cc0777c6f9a556935c92d8a7d42
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via pytest-logging
 pytest-logging==2015.11.4 \
     --hash=sha256:cec5c85ecf18aab7b2ead5498a31b9f758680ef5a902b9054ab3f2bdbb77c896
@@ -2175,15 +2041,9 @@ python-multipart==0.0.5 \
 pytrie==0.4.0 \
     --hash=sha256:8f4488f402d3465993fb6b6efa09866849ed8cda7903b50647b7d0342b805379
     # via curies
-<<<<<<< HEAD
-pytz==2022.7 \
-    --hash=sha256:7ccfae7b4b2c067464a6733c6261673fdb8fd1be905460396b97a073e9fa683a \
-    --hash=sha256:93007def75ae22f7cd991c84e02d434876818661f8df9ad5df9e950ff4e52cfd
-=======
 pytz==2022.7.1 \
     --hash=sha256:01a0681c4b9684a28304615eba55d1ab31ae00bf68ec157ec3708a8182dbbcd0 \
     --hash=sha256:78f4f37d8198e0627c5f1143240bb0206b8691d8d7ac6d78fee88b78733f8c4a
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   babel
     #   dagster
@@ -2378,10 +2238,6 @@ requests==2.28.2 \
     # via
     #   -r requirements/main.in
     #   curies
-<<<<<<< HEAD
-    #   dagit
-=======
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     #   dagster
     #   dagster-graphql
     #   gql
@@ -2402,13 +2258,6 @@ requests-toolbelt==0.10.1 \
 rfc3339-validator==0.1.4 \
     --hash=sha256:138a2abdf93304ad60530167e51d2dfb9549521a836871b88d7f4695d0022f6b \
     --hash=sha256:24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa
-<<<<<<< HEAD
-    # via jsonschema
-rfc3986-validator==0.1.1 \
-    --hash=sha256:2f235c432ef459970b4306369336b9d5dbdda31b510ca1e327636e01f528bfa9 \
-    --hash=sha256:3d44bde7921b3b9ec3ae4e3adca370438eccebc676456449b145d533b240d055
-    # via jsonschema
-=======
     # via
     #   jsonschema
     #   jupyter-events
@@ -2418,7 +2267,6 @@ rfc3986-validator==0.1.1 \
     # via
     #   jsonschema
     #   jupyter-events
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 rfc3987==1.3.8 \
     --hash=sha256:10702b1e51e5658843460b189b185c0366d2cf4cff716f13111b0ea9fd2dce53 \
     --hash=sha256:d3c4d257a560d544e9826b38bc81db676890c79ab9d7ac92b39c7a253d5ca733
@@ -2680,15 +2528,9 @@ toolz==0.12.0 \
     --hash=sha256:2059bd4148deb1884bb0eb770a3cde70e7f954cfbbdc2285f1f2de01fd21eb6f \
     --hash=sha256:88c570861c440ee3f2f6037c4654613228ff40c93a6c25e0eba70d17282c6194
     # via -r requirements/main.in
-<<<<<<< HEAD
-toposort==1.8 \
-    --hash=sha256:b1e89996c43daaf0e03805d33df22333c99c9d36715b188dea0e551ce2f1cd81 \
-    --hash=sha256:c87fd1a8d70b2ca8c928eaf90a538307171fed89e1dcfcdbf7cf6599dfc3208a
-=======
 toposort==1.9 \
     --hash=sha256:9f434c815e1bd2f9ad05152b6b0071b1f56e288c107869708f2463ec932e2637 \
     --hash=sha256:f41a34490d44934b533a7bdaff979ee8a47203fd2d8a746db83f2d5ab12458b9
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via dagster
 tornado==6.2 \
     --hash=sha256:1d54d13ab8414ed44de07efecb97d4ef7c39f7438cf5e976ccd356bebb1b5fca \
@@ -2767,15 +2609,9 @@ uri-template==1.2.0 \
     --hash=sha256:934e4d09d108b70eb8a24410af8615294d09d279ce0e7cbcdaef1bd21f932b06 \
     --hash=sha256:f1699c77b73b925cf4937eae31ab282a86dc885c333f2e942513f08f691fc7db
     # via jsonschema
-<<<<<<< HEAD
-urllib3==1.26.13 \
-    --hash=sha256:47cc05d99aaa09c9e72ed5809b60e7ba354e64b59c9c173ac3018642d8bb41fc \
-    --hash=sha256:c083dd0dce68dbfbe1129d5271cb90f9447dea7d52097c6e0126120c521ddea8
-=======
 urllib3==1.26.14 \
     --hash=sha256:076907bf8fd355cde77728471316625a4d2f7e713c125f51953bb5b3eecf4f72 \
     --hash=sha256:75edcdc2f7d85b137124a6c3c9fc3933cdeaa12ecb9a6a959f22797a0feca7e1
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via
     #   botocore
     #   gql
@@ -3039,15 +2875,9 @@ xlrd==2.0.1 \
     --hash=sha256:6a33ee89877bd9abc1158129f6e94be74e2679636b8a205b43b85206c3f0bbdd \
     --hash=sha256:f72f148f54442c6b056bf931dbc34f986fd0c3b0b6b5a58d013c9aef274d0c88
     # via -r requirements/main.in
-<<<<<<< HEAD
-xlsxwriter==3.0.6 \
-    --hash=sha256:2f9e5ea13343fe85486e349d4e5fdf746bb69dc7bc1dedfa9b5fae2bb48c0795 \
-    --hash=sha256:56eae8ae587536734009aa819845c3e3c865462399823085b0baabbb081a929c
-=======
 xlsxwriter==3.0.7 \
     --hash=sha256:1239958b12da12be6abf05b32f64ff162eb75fff0fdf00d901ca0f46dc0557cf \
     --hash=sha256:d79dadac9dcbff3c24281764b052b46bcdb391f3184f337c4c4e6ed8d2738d7d
->>>>>>> 0474cb4 (feat(workflow_automation): add activities)
     # via -r requirements/main.in
 yarl==1.8.2 \
     --hash=sha256:009a028127e0a1755c38b03244c0bea9d5565630db9c4cf9572496e947137a87 \
