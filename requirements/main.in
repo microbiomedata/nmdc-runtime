@@ -1,6 +1,10 @@
 base32-lib
 beautifulsoup4
+<<<<<<< HEAD
 beanie>=1.11.0
+=======
+beanie>=1.16.0
+>>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 boto3
 click
 dagit
@@ -24,12 +28,16 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==3.2.0
+nmdc-schema>=7.1.0
 openpyxl
 pandas
 passlib[bcrypt]
 pymongo
+<<<<<<< HEAD
 pydantic[email]>=1.9.0
+=======
+pydantic[email]>=1.10.0
+>>>>>>> 0474cb4 (feat(workflow_automation): add activities)
 python-jose[cryptography]
 python-multipart
 pyyaml

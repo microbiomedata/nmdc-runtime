@@ -56,24 +56,6 @@ _raw = [
         "name": "metadata changesheet",
         "description": "Specification for changes to existing metadata",
     },
-    {
-        "id": "readqc-in",
-        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "name": "metadata needed for Reads QC Workflow",
-        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:ReadQcAnalysisActivity",
-    },
-    {
-        "id": "mgasmb-in",
-        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "name": "metadata needed for Metagenome Assembly Workflow",
-        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:MetagenomeAssembly",
-    },
-    {
-        "id": "mgasmbgen-in",
-        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "name": "metadata needed for Metagenome Assembled Genomes",
-        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:MetagenomeAssembledGenomes",
-    },
 ]
 
 _raw.extend(
@@ -82,7 +64,7 @@ _raw.extend(
             "id": key,
             "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
             "name": key,
-            "description": spec["description"],
+            # "description": spec["description"],
         }
         for key, spec in nmdc_jsonschema["properties"].items()
         if key.endswith("_set")
