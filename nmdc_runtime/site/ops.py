@@ -10,51 +10,36 @@ from typing import Dict
 from zipfile import ZipFile
 
 import fastjsonschema
-from bson import json_util, ObjectId
-from dagster import (
-    List,
-    String,
-    op,
-    Out,
-    AssetMaterialization,
-    AssetKey,
-    MetadataValue,
-    Output,
-    Failure,
-    RetryPolicy,
-    OpExecutionContext,
-)
+from bson import ObjectId, json_util
+from dagster import (AssetKey, AssetMaterialization, Failure, List,
+                     MetadataValue, OpExecutionContext, Out, Output,
+                     RetryPolicy, String, op)
 from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
+from nmdc_runtime.api.core.idgen import generate_one_id
+from nmdc_runtime.api.core.metadata import (_validate_changesheet,
+                                            df_from_sheet_in,
+                                            get_collection_for_id,
+                                            map_id_to_collection)
+from nmdc_runtime.api.core.util import dotted_path_for, json_clean, now
+from nmdc_runtime.api.models.job import Job, JobOperationMetadata
+from nmdc_runtime.api.models.metadata import ChangesheetIn
+from nmdc_runtime.api.models.operation import (ObjectPutMetadata, Operation,
+                                               UpdateOperationRequest)
+from nmdc_runtime.api.models.run import _add_run_complete_event
+from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
+from nmdc_runtime.site.drsobjects.registration import \
+    specialize_activity_set_docs
+from nmdc_runtime.site.resources import RuntimeApiSiteClient
+from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
+from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
-from toolz import get_in, dissoc, assoc
-
-from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
-from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
-from nmdc_runtime.api.core.util import dotted_path_for, now, json_clean
-from nmdc_runtime.api.models.job import JobOperationMetadata, Job
-from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.api.models.operation import (
-    Operation,
-    ObjectPutMetadata,
-    UpdateOperationRequest,
-)
-from nmdc_runtime.api.models.run import _add_run_complete_event
-from nmdc_runtime.api.models.util import ResultT
-from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
-from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.site.resources import RuntimeApiSiteClient
-from nmdc_runtime.site.util import run_and_log, collection_indexed_on_id
-from nmdc_runtime.util import (
-    put_object,
-    drs_object_in_for,
-    pluralize,
-)
+from toolz import assoc, dissoc, get_in
 
 
 @op

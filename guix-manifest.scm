@@ -6,10 +6,12 @@
  (gnu packages docker)
  (gnu packages jupyter)
  (gnu packages openstack)
+ (gnu packages rust)
  (gnu packages pkg-config)
  (gnu packages python)
  (gnu packages python-build)
  (gnu packages python-check)
+ (gnu packages python-compression)
  (gnu packages python-xyz)
  (guix download)
  (guix build-system python)
@@ -87,20 +89,168 @@
     (description "This package provides a language server for Jedi!")
     (license license:expat)))
 
+(define-public python-pylsp-mypy
+  (package
+    (name "python-pylsp-mypy")
+    (version "0.6.3")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "pylsp-mypy" version))
+              (sha256
+               (base32
+                "1gf865dj9na7jyp1148k27jafwb6bg0rdg9kyv4x4ag8qdlgv9h6"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-lsp-server python-mypy python-toml))
+    (native-inputs (list python-coverage python-pytest python-pytest-cov
+                         python-tox))
+    (home-page "https://github.com/python-lsp/pylsp-mypy")
+    (synopsis "Mypy linter for the Python LSP Server")
+    (description "Mypy linter for the Python LSP Server")
+    (license #f)))
+
+(define-public python-pep517
+  (package
+    (name "python-pep517")
+    (version "0.13.0")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "pep517" version))
+              (sha256
+               (base32
+                "0nczh9pfcin7rlgzgmfw3snypwscp3a2cdr0v6ny2aqpbiy94sdf"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-importlib-metadata python-tomli
+                             python-zipp))
+    (home-page "https://github.com/pypa/pep517")
+    (synopsis "Wrappers to build Python packages using PEP 517 hooks")
+    (description "Wrappers to build Python packages using PEP 517 hooks")
+    (license #f)))
+
+(define-public python-build
+  (package
+    (name "python-build")
+    (version "0.9.0")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "build" version))
+              (sha256
+               (base32
+                "0g5w28ban6k9qywqwdqiqms3crg75rsvfphl4f4qkg8wi57741qs"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-colorama python-importlib-metadata
+                             python-packaging python-pep517 python-tomli))
+    (native-inputs (list python-filelock
+                         python-pytest
+                         python-pytest-cov
+                         python-pytest-mock
+                         python-pytest-rerunfailures
+                         python-pytest-xdist
+                         python-setuptools
+                         python-toml
+                         python-wheel))
+    (home-page "")
+    (synopsis "A simple, correct PEP 517 build frontend")
+    (description
+     "This package provides a simple, correct PEP 517 build frontend")
+    (license license:expat)))
+
+(define-public python-pylsp-rope
+  (package
+    (name "python-pylsp-rope")
+    (version "0.1.10")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "pylsp-rope" version))
+              (sha256
+               (base32
+                "1mydh5fp2yz5rayrp3q2ff4y39881wla0sx09cx66bwjbzqh8qcy"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-lsp-server python-rope
+                             python-typing-extensions))
+    (native-inputs (list python-build python-pytest python-twine))
+    (home-page "https://github.com/python-rope/pylsp-rope")
+    (synopsis
+     "Extended refactoring capabilities for Python LSP Server using Rope.")
+    (description
+     "Extended refactoring capabilities for Python LSP Server using Rope.")
+    (license license:expat)))
+
+(define-public python-types-setuptools
+  (package
+    (name "python-types-setuptools")
+    (version "65.5.0.3")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "types-setuptools" version))
+              (sha256
+               (base32
+                "1z59bap6vchjcb5kcsxzgdvdlp1aal3323awn9lxr8pjymqr2xhp"))))
+    (build-system python-build-system)
+    (home-page "https://github.com/python/typeshed")
+    (synopsis "Typing stubs for setuptools")
+    (description "Typing stubs for setuptools")
+    (license #f)))
+
+(define-public python-types-pkg-resources
+  (package
+    (name "python-types-pkg-resources")
+    (version "0.1.3")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "types-pkg-resources" version))
+              (sha256
+               (base32
+                "1blxmgxrcc2g5g6vqcrpknzzc9m7b4rmv7fr5xb478xy7n6rnjl3"))))
+    (build-system python-build-system)
+    (home-page "https://github.com/python/typeshed")
+    (synopsis "Typing stubs for pkg_resources")
+    (description "Typing stubs for pkg_resources")
+    (license #f)))
+
+(define-public python-lsp-black
+  (package
+    (name "python-lsp-black")
+    (version "1.2.1")
+    (source (origin
+              (method url-fetch)
+              (uri (pypi-uri "python-lsp-black" version))
+              (sha256
+               (base32
+                "1sfckmajwgil4sqfmkgxmrp7rkz1ybwf5br6rj16msbplfrfmsnp"))))
+    (build-system python-build-system)
+    (propagated-inputs (list python-black python-lsp-server python-toml))
+    (native-inputs (list python-flake8
+                         python-isort
+                         python-mypy
+                         python-pre-commit
+                         python-pytest
+                         python-types-pkg-resoures
+                         python-types-setuptools
+                         python-types-toml))
+    (home-page "https://github.com/python-lsp/python-lsp-black")
+    (synopsis "Black plugin for the Python LSP Server")
+    (description "Black plugin for the Python LSP Server")
+    (license #f)))
+
 (packages->manifest
  (list
-  gnu-make
-  pkg-config
   docker-compose
+  gnu-make
   jupyter
+  rust
+  pkg-config
   python
   python-black
   python-coverage
-  python-pytest
-  python-jedi
-  python-jedi-language-server
-  python-ipython
-  python-autopep8
   python-flake8
+  python-jedi
+  python-ipython
+  python-lsp-server
+  python-pydantic
+  python-pylsp-mypy
+  python-pyflakes
+  python-pytest
+  python-rope
+  python-mccabe
   python-virtualenv
   python-yapf))
