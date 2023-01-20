@@ -35,7 +35,7 @@ api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
 api_router.include_router(router_v1, tags=["v1"])
-# api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
+api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
 
 tags_metadata = [
     {
