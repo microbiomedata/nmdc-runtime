@@ -34,7 +34,7 @@ def get_active_activities(
             active_activities.append(
                 {
                     "activities": activities[field.name],
-                    "workflow": WorkflowModel(workflow={"Activity": field.name}),
+                    "workflow": WorkflowModel(workflow={"activity": field.name}),
                 }
             )
 
@@ -42,8 +42,8 @@ def get_active_activities(
 
 
 def add_relevant_info(workflow, activity):
-    workflow.Inputs.proj = activity.id
-    workflow.Inputs.informed_by = activity.was_informed_by
+    workflow.inputs.proj = activity.id
+    workflow.inputs.informed_by = activity.was_informed_by
     return workflow
 
 
@@ -51,7 +51,7 @@ def construct_job_config(
     activity: WorkflowExecutionActivity, name: str
 ) -> WorkflowModel:
     workflows = get_all_workflows()
-    next_workflows = list(filter(lambda wf: wf.Predecessor == name, workflows))
+    next_workflows = list(filter(lambda wf: wf.predecessor == name, workflows))
     relevant_info = [add_relevant_info(wf, activity) for wf in next_workflows]
     return relevant_info
 
@@ -63,10 +63,10 @@ def container_job(activities, name):
 
 def parse_data_objects(activity, data_objects: list[DataObject]):
     new_activity = activity.dict()
-    for key in new_activity["Inputs"]:
+    for key in new_activity["inputs"]:
         for do in data_objects:
-            if new_activity["Inputs"][key] == str(do.data_object_type):
-                new_activity["Inputs"][key] = str(do.url)  # I'm very upset about this
+            if new_activity["inputs"][key] == str(do.data_object_type):
+                new_activity["inputs"][key] = str(do.url)  # I'm very upset about this
 
     return new_activity
 
@@ -78,7 +78,7 @@ class ActivityService:
         processed_activities = list(
             flatten(
                 [
-                    container_job(aa["activities"], aa["workflow"].workflow.Name)
+                    container_job(aa["activities"], aa["workflow"].workflow.name)
                     for aa in activities
                 ]
             )
