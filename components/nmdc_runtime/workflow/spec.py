@@ -13,7 +13,7 @@ class Sequencing(BaseModel):
     ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
     input_prefix: str = ""
-    inputs: list = []
+    inputs: dict = {}
 
 
 class ReadQcAnalysisInputs(BaseModel):
