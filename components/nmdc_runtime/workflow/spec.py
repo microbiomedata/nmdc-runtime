@@ -4,16 +4,16 @@ from pydantic import BaseModel, Field
 
 
 class Sequencing(BaseModel):
-    Name: str = "Sequencing"
-    Enabled: bool = False
-    Git_repo: str = ""
-    Version: str = "v1.0.0"
-    Activity: Literal[
+    name: str = "Sequencing"
+    enabled: bool = False
+    git_repo: str = ""
+    version: str = "1.0.0"
+    activity: Literal[
         "metagenome_sequencing_activity_set"
     ] = "metagenome_sequencing_activity_set"
-    Predecessor: str = ""
-    Input_prefix: str = ""
-    Inputs: list = []
+    predecessor: str = ""
+    input_prefix: str = ""
+    inputs: list = []
 
 
 class ReadQcAnalysisInputs(BaseModel):
@@ -24,16 +24,16 @@ class ReadQcAnalysisInputs(BaseModel):
 
 
 class ReadQcAnalysis(BaseModel):
-    Name: str = "Read QC Analysis"
-    Enabled: bool = True
-    Git_repo: str = " https://github.com/microbiomedata/ReadsQC"
-    Version: str = "v1.0.6"
-    WDL: str = "rqcfilter.wdl"
-    Activity: Literal["read_qc_analysis_activity_set"] = "read_qc_analysis_activity_set"
-    Predecessor: str = "Sequencing"
-    Input_prefix: str = "nmdc_rqcfilter"
-    ID_type: str = "mgrc"
-    Inputs: ReadQcAnalysisInputs = ReadQcAnalysisInputs()
+    name: str = "Read QC Analysis"
+    enabled: bool = True
+    git_repo: str = " https://github.com/microbiomedata/ReadsQC"
+    version: str = "1.0.6"
+    wdl: str = "rqcfilter.wdl"
+    activity: Literal["read_qc_analysis_activity_set"] = "read_qc_analysis_activity_set"
+    predecessor: str = "Sequencing"
+    input_prefix: str = "nmdc_rqcfilter"
+    id_type: str = "mgrc"
+    inputs: ReadQcAnalysisInputs = ReadQcAnalysisInputs()
 
 
 class MetagenomeAnnotationInputs(BaseModel):
@@ -46,18 +46,18 @@ class MetagenomeAnnotationInputs(BaseModel):
 
 
 class MetagenomeAnnotation(BaseModel):
-    Name: str = "Metagenome Annotation"
-    Enabled: bool = True
-    Git_repo: str = "https://github.com/microbiomedata/mg_annotation"
-    Version: str = "v1.0.0-beta"
-    WDL: str = "annotation_full.wdl"
-    Activity: Literal[
+    name: str = "Metagenome Annotation"
+    enabled: bool = True
+    git_repo: str = "https://github.com/microbiomedata/mg_annotation"
+    version: str = "1.0.0"
+    wdl: str = "annotation_full.wdl"
+    activity: Literal[
         "metagenome_annotation_activity_set"
     ] = "metagenome_annotation_activity_set"
-    Predecessor: str = "MetagenomeAssembly"
-    Input_prefix: str = "annotation"
-    ID_type: str = "mgann"
-    Inputs: MetagenomeAnnotationInputs = MetagenomeAnnotationInputs()
+    predecessor: str = "MetagenomeAssembly"
+    input_prefix: str = "annotation"
+    id_type: str = "mgann"
+    inputs: MetagenomeAnnotationInputs = MetagenomeAnnotationInputs()
 
 
 class MetagenomeAssemblyInputs(BaseModel):
@@ -70,18 +70,18 @@ class MetagenomeAssemblyInputs(BaseModel):
 
 
 class MetagenomeAssembly(BaseModel):
-    Name: str = "Metagenome Assembly"
-    Enabled: bool = True
-    Git_repo: str = "https://github.com/microbiomedata/metaAssembly"
-    Version: str = "v1.0.3-beta"
-    WDL: str = "jgi_assembly.wdl"
-    Activity: Literal[
+    name: str = "Metagenome Assembly"
+    enabled: bool = True
+    git_repo: str = "https://github.com/microbiomedata/metaAssembly"
+    version: str = "1.0.3"
+    wdl: str = "jgi_assembly.wdl"
+    activity: Literal[
         "metagenome_assembly_activity_set"
     ] = "metagenome_assembly_activity_set"
-    Predecessor: str = "Read QC Analysis"
-    Input_prefix: str = "jgi_metaASM"
-    ID_type: str = "mgasm"
-    Inputs: MetagenomeAssemblyInputs = MetagenomeAssemblyInputs()
+    predecessor: str = "Read QC Analysis"
+    input_prefix: str = "jgi_metaASM"
+    id_type: str = "mgasm"
+    inputs: MetagenomeAssemblyInputs = MetagenomeAssemblyInputs()
 
 
 class MAGsInputs(BaseModel):
@@ -108,16 +108,16 @@ class MAGsInputs(BaseModel):
 
 
 class MAGs(BaseModel):
-    Name: str = "MAGs"
-    Enabled: bool = True
-    Git_repo: str = "https://github.com/microbiomedata/metaMAGs"
-    Version: str = "v1.0.4-beta"
-    WDL: str = "mbin_nmdc.wdl"
-    Activity: Literal["mags_activity_set"] = "mags_activity_set"
-    Predecessor: str = "Metagenome Annotation"
-    Input_prefix: str = "nmdc_mags"
-    ID_type: str = "mgmag"
-    Inputs: MAGsInputs = MAGsInputs()
+    name: str = "MAGs"
+    enabled: bool = True
+    git_repo: str = "https://github.com/microbiomedata/metaMAGs"
+    version: str = "1.0.4"
+    wdl: str = "mbin_nmdc.wdl"
+    activity: Literal["mags_activity_set"] = "mags_activity_set"
+    predecessor: str = "Metagenome Annotation"
+    input_prefix: str = "nmdc_mags"
+    id_type: str = "mgmag"
+    inputs: MAGsInputs = MAGsInputs()
 
 
 class ReadBasedAnalysisInputs(BaseModel):
@@ -131,18 +131,18 @@ class ReadBasedAnalysisInputs(BaseModel):
 
 
 class ReadBasedAnalysis(BaseModel):
-    Name: str = "Readbased Analysis"
-    Enabled: bool = True
-    Git_repo: str = "https://github.com/microbiomedata/ReadbasedAnalysis"
-    Version: str = "v1.0.2-beta"
-    WDL: str = "ReadbasedAnalysis.wdl"
-    Activity: Literal[
+    name: str = "Readbased Analysis"
+    enabled: bool = True
+    git_repo: str = "https://github.com/microbiomedata/ReadbasedAnalysis"
+    version: str = "1.0.2"
+    wdl: str = "ReadbasedAnalysis.wdl"
+    activity: Literal[
         "read_based_analysis_activity_set"
     ] = "read_based_analysis_activity_set"
-    Predecessor: str = "Read QC Analysis"
-    Input_prefix: str = "nmdc_rba"
-    ID_type: str = "mgrba"
-    Inputs: ReadBasedAnalysisInputs = ReadBasedAnalysisInputs()
+    predecessor: str = "Read QC Analysis"
+    input_prefix: str = "nmdc_rba"
+    id_type: str = "mgrba"
+    inputs: ReadBasedAnalysisInputs = ReadBasedAnalysisInputs()
 
 
 class WorkflowModel(BaseModel):
@@ -153,7 +153,7 @@ class WorkflowModel(BaseModel):
         ReadBasedAnalysis,
         Sequencing,
         MetagenomeAnnotation,
-    ] = Field(..., discriminator="Activity")
+    ] = Field(..., discriminator="activity")
 
 
 def get_all_workflows():

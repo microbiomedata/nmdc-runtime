@@ -15,8 +15,7 @@ from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
-
-# from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])

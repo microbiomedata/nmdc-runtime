@@ -147,13 +147,13 @@ bleach==5.0.1 \
     --hash=sha256:085f7f33c15bd408dd9b17a4ad77c577db66d76203e5984b1bd59baeee948b2a \
     --hash=sha256:0d03255c47eb9bd2f26aa9bb7f2107732e7e8fe195ca2f64709fcf3b0a4a085c
     # via nbconvert
-boto3==1.26.52 \
-    --hash=sha256:0b1f82d4565ed875c7975ac0be5665e8d948613c01bcb0e49df6d4f5af670cc8 \
-    --hash=sha256:319ddb274f8f83b035b88a3b127c465bf6fe3e3fc2d668869b489e992c47ca77
+boto3==1.26.54 \
+    --hash=sha256:4e876ba5d64928cde0c416dd844f04f22d6b73d14002bbc3ca55591f80f49927 \
+    --hash=sha256:c729bb0af76e85a2776b6bd3da8d9fa0f4b91b425eab51612aa53956f644ee23
     # via -r requirements/main.in
-botocore==1.29.52 \
-    --hash=sha256:a0b89a33305cfa6251c6e1142deb7567e216e37e25363159f45fb81dc5b474e5 \
-    --hash=sha256:de55b6333fb13c66da9055972d7e4efff5dcc5a087478a2b70e99d888b29a24c
+botocore==1.29.54 \
+    --hash=sha256:ca3ef7588daa664fe196d3234718db5f6b5dab961507500b4bb921e31133eea1 \
+    --hash=sha256:f2fe17ed6b8e163769a715f81cb6ce3d4628d172918de535256bdf34d29b704f
     # via
     #   boto3
     #   s3transfer
@@ -390,27 +390,27 @@ curies==0.4.2 \
     --hash=sha256:91d6993a59270c3c280d3689e26001eb7c098d319f9a9f102c060943fa2bc44b \
     --hash=sha256:bdf862d9320b3f0c1d4a81532b07457da5370aa72bc6189099480ac0db80a6f7
     # via linkml-runtime
-dagit==1.1.11 \
-    --hash=sha256:84c3b34ae657108bc7049591f201c973787f94e3bb0694fc0b5478dba2e2ab4e \
-    --hash=sha256:eaabb0a4cbcfa2216754f54a44c95e874ecec34498cbdf78ee92b44dfa4796c2
+dagit==1.1.13 \
+    --hash=sha256:877b3ae69bc3f16fd3400dd14f825310e708268d9e1338bc4e770d98602e7d27 \
+    --hash=sha256:a87a25ea9c014cc634b1000d24c859439725a46d935d73514ebfaad081472ef1
     # via -r requirements/main.in
-dagster==1.1.11 \
-    --hash=sha256:281b6091e755a842fb999b08c433c7812488b2866dcf1f6dc4a8a988c521b289 \
-    --hash=sha256:e3c51ac70eceee47718d8204a4ffa4b722709a62d7642269e9559eb71156fbd1
+dagster==1.1.13 \
+    --hash=sha256:4cbb9bea488dacfa05cd7d0ba1ff41036a710868ea685a6cfc515a00fe624442 \
+    --hash=sha256:7355d1d972956753e249f58515b055e53fb7d1b2b0a55466e72f4cb63fdfd50f
     # via
     #   -r requirements/main.in
     #   dagit
     #   dagster-graphql
     #   dagster-postgres
-dagster-graphql==1.1.11 \
-    --hash=sha256:216e3893249cf8f540d8bc5a0cf2f9377e0b2b4f7ce80f2c00e002c7deadd290 \
-    --hash=sha256:523043a3f153b4d591ae53a77fe72c56413aef19f5e8928007c6a4b4d7707fd2
+dagster-graphql==1.1.13 \
+    --hash=sha256:659cde033e0ed159d32c638f69818e2a1576a1ee03e4ed8688240aa22e9cdfae \
+    --hash=sha256:ca6c7abe329511b45ac4f69cf83b2d790dd9c47ef84b9dbe7628e3ebd0d3cda4
     # via
     #   -r requirements/main.in
     #   dagit
-dagster-postgres==0.17.11 \
-    --hash=sha256:269e3e9aec3a79f65b0b43f4f4f3851d819ccfbcae85b9b593053a35847c0889 \
-    --hash=sha256:bc94f30dc5a17e70e51bcc62abbac3abc60962ce771c5edd6133cd56f955f7b5
+dagster-postgres==0.17.13 \
+    --hash=sha256:0509e56fa35d4d652e9bc4efc4f7fa762a4ab2d720fec7490069f413dbbf1b91 \
+    --hash=sha256:f6db35e53391a2909eb96d3452b7cf5bf9c1c765642f82d780195bd50c217846
     # via -r requirements/main.in
 debugpy==1.6.5 \
     --hash=sha256:048368f121c08b00bbded161e8583817af5055982d2722450a69efe2051621c2 \
@@ -1479,9 +1479,9 @@ nest-asyncio==1.5.6 \
     #   jupyter-client
     #   nbclassic
     #   notebook
-nmdc-schema==7.1.6 \
-    --hash=sha256:34c1164c69a761adaea52623e022132a1142e02e40da5d3ef3bc5eb0cd5c5642 \
-    --hash=sha256:922c4ca1f229b459f8b1bc6c6f143d960558119eb3e43902a343f89f6a651295
+nmdc-schema==7.2.0 \
+    --hash=sha256:47cc2795a1a507203c610b79bee672d003aae8772a338bcb7f8fddbaf96bcdec \
+    --hash=sha256:9467c76d6c1034183617d0805f3e621268aed808d9fbf82e36358c7ed66cb9f8
     # via -r requirements/main.in
 notebook==6.5.2 \
     --hash=sha256:c1897e5317e225fc78b45549a6ab4b668e4c996fd03a04e938fe5e7af2bfffd0 \
@@ -1874,9 +1874,9 @@ pyjsg==0.11.10 \
     #   linkml
     #   pyshexc
     #   shexjsg
-pymdown-extensions==9.9.1 \
-    --hash=sha256:8a8973933ab45b6fe8f5f8da1de25766356b1f91dee107bf4a34efd158dc340b \
-    --hash=sha256:abed29926960bbb3b40f5ed5fa6375e29724d4e3cb86ced7c2bbd37ead1afeea
+pymdown-extensions==9.9.2 \
+    --hash=sha256:c3d804eb4a42b85bafb5f36436342a5ad38df03878bb24db8855a4aa8b08b765 \
+    --hash=sha256:ebb33069bafcb64d5f5988043331d4ea4929325dc678a6bcf247ddfcf96499f8
     # via
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin

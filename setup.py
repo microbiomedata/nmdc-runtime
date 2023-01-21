@@ -1,5 +1,5 @@
 """blah."""
-from setuptools import find_namespace_packages, setup  # type: ignore
+from setuptools import find_packages, setup  # type: ignore
 
 with open("README.md") as f:
     long_description = f.read()
@@ -12,12 +12,10 @@ with open("requirements/dev.in") as f:
 setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
-    packages=find_namespace_packages(
-        where="components",
-        include=["nmdc_runtime*"],
+    packages=find_packages(
+        include=["nmdc_runtime*", "components*"],
         exclude=["tests", "tests2"],
     ),
-    package_dir={"": "components"},
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
     author="Donny Winston",
