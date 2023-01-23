@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -13,7 +13,7 @@ class Sequencing(BaseModel):
     ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
     input_prefix: str = ""
-    inputs: dict = {}
+    inputs: dict[Any, Any] = {}
 
 
 class ReadQcAnalysisInputs(BaseModel):
@@ -146,22 +146,17 @@ class ReadBasedAnalysis(BaseModel):
 
 
 class WorkflowModel(BaseModel):
-    workflow: Union[
-        ReadQcAnalysis,
-        MetagenomeAssembly,
-        MAGs,
-        ReadBasedAnalysis,
-        Sequencing,
-        MetagenomeAnnotation,
-    ] = Field(..., discriminator="activity")
+    workflow: ReadQcAnalysis | MetagenomeAssembly | MAGs | ReadBasedAnalysis | Sequencing | MetagenomeAnnotation = Field(
+        ..., discriminator="activity"
+    )
 
 
 def get_all_workflows():
     return [
-        ReadQcAnalysis(Inputs=ReadQcAnalysisInputs()),
-        MetagenomeAssembly(Inputs=MetagenomeAssemblyInputs()),
-        MetagenomeAnnotation(Inputs=MetagenomeAnnotationInputs()),
-        MAGs(Inputs=MAGsInputs()),
-        ReadBasedAnalysis(Inputs=ReadBasedAnalysisInputs()),
+        ReadQcAnalysis(inputs=ReadQcAnalysisInputs()),
+        MetagenomeAssembly(inputs=MetagenomeAssemblyInputs()),
+        MetagenomeAnnotation(inputs=MetagenomeAnnotationInputs()),
+        MAGs(inputs=MAGsInputs()),
+        ReadBasedAnalysis(inputs=ReadBasedAnalysisInputs()),
         Sequencing(),
     ]
