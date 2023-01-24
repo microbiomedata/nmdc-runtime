@@ -1,6 +1,6 @@
 # Identifier Minting and Administration
 
-How does identifier minting and administration work in NMDC? 
+How does identifier minting and administration work in NMDC? <!-- ping -->
 
 ## Minting
 

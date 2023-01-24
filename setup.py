@@ -1,4 +1,5 @@
-import setuptools
+"""blah."""
+from setuptools import find_packages, setup  # type: ignore
 
 with open("README.md") as f:
     long_description = f.read()
@@ -8,12 +9,12 @@ with open("requirements/main.in") as f:
 
 with open("requirements/dev.in") as f:
     dev_requires = f.read().splitlines()[1:]  # Elide `-c main.txt` constraint
-
-setuptools.setup(
+setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
-    packages=setuptools.find_namespace_packages(
-        include=["nmdc_runtime.*", "components.*"], exclude=["tests"]
+    packages=find_packages(
+        include=["nmdc_runtime*", "components*"],
+        exclude=["tests", "tests2"],
     ),
     use_scm_version=True,
     setup_requires=["setuptools_scm"],
