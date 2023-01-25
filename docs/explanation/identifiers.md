@@ -71,3 +71,7 @@ flowchart LR
     o_id_draft1-. typecode .-> o_typecode
     o_id_draft1-. status .-> o_draft
 ```
+
+All typecodes and shoulders are sourced from the database.
+
+All minted identifiers are persisted to the database.

@@ -2,6 +2,7 @@ import os
 from importlib import import_module
 
 import uvicorn
+from components.infrastructure.database.impl.mongo.db import mongo_beanie_init
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -28,7 +29,6 @@ from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
-
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 api_router = APIRouter()
@@ -342,6 +342,11 @@ async def ensure_indexes():
                 )
 
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
+
+
+# @app.on_event("startup")
+# async def init_beanie():
+#     await mongo_beanie_init(app)
 
 
 if __name__ == "__main__":
