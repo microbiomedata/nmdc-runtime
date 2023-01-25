@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2023-01-25T13:13:09-05:00 all typecodes for minter
 * 2023-01-23T10:31:32-05:00 fix Entity type
 * 2023-01-23T10:31:32-05:00 update workflow spec
 * 2023-01-23T10:31:32-05:00 re-add id minter
@@ -25,7 +26,7 @@ time offset for New York on standard time (EST). "−08:00" would be for Califor
 * 2023-01-19T10:31:32-05:00 /pids/* to mint and manage draft IDs
 * 2023-01-16T12:27:05-05:00 upgrade to python 3.10
 * 2022-01-10T11:05:00-04:00 reenable site auth
-* 2022-01-10T11:05:00-04:00 propogate jobs
+* 2022-01-10T11:05:00-04:00 propagate jobs
 * 2022-01-10T11:05:00-04:00 dump json
 * 2022-01-10T11:05:00-04:00 change model for outputs
 * 2022-01-09T11:05:00-04:00 update remove init beanie
