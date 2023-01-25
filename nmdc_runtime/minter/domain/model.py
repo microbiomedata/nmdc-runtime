@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, PositiveInt
 
+from nmdc_runtime.minter.config import schema_classes
+
 
 class Entity(BaseModel):
     """A domain object whose attributes may change but has a recognizable identity over time."""
@@ -31,7 +33,7 @@ class MintingRequest(ValueObject):
 
 
 class AuthenticatedMintingRequest(ValueObject):
-    schema_class: Entity = Entity(id="nmdc:NamedThing")
+    schema_class: Entity = Entity(id=schema_classes()[0]["id"])
     how_many: PositiveInt = 1
 
 
@@ -64,3 +66,8 @@ class Identifier(Entity):
     shoulder: Entity
     status: Status
     bindings: Optional[dict]
+
+
+class Typecode(Entity):
+    schema_class: str
+    name: str

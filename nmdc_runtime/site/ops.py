@@ -48,7 +48,7 @@ from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_do
 from nmdc_runtime.site.resources import RuntimeApiSiteClient
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
 from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status

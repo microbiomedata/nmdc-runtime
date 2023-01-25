@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Set
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 

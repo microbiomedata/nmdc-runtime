@@ -7,7 +7,7 @@ from starlette import status
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.site import get_current_client_site, Site
-from nmdc_runtime.minter.adapters.repository import MongoIDStore
+from nmdc_runtime.minter.adapters.repository import MongoIDStore, MinterError
 from nmdc_runtime.minter.config import minting_service_id, schema_classes
 from nmdc_runtime.minter.domain.model import (
     Identifier,
@@ -40,7 +40,10 @@ def mint_ids(
             MintingRequest(service=service, requester=requester, **req_mint.dict())
         )
         return [d.id for d in minted]
-    except Exception as e:
+    except MinterError as e:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=str(e))
+
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=traceback.format_exc(),

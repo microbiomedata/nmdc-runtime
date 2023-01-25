@@ -32,7 +32,7 @@ up-test:
 
 test-build:
 	docker compose --file docker-compose.test.yml \
-		up test --build --force-recreate --detach
+		up test --build --force-recreate --detach --remove-orphans
 
 test-dbinit:
 	docker compose --file docker-compose.test.yml \

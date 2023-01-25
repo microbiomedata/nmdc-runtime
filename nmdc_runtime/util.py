@@ -3,16 +3,28 @@ import mimetypes
 import os
 from collections.abc import Iterable
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 import fastjsonschema
 import requests
 from frozendict import frozendict
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from toolz import merge, pluck
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
+
+
+@lru_cache
+def get_nmdc_jsonschema_dict():
+    """Get the JSON Schema in use by the runtime.
+
+    Currently:
+    https://raw.githubusercontent.com/microbiomedata/nmdc-schema/v3.2.0/nmdc_schema/nmdc.schema.json
+    """
+    with (Path(__file__).parent / "nmdc.schema.json").open() as f:
+        return json.load(f)
+
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
 nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)

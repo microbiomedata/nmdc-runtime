@@ -5,7 +5,7 @@ from typing import Optional
 import fastjsonschema
 import pandas as pd
 import pytest
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from toolz import dissoc
 
 from nmdc_runtime.api.core.metadata import (

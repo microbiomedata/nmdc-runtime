@@ -19,6 +19,10 @@ from nmdc_runtime.api.core.idgen import generate_id
 from nmdc_runtime.util import find_one
 
 
+class MinterError(Exception):
+    pass
+
+
 class IDStore(abc.ABC):
     @abc.abstractmethod
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
@@ -55,15 +59,15 @@ class InMemoryIDStore(IDStore):
 
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
         if not find_one({"id": req_mint.service.id}, self.services):
-            raise Exception(f"Unknown service {req_mint.service.id}")
+            raise MinterError(f"Unknown service {req_mint.service.id}")
         if not find_one({"id": req_mint.requester.id}, self.requesters):
-            raise Exception(f"Unknown requester {req_mint.requester.id}")
+            raise MinterError(f"Unknown requester {req_mint.requester.id}")
         if not find_one({"id": req_mint.schema_class.id}, self.schema_classes):
-            raise Exception(f"Unknown schema class {req_mint.schema_class.id}")
+            raise MinterError(f"Unknown schema class {req_mint.schema_class.id}")
         # ensure supplied schema class has typecode
         typecode = find_one({"schema_class": req_mint.schema_class.id}, self.typecodes)
         if not typecode:
-            raise Exception(
+            raise MinterError(
                 f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
             )
 
@@ -90,7 +94,7 @@ class InMemoryIDStore(IDStore):
     def bind(self, req_bind: BindingRequest) -> Identifier:
         id_stored = self.resolve(req_bind)
         if id_stored is None:
-            raise Exception(f"ID {req_bind.id_name} is unknown")
+            raise MinterError(f"ID {req_bind.id_name} is unknown")
 
         match id_stored.status:
             case Status.draft:
@@ -99,7 +103,7 @@ class InMemoryIDStore(IDStore):
                 )
                 return Identifier(**self.db[id_stored.id])
             case _:
-                raise Exception("Status not 'draft'. Can't change bound metadata")
+                raise MinterError("Status not 'draft'. Can't change bound metadata")
 
     def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
         doc = self.db.get(req_res.id_name)
@@ -108,13 +112,13 @@ class InMemoryIDStore(IDStore):
     def delete(self, req_del: DeleteRequest):
         id_stored = self.resolve(req_del)
         if id_stored is None:
-            raise Exception(f"ID {req_del.id_name} is unknown")
+            raise MinterError(f"ID {req_del.id_name} is unknown")
 
         match id_stored.status:
             case Status.draft:
                 self.db.pop(id_stored.id)
             case _:
-                raise Exception("Status not 'draft'. Can't delete.")
+                raise MinterError("Status not 'draft'. Can't delete.")
 
 
 class MongoIDStore(abc.ABC):
@@ -122,20 +126,24 @@ class MongoIDStore(abc.ABC):
         self.db = mdb
 
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
-        if not self.db.services.find_one({"id": req_mint.service.id}):
-            raise Exception(f"Unknown service {req_mint.service.id}")
-        if not self.db.requesters.find_one({"id": req_mint.requester.id}):
-            raise Exception(f"Unknown requester {req_mint.requester.id}")
-        if not self.db.schema_classes.find_one({"id": req_mint.schema_class.id}):
-            raise Exception(f"Unknown schema class {req_mint.schema_class.id}")
-        typecode = self.db.typecodes.find_one(
+        if not self.db["minter.services"].find_one({"id": req_mint.service.id}):
+            raise MinterError(f"Unknown service {req_mint.service.id}")
+        if not self.db["minter.requesters"].find_one({"id": req_mint.requester.id}):
+            raise MinterError(f"Unknown requester {req_mint.requester.id}")
+        if not self.db["minter.schema_classes"].find_one(
+            {"id": req_mint.schema_class.id}
+        ):
+            raise MinterError(f"Unknown schema class {req_mint.schema_class.id}")
+        typecode = self.db["minter.typecodes"].find_one(
             {"schema_class": req_mint.schema_class.id}
         )
         if not typecode:
-            raise Exception(
+            raise MinterError(
                 f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
             )
-        shoulder = self.db.shoulders.find_one({"assigned_to": req_mint.service.id})
+        shoulder = self.db["minter.shoulders"].find_one(
+            {"assigned_to": req_mint.service.id}
+        )
         collected = []
         while True:
             id_names = set()
@@ -147,7 +155,9 @@ class MongoIDStore(abc.ABC):
             id_names = list(id_names)
             taken = {
                 d["id"]
-                for d in self.db.id_records.find({"id": {"$in": id_names}}, {"id": 1})
+                for d in self.db["minter.id_records"].find(
+                    {"id": {"$in": id_names}}, {"id": 1}
+                )
             }
             not_taken = [n for n in id_names if n not in taken]
             if not_taken:
@@ -163,7 +173,7 @@ class MongoIDStore(abc.ABC):
                     )
                     for id_name in not_taken
                 ]
-                self.db.id_records.insert_many([i.dict() for i in ids])
+                self.db["minter.id_records"].insert_many([i.dict() for i in ids])
                 collected.extend(ids)
             if len(collected) == req_mint.how_many:
                 break
@@ -172,34 +182,34 @@ class MongoIDStore(abc.ABC):
     def bind(self, req_bind: BindingRequest) -> Identifier:
         id_stored = self.resolve(req_bind)
         if id_stored is None:
-            raise Exception(f"ID {req_bind.id_name} is unknown")
+            raise MinterError(f"ID {req_bind.id_name} is unknown")
 
         match id_stored.status:
             case Status.draft:
-                return self.db.id_records.find_one_and_update(
+                return self.db["minter.id_records"].find_one_and_update(
                     {"id": id_stored.id},
                     {"$set": {"bindings": req_bind.metadata_record}},
                     return_document=ReturnDocument.AFTER,
                 )
             case _:
-                raise Exception("Status not 'draft'. Can't change bound metadata")
+                raise MinterError("Status not 'draft'. Can't change bound metadata")
 
     def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
         match re.match(r"nmdc:([^-]+)-([^-]+)-.*", req_res.id_name).groups():
             case (_, _):
-                doc = self.db.id_records.find_one({"id": req_res.id_name})
+                doc = self.db["minter.id_records"].find_one({"id": req_res.id_name})
                 # TODO if draft ID, check requester
                 return Identifier(**doc) if doc else None
             case _:
-                raise Exception("Invalid ID name")
+                raise MinterError("Invalid ID name")
 
     def delete(self, req_del: DeleteRequest):
         id_stored = self.resolve(req_del)
         if id_stored is None:
-            raise Exception(f"ID {req_del.id_name} is unknown")
+            raise MinterError(f"ID {req_del.id_name} is unknown")
 
         match id_stored.status:
             case Status.draft:
-                self.db.id_records.delete_one({"id": id_stored.id})
+                self.db["minter.id_records"].delete_one({"id": id_stored.id})
             case _:
-                raise Exception("Status not 'draft'. Can't delete.")
+                raise MinterError("Status not 'draft'. Can't delete.")
