@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 
+from toolz import get_in
+
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.util import nmdc_jsonschema
-from toolz import get_in
 
 _raw = [
     {
@@ -30,7 +31,7 @@ _raw = [
         # "description": "JSON documents satisfying schema for metagenome annotation activity",
     },
     {
-        "id": "metagenome_assembly_activity_set",
+        "id": "metagenome_assembly_set",
         "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
         "name": "metaP analysis activity",
         # "description": "JSON documents satisfying schema for metagenome assembly activity",

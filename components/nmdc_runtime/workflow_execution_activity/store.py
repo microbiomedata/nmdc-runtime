@@ -4,11 +4,8 @@ from datetime import datetime
 from typing import Dict, List, Literal, TypedDict, Union, cast
 
 import attrs
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from nmdc_schema.nmdc import Database
-from pydantic import ValidationError
 from pymongo.database import Database as MongoDatabase
-from pymongo.errors import DuplicateKeyError
 
 
 def insert_activities(activities: Database, mdb: MongoDatabase) -> bool:

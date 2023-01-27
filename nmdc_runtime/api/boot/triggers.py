@@ -60,7 +60,7 @@ _raw = [
     },
     {
         "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
-        "object_type_id": "metagenome_assembly_activity_set",
+        "object_type_id": "metagenome_assembly_set",
         "workflow_id": "mgann-1.0.0",
     },
     {
