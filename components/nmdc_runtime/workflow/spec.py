@@ -91,9 +91,7 @@ class MetagenomeAssembly(Workflow):
     git_repo: str = "https://github.com/microbiomedata/metaAssembly"
     version: str = "1.0.3"
     wdl: str = "jgi_assembly.wdl"
-    activity: Literal[
-        "metagenome_assembly_activity_set"
-    ] = "metagenome_assembly_activity_set"
+    activity: Literal["metagenome_assembly_set"] = "metagenome_assembly_set"
     predecessor: str = "Read QC Analysis"
     input_prefix: str = "jgi_metaASM"
     id_type: str = "mgasm"
