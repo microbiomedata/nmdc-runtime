@@ -1,21 +1,18 @@
 """Core functionality of the activity service module."""
-import functools
-import json
-import logging
-import operator
-from dataclasses import Field, fields
-from typing import Any, Dict, TypedDict
+from dataclasses import fields
+from typing import Any, TypedDict
 
-from beanie import Document
-from components.nmdc_runtime.workflow.spec import WorkflowModel, get_all_workflows
 from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
-from .store import insert_activities
+from components.nmdc_runtime.workflow.spec import (Workflow, WorkflowModel,
+                                                   get_all_workflows)
+
+from .store import MongoDatabase, insert_activities
 
 
 class ActiveActivities(TypedDict):
     activities: list[WorkflowExecutionActivity]
-    workflow: WorkflowModel
+    workflow: Workflow
 
 
 flatten = lambda *n: (
@@ -26,58 +23,79 @@ flatten = lambda *n: (
 def get_active_activities(
     activities: Database,
 ) -> list[ActiveActivities]:
-    activity_fields: tuple[Field[Database.activity_set]] = fields(activities)
+    activity_fields = fields(activities)
     active_activities: list[ActiveActivities] = []
     for field in activity_fields:
         if activities[field.name] and field.name != "data_object_set":
             active_activities.append(
                 {
                     "activities": activities[field.name],
-                    "workflow": WorkflowModel(workflow={"activity": field.name}),
+                    "workflow": WorkflowModel.parse_obj(
+                        {"workflow": {"activity": field.name}}
+                    ).workflow,
                 }
             )
 
     return active_activities
 
 
-def add_relevant_info(workflow, activity):
+def add_relevant_info(
+    workflow: Workflow, activity: WorkflowExecutionActivity
+) -> Workflow:
     workflow.inputs.proj = activity.id
     workflow.inputs.informed_by = activity.was_informed_by
     return workflow
 
 
-def construct_job_config(
-    activity: WorkflowExecutionActivity, name: str
-) -> WorkflowModel:
+def construct_job_config(activity: WorkflowExecutionActivity, name: str) -> Any:
     workflows = get_all_workflows()
     next_workflows = list(filter(lambda wf: wf.predecessor == name, workflows))
     relevant_info = [add_relevant_info(wf, activity) for wf in next_workflows]
     return relevant_info
 
 
-def container_job(activities, name):
+def container_job(
+    activities: list[WorkflowExecutionActivity], name: str
+) -> list[Workflow]:
     jobs = [construct_job_config(activity, name) for activity in activities]
     return jobs
 
 
-def parse_data_objects(activity, data_objects: list[DataObject]):
-    new_activity = activity.dict()
-    for key in new_activity["inputs"]:
+def parse_data_objects(
+    activity: WorkflowExecutionActivity, data_objects: list[DataObject]
+) -> Workflow:
+    for key in activity.inputs:
         for do in data_objects:
-            if new_activity["inputs"][key] == str(do.data_object_type):
-                new_activity["inputs"][key] = str(do.url)  # I'm very upset about this
+            if activity.inputs[key] == str(do.data_object_type):
+                activity.inputs["inputs"][key] = str(
+                    do.url
+                )  # I'm very upset about this
 
-    return new_activity
+    return activity.dict()
 
 
 class ActivityService:
-    """Repository for interacting with nmdc workflow execution activities."""
+    def create_jobs(
+        self,
+        activities: list[ActiveActivities],
+        data_objects: list[DataObject],
+    ) -> list[WorkflowExecutionActivity]:
+        """Create jobs for automation.
 
-    def create_jobs(self, activities, data_objects):
-        processed_activities = list(
+        Parameters
+        ----------
+        activities : list[ActiveActivities]
+           Beans.
+        data_objects : list[DataObject]
+
+        Returns
+        -------
+        list[Workflow]
+        """
+        processed_activities: list[Workflow] = list(
             flatten(
                 [
-                    container_job(aa["activities"], aa["workflow"].workflow.name)
+                    container_job(aa["activities"], aa["workflow"].name)
                     for aa in activities
                 ]
             )
@@ -87,7 +105,9 @@ class ActivityService:
             for activity in processed_activities
         ]
 
-    async def add_activity_set(self, activities: Database, db):
+    async def add_activity_set(
+        self, activities: Database, db: MongoDatabase
+    ) -> list[WorkflowExecutionActivity]:
         """
         Store workflow activities.
 
@@ -96,7 +116,7 @@ class ActivityService:
         activities : Database
             dictionary of fields for data object creation
 
-        db: A database
+        db : A database
             service for interacting with data objects
 
         Returns

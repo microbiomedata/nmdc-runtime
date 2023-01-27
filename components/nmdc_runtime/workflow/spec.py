@@ -1,9 +1,25 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
-class Sequencing(BaseModel):
+class Inputs(BaseModel):
+    proj: str = ""
+    informed_by: str = ""
+
+
+class Workflow(BaseModel):
+    name: str
+    enabled: bool
+    git_repo: str
+    version: str
+    activity: str
+    predecessor: str
+    input_prefix: str
+    inputs: Inputs
+
+
+class Sequencing(Workflow):
     name: str = "Sequencing"
     enabled: bool = False
     git_repo: str = ""
@@ -13,17 +29,17 @@ class Sequencing(BaseModel):
     ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
     input_prefix: str = ""
-    inputs: dict[Any, Any] = {}
+    inputs: Inputs
 
 
-class ReadQcAnalysisInputs(BaseModel):
+class ReadQcAnalysisInputs(Inputs):
     input_files: str = "Metagenome Raw Reads"
     informed_by: str = ""
     resource: str = "NERSC-Cori"
     proj: str = ""
 
 
-class ReadQcAnalysis(BaseModel):
+class ReadQcAnalysis(Workflow):
     name: str = "Read QC Analysis"
     enabled: bool = True
     git_repo: str = " https://github.com/microbiomedata/ReadsQC"
@@ -36,7 +52,7 @@ class ReadQcAnalysis(BaseModel):
     inputs: ReadQcAnalysisInputs = ReadQcAnalysisInputs()
 
 
-class MetagenomeAnnotationInputs(BaseModel):
+class MetagenomeAnnotationInputs(Inputs):
     input_file: str = "Assembly Contigs"
     imgap_project_id: str = "actid"
     resource: str = "NERSC-Cori"
@@ -45,7 +61,7 @@ class MetagenomeAnnotationInputs(BaseModel):
     git_url: str = "https://github.com/microbiomedata/mg_annotation"
 
 
-class MetagenomeAnnotation(BaseModel):
+class MetagenomeAnnotation(Workflow):
     name: str = "Metagenome Annotation"
     enabled: bool = True
     git_repo: str = "https://github.com/microbiomedata/mg_annotation"
@@ -60,7 +76,7 @@ class MetagenomeAnnotation(BaseModel):
     inputs: MetagenomeAnnotationInputs = MetagenomeAnnotationInputs()
 
 
-class MetagenomeAssemblyInputs(BaseModel):
+class MetagenomeAssemblyInputs(Inputs):
     input_file: str = "Filtered Sequencing Reads"
     rename_contig_prefix: str = "actid"
     resource: str = "NERSC-Cori"
@@ -69,7 +85,7 @@ class MetagenomeAssemblyInputs(BaseModel):
     git_url: str = "https://github.com/microbiomedata/meta_assembly"
 
 
-class MetagenomeAssembly(BaseModel):
+class MetagenomeAssembly(Workflow):
     name: str = "Metagenome Assembly"
     enabled: bool = True
     git_repo: str = "https://github.com/microbiomedata/metaAssembly"
@@ -84,7 +100,7 @@ class MetagenomeAssembly(BaseModel):
     inputs: MetagenomeAssemblyInputs = MetagenomeAssemblyInputs()
 
 
-class MAGsInputs(BaseModel):
+class MAGsInputs(Inputs):
     input_file: str = "Assembly Contigs"
     contig_file: str = "Assembly Contigs"
     gff_file: str = "Functional Annotation GFF"
@@ -107,7 +123,7 @@ class MAGsInputs(BaseModel):
     url_root: str = "https://data.microbiomedata.org/data/"
 
 
-class MAGs(BaseModel):
+class MAGs(Workflow):
     name: str = "MAGs"
     enabled: bool = True
     git_repo: str = "https://github.com/microbiomedata/metaMAGs"
@@ -120,7 +136,7 @@ class MAGs(BaseModel):
     inputs: MAGsInputs = MAGsInputs()
 
 
-class ReadBasedAnalysisInputs(BaseModel):
+class ReadBasedAnalysisInputs(Inputs):
     input_file: str = "Filtered Sequencing Reads"
     prefix: str = "actid"
     resource: str = "NERSC-Cori"
@@ -130,7 +146,7 @@ class ReadBasedAnalysisInputs(BaseModel):
     url_root: str = "https://data.microbiomedata.org/data/"
 
 
-class ReadBasedAnalysis(BaseModel):
+class ReadBasedAnalysis(Workflow):
     name: str = "Readbased Analysis"
     enabled: bool = True
     git_repo: str = "https://github.com/microbiomedata/ReadbasedAnalysis"
@@ -151,12 +167,12 @@ class WorkflowModel(BaseModel):
     )
 
 
-def get_all_workflows():
+def get_all_workflows() -> list[Workflow]:
     return [
         ReadQcAnalysis(inputs=ReadQcAnalysisInputs()),
         MetagenomeAssembly(inputs=MetagenomeAssemblyInputs()),
         MetagenomeAnnotation(inputs=MetagenomeAnnotationInputs()),
         MAGs(inputs=MAGsInputs()),
         ReadBasedAnalysis(inputs=ReadBasedAnalysisInputs()),
-        Sequencing(),
+        Sequencing(inputs=Inputs()),
     ]
