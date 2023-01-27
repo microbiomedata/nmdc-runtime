@@ -28,7 +28,7 @@ def get_mongo_db() -> MongoDatabase:
 
 
 @lru_cache()
-def minting_service_id():
+def minting_service_id() -> str | None:
     return os.getenv("MINTING_SERVICE_ID")
 
 

@@ -1,6 +1,6 @@
-When this file is changed and pushed to the `main` branch on GitHub,
+When this file is changed and pushed to the `main` branch on Git1,
 
-1. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
+Hub. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
    Action](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml)), and
 
 2. if the previous action is successful, the deployment on NERSC Spin is refreshed ([via a GitHub
@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2023-01-23T10:31:32-05:00 fix Entity type in case os.getenv() returns `None`
 * 2023-01-27T13:13:09-05:00 add type signatures to workflow endpoint
 * 2023-01-25T13:13:09-05:00 all typecodes for minter
 * 2023-01-23T10:31:32-05:00 fix Entity type
