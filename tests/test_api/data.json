@@ -1,5 +1,5 @@
 {
-  "read_qc_analysis_activity_set": [
+  "read_QC_analysis_activity_set": [
     {
       "has_input": [
         "nmdc:a1d8fff4b02719c4d0f9c442cf052f69"
@@ -21,7 +21,6 @@
       "was_informed_by": "gold:Gp0000000",
       "input_read_count": 11431762,
       "type": "nmdc:ReadQCAnalysisActivity",
-      "version": "b1.0.6",
       "id": "nmdc:f84b406e64ea8ad3afe55b2c91d73593",
       "execution_resource": "NERSC-Cori"
     }

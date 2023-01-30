@@ -165,5 +165,5 @@ def test_workflow_activity():
         headers=headers,
         json=data_in,
     )
-
+    print(rv.text)
     assert rv.status_code == status.HTTP_201_CREATED

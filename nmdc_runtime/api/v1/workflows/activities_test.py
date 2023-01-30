@@ -51,6 +51,6 @@ async def post_activity(
         logging.warning(str(resp))
         return resp
     except JsonSchemaValueException as e:
-        raise e
+        raise HTTPException(status_code=409, detail=e.message)
     except Exception as e:
         raise HTTPException(status_code=409, detail=e.details)
