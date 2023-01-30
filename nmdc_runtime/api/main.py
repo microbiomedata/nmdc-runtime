@@ -1,11 +1,14 @@
 import os
 from importlib import import_module
+import logging
 
 import uvicorn
+import asyncio
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.boot.sched import Scheduler
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -237,6 +240,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+sched = Scheduler(get_mongo_db())
+
+
+@app.on_event("startup")
+async def start_scheduler():
+    if "ENABLE_SCHEDULER" in os.environ:
+        logging.info("Adding Scheduler")
+        asyncio.create_task(sched.run())
 
 
 @app.on_event("startup")

@@ -4,6 +4,7 @@ import requests
 from starlette import status
 from tenacity import wait_random_exponential, retry
 from toolz import get_in
+import json
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
@@ -115,6 +116,7 @@ def test_create_user():
         json=user_in.dict(exclude_unset=True),
     )
 
+    assert rv.status_code == status.HTTP_201_CREATED
     try:
         assert rv.status_code == status.HTTP_201_CREATED
         User(**rv.json())
@@ -124,3 +126,44 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
+
+
+def test_workflow_activity():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    base_url = os.getenv("API_HOST")
+
+    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    def get_token():
+        """
+
+        Randomly wait up to 2^x * 1 seconds between each retry until the range reaches 60
+        seconds, then randomly up to 60 seconds afterwards
+
+        """
+
+        _rv = requests.post(
+            base_url + "/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": rs["site_client"]["client_id"],
+                "client_secret": rs["site_client"]["client_secret"],
+            },
+        )
+        token_response = _rv.json()
+        return token_response["access_token"]
+
+    headers = {"Authorization": f"Bearer {get_token()}"}
+
+    test_dir = os.path.dirname(__file__)
+    data_file = os.path.join(test_dir, "data.json")
+    data_in = json.load(open(data_file))
+
+    rv = requests.request(
+        "POST",
+        url=(base_url + "/v1/workflows/activities_test"),
+        headers=headers,
+        json=data_in,
+    )
+
+    assert rv.status_code == status.HTTP_201_CREATED

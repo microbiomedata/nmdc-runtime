@@ -1,0 +1,51 @@
+{
+  "read_qc_analysis_activity_set": [
+    {
+      "has_input": [
+        "nmdc:a1d8fff4b02719c4d0f9c442cf052f69"
+      ],
+      "part_of": [
+        "nmdc:mgrqc0xxxx.1"
+      ],
+      "input_base_count": 1726196062,
+      "name": "Read QC Activity for nmdc:mgrqc0xxxx.1",
+      "output_read_count": 8312566,
+      "output_base_count": 1244017053,
+      "git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
+      "ended_at_time": "2023-01-26T16:41:19+00:00",
+      "has_output": [
+        "nmdc:d18a7655a326e47f3422ea1d42d1a042",
+        "nmdc:bd5d6090ddc03b181ffdae383f48b2cb"
+      ],
+      "started_at_time": "2023-01-26T14:55:48+00:00",
+      "was_informed_by": "gold:Gp0000000",
+      "input_read_count": 11431762,
+      "type": "nmdc:ReadQCAnalysisActivity",
+      "version": "b1.0.6",
+      "id": "nmdc:f84b406e64ea8ad3afe55b2c91d73593",
+      "execution_resource": "NERSC-Cori"
+    }
+  ],
+  "data_object_set": [
+    {
+      "file_size_bytes": 692637336,
+      "name": "Reads QC result fastq (clean data)",
+      "url": "https://data.microbiomedata.org/data/gold:Gp0000000/nmdc:mgrqc0xxxx.1/nmdc_mgrqc0xxxx.1_filtered.fastq.gz",
+      "data_object_type": "Filtered Sequencing Reads",
+      "type": "nmdc:DataObject",
+      "id": "nmdc:d18a7655a326e47f3422ea1d42d1a042",
+      "md5_checksum": "d18a7655a326e47f3422ea1d42d1a042",
+      "description": "Reads QC for nmdc:mgrqc0xxxx.1"
+    },
+    {
+      "file_size_bytes": 280,
+      "name": "Reads QC summary statistics",
+      "url": "https://data.microbiomedata.org/data/gold:Gp0000000/nmdc:mgrqc0xxxx.1/nmdc_mgrqc0xxxx.1_filterStats.txt",
+      "data_object_type": "QC Statistics",
+      "type": "nmdc:DataObject",
+      "id": "nmdc:bd5d6090ddc03b181ffdae383f48b2cb",
+      "md5_checksum": "bd5d6090ddc03b181ffdae383f48b2cb",
+      "description": "Reads QC summary for nmdc:mgrqc0xxxx.1"
+    }
+  ]
+}
