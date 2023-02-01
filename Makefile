@@ -94,5 +94,14 @@ mongorestore-nmdcdb-lite-archive:
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
+# NMDC Submission Portal schema Makefile rules
+SCHEMA_DIR = schema
+SCHEMA_NAME = nmdc_submission_schema
+SCHEMA_SRC = $(SCHEMA_DIR)/$(SCHEMA_NAME).yaml
+submission-schema-artifacts:
+	mkdir -p $(SCHEMA_DIR)
+	curl -L https://raw.githubusercontent.com/microbiomedata/sheets_and_friends/main/artifacts/nmdc_submission_schema.yaml > $(SCHEMA_SRC)
+	gen-python $(SCHEMA_SRC) > $(SCHEMA_DIR)/$(SCHEMA_NAME).py
+
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs
