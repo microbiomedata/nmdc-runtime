@@ -104,10 +104,10 @@ SCHEMA_SRC = $(SCHEMA_DIR)/$(SCHEMA_NAME).yaml
 REPO = microbiomedata/sheets_and_friends
 REVISION_ID = 73eb218169336537ab2a582377d6ce885f7af679
 REMOTE_PATH = artifacts/nmdc_submission_schema.yaml
-submission-schema-artifacts:
+$(SCHEMA_DIR)/$(SCHEMA_NAME).py:
 	mkdir -p $(SCHEMA_DIR)
 	curl -L https://raw.githubusercontent.com/$(REPO)/$(REVISION_ID)/$(REMOTE_PATH) > $(SCHEMA_SRC)
-	gen-python $(SCHEMA_SRC) > $(SCHEMA_DIR)/$(SCHEMA_NAME).py
+	gen-python $(SCHEMA_SRC) > $@
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	fastapi-docker dagster-docker publish docs
