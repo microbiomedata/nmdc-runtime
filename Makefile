@@ -94,13 +94,19 @@ mongorestore-nmdcdb-lite-archive:
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
-# NMDC Submission Portal schema Makefile rules
+# NMDC Submission Portal schema and artifact Makefile rules
+# folder on local machine where you want to download the schema to
 SCHEMA_DIR = schema
+# basename of submission schema file
 SCHEMA_NAME = nmdc_submission_schema
+# path to downloaded schema file on local machine
 SCHEMA_SRC = $(SCHEMA_DIR)/$(SCHEMA_NAME).yaml
+REPO = microbiomedata/sheets_and_friends
+REVISION_ID = 73eb218169336537ab2a582377d6ce885f7af679
+REMOTE_PATH = artifacts/nmdc_submission_schema.yaml
 submission-schema-artifacts:
 	mkdir -p $(SCHEMA_DIR)
-	curl -L https://raw.githubusercontent.com/microbiomedata/sheets_and_friends/main/artifacts/nmdc_submission_schema.yaml > $(SCHEMA_SRC)
+	curl -L https://raw.githubusercontent.com/$(REPO)/$(REVISION_ID)/$(REMOTE_PATH) > $(SCHEMA_SRC)
 	gen-python $(SCHEMA_SRC) > $(SCHEMA_DIR)/$(SCHEMA_NAME).py
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
