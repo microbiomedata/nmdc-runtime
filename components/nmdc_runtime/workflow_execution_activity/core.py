@@ -5,7 +5,6 @@ from typing import Any, TypedDict
 from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
 from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_workflows
-
 from .store import MongoDatabase, insert_activities
 
 
