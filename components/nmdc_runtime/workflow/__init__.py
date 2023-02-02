@@ -1,2 +1,1 @@
-from .src.core import init_workflow_service
-from .src.spec import WorkflowCreate, WorkflowUpdate
+from .spec import Workflow, WorkflowModel, get_all_workflows
