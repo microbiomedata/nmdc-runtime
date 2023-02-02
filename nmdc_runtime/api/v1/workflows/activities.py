@@ -9,7 +9,9 @@ from starlette import status
 from toolz import merge
 
 from components.nmdc_runtime.workflow_execution_activity import (
-    ActivityService, Database)
+    ActivityService,
+    Database,
+)
 from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.site import Site, get_current_client_site
