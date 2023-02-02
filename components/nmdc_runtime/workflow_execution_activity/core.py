@@ -6,7 +6,6 @@ from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
 from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_workflows
 
-
 from .store import MongoDatabase, insert_activities
 
 
@@ -64,14 +63,13 @@ def container_job(
 def parse_data_objects(
     activity: WorkflowExecutionActivity, data_objects: list[DataObject]
 ) -> Workflow:
-    for key in activity.inputs:
+    activity_dict = activity.dict()
+    for key in activity_dict["inputs"]:
         for do in data_objects:
-            if activity.inputs[key] == str(do.data_object_type):
-                activity.inputs["inputs"][key] = str(
-                    do.url
-                )  # I'm very upset about this
+            if activity_dict["inputs"][key] == str(do.data_object_type):
+                activity_dict["inputs"][key] = str(do.url)  # I'm very upset about this
 
-    return activity.dict()
+    return activity_dict
 
 
 class ActivityService:
