@@ -16,9 +16,7 @@ def insert_activities(activities: Database, mdb: MongoDatabase) -> bool:
             collection = mdb.get_collection(field.name)
             collection.insert_many(
                 [
-                    json.loads(
-                        json.dumps(asdict(activity), default=lambda o: o.__dict__)
-                    )
+                    json.loads(json.dumps(asdict(activity), default=str))
                     for activity in activities[field.name]
                 ]
             )
