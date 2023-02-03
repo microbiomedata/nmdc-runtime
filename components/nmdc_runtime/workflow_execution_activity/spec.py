@@ -1,4 +1,4 @@
-"""Beans."""
+" " "Beans." ""
 from abc import ABC, abstractmethod
 from pydantic.dataclasses import dataclass
 from datetime import datetime

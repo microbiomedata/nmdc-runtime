@@ -151,8 +151,8 @@ class ReadBasedAnalysis(Workflow):
     version: str = "1.0.2"
     wdl: str = "ReadbasedAnalysis.wdl"
     activity: Literal[
-        "read_based_analysis_activity_set"
-    ] = "read_based_analysis_activity_set"
+        "read_based_taxonomy_analysis_activity_set"
+    ] = "read_based_taxonomy_analysis_activity_set"
     predecessor: str = "Read QC Analysis"
     input_prefix: str = "nmdc_rba"
     id_type: str = "mgrba"
