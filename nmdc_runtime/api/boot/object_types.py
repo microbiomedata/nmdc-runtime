@@ -37,7 +37,7 @@ _raw = [
         # "description": "JSON documents satisfying schema for metagenome assembly activity",
     },
     {
-        "id": "read_based_analysis_activity_set",
+        "id": "read_based_taxonomy_analysis_activity_set",
         "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
         "name": "metaP analysis activity",
         # "description": "JSON documents satisfying schema for read based analysis activity",
