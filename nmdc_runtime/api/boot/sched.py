@@ -10,7 +10,7 @@ import uuid
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
 
-_POLL_INTERVAL = 10
+_POLL_INTERVAL = 60
 
 
 class Scheduler():
@@ -113,7 +113,7 @@ class Scheduler():
                 do_type = v[3:]
                 v = do_by_type.get(do_type)
                 if not v:
-                    raise ValueError(f"Unable to resolve {v}")
+                    raise ValueError(f"Unable to resolve {do_type}")
             # TODO: Make this smarter
             if v == "{was_informed_by}":
                 v = informed_by
@@ -234,9 +234,12 @@ class Scheduler():
             logging.debug("Checking: " + w['Name'])
             jobs = self.new_jobs(w)
             for job in jobs:
-                jr = self.add_job_rec(job)
-                if jr:
-                    job_recs.append(jr)
+                try:
+                    jr = self.add_job_rec(job)
+                    if jr:
+                        job_recs.append(jr)
+                except Exception as ex:
+                    logging.error(str(ex))
         return job_recs
 
 if __name__ == "__main__":

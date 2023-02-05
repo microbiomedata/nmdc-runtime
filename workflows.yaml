@@ -34,7 +34,7 @@ Workflows:
     ID_type: mgasm
     Inputs:
       input_file: do:Filtered Sequencing Reads
-      rename_contig_prefix: actid
+      rename_contig_prefix: "{activity_id}"
       informed_by: "{was_informed_by}"
       resource: "NERSC-Cori"
       proj: "{activity_id}"
@@ -51,7 +51,7 @@ Workflows:
     ID_type: mgann
     Inputs:
       input_file: do:Assembly Contigs
-      imgap_project_id: "actid"
+      imgap_project_id: "{activity_id}"
       resource: "NERSC-Cori"
       proj: "{activity_id}"
       informed_by: "{was_informed_by}"
@@ -75,7 +75,7 @@ Workflows:
       cog_file: do:Clusters of Orthologous Groups (COG) Annotation GFF
       proj_name: "{activity_id}"
       pfam_file: do:Pfam Annotation GFF
-      product_names_file: do:Product names
+      product_names_file: do:Product Names
       tigrfam_file: do:TIGRFam Annotation GFF
       ec_file: do:Annotation Enzyme Commission
       ko_file: do:Annotation KEGG Orthology
@@ -100,7 +100,7 @@ Workflows:
     ID_type: mgrba
     Inputs:
       input_file: do:Filtered Sequencing Reads
-      prefix: actid
+      prefix: "{activity_id}"
       resource: "NERSC-Cori"
       proj: "{activity_id}"
       informed_by: "{was_informed_by}"
