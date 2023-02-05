@@ -12,6 +12,10 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 
 _POLL_INTERVAL = 10
 
+"""
+This is still a prototype implementation.  The plan
+is to migrate this fucntion into Dagster.
+"""
 
 class Scheduler():
     _sets = ['metagenome_annotation_activity_set',
@@ -152,7 +156,10 @@ class Scheduler():
 
     def get_id(self):
         """
-        Generate an ID
+        Generate an ID for the job
+        
+        Note: This is currently Napa compliant.  Since these are somewhat 
+        ephemeral I'm not sure if it matters though.
         """
         u = str(uuid.uuid1())
         return f"nmdc:test_{u}"
@@ -162,6 +169,9 @@ class Scheduler():
         See if anything exist for this and if not
         mint a new id.
         """
+        
+        # This is a temporary workaround and should be removed
+        # once the schema names are all fixed.
         act_set = wf['Activity'].replace("_qc_", "_QC_")
         q = {"was_informed_by": informed_by}
         ct = 0
@@ -174,6 +184,8 @@ class Scheduler():
         if ct == 0:
             # Get an ID
             id_type = wf['ID_type']
+            # This should call the minting endpoint to generate
+            # the correct ID.
             root_id = f"nmdc:{id_type}0xxxx"
             return root_id, 1
         else:
