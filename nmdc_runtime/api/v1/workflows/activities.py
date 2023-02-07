@@ -27,7 +27,7 @@ async def job_to_db(job_spec: dict[str, Any], mdb: AsyncIOMotorDatabase) -> None
 async def post_activity(
     activity_set: dict[str, Any],
     background_tasks: BackgroundTasks,
-    # site: Site = Depends(get_current_client_site),
+    site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
     amdb: AsyncIOMotorDatabase = Depends(get_async_mongo_db),
 ) -> dict[str, str]:
