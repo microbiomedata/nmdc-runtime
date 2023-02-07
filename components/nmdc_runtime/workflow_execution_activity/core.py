@@ -13,9 +13,9 @@ class ActiveActivities(TypedDict):
     workflow: Workflow
 
 
-# flatten = lambda *n: (
-#     e for a in n for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,))
-# )
+flatten = lambda *n: (
+    e for a in n for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,))
+)
 
 
 def get_active_activities(
@@ -89,18 +89,18 @@ class ActivityService:
         -------
         list[Workflow]
         """
-        # processed_activities: list[Workflow] = list(
-        #     flatten(
-        #         [
-        #             container_job(aa["activities"], aa["workflow"].name)
-        #             for aa in activities
-        #         ]
-        #     )
-        # )
-        # return [
-        #     parse_data_objects(activity, data_objects)
-        #     for activity in processed_activities
-        # ]
+        processed_activities: list[Workflow] = list(
+            flatten(
+                [
+                    container_job(aa["activities"], aa["workflow"].name)
+                    for aa in activities
+                ]
+            )
+        )
+        return [
+            parse_data_objects(activity, data_objects)
+            for activity in processed_activities
+        ]
 
     async def add_activity_set(
         self, activities: Database, db: MongoDatabase
