@@ -16,8 +16,8 @@
         buildInputs = [
           (pkgs.${python}.withPackages
             (ps: with ps; [pip python-lsp-server python-lsp-black isort
-                           pip-tools pylsp-mypy]))
-          pkgs.gnumake pkgs.ruff pkgs.docker pkgs.docker-compose
+                           pip-tools pylsp-mypy pydantic mypy]))
+          pkgs.gnumake pkgs.ruff pkgs.docker pkgs.docker-compose pkgs.python310
         ];
       };
     });
