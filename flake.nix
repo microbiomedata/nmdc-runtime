@@ -15,7 +15,9 @@
       devShell = pkgs.mkShell {
         buildInputs = [
           (pkgs.${python}.withPackages
-            (ps: with ps; [pip python-lsp-server python-lsp-black isort]))
+            (ps: with ps; [pip python-lsp-server python-lsp-black isort
+                           pip-tools pylsp-mypy]))
+          pkgs.gnumake
         ];
       };
     });
