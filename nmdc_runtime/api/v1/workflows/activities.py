@@ -5,6 +5,7 @@ from uuid import uuid1
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.database import Database as MongoDatabase
+from pymongo.errors import BulkWriteError
 from starlette import status
 
 from components.nmdc_runtime.workflow_execution_activity import (
@@ -57,6 +58,8 @@ async def post_activity(
             background_tasks.add_task(job_to_db, job_spec, amdb)
         return {"message": "jobs accepted"}
 
-    except Exception as e:
+    except BulkWriteError as e:
+        raise HTTPException(status_code=409, detail=e.writeErrors)
+    except ValueError as e:
         print(e)
-        raise HTTPException(status_code=409, detail=e)
+        raise HTTPException(status_code=409)
