@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
     let
-    python = "python39";
+    python = "python310";
     pkgs = nixpkgs.legacyPackages.${system};
     in {
       devShell = pkgs.mkShell {
@@ -17,7 +17,7 @@
           (pkgs.${python}.withPackages
             (ps: with ps; [pip python-lsp-server python-lsp-black isort
                            pip-tools pylsp-mypy]))
-          pkgs.gnumake
+          pkgs.gnumake pkgs.ruff pkgs.docker pkgs.docker-compose
         ];
       };
     });
