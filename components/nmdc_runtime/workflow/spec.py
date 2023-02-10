@@ -21,7 +21,7 @@ class Workflow(BaseModel):
 
 class Sequencing(Workflow):
     name: str = "Sequencing"
-    enabled: bool = False
+    enabled: bool = True
     git_repo: str = ""
     version: str = "1.0.0"
     activity: Literal[
@@ -29,7 +29,7 @@ class Sequencing(Workflow):
     ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
     input_prefix: str = ""
-    inputs: Inputs
+    inputs: Inputs = Inputs()
 
 
 class ReadQcAnalysisInputs(Inputs):
