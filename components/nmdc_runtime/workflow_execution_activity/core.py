@@ -64,7 +64,9 @@ def container_job(
     return jobs
 
 
-def parse_data_objects(activity: Workflow, data_objects: list[DataObject]) -> dict[str, Any]:
+def parse_data_objects(
+    activity: Workflow, data_objects: list[DataObject]
+) -> dict[str, Any]:
     activity_dict = activity.dict()
     for key in activity_dict["inputs"]:
         for do in data_objects:
