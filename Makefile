@@ -60,19 +60,17 @@ follow-fastapi:
 	docker-compose logs fastapi -f
 
 fastapi-docker:
-	./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
+	./docker-build.sh microbiomedata/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
 
 fastapi-deploy-spin:
-	rancher kubectl rollout restart deployment/fastapi --namespace=nmdc-runtime-dev
-	rancher kubectl rollout restart deployment/drs --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev
 
 dagster-docker:
-	./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
+	./docker-build.sh microbiomedata/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
 dagster-deploy-spin:
-	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-runtime-dev
-	rancher kubectl rollout restart deployment/dagit-readonly --namespace=nmdc-runtime-dev
-	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-runtime-dev
+	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-dev
+	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-dev
 
 publish:
 	invoke publish
@@ -83,6 +81,10 @@ docs-dev:
 nersc-ssh-tunnel:
 	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
+		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+
+prod-nersc-ssh-tunnel:
+	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 mongorestore-nmdcdb-lite-archive:
