@@ -1,17 +1,20 @@
 import json
 import mimetypes
 import os
+from collections.abc import Iterable
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 import fastjsonschema
 import requests
 from frozendict import frozendict
+from toolz import merge, pluck
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
-from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
+
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
 nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
@@ -149,3 +152,17 @@ def flatten(d):
         else:
             out[k] = v
     return out
+
+
+def find_one(k_v: dict, entities: Iterable[dict]):
+    """Find the first entity with key-value pair k_v, if any?
+
+    >>> find_one({"id": "foo"}, [{"id": "foo"}])
+    True
+    >>> find_one({"id": "foo"}, [{"id": "bar"}])
+    False
+    """
+    if len(k_v) > 1:
+        raise Exception("Supports only one key-value pair")
+    k = next(k for k in k_v)
+    return next((e for e in entities if k in e and e[k] == k_v[k]), None)

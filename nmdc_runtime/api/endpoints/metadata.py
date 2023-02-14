@@ -29,7 +29,7 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
 from nmdc_runtime.util import unfreeze
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status

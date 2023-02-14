@@ -4,32 +4,31 @@ from importlib import import_module
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
-    ids,
-    users,
-    operations,
-    sites,
-    jobs,
-    objects,
-    object_types,
     capabilities,
-    triggers,
-    workflows,
-    queries,
+    find,
+    ids,
+    jobs,
     metadata,
     nmdcschema,
-    find,
+    object_types,
+    objects,
+    operations,
+    queries,
     runs,
+    sites,
+    triggers,
+    users,
+    workflows,
 )
-from nmdc_runtime.api.v1.router import router_v1
-from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
+from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-
-from components.infrastructure.database.impl.mongo.db import mongo_beanie_init
+from nmdc_runtime.api.v1.router import router_v1
+from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
+from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -48,6 +47,7 @@ api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
 api_router.include_router(router_v1, tags=["v1"])
+api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
 
 tags_metadata = [
     {
@@ -326,6 +326,9 @@ async def ensure_initial_resources_on_boot():
         [("checksums.type", 1), ("checksums.checksum", 1)], unique=True
     )
 
+    # Minting resources
+    minter_bootstrap()
+
 
 @app.on_event("startup")
 async def ensure_indexes():
@@ -338,11 +341,6 @@ async def ensure_indexes():
                 )
 
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
-
-
-@app.on_event("startup")
-async def init_beanie():
-    await mongo_beanie_init(app)
 
 
 if __name__ == "__main__":

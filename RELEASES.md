@@ -1,6 +1,6 @@
-When this file is changed and pushed to the `main` branch on GitHub,
+When this file is changed and pushed to the `main` branch on Git1,
 
-1. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
+Hub. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
    Action](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml)), and
 
 2. if the previous action is successful, the deployment on NERSC Spin is refreshed ([via a GitHub
@@ -13,6 +13,29 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2023-01-27T13:13:09-05:00 return 201 on activity creation
+* 2023-01-25T13:13:09-05:00 all typecodes for minter
+* 2023-01-23T10:31:32-05:00 fix Entity type in case os.getenv() returns `None`
+* 2023-01-23T10:31:32-05:00 fix Entity type in case os.getenv() returns `None`
+* 2023-01-23T10:31:32-05:00 fix Entity type
+* 2023-01-23T10:31:32-05:00 update workflow spec
+* 2023-01-23T10:31:32-05:00 re-add id minter
+* 2023-01-21T10:31:32-05:00 remove id minter
+* 2023-01-21T10:31:32-05:00 use dict for sequencing activity
+* 2023-01-21T10:31:32-05:00 fix activities
+* 2023-01-20T10:31:32-05:00 enable minter again
+* 2023-01-19T10:31:32-05:00 add more endpoints
+* 2023-01-19T10:31:32-05:00 remove minter for now
+* 2023-01-19T10:31:32-05:00 /pids/* to mint and manage draft IDs
+* 2023-01-16T12:27:05-05:00 upgrade to python 3.10
+* 2022-01-10T11:05:00-04:00 reenable site auth
+* 2022-01-10T11:05:00-04:00 propagate jobs
+* 2022-01-10T11:05:00-04:00 dump json
+* 2022-01-10T11:05:00-04:00 change model for outputs
+* 2022-01-09T11:05:00-04:00 update remove init beanie
+* 2022-01-09T11:05:00-04:00 update pinned dependencies
+* 2022-01-09T11:05:00-04:00 revert outputs
+* 2022-12-18T11:05:00-04:00 revert outputs
 * 2022-11-30T11:05:00-04:00 return op.dict in util
 * 2022-11-22T11:05:00-04:00 revert returning full drs object in job config
 * 2022-11-14T11:05:00-04:00 return full drs object in job config

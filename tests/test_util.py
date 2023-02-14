@@ -1,20 +1,33 @@
 import json
 import sys
 from pathlib import Path
+from subprocess import run
 
 import fastjsonschema
 import pytest
 from fastjsonschema import JsonSchemaValueException, JsonSchemaException
 
-# from nmdc_schema.validate_nmdc_json import jsonschema
 from jsonschema import ValidationError, Draft7Validator
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from pymongo.database import Database as MongoDatabase
+from pymongo.write_concern import WriteConcern
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
-from nmdc_runtime.util import nmdc_jsonschema_validate
 
 REPO_ROOT = Path(__file__).parent.parent
+
+nmdc_jsonschema_validate = fastjsonschema.compile(get_nmdc_jsonschema_dict())
+
+
+def test_nmdc_jsonschema_using_old_id_scheme():
+    if (version := get_nmdc_jsonschema_dict()["version"]) > "3":
+        pytest.fail(version)
+    for class_name, defn in get_nmdc_jsonschema_dict()["$defs"].items():
+        if "properties" in defn and "id" in defn["properties"]:
+            if "pattern" in defn["properties"]["id"]:
+                if defn["properties"]["id"]["pattern"].startswith("^(nmdc):"):
+                    pytest.fail(f"{class_name}.id: {defn['properties']['id']}")
 
 
 def test_nmdc_jsonschema_validate():
@@ -36,7 +49,9 @@ def test_mongo_validate():
     # print(type(schema))
     # return
     mongo = get_mongo(run_config_frozen__normal_env)
-    db = mongo.client["nmdc_etl_staging"]
+    db = MongoDatabase(
+        mongo.client, name="nmdc_etl_staging", write_concern=WriteConcern(fsync=True)
+    )
     collection_name = "test.study_test"
 
     db.drop_collection(collection_name)

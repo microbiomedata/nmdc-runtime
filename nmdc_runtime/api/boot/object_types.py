@@ -7,6 +7,42 @@ from nmdc_runtime.util import nmdc_jsonschema
 
 _raw = [
     {
+        "id": "read_qc_analysis_activity_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for readqc analysis activity",
+    },
+    {
+        "id": "metagenome_sequencing_activity_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for metagenome sequencing activity",
+    },
+    {
+        "id": "mags_activity_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for mags activity",
+    },
+    {
+        "id": "metagenome_annotation_activity_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for metagenome annotation activity",
+    },
+    {
+        "id": "metagenome_assembly_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for metagenome assembly activity",
+    },
+    {
+        "id": "read_based_taxonomy_analysis_activity_set",
+        "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
+        "name": "metaP analysis activity",
+        # "description": "JSON documents satisfying schema for read based analysis activity",
+    },
+    {
         "id": "metadata-in",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "metadata submission",
@@ -28,22 +64,25 @@ _raw = [
         "id": "metatranscriptome_raw_paired_end_reads",
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
         "name": "Metatranscriptome Raw Paired-End Reads Workflow Input",
-        "description": "workflow input",
+        "description": "workflow input 2",
     },
     {
         "id": "gcms-metab-input",
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
         "name": "Raw GCMS MetaB Input",
+        "description": "",
     },
     {
         "id": "gcms-metab-calibration",
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
         "name": "Raw GCMS MetaB Calibration",
+        "description": "",
     },
     {
         "id": "nom-input",
         "created_at": datetime(2021, 9, 7, tzinfo=timezone.utc),
         "name": "Raw FTMS MetaB Input",
+        "description": "",
     },
     {
         "id": "test",
@@ -57,12 +96,6 @@ _raw = [
         "name": "metadata changesheet",
         "description": "Specification for changes to existing metadata",
     },
-    {
-        "id": "readqc-in",
-        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "name": "metadata needed for Reads QC Workflow",
-        "description": "metadata, in the form of a nmdc:Database, needed for nmdc:ReadQcAnalysisActivity",
-    },
 ]
 
 _raw.extend(
@@ -71,7 +104,7 @@ _raw.extend(
             "id": key,
             "created_at": datetime(2021, 9, 14, tzinfo=timezone.utc),
             "name": key,
-            "description": spec["description"],
+            # "description": spec["description"],
         }
         for key, spec in nmdc_jsonschema["properties"].items()
         if key.endswith("_set")

@@ -44,9 +44,34 @@ _raw = [
         "workflow_id": "apply-changesheet-1.0.0",
     },
     {
-        "created_at": datetime(2022, 9, 27, tzinfo=timezone.utc),
-        "object_type_id": "readqc-in",
-        "workflow_id": "readqc-1.0.1",
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "metagenome_sequencing_activity_set",
+        "workflow_id": "mgrc-1.0.6",
+    },
+    {
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "metagenome_sequencing_activity_set",
+        "workflow_id": "metag-1.0.0",
+    },
+    {
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "metagenome_annotation_activity_set",
+        "workflow_id": "mags-1.0.4",
+    },
+    {
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "metagenome_assembly_set",
+        "workflow_id": "mgann-1.0.0",
+    },
+    {
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "read_qc_analysis_activity_set",
+        "workflow_id": "mgasm-1.0.3",
+    },
+    {
+        "created_at": datetime(2022, 1, 20, tzinfo=timezone.utc),
+        "object_type_id": "read_qc_analysis_activity_set",
+        "workflow_id": "mgrba-1.0.2",
     },
 ]
 

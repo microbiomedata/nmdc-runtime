@@ -1,5 +1,5 @@
 # Best practice: Choose a stable base image and tag.
-FROM python:3.9-slim-bullseye
+FROM python:3.10-slim-bullseye
 
 # Install security updates, and some useful packages.
 #
@@ -28,7 +28,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Install requirements
 WORKDIR /code
 COPY ./requirements/main.txt /code/requirements.txt
-
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Add repository code

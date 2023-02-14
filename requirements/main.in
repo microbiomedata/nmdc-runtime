@@ -1,6 +1,6 @@
 base32-lib
 beautifulsoup4
-beanie
+beanie>=1.16.0
 boto3
 click
 dagit
@@ -24,12 +24,12 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==3.2.0
+nmdc-schema>=7.1.0
 openpyxl
 pandas
 passlib[bcrypt]
 pymongo
-pydantic[email]
+pydantic[email]>=1.10.0
 python-jose[cryptography]
 python-multipart
 pyyaml

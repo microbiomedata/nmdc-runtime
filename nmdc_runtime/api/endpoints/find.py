@@ -2,7 +2,7 @@ from operator import itemgetter
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in

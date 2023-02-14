@@ -2,7 +2,8 @@ import os
 from functools import lru_cache
 from typing import Set
 
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 
@@ -10,6 +11,16 @@ from pymongo.database import Database as MongoDatabase
 @lru_cache
 def get_mongo_db() -> MongoDatabase:
     _client = MongoClient(
+        host=os.getenv("MONGO_HOST"),
+        username=os.getenv("MONGO_USERNAME"),
+        password=os.getenv("MONGO_PASSWORD"),
+    )
+    return _client[os.getenv("MONGO_DBNAME")]
+
+
+@lru_cache
+def get_async_mongo_db() -> AsyncIOMotorDatabase:
+    _client = AsyncIOMotorClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),

@@ -9,27 +9,32 @@ _raw = [
         "name": "Metagenome Analysis Workflow (v1.0.0)",
     },
     {
-        "id": "readqc-1.0.1",
+        "id": "readqc-1.0.6",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Reads QC Workflow (v1.0.1)",
     },
     {
-        "id": "rba-1.0.1",
+        "id": "mags-1.0.4",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Read-based Analysis (v1.0.1)",
     },
     {
-        "id": "mgasmb-1.0.1",
+        "id": "mgrba-1.0.2",
+        "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
+        "name": "Read-based Analysis (v1.0.1)",
+    },
+    {
+        "id": "mgasm-1.0.3",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Metagenome Assembly (v1.0.1)",
     },
     {
-        "id": "mganno-1.0.0",
+        "id": "mgann-1.0.0",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Metagenome Annotation (v1.0.0)",
     },
     {
-        "id": "mgasmbgen-1.0.2",
+        "id": "mgasmbgen-1.0.1",
         "created_at": datetime(2021, 6, 1, tzinfo=timezone.utc),
         "name": "Metagenome Assembled Genomes (v1.0.2)",
     },
