@@ -174,12 +174,13 @@ bleach==6.0.0 \
     --hash=sha256:1a1a85c1595e07d8db14c5f09f09e6433502c51c595970edc090551f0db99414 \
     --hash=sha256:33c16e3353dbd13028ab4799a0f89a83f113405c766e9c122df8a06f5b85b3f4
     # via nbconvert
-boto3==1.26.69 \
-    --hash=sha256:9a0a29179957cb26fa8c3c1fddf66b18efaeaf633e08db5fb53815ffb0421419 \
-    --hash=sha256:eb8cde24a4c5755c35126e8cd460e6b51c63d04292419e7e95721232720c7e5b
+boto3==1.26.71 \
+    --hash=sha256:5a9d19cdd8dcec679c483408f208027e01ab2087cbc66787790036087b6737de \
+    --hash=sha256:6c4845243d1896019646d649f1f0ff4042cedcc5db3ecfba3dc2d611ea11cd08
     # via -r requirements/main.in
-botocore==1.29.69 \
-    --hash=sha256:2a4ab8bcb3177daa425019e125c09996b9a6a1a62bb0baaaeeb86ffd552719cc
+botocore==1.29.71 \
+    --hash=sha256:40406466f5c416b1f54bfbfc11aef90d783103f7ea77a1992dcaf1768ab04e12 \
+    --hash=sha256:783e7fa97bb5bf3759e4b333b8da2bcaffdb54828ea1d759b55329cc39003b98
     # via
     #   boto3
     #   s3transfer
@@ -597,9 +598,9 @@ executing==1.2.0 \
     --hash=sha256:0314a69e37426e3608aada02473b4161d4caf5a4b244d1d0c48072b8fee7bacc \
     --hash=sha256:19da64c18d2d851112f09c287f8d3dbbdf725ab0e569077efb6cdcbd3497c107
     # via stack-data
-fastapi==0.91.0 \
-    --hash=sha256:8dc18f860755159b3c4b30577c61c821b98f382acfeb6d5a849f9fa6a5369789 \
-    --hash=sha256:ff2fa93af3f2f982b07b5f96e8512565b3ef0e5f8f02469dbfd6bc27f6fd9a9e
+fastapi==0.92.0 \
+    --hash=sha256:023a0f5bd2c8b2609014d3bba1e14a1d7df96c6abea0a73070621c9862b9a4de \
+    --hash=sha256:ae7b97c778e2f2ec3fb3cb4fb14162129411d99907fb71920f6d69a524340ebf
     # via -r requirements/main.in
 fastjsonschema==2.16.2 \
     --hash=sha256:01e366f25d9047816fe3d288cbfc3e10541daf0af2044763f3d0ade42476da18 \
@@ -870,9 +871,9 @@ iniconfig==2.0.0 \
     --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
     --hash=sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374
     # via pytest
-ipykernel==6.21.1 \
-    --hash=sha256:1a04bb359212e23e46adc0116ec82ea128c1e5bd532fde4fbe679787ff36f0cf \
-    --hash=sha256:a0f8eece39cab1ee352c9b59ec67bbe44d8299f8238e4c16ff7f4cf0052d3378
+ipykernel==6.21.2 \
+    --hash=sha256:430d00549b6aaf49bd0f5393150691edb1815afa62d457ee6b1a66b25cb17874 \
+    --hash=sha256:6e9213484e4ce1fb14267ee435e18f23cc3a0634e635b9fb4ed4677b84e0fdf8
     # via
     #   ipywidgets
     #   jupyter
@@ -1064,9 +1065,9 @@ jupyter-client==8.0.2 \
     #   nbclient
     #   notebook
     #   qtconsole
-jupyter-console==6.5.0 \
-    --hash=sha256:67e68f1da16bc3f6f78ed846dd5543ec0679369f8504734f10bfd206faae39ea \
-    --hash=sha256:87826ab6c8c418731fd78f14ec504df735e79554e35784d0a6379018bb3ef9d7
+jupyter-console==6.5.1 \
+    --hash=sha256:6b91b7b6e8a715053b536db209a2f4b02429d7b28db27373a56a26b0bebd620b \
+    --hash=sha256:c575bb6ed56ca78189594176341e7b31426ff30fafcd22bf3dad7be309595b5e
     # via jupyter
 jupyter-core==5.2.0 \
     --hash=sha256:1407cdb4c79ee467696c04b76633fc1884015fa109323365a6372c8e890cc83f \
@@ -1089,9 +1090,9 @@ jupyter-events==0.5.0 \
     # via
     #   jupyter-server
     #   jupyter-server-fileid
-jupyter-server==2.2.1 \
-    --hash=sha256:5afb8a0cdfee37d02d69bdf470ae9cbb1dee5d4788f9bc6cc8e54bd8c83fb096 \
-    --hash=sha256:854fb7d49f6b7f545d4f8354172b004dcda887ba0699def7112daf785ba3c9ce
+jupyter-server==2.3.0 \
+    --hash=sha256:29d6657bfb160b0e39b9030d67f33f918a188f2eba28065314a933b327fef872 \
+    --hash=sha256:b15078954120886d580e19d1746e2b62a3dc7bd082cb4716115c25fcd7061b00
     # via
     #   jupyter-server-fileid
     #   jupyterlab
@@ -1565,9 +1566,9 @@ numpydoc==1.5.0 \
     --hash=sha256:b0db7b75a32367a0e25c23b397842c65e344a1206524d16c8069f0a1c91b5f4c \
     --hash=sha256:c997759fb6fc32662801cece76491eedbc0ec619b514932ffd2b270ae89c07f9
     # via terminusdb-client
-openpyxl==3.1.0 \
-    --hash=sha256:24d7d361025d186ba91eff58135d50855cf035a84371b891e58fb6eb5125660f \
-    --hash=sha256:eccedbe1cdd8b2494057e73959b496821141038dbb7eb9266ea59e3f34208231
+openpyxl==3.1.1 \
+    --hash=sha256:a0266e033e65f33ee697254b66116a5793c15fc92daf64711080000df4cfe0a8 \
+    --hash=sha256:f06d44e2c973781068bce5ecf860a09bcdb1c7f5ce1facd5e9aa82c92c93ae72
     # via
     #   -r requirements/main.in
     #   linkml
@@ -2070,9 +2071,9 @@ python-jose[cryptography]==3.3.0 \
     --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
     --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
     # via -r requirements/main.in
-python-json-logger==2.0.4 \
-    --hash=sha256:3b03487b14eb9e4f77e4fc2a023358b5394b82fd89cecf5586259baed57d8c6f \
-    --hash=sha256:764d762175f99fcc4630bd4853b09632acb60a6224acb27ce08cd70f0b1b81bd
+python-json-logger==2.0.6 \
+    --hash=sha256:3af8e5b907b4a5b53cae249205ee3a3d3472bd7ad9ddfaec136eec2f2faf4995 \
+    --hash=sha256:ed33182c2b438a366775c25c1219ebbd5bd7f71694c644d6b3b3861e19565ae3
     # via jupyter-events
 python-multipart==0.0.5 \
     --hash=sha256:f7bb5f611fc600d15fa47b3974c8aa16e93724513b49b5f95c81e6624c83fa43
@@ -2405,9 +2406,9 @@ sortedcontainers==2.4.0 \
     --hash=sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88 \
     --hash=sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0
     # via pytrie
-soupsieve==2.3.2.post1 \
-    --hash=sha256:3b2503d3c7084a42b1ebd08116e5f81aadfaea95863628c80a3b774a11b7c759 \
-    --hash=sha256:fc53893b3da2c33de295667a0e19f078c14bf86544af307354de5fcf12a3f30d
+soupsieve==2.4 \
+    --hash=sha256:49e5368c2cda80ee7e84da9dbe3e110b70a4575f196efb74e51b94549d921955 \
+    --hash=sha256:e28dba9ca6c7c00173e34e4ba57448f0688bb681b7c5e8bf4971daafc093d69a
     # via beautifulsoup4
 sparqlslurper==0.5.1 \
     --hash=sha256:9282ebb064fc6152a58269d194cb1e7b275b0f095425a578d75b96dcc851f546 \
@@ -2513,9 +2514,9 @@ stack-data==0.6.2 \
     --hash=sha256:32d2dd0376772d01b6cb9fc996f3c8b57a357089dec328ed4b6553d037eaf815 \
     --hash=sha256:cbb2a53eb64e5785878201a97ed7c7b94883f48b87bfb0bbe8b623c74679e4a8
     # via ipython
-starlette==0.24.0 \
-    --hash=sha256:75e2b24d71ff4f7cb9a3338f83d234c2d4135bf80f52aeb105c02a01d72a5df1 \
-    --hash=sha256:7925947f177a19e906c6ace10f07c64c4f9fdf7d509caaac6589f7cc0cfd95f3
+starlette==0.25.0 \
+    --hash=sha256:774f1df1983fd594b9b6fb3ded39c2aa1979d10ac45caac0f4255cbe2acb8628 \
+    --hash=sha256:854c71e73736c429c2bdb07801f2c76c9cba497e7c3cf4988fde5e95fe4cdb3c
     # via
     #   dagit
     #   dagster-graphql
@@ -2627,9 +2628,9 @@ typeguard==2.13.3 \
     --hash=sha256:00edaa8da3a133674796cf5ea87d9f4b4c367d77476e185e80251cc13dfbb8c4 \
     --hash=sha256:5e3e3be01e887e7eafae5af63d1f36c849aaa94e3a0112097312aabfa16284f1
     # via terminusdb-client
-typing-extensions==4.4.0 \
-    --hash=sha256:1511434bb92bf8dd198c12b1cc812e800d4181cfcb867674e0f8279cc93087aa \
-    --hash=sha256:16fa4864408f655d35ec496218b85f79b3437c829e93320c7c9215ccfd92489e
+typing-extensions==4.5.0 \
+    --hash=sha256:5cb5f4a79139d699607b3ef622a1dedafa84e115ab0024e0d9c044a9479ca7cb \
+    --hash=sha256:fb33085c39dd998ac16d1431ebc293a8b3eedd00fd4a32de0ff79002c19511b4
     # via
     #   dagster
     #   libcst
