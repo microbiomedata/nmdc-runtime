@@ -4,11 +4,16 @@ init:
 	pip install --upgrade -r requirements/main.txt  -r requirements/dev.txt
 
 update-deps:
+    # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
 	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
-		requirements/main.txt requirements/main.in
-	pip-compile --upgrade --build-isolation --generate-hashes --output-file \
-		requirements/dev.txt requirements/dev.in
+	pip-compile --upgrade --build-isolation --generate-hashes \
+		--allow-unsafe --resolver=backtracking --strip-extras \
+		--output-file requirements/main.txt \
+		requirements/main.in
+	pip-compile --allow-unsafe --upgrade --build-isolation --generate-hashes \
+		--allow-unsafe --resolver=backtracking --strip-extras \
+		--output-file requirements/dev.txt \
+		requirements/dev.in
 
 update: update-deps init
 
