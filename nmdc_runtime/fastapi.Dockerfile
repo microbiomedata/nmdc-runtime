@@ -20,7 +20,7 @@ WORKDIR /code
 
 COPY ./requirements/main.txt /code/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir -r /code/requirements.txt
 
 # Add repository code
 COPY . /code
