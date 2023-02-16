@@ -7,16 +7,7 @@ from io import BytesIO
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 
-
-def get_nmdc_jsonschema_dict():
-    """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
-    return json.loads(
-        BytesIO(
-            pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
-        )
-        .getvalue()
-        .decode("utf-8")
-    )
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 
 @lru_cache
