@@ -3,8 +3,11 @@ black
 coverage
 flake8
 invoke
+pip-tools
+pip
 pytest
 pytest-asyncio
 pytest-cov
+setuptools
 setuptools-scm
 twine
