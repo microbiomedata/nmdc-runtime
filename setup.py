@@ -9,6 +9,7 @@ with open("requirements/main.in") as f:
 
 with open("requirements/dev.in") as f:
     dev_requires = f.read().splitlines()[1:]  # Elide `-c main.txt` constraint
+
 setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
