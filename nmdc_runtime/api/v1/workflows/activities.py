@@ -1,6 +1,5 @@
 """Module."""
 from typing import Any
-from uuid import uuid1
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -53,7 +52,6 @@ async def post_activity(
         return {"message": "jobs accepted"}
 
     except BulkWriteError as e:
-        raise HTTPException(status_code=409, detail=e.writeErrors)
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
-        print(e)
-        raise HTTPException(status_code=409)
+        raise HTTPException(status_code=409, detail=str(e))
