@@ -2,6 +2,7 @@ import os
 import subprocess
 from importlib import import_module
 
+import pkg_resources
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -227,7 +228,7 @@ app = FastAPI(
         " and is intended to facilitate discussion as more of the API is developed."
         "\n\n"
         "Dependency versions:\n\n"
-        f'{subprocess.check_output("pip freeze | grep nmdc-schema", shell=True).decode()}'
+        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}'
     ),
     openapi_tags=tags_metadata,
 )
