@@ -138,9 +138,10 @@ class ActivityService:
         flattened_activities: list[ActivityWithWorkflow] = list(
             flatten([associate_activity_with_workflow(entry) for entry in activities])
         )
+        input_set = get_input_set(flattened_activites)
         job_configs: list[dict[str, Any]] = [
             parse_data_objects(activity["workflow"], data_objects)
-            for activity in flattened_activities
+            for activity in filter_activities(flattened_activities, input_set)
         ]
         for job in job_configs:
             job_spec = {
