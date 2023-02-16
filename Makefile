@@ -1,7 +1,5 @@
 init:
-	pip install --upgrade pip-tools pip setuptools
-	pip install --editable .
-	pip install --upgrade -r requirements/main.txt  -r requirements/dev.txt
+	pip install --editable .[dev]
 
 update-deps:
     # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
@@ -18,8 +16,10 @@ update-deps:
 update: update-deps init
 
 update-schema:
-	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes --output-file \
-		requirements/main.txt requirements/main.in
+	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes \
+		--allow-unsafe --resolver=backtracking --strip-extras \
+		--output-file requirements/main.txt \
+		requirements/main.in
 	pip install -r requirements/main.txt
 
 update-schema-yaml:
