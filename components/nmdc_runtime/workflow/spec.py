@@ -22,7 +22,7 @@ class Workflow(BaseModel):
 
 class Sequencing(Workflow):
     name: str = "Metagenome Sequencing"
-    enabled: bool = False
+    enabled: bool = True
     git_repo: str = ""
     version: str = "1.0.0"
     activity: Literal[
