@@ -1,4 +1,5 @@
 import os
+import subprocess
 from importlib import import_module
 
 import uvicorn
@@ -224,6 +225,9 @@ app = FastAPI(
         "This is a draft of the NMDC Runtime API."
         " The resource layout currently covers aspects of workflow execution and automation,"
         " and is intended to facilitate discussion as more of the API is developed."
+        "\n\n"
+        "Dependency versions:\n\n"
+        f'{subprocess.check_output("pip freeze | grep nmdc-schema", shell=True).decode()}'
     ),
     openapi_tags=tags_metadata,
 )
