@@ -91,11 +91,12 @@ def get_input_set(activities: list[ActivityWithWorkflow]) -> set[str]:
 
 
 def outputs_in_inputs(activity: ActivityWithWorkflow, inputs: set[str]) -> bool:
+    is_there = False
     for output in activity["activity"].has_output:
         if output in inputs:
-            return True
+            is_there = True
 
-    return False
+    return is_there
 
 
 def filter_activities(
