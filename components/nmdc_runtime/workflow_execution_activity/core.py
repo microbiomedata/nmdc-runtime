@@ -56,12 +56,6 @@ def construct_job_config(
     return relevant_info
 
 
-def container_job(
-    activities: list[WorkflowExecutionActivity], name: str
-) -> list[list[Workflow]]:
-    return [construct_job_config(activity, name) for activity in activities]
-
-
 def parse_data_objects(
     activity: Workflow, data_objects: list[DataObject]
 ) -> dict[str, Any]:
@@ -140,9 +134,16 @@ class ActivityService:
             flatten([associate_activity_with_workflow(entry) for entry in activities])
         )
         input_set = get_input_set(flattened_activities)
-        job_configs: list[dict[str, Any]] = [
-            parse_data_objects(activity["workflow"], data_objects)
-            for activity in filter_activities(flattened_activities, input_set)
+        job_workflows = list(
+            flatten(
+                [
+                    construct_job_config(ac["activity"], ac["workflow"].name)
+                    for ac in filter_activities(flattened_activities, input_set)
+                ]
+            )
+        )
+        job_configs = [
+            parse_data_objects(workflow, data_objects) for workflow in job_workflows
         ]
         for job in job_configs:
             job_spec = {
