@@ -1,19 +1,31 @@
 import json
 import mimetypes
 import os
+import pkgutil
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from functools import lru_cache
+from io import BytesIO
 from pathlib import Path
 
 import fastjsonschema
 import requests
 from frozendict import frozendict
 from toolz import merge, pluck
-from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
+
+
+def get_nmdc_jsonschema_dict():
+    """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
+    return json.loads(
+        BytesIO(
+            pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
+        )
+        .getvalue()
+        .decode("utf-8")
+    )
 
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()

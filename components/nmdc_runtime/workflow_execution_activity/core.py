@@ -1,7 +1,9 @@
 """Core functionality of the activity service module."""
 from dataclasses import fields
 from typing import Any, TypedDict
+from uuid import uuid1
 
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
 from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_workflows
@@ -16,11 +18,6 @@ class ActiveActivities(TypedDict):
 class ActivityWithWorkflow(TypedDict):
     activity: WorkflowExecutionActivity
     workflow: Workflow
-
-
-flatten = lambda *n: (
-    e for a in n for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,))
-)
 
 
 def get_active_activities(
@@ -50,18 +47,13 @@ def add_relevant_info(
     return workflow
 
 
-def construct_job_config(activity: WorkflowExecutionActivity, name: str) -> Workflow:
+def construct_job_config(
+    activity: WorkflowExecutionActivity, name: str
+) -> list[Workflow]:
     workflows = get_all_workflows()
     next_workflows = list(filter(lambda wf: wf.predecessor == name, workflows))
     relevant_info = [add_relevant_info(wf, activity) for wf in next_workflows]
     return relevant_info
-
-
-def container_job(
-    activities: list[WorkflowExecutionActivity], name: str
-) -> list[Workflow]:
-    jobs = [construct_job_config(activity, name) for activity in activities]
-    return jobs
 
 
 def parse_data_objects(
@@ -93,11 +85,12 @@ def get_input_set(activities: list[ActivityWithWorkflow]) -> set[str]:
 
 
 def outputs_in_inputs(activity: ActivityWithWorkflow, inputs: set[str]) -> bool:
-    for output in activity["activity"].has_outputs:
+    is_there = False
+    for output in activity["activity"].has_output:
         if output in inputs:
-            return True
+            is_there = True
 
-    return False
+    return is_there
 
 
 def filter_activities(
@@ -112,11 +105,14 @@ def filter_activities(
 
 
 class ActivityService:
-    def create_jobs(
+    """Methods for creation and insertion of NMDC Workflow Execution Activities."""
+
+    async def create_jobs(
         self,
         activities: list[ActiveActivities],
         data_objects: list[DataObject],
-    ) -> list[dict[str, Any]]:
+        mdb: AsyncIOMotorDatabase,
+    ) -> bool:
         """Create jobs for automation.
 
         Parameters
@@ -129,23 +125,36 @@ class ActivityService:
         -------
         list[dict[str,Any]]
         """
+        flatten = lambda *n: (
+            e
+            for a in n
+            for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,))
+        )
         flattened_activities: list[ActivityWithWorkflow] = list(
             flatten([associate_activity_with_workflow(entry) for entry in activities])
         )
-
-        input_set: set[str] = get_input_set(flattened_activities)
-        activity_leaves: list[ActivityWithWorkflow] = filter_activities(
-            flattened_activities, input_set
+        input_set = get_input_set(flattened_activities)
+        job_workflows = list(
+            flatten(
+                [
+                    construct_job_config(ac["activity"], ac["workflow"].name)
+                    for ac in filter_activities(flattened_activities, input_set)
+                ]
+            )
         )
-
-        job_configs: list[Workflow] = [
-            construct_job_config(entry["activity"], entry["workflow"].name)
-            for entry in activity_leaves
+        job_configs = [
+            parse_data_objects(workflow, data_objects) for workflow in job_workflows
         ]
+        for job in job_configs:
+            job_spec = {
+                "id": f"sys:test_{str(uuid1())}",
+                "workflow": {"id": f"{job['id_type']}-{job['version']}"},
+                "config": {**job},
+                "claims": [],
+            }
+            await mdb["jobs"].insert_one(job_spec)
 
-        return [
-            parse_data_objects(job_config, data_objects) for job_config in job_configs
-        ]
+        return True
 
     async def add_activity_set(
         self, activities: Database, db: MongoDatabase

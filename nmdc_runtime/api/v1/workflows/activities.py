@@ -1,6 +1,5 @@
 """Module."""
 from typing import Any
-from uuid import uuid1
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -36,30 +35,23 @@ async def post_activity(
 
     Parameters
     ----------
-    activity_set : dict[str, Any]
-                   Set of activities for specific workflows.
+    activity_set : dict[str,Any]
+        Set of activities for specific workflows.
 
     Returns
-    _______
-    dict[str, str]
+    -------
+    dict[str,str]
     """
     try:
         activity_service = ActivityService()
         nmdc_db = Database(**activity_set)
         activities = await activity_service.add_activity_set(nmdc_db, mdb)
-        job_configs = activity_service.create_jobs(activities, nmdc_db.data_object_set)
-        for job in job_configs:
-            job_spec = {
-                "id": f"sys:test_{str(uuid1())}",
-                "workflow": {"id": f"{job['id_type']}-{job['version']}"},
-                "config": {**job},
-                "claims": [],
-            }
-            background_tasks.add_task(job_to_db, job_spec, amdb)
+        background_tasks.add_task(
+            activity_service.create_jobs, activities, nmdc_db.data_object_set, amdb
+        )
         return {"message": "jobs accepted"}
 
     except BulkWriteError as e:
-        raise HTTPException(status_code=409, detail=e.writeErrors)
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
-        print(e)
-        raise HTTPException(status_code=409)
+        raise HTTPException(status_code=409, detail=str(e))

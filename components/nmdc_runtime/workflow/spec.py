@@ -16,11 +16,12 @@ class Workflow(BaseModel):
     activity: str
     predecessor: str
     input_prefix: str
+    id_type: str
     inputs: Inputs
 
 
 class Sequencing(Workflow):
-    name: str = "Sequencing"
+    name: str = "Metagenome Sequencing"
     enabled: bool = True
     git_repo: str = ""
     version: str = "1.0.0"
@@ -28,6 +29,7 @@ class Sequencing(Workflow):
         "metagenome_sequencing_activity_set"
     ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
+    id_type: str = ""
     input_prefix: str = ""
     inputs: Inputs = Inputs()
 

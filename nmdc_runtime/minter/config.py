@@ -1,20 +1,13 @@
 import json
 import os
+import pkgutil
 from functools import lru_cache
-from pathlib import Path
+from io import BytesIO
 
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 
-
-def get_nmdc_jsonschema_dict():
-    """Get NMDC JSON Schema.
-
-    May replace this with `from nmdc_runtime.util import get_nmdc_jsonschema_dict`
-    once the whole codebase uses nmdc-schema~=v7.2.0
-    """
-    with (Path(__file__).parent / "nmdc.schema.json").open() as f:
-        return json.load(f)
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 
 @lru_cache

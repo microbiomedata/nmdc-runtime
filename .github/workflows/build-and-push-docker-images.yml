@@ -26,8 +26,8 @@ jobs:
       -
         name: Build and push
         run: |
-          ./docker-build.sh polyneme/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
-          ./docker-build.sh polyneme/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
+          ./docker-build.sh microbiomedata/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
+          ./docker-build.sh microbiomedata/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
       - name: Trigger release to Spin
         if: success()
         uses: peter-evans/repository-dispatch@v1
