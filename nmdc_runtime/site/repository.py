@@ -460,6 +460,14 @@ def biosample_submission_ingest():
                             "password": {"env": "GOLD_API_PASSWORD"}
                         },
                     },
+                    "mongo": {
+                        "config": {
+                            "host": {"env": "MONGO_HOST"},
+                            "username": {"env": "MONGO_USERNAME"},
+                            "password": {"env": "MONGO_PASSWORD"},
+                            "dbname": {"env": "MONGO_DBNAME"},
+                        },
+                    },
                 },
                 "ops": {
                     "gold_biosamples_by_study": {

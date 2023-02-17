@@ -6,7 +6,6 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Dict
 from zipfile import ZipFile
 
 import fastjsonschema
@@ -20,6 +19,7 @@ from dagster import (
     AssetMaterialization,
     AssetKey,
     AssetMaterialization,
+    Dict,
     Failure,
     List,
     MetadataValue,
@@ -39,7 +39,8 @@ from nmdc_runtime.api.core.metadata import (
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, json_clean, now
+from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
@@ -544,7 +545,34 @@ def gold_projects_by_study(context: OpExecutionContext):
 
 @op
 def gold_biosample_ids(context, docs: List[Dict[str, Any]]):
-    return unique_field_values(docs, "biosampleGoldId")
+    data = unique_field_values(docs, "biosampleGoldId")
+    return dict(filename="biosample_ids.json", data=list(data))
+
+@op(required_resource_keys={"mongo"})
+def export_json(context: OpExecutionContext, export_info):
+    mdb = context.resources.mongo.db
+    username = context.op_config.get("username")
+    content = json.dumps(export_info["data"])
+    sha256hash = hash_from_str(content, "sha256")
+    drs_object = mdb.objects.find_one(
+        {"checksums": {"$elemMatch": {"type": "sha256", "checksum": sha256hash}}}
+    )
+    if drs_object is None:
+        drs_object = persist_content_and_get_drs_object(
+            content=content,
+            username=username,
+            filename=export_info["filename"],
+            content_type="text/csv",
+            description=f"biosample ids",
+            id_ns="study-metadata-export-csv",
+        )
+    context.log_event(
+        AssetMaterialization(
+            asset_key=export_info["filename"],
+            description=f"biosample ids",
+        )
+    )
+    return ["/objects/" + drs_object["id"]]
 
 def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
