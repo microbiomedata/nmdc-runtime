@@ -2,6 +2,7 @@ from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
+    export_json,
     run_etl,
     local_file_to_api_object,
     get_operation,
@@ -99,4 +100,6 @@ def apply_metadata_in():
 @graph
 def get_gold_biosample_ids():
     biosamples = gold_biosamples_by_study()
-    gold_biosample_ids(biosamples)
+    output_config = gold_biosample_ids(biosamples)
+    outputs = export_json(output_config)
+    add_output_run_event(outputs)
