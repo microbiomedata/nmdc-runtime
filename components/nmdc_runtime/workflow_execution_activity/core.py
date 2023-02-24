@@ -7,7 +7,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
 from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_workflows
-from .store import MongoDatabase, insert_activities
+from .store import MongoDatabase
+from .spec import ActivityTree
 
 
 class ActiveActivities(TypedDict):
@@ -39,69 +40,82 @@ def get_active_activities(
     return active_activities
 
 
-def add_relevant_info(
-    workflow: Workflow, activity: WorkflowExecutionActivity
-) -> Workflow:
-    workflow.inputs.proj = activity.id
-    workflow.inputs.informed_by = activity.was_informed_by
-    return workflow
-
-
-def construct_job_config(
-    activity: WorkflowExecutionActivity, name: str
-) -> list[Workflow]:
-    workflows = get_all_workflows()
-    next_workflows = list(filter(lambda wf: wf.predecessor == name, workflows))
-    relevant_info = [add_relevant_info(wf, activity) for wf in next_workflows]
-    return relevant_info
-
-
-def parse_data_objects(
-    activity: Workflow, data_objects: list[DataObject]
-) -> dict[str, Any]:
-    activity_dict = activity.dict()
-    for key in activity_dict["inputs"]:
-        for do in data_objects:
-            if activity_dict["inputs"][key] == str(do.data_object_type):
-                activity_dict["inputs"][key] = str(do.url)  # I'm very upset about this
-
-    return activity_dict
-
-
-def associate_activity_with_workflow(
-    aa: ActiveActivities,
-) -> list[ActivityWithWorkflow]:
-    return [
-        {"activity": activity, "workflow": aa["workflow"]}
-        for activity in aa["activities"]
-    ]
-
-
-def get_input_set(activities: list[ActivityWithWorkflow]) -> set[str]:
-    activity_input_set = set()
-    for entry in activities:
-        activity_input_set.update(entry["activity"].has_input)
-    return activity_input_set
-
-
-def outputs_in_inputs(activity: ActivityWithWorkflow, inputs: set[str]) -> bool:
-    is_there = False
-    for output in activity["activity"].has_output:
-        if output in inputs:
-            is_there = True
-
-    return is_there
-
-
-def filter_activities(
-    activities: list[ActivityWithWorkflow], inputs: set[str]
-) -> list[ActivityWithWorkflow]:
-    leaves: list[ActivityWithWorkflow] = []
+def build_activity_trees(activities: list[ActiveActivities]) -> dict[str, ActivityTree]:
+    """Create a list of activities and their children."""
+    activity_trees: dict[str, ActivityTree] = {}
+    raw_activities = []
     for activity in activities:
-        if not outputs_in_inputs(activity, inputs):
-            leaves.append(activity)
+        for sub_activity in activity["activities"]:
+            activity_trees[sub_activity.id] = ActivityTree(
+                data=sub_activity, spec=activity["workflow"]
+            )
+            raw_activities.append(
+                ActivityTree(data=sub_activity, spec=activity["workflow"])
+            )
 
-    return leaves
+    for tree in activity_trees.values():
+        for raw_activity in raw_activities:
+            intersect = [
+                data_object
+                for data_object in tree.data.has_output
+                if data_object in raw_activity.data.has_input
+            ]
+            if len(intersect) > 0:
+                activity_trees[tree.data.id].children.append(raw_activity)
+    return activity_trees
+
+
+def is_child_p(workflow: Workflow, children: list[ActivityTree]) -> bool:
+    """Predicate to determine if workflow already has an associated activity."""
+    child_names: list[str] = [child.spec.name for child in children]
+
+    if workflow.name in child_names:
+        return True
+    return False
+
+
+def find_next_workflows(trees: dict[str, ActivityTree]) -> list[Workflow]:
+    """Find next workflows to be run in sequence."""
+    workflows: list[Workflow] = get_all_workflows()
+    next_workflows: list[Workflow] = []
+    for workflow in workflows:
+        for tree in trees.values():
+            if workflow.predecessor == tree.spec.name and not is_child_p(
+                workflow, tree.children
+            ):
+                workflow_copy = workflow.copy()
+                workflow_copy.inputs.proj = tree.data.id
+                workflow_copy.inputs.informed_by = tree.data.was_informed_by
+                next_workflows.append(workflow_copy)
+    return next_workflows
+
+
+def insert_into_keys(
+    workflow: Workflow, data_objects: list[DataObject]
+) -> dict[str, Any]:
+    """Insert data object url into correct workflow input field."""
+    workflow_dict = workflow.dict()
+    for key in workflow_dict["inputs"]:
+        for do in data_objects:
+            if workflow_dict["inputs"][key] == str(do.data_object_type):
+                workflow_dict["inputs"][key] = str(do.url)
+    return workflow_dict
+
+
+def populate_workflow_objects(
+    workflows: list[Workflow],
+    activity_trees: dict[str, ActivityTree],
+    data_objects: list[DataObject],
+) -> list[dict[str, Any]]:
+    """Populate workflow objects with missing data."""
+    workflow_list = []
+    for workflow in workflows:
+        inputs = activity_trees[workflow.inputs.proj].data.has_output
+        intersect: list[DataObject] = [
+            data_object for data_object in data_objects if data_object.id in inputs
+        ]
+        workflow_list.append(insert_into_keys(workflow, intersect))
+    return workflow_list
 
 
 class ActivityService:
@@ -125,26 +139,10 @@ class ActivityService:
         -------
         list[dict[str,Any]]
         """
-        flatten = lambda *n: (
-            e
-            for a in n
-            for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,))
-        )
-        flattened_activities: list[ActivityWithWorkflow] = list(
-            flatten([associate_activity_with_workflow(entry) for entry in activities])
-        )
-        input_set = get_input_set(flattened_activities)
-        job_workflows = list(
-            flatten(
-                [
-                    construct_job_config(ac["activity"], ac["workflow"].name)
-                    for ac in filter_activities(flattened_activities, input_set)
-                ]
-            )
-        )
-        job_configs = [
-            parse_data_objects(workflow, data_objects) for workflow in job_workflows
-        ]
+        trees = build_activity_trees(activities)
+        next_workflows = find_next_workflows(trees)
+        job_configs = populate_workflow_objects(next_workflows, trees, data_objects)
+
         for job in job_configs:
             job_spec = {
                 "id": f"sys:test_{str(uuid1())}",

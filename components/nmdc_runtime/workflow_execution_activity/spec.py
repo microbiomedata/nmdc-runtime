@@ -1,19 +1,18 @@
 " " "Beans." ""
 from abc import ABC, abstractmethod
-from pydantic.dataclasses import dataclass
-from datetime import datetime
-from typing import Literal, Type
-from typing_extensions import TypedDict
 
+from components.nmdc_runtime.workflow.spec import Workflow
 from nmdc_schema.nmdc import (
-    DataObject,
-    DataObjectId,
     WorkflowExecutionActivity,
-    WorkflowExecutionActivityId,
     Database,
 )
-from pydantic import BaseModel, HttpUrl
-from typing_extensions import NotRequired
+from pydantic import BaseModel
+
+
+class ActivityTree(BaseModel):
+    children: list["ActivityTree"] = []
+    data: WorkflowExecutionActivity
+    spec: Workflow
 
 
 class ActivityQueriesABC(ABC):
