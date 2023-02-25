@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from nmdc_schema.nmdc import Database, DataObject, WorkflowExecutionActivity
 
 from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_workflows
-from .store import MongoDatabase
+from .store import MongoDatabase, insert_activities
 from .spec import ActivityTree
 
 
