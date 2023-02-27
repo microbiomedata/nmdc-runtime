@@ -17,6 +17,7 @@ from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
 
+@lru_cache
 def get_nmdc_jsonschema_dict():
     """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
     return json.loads(
