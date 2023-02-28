@@ -586,12 +586,6 @@ def database_from_gold_study(context: OpExecutionContext, study, projects, biosa
     }
 
 
-@op
-def gold_biosample_ids(context, docs: List[Dict[str, Any]]):
-    data = unique_field_values(docs, "biosampleGoldId")
-    return dict(filename="biosample_ids.json", data=list(data))
-
-
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
 def export_json(context: OpExecutionContext, export_info):
     mdb = context.resources.mongo.db
