@@ -2,7 +2,12 @@ from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
+    database_from_gold_study,
     export_json,
+    get_gold_study_pipeline_inputs,
+    gold_analysis_projects_by_study,
+    gold_projects_by_study,
+    gold_study,
     run_etl,
     local_file_to_api_object,
     get_operation,
@@ -102,4 +107,19 @@ def get_gold_biosample_ids():
     biosamples = gold_biosamples_by_study()
     output_config = gold_biosample_ids(biosamples)
     outputs = export_json(output_config)
+    add_output_run_event(outputs)
+
+
+@graph
+def gold_study_to_database():
+    inputs = get_gold_study_pipeline_inputs()
+
+    projects = gold_projects_by_study(inputs)
+    biosamples = gold_biosamples_by_study(inputs)
+    analysis_projects = gold_analysis_projects_by_study(inputs)
+    study = gold_study(inputs)
+
+    database = database_from_gold_study(study, projects, biosamples, analysis_projects)
+
+    outputs = export_json(database)
     add_output_run_event(outputs)

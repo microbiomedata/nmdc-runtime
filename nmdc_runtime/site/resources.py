@@ -3,7 +3,7 @@ import json
 import os
 from datetime import timedelta, datetime, timezone
 from functools import lru_cache
-from typing import Optional
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -148,6 +148,15 @@ class RuntimeApiSiteClient:
     def claim_job(self, job_id):
         return self.request("POST", f"/jobs/{job_id}:claim")
 
+    def mint_id(self, schema_class, how_many=1):
+        body = {
+            "schema_class": {
+                "id": schema_class
+            },
+            "how_many": how_many
+        }
+        return self.request("POST", "/pids/mint", body)
+
 
 @resource(
     config_schema={
@@ -181,7 +190,7 @@ def get_runtime_api_site_client(run_config: frozendict):
 
 @dataclass
 class BasicAuthClient:
-    
+
     base_url: str
     username: str
     password: str
@@ -189,8 +198,8 @@ class BasicAuthClient:
     def request(self, endpoint: str, method: str = "GET", **kwargs) -> requests.Response:
         auth = HTTPBasicAuth(self.username, self.password)
         response = requests.request(
-            method, 
-            self.base_url + endpoint, 
+            method,
+            self.base_url + endpoint,
             auth=auth,
             **kwargs
         )
@@ -210,15 +219,27 @@ class GoldApiClient(BasicAuthClient):
         """
         return id.replace("gold:", "")
 
-    def fetch_biosamples_by_study(self, study_id: str):
+    def fetch_biosamples_by_study(self, study_id: str) -> List[Dict[str, Any]]:
         id = self._normalize_id(study_id)
         results = self.request("/biosamples", params={"studyGoldId": id})
         return results
 
-    def fetch_projects_by_study(self, study_id: str):
+    def fetch_projects_by_study(self, study_id: str) -> List[Dict[str, Any]]:
         id = self._normalize_id(study_id)
         results = self.request("/projects", params={"studyGoldId": id})
         return results
+
+    def fetch_analysis_projects_by_study(self, id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(id)
+        results = self.request("/analysis_projects", params={"studyGoldId": id})
+        return results
+
+    def fetch_study(self, id: str) -> Union[Dict[str, Any], None]:
+        id = self._normalize_id(id)
+        results = self.request("/studies", params={"studyGoldId": id})
+        if not results:
+            return None
+        return results[0]
 
 
 @resource(

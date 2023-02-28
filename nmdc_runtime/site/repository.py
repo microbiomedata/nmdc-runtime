@@ -22,6 +22,7 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    gold_study_to_database,
     gold_translation,
     gold_translation_curation,
     create_objects_from_site_object_puts,
@@ -30,7 +31,6 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
-    get_gold_biosample_ids,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -446,10 +446,11 @@ def test_translation():
 
     return graph_jobs
 
+
 @repository
 def biosample_submission_ingest():
     return [
-        get_gold_biosample_ids.to_job(
+        gold_study_to_database.to_job(
             resource_defs=resource_defs,
             config={
                 "resources": {
@@ -468,11 +469,24 @@ def biosample_submission_ingest():
                             "dbname": {"env": "MONGO_DBNAME"},
                         },
                     },
+                    "runtime_api_site_client": {
+                        "config": {
+                            "base_url": {"env": "API_HOST"},
+                            "site_id": {"env": "API_SITE_ID"},
+                            "client_id": {"env": "API_SITE_CLIENT_ID"},
+                            "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                        },
+                    },
                 },
                 "ops": {
-                    "gold_biosamples_by_study": {
+                    "get_gold_study_pipeline_inputs": {
                         "config": {
-                            "study_id": "Gs0149396"
+                            "study_id": ""
+                        }
+                    },
+                    "export_json": {
+                        "config": {
+                            "username": ""
                         }
                     }
                 },
