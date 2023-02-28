@@ -483,7 +483,7 @@ def nmdc_workflow_id_to_dagster_job_name_map():
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
-        "get_gold_biosample_ids": "get_gold_biosample_ids",
+        "gold_study_to_database": "gold_study_to_database",
     }
 
 
@@ -506,10 +506,10 @@ def ensure_run_config_data(
             user.username,
         )
         return run_config_data
-    if nmdc_workflow_id == "get_gold_biosample_ids":
+    if nmdc_workflow_id == "gold_study_to_database":
         run_config_data = assoc_in(
             run_config_data,
-            ["ops", "gold_biosamples_by_study", "config", "study_id"],
+            ["ops", "get_gold_study_pipeline_inputs", "config", "study_id"],
             nmdc_workflow_inputs[0]
         )
         run_config_data = assoc_in(
@@ -536,11 +536,11 @@ def inputs_for(nmdc_workflow_id, run_config_data):
                 run_config_data,
             )
         ]
-    if nmdc_workflow_id == "get_gold_biosample_ids":
+    if nmdc_workflow_id == "gold_study_to_database":
         return [
             "/studies/"
             + get_in(
-                ["ops", "gold_biosamples_by_study", "config", "study_id"],
+                ["ops", "get_gold_study_pipeline_inputs", "config", "study_id"],
                 run_config_data,
             )
         ]

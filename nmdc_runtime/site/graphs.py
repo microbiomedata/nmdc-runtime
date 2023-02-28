@@ -28,7 +28,6 @@ from nmdc_runtime.site.ops import (
     perform_mongo_updates,
     add_output_run_event,
     gold_biosamples_by_study,
-    gold_biosample_ids,
 )
 
 
@@ -99,14 +98,6 @@ def apply_changesheet():
 @graph
 def apply_metadata_in():
     outputs = perform_mongo_updates(get_json_in())
-    add_output_run_event(outputs)
-
-
-@graph
-def get_gold_biosample_ids():
-    biosamples = gold_biosamples_by_study()
-    output_config = gold_biosample_ids(biosamples)
-    outputs = export_json(output_config)
     add_output_run_event(outputs)
 
 
