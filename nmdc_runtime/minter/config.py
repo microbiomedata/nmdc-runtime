@@ -1,23 +1,9 @@
-import json
 import os
-import pkgutil
 from functools import lru_cache
-from io import BytesIO
-
-from pymongo import MongoClient
-from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
-
-@lru_cache
-def get_mongo_db() -> MongoDatabase:
-    _client = MongoClient(
-        host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
-    )
-    return _client[os.getenv("MONGO_DBNAME")]
+from nmdc_runtime.api.db.mongo import get_mongo_db
 
 
 @lru_cache()

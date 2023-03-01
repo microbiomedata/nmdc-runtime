@@ -14,6 +14,7 @@ def get_mongo_db() -> MongoDatabase:
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
+        directConnection=True,
     )
     return _client[os.getenv("MONGO_DBNAME")]
 
@@ -24,6 +25,7 @@ def get_async_mongo_db() -> AsyncIOMotorDatabase:
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
+        directConnection=True,
     )
     return _client[os.getenv("MONGO_DBNAME")]
 

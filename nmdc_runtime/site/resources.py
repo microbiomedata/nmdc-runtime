@@ -185,7 +185,12 @@ class MongoDB:
         username: Optional[str] = None,
         password: Optional[str] = None,
     ):
-        self.client = MongoClient(host=host, username=username, password=password)
+        self.client = MongoClient(
+            host=host,
+            username=username,
+            password=password,
+            directConnection=True,
+        )
         self.db = self.client[dbname]
 
     def add_docs(self, docs, validate=True, replace=True):
