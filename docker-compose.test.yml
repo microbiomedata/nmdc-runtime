@@ -74,7 +74,7 @@ services:
       - .:/code
 
   mongo:
-    image: mongo:4.4-bionic
+    image: bitnami/mongodb:6.0.4
     container_name: mongo
     ports:
       - "27018:27017"
@@ -82,8 +82,11 @@ services:
       - nmdc_runtime_mongo_data:/data/db
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGODB_ROOT_USER: admin
+      MONGODB_ROOT_PASSWORD: root
+      MONGODB_REPLICA_SET_MODE: primary
+      MONGODB_ADVERTISED_HOSTNAME: mongodb-primary
+      MONGODB_REPLICA_SET_KEY: replicasetkey123
 
   test:
     build:

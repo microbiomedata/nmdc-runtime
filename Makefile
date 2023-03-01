@@ -1,4 +1,6 @@
 init:
+	pip install -r requirements/main.txt
+	pip install -r requirements/dev.txt
 	pip install --editable .[dev]
 
 update-deps:
@@ -83,13 +85,14 @@ publish:
 docs-dev:
 	mkdocs serve -a localhost:8080
 
+nersc-sshproxy:
+	bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
+
 prod-nersc-ssh-tunnel:
-	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 dev-nersc-ssh-tunnel:
-	# bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 	ssh -L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 

@@ -20,13 +20,22 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 @lru_cache
 def get_nmdc_jsonschema_dict():
     """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
-    return json.loads(
-        BytesIO(
-            pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
-        )
-        .getvalue()
-        .decode("utf-8")
+    local_path = Path(__file__).parent.joinpath(
+        "nmdc_materialized_patterns.schema.json"
     )
+    if local_path.exists():
+        with local_path.open() as f:
+            return json.load(f)
+    else:
+        return json.loads(
+            BytesIO(
+                pkgutil.get_data(
+                    "nmdc_schema", "nmdc_materialized_patterns.schema.json"
+                )
+            )
+            .getvalue()
+            .decode("utf-8")
+        )
 
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
