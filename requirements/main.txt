@@ -1523,9 +1523,9 @@ nest-asyncio==1.5.6 \
     #   ipykernel
     #   nbclassic
     #   notebook
-nmdc-schema==7.4.11 \
-    --hash=sha256:647e12c6ed11286a6f741bfbcaed99f8a4bd647b9257f69798566da79455cc0f \
-    --hash=sha256:6f3522b807e2beb35c009241edfe7f92ea899c7123536fa4340a7399c9cfa33f
+nmdc-schema==7.4.12 \
+    --hash=sha256:4a85b9693a31a0232eb8e96f8f94b5d44e34646478bc884b1a8b02ffa0fbfcf0 \
+    --hash=sha256:e393a2cdecb5e18723cf24d99496d825295dcb2effbecc98bafbff087ed515df
     # via -r requirements/main.in
 notebook==6.5.2 \
     --hash=sha256:c1897e5317e225fc78b45549a6ab4b668e4c996fd03a04e938fe5e7af2bfffd0 \

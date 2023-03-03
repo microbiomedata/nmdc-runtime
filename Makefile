@@ -45,6 +45,10 @@ test-dbinit:
 	docker compose --file docker-compose.test.yml \
 		run --entrypoint ./tests/mongorestore-nmdc-testdb.sh test
 
+test-dbdump:
+	docker compose --file docker-compose.test.yml \
+		run --entrypoint ./tests/mongodump-nmdc-testdb.sh test
+
 test-run:
 	docker compose --file docker-compose.test.yml run test
 

@@ -157,3 +157,5 @@ cordra-2.3.0/
 
 repl.ipynb
 *.crt
+
+tests/nmdcdb/
