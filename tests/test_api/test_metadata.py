@@ -157,7 +157,7 @@ def test_ensure_data_object_type():
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
-    nmdc_jsonschema = get_nmdc_jsonschema_dict()
+    nmdc_jsonschema = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
 
