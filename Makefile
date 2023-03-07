@@ -92,15 +92,11 @@ docs-dev:
 nersc-sshproxy:
 	bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 
-prod-nersc-ssh-tunnel:
-	ssh -L27027:mongo-loadbalancer.nmdc-runtime-dev.development.svc.spin.nersc.org:27017 \
-		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
-
 dev-nersc-ssh-tunnel:
 	ssh -L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
-nextprod-nersc-ssh-tunnel:
+prod-nersc-ssh-tunnel:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
