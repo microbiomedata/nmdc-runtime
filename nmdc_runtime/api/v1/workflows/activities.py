@@ -46,9 +46,9 @@ async def post_activity(
         activity_service = ActivityService()
         nmdc_db = Database(**activity_set)
         activities = await activity_service.add_activity_set(nmdc_db, mdb)
-        background_tasks.add_task(
-            activity_service.create_jobs, activities, nmdc_db.data_object_set, amdb
-        )
+        # background_tasks.add_task(
+        #     activity_service.create_jobs, activities, nmdc_db.data_object_set, amdb
+        # )
         return {"message": "jobs accepted"}
 
     except BulkWriteError as e:

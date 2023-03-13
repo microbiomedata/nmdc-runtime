@@ -49,6 +49,7 @@ def get_mongo_test_db() -> MongoDatabase:
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
+        directConnection=True,
     )
     db: MongoDatabase = _client[os.getenv("MONGO_TEST_DBNAME")]
 

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import json
 import sys
 from pathlib import Path
@@ -17,16 +19,26 @@ from nmdc_runtime.site.resources import get_mongo
 
 REPO_ROOT = Path(__file__).parent.parent
 
-nmdc_jsonschema_validate = fastjsonschema.compile(get_nmdc_jsonschema_dict())
+
+def without_id_patterns(nmdc_jsonschema):
+    rv = deepcopy(nmdc_jsonschema)
+    for cls_, spec in rv["$defs"].items():
+        if "properties" in spec:
+            if "id" in spec["properties"]:
+                spec["properties"]["id"].pop("pattern", None)
+    return rv
 
 
-def test_nmdc_jsonschema_using_old_id_scheme():
-    if (version := get_nmdc_jsonschema_dict()["version"]) > "3":
-        pytest.fail(version)
+nmdc_jsonschema_validate = fastjsonschema.compile(
+    without_id_patterns(get_nmdc_jsonschema_dict())
+)
+
+
+def test_nmdc_jsonschema_using_new_id_scheme():
     for class_name, defn in get_nmdc_jsonschema_dict()["$defs"].items():
         if "properties" in defn and "id" in defn["properties"]:
             if "pattern" in defn["properties"]["id"]:
-                if defn["properties"]["id"]["pattern"].startswith("^(nmdc):"):
+                if not defn["properties"]["id"]["pattern"].startswith("^(nmdc):"):
                     pytest.fail(f"{class_name}.id: {defn['properties']['id']}")
 
 

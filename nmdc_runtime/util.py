@@ -3,6 +3,7 @@ import mimetypes
 import os
 import pkgutil
 from collections.abc import Iterable
+from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
 from io import BytesIO
@@ -17,15 +18,26 @@ from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 
 
-def get_nmdc_jsonschema_dict():
+def without_id_patterns(nmdc_jsonschema):
+    rv = deepcopy(nmdc_jsonschema)
+    for cls_, spec in rv["$defs"].items():
+        if "properties" in spec:
+            if "id" in spec["properties"]:
+                spec["properties"]["id"].pop("pattern", None)
+    return rv
+
+
+@lru_cache
+def get_nmdc_jsonschema_dict(enforce_id_patterns=True):
     """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
-    return json.loads(
+    d = json.loads(
         BytesIO(
             pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
         )
         .getvalue()
         .decode("utf-8")
     )
+    return d if enforce_id_patterns else without_id_patterns(d)
 
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
