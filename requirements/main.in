@@ -3,10 +3,10 @@ beautifulsoup4
 beanie>=1.16.0
 boto3
 click
-dagit
-dagster
-dagster-graphql
-dagster-postgres
+dagit==1.1.15
+dagster==1.1.15
+dagster-graphql==1.1.15
+dagster-postgres==0.17.15
 dependency-injector
 dotted-dict
 fastapi>=0.85.0 # using starlette >=0.20.3 for working colon-containing URL paths.
@@ -14,7 +14,6 @@ fastjsonschema
 fnc
 frozendict
 git-root
-grpcio==1.48
 jq
 jsonasobj2
 jupyter
