@@ -267,7 +267,11 @@ class GoldStudyTranslator(Translator):
         longitude = gold_biosample.get("longitude")
         if latitude is None or longitude is None:
             return None
-        return nmdc.GeolocationValue(f"{latitude} {longitude}")
+        return nmdc.GeolocationValue(
+            has_raw_value=f"{latitude} {longitude}",
+            latitude=nmdc.DecimalDegree(latitude),
+            longitude=nmdc.DecimalDegree(longitude)
+        )
 
     def _get_instrument_name(self, gold_project: JSON_OBJECT) -> Union[str, None]:
         """Get instrument name used in a GOLD project
