@@ -1,9 +1,11 @@
+import json
 import random
 import uuid
 from pathlib import Path
 
 import yaml
 from nmdc_schema import nmdc
+from linkml_runtime.dumpers import json_dumper, yaml_dumper
 
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 
@@ -183,7 +185,7 @@ def test_get_img_identifiers():
     translator = GoldStudyTranslator(projects=projects, analysis_projects=analysis_projects)
 
     img_identifiers = translator._get_img_identifiers("Gb0000001")
-    assert img_identifiers == [3300000001, 3300000002]
+    assert "img.taxon:3300000001" and "img.taxon:3300000002" in img_identifiers
 
 
 def test_get_collection_date():

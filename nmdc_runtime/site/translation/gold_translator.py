@@ -156,7 +156,7 @@ class GoldStudyTranslator(Translator):
             for id
             in self._analysis_project_ids_by_biosample_id[gold_biosample_id]
         ]
-        return list({ap["imgTaxonOid"] for ap in biosample_analysis_projects if ap["imgTaxonOid"]})
+        return list({f"img.taxon:{ap['imgTaxonOid']}" for ap in biosample_analysis_projects if ap["imgTaxonOid"]})
 
     def _get_collection_date(self, gold_biosample: JSON_OBJECT) -> Union[nmdc.TimestampValue, None]:
         """Get a TimestampValue representing the collection date of a GOLD biosample
