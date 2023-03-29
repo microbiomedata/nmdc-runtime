@@ -138,7 +138,6 @@ def url_to_name(url):
 
 
 def result_for_url_to_json_file(data, url, save_dir):
-
     with open(os.path.join(save_dir, url_to_name(url)), "w") as f:
         json.dump(data.json(), f)
 
@@ -184,7 +183,6 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
         return requests.get(url, timeout=timeout)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_url = {executor.submit(load_url, url, 5): url for url in urls}
             for future in concurrent.futures.as_completed(future_to_url):

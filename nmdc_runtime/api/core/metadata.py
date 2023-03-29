@@ -1,4 +1,5 @@
 import inspect
+import json
 from collections import defaultdict, namedtuple
 from functools import lru_cache
 from io import StringIO
@@ -6,6 +7,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Optional, Dict, List, Tuple, Any, Union
 
+from bson.json_util import dumps as bson_dumps
 import pandas as pd
 import pandas as pds
 from fastapi import HTTPException
@@ -325,7 +327,13 @@ def make_vargroup_updates(df: pds.DataFrame) -> List:
     update_key = ""
     path_lists = []
     obj_dict = {}
-    for (action, attribute, value, path, multivalues,) in df[
+    for (
+        action,
+        attribute,
+        value,
+        path,
+        multivalues,
+    ) in df[
         [
             "action",
             "attribute",
@@ -408,7 +416,12 @@ def make_updates(var_group: Tuple) -> List:
     id_ = df["group_id"].values[0]  # get id for group
 
     updates = []  # collected properties/values to updated
-    for (action, value, path, multivalues,) in df[
+    for (
+        action,
+        value,
+        path,
+        multivalues,
+    ) in df[
         [
             "action",
             "value",
@@ -673,7 +686,7 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
         doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
-        update_result = mdb.command(update_cmd_doc)
+        update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
         doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
         errors = list(validator.iter_errors({collection_name: [doc_after]}))
         results.append(

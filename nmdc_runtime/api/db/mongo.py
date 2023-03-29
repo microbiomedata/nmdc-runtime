@@ -2,6 +2,7 @@ import os
 from functools import lru_cache
 from typing import Set
 
+import pymongo.errors
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import MongoClient
@@ -14,9 +15,13 @@ def get_mongo_db() -> MongoDatabase:
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
-
-        directConnection=False,
+        directConnection=True,
     )
+    try:
+        _client.admin.command("replSetGetConfig")
+    except pymongo.errors.OperationFailure as e:
+        if e.details["codeName"] == "NotYetInitialized":
+            _client.admin.command("replSetInitiate")
     return _client[os.getenv("MONGO_DBNAME")]
 
 
