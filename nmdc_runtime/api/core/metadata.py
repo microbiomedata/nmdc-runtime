@@ -201,7 +201,9 @@ def load_changesheet(
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
-        if ranges.endswith("float"):
+        # TODO make this way more robust,
+        #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
+        if ranges.endswith("float") or ranges.endswith("decimal degree"):
             df.at[ix, "value"] = float(value)
     return df
 
