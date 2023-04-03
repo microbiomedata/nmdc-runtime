@@ -186,7 +186,6 @@ def load_changesheet(
     df["ranges"] = ""
     df["multivalues"] = ""
     sd = get_nmdc_schema_definition()
-    sd.source_file = f"{REPO_ROOT_DIR}/nmdc_schema_yaml_src/nmdc.yaml"
     view = SchemaView(sd)
     for ix, attribute, path, class_name in df[
         ["attribute", "path", "linkml_class"]
