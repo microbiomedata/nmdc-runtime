@@ -30,9 +30,11 @@ SchemaPathProperties = namedtuple(
 FilePathOrBuffer = Union[Path, StringIO]
 
 collection_name_to_class_name = {
-    db_prop: db_prop["items"]["$ref"].split("/")[-1]
-    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
-    if "items" in db_prop and "$ref" in db_prop["items"]
+    db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
+    for db_prop, db_prop_spec in nmdc_jsonschema["$defs"]["Database"][
+        "properties"
+    ].items()
+    if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
 }
 
 
@@ -149,7 +151,6 @@ def load_changesheet(
 
     # create map between id and collection
     id_dict = map_id_to_collection(mongodb)
-    # print("id_dict:", id_dict)
     # add collection for each id
     df["collection_name"] = ""
     prev_id = ""
