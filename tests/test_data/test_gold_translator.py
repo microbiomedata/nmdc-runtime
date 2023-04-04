@@ -237,7 +237,9 @@ def test_get_quantity_value():
     assert value is None
 
     entity = {"arbitraryField": 8}
-    value = translator._get_quantity_value(entity, "arbitraryField", has_numeric_value=8.0, unit="meters")
+    value = translator._get_quantity_value(
+        entity, "arbitraryField", has_numeric_value=8.0, unit="meters"
+    )
     assert value is not None
     assert value.has_raw_value == "8"
     assert value.has_numeric_value == 8.0
