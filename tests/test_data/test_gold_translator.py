@@ -200,7 +200,8 @@ def test_get_img_identifiers():
     )
 
     img_identifiers = translator._get_img_identifiers("Gb0000001")
-    assert "img.taxon:3300000001" and "img.taxon:3300000002" in img_identifiers
+    assert "img.taxon:3300000001" in img_identifiers
+    assert "img.taxon:3300000002" in img_identifiers
 
 
 def test_get_collection_date():
