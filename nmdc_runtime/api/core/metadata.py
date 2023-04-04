@@ -37,6 +37,12 @@ collection_name_to_class_name = {
     if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
 }
 
+collection_names_with_unique_id = {
+    coll_name
+    for coll_name, class_name in collection_name_to_class_name.items()
+    if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("required", [])
+}
+
 
 def load_changesheet(
     filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
