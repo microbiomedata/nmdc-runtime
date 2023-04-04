@@ -13,7 +13,7 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 from nmdc_runtime.util import (
     nmdc_jsonschema,
     drs_metadata_for,
-    nmdc_jsonschema_validate,
+    nmdc_jsonschema_validator,
 )
 
 pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")
@@ -131,7 +131,7 @@ def validate_as_metadata_and_ensure_tags_for(
 ):
     docs = client.get_object_bytes(drs_id).json()
     docs, _ = specialize_activity_set_docs(docs)
-    _ = nmdc_jsonschema_validate(docs)
+    _ = nmdc_jsonschema_validator(docs)
     return {tag: client.ensure_object_tag(drs_id, tag) for tag in tags}
 
 

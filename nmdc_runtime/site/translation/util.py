@@ -6,7 +6,7 @@ from fastjsonschema import JsonSchemaValueException
 
 from nmdc_runtime.lib.nmdc_etl_class import NMDC_ETL
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.util import nmdc_jsonschema_validate
+from nmdc_runtime.util import nmdc_jsonschema_validator
 
 mode_prod = {"resource_defs": {"mongo": mongo_resource}}
 mode_dev = {
@@ -119,7 +119,7 @@ def schema_validate(context, data: tuple):
     collection_name, documents = data
     _, schema_collection_name = collection_name.split(".")
     try:
-        nmdc_jsonschema_validate({schema_collection_name: documents})
+        nmdc_jsonschema_validator({schema_collection_name: documents})
         context.log.info(f"data for {collection_name} is valid")
         yield schema_validate_asset(collection_name, "valid", "none")
         return data  # do I need a return statement and an Output?

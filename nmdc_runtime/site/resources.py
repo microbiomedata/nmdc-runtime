@@ -25,7 +25,7 @@ from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
-from nmdc_runtime.util import nmdc_jsonschema_validate, unfreeze
+from nmdc_runtime.util import nmdc_jsonschema_validator, unfreeze
 
 
 class RuntimeApiSiteClient:
@@ -273,7 +273,7 @@ class MongoDB:
     def add_docs(self, docs, validate=True, replace=True):
         try:
             if validate:
-                nmdc_jsonschema_validate(docs)
+                nmdc_jsonschema_validator(docs)
             rv = {}
             for collection_name, docs in docs.items():
                 rv[collection_name] = self.db[collection_name].bulk_write(

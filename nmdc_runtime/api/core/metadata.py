@@ -1,4 +1,5 @@
 import inspect
+import json
 from collections import defaultdict, namedtuple
 from functools import lru_cache
 from io import StringIO
@@ -6,6 +7,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Optional, Dict, List, Tuple, Any, Union
 
+from bson.json_util import dumps as bson_dumps
 import pandas as pd
 import pandas as pds
 from fastapi import HTTPException
@@ -18,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import nmdc_jsonschema, REPO_ROOT_DIR
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -28,9 +30,17 @@ SchemaPathProperties = namedtuple(
 FilePathOrBuffer = Union[Path, StringIO]
 
 collection_name_to_class_name = {
-    db_prop: db_prop["items"]["$ref"].split("/")[-1]
-    for db_prop in nmdc_jsonschema["$defs"]["Database"]["properties"]
-    if "items" in db_prop and "$ref" in db_prop["items"]
+    db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
+    for db_prop, db_prop_spec in get_nmdc_jsonschema_dict()["$defs"]["Database"][
+        "properties"
+    ].items()
+    if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
+}
+
+collection_names_with_unique_id = {
+    coll_name
+    for coll_name, class_name in collection_name_to_class_name.items()
+    if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("required", [])
 }
 
 
@@ -147,7 +157,6 @@ def load_changesheet(
 
     # create map between id and collection
     id_dict = map_id_to_collection(mongodb)
-    # print("id_dict:", id_dict)
     # add collection for each id
     df["collection_name"] = ""
     prev_id = ""
@@ -184,7 +193,6 @@ def load_changesheet(
     df["ranges"] = ""
     df["multivalues"] = ""
     sd = get_nmdc_schema_definition()
-    sd.source_file = f"{REPO_ROOT_DIR}/nmdc_schema_yaml_src/nmdc.yaml"
     view = SchemaView(sd)
     for ix, attribute, path, class_name in df[
         ["attribute", "path", "linkml_class"]
@@ -200,7 +208,9 @@ def load_changesheet(
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
-        if ranges.endswith("float"):
+        # TODO make this way more robust,
+        #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
+        if ranges.endswith("float") or ranges.endswith("decimal degree"):
             df.at[ix, "value"] = float(value)
     return df
 
@@ -679,13 +689,24 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
         Information about what was updated in the Mongo database.
     """
     results = []
-    validator = Draft7Validator(nmdc_jsonschema)
+    validator_strict = Draft7Validator(get_nmdc_jsonschema_dict())
+    validator_noidpatterns = Draft7Validator(
+        get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+    )
 
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
         doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
-        update_result = mdb.command(update_cmd_doc)
+        update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
         doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+        if collection_name in {
+            "study_set",
+            "biosample_set",
+            "omics_processing_set",
+        } and id_.split(":")[0] in {"gold", "emsl", "igsn"}:
+            validator = validator_noidpatterns
+        else:
+            validator = validator_strict
         errors = list(validator.iter_errors({collection_name: [doc_after]}))
         results.append(
             {

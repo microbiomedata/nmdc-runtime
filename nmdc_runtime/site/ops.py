@@ -492,10 +492,10 @@ def perform_mongo_updates(context, json_in):
     # nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
     #    "id"
     # )
-    nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
+    nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
 
     try:
-        _ = nmdc_jsonschema_validate(docs)
+        _ = nmdc_jsonschema_validator(docs)
     except JsonSchemaValueException as e:
         raise Failure(str(e))
     coll_has_id_index = collection_indexed_on_id(mongo.db)

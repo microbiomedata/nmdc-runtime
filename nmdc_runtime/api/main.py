@@ -1,5 +1,4 @@
 import os
-import subprocess
 from importlib import import_module
 
 import pkg_resources
@@ -324,7 +323,16 @@ async def ensure_initial_resources_on_boot():
             continue
         doc = mdb[collection_name].find_one({}, ["id"])
         if doc and doc.get("id") is not None:
-            mdb[collection_name].create_index("id", unique=True)
+            if mdb[collection_name].count_documents({}) != mdb[
+                collection_name
+            ].count_documents({"id": {"$exists": True}}):
+                raise Exception(f"Not all {collection_name} docs have 'id' field")
+            elif len(mdb[collection_name].distinct("id")) != mdb[
+                collection_name
+            ].count_documents({}):
+                raise Exception(f"Multiple {collection_name} docs with same 'id' value")
+            else:
+                mdb[collection_name].create_index("id", unique=True)
 
     # No two object documents can have the same checksum of the same type.
     mdb.objects.create_index(
@@ -336,7 +344,7 @@ async def ensure_initial_resources_on_boot():
 
 
 @app.on_event("startup")
-async def ensure_indexes():
+async def ensure_attribute_indexes():
     mdb = get_mongo_db()
     for collection_name, index_specs in entity_attributes_to_index.items():
         for spec in index_specs:
