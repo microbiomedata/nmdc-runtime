@@ -222,7 +222,7 @@ class GoldStudyTranslator(Translator):
             return None
         return nmdc.QuantityValue(
             has_raw_value=field_value,
-            has_numeric_value=field_value
+            has_numeric_value=nmdc.Double(field_value)
             if not has_numeric_value
             else has_numeric_value,
             has_unit=unit,
