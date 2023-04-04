@@ -533,9 +533,7 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
 
 @op(config_schema={"study_id": str})
 def get_gold_study_pipeline_inputs(context: OpExecutionContext):
-    return {
-        "study_id": context.op_config["study_id"]
-    }
+    return {"study_id": context.op_config["study_id"]}
 
 
 @op(required_resource_keys={"gold_api_client"})
@@ -563,7 +561,9 @@ def gold_study(context: OpExecutionContext, inputs: dict):
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
-def database_from_gold_study(context: OpExecutionContext, study, projects, biosamples, analysis_projects):
+def database_from_gold_study(
+    context: OpExecutionContext, study, projects, biosamples, analysis_projects
+):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
     def id_minter(*args, **kwargs):
@@ -571,7 +571,9 @@ def database_from_gold_study(context: OpExecutionContext, study, projects, biosa
         response.raise_for_status()
         return response.json()
 
-    translator = GoldStudyTranslator(study, biosamples, projects, analysis_projects, id_minter=id_minter)
+    translator = GoldStudyTranslator(
+        study, biosamples, projects, analysis_projects, id_minter=id_minter
+    )
     database = translator.get_database()
 
     filename = f"database_{study.get('studyGoldId')}.json"
@@ -603,9 +605,7 @@ def export_json(context: OpExecutionContext, export_info):
         AssetMaterialization(
             asset_key=export_info["filename"],
             description=export_info.get("description", ""),
-            metadata={
-                "drs_object_id": drs_object["id"]
-            }
+            metadata={"drs_object_id": drs_object["id"]},
         )
     )
     return ["/objects/" + drs_object["id"]]

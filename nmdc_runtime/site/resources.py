@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional, Union
 
 import requests
 from requests.auth import HTTPBasicAuth
-from dagster import build_init_resource_context, resource, StringSource, InitResourceContext
+from dagster import (
+    build_init_resource_context,
+    resource,
+    StringSource,
+    InitResourceContext,
+)
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from pydantic import BaseModel
@@ -149,12 +154,7 @@ class RuntimeApiSiteClient:
         return self.request("POST", f"/jobs/{job_id}:claim")
 
     def mint_id(self, schema_class, how_many=1):
-        body = {
-            "schema_class": {
-                "id": schema_class
-            },
-            "how_many": how_many
-        }
+        body = {"schema_class": {"id": schema_class}, "how_many": how_many}
         return self.request("POST", "/pids/mint", body)
 
 
@@ -190,18 +190,16 @@ def get_runtime_api_site_client(run_config: frozendict):
 
 @dataclass
 class BasicAuthClient:
-
     base_url: str
     username: str
     password: str
 
-    def request(self, endpoint: str, method: str = "GET", **kwargs) -> requests.Response:
+    def request(
+        self, endpoint: str, method: str = "GET", **kwargs
+    ) -> requests.Response:
         auth = HTTPBasicAuth(self.username, self.password)
         response = requests.request(
-            method,
-            self.base_url + endpoint,
-            auth=auth,
-            **kwargs
+            method, self.base_url + endpoint, auth=auth, **kwargs
         )
         response.raise_for_status()
         return response.json()
@@ -209,7 +207,6 @@ class BasicAuthClient:
 
 @dataclass
 class GoldApiClient(BasicAuthClient):
-
     def _normalize_id(self, id: str) -> str:
         """
         Translates a CURIE into LocalId form
@@ -253,7 +250,7 @@ def gold_api_client_resource(context: InitResourceContext):
     return GoldApiClient(
         base_url=context.resource_config["base_url"],
         username=context.resource_config["username"],
-        password=context.resource_config["password"]
+        password=context.resource_config["password"],
     )
 
 

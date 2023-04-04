@@ -458,7 +458,7 @@ def biosample_submission_ingest():
                         "config": {
                             "base_url": {"env": "GOLD_API_BASE_URL"},
                             "username": {"env": "GOLD_API_USERNAME"},
-                            "password": {"env": "GOLD_API_PASSWORD"}
+                            "password": {"env": "GOLD_API_PASSWORD"},
                         },
                     },
                     "mongo": {
@@ -479,18 +479,10 @@ def biosample_submission_ingest():
                     },
                 },
                 "ops": {
-                    "get_gold_study_pipeline_inputs": {
-                        "config": {
-                            "study_id": ""
-                        }
-                    },
-                    "export_json": {
-                        "config": {
-                            "username": ""
-                        }
-                    }
+                    "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
+                    "export_json": {"config": {"username": ""}},
                 },
-            }
+            },
         )
     ]
 

@@ -510,7 +510,7 @@ def ensure_run_config_data(
         run_config_data = assoc_in(
             run_config_data,
             ["ops", "get_gold_study_pipeline_inputs", "config", "study_id"],
-            nmdc_workflow_inputs[0]
+            nmdc_workflow_inputs[0],
         )
         run_config_data = assoc_in(
             run_config_data,

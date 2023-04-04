@@ -325,7 +325,13 @@ def make_vargroup_updates(df: pds.DataFrame) -> List:
     update_key = ""
     path_lists = []
     obj_dict = {}
-    for (action, attribute, value, path, multivalues,) in df[
+    for (
+        action,
+        attribute,
+        value,
+        path,
+        multivalues,
+    ) in df[
         [
             "action",
             "attribute",
@@ -408,7 +414,12 @@ def make_updates(var_group: Tuple) -> List:
     id_ = df["group_id"].values[0]  # get id for group
 
     updates = []  # collected properties/values to updated
-    for (action, value, path, multivalues,) in df[
+    for (
+        action,
+        value,
+        path,
+        multivalues,
+    ) in df[
         [
             "action",
             "value",
