@@ -40,8 +40,19 @@ def get_nmdc_jsonschema_dict(enforce_id_patterns=True):
     return d if enforce_id_patterns else without_id_patterns(d)
 
 
+@lru_cache
+def get_nmdc_jsonschema_validator(enforce_id_patterns=True):
+    return fastjsonschema.compile(
+        get_nmdc_jsonschema_dict(enforce_id_patterns=enforce_id_patterns)
+    )
+
+
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
-nmdc_jsonschema_validate = fastjsonschema.compile(nmdc_jsonschema)
+nmdc_jsonschema_validator = get_nmdc_jsonschema_validator()
+nmdc_jsonschema_noidpatterns = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+nmdc_jsonschema_validator_noidpatterns = get_nmdc_jsonschema_validator(
+    enforce_id_patterns=False
+)
 
 REPO_ROOT_DIR = Path(__file__).parent.parent
 

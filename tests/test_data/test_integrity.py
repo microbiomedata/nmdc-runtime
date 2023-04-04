@@ -12,14 +12,14 @@ def test_schema_conformance():
     mdb = get_mongo(run_config_frozen__normal_env).db
     names = nmdc_schema_collection_names(mdb)
     fails = []
-    nmdc_jsonschema_validate = fastjsonschema.compile(
+    nmdc_jsonschema_validator = fastjsonschema.compile(
         get_nmdc_jsonschema_dict(enforce_id_patterns=False)
     )
     for name in sorted(names):
         print(f"testing schema conformance for {name} ...")
         for d in mdb[name].find(limit=10):
             try:
-                nmdc_jsonschema_validate({name: [dissoc(d, "_id")]})
+                nmdc_jsonschema_validator({name: [dissoc(d, "_id")]})
             except JsonSchemaValueException as e:
                 fails.append(f"failed: {name} doc with _id {d['_id']} ({e})")
     if fails:

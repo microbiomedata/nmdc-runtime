@@ -29,7 +29,7 @@ def without_id_patterns(nmdc_jsonschema):
     return rv
 
 
-nmdc_jsonschema_validate = fastjsonschema.compile(
+nmdc_jsonschema_validator = fastjsonschema.compile(
     without_id_patterns(get_nmdc_jsonschema_dict())
 )
 
@@ -42,11 +42,11 @@ def test_nmdc_jsonschema_using_new_id_scheme():
                     pytest.fail(f"{class_name}.id: {defn['properties']['id']}")
 
 
-def test_nmdc_jsonschema_validate():
+def test_nmdc_jsonschema_validator():
     with open(REPO_ROOT.joinpath("metadata-translation/examples/study_test.json")) as f:
         study_test = json.load(f)
         try:
-            _ = nmdc_jsonschema_validate(study_test)
+            _ = nmdc_jsonschema_validator(study_test)
         except JsonSchemaValueException as e:
             pytest.fail(str(e))
 

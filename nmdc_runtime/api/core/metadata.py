@@ -20,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import nmdc_jsonschema, REPO_ROOT_DIR
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -31,7 +31,7 @@ FilePathOrBuffer = Union[Path, StringIO]
 
 collection_name_to_class_name = {
     db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
-    for db_prop, db_prop_spec in nmdc_jsonschema["$defs"]["Database"][
+    for db_prop, db_prop_spec in get_nmdc_jsonschema_dict()["$defs"]["Database"][
         "properties"
     ].items()
     if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
@@ -683,13 +683,24 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
         Information about what was updated in the Mongo database.
     """
     results = []
-    validator = Draft7Validator(nmdc_jsonschema)
+    validator_strict = Draft7Validator(get_nmdc_jsonschema_dict())
+    validator_noidpatterns = Draft7Validator(
+        get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+    )
 
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
         doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
         update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
         doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+        if collection_name in {
+            "study_set",
+            "biosample_set",
+            "omics_processing_set",
+        } and id_.startswith("gold:"):
+            validator = validator_noidpatterns
+        else:
+            validator = validator_strict
         errors = list(validator.iter_errors({collection_name: [doc_after]}))
         results.append(
             {
