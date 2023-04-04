@@ -202,13 +202,14 @@ class GoldStudyTranslator(Translator):
         self,
         gold_entity: JSON_OBJECT,
         gold_field: str,
-        has_numeric_value: Union[float, None] = None,
         unit: Union[str, None] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Get any field of a GOLD entity object as a QuantityValue
 
         This method extracts any single field of a GOLD entity object (study, biosample, etc)
-        and if it is not `None` returns it as an `nmdc:QuantityValue`. A unit can optionally
+        and if it is not `None` returns it as an `nmdc:QuantityValue`. A has_numeric_value will 
+        be inferred from the gold_field value in gold_entity. The inference is done only if the 
+        unit is meters. Support for other units will be added incrementally. A unit can optionally 
         be provided, otherwise the unit will be `None`. If the value of the field is `None`,
         `None` will be returned.
 
@@ -223,8 +224,13 @@ class GoldStudyTranslator(Translator):
         return nmdc.QuantityValue(
             has_raw_value=field_value,
             has_numeric_value=nmdc.Double(field_value)
-            if not has_numeric_value
-            else has_numeric_value,
+            # handler for GOLD API fields returning field values
+            # in meters
+            if unit == "meters"
+            else None,
+            # TODO: in the future we will need better handling
+            # to parse out the numerical portion of the quantity value
+            # ex. temp might be 3 C, and we will need to parse out 3.0 from it
             has_unit=unit,
         )
 

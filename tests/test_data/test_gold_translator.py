@@ -222,7 +222,7 @@ def test_get_quantity_value():
     value = translator._get_quantity_value(entity, "arbitraryField")
     assert value is not None
     assert value.has_raw_value == "7"
-    assert value.has_numeric_value == 7.0
+    assert value.has_numeric_value is None
     assert value.has_unit is None
 
     entity = {"arbitraryField": 0}
@@ -232,18 +232,16 @@ def test_get_quantity_value():
     assert value.has_numeric_value == 0.0
     assert value.has_unit == "meters"
 
-    entity = {"arbitraryField": None}
-    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
-    assert value is None
-
     entity = {"arbitraryField": 8}
-    value = translator._get_quantity_value(
-        entity, "arbitraryField", has_numeric_value=8.0, unit="meters"
-    )
+    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
     assert value is not None
     assert value.has_raw_value == "8"
     assert value.has_numeric_value == 8.0
     assert value.has_unit == "meters"
+
+    entity = {"arbitraryField": None}
+    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
+    assert value is None
 
 
 def test_get_text_value():
