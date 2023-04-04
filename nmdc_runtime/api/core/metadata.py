@@ -697,7 +697,7 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
             "study_set",
             "biosample_set",
             "omics_processing_set",
-        } and id_.startswith("gold:"):
+        } and id_.split(":")[0] in {"gold", "emsl", "igsn"}:
             validator = validator_noidpatterns
         else:
             validator = validator_strict
