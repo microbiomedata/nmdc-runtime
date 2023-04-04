@@ -199,7 +199,11 @@ class GoldStudyTranslator(Translator):
         return nmdc.TimestampValue(has_raw_value=date_collected)
 
     def _get_quantity_value(
-        self, gold_entity: JSON_OBJECT, gold_field: str, unit: Union[str, None] = None
+        self,
+        gold_entity: JSON_OBJECT,
+        gold_field: str,
+        has_numeric_value: Union[float, None] = None,
+        unit: Union[str, None] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Get any field of a GOLD entity object as a QuantityValue
 
@@ -218,6 +222,9 @@ class GoldStudyTranslator(Translator):
             return None
         return nmdc.QuantityValue(
             has_raw_value=field_value,
+            has_numeric_value=field_value
+            if not has_numeric_value
+            else has_numeric_value,
             has_unit=unit,
         )
 
