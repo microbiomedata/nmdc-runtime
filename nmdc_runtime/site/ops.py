@@ -6,6 +6,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
+from typing import Tuple
 from zipfile import ZipFile
 
 import fastjsonschema
@@ -28,6 +29,7 @@ from dagster import (
 from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
+from linkml_runtime.utils.yamlutils import YAMLRoot
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -53,6 +55,7 @@ from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
 from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from nmdc_schema import nmdc
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -532,38 +535,42 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
 
 
 @op(config_schema={"study_id": str})
-def get_gold_study_pipeline_inputs(context: OpExecutionContext):
-    return {"study_id": context.op_config["study_id"]}
+def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> str:
+    return context.op_config["study_id"]
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_biosamples_by_study(context: OpExecutionContext, inputs: dict):
+def gold_biosamples_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
-    return client.fetch_biosamples_by_study(inputs["study_id"])
+    return client.fetch_biosamples_by_study(study_id)
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_projects_by_study(context: OpExecutionContext, inputs: dict):
+def gold_projects_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
-    return client.fetch_projects_by_study(inputs["study_id"])
+    return client.fetch_projects_by_study(study_id)
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_analysis_projects_by_study(context: OpExecutionContext, inputs: dict):
+def gold_analysis_projects_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
-    return client.fetch_analysis_projects_by_study(inputs["study_id"])
+    return client.fetch_analysis_projects_by_study(study_id)
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_study(context: OpExecutionContext, inputs: dict):
+def gold_study(context: OpExecutionContext, study_id: str) -> Dict[str, Any]:
     client: GoldApiClient = context.resources.gold_api_client
-    return client.fetch_study(inputs["study_id"])
+    return client.fetch_study(study_id)
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_gold_study(
-    context: OpExecutionContext, study, projects, biosamples, analysis_projects
-):
+    context: OpExecutionContext, 
+    study: Dict[str, Any], 
+    projects: List[Dict[str, Any]], 
+    biosamples: List[Dict[str, Any]], 
+    analysis_projects: List[Dict[str, Any]]
+) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
     def id_minter(*args, **kwargs):
@@ -575,19 +582,29 @@ def nmdc_schema_database_from_gold_study(
         study, biosamples, projects, analysis_projects, id_minter=id_minter
     )
     database = translator.get_database()
+    return database
 
-    filename = f"database_{study.get('studyGoldId')}.json"
-    return {
-        "data": json_dumper.to_dict(database),
-        "filename": filename,
-    }
+
+@op
+def nmdc_schema_database_export_filename(gold_study: Dict[str, Any]) -> str:
+    return f"database_from_{gold_study.get('studyGoldId')}.json"
+
+
+@op
+def nmdc_schema_object_to_dict(object: YAMLRoot) -> Dict[str, Any]:
+    return json_dumper.to_dict(object)
 
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
-def export_json_to_drs(context: OpExecutionContext, export_info):
+def export_json_to_drs(
+    context: OpExecutionContext,
+    data: Dict,
+    filename: str,
+    description: str = ""
+) -> List[str]:
     mdb = context.resources.mongo.db
     username = context.op_config.get("username")
-    content = json.dumps(export_info["data"])
+    content = json.dumps(data)
     sha256hash = hash_from_str(content, "sha256")
     drs_object = mdb.objects.find_one(
         {"checksums": {"$elemMatch": {"type": "sha256", "checksum": sha256hash}}}
@@ -596,15 +613,15 @@ def export_json_to_drs(context: OpExecutionContext, export_info):
         drs_object = persist_content_and_get_drs_object(
             content=content,
             username=username,
-            filename=export_info["filename"],
+            filename=filename,
             content_type="application/json",
-            description=export_info.get("description", ""),
+            description=description,
             id_ns="export-json",
         )
     context.log_event(
         AssetMaterialization(
-            asset_key=export_info["filename"],
-            description=export_info.get("description", ""),
+            asset_key=filename,
+            description=description,
             metadata={"drs_object_id": drs_object["id"]},
         )
     )

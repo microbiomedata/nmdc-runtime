@@ -2,7 +2,9 @@ from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
+    nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
+    nmdc_schema_object_to_dict,
     export_json_to_drs,
     get_gold_study_pipeline_inputs,
     gold_analysis_projects_by_study,
@@ -103,14 +105,16 @@ def apply_metadata_in():
 
 @graph
 def gold_study_to_database():
-    inputs = get_gold_study_pipeline_inputs()
+    study_id = get_gold_study_pipeline_inputs()
 
-    projects = gold_projects_by_study(inputs)
-    biosamples = gold_biosamples_by_study(inputs)
-    analysis_projects = gold_analysis_projects_by_study(inputs)
-    study = gold_study(inputs)
+    projects = gold_projects_by_study(study_id)
+    biosamples = gold_biosamples_by_study(study_id)
+    analysis_projects = gold_analysis_projects_by_study(study_id)
+    study = gold_study(study_id)
 
     database = nmdc_schema_database_from_gold_study(study, projects, biosamples, analysis_projects)
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_schema_database_export_filename(study)
 
-    outputs = export_json_to_drs(database)
+    outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
