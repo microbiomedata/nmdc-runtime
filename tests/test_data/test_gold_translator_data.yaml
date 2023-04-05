@@ -1943,8 +1943,8 @@ output:
     collected_from: fake:3dcdf724-cd8b-4217-94fe-51e082ffee7d
     type: nmdc:Biosample
     img_identifiers:
-    - '3300047546'
-    - '3300043395'
+    - 'img.taxon:3300043395'
+    - 'img.taxon:3300047546'
     samp_name: altamaha_2019_sw_WHONDRS-S19S_0010
     gold_biosample_identifiers:
     - GOLD:Gb0258384
@@ -1953,10 +1953,13 @@ output:
     depth:
       has_raw_value: '0'
       has_unit: meters
+      has_numeric_value: 0
     geo_loc_name:
       has_raw_value: 'USA: Georgia'
     lat_lon:
       has_raw_value: 31.6679 -81.8403
+      latitude: 31.6679
+      longitude: -81.8403
     samp_taxon_id:
       has_raw_value: freshwater metagenome [NCBITaxon:449393]
     ecosystem: Environmental
@@ -1993,8 +1996,8 @@ output:
     collected_from: fake:1b4d8d4a-b41f-4c55-90ec-8a34f6cc9a8c
     type: nmdc:Biosample
     img_identifiers:
-    - '3300043400'
-    - '3300047549'
+    - 'img.taxon:3300043400'
+    - 'img.taxon:3300047549'
     samp_name: king_2019_sw_WHONDRS-S19S_0016
     gold_biosample_identifiers:
     - GOLD:Gb0258389
@@ -2003,10 +2006,13 @@ output:
     depth:
       has_raw_value: '0'
       has_unit: meters
+      has_numeric_value: 0
     geo_loc_name:
       has_raw_value: 'USA: Kansas'
     lat_lon:
       has_raw_value: 39.1041 -96.6027
+      latitude: 39.1041
+      longitude: -96.6027
     samp_taxon_id:
       has_raw_value: freshwater metagenome [NCBITaxon:449393]
     ecosystem: Environmental
@@ -2044,7 +2050,7 @@ output:
     collected_from: fake:9cfba842-7911-46ad-8121-e026ec09d714
     type: nmdc:Biosample
     img_identifiers:
-    - '3300043402'
+    - 'img.taxon:3300043402'
     samp_name: redbuttecreek_2019_sw_WHONDRS-S19S_0029
     gold_biosample_identifiers:
     - GOLD:Gb0258400
@@ -2053,10 +2059,13 @@ output:
     depth:
       has_raw_value: '0'
       has_unit: meters
+      has_numeric_value: 0
     geo_loc_name:
       has_raw_value: 'USA: Salt Lake City, Utah'
     lat_lon:
       has_raw_value: 40.7846 -111.7954
+      latitude: 40.7846
+      longitude: -111.7954
     samp_taxon_id:
       has_raw_value: freshwater metagenome [NCBITaxon:449393]
     ecosystem: Environmental
@@ -2094,7 +2103,7 @@ output:
     collected_from: fake:96497117-98cc-4251-933d-4a2f30d22f08
     type: nmdc:Biosample
     img_identifiers:
-    - '3300043403'
+    - 'img.taxon:3300043403'
     samp_name: marthacreek_2019_sw_WHONDRS-S19S_0030
     gold_biosample_identifiers:
     - GOLD:Gb0258401
@@ -2103,10 +2112,13 @@ output:
     depth:
       has_raw_value: '0'
       has_unit: meters
+      has_numeric_value: 0
     geo_loc_name:
       has_raw_value: 'USA: Stabler, Washington'
     lat_lon:
       has_raw_value: 45.7922 -121.9299
+      latitude: 45.7922
+      longitude: -121.9299
     samp_taxon_id:
       has_raw_value: freshwater metagenome [NCBITaxon:449393]
     ecosystem: Environmental
@@ -2145,7 +2157,7 @@ output:
     collected_from: fake:e5b3ecd4-8aae-44d6-b486-4685cf3cd937
     type: nmdc:Biosample
     img_identifiers:
-    - '3300043425'
+    - 'img.taxon:3300043425'
     samp_name: stroublescreek_2019_sw_WHONDRS-S19S_0089
     gold_biosample_identifiers:
     - GOLD:Gb0258451
@@ -2154,10 +2166,13 @@ output:
     depth:
       has_raw_value: '0'
       has_unit: meters
+      has_numeric_value: 0
     geo_loc_name:
       has_raw_value: 'USA: Blacksburg, Virginia'
     lat_lon:
       has_raw_value: 37.2101 -80.4451
+      latitude: 37.2101
+      longitude: -80.4451
     samp_taxon_id:
       has_raw_value: freshwater metagenome [NCBITaxon:449393]
     ecosystem: Environmental

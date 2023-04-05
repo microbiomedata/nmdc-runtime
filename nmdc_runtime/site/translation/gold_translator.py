@@ -174,7 +174,7 @@ class GoldStudyTranslator(Translator):
             self._analysis_projects_by_id[id]
             for id in self._analysis_project_ids_by_biosample_id[gold_biosample_id]
         ]
-        return list(
+        return sorted(
             {
                 f"img.taxon:{ap['imgTaxonOid']}"
                 for ap in biosample_analysis_projects
@@ -221,16 +221,17 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
+        
+        numeric_value = None
+        # TODO: in the future we will need better handling
+        # to parse out the numerical portion of the quantity value
+        # ex. temp might be 3 C, and we will need to parse out 3.0 from it
+        if unit == "meters":
+            numeric_value = nmdc.Double(field_value)
+        
         return nmdc.QuantityValue(
             has_raw_value=field_value,
-            has_numeric_value=nmdc.Double(field_value)
-            # handler for GOLD API fields returning field values
-            # in meters
-            if unit == "meters"
-            else None,
-            # TODO: in the future we will need better handling
-            # to parse out the numerical portion of the quantity value
-            # ex. temp might be 3 C, and we will need to parse out 3.0 from it
+            has_numeric_value=numeric_value
             has_unit=unit,
         )
 
