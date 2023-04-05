@@ -561,7 +561,7 @@ def gold_study(context: OpExecutionContext, inputs: dict):
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
-def database_from_gold_study(
+def nmdc_schema_database_from_gold_study(
     context: OpExecutionContext, study, projects, biosamples, analysis_projects
 ):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
@@ -584,7 +584,7 @@ def database_from_gold_study(
 
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
-def export_json(context: OpExecutionContext, export_info):
+def export_json_to_drs(context: OpExecutionContext, export_info):
     mdb = context.resources.mongo.db
     username = context.op_config.get("username")
     content = json.dumps(export_info["data"])
@@ -599,7 +599,7 @@ def export_json(context: OpExecutionContext, export_info):
             filename=export_info["filename"],
             content_type="application/json",
             description=export_info.get("description", ""),
-            id_ns="study-metadata-export-csv",
+            id_ns="export-json",
         )
     context.log_event(
         AssetMaterialization(

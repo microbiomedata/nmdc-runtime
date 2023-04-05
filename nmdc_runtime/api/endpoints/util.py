@@ -514,7 +514,7 @@ def ensure_run_config_data(
         )
         run_config_data = assoc_in(
             run_config_data,
-            ["ops", "export_json", "config", "username"],
+            ["ops", "export_json_to_drs", "config", "username"],
             user.username,
         )
         return run_config_data

@@ -231,7 +231,7 @@ class GoldStudyTranslator(Translator):
         
         return nmdc.QuantityValue(
             has_raw_value=field_value,
-            has_numeric_value=numeric_value
+            has_numeric_value=numeric_value,
             has_unit=unit,
         )
 
