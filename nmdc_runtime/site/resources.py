@@ -1,11 +1,18 @@
+from dataclasses import dataclass
 import json
 import os
 from datetime import timedelta, datetime, timezone
 from functools import lru_cache
-from typing import Optional
+from typing import Any, Dict, List, Optional, Union
 
 import requests
-from dagster import build_init_resource_context, resource, StringSource
+from requests.auth import HTTPBasicAuth
+from dagster import (
+    build_init_resource_context,
+    resource,
+    StringSource,
+    InitResourceContext,
+)
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from pydantic import BaseModel
@@ -146,6 +153,10 @@ class RuntimeApiSiteClient:
     def claim_job(self, job_id):
         return self.request("POST", f"/jobs/{job_id}:claim")
 
+    def mint_id(self, schema_class, how_many=1):
+        body = {"schema_class": {"id": schema_class}, "how_many": how_many}
+        return self.request("POST", "/pids/mint", body)
+
 
 @resource(
     config_schema={
@@ -175,6 +186,72 @@ def get_runtime_api_site_client(run_config: frozendict):
         )
     )
     return runtime_api_site_client_resource(resource_context)
+
+
+@dataclass
+class BasicAuthClient:
+    base_url: str
+    username: str
+    password: str
+
+    def request(
+        self, endpoint: str, method: str = "GET", **kwargs
+    ) -> requests.Response:
+        auth = HTTPBasicAuth(self.username, self.password)
+        response = requests.request(
+            method, self.base_url + endpoint, auth=auth, **kwargs
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+@dataclass
+class GoldApiClient(BasicAuthClient):
+    def _normalize_id(self, id: str) -> str:
+        """
+        Translates a CURIE into LocalId form
+
+        :param id: CURIE or LocalId
+        :return: LocalId
+        """
+        return id.replace("gold:", "")
+
+    def fetch_biosamples_by_study(self, study_id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(study_id)
+        results = self.request("/biosamples", params={"studyGoldId": id})
+        return results
+
+    def fetch_projects_by_study(self, study_id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(study_id)
+        results = self.request("/projects", params={"studyGoldId": id})
+        return results
+
+    def fetch_analysis_projects_by_study(self, id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(id)
+        results = self.request("/analysis_projects", params={"studyGoldId": id})
+        return results
+
+    def fetch_study(self, id: str) -> Union[Dict[str, Any], None]:
+        id = self._normalize_id(id)
+        results = self.request("/studies", params={"studyGoldId": id})
+        if not results:
+            return None
+        return results[0]
+
+
+@resource(
+    config_schema={
+        "base_url": StringSource,
+        "username": StringSource,
+        "password": StringSource,
+    }
+)
+def gold_api_client_resource(context: InitResourceContext):
+    return GoldApiClient(
+        base_url=context.resource_config["base_url"],
+        username=context.resource_config["username"],
+        password=context.resource_config["password"],
+    )
 
 
 class MongoDB:

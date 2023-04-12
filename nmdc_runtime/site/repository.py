@@ -22,6 +22,7 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    gold_study_to_database,
     gold_translation,
     gold_translation_curation,
     create_objects_from_site_object_puts,
@@ -34,6 +35,7 @@ from nmdc_runtime.site.graphs import (
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
+    gold_api_client_resource,
     terminus_resource,
     mongo_resource,
 )
@@ -48,6 +50,7 @@ from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
+    "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
 }
@@ -442,6 +445,46 @@ def test_translation():
     graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
 
     return graph_jobs
+
+
+@repository
+def biosample_submission_ingest():
+    return [
+        gold_study_to_database.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": {
+                    "gold_api_client": {
+                        "config": {
+                            "base_url": {"env": "GOLD_API_BASE_URL"},
+                            "username": {"env": "GOLD_API_USERNAME"},
+                            "password": {"env": "GOLD_API_PASSWORD"},
+                        },
+                    },
+                    "mongo": {
+                        "config": {
+                            "host": {"env": "MONGO_HOST"},
+                            "username": {"env": "MONGO_USERNAME"},
+                            "password": {"env": "MONGO_PASSWORD"},
+                            "dbname": {"env": "MONGO_DBNAME"},
+                        },
+                    },
+                    "runtime_api_site_client": {
+                        "config": {
+                            "base_url": {"env": "API_HOST"},
+                            "site_id": {"env": "API_SITE_ID"},
+                            "client_id": {"env": "API_SITE_CLIENT_ID"},
+                            "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                        },
+                    },
+                },
+                "ops": {
+                    "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
+                    "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        )
+    ]
 
 
 # @repository

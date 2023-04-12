@@ -1,0 +1,2323 @@
+---
+input:
+  study:
+    studyGoldId: Gs0149396
+    studyName: Freshwater microbial communities from rivers from various locations all over the world
+    description: The goal of this study is to normalize genome membership and function to river size.
+    modDate: "2023-02-09"
+    addDate: "2020-08-07"
+    contacts:
+      - name: Kelly Wrighton
+        email: kwrighton@gmail.com
+        jgiSsoId: "13631"
+        roles:
+          - PI
+      - name: Robert Danczak
+        email: robert.danczak@pnnl.gov
+        jgiSsoId: "60118"
+        roles:
+          - co-PI
+      - name: Christa Pennacchio
+        email: CPPennacchio@lbl.gov
+        jgiSsoId: "29"
+        roles:
+          - PM
+      - name: Michael Wilkins
+        email: mike.wilkins@colostate.edu
+        jgiSsoId: "5868"
+        roles:
+          - co-PI
+      - name: Rebecca Daly
+        email: rebdaly@colostate.edu
+        jgiSsoId: "31904"
+        roles:
+          - sample contact
+          - co-PI
+      - name: Matthew Sullivan
+        email: mbsulli@gmail.com
+        jgiSsoId: "77"
+        roles:
+          - co-PI
+  biosamples:
+    - biosampleGoldId: Gb0258384
+      biosampleName: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+      ncbiTaxId: 449393
+      ncbiTaxName: freshwater metagenome
+      sampleCollectionSite: river surface water
+      geographicLocation: 'USA: Georgia'
+      latitude: 31.6679
+      longitude: -81.8403
+      ecosystemPathId: 4512
+      ecosystem: Environmental
+      ecosystemCategory: Aquatic
+      ecosystemType: Freshwater
+      ecosystemSubtype: River
+      specificEcosystem: Unclassified
+      altitudeInMeters: null
+      altitudeInMeters2: null
+      dateCollected: null
+      depthInMeters: 0
+      depthInMeters2: null
+      description: Freshwater microbial communities from Georgia, United States
+      hostDiseases: []
+      elevationInMeters: null
+      elevationInMeters2: null
+      geoLocation: 'USA: Georgia'
+      habitat: Freshwater
+      hostGender: null
+      hostName: null
+      hostNcbiTaxid: null
+      isoCountry: USA
+      longhurst: null
+      nitrateConcentration: null
+      oxygenConcentration: null
+      ph: null
+      pressure: null
+      salinity: null
+      salinityConcentration: null
+      sampleBodySite: null
+      sampleBodySubsite: null
+      sampleCollectionTemperature: null
+      subsurfaceDepthInMeters: null
+      subsurfaceDepthInMeters2: null
+      visitNum: null
+      mixsPackage: null
+      envoBroadScale:
+        id: ENVO_01000253
+        label: freshwater river biome
+      envoLocalScale:
+        id: ENVO_00000022
+        label: river
+      envoMedium:
+        id: ENVO_00002042
+        label: surface water
+      modDate: "2022-10-13"
+      addDate: "2020-08-14"
+      contacts:
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+    - biosampleGoldId: Gb0258389
+      biosampleName: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+      ncbiTaxId: 449393
+      ncbiTaxName: freshwater metagenome
+      sampleCollectionSite: river surface water
+      geographicLocation: 'USA: Kansas'
+      latitude: 39.1041
+      longitude: -96.6027
+      ecosystemPathId: 4512
+      ecosystem: Environmental
+      ecosystemCategory: Aquatic
+      ecosystemType: Freshwater
+      ecosystemSubtype: River
+      specificEcosystem: Unclassified
+      altitudeInMeters: null
+      altitudeInMeters2: null
+      dateCollected: null
+      depthInMeters: 0
+      depthInMeters2: null
+      description: Freshwater microbial communities from Kansas, United States
+      hostDiseases: []
+      elevationInMeters: null
+      elevationInMeters2: null
+      geoLocation: 'USA: Kansas'
+      habitat: Freshwater
+      hostGender: null
+      hostName: null
+      hostNcbiTaxid: null
+      isoCountry: USA
+      longhurst: null
+      nitrateConcentration: null
+      oxygenConcentration: null
+      ph: null
+      pressure: null
+      salinity: null
+      salinityConcentration: null
+      sampleBodySite: null
+      sampleBodySubsite: null
+      sampleCollectionTemperature: null
+      subsurfaceDepthInMeters: null
+      subsurfaceDepthInMeters2: null
+      visitNum: null
+      mixsPackage: null
+      envoBroadScale:
+        id: ENVO_01000253
+        label: freshwater river biome
+      envoLocalScale:
+        id: ENVO_00000022
+        label: river
+      envoMedium:
+        id: ENVO_00002042
+        label: surface water
+      modDate: "2022-10-13"
+      addDate: "2020-08-14"
+      contacts:
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+    - biosampleGoldId: Gb0258400
+      biosampleName: Freshwater microbial communities from Red Butte Creek, Salt Lake City, Utah, USA - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+      ncbiTaxId: 449393
+      ncbiTaxName: freshwater metagenome
+      sampleCollectionSite: river surface water
+      geographicLocation: 'USA: Salt Lake City, Utah'
+      latitude: 40.7846
+      longitude: -111.7954
+      ecosystemPathId: 4512
+      ecosystem: Environmental
+      ecosystemCategory: Aquatic
+      ecosystemType: Freshwater
+      ecosystemSubtype: River
+      specificEcosystem: Unclassified
+      altitudeInMeters: null
+      altitudeInMeters2: null
+      dateCollected: null
+      depthInMeters: 0
+      depthInMeters2: null
+      description: Freshwater microbial communities from Utah, United States
+      hostDiseases: []
+      elevationInMeters: null
+      elevationInMeters2: null
+      geoLocation: 'USA: Salt Lake City, Utah'
+      habitat: Freshwater
+      hostGender: null
+      hostName: null
+      hostNcbiTaxid: null
+      isoCountry: USA
+      longhurst: null
+      nitrateConcentration: null
+      oxygenConcentration: null
+      ph: null
+      pressure: null
+      salinity: null
+      salinityConcentration: null
+      sampleBodySite: null
+      sampleBodySubsite: null
+      sampleCollectionTemperature: null
+      subsurfaceDepthInMeters: null
+      subsurfaceDepthInMeters2: null
+      visitNum: null
+      mixsPackage: null
+      envoBroadScale:
+        id: ENVO_01000253
+        label: freshwater river biome
+      envoLocalScale:
+        id: ENVO_00000022
+        label: river
+      envoMedium:
+        id: ENVO_00002042
+        label: surface water
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      contacts:
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+    - biosampleGoldId: Gb0258401
+      biosampleName: Freshwater microbial communities from Martha Creek, Stabler, Washington, USA - marthacreek_2019_sw_WHONDRS-S19S_0030
+      ncbiTaxId: 449393
+      ncbiTaxName: freshwater metagenome
+      sampleCollectionSite: river surface water
+      geographicLocation: 'USA: Stabler, Washington'
+      latitude: 45.7922
+      longitude: -121.9299
+      ecosystemPathId: 4512
+      ecosystem: Environmental
+      ecosystemCategory: Aquatic
+      ecosystemType: Freshwater
+      ecosystemSubtype: River
+      specificEcosystem: Unclassified
+      altitudeInMeters: null
+      altitudeInMeters2: null
+      dateCollected: null
+      depthInMeters: 0
+      depthInMeters2: null
+      description: Freshwater microbial communities from Washington, United States
+      hostDiseases: []
+      elevationInMeters: null
+      elevationInMeters2: null
+      geoLocation: 'USA: Stabler, Washington'
+      habitat: Freshwater
+      hostGender: null
+      hostName: null
+      hostNcbiTaxid: null
+      isoCountry: USA
+      longhurst: null
+      nitrateConcentration: null
+      oxygenConcentration: null
+      ph: null
+      pressure: null
+      salinity: null
+      salinityConcentration: null
+      sampleBodySite: null
+      sampleBodySubsite: null
+      sampleCollectionTemperature: null
+      subsurfaceDepthInMeters: null
+      subsurfaceDepthInMeters2: null
+      visitNum: null
+      mixsPackage: null
+      envoBroadScale:
+        id: ENVO_01000253
+        label: freshwater river biome
+      envoLocalScale:
+        id: ENVO_00000022
+        label: river
+      envoMedium:
+        id: ENVO_00002042
+        label: surface water
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      contacts:
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+    - biosampleGoldId: Gb0258451
+      biosampleName: Freshwater microbial communities from Stroubles Creek, Blacksburg, Virginia, USA - stroublescreek_2019_sw_WHONDRS-S19S_0089
+      ncbiTaxId: 449393
+      ncbiTaxName: freshwater metagenome
+      sampleCollectionSite: river surface water
+      geographicLocation: 'USA: Blacksburg, Virginia'
+      latitude: 37.2101
+      longitude: -80.4451
+      ecosystemPathId: 4512
+      ecosystem: Environmental
+      ecosystemCategory: Aquatic
+      ecosystemType: Freshwater
+      ecosystemSubtype: River
+      specificEcosystem: Unclassified
+      altitudeInMeters: null
+      altitudeInMeters2: null
+      dateCollected: null
+      depthInMeters: 0
+      depthInMeters2: null
+      description: Freshwater microbial communities from Blacksburg, Virginia, United States
+      hostDiseases: []
+      elevationInMeters: null
+      elevationInMeters2: null
+      geoLocation: 'USA: Blacksburg, Virginia'
+      habitat: Freshwater
+      hostGender: null
+      hostName: null
+      hostNcbiTaxid: null
+      isoCountry: USA
+      longhurst: null
+      nitrateConcentration: null
+      oxygenConcentration: null
+      ph: null
+      pressure: null
+      salinity: null
+      salinityConcentration: null
+      sampleBodySite: null
+      sampleBodySubsite: null
+      sampleCollectionTemperature: null
+      subsurfaceDepthInMeters: null
+      subsurfaceDepthInMeters2: null
+      visitNum: null
+      mixsPackage: null
+      envoBroadScale:
+        id: ENVO_01000253
+        label: freshwater river biome
+      envoLocalScale:
+        id: ENVO_00000022
+        label: river
+      envoMedium:
+        id: ENVO_00002042
+        label: surface water
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      contacts:
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+  projects:
+    - projectGoldId: Gp0503505
+      projectName: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+      legacyGoldId: null
+      studyGoldId: Gs0149396
+      biosampleGoldId: Gb0258384
+      organismGoldId: null
+      itsProposalId: 505780
+      itsSpid: 1279961
+      itsSampleId: null
+      pmoProjectId: null
+      ncbiBioProjectAccession: PRJNA710393
+      ncbiBioSampleAccession: SAMN18248532
+      projectStatus: Permanent Draft
+      sequencingStatus: Complete
+      sequencingCenters:
+        - DOE Joint Genome Institute (JGI)
+      jgiFundingProgram: CSP
+      jgiFundingYear: 2020
+      hmpId: null
+      seqMethod:
+        - Illumina NovaSeq S4
+      itsSequencingProductName: Metagenome Standard Draft
+      contacts:
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+      genomePublications: []
+      otherPublications: []
+      sraExperimentIds: []
+      modDate: "2022-10-13"
+      addDate: "2020-08-14"
+      sequencingStrategy: Metagenome
+    - projectGoldId: Gp0503510
+      projectName: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+      legacyGoldId: null
+      studyGoldId: Gs0149396
+      biosampleGoldId: Gb0258389
+      organismGoldId: null
+      itsProposalId: 505780
+      itsSpid: 1279966
+      itsSampleId: null
+      pmoProjectId: null
+      ncbiBioProjectAccession: PRJNA710398
+      ncbiBioSampleAccession: SAMN18247142
+      projectStatus: Permanent Draft
+      sequencingStatus: Complete
+      sequencingCenters:
+        - DOE Joint Genome Institute (JGI)
+      jgiFundingProgram: CSP
+      jgiFundingYear: 2020
+      hmpId: null
+      seqMethod:
+        - Illumina NovaSeq S4
+      itsSequencingProductName: Metagenome Standard Draft
+      contacts:
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+      genomePublications: []
+      otherPublications: []
+      sraExperimentIds: []
+      modDate: "2022-10-13"
+      addDate: "2020-08-14"
+      sequencingStrategy: Metagenome
+    - projectGoldId: Gp0503572
+      projectName: Freshwater microbial communities from Stroubles Creek, Blacksburg, Virginia, USA - stroublescreek_2019_sw_WHONDRS-S19S_0089
+      legacyGoldId: null
+      studyGoldId: Gs0149396
+      biosampleGoldId: Gb0258451
+      organismGoldId: null
+      itsProposalId: 505780
+      itsSpid: 1280028
+      itsSampleId: null
+      pmoProjectId: null
+      ncbiBioProjectAccession: PRJNA710437
+      ncbiBioSampleAccession: SAMN18245678
+      projectStatus: Permanent Draft
+      sequencingStatus: Complete
+      sequencingCenters:
+        - DOE Joint Genome Institute (JGI)
+      jgiFundingProgram: CSP
+      jgiFundingYear: 2020
+      hmpId: null
+      seqMethod:
+        - Illumina NovaSeq S4
+      itsSequencingProductName: Metagenome Standard Draft
+      contacts:
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+      genomePublications: []
+      otherPublications: []
+      sraExperimentIds: []
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      sequencingStrategy: Metagenome
+    - projectGoldId: Gp0503522
+      projectName: Freshwater microbial communities from Martha Creek, Stabler, Washington, USA - marthacreek_2019_sw_WHONDRS-S19S_0030
+      legacyGoldId: null
+      studyGoldId: Gs0149396
+      biosampleGoldId: Gb0258401
+      organismGoldId: null
+      itsProposalId: 505780
+      itsSpid: 1279978
+      itsSampleId: null
+      pmoProjectId: null
+      ncbiBioProjectAccession: PRJNA710408
+      ncbiBioSampleAccession: SAMN18247753
+      projectStatus: Permanent Draft
+      sequencingStatus: Complete
+      sequencingCenters:
+        - DOE Joint Genome Institute (JGI)
+      jgiFundingProgram: CSP
+      jgiFundingYear: 2020
+      hmpId: null
+      seqMethod:
+        - Illumina NovaSeq S4
+      itsSequencingProductName: Metagenome Standard Draft
+      contacts:
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+      genomePublications: []
+      otherPublications: []
+      sraExperimentIds: []
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      sequencingStrategy: Metagenome
+    - projectGoldId: Gp0503521
+      projectName: Freshwater microbial communities from Red Butte Creek, Salt Lake City, Utah, USA - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+      legacyGoldId: null
+      studyGoldId: Gs0149396
+      biosampleGoldId: Gb0258400
+      organismGoldId: null
+      itsProposalId: 505780
+      itsSpid: 1279977
+      itsSampleId: null
+      pmoProjectId: null
+      ncbiBioProjectAccession: PRJNA710407
+      ncbiBioSampleAccession: SAMN18244781
+      projectStatus: Permanent Draft
+      sequencingStatus: Complete
+      sequencingCenters:
+        - DOE Joint Genome Institute (JGI)
+      jgiFundingProgram: CSP
+      jgiFundingYear: 2020
+      hmpId: null
+      seqMethod:
+        - Illumina NovaSeq S4
+      itsSequencingProductName: Metagenome Standard Draft
+      contacts:
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Rebecca Daly
+          email: rebdaly@colostate.edu
+          jgiSsoId: "31904"
+          roles:
+            - sample contact
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Christa Pennacchio
+          email: CPPennacchio@lbl.gov
+          jgiSsoId: "29"
+          roles:
+            - PM
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+      genomePublications: []
+      otherPublications: []
+      sraExperimentIds: []
+      modDate: "2023-02-09"
+      addDate: "2020-08-14"
+      sequencingStrategy: Metagenome
+  analysis_projects:
+    - apGoldId: Ga0451693
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Utah, United States - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1279743
+      itsApName: redbuttecreek_2019_sw_WHONDRS-S19S_0029 MG (Illumina-amplified)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 250354
+      imgTaxonOid: 3300043402
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.23
+      assemblyMethod: metaspades v. 3.14.1
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503521
+      contacts:
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+      modDate: "2022-10-13"
+      addDate: "2020-08-15"
+    - apGoldId: Ga0485234
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1309566
+      itsApName: king_2019_sw_WHONDRS-S19S_0016 MG (Nextera)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 255988
+      imgTaxonOid: 3300047549
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.25
+      assemblyMethod: metaspades v. 3.15.2
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503510
+      contacts:
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+      modDate: "2023-02-11"
+      addDate: "2021-02-17"
+    - apGoldId: Ga0451677
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1279711
+      itsApName: altamaha_2019_sw_WHONDRS-S19S_0010 MG (Illumina-amplified)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 250343
+      imgTaxonOid: 3300043395
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.23
+      assemblyMethod: metaspades v. 3.14.1
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503505
+      contacts:
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+      modDate: "2023-02-11"
+      addDate: "2020-08-15"
+    - apGoldId: Ga0485229
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1309561
+      itsApName: altamaha_2019_sw_WHONDRS-S19S_0010 MG (Nextera)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 255985
+      imgTaxonOid: 3300047546
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.25
+      assemblyMethod: metaspades v. 3.15.2
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503505
+      contacts:
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+      modDate: "2023-02-11"
+      addDate: "2021-02-17"
+    - apGoldId: Ga0451682
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1279721
+      itsApName: king_2019_sw_WHONDRS-S19S_0016 MG (Illumina-amplified)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 250348
+      imgTaxonOid: 3300043400
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.23
+      assemblyMethod: metaspades v. 3.14.1
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503510
+      contacts:
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+      modDate: "2023-02-11"
+      addDate: "2020-08-15"
+    - apGoldId: Ga0451744
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Blacksburg, Virginia, United States - stroublescreek_2019_sw_WHONDRS-S19S_0089
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1279845
+      itsApName: stroublescreek_2019_sw_WHONDRS-S19S_0089 MG (Illumina-amplified)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 250383
+      imgTaxonOid: 3300043425
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.23
+      assemblyMethod: metaspades v. 3.14.1
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503572
+      contacts:
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+      modDate: "2022-10-13"
+      addDate: "2020-08-15"
+    - apGoldId: Ga0451694
+      organismGoldId: null
+      referenceApGoldId: null
+      apName: Freshwater microbial communities from Washington, United States - marthacreek_2019_sw_WHONDRS-S19S_0030
+      apType: Metagenome Analysis
+      studyId: Gs0149396
+      itsApId: 1279745
+      itsApName: marthacreek_2019_sw_WHONDRS-S19S_0030 MG (Illumina-amplified)
+      itsApProductName: Metagenome Standard Draft
+      imgSubmissionId: 250355
+      imgTaxonOid: 3300043403
+      imgPipelineVersion: IMG Annotation Pipeline v.5.0.23
+      assemblyMethod: metaspades v. 3.14.1
+      publications: []
+      sraRuns: []
+      projects:
+        - Gp0503522
+      contacts:
+        - name: Mikayla Borton
+          email: mborton@colostate.edu
+          jgiSsoId: "40119"
+          roles:
+            - other
+            - co-PI
+        - name: Peter Raymond
+          email: peter.raymond@yale.edu
+          jgiSsoId: "77293"
+          roles:
+            - co-PI
+        - name: Kelly Wrighton
+          email: kwrighton@gmail.com
+          jgiSsoId: "13631"
+          roles:
+            - PI
+        - name: Byron Crump
+          email: bcrump@coas.oregonstate.edu
+          jgiSsoId: "8993"
+          roles:
+            - co-PI
+        - name: Robert Danczak
+          email: robert.danczak@pnnl.gov
+          jgiSsoId: "60118"
+          roles:
+            - co-PI
+        - name: Jerome P. Payet
+          email: jpayet@ceoas.oregonstate.edu
+          jgiSsoId: "49266"
+          roles:
+            - co-PI
+        - name: Christopher Henry
+          email: chenry@mcs.anl.gov
+          jgiSsoId: "48057"
+          roles:
+            - co-PI
+        - name: Stephen Good
+          email: stephen.good@oregonstate.edu
+          jgiSsoId: "77291"
+          roles:
+            - co-PI
+        - name: James Stegen
+          email: james.stegen@pnnl.gov
+          jgiSsoId: "7472"
+          roles:
+            - co-PI
+        - name: Matthew Sullivan
+          email: mbsulli@gmail.com
+          jgiSsoId: "77"
+          roles:
+            - co-PI
+        - name: Annika Mosier
+          email: annika.mosier@gmail.com
+          jgiSsoId: "4648"
+          roles:
+            - co-PI
+        - name: Edward Hall
+          email: ed.hall@colostate.edu
+          jgiSsoId: "77292"
+          roles:
+            - co-PI
+        - name: Michael Wilkins
+          email: mike.wilkins@colostate.edu
+          jgiSsoId: "5868"
+          roles:
+            - co-PI
+        - name: Jacob Hosen
+          email: jakehosen@gmail.com
+          jgiSsoId: "77294"
+          roles:
+            - co-PI
+      modDate: "2022-10-13"
+      addDate: "2020-08-15"
+output:
+  biosample_set:
+  - id: fake:7a5b95e4-e837-4123-8823-c1189ecc40fc
+    name: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+    description: Freshwater microbial communities from Georgia, United States
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    env_broad_scale:
+      has_raw_value: ENVO_01000253
+      term:
+        id: ENVO:01000253
+        name: freshwater river biome
+    env_local_scale:
+      has_raw_value: ENVO_00000022
+      term:
+        id: ENVO:00000022
+        name: river
+    env_medium:
+      has_raw_value: ENVO_00002042
+      term:
+        id: ENVO:00002042
+        name: surface water
+    collected_from: fake:3dcdf724-cd8b-4217-94fe-51e082ffee7d
+    type: nmdc:Biosample
+    img_identifiers:
+    - 'img.taxon:3300043395'
+    - 'img.taxon:3300047546'
+    samp_name: altamaha_2019_sw_WHONDRS-S19S_0010
+    gold_biosample_identifiers:
+    - GOLD:Gb0258384
+    insdc_biosample_identifiers:
+    - biosample:SAMN18248532
+    depth:
+      has_raw_value: '0'
+      has_unit: meters
+      has_numeric_value: 0
+    geo_loc_name:
+      has_raw_value: 'USA: Georgia'
+    lat_lon:
+      has_raw_value: 31.6679 -81.8403
+      latitude: 31.6679
+      longitude: -81.8403
+    samp_taxon_id:
+      has_raw_value: freshwater metagenome [NCBITaxon:449393]
+    ecosystem: Environmental
+    ecosystem_category: Aquatic
+    ecosystem_type: Freshwater
+    ecosystem_subtype: River
+    specific_ecosystem: Unclassified
+    add_date: '2020-08-14'
+    habitat: Freshwater
+    location: USA
+    mod_date: '2022-10-13'
+    ncbi_taxonomy_name: freshwater metagenome
+    sample_collection_site: river surface water
+  - id: fake:e888fbb4-cf9a-4625-8f19-ba12e6d9af54
+    name: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+    description: Freshwater microbial communities from Kansas, United States
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    env_broad_scale:
+      has_raw_value: ENVO_01000253
+      term:
+        id: ENVO:01000253
+        name: freshwater river biome
+    env_local_scale:
+      has_raw_value: ENVO_00000022
+      term:
+        id: ENVO:00000022
+        name: river
+    env_medium:
+      has_raw_value: ENVO_00002042
+      term:
+        id: ENVO:00002042
+        name: surface water
+    collected_from: fake:1b4d8d4a-b41f-4c55-90ec-8a34f6cc9a8c
+    type: nmdc:Biosample
+    img_identifiers:
+    - 'img.taxon:3300043400'
+    - 'img.taxon:3300047549'
+    samp_name: king_2019_sw_WHONDRS-S19S_0016
+    gold_biosample_identifiers:
+    - GOLD:Gb0258389
+    insdc_biosample_identifiers:
+    - biosample:SAMN18247142
+    depth:
+      has_raw_value: '0'
+      has_unit: meters
+      has_numeric_value: 0
+    geo_loc_name:
+      has_raw_value: 'USA: Kansas'
+    lat_lon:
+      has_raw_value: 39.1041 -96.6027
+      latitude: 39.1041
+      longitude: -96.6027
+    samp_taxon_id:
+      has_raw_value: freshwater metagenome [NCBITaxon:449393]
+    ecosystem: Environmental
+    ecosystem_category: Aquatic
+    ecosystem_type: Freshwater
+    ecosystem_subtype: River
+    specific_ecosystem: Unclassified
+    add_date: '2020-08-14'
+    habitat: Freshwater
+    location: USA
+    mod_date: '2022-10-13'
+    ncbi_taxonomy_name: freshwater metagenome
+    sample_collection_site: river surface water
+  - id: fake:788f195a-6f50-4ca3-a934-f78d7a71dd85
+    name: Freshwater microbial communities from Red Butte Creek, Salt Lake City, Utah,
+      USA - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+    description: Freshwater microbial communities from Utah, United States
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    env_broad_scale:
+      has_raw_value: ENVO_01000253
+      term:
+        id: ENVO:01000253
+        name: freshwater river biome
+    env_local_scale:
+      has_raw_value: ENVO_00000022
+      term:
+        id: ENVO:00000022
+        name: river
+    env_medium:
+      has_raw_value: ENVO_00002042
+      term:
+        id: ENVO:00002042
+        name: surface water
+    collected_from: fake:9cfba842-7911-46ad-8121-e026ec09d714
+    type: nmdc:Biosample
+    img_identifiers:
+    - 'img.taxon:3300043402'
+    samp_name: redbuttecreek_2019_sw_WHONDRS-S19S_0029
+    gold_biosample_identifiers:
+    - GOLD:Gb0258400
+    insdc_biosample_identifiers:
+    - biosample:SAMN18244781
+    depth:
+      has_raw_value: '0'
+      has_unit: meters
+      has_numeric_value: 0
+    geo_loc_name:
+      has_raw_value: 'USA: Salt Lake City, Utah'
+    lat_lon:
+      has_raw_value: 40.7846 -111.7954
+      latitude: 40.7846
+      longitude: -111.7954
+    samp_taxon_id:
+      has_raw_value: freshwater metagenome [NCBITaxon:449393]
+    ecosystem: Environmental
+    ecosystem_category: Aquatic
+    ecosystem_type: Freshwater
+    ecosystem_subtype: River
+    specific_ecosystem: Unclassified
+    add_date: '2020-08-14'
+    habitat: Freshwater
+    location: USA
+    mod_date: '2023-02-09'
+    ncbi_taxonomy_name: freshwater metagenome
+    sample_collection_site: river surface water
+  - id: fake:420fceeb-8cea-4317-b8d7-66b5d3c8aba0
+    name: Freshwater microbial communities from Martha Creek, Stabler, Washington, USA
+      - marthacreek_2019_sw_WHONDRS-S19S_0030
+    description: Freshwater microbial communities from Washington, United States
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    env_broad_scale:
+      has_raw_value: ENVO_01000253
+      term:
+        id: ENVO:01000253
+        name: freshwater river biome
+    env_local_scale:
+      has_raw_value: ENVO_00000022
+      term:
+        id: ENVO:00000022
+        name: river
+    env_medium:
+      has_raw_value: ENVO_00002042
+      term:
+        id: ENVO:00002042
+        name: surface water
+    collected_from: fake:96497117-98cc-4251-933d-4a2f30d22f08
+    type: nmdc:Biosample
+    img_identifiers:
+    - 'img.taxon:3300043403'
+    samp_name: marthacreek_2019_sw_WHONDRS-S19S_0030
+    gold_biosample_identifiers:
+    - GOLD:Gb0258401
+    insdc_biosample_identifiers:
+    - biosample:SAMN18247753
+    depth:
+      has_raw_value: '0'
+      has_unit: meters
+      has_numeric_value: 0
+    geo_loc_name:
+      has_raw_value: 'USA: Stabler, Washington'
+    lat_lon:
+      has_raw_value: 45.7922 -121.9299
+      latitude: 45.7922
+      longitude: -121.9299
+    samp_taxon_id:
+      has_raw_value: freshwater metagenome [NCBITaxon:449393]
+    ecosystem: Environmental
+    ecosystem_category: Aquatic
+    ecosystem_type: Freshwater
+    ecosystem_subtype: River
+    specific_ecosystem: Unclassified
+    add_date: '2020-08-14'
+    habitat: Freshwater
+    location: USA
+    mod_date: '2023-02-09'
+    ncbi_taxonomy_name: freshwater metagenome
+    sample_collection_site: river surface water
+  - id: fake:009c7ed3-de55-4eba-93b4-de1030ea9138
+    name: Freshwater microbial communities from Stroubles Creek, Blacksburg, Virginia,
+      USA - stroublescreek_2019_sw_WHONDRS-S19S_0089
+    description: Freshwater microbial communities from Blacksburg, Virginia, United
+      States
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    env_broad_scale:
+      has_raw_value: ENVO_01000253
+      term:
+        id: ENVO:01000253
+        name: freshwater river biome
+    env_local_scale:
+      has_raw_value: ENVO_00000022
+      term:
+        id: ENVO:00000022
+        name: river
+    env_medium:
+      has_raw_value: ENVO_00002042
+      term:
+        id: ENVO:00002042
+        name: surface water
+    collected_from: fake:e5b3ecd4-8aae-44d6-b486-4685cf3cd937
+    type: nmdc:Biosample
+    img_identifiers:
+    - 'img.taxon:3300043425'
+    samp_name: stroublescreek_2019_sw_WHONDRS-S19S_0089
+    gold_biosample_identifiers:
+    - GOLD:Gb0258451
+    insdc_biosample_identifiers:
+    - biosample:SAMN18245678
+    depth:
+      has_raw_value: '0'
+      has_unit: meters
+      has_numeric_value: 0
+    geo_loc_name:
+      has_raw_value: 'USA: Blacksburg, Virginia'
+    lat_lon:
+      has_raw_value: 37.2101 -80.4451
+      latitude: 37.2101
+      longitude: -80.4451
+    samp_taxon_id:
+      has_raw_value: freshwater metagenome [NCBITaxon:449393]
+    ecosystem: Environmental
+    ecosystem_category: Aquatic
+    ecosystem_type: Freshwater
+    ecosystem_subtype: River
+    specific_ecosystem: Unclassified
+    add_date: '2020-08-14'
+    habitat: Freshwater
+    location: USA
+    mod_date: '2023-02-09'
+    ncbi_taxonomy_name: freshwater metagenome
+    sample_collection_site: river surface water
+  omics_processing_set:
+  - id: fake:e5ad96d3-f36b-4446-b37e-a9a4ffb3eafb
+    name: Freshwater microbial communities from Georgia, United States - altamaha_2019_sw_WHONDRS-S19S_0010
+    has_input:
+    - fake:7a5b95e4-e837-4123-8823-c1189ecc40fc
+    add_date: '2020-08-14'
+    mod_date: '2022-10-13'
+    instrument_name: Illumina NovaSeq S4
+    ncbi_project_name: Freshwater microbial communities from Georgia, United States
+      - altamaha_2019_sw_WHONDRS-S19S_0010
+    omics_type:
+      has_raw_value: Metagenome
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    processing_institution: JGI
+    type: nmdc:OmicsProcessing
+    gold_sequencing_project_identifiers:
+    - GOLD:Gp0503505
+  - id: fake:cb5b1553-9c1d-4c96-a155-d8303e04bb45
+    name: Freshwater microbial communities from Kansas, United States - king_2019_sw_WHONDRS-S19S_0016
+    has_input:
+    - fake:e888fbb4-cf9a-4625-8f19-ba12e6d9af54
+    add_date: '2020-08-14'
+    mod_date: '2022-10-13'
+    instrument_name: Illumina NovaSeq S4
+    ncbi_project_name: Freshwater microbial communities from Kansas, United States -
+      king_2019_sw_WHONDRS-S19S_0016
+    omics_type:
+      has_raw_value: Metagenome
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    processing_institution: JGI
+    type: nmdc:OmicsProcessing
+    gold_sequencing_project_identifiers:
+    - GOLD:Gp0503510
+  - id: fake:1db4385f-cb2b-456d-900f-19c825dab238
+    name: Freshwater microbial communities from Stroubles Creek, Blacksburg, Virginia,
+      USA - stroublescreek_2019_sw_WHONDRS-S19S_0089
+    has_input:
+    - fake:009c7ed3-de55-4eba-93b4-de1030ea9138
+    add_date: '2020-08-14'
+    mod_date: '2023-02-09'
+    instrument_name: Illumina NovaSeq S4
+    ncbi_project_name: Freshwater microbial communities from Stroubles Creek, Blacksburg,
+      Virginia, USA - stroublescreek_2019_sw_WHONDRS-S19S_0089
+    omics_type:
+      has_raw_value: Metagenome
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    processing_institution: JGI
+    type: nmdc:OmicsProcessing
+    gold_sequencing_project_identifiers:
+    - GOLD:Gp0503572
+  - id: fake:0bd192a2-e8ef-489a-ae12-061fa2309bd4
+    name: Freshwater microbial communities from Martha Creek, Stabler, Washington, USA
+      - marthacreek_2019_sw_WHONDRS-S19S_0030
+    has_input:
+    - fake:420fceeb-8cea-4317-b8d7-66b5d3c8aba0
+    add_date: '2020-08-14'
+    mod_date: '2023-02-09'
+    instrument_name: Illumina NovaSeq S4
+    ncbi_project_name: Freshwater microbial communities from Martha Creek, Stabler,
+      Washington, USA - marthacreek_2019_sw_WHONDRS-S19S_0030
+    omics_type:
+      has_raw_value: Metagenome
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    processing_institution: JGI
+    type: nmdc:OmicsProcessing
+    gold_sequencing_project_identifiers:
+    - GOLD:Gp0503522
+  - id: fake:931e6417-5ed5-4b1d-899b-0531f6f82fb7
+    name: Freshwater microbial communities from Red Butte Creek, Salt Lake City, Utah,
+      USA - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+    has_input:
+    - fake:788f195a-6f50-4ca3-a934-f78d7a71dd85
+    add_date: '2020-08-14'
+    mod_date: '2023-02-09'
+    instrument_name: Illumina NovaSeq S4
+    ncbi_project_name: Freshwater microbial communities from Red Butte Creek, Salt Lake
+      City, Utah, USA - redbuttecreek_2019_sw_WHONDRS-S19S_0029
+    omics_type:
+      has_raw_value: Metagenome
+    part_of:
+    - fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    processing_institution: JGI
+    type: nmdc:OmicsProcessing
+    gold_sequencing_project_identifiers:
+    - GOLD:Gp0503521
+  study_set:
+  - id: fake:d862c2e3-6b0a-42f7-827c-67ebc8d44df7
+    name: Freshwater microbial communities from rivers from various locations all over
+      the world
+    description: The goal of this study is to normalize genome membership and function
+      to river size.
+    gold_study_identifiers:
+    - GOLD:Gs0149396
+    principal_investigator:
+      has_raw_value: Kelly Wrighton
+      email: kwrighton@gmail.com
+      name: Kelly Wrighton
+    title: Freshwater microbial communities from rivers from various locations all over
+      the world
+    type: nmdc:Study
+  field_research_site_set:
+  - id: fake:3dcdf724-cd8b-4217-94fe-51e082ffee7d
+    name: altamaha_2019_sw_WHONDRS-S19S_0010
+  - id: fake:1b4d8d4a-b41f-4c55-90ec-8a34f6cc9a8c
+    name: king_2019_sw_WHONDRS-S19S_0016
+  - id: fake:96497117-98cc-4251-933d-4a2f30d22f08
+    name: marthacreek_2019_sw_WHONDRS-S19S_0030
+  - id: fake:9cfba842-7911-46ad-8121-e026ec09d714
+    name: redbuttecreek_2019_sw_WHONDRS-S19S_0029
+  - id: fake:e5b3ecd4-8aae-44d6-b486-4685cf3cd937
+    name: stroublescreek_2019_sw_WHONDRS-S19S_0089

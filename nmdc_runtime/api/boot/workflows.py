@@ -99,6 +99,12 @@ _raw = [
         "name": "export study biosamples metadata as CSV",
         "description": "Export study biosamples metadata as CSV",
     },
+    {
+        "id": "gold_study_to_database",
+        "created_at": datetime(2023, 2, 17, tzinfo=timezone.utc),
+        "name": "Get nmdc:Database for GOLD study",
+        "description": "For a given GOLD study ID, produce an nmdc:Database representing that study and related entities",
+    },
 ]
 
 

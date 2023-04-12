@@ -8,6 +8,7 @@ pip
 pytest
 pytest-asyncio
 pytest-cov
+requests-mock
 setuptools
 setuptools-scm
 twine
