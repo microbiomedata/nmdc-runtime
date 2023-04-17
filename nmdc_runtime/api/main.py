@@ -5,8 +5,13 @@ import pkg_resources
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pymongo.database import Database as MongoDatabase
+
 from nmdc_runtime.api.core.auth import get_password_hash
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.core.metadata import (
+    schema_collection_names_with_id_field,
+)
+from nmdc_runtime.api.db.mongo import get_mongo_db, all_docs_have_unique_id
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -30,6 +35,7 @@ from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -269,6 +275,19 @@ async def ensure_default_api_perms():
         db["_runtime.api.allow"].create_index("action")
 
 
+def _ensure_unique_id_indexes(mdb: MongoDatabase):
+    """Ensure that any collections with an "id" field have an index on "id"."""
+    for collection_name in mdb.list_collection_names():
+        if collection_name.startswith("system."):  # reserved by mongodb
+            continue
+
+        if (
+            collection_name in schema_collection_names_with_id_field()
+            or all_docs_have_unique_id(collection_name)
+        ):
+            mdb[collection_name].create_index("id", unique=True)
+
+
 @app.on_event("startup")
 async def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
@@ -317,22 +336,7 @@ async def ensure_initial_resources_on_boot():
             upsert=True,
         )
 
-    # Ensure that any collections with an "id" field have an index on "id".
-    for collection_name in mdb.list_collection_names():
-        if collection_name.startswith("system."):  # reserved by mongodb
-            continue
-        doc = mdb[collection_name].find_one({}, ["id"])
-        if doc and doc.get("id") is not None:
-            if mdb[collection_name].count_documents({}) != mdb[
-                collection_name
-            ].count_documents({"id": {"$exists": True}}):
-                raise Exception(f"Not all {collection_name} docs have 'id' field")
-            elif len(mdb[collection_name].distinct("id")) != mdb[
-                collection_name
-            ].count_documents({}):
-                raise Exception(f"Multiple {collection_name} docs with same 'id' value")
-            else:
-                mdb[collection_name].create_index("id", unique=True)
+    _ensure_unique_id_indexes(mdb)
 
     # No two object documents can have the same checksum of the same type.
     mdb.objects.create_index(

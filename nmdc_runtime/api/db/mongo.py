@@ -73,3 +73,13 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
         "functional_annotation_set",
         "genome_feature_set",
     }
+
+
+def all_docs_have_unique_id(coll) -> bool:
+    first_doc = coll.find_one({}, ["id"])
+    if first_doc is None or "id" not in first_doc:
+        # short-circuit exit for empty collection or large collection via first-doc peek.
+        return False
+
+    total_count = coll.count_documents({})
+    return len(coll.distinct("id")) == total_count
