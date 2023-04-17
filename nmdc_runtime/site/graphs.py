@@ -112,7 +112,9 @@ def gold_study_to_database():
     analysis_projects = gold_analysis_projects_by_study(study_id)
     study = gold_study(study_id)
 
-    database = nmdc_schema_database_from_gold_study(study, projects, biosamples, analysis_projects)
+    database = nmdc_schema_database_from_gold_study(
+        study, projects, biosamples, analysis_projects
+    )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
 
