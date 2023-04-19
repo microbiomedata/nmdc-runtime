@@ -69,6 +69,6 @@ def test_get_has_credit_associations():
     assert credit_associations[0].applied_roles[0].code.text == "Conceptualization"
 
 
-def test_get_dataset():
-    translator = SubmissionPortalTranslator()
+def test_get_dataset(test_minter):
+    translator = SubmissionPortalTranslator(id_minter=test_minter)
     assert translator.get_database()

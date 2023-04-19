@@ -74,4 +74,6 @@ class SubmissionPortalTranslator(Translator):
         database = nmdc.Database()
 
         nmdc_study_id = self._id_minter("nmdc:Study")[0]
-        database.study_set = [self._translate_study(self.study, nmdc_study_id)]
+        database.study_set = [self._translate_study(self.metadata_submission, nmdc_study_id)]
+
+        return database
