@@ -50,7 +50,7 @@ from nmdc_runtime.api.models.run import _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiSiteClient
+from nmdc_runtime.site.resources import DataApiClient, GoldApiClient, RuntimeApiSiteClient
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
 from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
@@ -583,6 +583,12 @@ def nmdc_schema_database_from_gold_study(
     )
     database = translator.get_database()
     return database
+
+
+@op(required_resource_keys={"data_api_client"})
+def metadata_submission(context: OpExecutionContext) -> Dict[str, Any]:
+    client: DataApiClient = context.resources.data_api_client
+    return client.fetch_metadata_submission('')
 
 
 @op

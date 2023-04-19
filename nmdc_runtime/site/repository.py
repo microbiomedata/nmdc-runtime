@@ -35,6 +35,7 @@ from nmdc_runtime.site.graphs import (
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
+    data_api_client_resource,
     gold_api_client_resource,
     terminus_resource,
     mongo_resource,
@@ -50,6 +51,7 @@ from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
+    "data_api_client": data_api_client_resource,
     "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
