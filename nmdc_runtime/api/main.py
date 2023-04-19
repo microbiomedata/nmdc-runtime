@@ -5,13 +5,13 @@ import pkg_resources
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.core.auth import get_password_hash
-from nmdc_runtime.api.core.metadata import (
-    schema_collection_names_with_id_field,
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    all_docs_have_unique_id,
+    ensure_unique_id_indexes,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db, all_docs_have_unique_id
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -274,19 +274,6 @@ async def ensure_default_api_perms():
         db["_runtime.api.allow"].create_index("action")
 
 
-def _ensure_unique_id_indexes(mdb: MongoDatabase):
-    """Ensure that any collections with an "id" field have an index on "id"."""
-    for collection_name in mdb.list_collection_names():
-        if collection_name.startswith("system."):  # reserved by mongodb
-            continue
-
-        if (
-            collection_name in schema_collection_names_with_id_field()
-            or all_docs_have_unique_id(collection_name)
-        ):
-            mdb[collection_name].create_index("id", unique=True)
-
-
 @app.on_event("startup")
 async def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
@@ -335,7 +322,7 @@ async def ensure_initial_resources_on_boot():
             upsert=True,
         )
 
-    _ensure_unique_id_indexes(mdb)
+    ensure_unique_id_indexes(mdb)
 
     # No two object documents can have the same checksum of the same type.
     mdb.objects.create_index(

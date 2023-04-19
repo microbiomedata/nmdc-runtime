@@ -1,18 +1,23 @@
 import os
+from contextlib import AbstractContextManager
 from functools import lru_cache
-from typing import Set
+from typing import Set, Dict, Any, Iterable
+from uuid import uuid4
 
-import pymongo.errors
+from pymongo.errors import OperationFailure, AutoReconnect
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from pydantic import BaseModel, conint
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
+from toolz import concat, merge, unique, dissoc
 
+from nmdc_runtime.api.core.metadata import schema_collection_names_with_id_field
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
-from pymongo import MongoClient
+from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
 
 
 @retry(
-    retry=retry_if_exception_type(pymongo.errors.AutoReconnect),
+    retry=retry_if_exception_type(AutoReconnect),
     wait=wait_random_exponential(multiplier=0.5, max=60),
 )
 def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
@@ -31,7 +36,7 @@ def get_mongo_db() -> MongoDatabase:
     )
     try:
         _client.admin.command("replSetGetConfig")
-    except pymongo.errors.OperationFailure as e:
+    except OperationFailure as e:
         if e.details["codeName"] == "NotYetInitialized":
             _client.admin.command("replSetInitiate")
 
@@ -83,3 +88,97 @@ def all_docs_have_unique_id(coll) -> bool:
 
     total_count = coll.count_documents({})
     return len(coll.distinct("id")) == total_count
+
+
+def ensure_unique_id_indexes(mdb: MongoDatabase):
+    """Ensure that any collections with an "id" field have an index on "id"."""
+    candidate_names = (
+        set(mdb.list_collection_names()) | schema_collection_names_with_id_field()
+    )
+    for collection_name in candidate_names:
+        if collection_name.startswith("system."):  # reserved by mongodb
+            continue
+
+        if (
+            collection_name in schema_collection_names_with_id_field()
+            or all_docs_have_unique_id(mdb[collection_name])
+        ):
+            mdb[collection_name].create_index("id", unique=True)
+
+
+class UpdateStatement(BaseModel):
+    q: dict
+    u: dict
+    upsert: bool = False
+    multi: bool = False
+
+
+class DeleteStatement(BaseModel):
+    q: dict
+    limit: conint(ge=0, le=1) = 1
+
+
+class OverlayDBError(Exception):
+    pass
+
+
+class OverlayDB(AbstractContextManager):
+    def __init__(self, mdb: MongoDatabase):
+        self._bottom_db = mdb
+        self._top_db = self._bottom_db.client.get_database(f"overlay-{uuid4()}")
+        ensure_unique_id_indexes(self._top_db)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._bottom_db.client.drop_database(self._top_db.name)
+
+    def replace_or_insert_many(self, coll_name, documents: list):
+        try:
+            self._top_db[coll_name].insert_many(documents)
+        except OperationFailure as e:
+            raise OverlayDBError(str(e.details))
+
+    def apply_updates(self, coll_name, updates: list):
+        """prepare overlay db and apply updates to it."""
+        assert all(UpdateStatement(**us) for us in updates)
+        for update_spec in updates:
+            for bottom_doc in self._bottom_db[coll_name].find(update_spec["q"]):
+                self._top_db[coll_name].insert_one(bottom_doc)
+        try:
+            self._top_db.command({"update": coll_name, "updates": updates})
+        except OperationFailure as e:
+            raise OverlayDBError(str(e.details))
+
+    def delete(self, coll_name, deletes: list):
+        """ "apply" delete command by flagging docs in overlay database"""
+        assert all(DeleteStatement(**us) for us in deletes)
+        for delete_spec in deletes:
+            for bottom_doc in self._bottom_db[coll_name].find(
+                delete_spec["q"], limit=delete_spec.get("limit", 1)
+            ):
+                bottom_doc["_deleted"] = True
+                self._top_db[coll_name].insert_one(bottom_doc)
+
+    def merge_find(self, coll_name, find_spec: dict):
+        """Yield docs first from overlay and then from base db, minding deletion flags."""
+        # ensure projection of "id" and "_deleted"
+        if "projection" in find_spec:
+            proj = find_spec["projection"]
+            if isinstance(proj, dict):
+                proj = merge(proj, {"id": 1, "_deleted": 1})
+            elif isinstance(proj, list):
+                proj = list(unique(proj + ["id", "_deleted"]))
+
+        top_docs = self._top_db[coll_name].find(**find_spec)
+        bottom_docs = self._bottom_db[coll_name].find(**find_spec)
+        top_seen_ids = set()
+        for doc in top_docs:
+            if not doc.get("_deleted"):
+                yield doc
+            top_seen_ids.add(doc["id"])
+
+        for doc in bottom_docs:
+            if doc["id"] not in top_seen_ids:
+                yield doc
