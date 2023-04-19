@@ -254,6 +254,20 @@ def gold_api_client_resource(context: InitResourceContext):
     )
 
 
+@dataclass
+class DataApiClient():
+    def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
+        url = 'https://gist.githubusercontent.com/pkalita-lbl/479005543e8d984ee7f6ddb375290f76/raw/23f184921520ef8b922356e25ec4f5487e94ec78/353d751f-cff0-4558-9051-25a87ba00d3f.json'
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+
+
+@resource
+def data_api_client_resource():
+    return DataApiClient()
+
+
 class MongoDB:
     def __init__(
         self,
