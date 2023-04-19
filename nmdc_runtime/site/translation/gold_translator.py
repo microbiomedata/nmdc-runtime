@@ -1,22 +1,9 @@
 import collections
 import re
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import List, Union
 from nmdc_schema import nmdc
 
-JSON_OBJECT = Dict[str, Any]
-
-
-class Translator:
-    def __init__(
-        self, id_minter: Optional[Callable[[str, Optional[int]], List[str]]] = None
-    ) -> None:
-        self._id_minter = id_minter
-
-    def _index_by_id(self, collection, id):
-        return {item[id]: item for item in collection}
-
-    def _get_curie(self, prefix: str, local: str) -> str:
-        return f"{prefix}:{local}"
+from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
 
 class GoldStudyTranslator(Translator):
