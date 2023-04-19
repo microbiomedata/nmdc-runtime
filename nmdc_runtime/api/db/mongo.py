@@ -123,6 +123,35 @@ class OverlayDBError(Exception):
 
 
 class OverlayDB(AbstractContextManager):
+    """Provides a context whereby a base Database is overlaid with a temporary one.
+
+    If you need to run basic simulations of updates to a base database,
+    you don't want to actually commit transactions to the base database.
+
+    For example, to insert or replace (matching on "id") many documents into a collection in order
+    to then validate the resulting total set of collection documents, an OverlayDB writes to
+    an overlay collection that "shadows" the base collection during a "find" query
+    (the "merge_find" method of an OverlayDB object): if a document with `id0` is found in the
+    overlay collection, that id is marked as "seen" and will not also be returned when
+    subsequently scanning the (unmodified) base-database collection.
+
+    Mongo "update" commands (as the "apply_updates" method) are simulated by first copying affected
+    documents from a base collection to the overlay, and then applying the updates to the overlay,
+    so that again, base collections are unmodified, and a "merge_find" call will produce a result
+    *as if* the base collection(s) were modified.
+
+    Mongo deletions (as the "delete" method) also copy affected documents from the base collection
+    to the overlay collection, and flag them using the "_deleted" field. In this way, a `merge_find`
+    call will match a relevant document given a suitable filter, and will mark the document's id
+    as "seen" *without* returning the document. Thus, the result is as if the document were deleted.
+
+    Usage:
+    ````
+    with OverlayDB(mdb) as odb:
+        # do stuff, e.g. `odb.replace_or_insert_many(...)`
+    ```
+    """
+
     def __init__(self, mdb: MongoDatabase):
         self._bottom_db = mdb
         self._top_db = self._bottom_db.client.get_database(f"overlay-{uuid4()}")
