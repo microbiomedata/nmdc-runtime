@@ -110,7 +110,7 @@ class SubmissionPortalTranslator(Translator):
     
 
     def _get_controlled_identified_term_value(self, raw_value: Optional[str]) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
-        if raw_value is None:
+        if not raw_value:
             return None
         
         ontology_class = self._get_ontology_class(raw_value)
@@ -124,7 +124,7 @@ class SubmissionPortalTranslator(Translator):
         
 
     def _get_controlled_term_value(self, raw_value: Optional[str]) -> Union[nmdc.ControlledTermValue, None]:
-        if raw_value is None:
+        if not raw_value:
             return None
         
         value = nmdc.ControlledTermValue(has_raw_value=raw_value)
@@ -139,7 +139,7 @@ class SubmissionPortalTranslator(Translator):
         if raw_value is None:
             return None
         
-        match = re.fullmatch('([-+]?[1-8]?\d(?:\.\d+)?|90(?:\.0+)?)[\s,]([-+]?180(?:\.0+)?|(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?)', raw_value)
+        match = re.fullmatch('([-+]?(?:[1-8]?\d(?:\.\d+)?|90(?:\.0+)?))[\s,]+([-+]?(?:180(?:\.0+)?|(?:(?:1[0-7]\d)|(?:[1-9]?\d))(?:\.\d+)?))', raw_value)
         if match is None:
             return None
         
@@ -149,15 +149,12 @@ class SubmissionPortalTranslator(Translator):
             longitude=match.group(2)
         )
     
+
     def _get_float(self, raw_value: Optional[str]) -> Union[float, None]:
-        if raw_value is None:
+        try:
+            return float(raw_value)
+        except (ValueError, TypeError):
             return None
-        
-        match = re.match('[+-]?(?=\.\d|\d)(?:\d+)?(?:\.?\d*)(?:[eE][+-]?\d+)?', raw_value)
-        if not match:
-            return None
-        
-        return float(match.group(0))
 
 
     def _translate_study(

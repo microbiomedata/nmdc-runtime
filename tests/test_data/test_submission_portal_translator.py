@@ -126,6 +126,102 @@ def test_get_quantity_value():
     assert qv.has_unit == "meter"
 
 
+def test_get_gold_study_identifiers():
+    translator = SubmissionPortalTranslator()
+
+    gold_ids = translator._get_gold_study_identifiers({
+        "multiOmicsForm": {
+            "GOLDStudyId": "Gs000000"
+        }
+    })
+    assert gold_ids is not None
+    assert len(gold_ids) == 1
+    assert gold_ids[0] == 'GOLD:Gs000000'
+
+    gold_ids = translator._get_gold_study_identifiers({
+        "multiOmicsForm": {
+            "GOLDStudyId": ""
+        }
+    })
+    assert gold_ids is None
+
+
+def test_get_controlled_identified_term_value():
+    translator = SubmissionPortalTranslator()
+
+    value = translator._get_controlled_identified_term_value(None)
+    assert value is None
+
+    value = translator._get_controlled_identified_term_value('')
+    assert value is None
+
+    value = translator._get_controlled_identified_term_value('term')
+    assert value is None
+
+    value = translator._get_controlled_identified_term_value('____term [id:00001]')
+    assert value is not None
+    assert value.has_raw_value == '____term [id:00001]'
+    assert value.term.id == 'id:00001'
+    assert value.term.name == 'term'
+
+
+def test_get_controlled_term_value():
+    translator = SubmissionPortalTranslator()
+
+    value = translator._get_controlled_term_value(None)
+    assert value is None
+
+    value = translator._get_controlled_term_value('')
+    assert value is None
+
+    value = translator._get_controlled_term_value('term')
+    assert value is not None
+    assert value.has_raw_value == 'term'
+    assert value.term is None
+
+    value = translator._get_controlled_term_value('____term [id:00001]')
+    assert value is not None
+    assert value.has_raw_value == '____term [id:00001]'
+    assert value.term.id == 'id:00001'
+    assert value.term.name == 'term'
+
+
+def test_get_geolocation_value():
+    translator = SubmissionPortalTranslator()
+
+    value = translator._get_geolocation_value("0 0")
+    assert value is not None
+    assert value.has_raw_value == '0 0'
+    assert value.latitude == 0
+    assert value.longitude == 0
+
+    value = translator._get_geolocation_value("-3.903895 -38.560507")
+    assert value is not None
+    assert value.has_raw_value == '-3.903895 -38.560507'
+    assert value.latitude == -3.903895
+    assert value.longitude == -38.560507
+
+    # latitude > 90 not allowed
+    value = translator._get_geolocation_value("93.903895 -38.560507")
+    assert value is None
+
+    value = translator._get_geolocation_value("180")
+    assert value is None
+
+
+def test_get_float():
+    translator = SubmissionPortalTranslator()
+
+    value = translator._get_float('-3.5332')
+    assert value == -3.5332
+
+    value = translator._get_float('')
+    assert value is None
+
+    value = translator._get_float(None)
+    assert value is None
+
+
 def test_get_dataset(test_minter):
     translator = SubmissionPortalTranslator(id_minter=test_minter)
     assert translator.get_database()
