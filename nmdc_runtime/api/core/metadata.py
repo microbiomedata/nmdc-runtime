@@ -37,11 +37,14 @@ collection_name_to_class_name = {
     if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
 }
 
-collection_names_with_unique_id = {
-    coll_name
-    for coll_name, class_name in collection_name_to_class_name.items()
-    if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("required", [])
-}
+
+@lru_cache
+def schema_collection_names_with_id_field():
+    return {
+        coll_name
+        for coll_name, class_name in collection_name_to_class_name.items()
+        if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("properties", {})
+    }
 
 
 def load_changesheet(

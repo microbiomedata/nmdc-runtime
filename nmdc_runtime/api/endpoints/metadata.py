@@ -13,7 +13,7 @@ from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
 from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db, OverlayDB, OverlayDBError
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
@@ -219,13 +219,18 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
             return {"result": "errors", "detail": validation_errors}
 
 
-def _validate_json(docs: dict):
+def _validate_json(docs: dict, mdb: MongoDatabase):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs, validation_errors = specialize_activity_set_docs(docs)
 
     for coll_name, coll_docs in docs.items():
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
+        try:
+            with OverlayDB(mdb) as odb:
+                odb.replace_or_insert_many(coll_name, coll_docs)
+        except OverlayDBError as e:
+            validation_errors[coll_name].append(str(e))
 
     if all(len(v) == 0 for v in validation_errors.values()):
         return {"result": "All Okay!"}
@@ -234,14 +239,14 @@ def _validate_json(docs: dict):
 
 
 @router.post("/metadata/json:validate")
-async def validate_json(docs: dict):
+async def validate_json(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
     """
 
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
     """
 
-    return _validate_json(docs)
+    return _validate_json(docs, mdb)
 
 
 @router.post("/metadata/json:submit")
@@ -255,7 +260,7 @@ async def submit_json(
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    rv = _validate_json(docs)
+    rv = _validate_json(docs, mdb)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
