@@ -1,11 +1,12 @@
 import logging
 import re
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 from nmdc_schema import nmdc
 from toolz import get_in, groupby, concat
 from importlib import resources
 from linkml_runtime import SchemaView
+from linkml_runtime.linkml_model import SlotDefinition
 from functools import lru_cache
 
 
@@ -19,7 +20,7 @@ class SubmissionPortalTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.metadata_submission = metadata_submission
-        self.schema_view = _get_schema_view()
+        self.schema_view: SchemaView = _get_schema_view()
 
     def _get_pi(self, metadata_submission: JSON_OBJECT) -> Union[nmdc.PersonValue, None]:
         study_form = metadata_submission.get("studyForm")
@@ -186,6 +187,27 @@ class SubmissionPortalTranslator(Translator):
             websites=get_in(['studyForm', 'linkOutWebpage'], metadata_submission),
         )
     
+    def _transform_value_for_slot(self, value: Any, slot: SlotDefinition):
+        transformed_value = None
+        if slot.range == 'TextValue':
+            transformed_value = nmdc.TextValue(has_raw_value=value)
+        elif slot.range == 'QuantityValue':
+            transformed_value = self._get_quantity_value(value)
+        elif slot.range == 'ControlledIdentifiedTermValue':
+            transformed_value = self._get_controlled_identified_term_value(value)
+        elif slot.range == 'ControlledTermValue':
+            transformed_value = self._get_controlled_term_value(value)
+        elif slot.range == 'TimestampValue':
+            transformed_value = nmdc.TimestampValue(has_raw_value=value)
+        elif slot.range == 'GeolocationValue':
+            transformed_value = self._get_geolocation_value(value)
+        elif slot.range == 'float':
+            transformed_value = self._get_float(value)
+        else:
+            transformed_value = value
+        
+        return transformed_value
+    
     def _translate_biosample(self, sample_data: List[JSON_OBJECT], nmdc_biosample_id: str, nmdc_study_id: str) -> nmdc.Biosample:
         slots = {
             'id': nmdc_biosample_id,
@@ -200,22 +222,10 @@ class SubmissionPortalTranslator(Translator):
                 slot = self.schema_view.induced_slot(column, 'Biosample')
 
                 transformed_value = None
-                if slot.range == 'TextValue':
-                    transformed_value = nmdc.TextValue(has_raw_value=value)
-                elif slot.range == 'QuantityValue':
-                    transformed_value = self._get_quantity_value(value)
-                elif slot.range == 'ControlledIdentifiedTermValue':
-                    transformed_value = self._get_controlled_identified_term_value(value)
-                elif slot.range == 'ControlledTermValue':
-                    transformed_value = self._get_controlled_term_value(value)
-                elif slot.range == 'TimestampValue':
-                    transformed_value = nmdc.TimestampValue(has_raw_value=value)
-                elif slot.range == 'GeolocationValue':
-                    transformed_value = self._get_geolocation_value(value)
-                elif slot.range == 'float':
-                    transformed_value = self._get_float(value)
+                if slot.multivalued:
+                    transformed_value = [self._transform_value_for_slot(item, slot) for item in value]
                 else:
-                    transformed_value = value
+                    transformed_value = self._transform_value_for_slot(value, slot)
 
                 slots[column] = transformed_value
 
