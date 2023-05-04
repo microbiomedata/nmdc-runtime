@@ -1,9 +1,10 @@
-import json
 from pathlib import Path
+import random
+
+import yaml
 from nmdc_runtime.api.endpoints.metadata import _validate_json
 from nmdc_runtime.site.translation.submission_portal_translator import SubmissionPortalTranslator
-from linkml_runtime.dumpers import json_dumper
-import requests
+from nmdc_schema import nmdc
 
 
 def test_get_pi():
@@ -223,5 +224,15 @@ def test_get_float():
 
 
 def test_get_dataset(test_minter):
-    translator = SubmissionPortalTranslator(id_minter=test_minter)
-    assert translator.get_database()
+    random.seed(0)
+    with open(Path(__file__).parent / "test_submission_portal_translator_data.yaml") as f:
+        test_datasets = yaml.safe_load_all(f)
+
+        for test_data in test_datasets:
+            translator = SubmissionPortalTranslator(
+                **test_data["input"], id_minter=test_minter
+            )
+            
+            expected = nmdc.Database(**test_data["output"])
+            actual = translator.get_database()
+            assert actual == expected
