@@ -3,20 +3,23 @@ import requests_mock
 
 from dagster import build_op_context
 
-from nmdc_runtime.site.resources import data_api_client_resource
-from nmdc_runtime.site.ops import metadata_submission
+from nmdc_runtime.site.resources import nmdc_portal_api_client_resource
+from nmdc_runtime.site.ops import nmdc_portal_metadata_submission
 
 
 @pytest.fixture
 def client_config():
-    return {}
+    return {
+        "base_url": "http://example.com/nmdc_portal",
+        "session_cookie": "12345"
+    }
 
 
 @pytest.fixture
 def op_context(client_config):
     return build_op_context(
         resources={
-            "data_api_client": data_api_client_resource.configured(client_config)
+            "nmdc_portal_api_client": nmdc_portal_api_client_resource.configured(client_config)
         },
         op_config={},
     )
@@ -25,10 +28,10 @@ def op_context(client_config):
 def test_metadata_submission(op_context):
     with requests_mock.mock() as mock:
         mock.get(
-            'https://gist.githubusercontent.com/pkalita-lbl/479005543e8d984ee7f6ddb375290f76/raw/23f184921520ef8b922356e25ec4f5487e94ec78/353d751f-cff0-4558-9051-25a87ba00d3f.json',
+            'http://example.com/nmdc_portal/api/metadata_submission/353d751f-cff0-4558-9051-25a87ba00d3f',
             json={"id": "353d751f-cff0-4558-9051-25a87ba00d3f"},
         )
 
-        metadata_submission(op_context)
+        nmdc_portal_metadata_submission(op_context, '353d751f-cff0-4558-9051-25a87ba00d3f')
 
         assert len(mock.request_history) == 1

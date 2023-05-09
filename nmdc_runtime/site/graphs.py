@@ -30,6 +30,8 @@ from nmdc_runtime.site.ops import (
     perform_mongo_updates,
     add_output_run_event,
     gold_biosamples_by_study,
+    nmdc_portal_metadata_submission,
+    nmdc_schema_database_from_metadata_submission,
 )
 
 
@@ -116,5 +118,14 @@ def gold_study_to_database():
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
 
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
+
+@graph
+def metadata_submission_to_nmdc_schema_database():
+    metadata_submission = nmdc_portal_metadata_submission()
+    database = nmdc_schema_database_from_metadata_submission(metadata_submission)
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_schema_database_export_filename(metadata_submission)
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
