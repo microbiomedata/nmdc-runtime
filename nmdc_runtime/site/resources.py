@@ -15,6 +15,7 @@ from dagster import (
 )
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
+from linkml_runtime.dumpers import json_dumper
 from pydantic import BaseModel
 from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient
@@ -26,18 +27,36 @@ from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
 from nmdc_runtime.util import unfreeze, nmdc_jsonschema_validator_noidpatterns
+from nmdc_schema import nmdc
 
 
-class RuntimeApiSiteClient:
-    def __init__(self, base_url: str, site_id: str, client_id: str, client_secret: str):
+class RuntimeApiClient:
+    def __init__(self, base_url: str):
         self.base_url = base_url
-        self.site_id = site_id
-        self.client_id = client_id
-        self.client_secret = client_secret
         self.headers = {}
         self.token_response = None
         self.refresh_token_after = None
-        self.get_token()
+
+    def ensure_token(self):
+        if self.refresh_token_after is None or has_passed(self.refresh_token_after):
+            self.get_token()
+
+    def get_token_request_body(self):
+        raise NotImplementedError()
+    
+    def get_token(self):
+        rv = requests.post(
+            self.base_url + "/token",
+            data=self.get_token_request_body()
+        )
+        self.token_response = rv.json()
+        if "access_token" not in self.token_response:
+            raise Exception(f"Getting token failed: {self.token_response}")
+
+        self.headers["Authorization"] = f'Bearer {self.token_response["access_token"]}'
+        self.refresh_token_after = expiry_dt_from_now(
+            **self.token_response["expires"]
+        ) - timedelta(seconds=5)
 
     def request(self, method, url_path, params_or_json_data=None):
         self.ensure_token()
@@ -49,28 +68,42 @@ class RuntimeApiSiteClient:
         else:
             kwargs["json"] = params_or_json_data
         return requests.request(method, **kwargs)
+    
 
-    def get_token(self):
-        rv = requests.post(
-            self.base_url + "/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-            },
-        )
-        self.token_response = rv.json()
-        if "access_token" not in self.token_response:
-            raise Exception(f"Getting token failed: {self.token_response}")
+class RuntimeApiUserClient(RuntimeApiClient):
+    def __init__(self, username: str, password: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.username = username
+        self.password = password
 
-        self.headers["Authorization"] = f'Bearer {self.token_response["access_token"]}'
-        self.refresh_token_after = expiry_dt_from_now(
-            **self.token_response["expires"]
-        ) - timedelta(seconds=5)
+    def get_token_request_body(self):
+        return {
+            "grant_type": "password",
+            "username": self.username,
+            "password": self.password,
+        }
+        
+    def submit_metadata(self, database: nmdc.Database):
+        body = json_dumper.to_dict(database)
+        return self.request("POST", "/metadata/json:submit", body)
+    
+    def get_run_info(self, run_id: str):
+        return self.request("GET", f"/runs/{run_id}")
+        
 
-    def ensure_token(self):
-        if has_passed(self.refresh_token_after):
-            self.get_token()
+class RuntimeApiSiteClient(RuntimeApiClient):
+    def __init__(self, site_id: str, client_id: str, client_secret: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.site_id = site_id
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    def get_token_request_body(self):
+        return {
+            "grant_type": "client_credentials",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+        }
 
     def put_object_in_site(self, object_in):
         return self.request("POST", f"/sites/{self.site_id}:putObject", object_in)
@@ -174,6 +207,19 @@ def runtime_api_site_client_resource(context):
         client_secret=context.resource_config["client_secret"],
     )
 
+@resource(
+    config_schema={
+        "base_url": StringSource,
+        "username": StringSource,
+        "password": StringSource,
+    }
+)
+def runtime_api_user_client_resource(context):
+    return RuntimeApiUserClient(
+        base_url=context.resource_config["base_url"],
+        username=context.resource_config["username"],
+        password=context.resource_config["password"],
+    )
 
 @lru_cache
 def get_runtime_api_site_client(run_config: frozendict):

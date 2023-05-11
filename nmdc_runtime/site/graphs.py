@@ -10,6 +10,7 @@ from nmdc_runtime.site.ops import (
     gold_analysis_projects_by_study,
     gold_projects_by_study,
     gold_study,
+    poll_for_run_completion,
     run_etl,
     local_file_to_api_object,
     get_operation,
@@ -20,6 +21,7 @@ from nmdc_runtime.site.ops import (
     filter_ops_done_object_puts,
     hello,
     mongo_stats,
+    submit_metadata_to_db,
     update_schema,
     filter_ops_undone_expired,
     construct_jobs,
@@ -30,8 +32,8 @@ from nmdc_runtime.site.ops import (
     perform_mongo_updates,
     add_output_run_event,
     gold_biosamples_by_study,
-    nmdc_portal_metadata_submission,
-    nmdc_schema_database_from_metadata_submission,
+    fetch_nmdc_portal_submission_by_id,
+    translate_portal_submission_to_nmdc_schema_database,
 )
 
 
@@ -123,9 +125,11 @@ def gold_study_to_database():
 
 @graph
 def metadata_submission_to_nmdc_schema_database():
-    metadata_submission = nmdc_portal_metadata_submission()
-    database = nmdc_schema_database_from_metadata_submission(metadata_submission)
-    database_dict = nmdc_schema_object_to_dict(database)
-    filename = nmdc_schema_database_export_filename(metadata_submission)
-    outputs = export_json_to_drs(database_dict, filename)
-    add_output_run_event(outputs)
+    metadata_submission = fetch_nmdc_portal_submission_by_id()
+    database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
+    run_id = submit_metadata_to_db(database)
+    poll_for_run_completion(run_id)
+    # database_dict = nmdc_schema_object_to_dict(database)
+    # filename = nmdc_schema_database_export_filename(metadata_submission)
+    # outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event([run_id])

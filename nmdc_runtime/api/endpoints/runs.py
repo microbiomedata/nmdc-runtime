@@ -42,21 +42,21 @@ def request_run(
         )
 
 
-def _get_run_summary(run_id, mdb):
+def _get_run_summary(run_id, mdb) -> RunSummary:
     events_in_order = list(mdb.run_events.find({"run.id": run_id}, sort=[("time", 1)]))
     raise404_if_none(events_in_order or None)
     # TODO put relevant outputs in outputs! (for get_study_metadata job)
-    return {
-        "id": run_id,
-        "status": events_in_order[-1]["type"],
-        "started_at_time": events_in_order[0]["time"],
-        "was_started_by": events_in_order[0]["producer"],
-        "inputs": list(concat(e["inputs"] for e in events_in_order)),
-        "outputs": list(concat(e["outputs"] for e in events_in_order)),
-        "job": events_in_order[-1]["job"],
-        "producer": events_in_order[-1]["producer"],
-        "schemaURL": events_in_order[-1]["schemaURL"],
-    }
+    return RunSummary(
+        id=run_id,
+        status=events_in_order[-1]["type"],
+        started_at_time=events_in_order[0]["time"],
+        was_started_by=events_in_order[0]["producer"],
+        inputs=list(concat(e["inputs"] for e in events_in_order)),
+        outputs=list(concat(e["outputs"] for e in events_in_order)),
+        job=events_in_order[-1]["job"],
+        producer=events_in_order[-1]["producer"],
+        schemaURL=events_in_order[-1]["schemaURL"],
+    )
 
 
 @router.get(

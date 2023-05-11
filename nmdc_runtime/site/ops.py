@@ -23,6 +23,7 @@ from dagster import (
     Out,
     Output,
     RetryPolicy,
+    RetryRequested,
     String,
     op,
 )
@@ -46,11 +47,11 @@ from nmdc_runtime.api.models.operation import (
     Operation,
     UpdateOperationRequest,
 )
-from nmdc_runtime.api.models.run import _add_run_complete_event
+from nmdc_runtime.api.models.run import RunEventType, RunSummary, _add_run_complete_event
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.site.resources import NmdcPortalApiClient, GoldApiClient, RuntimeApiSiteClient
+from nmdc_runtime.site.resources import NmdcPortalApiClient, GoldApiClient, RuntimeApiSiteClient, RuntimeApiUserClient
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.translation.submission_portal_translator import SubmissionPortalTranslator
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
@@ -274,6 +275,25 @@ def create_objects_from_ops(context, op_docs: list):
         raise Failure(f"Unexpected response(s): {[r.text for r in responses]}")
     return op_docs
 
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) -> str:
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.submit_metadata(database)
+    response.raise_for_status()
+    body = response.json()
+    return body["detail"]["run_id"]
+
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def poll_for_run_completion(context: OpExecutionContext, run_id: str):
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.get_run_info(run_id)
+    response.raise_for_status()
+    body = RunSummary.parse_obj(response.json())
+    context.log.info(body.status)
+    if body.status != RunEventType.COMPLETE:
+        raise RetryRequested(max_retries=12, seconds_to_wait=10)
 
 @op
 def filter_ops_done_object_puts() -> str:
@@ -587,14 +607,14 @@ def nmdc_schema_database_from_gold_study(
 
 
 @op(required_resource_keys={"nmdc_portal_api_client"}, config_schema={"submission_id": str})
-def nmdc_portal_metadata_submission(context: OpExecutionContext) -> Dict[str, Any]:
+def fetch_nmdc_portal_submission_by_id(context: OpExecutionContext) -> Dict[str, Any]:
     submission_id = context.op_config["submission_id"]
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
     return client.fetch_metadata_submission(submission_id)
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
-def nmdc_schema_database_from_metadata_submission(
+def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any], 
 ) -> nmdc.Database:

@@ -36,6 +36,7 @@ from nmdc_runtime.site.graphs import (
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
+    runtime_api_user_client_resource,
     nmdc_portal_api_client_resource,
     gold_api_client_resource,
     terminus_resource,
@@ -52,6 +53,7 @@ from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
+    "runtime_api_user_client": runtime_api_user_client_resource,
     "nmdc_portal_api_client": nmdc_portal_api_client_resource,
     "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
@@ -67,6 +69,13 @@ preset_normal = {
                     "site_id": {"env": "API_SITE_ID"},
                     "client_id": {"env": "API_SITE_CLIENT_ID"},
                     "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                },
+            },
+            "runtime_api_user_client": {
+                "config": {
+                    "base_url": {"env": "API_HOST"},
+                    "username": {"env": "API_ADMIN_USER"},
+                    "password": {"env": "API_ADMIN_PASS"},
                 },
             },
             "mongo": {
@@ -484,8 +493,8 @@ def biosample_submission_ingest():
                     }
                 }),
                 "ops": {
-                    "export_json_to_drs": {'config': {'username': '...'}}, 
-                    'nmdc_portal_metadata_submission': {'config': {'submission_id': '...'}}
+                    # "export_json_to_drs": {'config': {'username': '...'}}, 
+                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': '...'}}
                 }
             }
         ),
