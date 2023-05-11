@@ -156,6 +156,30 @@ class SubmissionPortalTranslator(Translator):
             return float(raw_value)
         except (ValueError, TypeError):
             return None
+        
+    
+    def _get_from(self, metadata_submission: JSON_OBJECT, field: Union[str, List[str]]):
+        if not isinstance(field, list):
+            field = [field]
+        value = get_in(field, metadata_submission)
+
+        def sanitize(val):
+            sanitized = val
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
+            if sanitized == "":
+                sanitized = None
+            return sanitized
+
+        if isinstance(value, list):
+            value = [sanitize(v) for v in value]
+            value = [v for v in value if v is not None]
+            if not value:
+                value = None
+        else:
+            value = sanitize(value)
+        
+        return value
 
 
     def _translate_study(
@@ -171,20 +195,20 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc:Study object
         """
         return nmdc.Study(
-            alternative_identifiers=get_in(['multiOmicsForm', 'JGIStudyId'], metadata_submission),
-            alternative_names=get_in(['multiOmicsForm', 'alternativeNames'], metadata_submission),
-            description=get_in(['studyForm', 'description'], metadata_submission),
+            alternative_identifiers=self._get_from(metadata_submission, ['multiOmicsForm', 'JGIStudyId']),
+            alternative_names=self._get_from(metadata_submission, ['multiOmicsForm', 'alternativeNames']),
+            description=self._get_from(metadata_submission, ['studyForm', 'description']),
             doi=self._get_doi(metadata_submission),
-            emsl_proposal_identifier=get_in(['multiOmicsForm', 'studyNumber'], metadata_submission),
+            emsl_proposal_identifier=self._get_from(metadata_submission, ['multiOmicsForm', 'studyNumber']),
             gold_study_identifiers=self._get_gold_study_identifiers(metadata_submission),
             has_credit_associations=self._get_has_credit_associations(metadata_submission),
             id=nmdc_study_id,
-            insdc_bioproject_identifiers=get_in(['multiOmicsForm', 'NCBIBioProjectId'], metadata_submission) or None,
-            name=get_in(['studyForm', 'studyName'], metadata_submission),
-            notes=get_in(['studyForm', 'notes'], metadata_submission),
+            insdc_bioproject_identifiers=self._get_from(metadata_submission, ['multiOmicsForm', 'NCBIBioProjectId']),
+            name=self._get_from(metadata_submission, ['studyForm', 'studyName']),
+            notes=self._get_from(metadata_submission, ['studyForm', 'notes']),
             principal_investigator=self._get_pi(metadata_submission),
-            title=get_in(['studyForm', 'studyName'], metadata_submission),
-            websites=get_in(['studyForm', 'linkOutWebpage'], metadata_submission),
+            title=self._get_from(metadata_submission, ['studyForm', 'studyName']),
+            websites=self._get_from(metadata_submission, ['studyForm', 'linkOutWebpage']),
         )
     
     def _transform_value_for_slot(self, value: Any, slot: SlotDefinition):
@@ -203,6 +227,8 @@ class SubmissionPortalTranslator(Translator):
             transformed_value = self._get_geolocation_value(value)
         elif slot.range == 'float':
             transformed_value = self._get_float(value)
+        elif slot.range == 'string':
+            transformed_value = str(value).strip()
         else:
             transformed_value = value
         

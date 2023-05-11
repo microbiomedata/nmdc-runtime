@@ -223,6 +223,29 @@ def test_get_float():
     assert value is None
 
 
+def test_get_from():
+    translator = SubmissionPortalTranslator()
+
+    metadata = {
+        "one": {
+            "two": {
+                "three": "  three  ",
+                "empty": ""
+            },
+            "four": ["one", "  two  ", "three"],
+            "empty": [""],
+            "some_empty": ["one", "", "three"],
+        }
+    }
+    assert translator._get_from(metadata, "one") == metadata["one"]
+    assert translator._get_from(metadata, ["one", "two", "three"]) == "three"
+    assert translator._get_from(metadata, ["one", "two", "empty"]) is None
+    assert translator._get_from(metadata, "two") is None
+    assert translator._get_from(metadata, ["one", "four"]) == ["one", "two", "three"]
+    assert translator._get_from(metadata, ["one", "empty"]) is None
+    assert translator._get_from(metadata, ["one", "some_empty"]) == ["one", "three"]
+
+
 def test_get_dataset(test_minter):
     random.seed(0)
     with open(Path(__file__).parent / "test_submission_portal_translator_data.yaml") as f:
