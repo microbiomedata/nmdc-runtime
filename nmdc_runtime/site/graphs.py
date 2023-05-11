@@ -124,12 +124,17 @@ def gold_study_to_database():
     add_output_run_event(outputs)
 
 @graph
-def metadata_submission_to_nmdc_schema_database():
+def dry_run_metadata_submission_to_nmdc_schema_database():
+    metadata_submission = fetch_nmdc_portal_submission_by_id()
+    database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_schema_database_export_filename(metadata_submission)
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
+
+@graph
+def submit_metadata_submission_to_nmdc_schema_database():
     metadata_submission = fetch_nmdc_portal_submission_by_id()
     database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
-    # database_dict = nmdc_schema_object_to_dict(database)
-    # filename = nmdc_schema_database_export_filename(metadata_submission)
-    # outputs = export_json_to_drs(database_dict, filename)
-    add_output_run_event([run_id])

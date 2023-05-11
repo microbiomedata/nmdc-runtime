@@ -22,8 +22,9 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    dry_run_metadata_submission_to_nmdc_schema_database,
+    submit_metadata_submission_to_nmdc_schema_database,
     gold_study_to_database,
-    metadata_submission_to_nmdc_schema_database,
     gold_translation,
     gold_translation_curation,
     create_objects_from_site_object_puts,
@@ -481,7 +482,7 @@ def biosample_submission_ingest():
                 },
             },
         ),
-        metadata_submission_to_nmdc_schema_database.to_job(
+        dry_run_metadata_submission_to_nmdc_schema_database.to_job(
             resource_defs=resource_defs,
             config={
                 "resources": merge(unfreeze(normal_resources), {
@@ -493,8 +494,24 @@ def biosample_submission_ingest():
                     }
                 }),
                 "ops": {
-                    # "export_json_to_drs": {'config': {'username': '...'}}, 
-                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': '...'}}
+                    "export_json_to_drs": {'config': {'username': '...'}}, 
+                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': '...'}},
+                }
+            }
+        ),
+        submit_metadata_submission_to_nmdc_schema_database.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(unfreeze(normal_resources), {
+                    "nmdc_portal_api_client": {
+                        "config": {
+                            "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
+                            "session_cookie": {"env": "NMDC_PORTAL_API_SESSION_COOKIE"}
+                        }
+                    }
+                }),
+                "ops": {
+                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': '...'}},
                 }
             }
         ),

@@ -286,7 +286,7 @@ def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) 
 
 
 @op(required_resource_keys={"runtime_api_user_client"})
-def poll_for_run_completion(context: OpExecutionContext, run_id: str):
+def poll_for_run_completion(context: OpExecutionContext, run_id: str) -> RunSummary:
     client: RuntimeApiUserClient = context.resources.runtime_api_user_client
     response = client.get_run_info(run_id)
     response.raise_for_status()
@@ -294,6 +294,7 @@ def poll_for_run_completion(context: OpExecutionContext, run_id: str):
     context.log.info(body.status)
     if body.status != RunEventType.COMPLETE:
         raise RetryRequested(max_retries=12, seconds_to_wait=10)
+    return body
 
 @op
 def filter_ops_done_object_puts() -> str:
