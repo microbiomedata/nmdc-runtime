@@ -22,8 +22,8 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
-    dry_run_metadata_submission_to_nmdc_schema_database,
-    submit_metadata_submission_to_nmdc_schema_database,
+    translate_metadata_submission_to_nmdc_schema_database,
+    ingest_metadata_submission,
     gold_study_to_database,
     gold_translation,
     gold_translation_curation,
@@ -482,7 +482,8 @@ def biosample_submission_ingest():
                 },
             },
         ),
-        dry_run_metadata_submission_to_nmdc_schema_database.to_job(
+        translate_metadata_submission_to_nmdc_schema_database.to_job(
+            description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. The object is serialized to JSON and stored in DRS. This can be considered a dry-run for the `ingest_metadata_submission` job.",
             resource_defs=resource_defs,
             config={
                 "resources": merge(unfreeze(normal_resources), {
@@ -499,7 +500,8 @@ def biosample_submission_ingest():
                 }
             }
         ),
-        submit_metadata_submission_to_nmdc_schema_database.to_job(
+        ingest_metadata_submission.to_job(
+            description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. This object is validated and ingested into Mongo via a `POST /metadata/json:submit` request.",
             resource_defs=resource_defs,
             config={
                 "resources": merge(unfreeze(normal_resources), {
