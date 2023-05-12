@@ -87,6 +87,10 @@ class RuntimeApiUserClient(RuntimeApiClient):
         body = json_dumper.to_dict(database)
         return self.request("POST", "/metadata/json:submit", body)
     
+    def validate_metadata(self, database: nmdc.Database):
+        body = json_dumper.to_dict(database)
+        return self.request("POST", "/metadata/json:validate", body)
+    
     def get_run_info(self, run_id: str):
         return self.request("GET", f"/runs/{run_id}")
         

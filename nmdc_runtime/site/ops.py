@@ -277,6 +277,21 @@ def create_objects_from_ops(context, op_docs: list):
 
 
 @op(required_resource_keys={"runtime_api_user_client"})
+def validate_metadata(context: OpExecutionContext, database: nmdc.Database):
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.validate_metadata(database)
+    response.raise_for_status()
+    body = response.json()
+    if body["result"] != "All Okay!":
+        raise Failure(
+            description="Metadata did not validate",
+            metadata={
+                "detail": body["detail"]
+            },
+        )
+    return body
+
+@op(required_resource_keys={"runtime_api_user_client"})
 def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) -> str:
     client: RuntimeApiUserClient = context.resources.runtime_api_user_client
     response = client.submit_metadata(database)
