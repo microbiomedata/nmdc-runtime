@@ -12,10 +12,18 @@ from functools import lru_cache
 
 @lru_cache
 def _get_schema_view():
+    """Return a SchemaView instance representing the NMDC schema"""
     return SchemaView(str(resources.path('nmdc_schema', 'nmdc_materialized_patterns.yaml')))
 
 
 class SubmissionPortalTranslator(Translator):
+    """A Translator subclass for handling submission portal entries
+
+    This translator is constructed with a metadata_submission object from the
+    submission portal. Since the submission schema is built by importing slots
+    from the nmdc:Biosample class this translator largely works by introspecting
+    the nmdc:Biosample class (via a SchemaView instance)
+    """
     def __init__(self, metadata_submission: JSON_OBJECT = {}, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -23,6 +31,11 @@ class SubmissionPortalTranslator(Translator):
         self.schema_view: SchemaView = _get_schema_view()
 
     def _get_pi(self, metadata_submission: JSON_OBJECT) -> Union[nmdc.PersonValue, None]:
+        """Construct an nmdc:PersonValue object using values from the study form data
+
+        :param metadata_submission: submission portal entry
+        :return: nmdc:PersonValue
+        """
         study_form = metadata_submission.get("studyForm")
         if not study_form:
             return None
@@ -34,6 +47,11 @@ class SubmissionPortalTranslator(Translator):
         )
 
     def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[nmdc.AttributeValue, None]:
+        """Construct an nmdc:AttributeValue object using information from the context form data
+
+        :param metadata_submission: submission portal entry
+        :return: nmdc:AttributeValue
+        """
         doi = get_in(['contextForm', 'datasetDoi'], metadata_submission)
         if not doi:
             return None
@@ -41,6 +59,11 @@ class SubmissionPortalTranslator(Translator):
         return nmdc.AttributeValue(has_raw_value=doi)
 
     def _get_has_credit_associations(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.CreditAssociation], None]:
+        """Construct a list of nmdc:CreditAssociation from the study form data
+
+        :param metadata_submission: submission portal entry
+        :return: nmdc.CreditAssociation list
+        """
         contributors = get_in(['studyForm', 'contributors'], metadata_submission)
         if not contributors:
             return None
@@ -57,6 +80,11 @@ class SubmissionPortalTranslator(Translator):
         ]
     
     def _get_gold_study_identifiers(self, metadata_submission: JSON_OBJECT) -> Union[List[str], None]:
+        """Construct a GOLD CURIE from the multiomics from data
+
+        :param metadata_submission: submission portal entry
+        :return: GOLD CURIE
+        """
         gold_study_id = get_in(['multiOmicsForm', 'GOLDStudyId'], metadata_submission)
         if not gold_study_id:
             return None
@@ -64,6 +92,23 @@ class SubmissionPortalTranslator(Translator):
         return [self._get_curie('GOLD', gold_study_id)]
     
     def _get_quantity_value(self, raw_value: Optional[str], unit: Optional[str] = None) -> Union[nmdc.QuantityValue, None]:
+        """Construct a nmdc:QuantityValue from a raw value string
+
+        The regex pattern minimally matches on a single numeric value (possibly
+        floating point). The pattern can also identify a range represented by
+        two numeric values separated by a hyphen. It can also identify non-numeric
+        characters at the end of the string which are interpreted as a unit. A unit
+        may also be explicitly provided as an argument to this function. If parsing
+        identifies a unit and a unit argument is provided, the unit argument is used. 
+        If the pattern is not matched at all None is returned.
+
+        TODO: currently the parsed unit string is used as-is. In the future we may want
+        to be stricter about what we accept or coerce into a controlled value set
+
+        :param raw_value: string to parse
+        :param unit: optional unit, defaults to None
+        :return: nmdc:QuantityValue
+        """
         if raw_value is None:
             return None
         
@@ -99,6 +144,14 @@ class SubmissionPortalTranslator(Translator):
     
 
     def _get_ontology_class(self, raw_value: Optional[str]) -> Union[nmdc.OntologyClass, None]:
+        """Construct a nmdc:OntologyClass from a raw value string
+
+        The regexp pattern matches values of the format "name [identifier]". If this pattern is
+        not matched None is returned.
+
+        :param raw_value: string to parse
+        :return: nmdc.OntologyClass
+        """
         match = re.fullmatch('_*([^\[]+)(?:\[([^\]]+)\])', raw_value)
         if not match or not match.group(2):
             logging.warning(f'Could not infer OntologyClass id from value "{raw_value}"')
@@ -111,6 +164,14 @@ class SubmissionPortalTranslator(Translator):
     
 
     def _get_controlled_identified_term_value(self, raw_value: Optional[str]) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
+        """Construct a nmdc.ControlledIdentifiedTermValue from a raw value string
+
+        The regexp pattern matches values of the format "name [identifier]". If this pattern is
+        not matched None is returned.
+
+        :param raw_value: string to parse
+        :return: nmdc.ControlledIdentifiedTermValue
+        """
         if not raw_value:
             return None
         
@@ -125,6 +186,14 @@ class SubmissionPortalTranslator(Translator):
         
 
     def _get_controlled_term_value(self, raw_value: Optional[str]) -> Union[nmdc.ControlledTermValue, None]:
+        """Construct a nmdc.ControlledTermValue from a raw value string
+
+        The regexp pattern matches values of the format "name [identifier]". The identifier portion 
+        is optional. If it is not found then the returned object's `term` field will be none.
+
+        :param raw_value: string to parse
+        :return: nmdc.ControlledTermValue
+        """
         if not raw_value:
             return None
         
@@ -137,6 +206,15 @@ class SubmissionPortalTranslator(Translator):
     
     
     def _get_geolocation_value(self, raw_value: Optional[str]) -> Union[nmdc.GeolocationValue, None]:
+        """Construct a nmdc.GeolocationValue from a raw string value
+
+        The regexp pattern matches a latitude and a longitude value separated by a space or comma. The
+        latitude and longitude values should be in decimal degrees. If the pattern is not matched, None
+        is returned.
+
+        :param raw_value: string to parse
+        :return: nmdc.GeolocationValue
+        """
         if raw_value is None:
             return None
         
@@ -152,6 +230,13 @@ class SubmissionPortalTranslator(Translator):
     
 
     def _get_float(self, raw_value: Optional[str]) -> Union[float, None]:
+        """Construct a float from a raw string value
+
+        If a float cannot be parsed from the string, None is returned.
+
+        :param raw_value: string to parse
+        :return: float
+        """
         try:
             return float(raw_value)
         except (ValueError, TypeError):
@@ -159,6 +244,16 @@ class SubmissionPortalTranslator(Translator):
         
     
     def _get_from(self, metadata_submission: JSON_OBJECT, field: Union[str, List[str]]):
+        """Extract and sanitize a value from a nested dict
+
+        For field = [i0, i1, ..., iN] extract metadata_submission[i0][i1]...[iN]. This
+        value is then sanitized by trimming strings, replacing empty strings with None,
+        filtering Nones and empty strings from arrays.
+
+        :param metadata_submission: submission portal entry
+        :param field: list of nested fields to extract
+        :return: sanitized value
+        """
         if not isinstance(field, list):
             field = [field]
         value = get_in(field, metadata_submission)
@@ -235,6 +330,21 @@ class SubmissionPortalTranslator(Translator):
         return transformed_value
     
     def _translate_biosample(self, sample_data: List[JSON_OBJECT], nmdc_biosample_id: str, nmdc_study_id: str) -> nmdc.Biosample:
+        """Translate sample data from portal submission into an `nmdc:Biosample` object.
+
+        sample_data is a list of objects where each object represents one row from a tab in
+        the submission portal. Each of the objects represent information about the same 
+        underlying biosample. For each of the rows, each of the columns is iterated over.
+        For each column, the corresponding slot from the nmdc:Biosample class is identified.
+        The raw value from the submission portal is the transformed according to the range
+        of the nmdc:Biosample slot.
+
+        :param sample_data: collection of rows representing data about a single biosample
+                            from each applicable submission portal tab 
+        :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
+        :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
+        :return: nmdc:Biosample
+        """
         slots = {
             'id': nmdc_biosample_id,
             'part_of': nmdc_study_id
@@ -259,6 +369,14 @@ class SubmissionPortalTranslator(Translator):
     
 
     def get_database(self) -> nmdc.Database:
+        """Translate the submission portal entry to an nmdc:Database
+
+        This method translates the submission portal entry into one nmdc:Study and a set
+        of nmdc:Biosample objects. THese are wrapped into an nmdc:Database. NMDC identifiers 
+        are minted for each new object.
+
+        :return: nmdc:Database object
+        """
         database = nmdc.Database()
 
         nmdc_study_id = self._id_minter("nmdc:Study")[0]
