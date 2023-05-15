@@ -124,3 +124,21 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
+
+
+def test_metadata_validate_json():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    client = RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+    rv = client.request(
+        "POST",
+        "/metadata/json:validate",
+        {
+            "field_research_site_set": [
+                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
+                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
+                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
+            ]
+        },
+    )
+    assert rv.json()["result"] == "errors"

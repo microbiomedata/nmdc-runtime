@@ -194,9 +194,9 @@ class GoldStudyTranslator(Translator):
         """Get any field of a GOLD entity object as a QuantityValue
 
         This method extracts any single field of a GOLD entity object (study, biosample, etc)
-        and if it is not `None` returns it as an `nmdc:QuantityValue`. A has_numeric_value will 
-        be inferred from the gold_field value in gold_entity. The inference is done only if the 
-        unit is meters. Support for other units will be added incrementally. A unit can optionally 
+        and if it is not `None` returns it as an `nmdc:QuantityValue`. A has_numeric_value will
+        be inferred from the gold_field value in gold_entity. The inference is done only if the
+        unit is meters. Support for other units will be added incrementally. A unit can optionally
         be provided, otherwise the unit will be `None`. If the value of the field is `None`,
         `None` will be returned.
 
@@ -208,14 +208,14 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        
+
         numeric_value = None
         # TODO: in the future we will need better handling
         # to parse out the numerical portion of the quantity value
         # ex. temp might be 3 C, and we will need to parse out 3.0 from it
         if unit == "meters":
             numeric_value = nmdc.Double(field_value)
-        
+
         return nmdc.QuantityValue(
             has_raw_value=field_value,
             has_numeric_value=numeric_value,

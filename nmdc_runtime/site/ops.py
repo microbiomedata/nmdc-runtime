@@ -577,19 +577,25 @@ def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> str:
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_biosamples_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
+def gold_biosamples_by_study(
+    context: OpExecutionContext, study_id: str
+) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_biosamples_by_study(study_id)
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_projects_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
+def gold_projects_by_study(
+    context: OpExecutionContext, study_id: str
+) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_projects_by_study(study_id)
 
 
 @op(required_resource_keys={"gold_api_client"})
-def gold_analysis_projects_by_study(context: OpExecutionContext, study_id: str) -> List[Dict[str, Any]]:
+def gold_analysis_projects_by_study(
+    context: OpExecutionContext, study_id: str
+) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_analysis_projects_by_study(study_id)
 
@@ -602,11 +608,11 @@ def gold_study(context: OpExecutionContext, study_id: str) -> Dict[str, Any]:
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_gold_study(
-    context: OpExecutionContext, 
-    study: Dict[str, Any], 
-    projects: List[Dict[str, Any]], 
-    biosamples: List[Dict[str, Any]], 
-    analysis_projects: List[Dict[str, Any]]
+    context: OpExecutionContext,
+    study: Dict[str, Any],
+    projects: List[Dict[str, Any]],
+    biosamples: List[Dict[str, Any]],
+    analysis_projects: List[Dict[str, Any]],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -663,10 +669,7 @@ def nmdc_schema_object_to_dict(object: YAMLRoot) -> Dict[str, Any]:
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
 def export_json_to_drs(
-    context: OpExecutionContext,
-    data: Dict,
-    filename: str,
-    description: str = ""
+    context: OpExecutionContext, data: Dict, filename: str, description: str = ""
 ) -> List[str]:
     mdb = context.resources.mongo.db
     username = context.op_config.get("username")
