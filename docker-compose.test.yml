@@ -80,6 +80,7 @@ services:
       - "27018:27017"
     volumes:
       - nmdc_runtime_mongo_data:/data/db
+      - ./tests:/app_tests
     restart: always
     environment:
       MONGODB_ROOT_USER: admin
