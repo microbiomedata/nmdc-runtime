@@ -6,11 +6,11 @@ init:
 update-deps:
     # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
 	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation --generate-hashes \
+	pip-compile --upgrade --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements/main.txt \
 		requirements/main.in
-	pip-compile --allow-unsafe --upgrade --build-isolation --generate-hashes \
+	pip-compile --allow-unsafe --upgrade --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements/dev.txt \
 		requirements/dev.in
@@ -18,7 +18,7 @@ update-deps:
 update: update-deps init
 
 update-schema:
-	pip-compile --upgrade-package nmdc-schema --build-isolation --generate-hashes \
+	pip-compile --upgrade-package nmdc-schema --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements/main.txt \
 		requirements/main.in
