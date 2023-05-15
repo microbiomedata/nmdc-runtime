@@ -1,6 +1,6 @@
 #!/bin/bash
 # Execute from repo root dir:
 # $  ./tests/mongorestore-nmdc-testdb.sh
-mongorestore $MONGO_HOST -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase=admin \
+mongorestore -u $MONGODB_ROOT_USER -p $MONGODB_ROOT_PASSWORD --authenticationDatabase=admin \
     --gzip --drop \
-    /code/tests/nmdcdb/
+    /app_tests/nmdcdb/

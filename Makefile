@@ -43,7 +43,7 @@ test-build:
 
 test-dbinit:
 	docker compose --file docker-compose.test.yml \
-		run --entrypoint ./tests/mongorestore-nmdc-testdb.sh test
+		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
 test-run:
 	docker compose --file docker-compose.test.yml run test
