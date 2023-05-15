@@ -490,13 +490,13 @@ def biosample_submission_ingest():
                     "nmdc_portal_api_client": {
                         "config": {
                             "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                            "session_cookie": {"env": "NMDC_PORTAL_API_SESSION_COOKIE"}
+                            "session_cookie": "",
                         }
                     }
                 }),
                 "ops": {
-                    "export_json_to_drs": {'config': {'username': '...'}}, 
-                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': '...'}},
+                    "export_json_to_drs": {'config': {'username': ""}}, 
+                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': ""}},
                 }
             }
         ),
@@ -508,7 +508,7 @@ def biosample_submission_ingest():
                     "nmdc_portal_api_client": {
                         "config": {
                             "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                            "session_cookie": {"env": "NMDC_PORTAL_API_SESSION_COOKIE"}
+                            "session_cookie": "",
                         }
                     }
                 }),
