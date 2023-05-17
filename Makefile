@@ -45,6 +45,10 @@ test-dbinit:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
+test-dbsync:
+	docker compose --file docker-compose.test.yml \
+		exec mongo /bin/bash -c "./app_tests/mongodump-nmdc-testdb.sh"
+
 test-run:
 	docker compose --file docker-compose.test.yml run test
 
