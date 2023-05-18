@@ -489,13 +489,6 @@ def biosample_submission_ingest():
             description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. The object is serialized to JSON and stored in DRS. This can be considered a dry-run for the `ingest_metadata_submission` job.",
             resource_defs=resource_defs,
             config={
-<<<<<<< HEAD
-                "resources": merge(unfreeze(normal_resources), {
-                    "nmdc_portal_api_client": {
-                        "config": {
-                            "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                            "session_cookie": "",
-=======
                 "resources": merge(
                     unfreeze(normal_resources),
                     {
@@ -506,36 +499,21 @@ def biosample_submission_ingest():
                                     "env": "NMDC_PORTAL_API_SESSION_COOKIE"
                                 },
                             }
->>>>>>> faccc9c (style: black autofmt)
                         }
                     },
                 ),
                 "ops": {
-<<<<<<< HEAD
-                    "export_json_to_drs": {'config': {'username': ""}}, 
-                    'fetch_nmdc_portal_submission_by_id': {'config': {'submission_id': ""}},
-                }
-            }
-=======
                     "export_json_to_drs": {"config": {"username": "..."}},
                     "fetch_nmdc_portal_submission_by_id": {
                         "config": {"submission_id": "..."}
                     },
                 },
             },
->>>>>>> faccc9c (style: black autofmt)
         ),
         ingest_metadata_submission.to_job(
             description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. This object is validated and ingested into Mongo via a `POST /metadata/json:submit` request.",
             resource_defs=resource_defs,
             config={
-<<<<<<< HEAD
-                "resources": merge(unfreeze(normal_resources), {
-                    "nmdc_portal_api_client": {
-                        "config": {
-                            "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                            "session_cookie": "",
-=======
                 "resources": merge(
                     unfreeze(normal_resources),
                     {
@@ -546,7 +524,6 @@ def biosample_submission_ingest():
                                     "env": "NMDC_PORTAL_API_SESSION_COOKIE"
                                 },
                             }
->>>>>>> faccc9c (style: black autofmt)
                         }
                     },
                 ),
