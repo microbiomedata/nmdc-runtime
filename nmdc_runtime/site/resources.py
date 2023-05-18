@@ -48,7 +48,9 @@ class RuntimeApiSiteClient:
             kwargs["params"] = params_or_json_data
         else:
             kwargs["json"] = params_or_json_data
-        return requests.request(method, **kwargs)
+        rv = requests.request(method, **kwargs)
+        rv.raise_for_status()
+        return rv
 
     def get_token(self):
         rv = requests.post(

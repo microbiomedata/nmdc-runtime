@@ -41,7 +41,9 @@ def mint_ids(
         )
         return [d.id for d in minted]
     except MinterError as e:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
 
     except Exception:
         raise HTTPException(

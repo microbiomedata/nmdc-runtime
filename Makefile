@@ -39,7 +39,7 @@ test-dbinit:
 test-run:
 	docker compose --file docker-compose.test.yml run test
 
-test: test-build test-dbinit test-run
+test: test-build test-run
 
 lint:
 	# Python syntax errors or undefined names
