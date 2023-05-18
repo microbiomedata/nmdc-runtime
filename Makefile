@@ -17,21 +17,12 @@ update-deps:
 
 update: update-deps init
 
-update-schema:
-	pip-compile --upgrade-package nmdc-schema --build-isolation \
-		--allow-unsafe --resolver=backtracking --strip-extras \
-		--output-file requirements/main.txt \
-		requirements/main.in
-	pip install -r requirements/main.txt
-
-update-schema-yaml:
-	# XXX depends on git checkout of nmdc-schema repo in sibling directory.
-	# XXX you likely want to `git checkout vX.Y.Z`, where nmdc-schema==X.Y.Z is installed
-	rm -rf nmdc_schema_yaml_src
-	cp -r ../nmdc-schema/src/schema/ nmdc_schema_yaml_src
-
 up-dev:
 	docker-compose up --build --force-recreate --detach --remove-orphans
+
+dev-reset-db:
+	docker compose \
+		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
 up-test:
 	docker-compose --file docker-compose.test.yml \
@@ -43,11 +34,7 @@ test-build:
 
 test-dbinit:
 	docker compose --file docker-compose.test.yml \
-		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
-
-test-dbsync:
-	docker compose --file docker-compose.test.yml \
-		exec mongo /bin/bash -c "./app_tests/mongodump-nmdc-testdb.sh"
+		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
 test-run:
 	docker compose --file docker-compose.test.yml run test
