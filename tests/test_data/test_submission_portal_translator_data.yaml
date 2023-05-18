@@ -13172,9 +13172,6 @@ output:
       non-ribosomal peptide pathways that are poorly annotated. Our findings support
       that leaf-associated bacterial populations are seasonally dynamic and responsive
       to host cues.
-    alternative_identifiers:
-    - ''
-    emsl_proposal_identifier: ''
     principal_investigator:
       orcid: 0000-0002-7189-3067
       email: shade.ashley@gmail.com
@@ -13204,4 +13201,3 @@ output:
       - Software
       - Principal Investigator
       - Funding acquisition
-    notes: ''
