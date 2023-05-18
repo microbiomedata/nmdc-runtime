@@ -1,15 +1,15 @@
 import os
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.minter.config import schema_classes
-from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
+from nmdc_runtime.site.resources import RuntimeApiSiteClient
 from tests.test_api.test_endpoints import ensure_test_resources
 
 schema_class = schema_classes()[0]
 
 
 def _get_client():
-    mdb = get_mongo(run_config_frozen__normal_env).db
+    mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
     return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 

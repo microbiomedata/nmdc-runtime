@@ -2,6 +2,7 @@ import abc
 import re
 from typing import Union
 
+from fastapi import HTTPException
 from pymongo import ReturnDocument
 from toolz import merge, dissoc
 from pymongo.database import Database as MongoDatabase
@@ -20,7 +21,15 @@ from nmdc_runtime.util import find_one
 
 
 class MinterError(Exception):
-    pass
+    def __init__(
+        self,
+        detail: str,
+    ) -> None:
+        self.detail = detail
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}(detail={self.detail!r})"
 
 
 class IDStore(abc.ABC):
@@ -59,7 +68,7 @@ class InMemoryIDStore(IDStore):
 
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
         if not find_one({"id": req_mint.service.id}, self.services):
-            raise MinterError(f"Unknown service {req_mint.service.id}")
+            raise MinterError("Unknown service {req_mint.service.id}")
         if not find_one({"id": req_mint.requester.id}, self.requesters):
             raise MinterError(f"Unknown requester {req_mint.requester.id}")
         if not find_one({"id": req_mint.schema_class.id}, self.schema_classes):
@@ -68,7 +77,7 @@ class InMemoryIDStore(IDStore):
         typecode = find_one({"schema_class": req_mint.schema_class.id}, self.typecodes)
         if not typecode:
             raise MinterError(
-                f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
+                detail=f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
             )
 
         ids = []
@@ -103,7 +112,9 @@ class InMemoryIDStore(IDStore):
                 )
                 return Identifier(**self.db[id_stored.id])
             case _:
-                raise MinterError("Status not 'draft'. Can't change bound metadata")
+                raise MinterError(
+                    detail="Status not 'draft'. Can't change bound metadata"
+                )
 
     def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
         doc = self.db.get(req_res.id_name)
@@ -139,7 +150,7 @@ class MongoIDStore(abc.ABC):
         )
         if not typecode:
             raise MinterError(
-                f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
+                detail=f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
             )
         shoulder = self.db["minter.shoulders"].find_one(
             {"assigned_to": req_mint.service.id}
@@ -192,7 +203,9 @@ class MongoIDStore(abc.ABC):
                     return_document=ReturnDocument.AFTER,
                 )
             case _:
-                raise MinterError("Status not 'draft'. Can't change bound metadata")
+                raise MinterError(
+                    detail="Status not 'draft'. Can't change bound metadata"
+                )
 
     def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
         match re.match(r"nmdc:([^-]+)-([^-]+)-.*", req_res.id_name).groups():
