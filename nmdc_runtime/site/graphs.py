@@ -126,6 +126,7 @@ def gold_study_to_database():
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
 
+
 @graph
 def translate_metadata_submission_to_nmdc_schema_database():
     metadata_submission = fetch_nmdc_portal_submission_by_id()
@@ -137,6 +138,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
     filename = nmdc_schema_database_export_filename(metadata_submission)
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
+
 
 @graph
 def ingest_metadata_submission():

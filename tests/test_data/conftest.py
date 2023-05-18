@@ -15,4 +15,5 @@ def test_minter():
             )
             for _ in range(how_many)
         ]
+
     return mint

@@ -4,6 +4,7 @@ from nmdc_schema import nmdc
 
 JSON_OBJECT = Dict[str, Any]
 
+
 class Translator(ABC):
     def __init__(
         self, id_minter: Optional[Callable[[str, Optional[int]], List[str]]] = None

@@ -3,19 +3,23 @@ import random
 
 import yaml
 from nmdc_runtime.api.endpoints.metadata import _validate_json
-from nmdc_runtime.site.translation.submission_portal_translator import SubmissionPortalTranslator
+from nmdc_runtime.site.translation.submission_portal_translator import (
+    SubmissionPortalTranslator,
+)
 from nmdc_schema import nmdc
 
 
 def test_get_pi():
     translator = SubmissionPortalTranslator()
-    pi_person_value = translator._get_pi({
-        "studyForm": {
-            "piName": "Maria D. McDonald",
-            "piEmail": "MariaDMcDonald@example.edu",
-            "piOrcid": "",
+    pi_person_value = translator._get_pi(
+        {
+            "studyForm": {
+                "piName": "Maria D. McDonald",
+                "piEmail": "MariaDMcDonald@example.edu",
+                "piOrcid": "",
+            }
         }
-    })
+    )
     assert pi_person_value is not None
     assert pi_person_value.name == "Maria D. McDonald"
     assert pi_person_value.email == "MariaDMcDonald@example.edu"
@@ -26,45 +30,37 @@ def test_get_pi():
 
 def test_get_doi():
     translator = SubmissionPortalTranslator()
-    doi = translator._get_doi({
-        "contextForm": {
-            "datasetDoi": "1234"
-        }
-    })
+    doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
     assert doi.has_raw_value == "1234"
 
-    doi = translator._get_doi({
-        "contextForm": {
-            "datasetDoi": ""
-        }
-    })
+    doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
     assert doi is None
 
-    doi = translator._get_doi({
-        "contextForm": { }
-    })
+    doi = translator._get_doi({"contextForm": {}})
     assert doi is None
 
 
 def test_get_has_credit_associations():
     translator = SubmissionPortalTranslator()
-    credit_associations = translator._get_has_credit_associations({
-        "studyForm": {
-            "contributors": [
-                {
-                    "name": "Brenda Patterson",
-                    "orcid": "1234",
-                    "roles": ["Conceptualization", "Data curation"]
-                },
-                {
-                    "name": "Lee F. Dukes",
-                    "orcid": "5678",
-                    "roles": ["Data curation"]
-                }
-            ]
+    credit_associations = translator._get_has_credit_associations(
+        {
+            "studyForm": {
+                "contributors": [
+                    {
+                        "name": "Brenda Patterson",
+                        "orcid": "1234",
+                        "roles": ["Conceptualization", "Data curation"],
+                    },
+                    {
+                        "name": "Lee F. Dukes",
+                        "orcid": "5678",
+                        "roles": ["Data curation"],
+                    },
+                ]
+            }
         }
-    })
+    )
     assert credit_associations is not None
     assert len(credit_associations) == 2
     assert credit_associations[0].applies_to_person is not None
@@ -77,7 +73,7 @@ def test_get_has_credit_associations():
 
 def test_get_quantity_value():
     translator = SubmissionPortalTranslator()
-    
+
     qv = translator._get_quantity_value("3.5")
     assert qv is not None
     assert qv.has_raw_value == "3.5"
@@ -130,20 +126,16 @@ def test_get_quantity_value():
 def test_get_gold_study_identifiers():
     translator = SubmissionPortalTranslator()
 
-    gold_ids = translator._get_gold_study_identifiers({
-        "multiOmicsForm": {
-            "GOLDStudyId": "Gs000000"
-        }
-    })
+    gold_ids = translator._get_gold_study_identifiers(
+        {"multiOmicsForm": {"GOLDStudyId": "Gs000000"}}
+    )
     assert gold_ids is not None
     assert len(gold_ids) == 1
-    assert gold_ids[0] == 'GOLD:Gs000000'
+    assert gold_ids[0] == "GOLD:Gs000000"
 
-    gold_ids = translator._get_gold_study_identifiers({
-        "multiOmicsForm": {
-            "GOLDStudyId": ""
-        }
-    })
+    gold_ids = translator._get_gold_study_identifiers(
+        {"multiOmicsForm": {"GOLDStudyId": ""}}
+    )
     assert gold_ids is None
 
 
@@ -153,17 +145,17 @@ def test_get_controlled_identified_term_value():
     value = translator._get_controlled_identified_term_value(None)
     assert value is None
 
-    value = translator._get_controlled_identified_term_value('')
+    value = translator._get_controlled_identified_term_value("")
     assert value is None
 
-    value = translator._get_controlled_identified_term_value('term')
+    value = translator._get_controlled_identified_term_value("term")
     assert value is None
 
-    value = translator._get_controlled_identified_term_value('____term [id:00001]')
+    value = translator._get_controlled_identified_term_value("____term [id:00001]")
     assert value is not None
-    assert value.has_raw_value == '____term [id:00001]'
-    assert value.term.id == 'id:00001'
-    assert value.term.name == 'term'
+    assert value.has_raw_value == "____term [id:00001]"
+    assert value.term.id == "id:00001"
+    assert value.term.name == "term"
 
 
 def test_get_controlled_term_value():
@@ -172,19 +164,19 @@ def test_get_controlled_term_value():
     value = translator._get_controlled_term_value(None)
     assert value is None
 
-    value = translator._get_controlled_term_value('')
+    value = translator._get_controlled_term_value("")
     assert value is None
 
-    value = translator._get_controlled_term_value('term')
+    value = translator._get_controlled_term_value("term")
     assert value is not None
-    assert value.has_raw_value == 'term'
+    assert value.has_raw_value == "term"
     assert value.term is None
 
-    value = translator._get_controlled_term_value('____term [id:00001]')
+    value = translator._get_controlled_term_value("____term [id:00001]")
     assert value is not None
-    assert value.has_raw_value == '____term [id:00001]'
-    assert value.term.id == 'id:00001'
-    assert value.term.name == 'term'
+    assert value.has_raw_value == "____term [id:00001]"
+    assert value.term.id == "id:00001"
+    assert value.term.name == "term"
 
 
 def test_get_geolocation_value():
@@ -192,13 +184,13 @@ def test_get_geolocation_value():
 
     value = translator._get_geolocation_value("0 0")
     assert value is not None
-    assert value.has_raw_value == '0 0'
+    assert value.has_raw_value == "0 0"
     assert value.latitude == 0
     assert value.longitude == 0
 
     value = translator._get_geolocation_value("-3.903895 -38.560507")
     assert value is not None
-    assert value.has_raw_value == '-3.903895 -38.560507'
+    assert value.has_raw_value == "-3.903895 -38.560507"
     assert value.latitude == -3.903895
     assert value.longitude == -38.560507
 
@@ -213,10 +205,10 @@ def test_get_geolocation_value():
 def test_get_float():
     translator = SubmissionPortalTranslator()
 
-    value = translator._get_float('-3.5332')
+    value = translator._get_float("-3.5332")
     assert value == -3.5332
 
-    value = translator._get_float('')
+    value = translator._get_float("")
     assert value is None
 
     value = translator._get_float(None)
@@ -228,10 +220,7 @@ def test_get_from():
 
     metadata = {
         "one": {
-            "two": {
-                "three": "  three  ",
-                "empty": ""
-            },
+            "two": {"three": "  three  ", "empty": ""},
             "four": ["one", "  two  ", "three"],
             "empty": [""],
             "some_empty": ["one", "", "three"],
@@ -248,14 +237,16 @@ def test_get_from():
 
 def test_get_dataset(test_minter):
     random.seed(0)
-    with open(Path(__file__).parent / "test_submission_portal_translator_data.yaml") as f:
+    with open(
+        Path(__file__).parent / "test_submission_portal_translator_data.yaml"
+    ) as f:
         test_datasets = yaml.safe_load_all(f)
 
         for test_data in test_datasets:
             translator = SubmissionPortalTranslator(
                 **test_data["input"], id_minter=test_minter
             )
-            
+
             expected = nmdc.Database(**test_data["output"])
             actual = translator.get_database()
             assert actual == expected

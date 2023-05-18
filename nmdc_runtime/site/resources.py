@@ -43,12 +43,9 @@ class RuntimeApiClient:
 
     def get_token_request_body(self):
         raise NotImplementedError()
-    
+
     def get_token(self):
-        rv = requests.post(
-            self.base_url + "/token",
-            data=self.get_token_request_body()
-        )
+        rv = requests.post(self.base_url + "/token", data=self.get_token_request_body())
         self.token_response = rv.json()
         if "access_token" not in self.token_response:
             raise Exception(f"Getting token failed: {self.token_response}")
@@ -68,7 +65,7 @@ class RuntimeApiClient:
         else:
             kwargs["json"] = params_or_json_data
         return requests.request(method, **kwargs)
-    
+
 
 class RuntimeApiUserClient(RuntimeApiClient):
     def __init__(self, username: str, password: str, *args, **kwargs):
@@ -82,21 +79,23 @@ class RuntimeApiUserClient(RuntimeApiClient):
             "username": self.username,
             "password": self.password,
         }
-        
+
     def submit_metadata(self, database: nmdc.Database):
         body = json_dumper.to_dict(database)
         return self.request("POST", "/metadata/json:submit", body)
-    
+
     def validate_metadata(self, database: nmdc.Database):
         body = json_dumper.to_dict(database)
         return self.request("POST", "/metadata/json:validate", body)
-    
+
     def get_run_info(self, run_id: str):
         return self.request("GET", f"/runs/{run_id}")
-        
+
 
 class RuntimeApiSiteClient(RuntimeApiClient):
-    def __init__(self, site_id: str, client_id: str, client_secret: str, *args, **kwargs):
+    def __init__(
+        self, site_id: str, client_id: str, client_secret: str, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.site_id = site_id
         self.client_id = client_id
@@ -211,6 +210,7 @@ def runtime_api_site_client_resource(context):
         client_secret=context.resource_config["client_secret"],
     )
 
+
 @resource(
     config_schema={
         "base_url": StringSource,
@@ -224,6 +224,7 @@ def runtime_api_user_client_resource(context):
         username=context.resource_config["username"],
         password=context.resource_config["password"],
     )
+
 
 @lru_cache
 def get_runtime_api_site_client(run_config: frozendict):
@@ -305,17 +306,17 @@ def gold_api_client_resource(context: InitResourceContext):
 
 
 @dataclass
-class NmdcPortalApiClient():
-    
+class NmdcPortalApiClient:
     base_url: str
     # Using a cookie for authentication is not ideal and should be replaced
     # when this API has an another authentication method
     session_cookie: str
 
     def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
-        response = requests.get(f"{self.base_url}/api/metadata_submission/{id}", cookies={
-            "session": self.session_cookie
-        })
+        response = requests.get(
+            f"{self.base_url}/api/metadata_submission/{id}",
+            cookies={"session": self.session_cookie},
+        )
         response.raise_for_status()
         return response.json()
 
