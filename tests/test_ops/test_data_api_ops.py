@@ -20,9 +20,7 @@ def op_context(client_config):
                 client_config
             )
         },
-        op_config={
-            "submission_id": "353d751f-cff0-4558-9051-25a87ba00d3f"
-        },
+        op_config={"submission_id": "353d751f-cff0-4558-9051-25a87ba00d3f"},
     )
 
 
