@@ -291,7 +291,6 @@ def create_objects_from_ops(context, op_docs: list):
 def validate_metadata(context: OpExecutionContext, database: nmdc.Database):
     client: RuntimeApiUserClient = context.resources.runtime_api_user_client
     response = client.validate_metadata(database)
-    response.raise_for_status()
     body = response.json()
     if body["result"] != "All Okay!":
         raise Failure(
@@ -305,7 +304,6 @@ def validate_metadata(context: OpExecutionContext, database: nmdc.Database):
 def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) -> str:
     client: RuntimeApiUserClient = context.resources.runtime_api_user_client
     response = client.submit_metadata(database)
-    response.raise_for_status()
     body = response.json()
     return body["detail"]["run_id"]
 
@@ -314,7 +312,6 @@ def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) 
 def poll_for_run_completion(context: OpExecutionContext, run_id: str) -> RunSummary:
     client: RuntimeApiUserClient = context.resources.runtime_api_user_client
     response = client.get_run_info(run_id)
-    response.raise_for_status()
     body = RunSummary.parse_obj(response.json())
     context.log.info(body.status)
     if body.status != RunEventType.COMPLETE:
@@ -629,7 +626,6 @@ def nmdc_schema_database_from_gold_study(
 
     def id_minter(*args, **kwargs):
         response = client.mint_id(*args, **kwargs)
-        response.raise_for_status()
         return response.json()
 
     translator = GoldStudyTranslator(
@@ -658,7 +654,6 @@ def translate_portal_submission_to_nmdc_schema_database(
 
     def id_minter(*args, **kwargs):
         response = client.mint_id(*args, **kwargs)
-        response.raise_for_status()
         return response.json()
 
     translator = SubmissionPortalTranslator(metadata_submission, id_minter=id_minter)
