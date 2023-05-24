@@ -22,6 +22,8 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    translate_metadata_submission_to_nmdc_schema_database,
+    ingest_metadata_submission,
     gold_study_to_database,
     gold_translation,
     gold_translation_curation,
@@ -35,6 +37,8 @@ from nmdc_runtime.site.graphs import (
 from nmdc_runtime.site.resources import (
     get_mongo,
     runtime_api_site_client_resource,
+    runtime_api_user_client_resource,
+    nmdc_portal_api_client_resource,
     gold_api_client_resource,
     terminus_resource,
     mongo_resource,
@@ -50,6 +54,8 @@ from nmdc_runtime.util import unfreeze
 
 resource_defs = {
     "runtime_api_site_client": runtime_api_site_client_resource,
+    "runtime_api_user_client": runtime_api_user_client_resource,
+    "nmdc_portal_api_client": nmdc_portal_api_client_resource,
     "gold_api_client": gold_api_client_resource,
     "terminus": terminus_resource,
     "mongo": mongo_resource,
@@ -64,6 +70,13 @@ preset_normal = {
                     "site_id": {"env": "API_SITE_ID"},
                     "client_id": {"env": "API_SITE_CLIENT_ID"},
                     "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                },
+            },
+            "runtime_api_user_client": {
+                "config": {
+                    "base_url": {"env": "API_HOST"},
+                    "username": {"env": "API_ADMIN_USER"},
+                    "password": {"env": "API_ADMIN_PASS"},
                 },
             },
             "mongo": {
@@ -449,41 +462,78 @@ def test_translation():
 
 @repository
 def biosample_submission_ingest():
+    normal_resources = run_config_frozen__normal_env["resources"]
     return [
         gold_study_to_database.to_job(
             resource_defs=resource_defs,
             config={
-                "resources": {
-                    "gold_api_client": {
-                        "config": {
-                            "base_url": {"env": "GOLD_API_BASE_URL"},
-                            "username": {"env": "GOLD_API_USERNAME"},
-                            "password": {"env": "GOLD_API_PASSWORD"},
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
                         },
                     },
-                    "mongo": {
-                        "config": {
-                            "host": {"env": "MONGO_HOST"},
-                            "username": {"env": "MONGO_USERNAME"},
-                            "password": {"env": "MONGO_PASSWORD"},
-                            "dbname": {"env": "MONGO_DBNAME"},
-                        },
-                    },
-                    "runtime_api_site_client": {
-                        "config": {
-                            "base_url": {"env": "API_HOST"},
-                            "site_id": {"env": "API_SITE_ID"},
-                            "client_id": {"env": "API_SITE_CLIENT_ID"},
-                            "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
-                        },
-                    },
-                },
+                ),
                 "ops": {
                     "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
                     "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
-        )
+        ),
+        translate_metadata_submission_to_nmdc_schema_database.to_job(
+            description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. The object is serialized to JSON and stored in DRS. This can be considered a dry-run for the `ingest_metadata_submission` job.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "nmdc_portal_api_client": {
+                            "config": {
+                                "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
+                                "session_cookie": {
+                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                },
+                            }
+                        }
+                    },
+                ),
+                "ops": {
+                    "export_json_to_drs": {"config": {"username": "..."}},
+                    "fetch_nmdc_portal_submission_by_id": {
+                        "config": {"submission_id": "..."}
+                    },
+                },
+            },
+        ),
+        ingest_metadata_submission.to_job(
+            description="This job fetches a submission portal entry and translates it into an equivalent nmdc:Database object. This object is validated and ingested into Mongo via a `POST /metadata/json:submit` request.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "nmdc_portal_api_client": {
+                            "config": {
+                                "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
+                                "session_cookie": {
+                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                },
+                            }
+                        }
+                    },
+                ),
+                "ops": {
+                    "fetch_nmdc_portal_submission_by_id": {
+                        "config": {"submission_id": "..."}
+                    },
+                },
+            },
+        ),
     ]
 
 

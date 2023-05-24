@@ -82,7 +82,7 @@ services:
     volumes:
       - nmdc_runtime_mongo_data:/data/db
       - ./tests:/app_tests
-    restart: always
+    restart: unless-stopped
     environment:
       MONGODB_ROOT_USER: admin
       MONGODB_ROOT_PASSWORD: root

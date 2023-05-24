@@ -23,6 +23,7 @@ from dagster import (
     Out,
     Output,
     RetryPolicy,
+    RetryRequested,
     String,
     op,
 )
@@ -46,12 +47,24 @@ from nmdc_runtime.api.models.operation import (
     Operation,
     UpdateOperationRequest,
 )
-from nmdc_runtime.api.models.run import _add_run_complete_event
+from nmdc_runtime.api.models.run import (
+    RunEventType,
+    RunSummary,
+    _add_run_complete_event,
+)
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
-from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiSiteClient
+from nmdc_runtime.site.resources import (
+    NmdcPortalApiClient,
+    GoldApiClient,
+    RuntimeApiSiteClient,
+    RuntimeApiUserClient,
+)
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
+from nmdc_runtime.site.translation.submission_portal_translator import (
+    SubmissionPortalTranslator,
+)
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
 from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
@@ -272,6 +285,38 @@ def create_objects_from_ops(context, op_docs: list):
     elif responses:
         raise Failure(f"Unexpected response(s): {[r.text for r in responses]}")
     return op_docs
+
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def validate_metadata(context: OpExecutionContext, database: nmdc.Database):
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.validate_metadata(database)
+    body = response.json()
+    if body["result"] != "All Okay!":
+        raise Failure(
+            description="Metadata did not validate",
+            metadata={"detail": body["detail"]},
+        )
+    return body
+
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def submit_metadata_to_db(context: OpExecutionContext, database: nmdc.Database) -> str:
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.submit_metadata(database)
+    body = response.json()
+    return body["detail"]["run_id"]
+
+
+@op(required_resource_keys={"runtime_api_user_client"})
+def poll_for_run_completion(context: OpExecutionContext, run_id: str) -> RunSummary:
+    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
+    response = client.get_run_info(run_id)
+    body = RunSummary.parse_obj(response.json())
+    context.log.info(body.status)
+    if body.status != RunEventType.COMPLETE:
+        raise RetryRequested(max_retries=12, seconds_to_wait=10)
+    return body
 
 
 @op
@@ -581,7 +626,6 @@ def nmdc_schema_database_from_gold_study(
 
     def id_minter(*args, **kwargs):
         response = client.mint_id(*args, **kwargs)
-        response.raise_for_status()
         return response.json()
 
     translator = GoldStudyTranslator(
@@ -591,9 +635,40 @@ def nmdc_schema_database_from_gold_study(
     return database
 
 
+@op(
+    required_resource_keys={"nmdc_portal_api_client"},
+    config_schema={"submission_id": str},
+)
+def fetch_nmdc_portal_submission_by_id(context: OpExecutionContext) -> Dict[str, Any]:
+    submission_id = context.op_config["submission_id"]
+    client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+    return client.fetch_metadata_submission(submission_id)
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def translate_portal_submission_to_nmdc_schema_database(
+    context: OpExecutionContext,
+    metadata_submission: Dict[str, Any],
+) -> nmdc.Database:
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+
+    def id_minter(*args, **kwargs):
+        response = client.mint_id(*args, **kwargs)
+        return response.json()
+
+    translator = SubmissionPortalTranslator(metadata_submission, id_minter=id_minter)
+    database = translator.get_database()
+    return database
+
+
 @op
-def nmdc_schema_database_export_filename(gold_study: Dict[str, Any]) -> str:
-    return f"database_from_{gold_study.get('studyGoldId')}.json"
+def nmdc_schema_database_export_filename(study: Dict[str, Any]) -> str:
+    source_id = None
+    if "id" in study:
+        source_id = study["id"]
+    elif "studyGoldId" in study:
+        source_id = study["studyGoldId"]
+    return f"database_from_{source_id}.json"
 
 
 @op
@@ -625,7 +700,10 @@ def export_json_to_drs(
         AssetMaterialization(
             asset_key=filename,
             description=description,
-            metadata={"drs_object_id": drs_object["id"]},
+            metadata={
+                "drs_object_id": MetadataValue.text(drs_object["id"]),
+                "json": MetadataValue.json(data),
+            },
         )
     )
     return ["/objects/" + drs_object["id"]]

@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 from functools import lru_cache
 from typing import List, Optional
@@ -43,9 +44,16 @@ class Run(BaseModel):
     facets: Optional[dict]
 
 
+class RunEventType(str, Enum):
+    REQUESTED = "REQUESTED"
+    STARTED = "STARTED"
+    FAIL = "FAIL"
+    COMPLETE = "COMPLETE"
+
+
 class RunSummary(OpenLineageBase):
     id: str
-    status: str
+    status: RunEventType
     started_at_time: str
     was_started_by: str
     inputs: List[str]
@@ -56,7 +64,7 @@ class RunSummary(OpenLineageBase):
 class RunEvent(OpenLineageBase):
     run: Run
     job: JobSummary
-    type: str
+    type: RunEventType
     time: str
     inputs: Optional[List[str]] = []
     outputs: Optional[List[str]] = []
@@ -81,7 +89,7 @@ def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: Us
             pick(["id", "description"], job),
             {"producer": PRODUCER_URL, "schemaURL": SCHEMA_URL},
         ),
-        type="REQUESTED",
+        type=RunEventType.REQUESTED,
         time=now(as_str=True),
         inputs=run_spec.inputs,
     )
@@ -103,7 +111,7 @@ def _add_run_started_event(run_id: str, mdb: MongoDatabase):
             schemaURL=SCHEMA_URL,
             run=requested.run,
             job=requested.job,
-            type="STARTED",
+            type=RunEventType.STARTED,
             time=now(as_str=True),
         ).dict()
     )
@@ -124,7 +132,7 @@ def _add_run_fail_event(run_id: str, mdb: MongoDatabase):
             schemaURL=SCHEMA_URL,
             run=requested.run,
             job=requested.job,
-            type="FAIL",
+            type=RunEventType.FAIL,
             time=now(as_str=True),
         ).dict()
     )
@@ -145,7 +153,7 @@ def _add_run_complete_event(run_id: str, mdb: MongoDatabase, outputs: List[str])
             schemaURL=SCHEMA_URL,
             run=started.run,
             job=started.job,
-            type="COMPLETE",
+            type=RunEventType.COMPLETE,
             time=now(as_str=True),
             outputs=outputs,
         ).dict()

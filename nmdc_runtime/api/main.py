@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from importlib import import_module
 
 import pkg_resources
@@ -223,59 +224,8 @@ issue an update query).
     },
 ]
 
-app = FastAPI(
-    title="NMDC Runtime API",
-    version="0.1.0",
-    description=(
-        "This is a draft of the NMDC Runtime API."
-        " The resource layout currently covers aspects of workflow execution and automation,"
-        " and is intended to facilitate discussion as more of the API is developed."
-        "\n\n"
-        "Dependency versions:\n\n"
-        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}'
-    ),
-    openapi_tags=tags_metadata,
-)
-app.include_router(api_router)
 
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.on_event("startup")
-async def ensure_default_api_perms():
-    db = get_mongo_db()
-    if db["_runtime.api.allow"].count_documents({}):
-        return
-
-    allowed = {
-        "/metadata/changesheets:submit": [
-            "mam",
-            "dwinston",
-            "pajau",
-            "montana",
-            "spatil",
-        ],
-        "/queries:run(query_cmd:DeleteCommand)": ["scanon", "dwinston"],
-    }
-    for doc in [
-        {"username": username, "action": action}
-        for action, usernames in allowed.items()
-        for username in usernames
-    ]:
-        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-        db["_runtime.api.allow"].create_index("username")
-        db["_runtime.api.allow"].create_index("action")
-
-
-@app.on_event("startup")
-async def ensure_initial_resources_on_boot():
+def ensure_initial_resources_on_boot():
     """ensure these resources are loaded when (re-)booting the system."""
     mdb = get_mongo_db()
 
@@ -333,8 +283,7 @@ async def ensure_initial_resources_on_boot():
     minter_bootstrap()
 
 
-@app.on_event("startup")
-async def ensure_attribute_indexes():
+def ensure_attribute_indexes():
     mdb = get_mongo_db()
     for collection_name, index_specs in entity_attributes_to_index.items():
         for spec in index_specs:
@@ -344,6 +293,65 @@ async def ensure_attribute_indexes():
                 )
 
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
+
+
+def ensure_default_api_perms():
+    db = get_mongo_db()
+    if db["_runtime.api.allow"].count_documents({}):
+        return
+
+    allowed = {
+        "/metadata/changesheets:submit": [
+            "mam",
+            "dwinston",
+            "pajau",
+            "montana",
+            "spatil",
+        ],
+        "/queries:run(query_cmd:DeleteCommand)": ["scanon", "dwinston"],
+    }
+    for doc in [
+        {"username": username, "action": action}
+        for action, usernames in allowed.items()
+        for username in usernames
+    ]:
+        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
+        db["_runtime.api.allow"].create_index("username")
+        db["_runtime.api.allow"].create_index("action")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    ensure_initial_resources_on_boot()
+    ensure_attribute_indexes()
+    ensure_default_api_perms()
+    yield
+
+
+app = FastAPI(
+    title="NMDC Runtime API",
+    version="0.1.0",
+    description=(
+        "This is a draft of the NMDC Runtime API."
+        " The resource layout currently covers aspects of workflow execution and automation,"
+        " and is intended to facilitate discussion as more of the API is developed."
+        "\n\n"
+        "Dependency versions:\n\n"
+        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}'
+    ),
+    openapi_tags=tags_metadata,
+    lifespan=lifespan,
+)
+app.include_router(api_router)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 if __name__ == "__main__":

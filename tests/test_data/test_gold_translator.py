@@ -1,11 +1,8 @@
-import json
 import random
-import uuid
 from pathlib import Path
 
 import yaml
 from nmdc_schema import nmdc
-from linkml_runtime.dumpers import json_dumper, yaml_dumper
 
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 
@@ -426,18 +423,7 @@ def test_get_field_site_name():
     assert field_site_name == "Mackenzie"
 
 
-def test_get_dataset():
-    def test_minter(type, how_many=1):
-        return [
-            "fake:"
-            + str(
-                uuid.UUID(
-                    bytes=bytes(random.getrandbits(8) for _ in range(16)), version=4
-                )
-            )
-            for _ in range(how_many)
-        ]
-
+def test_get_dataset(test_minter):
     random.seed(0)
     with open(Path(__file__).parent / "test_gold_translator_data.yaml") as f:
         test_datasets = yaml.safe_load_all(f)
