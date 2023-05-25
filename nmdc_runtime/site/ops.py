@@ -244,7 +244,7 @@ def run_etl(context, merged_data_path: str):
 @op(required_resource_keys={"mongo"})
 def get_operation(context):
     mdb = context.resources.mongo.db
-    id_op = context.solid_config.get("operation_id")
+    id_op = context.op_config.get("operation_id")
     doc = mdb.operations.find_one({"id": id_op})
     if doc is None:
         raise Failure(description=f"operation {id_op} not found")
@@ -357,11 +357,11 @@ def delete_operations(context, op_docs: list):
 
 
 @op(required_resource_keys={"mongo"})
-def construct_jobs(context) -> List[Job]:
+def construct_jobs(context: OpExecutionContext) -> List[Job]:
     mdb: MongoDatabase = context.resources.mongo.db
     docs = [
         dict(**base, id=generate_one_id(mdb, "jobs"), created_at=now())
-        for base in context.solid_config["base_jobs"]
+        for base in context.op_config["base_jobs"]
     ]
     return [Job(**d) for d in docs]
 
@@ -428,7 +428,7 @@ def remove_unclaimed_obsolete_jobs(context, job: Job):
 @op(required_resource_keys={"mongo"})
 def get_changesheet_in(context) -> ChangesheetIn:
     mdb: MongoDatabase = context.resources.mongo.db
-    object_id = context.solid_config.get("object_id")
+    object_id = context.op_config.get("object_id")
     mdb_fs = GridFS(mdb)
     grid_out = mdb_fs.get(object_id)
     return ChangesheetIn(
@@ -439,7 +439,7 @@ def get_changesheet_in(context) -> ChangesheetIn:
 @op(required_resource_keys={"mongo"})
 def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     mdb: MongoDatabase = context.resources.mongo.db
-    op_id = context.solid_config.get("operation_id")
+    op_id = context.op_config.get("operation_id")
     try:
         df_change = df_from_sheet_in(sheet_in, mdb)
         validation_result = _validate_changesheet(df_change, mdb)
@@ -465,7 +465,7 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def get_json_in(context):
-    object_id = context.solid_config.get("object_id")
+    object_id = context.op_config.get("object_id")
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     rv = client.get_object_bytes(object_id)
     if rv.status_code != 200:
@@ -526,7 +526,7 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
-    op_id = context.solid_config.get("operation_id")
+    op_id = context.op_config.get("operation_id")
 
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
