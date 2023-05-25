@@ -98,8 +98,8 @@ class TerminusdbGenerator(Generator):
         self.graph.append(
             {
                 "@type": "@context",
-                "@base": "terminusdb:///data/",
-                "@schema": "terminusdb:///schema#",
+                "@base": "https://api.microbiomedata.org/nmdcschema/ids/",
+                "@schema": "https://w3id.org/nmdc/",
             }
         )
 
