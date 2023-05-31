@@ -1,0 +1,66 @@
+{
+  "elev": 1,
+  "specific_ecosystem": "Bulk soil",
+  "env_medium": {
+    "has_raw_value": "ENVO_00005802",
+    "term": {
+      "id": "ENVO:00005802",
+      "name": "bulk soil"
+    }
+  },
+  "habitat": "Soil",
+  "ecosystem_category": "Terrestrial",
+  "img_identifiers": [
+    "img.taxon:3300046656"
+  ],
+  "name": "Bulk soil microbial communities from poplar common garden site in Clatskanie, Oregon, USA - BESC-13-CL1_35_33 soil",
+  "geo_loc_name": {
+    "has_raw_value": "USA: Oregon"
+  },
+  "lat_lon": {
+    "has_raw_value": "46.1208 -123.2695",
+    "latitude": 46.1208,
+    "longitude": -123.2695
+  },
+  "env_local_scale": {
+    "has_raw_value": "ENVO_00000011",
+    "term": {
+      "id": "ENVO:00000011",
+      "name": "garden"
+    }
+  },
+  "location": "USA",
+  "ecosystem_type": "Soil",
+  "ncbi_taxonomy_name": "soil metagenome",
+  "ecosystem": "Environmental",
+  "mod_date": "2021-05-01T00:00:00",
+  "env_broad_scale": {
+    "has_raw_value": "ENVO_00000446",
+    "term": {
+      "id": "ENVO:00000446",
+      "name": "terrestrial biome"
+    }
+  },
+  "samp_taxon_id": {
+    "has_raw_value": "soil metagenome [NCBITaxon:410658]"
+  },
+  "id": "nmdc:bsm-11-5nhz3402",
+  "add_date": "2021-05-01T00:00:00",
+  "sample_collection_site": "Bulk Soil",
+  "collected_from": "nmdc:frsite-11-5tz5zk13",
+  "depth": {
+    "has_raw_value": "0.1",
+    "has_numeric_value": 0.1,
+    "has_unit": "meters"
+  },
+  "part_of": [
+    "nmdc:sty-11-r2h77870"
+  ],
+  "gold_biosample_identifiers": [
+    "GOLD:Gb0291582"
+  ],
+  "samp_name": "BESC-13-CL1_35_33 soil",
+  "ecosystem_subtype": "Botanical garden",
+  "type": "nmdc:Biosample",
+  "description": "Bulk soil microbial communities from poplar common garden site in Clatskanie, Oregon, USA"
+}

@@ -213,7 +213,12 @@ def load_changesheet(
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
         # TODO make this way more robust,
         #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
-        if ranges.endswith("float") or ranges.endswith("decimal degree"):
+        # TODO mongo BSON has a decimal type. Should use this for decimals!
+        if (
+            ranges.endswith("float")
+            or ranges.endswith("double")
+            or ranges.endswith("decimal degree")
+        ):
             df.at[ix, "value"] = float(value)
     return df
 

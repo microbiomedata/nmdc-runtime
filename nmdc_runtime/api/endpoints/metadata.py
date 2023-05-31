@@ -4,6 +4,7 @@ import os.path
 import re
 import tempfile
 from collections import defaultdict
+from copy import deepcopy
 from io import StringIO
 
 import requests
@@ -221,6 +222,7 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
 
 def _validate_json(docs: dict, mdb: MongoDatabase):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
+    docs = deepcopy(docs)
     docs, validation_errors = specialize_activity_set_docs(docs)
 
     for coll_name, coll_docs in docs.items():

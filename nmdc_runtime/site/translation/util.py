@@ -85,8 +85,8 @@ preset_test = dict(**mode_test, config=config_test)
 def load_nmdc_etl_class(context) -> NMDC_ETL:
     # build instance of NMDC_ETL class
     etl = NMDC_ETL(
-        merged_data_file=context.solid_config["data_file"],
-        data_source_spec_file=context.solid_config["spec_file"],
+        merged_data_file=context.op_config["data_file"],
+        data_source_spec_file=context.op_config["spec_file"],
         sssom_file="",
     )
     return etl

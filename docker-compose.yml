@@ -82,7 +82,7 @@ services:
     volumes:
       - nmdc_runtime_mongo_data:/data/db
       - ./tests:/app_tests
-    restart: always
+    restart: unless-stopped
     environment:
       MONGODB_ROOT_USER: admin
       MONGODB_ROOT_PASSWORD: root
@@ -91,7 +91,7 @@ services:
       MONGODB_REPLICA_SET_KEY: replicasetkey123
 
   terminus:
-    image: terminusdb/terminusdb-server:v10.0.24
+    image: terminusdb/terminusdb-server:v11.0.6
     container_name: terminus
     ports:
       - "6364:6363"

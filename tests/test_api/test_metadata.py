@@ -5,6 +5,8 @@ from typing import Optional
 import fastjsonschema
 import pandas as pd
 import pytest
+
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from toolz import dissoc
 
@@ -140,6 +142,23 @@ def test_update_pi_websites():
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
     assert first_result["doc_after"]["principal_investigator"] == pi_info
+
+
+def test_update_biosample_ph():
+    mdb = get_mongo_db()
+    doc = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "nmdc:bsm-11-5nhz3402.json").read_text()
+    )
+    mdb.biosample_set.replace_one({"id": "nmdc:bsm-11-5nhz3402"}, doc, upsert=True)
+    df = load_changesheet(
+        (REPO_ROOT_DIR / "tests" / "files" / "test_changesheet_update_one_ph.tsv"), mdb
+    )
+
+    update_cmd = mongo_update_command_for(df)
+
+    assert isinstance(
+        update_cmd["nmdc:bsm-11-5nhz3402"]["updates"][0]["u"]["$set"]["ph"], float
+    )
 
 
 def test_ensure_data_object_type():

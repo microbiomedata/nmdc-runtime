@@ -55,7 +55,7 @@ def validate_mongo_collection(context, collection_name: str):
     context.log.info(f"collection_name: {collection_name}")
 
     # use if passing in collection name via config
-    # collection_name = context.solid_config["collection_name"]
+    # collection_name = context.op_config["collection_name"]
 
     mongo_db = context.resources.mongo.db
     collection = mongo_db[collection_name]  # get mongo collection

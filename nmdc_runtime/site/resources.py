@@ -367,6 +367,35 @@ def nmdc_portal_api_client_resource(context: InitResourceContext):
     )
 
 
+@dataclass
+class NmdcPortalApiClient:
+    base_url: str
+    # Using a cookie for authentication is not ideal and should be replaced
+    # when this API has an another authentication method
+    session_cookie: str
+
+    def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
+        response = requests.get(
+            f"{self.base_url}/api/metadata_submission/{id}",
+            cookies={"session": self.session_cookie},
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+@resource(
+    config_schema={
+        "base_url": StringSource,
+        "session_cookie": StringSource,
+    }
+)
+def nmdc_portal_api_client_resource(context: InitResourceContext):
+    return NmdcPortalApiClient(
+        base_url=context.resource_config["base_url"],
+        session_cookie=context.resource_config["session_cookie"],
+    )
+
+
 class MongoDB:
     def __init__(
         self,

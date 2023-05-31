@@ -1,0 +1,12 @@
+{
+    "id" : "nmdc:dobj-11-000n1286",
+    "name" : "Error corrected reads fastq",
+    "description" : "Error Corrected Reads for nmdc:wfmgas-11-c5ct6208.1",
+    "alternative_identifiers" : [
+    ],
+    "file_size_bytes" : 7936121501,
+    "md5_checksum" : "50cc478a417b737ee4c88e73ce0d9e9a",
+    "data_object_type" : "Error Corrected Reads",
+    "url" : "https://data.microbiomedata.org/data/nmdc:omprc-11-xmx5eq31/nmdc:wfmgas-11-c5ct6208.1/nmdc_wfmgas-11-c5ct6208.1_input.corr.fastq.gz",
+    "type" : "nmdc:DataObject"
+}
