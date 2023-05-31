@@ -146,3 +146,7 @@ def ingest_metadata_submission():
     database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
+
+@graph
+def ingest_neon_metadata():
+    pass
