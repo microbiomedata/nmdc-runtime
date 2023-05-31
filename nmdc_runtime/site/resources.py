@@ -306,6 +306,37 @@ def gold_api_client_resource(context: InitResourceContext):
         password=context.resource_config["password"],
     )
 
+@dataclass
+class NeonApiClient():
+
+    base_url: str
+    api_token: str
+
+    def request(self, url):
+        response = requests.get(url, headers={
+            'X-API-Token': self.api_token
+        })
+        response.raise_for_status()
+        print(f'FETCH {url}')
+        return response.json()
+    
+
+    def fetch_product_by_id(self, product_id: str):
+        return self.request(self.base_url + f"/products/{product_id}")
+
+
+@resource(
+    config_schema={
+        "base_url": StringSource,
+        "api_token": StringSource
+    }
+)
+def neon_api_client_resource(context: InitResourceContext):
+    return NeonApiClient(
+        base_url=context.resource_config["base_url"],
+        api_token=context.resource_config["api_token"]
+    )
+
 
 @dataclass
 class NmdcPortalApiClient:

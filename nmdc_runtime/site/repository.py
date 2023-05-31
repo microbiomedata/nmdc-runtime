@@ -33,6 +33,7 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
+    ingest_neon_metadata
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -534,6 +535,26 @@ def biosample_submission_ingest():
                 },
             },
         ),
+        ingest_neon_metadata.to_job(
+            description="This job fetches the metadata associated with a given data product code and translates it into an equivalent nmdc:Database object.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "neon_api_client": {
+                            "config": {
+                                "base_url": {"env": "NEON_API_BASE_URL"},
+                                "api_token": {"env": "NEON_API_TOKEN"}
+                            },
+                        }
+                    }
+                ),
+                "ops": {
+                    "get_neon_pipeline_data_product_code": {"config": {"product_code": ""}}
+                }
+            }
+        )
     ]
 
 

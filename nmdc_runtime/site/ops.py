@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Tuple
 from zipfile import ZipFile
+import pandas as pd
 
 import fastjsonschema
 from bson import ObjectId, json_util
@@ -60,8 +61,10 @@ from nmdc_runtime.site.resources import (
     GoldApiClient,
     RuntimeApiSiteClient,
     RuntimeApiUserClient,
+    NeonApiClient
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
+from nmdc_runtime.site.translation.neon_translator import NeonDataTranslator
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
@@ -711,3 +714,27 @@ def export_json_to_drs(
 
 def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
+
+
+@op(config_schema={"product_code": str})
+def get_neon_pipeline_data_product_code(context: OpExecutionContext) -> str:
+    return context.op_config["product_code"]
+
+
+@op(required_resource_keys={"neon_api_client"})
+def neon_metadata_by_product_code(
+    context: OpExecutionContext, product_code: str
+) -> pd.DataFrame:
+    df = pd.DataFrame()
+    client: NeonApiClient = context.resources.neon_api_client
+
+    product = client.fetch_product_by_id(product_code)
+    for site in product["data"]["siteCodes"]:
+        for data_url in site["availableDataUrls"]:
+            data_files = client.request(data_url)
+            for file in data_files["data"]["files"]:
+                if "mms_" in file["name"] and "expanded" in file["name"]:
+                    current_df = pd.read_csv(file['url'])
+                    df = pd.concat([df, current_df], ignore_index=True)
+
+    return df
