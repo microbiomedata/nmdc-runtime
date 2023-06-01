@@ -35,6 +35,10 @@ from nmdc_runtime.site.ops import (
     fetch_nmdc_portal_submission_by_id,
     translate_portal_submission_to_nmdc_schema_database,
     validate_metadata,
+    get_neon_pipeline_data_product_id,
+    neon_data_by_product_id,
+    nmdc_schema_database_from_neon_data,
+    nmdc_schema_database_export_filename_neon
 )
 
 
@@ -149,4 +153,14 @@ def ingest_metadata_submission():
 
 @graph
 def ingest_neon_metadata():
-    pass
+    product_id = get_neon_pipeline_data_product_id()
+
+    data = neon_data_by_product_id(product_id)
+
+    database = nmdc_schema_database_from_neon_data(data)
+
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_schema_database_export_filename_neon()
+
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)

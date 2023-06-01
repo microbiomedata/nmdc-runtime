@@ -716,19 +716,19 @@ def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
 
 
-@op(config_schema={"product_code": str})
-def get_neon_pipeline_data_product_code(context: OpExecutionContext) -> str:
-    return context.op_config["product_code"]
+@op(config_schema={"product_id": str})
+def get_neon_pipeline_data_product_id(context: OpExecutionContext) -> str:
+    return context.op_config["product_id"]
 
 
 @op(required_resource_keys={"neon_api_client"})
-def neon_metadata_by_product_code(
-    context: OpExecutionContext, product_code: str
+def neon_data_by_product_id(
+    context: OpExecutionContext, product_id: str
 ) -> pd.DataFrame:
     df = pd.DataFrame()
     client: NeonApiClient = context.resources.neon_api_client
 
-    product = client.fetch_product_by_id(product_code)
+    product = client.fetch_product_by_id(product_id)
     for site in product["data"]["siteCodes"]:
         for data_url in site["availableDataUrls"]:
             data_files = client.request(data_url)
@@ -738,3 +738,25 @@ def neon_metadata_by_product_code(
                     df = pd.concat([df, current_df], ignore_index=True)
 
     return df
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def nmdc_schema_database_from_neon_data(
+    context: OpExecutionContext,
+    data: pd.DataFrame
+) -> nmdc.Database:
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+
+    def id_minter(*args, **kwargs):
+        response = client.mint_id(*args, **kwargs)
+        return response.json()
+
+    translator = NeonDataTranslator(data, id_minter=id_minter)
+
+    database = translator.get_database()
+    return database
+
+
+@op
+def nmdc_schema_database_export_filename_neon() -> str:
+    return "database_from_neon_metadata.json"

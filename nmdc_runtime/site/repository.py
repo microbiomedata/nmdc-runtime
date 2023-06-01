@@ -553,7 +553,8 @@ def biosample_submission_ingest():
                     }
                 ),
                 "ops": {
-                    "get_neon_pipeline_data_product_code": {"config": {"product_code": ""}}
+                    "get_neon_pipeline_data_product_id": {"config": {"product_id": ""}},
+                    "export_json_to_drs": {"config": {"username": ""}},
                 }
             }
         )
