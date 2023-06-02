@@ -86,6 +86,27 @@ def find_data_objects(
 ):
     return find_resources(req, mdb, "data_object_set")
 
+@router.get(
+    "/data_objects/study/{study_id}",
+    response_model_exclude_unset=True,
+)
+def find_data_objects_for_study(
+    study_id: str,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    data_object_ids = set()
+    study = raise404_if_none(mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found")
+    for biosample in mdb.biosample_set.find({"part_of": study["id"]}, ["id"]):
+        for opa in mdb.omics_processing_set.find({"has_input": biosample["id"]}, ["id", "has_output"]):
+            for do_id in opa["has_output"]:
+                data_object_ids.add(do_id)
+                for coll_name in activity_collection_names(mdb):
+                    for do_out_id in mdb[coll_name].find({"has_input": do_id}, ["has_output"]):
+                        data_object_ids.add(do_out_id)
+    return mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
+
+
+
 
 @router.get(
     "/data_objects/{data_object_id}",
