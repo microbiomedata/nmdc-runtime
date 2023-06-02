@@ -86,6 +86,7 @@ def find_data_objects(
 ):
     return find_resources(req, mdb, "data_object_set")
 
+
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
@@ -103,9 +104,7 @@ def find_data_objects_for_study(
                 for coll_name in activity_collection_names(mdb):
                     for do_out_id in mdb[coll_name].find({"has_input": do_id}, ["has_output"]):
                         data_object_ids.add(do_out_id)
-    return mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
-
-
+    return [strip_oid(d) for d in mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})]
 
 
 @router.get(
