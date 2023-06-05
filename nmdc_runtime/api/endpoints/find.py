@@ -108,7 +108,7 @@ def find_data_objects_for_study(
             rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]] = {
                 "has_output": {}
             }
-            for do_id in opa["has_output"]:
+            for do_id in opa.get("has_output", []):
                 data_object_ids.add(do_id)
                 rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]][
                     "has_output"
@@ -119,12 +119,12 @@ def find_data_objects_for_study(
                     )
                     if acts:
                         data_object_ids |= {
-                            do for act in acts for do in act["has_output"]
+                            do for act in acts for do in act.get("has_output", [])
                         }
                         rv["biosample_set"][biosample["id"]]["omics_processing_set"][
                             opa["id"]
                         ]["has_output"][do_id][coll_name] = {
-                            act["id"]: act["has_output"] for act in acts
+                            act["id"]: act.get("has_output", []) for act in acts
                         }
 
     rv["data_object_set"] = [
