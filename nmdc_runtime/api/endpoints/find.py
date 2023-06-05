@@ -106,10 +106,10 @@ def find_data_objects_for_study(
             for do_id in opa["has_output"]:
                 data_object_ids.add(do_id)
                 for coll_name in nmdc_activity_collection_names():
-                    for do_out_id in mdb[coll_name].find(
+                    for act in mdb[coll_name].find(
                         {"has_input": do_id}, ["has_output"]
                     ):
-                        data_object_ids.add(do_out_id)
+                        data_object_ids |= set(act["has_output"])
     return [
         strip_oid(d)
         for d in mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
