@@ -12,6 +12,7 @@ from pathlib import Path
 import fastjsonschema
 import requests
 from frozendict import frozendict
+from nmdc_schema.get_nmdc_view import ViewGetter
 from toolz import merge, pluck
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
@@ -201,3 +202,16 @@ def find_one(k_v: dict, entities: Iterable[dict]):
         raise Exception("Supports only one key-value pair")
     k = next(k for k in k_v)
     return next((e for e in entities if k in e and e[k] == k_v[k]), None)
+
+
+@lru_cache
+def nmdc_activity_collection_names():
+    slots = []
+    view = ViewGetter().get_view()
+    acts = set(view.class_descendants("WorkflowExecutionActivity"))
+    acts -= {"WorkflowExecutionActivity"}
+    for slot in view.class_slots("Database"):
+        rng = getattr(view.get_slot(slot), "range", None)
+        if rng in acts:
+            slots.append(slot)
+    return slots

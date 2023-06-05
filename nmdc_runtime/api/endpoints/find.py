@@ -2,7 +2,7 @@ from operator import itemgetter
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, nmdc_activity_collection_names
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
@@ -105,7 +105,7 @@ def find_data_objects_for_study(
         ):
             for do_id in opa["has_output"]:
                 data_object_ids.add(do_id)
-                for coll_name in activity_collection_names(mdb):
+                for coll_name in nmdc_activity_collection_names():
                     for do_out_id in mdb[coll_name].find(
                         {"has_input": do_id}, ["has_output"]
                     ):
