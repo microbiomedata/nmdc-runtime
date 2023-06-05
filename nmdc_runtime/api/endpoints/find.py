@@ -95,25 +95,43 @@ def find_data_objects_for_study(
     study_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    rv = {"biosample_set": {}, "data_object_set": []}
     data_object_ids = set()
     study = raise404_if_none(
         mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
     )
     for biosample in mdb.biosample_set.find({"part_of": study["id"]}, ["id"]):
+        rv["biosample_set"][biosample["id"]] = {"omics_processing_set": {}}
         for opa in mdb.omics_processing_set.find(
             {"has_input": biosample["id"]}, ["id", "has_output"]
         ):
+            rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]] = {
+                "has_output": {}
+            }
             for do_id in opa["has_output"]:
                 data_object_ids.add(do_id)
+                rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]][
+                    "has_output"
+                ][do_id] = {}
                 for coll_name in nmdc_activity_collection_names():
-                    for act in mdb[coll_name].find(
-                        {"has_input": do_id}, ["has_output"]
-                    ):
-                        data_object_ids |= set(act["has_output"])
-    return [
+                    acts = list(
+                        mdb[coll_name].find({"has_input": do_id}, ["id", "has_output"])
+                    )
+                    if acts:
+                        data_object_ids |= {
+                            do for act in acts for do in act["has_output"]
+                        }
+                        rv["biosample_set"][biosample["id"]]["omics_processing_set"][
+                            opa["id"]
+                        ]["has_output"][do_id][coll_name] = {
+                            act["id"]: act["has_output"] for act in acts
+                        }
+
+    rv["data_object_set"] = [
         strip_oid(d)
         for d in mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
     ]
+    return rv
 
 
 @router.get(
