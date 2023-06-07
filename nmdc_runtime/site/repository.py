@@ -33,7 +33,7 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
-    ingest_neon_metadata
+    ingest_neon_metadata,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -547,17 +547,32 @@ def biosample_submission_ingest():
                         "neon_api_client": {
                             "config": {
                                 "base_url": {"env": "NEON_API_BASE_URL"},
-                                "api_token": {"env": "NEON_API_TOKEN"}
+                                "api_token": {"env": "NEON_API_TOKEN"},
                             },
                         }
-                    }
+                    },
                 ),
                 "ops": {
-                    "get_neon_pipeline_data_product_id": {"config": {"product_id": ""}},
+                    "get_neon_pipeline_mms_data_product": {
+                        "config": {
+                            "mms_data_product": {
+                                "product_id": "DP1.10107.001",
+                                "product_tables": "mms_metagenomeDnaExtraction, mms_metagenomeSequencing, mms_rawDataFiles",
+                            }
+                        }
+                    },
+                    "get_neon_pipeline_sls_data_product": {
+                        "config": {
+                            "sls_data_product": {
+                                "product_id": "DP1.10086.001",
+                                "product_tables": "sls_soilCoreCollection, sls_soilMoisture, sls_soilpH",
+                            }
+                        }
+                    },
                     "export_json_to_drs": {"config": {"username": ""}},
-                }
-            }
-        )
+                },
+            },
+        ),
     ]
 
 

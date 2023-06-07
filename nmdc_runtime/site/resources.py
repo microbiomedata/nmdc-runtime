@@ -337,7 +337,7 @@ def nmdc_portal_api_client_resource(context: InitResourceContext):
 
 
 @dataclass
-class NeonApiClient():
+class NeonApiClient:
 
     base_url: str
     api_token: str

@@ -35,10 +35,11 @@ from nmdc_runtime.site.ops import (
     fetch_nmdc_portal_submission_by_id,
     translate_portal_submission_to_nmdc_schema_database,
     validate_metadata,
-    get_neon_pipeline_data_product_id,
-    neon_data_by_product_id,
+    neon_data_by_product,
     nmdc_schema_database_from_neon_data,
-    nmdc_schema_database_export_filename_neon
+    nmdc_schema_database_export_filename_neon,
+    get_neon_pipeline_mms_data_product,
+    get_neon_pipeline_sls_data_product
 )
 
 
@@ -153,9 +154,10 @@ def ingest_metadata_submission():
 
 @graph
 def ingest_neon_metadata():
-    product_id = get_neon_pipeline_data_product_id()
+    mms_data_product = get_neon_pipeline_mms_data_product()
+    sls_data_product = get_neon_pipeline_sls_data_product()
 
-    data = neon_data_by_product_id(product_id)
+    data = neon_data_by_product(mms_data_product, sls_data_product)
 
     database = nmdc_schema_database_from_neon_data(data)
 

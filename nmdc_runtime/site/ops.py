@@ -716,34 +716,48 @@ def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
 
 
-@op(config_schema={"product_id": str})
-def get_neon_pipeline_data_product_id(context: OpExecutionContext) -> str:
-    return context.op_config["product_id"]
+@op(config_schema={"mms_data_product": dict})
+def get_neon_pipeline_mms_data_product(context: OpExecutionContext) -> dict:
+    return context.op_config["mms_data_product"]
+
+
+@op(config_schema={"sls_data_product": dict})
+def get_neon_pipeline_sls_data_product(context: OpExecutionContext) -> dict:
+    return context.op_config["sls_data_product"]
 
 
 @op(required_resource_keys={"neon_api_client"})
-def neon_data_by_product_id(
-    context: OpExecutionContext, product_id: str
-) -> pd.DataFrame:
-    df = pd.DataFrame()
+def neon_data_by_product(
+    context: OpExecutionContext, mms_data_product: dict, sls_data_product: dict
+) -> Dict[str, pd.DataFrame]:
+    df_dict = {}
     client: NeonApiClient = context.resources.neon_api_client
 
-    product = client.fetch_product_by_id(product_id)
-    for site in product["data"]["siteCodes"]:
-        for data_url in site["availableDataUrls"]:
-            data_files = client.request(data_url)
-            for file in data_files["data"]["files"]:
-                if "mms_" in file["name"] and "expanded" in file["name"]:
-                    current_df = pd.read_csv(file['url'])
-                    df = pd.concat([df, current_df], ignore_index=True)
+    data_products = [mms_data_product, sls_data_product]
+    for data_product in data_products:
+        product_id = data_product["product_id"]
+        product_tables = data_product["product_tables"]
 
-    return df
+        product_table_list = [t.strip() for t in product_tables.split(",")]
+        product = client.fetch_product_by_id(product_id)
+        for table_name in product_table_list:
+            df = pd.DataFrame()
+            for site in product["data"]["siteCodes"]:
+                for data_url in site["availableDataUrls"]:
+                    data_files = client.request(data_url)
+                    for file in data_files["data"]["files"]:
+                        if table_name in file["name"] and "expanded" in file["name"]:
+                            current_df = pd.read_csv(file['url'])
+                            df = pd.concat([df, current_df], ignore_index=True)
+            df_dict[table_name] = df
+
+    return df_dict
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_neon_data(
     context: OpExecutionContext,
-    data: pd.DataFrame
+    data: Dict[str, pd.DataFrame]
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
