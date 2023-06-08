@@ -557,7 +557,7 @@ def biosample_submission_ingest():
                         "config": {
                             "mms_data_product": {
                                 "product_id": "DP1.10107.001",
-                                "product_tables": "mms_metagenomeDnaExtraction, mms_metagenomeSequencing, mms_rawDataFiles",
+                                "product_tables": "mms_metagenomeDnaExtraction, mms_metagenomeSequencing",
                             }
                         }
                     },
@@ -565,7 +565,7 @@ def biosample_submission_ingest():
                         "config": {
                             "sls_data_product": {
                                 "product_id": "DP1.10086.001",
-                                "product_tables": "sls_soilCoreCollection, sls_soilMoisture, sls_soilpH",
+                                "product_tables": "sls_metagenomicsPooling, sls_soilCoreCollection, ",
                             }
                         }
                     },
