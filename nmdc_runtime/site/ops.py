@@ -727,29 +727,52 @@ def get_neon_pipeline_sls_data_product(context: OpExecutionContext) -> dict:
 
 
 @op(required_resource_keys={"neon_api_client"})
-def neon_data_by_product(
-    context: OpExecutionContext, mms_data_product: dict, sls_data_product: dict
+def neon_mms_data_by_product(
+    context: OpExecutionContext, mms_data_product: dict
 ) -> Dict[str, pd.DataFrame]:
     df_dict = {}
     client: NeonApiClient = context.resources.neon_api_client
 
-    data_products = [mms_data_product, sls_data_product]
-    for data_product in data_products:
-        product_id = data_product["product_id"]
-        product_tables = data_product["product_tables"]
+    product_id = mms_data_product["product_id"]
+    product_tables = mms_data_product["product_tables"]
 
-        product_table_list = [t.strip() for t in product_tables.split(",")]
-        product = client.fetch_product_by_id(product_id)
-        for table_name in product_table_list:
-            df = pd.DataFrame()
-            for site in product["data"]["siteCodes"]:
-                for data_url in site["availableDataUrls"]:
-                    data_files = client.request(data_url)
-                    for file in data_files["data"]["files"]:
-                        if table_name in file["name"] and "expanded" in file["name"]:
-                            current_df = pd.read_csv(file['url'])
-                            df = pd.concat([df, current_df], ignore_index=True)
-            df_dict[table_name] = df
+    product_table_list = [t.strip() for t in product_tables.split(",")]
+    product = client.fetch_product_by_id(product_id)
+    for table_name in product_table_list:
+        df = pd.DataFrame()
+        for site in product["data"]["siteCodes"]:
+            for data_url in site["availableDataUrls"]:
+                data_files = client.request(data_url)
+                for file in data_files["data"]["files"]:
+                    if table_name in file["name"] and "expanded" in file["name"]:
+                        current_df = pd.read_csv(file['url'])
+                        df = pd.concat([df, current_df], ignore_index=True)
+        df_dict[table_name] = df
+
+    return df_dict
+
+@op(required_resource_keys={"neon_api_client"})
+def neon_sls_data_by_product(
+    context: OpExecutionContext, sls_data_product: dict
+) -> Dict[str, pd.DataFrame]:
+    df_dict = {}
+    client: NeonApiClient = context.resources.neon_api_client
+
+    product_id = sls_data_product["product_id"]
+    product_tables = sls_data_product["product_tables"]
+
+    product_table_list = [t.strip() for t in product_tables.split(",")]
+    product = client.fetch_product_by_id(product_id)
+    for table_name in product_table_list:
+        df = pd.DataFrame()
+        for site in product["data"]["siteCodes"]:
+            for data_url in site["availableDataUrls"]:
+                data_files = client.request(data_url)
+                for file in data_files["data"]["files"]:
+                    if table_name in file["name"] and "expanded" in file["name"]:
+                        current_df = pd.read_csv(file['url'])
+                        df = pd.concat([df, current_df], ignore_index=True)
+        df_dict[table_name] = df
 
     return df_dict
 
@@ -757,7 +780,8 @@ def neon_data_by_product(
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_neon_data(
     context: OpExecutionContext,
-    data: Dict[str, pd.DataFrame]
+    mms_data: Dict[str, pd.DataFrame],
+    sls_data: Dict[str, pd.DataFrame]
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -765,7 +789,7 @@ def nmdc_schema_database_from_neon_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonDataTranslator(data, id_minter=id_minter)
+    translator = NeonDataTranslator(mms_data, sls_data, id_minter=id_minter)
 
     database = translator.get_database()
     return database

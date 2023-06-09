@@ -5,24 +5,35 @@ from nmdc_runtime.site.translation.translator import Translator
 
 
 class NeonDataTranslator(Translator):
-    def __init__(self, data: dict, *args, **kwargs) -> None:
+    def __init__(self, mms_data: dict, sls_data: dict, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        neon_data_tables = (
+        neon_mms_data_tables = (
             "mms_metagenomeDnaExtraction",
             "mms_metagenomeSequencing",
+        )
+
+        neon_sls_data_tables = (
             "sls_metagenomicsPooling",
             "sls_soilCoreCollection",
         )
 
-        if all(k in data for k in neon_data_tables) in data:
-            self.mms_metagenome_dna_extraction_df = data["mms_metagenomeDnaExtraction"]
-            self.mms_metagenome_sequencing_df = data["mms_metagenomeSequencing"]
-            self.sls_metagenomics_pooling_df = data["sls_metagenomicsPooling"]
-            self.sls_soil_core_collection_df = data["sls_soilCoreCollection"]
+        if all(k in mms_data for k in neon_mms_data_tables) in mms_data:
+            self.mms_metagenome_dna_extraction_df = mms_data[
+                "mms_metagenomeDnaExtraction"
+            ]
+            self.mms_metagenome_sequencing_df = mms_data["mms_metagenomeSequencing"]
         else:
             raise ValueError(
-                f"You are missing one of the following tables: {neon_data_tables}"
+                f"You are missing one of the MMS tables: {neon_mms_data_tables}"
+            )
+
+        if all(k in sls_data for k in neon_sls_data_tables) in sls_data:
+            self.sls_metagenomics_pooling_df = sls_data["sls_metagenomicsPooling"]
+            self.sls_soil_core_collection_df = sls_data["sls_soilCoreCollection"]
+        else:
+            raise ValueError(
+                f"You are missing one of the SLS tables: {neon_sls_data_tables}"
             )
 
     def _translate_biosample(self) -> nmdc.Biosample:
@@ -36,9 +47,10 @@ class NeonDataTranslator(Translator):
 
         # join between mms_metagenomeDnaExtraction and mms_metagenomeSequencing tables
         mms_extraction_sequencing_merged_df = pd.merge(
-            self.mms_metagenome_sequencing_df,
-            self.mms_metagenome_dna_extraction_df["dnaSampleID"],
+            self.mms_metagenome_dna_extraction_df,
+            self.mms_metagenome_sequencing_df["dnaSampleID"],
             on="dnaSampleID",
+            how="left",
         )
 
         # join between sls_metagenomicsPooling and merged dna extraction
@@ -60,7 +72,7 @@ class NeonDataTranslator(Translator):
             index=mms_sls_pooling_merged_df.dnaSampleID,
         ).stack()
         mms_sls_pooling_exploded_df = mms_sls_pooling_exploded_df.reset_index()[
-            ["genomicsPooledIDList", "dnaSampleID"]
+            [0, "dnaSampleID"]
         ]
         mms_sls_pooling_exploded_df.columns = ["sampleID", "dnaSampleID"]
 
