@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 
 from nmdc_schema import nmdc
@@ -18,7 +20,7 @@ class NeonDataTranslator(Translator):
             "sls_soilCoreCollection",
         )
 
-        if all(k in mms_data for k in neon_mms_data_tables) in mms_data:
+        if all(k in mms_data for k in neon_mms_data_tables):
             self.mms_metagenome_dna_extraction_df = mms_data[
                 "mms_metagenomeDnaExtraction"
             ]
@@ -28,7 +30,7 @@ class NeonDataTranslator(Translator):
                 f"You are missing one of the MMS tables: {neon_mms_data_tables}"
             )
 
-        if all(k in sls_data for k in neon_sls_data_tables) in sls_data:
+        if all(k in sls_data for k in neon_sls_data_tables):
             self.sls_metagenomics_pooling_df = sls_data["sls_metagenomicsPooling"]
             self.sls_soil_core_collection_df = sls_data["sls_soilCoreCollection"]
         else:
@@ -36,7 +38,10 @@ class NeonDataTranslator(Translator):
                 f"You are missing one of the SLS tables: {neon_sls_data_tables}"
             )
 
-    def _translate_biosample(self) -> nmdc.Biosample:
+    def _translate_biosamples(self) -> List[nmdc.Biosample]:
+        pass
+
+    def _translate_planned_processes(self) -> List[nmdc.PlannedProcess]:
         pass
 
     def _translate_omics_processing(self) -> nmdc.OmicsProcessing:
@@ -68,8 +73,8 @@ class NeonDataTranslator(Translator):
         # explode genomicsPooledIDList column on "|" and duplicate rows
         # for each of the split values
         mms_sls_pooling_exploded_df = pd.DataFrame(
-            mms_sls_pooling_merged_df.genomicsPooledIDList.str.split("|").tolist(),
-            index=mms_sls_pooling_merged_df.dnaSampleID,
+            mms_sls_pooling_merged_df["genomicsPooledIDList"].str.split("|").tolist(),
+            index=mms_sls_pooling_merged_df["dnaSampleID"],
         ).stack()
         mms_sls_pooling_exploded_df = mms_sls_pooling_exploded_df.reset_index()[
             [0, "dnaSampleID"]
