@@ -7,11 +7,10 @@ import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    all_docs_have_unique_id,
-    ensure_unique_id_indexes,
 )
 from nmdc_runtime.api.endpoints import (
     capabilities,

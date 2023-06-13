@@ -20,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_name
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -28,23 +28,6 @@ SchemaPathProperties = namedtuple(
 )
 
 FilePathOrBuffer = Union[Path, StringIO]
-
-collection_name_to_class_name = {
-    db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
-    for db_prop, db_prop_spec in get_nmdc_jsonschema_dict()["$defs"]["Database"][
-        "properties"
-    ].items()
-    if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
-}
-
-
-@lru_cache
-def schema_collection_names_with_id_field():
-    return {
-        coll_name
-        for coll_name, class_name in collection_name_to_class_name.items()
-        if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("properties", {})
-    }
 
 
 def load_changesheet(

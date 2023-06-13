@@ -6,10 +6,8 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Tuple
 from zipfile import ZipFile
 
-import fastjsonschema
 from bson import ObjectId, json_util
 from dagster import (
     Any,
@@ -27,7 +25,6 @@ from dagster import (
     String,
     op,
 )
-from fastjsonschema import JsonSchemaValueException
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
@@ -66,8 +63,7 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
-from nmdc_runtime.util import drs_object_in_for, pluralize, put_object
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import drs_object_in_for, pluralize, put_object, validate_json
 from nmdc_schema import nmdc
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
@@ -534,18 +530,12 @@ def perform_mongo_updates(context, json_in):
     context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
     context.log.debug(f"{docs}")
 
-    nmdc_jsonschema = get_nmdc_jsonschema_dict()
+    rv = validate_json(
+        docs, mongo.db
+    )  # use *exact* same check as /metadata/json:validate
+    if rv["result"] == "errors":
+        raise Failure(str(rv["detail"]))
 
-    # commenting out the change to the schema dict with IDs from Mongo collection
-    # nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mongo.db.file_type_enum.distinct(
-    #    "id"
-    # )
-    nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
-
-    try:
-        _ = nmdc_jsonschema_validator(docs)
-    except JsonSchemaValueException as e:
-        raise Failure(str(e))
     coll_has_id_index = collection_indexed_on_id(mongo.db)
     if all(coll_has_id_index[coll] for coll in docs.keys()):
         replace = True

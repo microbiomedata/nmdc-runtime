@@ -14,7 +14,7 @@ from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
 from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db, OverlayDB, OverlayDBError
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
@@ -27,9 +27,12 @@ from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.object_type import DrsObjectWithTypes
 from nmdc_runtime.api.models.site import get_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
-from nmdc_runtime.util import unfreeze
+from nmdc_runtime.util import (
+    unfreeze,
+    validate_json,
+    specialize_activity_set_docs,
+)
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
@@ -220,39 +223,19 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
             return {"result": "errors", "detail": validation_errors}
 
 
-def _validate_json(docs: dict, mdb: MongoDatabase):
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
-    docs = deepcopy(docs)
-    docs, validation_errors = specialize_activity_set_docs(docs)
-
-    for coll_name, coll_docs in docs.items():
-        errors = list(validator.iter_errors({coll_name: coll_docs}))
-        validation_errors[coll_name] = [e.message for e in errors]
-        try:
-            with OverlayDB(mdb) as odb:
-                odb.replace_or_insert_many(coll_name, coll_docs)
-        except OverlayDBError as e:
-            validation_errors[coll_name].append(str(e))
-
-    if all(len(v) == 0 for v in validation_errors.values()):
-        return {"result": "All Okay!"}
-    else:
-        return {"result": "errors", "detail": validation_errors}
-
-
-@router.post("/metadata/json:validate")
-async def validate_json(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
+@router.post("/metadata/json:validate", name="Validate JSON")
+async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
     """
 
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
     """
 
-    return _validate_json(docs, mdb)
+    return validate_json(docs, mdb)
 
 
-@router.post("/metadata/json:submit")
-async def submit_json(
+@router.post("/metadata/json:submit", name="Submit JSON")
+async def submit_json_nmdcdb(
     docs: dict,
     user: User = Depends(get_current_active_user),
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -262,7 +245,7 @@ async def submit_json(
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    rv = _validate_json(docs, mdb)
+    rv = validate_json(docs, mdb)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
