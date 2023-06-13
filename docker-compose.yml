@@ -98,7 +98,7 @@ services:
     tty: true
     volumes:
       - nmdc_runtime_terminus_data:/app/terminusdb/storage
-    restart: always
+    restart: unless-stopped
     environment:
       TERMINUSDB_SERVER_PORT: 6363
       TERMINUSDB_ADMIN_PASS: root
