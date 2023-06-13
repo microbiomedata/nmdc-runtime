@@ -382,7 +382,11 @@ class SubmissionPortalTranslator(Translator):
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
         :return: nmdc:Biosample
         """
-        slots = {"id": nmdc_biosample_id, "part_of": nmdc_study_id}
+        slots = {
+            "id": nmdc_biosample_id,
+            "part_of": nmdc_study_id,
+            "name": sample_data[0].get("samp_name"),
+        }
         biosample_slot_names = self.schema_view.class_slots("Biosample")
         for tab in sample_data:
             for column, value in tab.items():
@@ -437,6 +441,7 @@ class SubmissionPortalTranslator(Translator):
                 nmdc_study_id,
             )
             for sample_data_id, sample_data in sample_data_by_id.items()
+            if sample_data
         ]
 
         return database
