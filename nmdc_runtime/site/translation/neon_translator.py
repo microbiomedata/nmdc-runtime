@@ -18,6 +18,9 @@ class NeonDataTranslator(Translator):
         neon_sls_data_tables = (
             "sls_metagenomicsPooling",
             "sls_soilCoreCollection",
+            "sls_soilChemistry",
+            "sls_soilMoisture",
+            "sls_soilpH",
         )
 
         if all(k in mms_data for k in neon_mms_data_tables):
@@ -33,6 +36,9 @@ class NeonDataTranslator(Translator):
         if all(k in sls_data for k in neon_sls_data_tables):
             self.sls_metagenomics_pooling_df = sls_data["sls_metagenomicsPooling"]
             self.sls_soil_core_collection_df = sls_data["sls_soilCoreCollection"]
+            self.sls_soil_chemistry = sls_data["sls_soilChemistry"]
+            self.sls_soil_moisture = sls_data["sls_soilMoisture"]
+            self.sls_soil_ph = sls_data["sls_soilpH"]
         else:
             raise ValueError(
                 f"You are missing one of the SLS tables: {neon_sls_data_tables}"
@@ -66,28 +72,78 @@ class NeonDataTranslator(Translator):
                     biosample_row["decimalLongitude"].values[0]
                 ),
             ),
-            elev=nmdc.Float(biosample_row["elevation"].values[0]),
+            elev=nmdc.Float(biosample_row["elevation"].values[0])
+            if not biosample_row["elevation"].isnull().all()
+            else None,
             collection_date=nmdc.TimestampValue(
                 has_raw_value=biosample_row["collectDate"].values[0]
-            ),
+            )
+            if not biosample_row["collectDate"].isnull().all()
+            else None,
             temp=nmdc.QuantityValue(
                 has_raw_value=biosample_row["soilTemp"].values[0],
                 has_numeric_value=biosample_row["soilTemp"].values[0],
                 has_unit="degree celcius",
-            ),
+            )
+            if not biosample_row["soilTemp"].isnull().all()
+            else None,
             depth=nmdc.QuantityValue(
-                has_minimum_numeric_value=biosample_row["sampleTopDepth"].values[0],
-                has_maximum_numeric_value=biosample_row["sampleBottomDepth"].values[0],
+                has_minimum_numeric_value=biosample_row["sampleTopDepth"].values[0]
+                if not biosample_row["sampleTopDepth"].isnull().all()
+                else None,
+                has_maximum_numeric_value=biosample_row["sampleBottomDepth"].values[0]
+                if not biosample_row["sampleBottomDepth"].isnull().all()
+                else None,
             ),
-            samp_collec_device=biosample_row["soilSamplingDevice"].values[0],
-            soil_horizon=f"{biosample_row['horizon'].values[0]} horizon",
+            samp_collec_device=biosample_row["soilSamplingDevice"].values[0]
+            if biosample_row["soilSamplingDevice"].values[0]
+            else None,
+            soil_horizon=f"{biosample_row['horizon'].values[0]} horizon"
+            if not biosample_row["horizon"].isnull().all()
+            else None,
             analysis_type=biosample_row["sequenceAnalysisType"].values[0]
-            if "sequenceAnalysisType" in biosample_row
-            and not biosample_row["sequenceAnalysisType"].isnull().all()
+            if not biosample_row["sequenceAnalysisType"].isnull().all()
+            else None,
+            env_package=nmdc.TextValue(
+                has_raw_value=biosample_row["sampleType"].values[0]
+            )
+            if not biosample_row["sampleType"].isnull().all()
+            else None,
+            nitro=nmdc.QuantityValue(
+                has_raw_value=biosample_row["nitrogenPercent"].values[0],
+                has_numeric_value=biosample_row["nitrogenPercent"].values[0],
+            )
+            if not biosample_row["nitrogenPercent"].isnull().all()
+            else None,
+            org_carb=nmdc.QuantityValue(
+                has_raw_value=biosample_row["organicCPercent"].values[0],
+                has_numeric_value=biosample_row["organicCPercent"].values[0],
+            )
+            if not biosample_row["organicCPercent"].isnull().all()
+            else None,
+            carb_nitro_ratio=nmdc.QuantityValue(
+                has_raw_value=biosample_row["CNratio"].values[0],
+                has_numeric_value=biosample_row["CNratio"].values[0],
+            )
+            if not biosample_row["CNratio"].isnull().all()
+            else None,
+            replicate_number=biosample_row["analyticalRepNumber"].values[0]
+            if not biosample_row["analyticalRepNumber"].isnull().all()
+            else None,
+            ph_meth=nmdc.TextValue(
+                has_raw_value=biosample_row["samplingProtocolVersion"].values[0]
+            )
+            if not biosample_row["samplingProtocolVersion"].values[0]
+            else None,
+            ph=nmdc.Double(biosample_row["soilInWaterpH"].values[0])
+            if not biosample_row["soilInWaterpH"].isnull().all()
             else None,
         )
 
-    def _translate_planned_processes(self) -> List[nmdc.PlannedProcess]:
+    def _translate_pooling_process(self) -> List[nmdc.PlannedProcess]:
+        pass
+
+    def _translate_extraction_process(self) -> List[nmdc.PlannedProcess]:
         pass
 
     def _translate_omics_processing(self) -> nmdc.OmicsProcessing:
@@ -128,6 +184,28 @@ class NeonDataTranslator(Translator):
             [0, "dnaSampleID"]
         ]
         mms_sls_pooling_exploded_df.columns = ["sampleID", "dnaSampleID"]
+
+        self.sls_soil_core_collection_df = pd.merge(
+            self.sls_soil_core_collection_df,
+            self.sls_soil_chemistry[
+                [
+                    "sampleID",
+                    "sampleType",
+                    "nitrogenPercent",
+                    "organicCPercent",
+                    "CNratio",
+                    "analyticalRepNumber",
+                    "testMethod",
+                ]
+            ],
+            on="sampleID",
+            how="left",
+        )
+
+        self.sls_soil_core_collection_df = pd.merge(
+            self.sls_soil_core_collection_df,
+            self.sls_soil_ph[["samplingProtocolVersion", "soilInWaterpH"]],
+        )
 
         # join based on sampleID in sls_soilCoreCollection table
         soil_biosamples_df = pd.merge(
