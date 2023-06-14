@@ -51,7 +51,6 @@ from nmdc_runtime.api.models.run import (
 )
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
-from nmdc_runtime.site.drsobjects.registration import specialize_activity_set_docs
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
     GoldApiClient,
@@ -63,7 +62,13 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
 from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
-from nmdc_runtime.util import drs_object_in_for, pluralize, put_object, validate_json
+from nmdc_runtime.util import (
+    drs_object_in_for,
+    pluralize,
+    put_object,
+    validate_json,
+    specialize_activity_set_docs,
+)
 from nmdc_schema import nmdc
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
