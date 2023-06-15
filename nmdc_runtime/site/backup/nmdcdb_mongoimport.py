@@ -38,7 +38,6 @@ def main():
     print("Got mongoexport URLs. Importing to mongo...")
 
     with TemporaryDirectory() as tmpdirname:
-
         for collection_name, jsonl_gz_url in mongoexports.items():
             f_gz = BytesIO(requests.get(jsonl_gz_url).content)
             with gzip.open(f_gz, "rb") as f:
