@@ -10,5 +10,4 @@ mongodump -h $MONGO_HOST -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationD
     --excludeCollectionsWithPrefix="fs." \
     --excludeCollectionsWithPrefix="ids_" \
     --excludeCollectionsWithPrefix="txn_log" \
-    --excludeCollectionsWithPrefix="functional_annotation_agg" \
-    --excludeCollectionsWithPrefix="metaproteomics_"
+    --excludeCollectionsWithPrefix="functional_annotation_agg"
