@@ -1,3 +1,5 @@
+import sqlite3
+
 from typing import List
 
 import pandas as pd
@@ -9,6 +11,8 @@ from nmdc_runtime.site.translation.translator import Translator
 class NeonDataTranslator(Translator):
     def __init__(self, mms_data: dict, sls_data: dict, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        self.conn = sqlite3.connect("neon.db")
 
         neon_mms_data_tables = (
             "mms_metagenomeDnaExtraction",
@@ -24,28 +28,46 @@ class NeonDataTranslator(Translator):
         )
 
         if all(k in mms_data for k in neon_mms_data_tables):
-            self.mms_metagenome_dna_extraction_df = mms_data[
-                "mms_metagenomeDnaExtraction"
-            ]
-            self.mms_metagenome_sequencing_df = mms_data["mms_metagenomeSequencing"]
+            mms_data["mms_metagenomeDnaExtraction"].to_sql(
+                "mms_metagenomeDnaExtraction",
+                self.conn,
+                if_exists="replace",
+                index=False,
+            )
+            mms_data["mms_metagenomeSequencing"].to_sql(
+                "mms_metagenomeSequencing", self.conn, if_exists="replace", index=False
+            )
         else:
             raise ValueError(
                 f"You are missing one of the MMS tables: {neon_mms_data_tables}"
             )
 
         if all(k in sls_data for k in neon_sls_data_tables):
-            self.sls_metagenomics_pooling_df = sls_data["sls_metagenomicsPooling"]
-            self.sls_soil_core_collection_df = sls_data["sls_soilCoreCollection"]
-            self.sls_soil_chemistry = sls_data["sls_soilChemistry"]
-            self.sls_soil_moisture = sls_data["sls_soilMoisture"]
-            self.sls_soil_ph = sls_data["sls_soilpH"]
+            sls_data["sls_metagenomicsPooling"].to_sql(
+                "sls_metagenomicsPooling", self.conn, if_exists="replace", index=False
+            )
+            sls_data["sls_soilCoreCollection"].to_sql(
+                "sls_soilCoreCollection", self.conn, if_exists="replace", index=False
+            )
+            sls_data["sls_soilChemistry"].to_sql(
+                "sls_soilChemistry", self.conn, if_exists="replace", index=False
+            )
+            sls_data["sls_soilMoisture"].to_sql(
+                "sls_soilMoisture", self.conn, if_exists="replace", index=False
+            )
+            sls_data["sls_soilpH"].to_sql(
+                "sls_soilpH", self.conn, if_exists="replace", index=False
+            )
         else:
             raise ValueError(
                 f"You are missing one of the SLS tables: {neon_sls_data_tables}"
             )
 
         neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        self.neon_envo_terms_df = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
+        neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
+        neon_envo_terms.to_sql(
+            "neonEnvoTerms", self.conn, if_exists="replace", index=False
+        )
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
@@ -60,7 +82,7 @@ class NeonDataTranslator(Translator):
                 term=nmdc.OntologyClass(
                     id=biosample_row["envo_id"].values[0],
                     name=biosample_row["envo_label"].values[0],
-                )
+                ),
             ),
             env_medium=nmdc.ControlledIdentifiedTermValue(
                 term=nmdc.OntologyClass(id="ENVO:00001998", name="soil")
@@ -71,72 +93,77 @@ class NeonDataTranslator(Translator):
                 longitude=nmdc.DecimalDegree(
                     biosample_row["decimalLongitude"].values[0]
                 ),
-            ),
+            )
+            if not biosample_row["decimalLatitude"].isna().any()
+            else None,
             elev=nmdc.Float(biosample_row["elevation"].values[0])
-            if not biosample_row["elevation"].isnull().all()
+            if not biosample_row["elevation"].isna().any()
             else None,
             collection_date=nmdc.TimestampValue(
                 has_raw_value=biosample_row["collectDate"].values[0]
             )
-            if not biosample_row["collectDate"].isnull().all()
+            if not biosample_row["collectDate"].isna().any()
             else None,
             temp=nmdc.QuantityValue(
                 has_raw_value=biosample_row["soilTemp"].values[0],
                 has_numeric_value=biosample_row["soilTemp"].values[0],
                 has_unit="degree celcius",
             )
-            if not biosample_row["soilTemp"].isnull().all()
+            if not biosample_row["soilTemp"].isna().any()
             else None,
             depth=nmdc.QuantityValue(
                 has_minimum_numeric_value=biosample_row["sampleTopDepth"].values[0]
-                if not biosample_row["sampleTopDepth"].isnull().all()
+                if not biosample_row["sampleTopDepth"].isna().any()
                 else None,
                 has_maximum_numeric_value=biosample_row["sampleBottomDepth"].values[0]
-                if not biosample_row["sampleBottomDepth"].isnull().all()
+                if not biosample_row["sampleBottomDepth"].isna().any()
                 else None,
             ),
             samp_collec_device=biosample_row["soilSamplingDevice"].values[0]
-            if biosample_row["soilSamplingDevice"].values[0]
+            if not biosample_row["soilSamplingDevice"].isna().any()
             else None,
             soil_horizon=f"{biosample_row['horizon'].values[0]} horizon"
-            if not biosample_row["horizon"].isnull().all()
+            if not biosample_row["horizon"].isna().any()
             else None,
-            analysis_type=biosample_row["sequenceAnalysisType"].values[0]
-            if not biosample_row["sequenceAnalysisType"].isnull().all()
-            else None,
+            # analysis_type=biosample_row["sequenceAnalysisType"].values[0]
+            # if not biosample_row["sequenceAnalysisType"].isna().any()
+            # else None,
             env_package=nmdc.TextValue(
                 has_raw_value=biosample_row["sampleType"].values[0]
             )
-            if not biosample_row["sampleType"].isnull().all()
+            if not biosample_row["sampleType"].isna().any()
             else None,
             nitro=nmdc.QuantityValue(
                 has_raw_value=biosample_row["nitrogenPercent"].values[0],
                 has_numeric_value=biosample_row["nitrogenPercent"].values[0],
             )
-            if not biosample_row["nitrogenPercent"].isnull().all()
+            if not biosample_row["nitrogenPercent"].isna().any()
             else None,
             org_carb=nmdc.QuantityValue(
                 has_raw_value=biosample_row["organicCPercent"].values[0],
                 has_numeric_value=biosample_row["organicCPercent"].values[0],
             )
-            if not biosample_row["organicCPercent"].isnull().all()
+            if not biosample_row["organicCPercent"].isna().any()
             else None,
             carb_nitro_ratio=nmdc.QuantityValue(
                 has_raw_value=biosample_row["CNratio"].values[0],
                 has_numeric_value=biosample_row["CNratio"].values[0],
             )
-            if not biosample_row["CNratio"].isnull().all()
+            if not biosample_row["CNratio"].isna().any()
             else None,
             replicate_number=biosample_row["analyticalRepNumber"].values[0]
-            if not biosample_row["analyticalRepNumber"].isnull().all()
+            if not biosample_row["analyticalRepNumber"].isna().any()
             else None,
             ph_meth=nmdc.TextValue(
                 has_raw_value=biosample_row["samplingProtocolVersion"].values[0]
             )
-            if not biosample_row["samplingProtocolVersion"].values[0]
+            if not biosample_row["samplingProtocolVersion"].isna().any()
             else None,
             ph=nmdc.Double(biosample_row["soilInWaterpH"].values[0])
-            if not biosample_row["soilInWaterpH"].isnull().all()
+            if not biosample_row["soilInWaterpH"].isna().any()
+            else None,
+            water_content=[biosample_row["soilMoisture"].values[0]]
+            if not biosample_row["soilMoisture"].isna().any()
             else None,
         )
 
@@ -152,95 +179,128 @@ class NeonDataTranslator(Translator):
     def get_database(self) -> nmdc.Database:
         database = nmdc.Database()
 
-        # join between mms_metagenomeDnaExtraction and mms_metagenomeSequencing tables
-        mms_extraction_sequencing_merged_df = pd.merge(
-            self.mms_metagenome_dna_extraction_df,
-            self.mms_metagenome_sequencing_df["dnaSampleID"],
-            on="dnaSampleID",
-            how="left",
+        # Joining sls_metagenomicsPooling and merged tables
+        query = """
+        SELECT sls_metagenomicsPooling.genomicsPooledIDList, sls_metagenomicsPooling.genomicsSampleID, merged.dnaSampleID, merged.sequenceAnalysisType
+        FROM sls_metagenomicsPooling
+        LEFT JOIN (
+            SELECT mms_metagenomeDnaExtraction.dnaSampleID, mms_metagenomeDnaExtraction.genomicsSampleID, mms_metagenomeDnaExtraction.sequenceAnalysisType
+            FROM mms_metagenomeDnaExtraction
+            LEFT JOIN mms_metagenomeSequencing ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
+        ) AS merged ON sls_metagenomicsPooling.genomicsSampleID = merged.genomicsSampleID
+        """
+        mms_sls_pooling_merged = pd.read_sql_query(query, self.conn)
+        mms_sls_pooling_merged.to_sql(
+            "mms_sls_pooling_merged", self.conn, if_exists="replace", index=False
         )
 
-        # join between sls_metagenomicsPooling and merged dna extraction
-        # and metagenome sequencing tables
-        mms_sls_pooling_merged_df = pd.merge(
-            self.sls_metagenomics_pooling_df,
-            mms_extraction_sequencing_merged_df[
-                ["genomicsSampleID", "dnaSampleID", "sequenceAnalysisType"]
-            ],
-            on="genomicsSampleID",
-            how="left",
-        )
-        mms_sls_pooling_merged_df = mms_sls_pooling_merged_df[
-            mms_sls_pooling_merged_df["dnaSampleID"].notna()
-        ]
-
-        # explode genomicsPooledIDList column on "|" and duplicate rows
         # for each of the split values
-        mms_sls_pooling_exploded_df = pd.DataFrame(
-            mms_sls_pooling_merged_df["genomicsPooledIDList"].str.split("|").tolist(),
-            index=mms_sls_pooling_merged_df["dnaSampleID"],
-        ).stack()
-        mms_sls_pooling_exploded_df = mms_sls_pooling_exploded_df.reset_index()[
-            [0, "dnaSampleID"]
-        ]
-        mms_sls_pooling_exploded_df.columns = ["sampleID", "dnaSampleID"]
-
-        self.sls_soil_core_collection_df = pd.merge(
-            self.sls_soil_core_collection_df,
-            self.sls_soil_chemistry[
-                [
-                    "sampleID",
-                    "sampleType",
-                    "nitrogenPercent",
-                    "organicCPercent",
-                    "CNratio",
-                    "analyticalRepNumber",
-                    "testMethod",
-                ]
-            ],
-            on="sampleID",
-            how="left",
+        query = """
+            WITH RECURSIVE split_values(sampleID, remaining_values, genomicsPooledIDList, dnaSampleID) AS (
+                SELECT
+                    CASE
+                        WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, 1, instr(genomicsPooledIDList, '|') - 1)
+                        ELSE genomicsPooledIDList
+                    END AS sampleID,
+                    CASE
+                        WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, instr(genomicsPooledIDList, '|') + 1)
+                        ELSE NULL
+                    END AS remaining_values,
+                    genomicsPooledIDList,
+                    dnaSampleID
+                FROM mms_sls_pooling_merged
+                WHERE genomicsPooledIDList IS NOT NULL
+                
+                UNION ALL
+                
+                SELECT
+                    CASE
+                        WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, 1, instr(remaining_values, '|') - 1)
+                        ELSE remaining_values
+                    END AS sampleID,
+                    CASE
+                        WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, instr(remaining_values, '|') + 1)
+                        ELSE NULL
+                    END AS remaining_values,
+                    genomicsPooledIDList,
+                    dnaSampleID
+                FROM split_values
+                WHERE remaining_values IS NOT NULL
+            )
+            SELECT split_values.sampleID, split_values.genomicsPooledIDList, split_values.dnaSampleID, mms_sls_pooling_merged.sequenceAnalysisType
+            FROM split_values
+            LEFT JOIN mms_sls_pooling_merged ON split_values.dnaSampleID = mms_sls_pooling_merged.dnaSampleID
+            """
+        mms_sls_pooling_exploded = pd.read_sql_query(query, self.conn)
+        mms_sls_pooling_exploded.to_sql(
+            "mms_sls_pooling_exploded", self.conn, if_exists="replace", index=False
         )
 
-        self.sls_soil_core_collection_df = pd.merge(
-            self.sls_soil_core_collection_df,
-            self.sls_soil_ph[["samplingProtocolVersion", "soilInWaterpH"]],
+        # Joining sls_soilCoreCollection and mms_sls_pooling_exploded tables
+        query = """
+        SELECT *
+        FROM sls_soilCoreCollection
+        LEFT JOIN mms_sls_pooling_exploded ON sls_soilCoreCollection.sampleID = mms_sls_pooling_exploded.sampleID
+        WHERE sls_soilCoreCollection.sampleID IS NOT NULL
+        """
+        soil_biosamples = pd.read_sql_query(query, self.conn)
+
+        soil_biosamples = soil_biosamples[soil_biosamples["dnaSampleID"].notna()]
+        soil_biosamples = soil_biosamples.loc[
+            :, ~soil_biosamples.columns.duplicated()
+        ].copy()
+        soil_biosamples.to_sql(
+            "soil_biosamples", self.conn, if_exists="replace", index=False
         )
 
-        # join based on sampleID in sls_soilCoreCollection table
-        soil_biosamples_df = pd.merge(
-            self.sls_soil_core_collection_df,
-            mms_sls_pooling_exploded_df[["sampleID", "dnaSampleID"]],
-            on="sampleID",
-            how="left",
-        )
-        self.soil_biosamples_df = soil_biosamples_df[
-            soil_biosamples_df["dnaSampleID"].notna()
-        ]
-
-        # determining MIXS ENVO local scale
-        self.soil_biosamples_df = pd.merge(
-            self.soil_biosamples_df,
-            self.neon_envo_terms_df[
-                ["neon_nlcd_value", "envo_id", "envo_label", "env_local_scale"]
-            ],
-            left_on="nlcdClass",
-            right_on="neon_nlcd_value",
-            how="left",
+        query = """
+        SELECT sc.sampleType, sc.nitrogenPercent, sc.organicCPercent, sc.CNratio, sc.analyticalRepNumber, sb.*
+        FROM soil_biosamples sb
+        LEFT JOIN sls_soilChemistry sc ON sb.sampleID = sc.sampleID
+        """
+        soil_biosamples_chemical = pd.read_sql_query(query, self.conn)
+        soil_biosamples_chemical.to_sql(
+            "soil_biosamples_chemical", self.conn, if_exists="replace", index=False
         )
 
-        neon_biosample_ids = self.soil_biosamples_df["sampleID"]
+        query = """
+        SELECT sp.soilInWaterpH, sbc.*
+        FROM soil_biosamples_chemical sbc
+        LEFT JOIN sls_soilpH sp ON sbc.sampleID = sp.sampleID
+        """
+        soil_biosamples_ph = pd.read_sql_query(query, self.conn)
+        soil_biosamples_ph.to_sql(
+            "soil_biosamples_ph", self.conn, if_exists="replace", index=False
+        )
+
+        query = """
+        SELECT sm.soilMoisture, sbp.*
+        FROM soil_biosamples_ph sbp
+        LEFT JOIN sls_soilMoisture sm ON sbp.sampleID = sm.sampleID
+        """
+        soil_biosamples_combined = pd.read_sql_query(query, self.conn)
+        soil_biosamples_combined.to_sql(
+            "soil_biosamples_combined", self.conn, if_exists="replace", index=False
+        )
+
+        query = """
+            SELECT sbcb.*, net.neon_nlcd_value, net.envo_id, net.envo_label, net.env_local_scale
+            FROM soil_biosamples_combined sbcb
+            LEFT JOIN neonEnvoTerms net ON sbcb.nlcdClass = net.neon_nlcd_value;
+        """
+        soil_biosamples_envo = pd.read_sql_query(query, self.conn)
+        soil_biosamples_envo.to_sql(
+            "soil_biosamples_envo", self.conn, if_exists="replace", index=False
+        )
+
+        neon_biosample_ids = soil_biosamples_envo["sampleID"]
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
 
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
-            biosample_row = self.soil_biosamples_df[
-                self.soil_biosamples_df["sampleID"] == neon_id
+            biosample_row = soil_biosamples_envo[
+                soil_biosamples_envo["sampleID"] == neon_id
             ]
-
-            biosample_row["sequenceAnalysisType"] = mms_sls_pooling_merged_df[
-                mms_sls_pooling_merged_df["genomicsPooledIDList"].str.contains(neon_id)
-            ]["sequenceAnalysisType"]
 
             database.biosample_set.append(
                 self._translate_biosample(neon_id, nmdc_id, biosample_row)
