@@ -5,8 +5,8 @@ from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 from toolz import dissoc
 
-from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.util import (
     all_docs_have_unique_id,
     OverlayDB,
     OverlayDBError,

@@ -2,7 +2,6 @@ from pathlib import Path
 import random
 
 import yaml
-from nmdc_runtime.api.endpoints.metadata import _validate_json
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
