@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import Any, Dict, List, Optional, Union
 
 import requests
+import requests_cache
 from requests.auth import HTTPBasicAuth
 from dagster import (
     build_init_resource_context,
@@ -341,9 +342,10 @@ class NeonApiClient:
 
     base_url: str
     api_token: str
+    session = requests_cache.CachedSession("neon_cache")
 
     def request(self, url):
-        response = requests.get(url, headers={
+        response = self.session.get(url, headers={
             'X-API-Token': self.api_token
         })
         response.raise_for_status()

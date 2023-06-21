@@ -565,7 +565,7 @@ def biosample_submission_ingest():
                         "config": {
                             "sls_data_product": {
                                 "product_id": "DP1.10086.001",
-                                "product_tables": "sls_metagenomicsPooling, sls_soilCoreCollection, sls_soilChemistry, sls_soilMoisture, sls_soilpH",
+                                "product_tables": "sls_metagenomicsPooling, sls_soilCoreCollection, sls_soilChemistry, sls_soilMoisture, sls_soilpH, ntr_externalLab, ntr_internalLab",
                             }
                         }
                     },
