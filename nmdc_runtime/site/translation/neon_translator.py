@@ -27,6 +27,11 @@ class NeonDataTranslator(Translator):
             "sls_soilpH",
         )
 
+        neon_ntr_data_tables = (
+            "ntr_externalLab",
+            "ntr_internalLab"
+        )
+
         if all(k in mms_data for k in neon_mms_data_tables):
             mms_data["mms_metagenomeDnaExtraction"].to_sql(
                 "mms_metagenomeDnaExtraction",
@@ -57,6 +62,18 @@ class NeonDataTranslator(Translator):
             )
             sls_data["sls_soilpH"].to_sql(
                 "sls_soilpH", self.conn, if_exists="replace", index=False
+            )
+        else:
+            raise ValueError(
+                f"You are missing one of the SLS tables: {neon_sls_data_tables}"
+            )
+        
+        if all(k in neon_ntr_data_tables for k in neon_ntr_data_tables):
+            sls_data["ntr_externalLab"].to_sql(
+                "ntr_externalLab", self.conn, if_exists="replace", index=False
+            )
+            sls_data["ntr_internalLab"].to_sql(
+                "ntr_internalLab", self.conn, if_exists="replace", index=False
             )
         else:
             raise ValueError(
@@ -107,7 +124,7 @@ class NeonDataTranslator(Translator):
             temp=nmdc.QuantityValue(
                 has_raw_value=biosample_row["soilTemp"].values[0],
                 has_numeric_value=biosample_row["soilTemp"].values[0],
-                has_unit="degree celcius",
+                has_unit="degree celsius",
             )
             if not biosample_row["soilTemp"].isna().any()
             else None,
@@ -125,9 +142,9 @@ class NeonDataTranslator(Translator):
             soil_horizon=f"{biosample_row['horizon'].values[0]} horizon"
             if not biosample_row["horizon"].isna().any()
             else None,
-            # analysis_type=biosample_row["sequenceAnalysisType"].values[0]
-            # if not biosample_row["sequenceAnalysisType"].isna().any()
-            # else None,
+            analysis_type=biosample_row["sequenceAnalysisType"].values[0]
+            if not biosample_row["sequenceAnalysisType"].isna().any()
+            else None,
             env_package=nmdc.TextValue(
                 has_raw_value=biosample_row["sampleType"].values[0]
             )
@@ -151,9 +168,6 @@ class NeonDataTranslator(Translator):
             )
             if not biosample_row["CNratio"].isna().any()
             else None,
-            replicate_number=biosample_row["analyticalRepNumber"].values[0]
-            if not biosample_row["analyticalRepNumber"].isna().any()
-            else None,
             ph_meth=nmdc.TextValue(
                 has_raw_value=biosample_row["samplingProtocolVersion"].values[0]
             )
@@ -164,6 +178,18 @@ class NeonDataTranslator(Translator):
             else None,
             water_content=[biosample_row["soilMoisture"].values[0]]
             if not biosample_row["soilMoisture"].isna().any()
+            else None,
+            ammonium_nitrogen=nmdc.QuantityValue(
+                has_raw_value=biosample_row["kclAmmoniumNConc"].values[0],
+                has_numeric_value=biosample_row["kclAmmoniumNConc"].values[0],
+            )
+            if not biosample_row["kclAmmoniumNConc"].isna().any()
+            else None,
+            tot_nitro_content=nmdc.QuantityValue(
+                has_raw_value=biosample_row["kclNitrateNitriteNConc"].values[0],
+                has_numeric_value=biosample_row["kclNitrateNitriteNConc"].values[0],
+            )
+            if not biosample_row["kclNitrateNitriteNConc"].isna().any()
             else None,
         )
 
@@ -185,8 +211,8 @@ class NeonDataTranslator(Translator):
         FROM sls_metagenomicsPooling
         LEFT JOIN (
             SELECT mms_metagenomeDnaExtraction.dnaSampleID, mms_metagenomeDnaExtraction.genomicsSampleID, mms_metagenomeDnaExtraction.sequenceAnalysisType
-            FROM mms_metagenomeDnaExtraction
-            LEFT JOIN mms_metagenomeSequencing ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
+            FROM mms_metagenomeSequencing
+            LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
         ) AS merged ON sls_metagenomicsPooling.genomicsSampleID = merged.genomicsSampleID
         """
         mms_sls_pooling_merged = pd.read_sql_query(query, self.conn)
@@ -282,11 +308,22 @@ class NeonDataTranslator(Translator):
         soil_biosamples_combined.to_sql(
             "soil_biosamples_combined", self.conn, if_exists="replace", index=False
         )
+        
+        query = """
+            SELECT soil_biosamples_combined.*, ntr_externalLab.kclAmmoniumNConc, ntr_externalLab.kclNitrateNitriteNConc
+            FROM soil_biosamples_combined
+            LEFT JOIN ntr_internalLab ON soil_biosamples_combined.sampleID = ntr_internalLab.sampleID
+            LEFT JOIN ntr_externalLab ON soil_biosamples_combined.sampleID = ntr_externalLab.sampleID
+        """
+        soil_biosamples_combined_ntr = pd.read_sql_query(query, self.conn)
+        soil_biosamples_combined_ntr.to_sql(
+            "soil_biosamples_combined_ntr", self.conn, if_exists="replace", index=False
+        )
 
         query = """
-            SELECT sbcb.*, net.neon_nlcd_value, net.envo_id, net.envo_label, net.env_local_scale
-            FROM soil_biosamples_combined sbcb
-            LEFT JOIN neonEnvoTerms net ON sbcb.nlcdClass = net.neon_nlcd_value;
+            SELECT sbcbn.*, net.neon_nlcd_value, net.envo_id, net.envo_label, net.env_local_scale
+            FROM soil_biosamples_combined_ntr sbcbn
+            LEFT JOIN neonEnvoTerms net ON sbcbn.nlcdClass = net.neon_nlcd_value
         """
         soil_biosamples_envo = pd.read_sql_query(query, self.conn)
         soil_biosamples_envo.to_sql(
