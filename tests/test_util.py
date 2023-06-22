@@ -35,6 +35,7 @@ nmdc_jsonschema_validator = fastjsonschema.compile(
 
 
 def test_nmdc_jsonschema_using_new_id_scheme():
+    # nmdc_database_collection_instance_class_names
     for class_name, defn in get_nmdc_jsonschema_dict()["$defs"].items():
         if "properties" in defn and "id" in defn["properties"]:
             if "pattern" in defn["properties"]["id"]:

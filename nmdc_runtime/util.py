@@ -232,6 +232,18 @@ def nmdc_activity_collection_names():
     return slots
 
 
+@lru_cache
+def nmdc_database_collection_instance_class_names():
+    view = ViewGetter().get_view()
+    names = []
+    all_classes = set(view.all_classes())
+    for slot in view.class_slots("Database"):
+        rng = getattr(view.get_slot(slot), "range", None)
+        if rng in all_classes:
+            names.append(rng)
+    return names
+
+
 def all_docs_have_unique_id(coll) -> bool:
     first_doc = coll.find_one({}, ["id"])
     if first_doc is None or "id" not in first_doc:
@@ -415,6 +427,9 @@ def validate_json(docs: dict, mdb: MongoDatabase):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs = deepcopy(docs)
     docs, validation_errors = specialize_activity_set_docs(docs)
+    # TODO linkml dataclass validation
+    #  dynamic_class = getattr(importlib.import_module("python.nmdc"), collection_range)
+    #  instance = json_loader.loads(jd, target_class=dynamic_class)
 
     for coll_name, coll_docs in docs.items():
         errors = list(validator.iter_errors({coll_name: coll_docs}))

@@ -79,12 +79,16 @@ docs-dev:
 nersc-sshproxy:
 	bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 
-dev-nersc-ssh-tunnel:
+tunnel-spin-development-nmdc-dev:
 	ssh -L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 prod-nersc-ssh-tunnel:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
+		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+
+tunnel-spin-production-nmdc-dev:
+	ssh -L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
 		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
 
 mongorestore-nmdcdb-lite-archive:

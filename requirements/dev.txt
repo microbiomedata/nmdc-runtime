@@ -25,7 +25,7 @@ click==8.1.3
     #   -c requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.2.5
+coverage==7.2.7
     # via
     #   -r requirements/dev.in
     #   pytest-cov
@@ -43,7 +43,7 @@ idna==3.4
     # via
     #   -c requirements/main.txt
     #   requests
-importlib-metadata==6.6.0
+importlib-metadata==6.7.0
     # via
     #   -c requirements/main.txt
     #   keyring
@@ -52,11 +52,11 @@ iniconfig==2.0.0
     # via
     #   -c requirements/main.txt
     #   pytest
-invoke==2.1.2
+invoke==2.1.3
     # via -r requirements/dev.in
 jaraco-classes==3.2.3
     # via keyring
-keyring==23.13.1
+keyring==24.0.0
     # via twine
 markdown-it-py==2.2.0
     # via
@@ -89,7 +89,7 @@ pip-tools==6.13.0
     # via -r requirements/dev.in
 pkginfo==1.9.6
     # via twine
-platformdirs==3.5.1
+platformdirs==3.6.0
     # via
     #   -c requirements/main.txt
     #   black
@@ -110,24 +110,24 @@ pygments==2.15.1
     #   rich
 pyproject-hooks==1.0.0
     # via build
-pytest==7.3.1
+pytest==7.3.2
     # via
     #   -r requirements/dev.in
     #   pytest-asyncio
     #   pytest-cov
 pytest-asyncio==0.21.0
     # via -r requirements/dev.in
-pytest-cov==4.0.0
+pytest-cov==4.1.0
     # via -r requirements/dev.in
-readme-renderer==37.3
+readme-renderer==40.0
     # via twine
-requests==2.30.0
+requests==2.31.0
     # via
     #   -c requirements/main.txt
     #   requests-mock
     #   requests-toolbelt
     #   twine
-requests-mock==1.10.0
+requests-mock==1.11.0
     # via -r requirements/dev.in
 requests-toolbelt==0.10.1
     # via
@@ -135,7 +135,7 @@ requests-toolbelt==0.10.1
     #   twine
 rfc3986==2.0.0
     # via twine
-rich==13.3.5
+rich==13.4.2
     # via twine
 setuptools-scm==7.1.0
     # via -r requirements/dev.in
@@ -155,11 +155,11 @@ tomli==2.0.1
     #   setuptools-scm
 twine==4.0.2
     # via -r requirements/dev.in
-typing-extensions==4.5.0
+typing-extensions==4.6.3
     # via
     #   -c requirements/main.txt
     #   setuptools-scm
-urllib3==1.26.15
+urllib3==1.26.16
     # via
     #   -c requirements/main.txt
     #   requests
@@ -180,7 +180,7 @@ pip==23.1.2
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==67.7.2
+setuptools==68.0.0
     # via
     #   -r requirements/dev.in
     #   pip-tools
