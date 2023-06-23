@@ -54,11 +54,8 @@ beanie==1.19.2
 beautifulsoup4==4.12.2
     # via
     #   -r requirements/main.in
-    #   google
     #   mkdocs-mermaid2-plugin
     #   nbconvert
-bioregistry==0.6.99
-    # via schemasheets
 black==23.3.0
     # via shed
 bleach==6.0.0
@@ -69,8 +66,6 @@ botocore==1.29.159
     # via
     #   boto3
     #   s3transfer
-cachetools==5.3.1
-    # via google-auth
 certifi==2023.5.7
     # via requests
 cffi==1.15.1
@@ -85,23 +80,22 @@ chardet==5.1.0
     #   pyshexc
 charset-normalizer==3.1.0
     # via requests
+check-jsonschema==0.21.0
+    # via nmdc-schema
 click==8.1.3
     # via
     #   -r requirements/main.in
     #   beanie
-    #   bioregistry
     #   black
+    #   check-jsonschema
     #   dagit
     #   dagster
     #   json-flattener
     #   linkml
     #   linkml-runtime
     #   mkdocs
-    #   more-click
     #   prefixcommons
     #   prefixmaps
-    #   pystow
-    #   sphinx-click
     #   terminusdb-client
     #   uvicorn
 colorama==0.4.6
@@ -116,12 +110,17 @@ croniter==1.4.1
     # via dagster
 cryptography==41.0.1
     # via python-jose
+<<<<<<< Updated upstream
 curies==0.4.5
     # via
     #   bioregistry
     #   linkml-runtime
 daff==1.3.46
     # via ontodev-cogs
+=======
+curies==0.5.5
+    # via linkml-runtime
+>>>>>>> Stashed changes
 dagit==1.3.11
     # via -r requirements/main.in
 dagster==1.3.11
@@ -148,20 +147,14 @@ dependency-injector==4.41.0
     # via -r requirements/main.in
 deprecated==1.2.14
     # via linkml-runtime
-distlib==0.3.6
-    # via virtualenv
 dnspython==2.3.0
     # via
     #   email-validator
     #   pymongo
 docstring-parser==0.15
     # via dagster
-docutils==0.18.1
-    # via
-    #   myst-parser
-    #   sphinx
-    #   sphinx-click
-    #   sphinx-rtd-theme
+docutils==0.20.1
+    # via sphinx
 dotted-dict==1.1.3
     # via -r requirements/main.in
 ecdsa==0.18.0
@@ -178,18 +171,17 @@ exceptiongroup==1.1.1
     #   pytest
 executing==1.2.0
     # via stack-data
+<<<<<<< Updated upstream
 exhaustion-check==0.1.3
     # via nmdc-schema
+=======
+>>>>>>> Stashed changes
 fastapi==0.98.0
     # via -r requirements/main.in
 fastjsonschema==2.17.1
     # via
     #   -r requirements/main.in
     #   nbformat
-filelock==3.12.2
-    # via
-    #   tox
-    #   virtualenv
 fnc==0.5.3
     # via -r requirements/main.in
 fqdn==1.5.1
@@ -198,12 +190,11 @@ frozendict==2.3.8
     # via -r requirements/main.in
 fsspec==2023.6.0
     # via universal-pathlib
-gen-pop-linkml2sheets==0.1.8
-    # via nmdc-schema
 ghp-import==2.1.0
     # via mkdocs
 git-root==0.1
     # via -r requirements/main.in
+<<<<<<< Updated upstream
 google==3.0.0
     # via ontodev-cogs
 google-api-core==2.11.1
@@ -223,6 +214,8 @@ google-auth-oauthlib==1.0.0
     # via gspread
 googleapis-common-protos==1.59.1
     # via google-api-core
+=======
+>>>>>>> Stashed changes
 gql==3.4.1
     # via dagster-graphql
 graphene==3.2.2
@@ -246,12 +239,6 @@ grpcio==1.47.5
     #   grpcio-health-checking
 grpcio-health-checking==1.47.5
     # via dagster
-gspread==5.9.0
-    # via
-    #   gspread-formatting
-    #   ontodev-cogs
-gspread-formatting==1.1.2
-    # via ontodev-cogs
 h11==0.14.0
     # via uvicorn
 hbreader==0.9.1
@@ -259,10 +246,6 @@ hbreader==0.9.1
     #   jsonasobj2
     #   linkml
     #   linkml-runtime
-httplib2==0.22.0
-    # via
-    #   google-api-python-client
-    #   google-auth-httplib2
 httptools==0.5.0
     # via uvicorn
 humanfriendly==10.0
@@ -321,12 +304,10 @@ jinja2==3.1.2
     #   linkml-dataops
     #   mkdocs
     #   mkdocs-material
-    #   myst-parser
     #   nbclassic
     #   nbconvert
     #   notebook
     #   numpydoc
-    #   schemasheets
     #   sphinx
 jmespath==1.0.1
     # via
@@ -359,13 +340,16 @@ jsonpointer==2.4
     #   jsonschema
 jsonschema==4.17.3
     # via
+    #   check-jsonschema
     #   jupyter-events
     #   jupyterlab-server
     #   linkml
     #   linkml-runtime
     #   nbformat
 jupyter==1.0.0
-    # via -r requirements/main.in
+    # via
+    #   -r requirements/main.in
+    #   nmdc-schema
 jupyter-client==8.2.0
     # via
     #   ipykernel
@@ -417,22 +401,16 @@ lazy-model==0.0.5
     # via beanie
 libcst==1.0.1
     # via shed
-linkml==1.5.2
-    # via
-    #   -r requirements/main.in
-    #   exhaustion-check
-    #   gen-pop-linkml2sheets
-    #   nmdc-schema
-    #   schemasheets
+linkml==1.5.5
+    # via -r requirements/main.in
 linkml-dataops==0.1.0
     # via linkml
-linkml-runtime==1.5.2
+linkml-runtime==1.5.4
     # via
     #   -r requirements/main.in
     #   linkml
     #   linkml-dataops
     #   nmdc-schema
-    #   schemasheets
 mako==1.2.4
     # via alembic
 markdown==3.3.7
@@ -444,7 +422,6 @@ markdown-it-py==2.2.0
     # via
     #   jupytext
     #   mdit-py-plugins
-    #   myst-parser
 markupsafe==2.1.3
     # via
     #   jinja2
@@ -454,10 +431,8 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mdit-py-plugins==0.3.5
-    # via
-    #   jupytext
-    #   myst-parser
+mdit-py-plugins==0.4.0
+    # via jupytext
 mdurl==0.1.2
     # via markdown-it-py
 mergedeep==1.3.4
@@ -480,8 +455,11 @@ mkdocs-material-extensions==1.1.1
     # via mkdocs-material
 mkdocs-mermaid2-plugin==0.6.0
     # via -r requirements/main.in
+<<<<<<< Updated upstream
 more-click==0.1.2
     # via bioregistry
+=======
+>>>>>>> Stashed changes
 motor==3.2.0
     # via
     #   -r requirements/main.in
@@ -492,8 +470,6 @@ mypy-extensions==1.0.0
     # via
     #   black
     #   typing-inspect
-myst-parser==1.0.0
-    # via linkml
 nbclassic==1.0.0
     # via notebook
 nbclient==0.8.0
@@ -518,7 +494,11 @@ nest-asyncio==1.5.6
     #   ipykernel
     #   nbclassic
     #   notebook
+<<<<<<< Updated upstream
 nmdc-schema==7.7.0
+=======
+nmdc-schema==7.4.12
+>>>>>>> Stashed changes
     # via -r requirements/main.in
 notebook==6.5.4
     # via jupyter
@@ -530,10 +510,6 @@ numpy==1.25.0
     # via pandas
 numpydoc==1.5.0
     # via terminusdb-client
-oauthlib==3.2.2
-    # via requests-oauthlib
-ontodev-cogs==0.3.3
-    # via schemasheets
 openpyxl==3.1.2
     # via
     #   -r requirements/main.in
@@ -554,11 +530,8 @@ packaging==23.1
     #   qtconsole
     #   qtpy
     #   sphinx
-    #   tox
-pandas==1.5.3
-    # via
-    #   -r requirements/main.in
-    #   gen-pop-linkml2sheets
+pandas==2.0.2
+    # via -r requirements/main.in
 pandocfilters==1.5.0
     # via nbconvert
 parse==1.19.1
@@ -579,11 +552,16 @@ platformdirs==3.7.0
     # via
     #   black
     #   jupyter-core
+<<<<<<< Updated upstream
     #   virtualenv
 pluggy==1.2.0
     # via
     #   pytest
     #   tox
+=======
+pluggy==1.2.0
+    # via pytest
+>>>>>>> Stashed changes
 ply==3.11
     # via jsonpath-ng
 prefixcommons==0.1.12
@@ -606,8 +584,6 @@ prompt-toolkit==3.0.38
 protobuf==4.23.3
     # via
     #   dagster
-    #   google-api-core
-    #   googleapis-common-protos
     #   grpcio-health-checking
 psutil==5.9.5
     # via ipykernel
@@ -619,26 +595,22 @@ ptyprocess==0.7.0
     #   terminado
 pure-eval==0.2.2
     # via stack-data
-py==1.11.0
-    # via tox
 pyasn1==0.5.0
     # via
-    #   pyasn1-modules
     #   python-jose
     #   rsa
-pyasn1-modules==0.3.0
-    # via google-auth
 pycparser==2.21
     # via cffi
 pydantic==1.10.9
     # via
     #   -r requirements/main.in
     #   beanie
-    #   bioregistry
+    #   curies
     #   dagster
     #   fastapi
     #   lazy-model
     #   linkml
+    #   linkml-runtime
 pyflakes==3.0.1
     # via autoflake
 pygments==2.15.1
@@ -664,9 +636,7 @@ pymongo==4.4.0
     #   -r requirements/main.in
     #   motor
 pyparsing==3.1.0
-    # via
-    #   httplib2
-    #   rdflib
+    # via rdflib
 pyrsistent==0.19.3
     # via jsonschema
 pyshex==0.8.1
@@ -675,8 +645,6 @@ pyshexc==0.9.1
     # via
     #   linkml
     #   pyshex
-pystow==0.5.0
-    # via bioregistry
 pytest==7.3.2
     # via pytest-logging
 pytest-logging==2015.11.4
@@ -724,7 +692,6 @@ pyyaml==6.0
     #   linkml-runtime
     #   mkdocs
     #   mkdocs-mermaid2-plugin
-    #   myst-parser
     #   prefixcommons
     #   prefixmaps
     #   pymdown-extensions
@@ -766,27 +733,21 @@ regex==2023.6.3
 requests==2.31.0
     # via
     #   -r requirements/main.in
-    #   bioregistry
+    #   check-jsonschema
     #   curies
     #   dagster
     #   dagster-graphql
-    #   google-api-core
     #   gql
     #   jupyterlab-server
     #   linkml
     #   linkml-runtime
     #   mkdocs-material
     #   mkdocs-mermaid2-plugin
-    #   ontodev-cogs
     #   prefixcommons
     #   pyshex
-    #   pystow
-    #   requests-oauthlib
     #   requests-toolbelt
     #   sphinx
     #   terminusdb-client
-requests-oauthlib==1.3.1
-    # via google-auth-oauthlib
 requests-toolbelt==0.10.1
     # via gql
 rfc3339-validator==0.1.4
@@ -800,17 +761,15 @@ rfc3986-validator==0.1.1
 rfc3987==1.3.8
     # via jsonschema
 rsa==4.9
+    # via python-jose
+ruamel-yaml==0.17.21
     # via
-    #   google-auth
-    #   python-jose
-ruamel-yaml==0.17.32
-    # via linkml-dataops
+    #   check-jsonschema
+    #   linkml-dataops
 ruamel-yaml-clib==0.2.7
     # via ruamel-yaml
 s3transfer==0.6.1
     # via boto3
-schemasheets==0.1.21
-    # via gen-pop-linkml2sheets
 semver==3.0.1
     # via -r requirements/main.in
 send2trash==1.8.2
@@ -831,15 +790,12 @@ six==1.16.0
     #   bleach
     #   dependency-injector
     #   ecdsa
-    #   google-auth
-    #   google-auth-httplib2
     #   grpcio
     #   isodate
     #   jsbeautifier
     #   jsonpath-ng
     #   python-dateutil
     #   rfc3339-validator
-    #   tox
 sniffio==1.3.0
     # via anyio
 snowballstemmer==2.2.0
@@ -854,25 +810,14 @@ sparqlwrapper==2.0.0
     # via
     #   pyshex
     #   sparqlslurper
-sphinx==6.2.1
-    # via
-    #   myst-parser
-    #   numpydoc
-    #   sphinx-click
-    #   sphinx-rtd-theme
-    #   sphinxcontrib-jquery
-sphinx-click==4.4.0
-    # via linkml
-sphinx-rtd-theme==1.2.2
-    # via linkml
+sphinx==7.0.1
+    # via numpydoc
 sphinxcontrib-applehelp==1.0.4
     # via sphinx
 sphinxcontrib-devhelp==1.0.2
     # via sphinx
 sphinxcontrib-htmlhelp==2.0.1
     # via sphinx
-sphinxcontrib-jquery==4.1
-    # via sphinx-rtd-theme
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-qthelp==1.0.3
@@ -892,13 +837,9 @@ starlette==0.27.0
     #   dagster-graphql
     #   fastapi
 tabulate==0.9.0
-    # via
-    #   dagster
-    #   ontodev-cogs
+    # via dagster
 tenacity==8.2.2
     # via -r requirements/main.in
-termcolor==2.3.0
-    # via ontodev-cogs
 terminado==0.17.1
     # via
     #   jupyter-server
@@ -915,6 +856,7 @@ toml==0.10.2
     # via
     #   beanie
     #   jupytext
+    #   nmdc-schema
 tomli==2.0.1
     # via
     #   autoflake
@@ -922,7 +864,6 @@ tomli==2.0.1
     #   dagster
     #   jupyterlab
     #   pytest
-    #   tox
 toolz==0.12.0
     # via -r requirements/main.in
 toposort==1.10
@@ -936,14 +877,10 @@ tornado==6.3.2
     #   nbclassic
     #   notebook
     #   terminado
-tox==3.28.0
-    # via linkml
 tqdm==4.65.0
     # via
     #   -r requirements/main.in
-    #   bioregistry
     #   dagster
-    #   pystow
     #   terminusdb-client
 traitlets==5.9.0
     # via
@@ -978,17 +915,16 @@ typing-extensions==4.6.3
     #   typing-inspect
 typing-inspect==0.9.0
     # via libcst
+tzdata==2023.3
+    # via pandas
 universal-pathlib==0.0.23
     # via dagster
 uri-template==1.3.0
     # via jsonschema
-uritemplate==4.1.1
-    # via google-api-python-client
 urllib3==1.26.16
     # via
     #   botocore
     #   dagster-graphql
-    #   google-auth
     #   gql
     #   pyshex
     #   requests
@@ -998,8 +934,6 @@ uvicorn==0.22.0
     #   dagit
 uvloop==0.17.0
     # via uvicorn
-virtualenv==20.23.1
-    # via tox
 watchdog==3.0.0
     # via
     #   dagster

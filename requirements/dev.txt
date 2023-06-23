@@ -33,11 +33,15 @@ coverage==7.2.7
     # via
     #   -r requirements/dev.in
     #   pytest-cov
+<<<<<<< Updated upstream
 cryptography==41.0.1
     # via
     #   -c requirements/main.txt
     #   secretstorage
 docutils==0.18.1
+=======
+docutils==0.20.1
+>>>>>>> Stashed changes
     # via
     #   -c requirements/main.txt
     #   readme-renderer
@@ -64,10 +68,13 @@ invoke==2.1.3
     # via -r requirements/dev.in
 jaraco-classes==3.2.3
     # via keyring
+<<<<<<< Updated upstream
 jeepney==0.8.0
     # via
     #   keyring
     #   secretstorage
+=======
+>>>>>>> Stashed changes
 keyring==24.0.1
     # via twine
 markdown-it-py==2.2.0
