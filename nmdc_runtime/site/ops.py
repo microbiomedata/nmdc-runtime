@@ -547,9 +547,14 @@ def perform_mongo_updates(context, json_in):
     elif all(not coll_has_id_index[coll] for coll in docs.keys()):
         replace = False  # wasting time trying to upsert by `id`.
     else:
+        colls_not_id_indexed = [
+            coll for coll in docs.keys() if not coll_has_id_index[coll]
+        ]
+        colls_id_indexed = [coll for coll in docs.keys() if coll_has_id_index[coll]]
         raise Failure(
             "Simultaneous addition of non-`id`ed collections and `id`-ed collections"
             " is not supported at this time."
+            f"{colls_not_id_indexed=} ; {colls_id_indexed=}"
         )
     op_result = mongo.add_docs(docs, validate=False, replace=replace)
     op_patch = UpdateOperationRequest(
