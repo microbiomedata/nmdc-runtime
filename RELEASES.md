@@ -1,6 +1,6 @@
-When this file is changed and pushed to the `main` branch on Git1,
+When this file is changed and pushed to the `main` branch on GitHub,
 
-Hub. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
+1. the Docker images for the API and Runtime are rebuild and pushed [via this GitHub
    Action](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml)), and
 
 2. if the previous action is successful, the deployment on NERSC Spin is refreshed ([via a GitHub
