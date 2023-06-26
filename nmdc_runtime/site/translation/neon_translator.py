@@ -1,6 +1,6 @@
 import sqlite3
 
-from typing import List
+from typing import List, Dict
 
 import pandas as pd
 
@@ -27,10 +27,7 @@ class NeonDataTranslator(Translator):
             "sls_soilpH",
         )
 
-        neon_ntr_data_tables = (
-            "ntr_externalLab",
-            "ntr_internalLab"
-        )
+        neon_ntr_data_tables = ("ntr_externalLab", "ntr_internalLab")
 
         if all(k in mms_data for k in neon_mms_data_tables):
             mms_data["mms_metagenomeDnaExtraction"].to_sql(
@@ -67,7 +64,7 @@ class NeonDataTranslator(Translator):
             raise ValueError(
                 f"You are missing one of the SLS tables: {neon_sls_data_tables}"
             )
-        
+
         if all(k in neon_ntr_data_tables for k in neon_ntr_data_tables):
             sls_data["ntr_externalLab"].to_sql(
                 "ntr_externalLab", self.conn, if_exists="replace", index=False
@@ -104,7 +101,7 @@ class NeonDataTranslator(Translator):
             env_medium=nmdc.ControlledIdentifiedTermValue(
                 term=nmdc.OntologyClass(id="ENVO:00001998", name="soil")
             ),
-            samp_name=neon_id,
+            name=neon_id,
             lat_lon=nmdc.GeolocationValue(
                 latitude=nmdc.DecimalDegree(biosample_row["decimalLatitude"].values[0]),
                 longitude=nmdc.DecimalDegree(
@@ -191,10 +188,32 @@ class NeonDataTranslator(Translator):
             )
             if not biosample_row["kclNitrateNitriteNConc"].isna().any()
             else None,
+            type="nmdc:Biosample",
         )
 
-    def _translate_pooling_process(self) -> List[nmdc.PlannedProcess]:
-        pass
+    def _translate_pooling_process(
+        self,
+        nmdc_id: str,
+        processed_sample_id: str,
+        bsm_input_values_list: List[str],
+        pooling_row: pd.DataFrame,
+    ) -> nmdc.Pooling:
+        return nmdc.Pooling(
+            id=nmdc_id,
+            has_output=processed_sample_id,
+            has_input=bsm_input_values_list,
+            start_date=pooling_row["startDate"].values[0]
+            if not pooling_row["startDate"].isna().any()
+            else None,
+            end_date=pooling_row["collectDate"].values[0]
+            if not pooling_row["collectDate"].isna().any()
+            else None,
+        )
+
+    def _translate_processed_sample(
+        self, processed_sample_id: str, dna_sample_id: str
+    ) -> nmdc.ProcessedSample:
+        return nmdc.ProcessedSample(id=processed_sample_id, name=dna_sample_id)
 
     def _translate_extraction_process(self) -> List[nmdc.PlannedProcess]:
         pass
@@ -308,7 +327,7 @@ class NeonDataTranslator(Translator):
         soil_biosamples_combined.to_sql(
             "soil_biosamples_combined", self.conn, if_exists="replace", index=False
         )
-        
+
         query = """
             SELECT soil_biosamples_combined.*, ntr_externalLab.kclAmmoniumNConc, ntr_externalLab.kclNitrateNitriteNConc
             FROM soil_biosamples_combined
@@ -330,6 +349,30 @@ class NeonDataTranslator(Translator):
             "soil_biosamples_envo", self.conn, if_exists="replace", index=False
         )
 
+        query = """
+            SELECT dnaSampleID, startDate, collectDate, GROUP_CONCAT(sampleID, '|') AS sampleIDs
+            FROM soil_biosamples_envo
+            GROUP BY dnaSampleID
+        """
+        mg_pooling_table = pd.read_sql_query(query, self.conn)
+        pooling_ids_dict = (
+            mg_pooling_table.set_index("dnaSampleID")["sampleIDs"]
+            .str.split("|")
+            .to_dict()
+        )
+
+        nmdc_pooling_ids = self._id_minter("nmdc:Pooling", len(pooling_ids_dict))
+        neon_to_nmdc_pooling_ids = dict(
+            zip(list(pooling_ids_dict.keys()), nmdc_pooling_ids)
+        )
+
+        nmdc_processed_sample_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(pooling_ids_dict)
+        )
+        neon_to_nmdc_processed_sample_ids = dict(
+            zip(list(pooling_ids_dict.keys()), nmdc_processed_sample_ids)
+        )
+
         neon_biosample_ids = soil_biosamples_envo["sampleID"]
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
@@ -341,6 +384,34 @@ class NeonDataTranslator(Translator):
 
             database.biosample_set.append(
                 self._translate_biosample(neon_id, nmdc_id, biosample_row)
+            )
+
+        for dna_sample_id, bsm_sample_ids in pooling_ids_dict.items():
+            pooling_process_id = neon_to_nmdc_pooling_ids[dna_sample_id]
+            processed_sample_id = neon_to_nmdc_processed_sample_ids[dna_sample_id]
+
+            bsm_values_list = [
+                neon_to_nmdc_biosample_ids[key]
+                for key in bsm_sample_ids
+                if key in neon_to_nmdc_biosample_ids
+            ]
+            bsm_values_list = list(set(bsm_values_list))
+
+            pooling_row = mg_pooling_table[
+                mg_pooling_table["dnaSampleID"] == dna_sample_id
+            ]
+
+            database.pooling_set.append(
+                self._translate_pooling_process(
+                    pooling_process_id,
+                    processed_sample_id,
+                    bsm_values_list,
+                    pooling_row,
+                )
+            )
+
+            database.processed_sample_set.append(
+                self._translate_processed_sample(processed_sample_id, dna_sample_id)
             )
 
         return database
