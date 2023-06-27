@@ -6,18 +6,15 @@ $ nmdcdb-mongodump
 
 import os
 import subprocess
-import warnings
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import click
-import dagster
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import nmdc_jsonschema
-
-warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
 
 
 @click.command()
@@ -48,23 +45,30 @@ def main(just_schema_collections):
     print(f"filtered collections to {len(collection_names)}:")
     print(sorted(collection_names))
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    print(f"ensuring ~/nmdcdb-mongodump/{today} directory for exports")
-    today_dir = Path("~/nmdcdb-mongodump").expanduser().joinpath(today)
-    os.makedirs(str(today_dir), exist_ok=True)
+    now = (
+        datetime.now(tz=ZoneInfo("America/Los_Angeles"))
+        .isoformat(timespec="seconds")
+        .replace(":", "")
+    )
+    print(f"ensuring ~/nmdcdb-mongodump/{now} directory for dumps")
+    out_dir = (
+        Path("~/nmdcdb-mongodump")
+        .expanduser()
+        .joinpath(now)
+        .joinpath(os.getenv("MONGO_DBNAME"))
+    )
+    os.makedirs(str(out_dir), exist_ok=True)
 
     collections_excluded = set(mdb.list_collection_names()) - collection_names
     collections_excluded_str = " ".join(
         ["--excludeCollection=" + c for c in collections_excluded]
     )
 
-    filename = f'nmdcdb.{"" if just_schema_collections else "less"}lite.archive.gz'
-    filepath = today_dir.joinpath(filename)
     cmd = (
         f"mongodump --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
         f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
         f"--authenticationDatabase admin "
-        f"-d \"{os.getenv('MONGO_DBNAME')}\" --gzip --archive={filepath} "
+        f"-d \"{os.getenv('MONGO_DBNAME')}\" --gzip --out={out_dir} "
         f"{collections_excluded_str}"
     )
     print(cmd.replace(f"-p \"{os.getenv('MONGO_PASSWORD')}\"", ""))

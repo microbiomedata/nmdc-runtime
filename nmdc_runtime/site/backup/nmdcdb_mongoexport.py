@@ -6,20 +6,19 @@ $ nmdcdb-mongoexport
 
 import os
 import subprocess
-import warnings
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
-import dagster
+import click
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc
 
 from nmdc_runtime.api.core.util import pick
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
-from nmdc_runtime.util import nmdc_jsonschema
-
-warnings.filterwarnings("ignore", category=dagster.ExperimentalWarning)
+from nmdc_runtime.util import nmdc_jsonschema, schema_collection_names_with_id_field
 
 
 def collection_stats(mdb: MongoDatabase):
@@ -44,15 +43,21 @@ def collection_stats(mdb: MongoDatabase):
     return out
 
 
-def main():
+@click.command()
+@click.option("--just-schema-collections", is_flag=True, default=False)
+def main(just_schema_collections):
     print("starting nmdcdb mongoexport...")
-    mongo = get_mongo(run_config_frozen__normal_env)
-    mdb = mongo.db
+    mdb = get_mongo_db()
     print("connected to database...")
 
-    collection_names = set(mdb.list_collection_names()) & set(
-        nmdc_jsonschema["$defs"]["Database"]["properties"]
-    )
+    if just_schema_collections:
+        collection_names = set(mdb.list_collection_names()) & set(
+            schema_collection_names_with_id_field()
+        )
+    else:
+        collection_names = set(mdb.list_collection_names())
+        collection_names -= {c for c in collection_names if c.startswith("system.")}
+
     print("retrieved relevant collection names...")
     print(sorted(collection_names))
     print(f"filtering {len(collection_names)} collections...")
@@ -62,15 +67,24 @@ def main():
     print(f"filtered collections to {len(collection_names)}:")
     print(sorted(collection_names))
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    print(f"ensuring ~/mongoexport/{today} directory for exports")
-    today_dir = Path("~/mongoexport").expanduser().joinpath(today)
-    os.makedirs(str(today_dir), exist_ok=True)
+    now = (
+        datetime.now(tz=ZoneInfo("America/Los_Angeles"))
+        .isoformat(timespec="seconds")
+        .replace(":", "")
+    )
+    print(f"ensuring ~/mongoexport/{now} directory for exports")
+    out_dir = (
+        Path("~/mongoexport")
+        .expanduser()
+        .joinpath(now)
+        .joinpath(os.getenv("MONGO_DBNAME"))
+    )
+    os.makedirs(str(out_dir), exist_ok=True)
 
     n_colls = len(collection_names)
     heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
     for i, collname in enumerate(collection_names):
-        filepath = today_dir.joinpath(collname + ".jsonl")
+        filepath = out_dir.joinpath(collname + ".jsonl")
         cmd = (
             f"mongoexport --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
             f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
@@ -104,3 +118,7 @@ def main():
             print(f"[{i + 1}/{n_colls}] {collname} export took {toc - tic}")
         else:
             print(f"skipping {collname}. You should run the above command manually.")
+
+
+if __name__ == "__main__":
+    main()
