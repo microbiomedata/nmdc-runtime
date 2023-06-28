@@ -233,14 +233,31 @@ def nmdc_activity_collection_names():
 
 
 @lru_cache
+def nmdc_schema_view():
+    return ViewGetter().get_view()
+
+
+@lru_cache
 def nmdc_database_collection_instance_class_names():
-    view = ViewGetter().get_view()
     names = []
+    view = nmdc_schema_view()
     all_classes = set(view.all_classes())
     for slot in view.class_slots("Database"):
         rng = getattr(view.get_slot(slot), "range", None)
         if rng in all_classes:
             names.append(rng)
+    return names
+
+
+@lru_cache
+def nmdc_database_collection_names():
+    names = []
+    view = nmdc_schema_view()
+    all_classes = set(view.all_classes())
+    for slot in view.class_slots("Database"):
+        rng = getattr(view.get_slot(slot), "range", None)
+        if rng in all_classes:
+            names.append(slot)
     return names
 
 
@@ -431,7 +448,17 @@ def validate_json(docs: dict, mdb: MongoDatabase):
     #  dynamic_class = getattr(importlib.import_module("python.nmdc"), collection_range)
     #  instance = json_loader.loads(jd, target_class=dynamic_class)
 
+    known_coll_names = set(nmdc_database_collection_names())
     for coll_name, coll_docs in docs.items():
+        if coll_name not in known_coll_names:
+            if coll_name == "@type" and coll_docs in ("Database", "nmdc:Database"):
+                continue
+            else:
+                validation_errors[coll_name] = [
+                    f"'{coll_name}' is not a known schema collection name"
+                ]
+                continue
+
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
         if coll_docs:
