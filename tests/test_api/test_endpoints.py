@@ -1,5 +1,6 @@
 import os
 
+import pytest
 import requests
 from starlette import status
 from tenacity import wait_random_exponential, retry
@@ -7,6 +8,7 @@ from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
@@ -126,11 +128,15 @@ def test_create_user():
         )
 
 
-def test_metadata_validate_json():
-    mdb = get_mongo(run_config_frozen__normal_env).db
+@pytest.fixture
+def api_site_client():
+    mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
-    client = RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-    rv = client.request(
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+
+def test_metadata_validate_json(api_site_client):
+    rv = api_site_client.request(
         "POST",
         "/metadata/json:validate",
         {
@@ -142,3 +148,12 @@ def test_metadata_validate_json():
         },
     )
     assert rv.json()["result"] == "errors"
+
+
+def test_metadata_validate_json_empty_collection(api_site_client):
+    rv = api_site_client.request(
+        "POST",
+        "/metadata/json:validate",
+        {"study_set": []},
+    )
+    assert rv.json()["result"] != "errors"
