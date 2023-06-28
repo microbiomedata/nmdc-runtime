@@ -15,6 +15,7 @@ import fastjsonschema
 import requests
 from frozendict import frozendict
 from jsonschema.validators import Draft7Validator
+from nmdc_schema.nmdc_schema_accepting_legacy_ids import Database as NMDCDatabase
 from nmdc_schema.get_nmdc_view import ViewGetter
 from pydantic import conint, BaseModel
 from pymongo.database import Database as MongoDatabase
@@ -440,13 +441,10 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_json(docs: dict, mdb: MongoDatabase):
+def validate_json(in_docs: dict, mdb: MongoDatabase):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
-    docs = deepcopy(docs)
+    docs = deepcopy(in_docs)
     docs, validation_errors = specialize_activity_set_docs(docs)
-    # TODO linkml dataclass validation
-    #  dynamic_class = getattr(importlib.import_module("python.nmdc"), collection_range)
-    #  instance = json_loader.loads(jd, target_class=dynamic_class)
 
     known_coll_names = set(nmdc_database_collection_names())
     for coll_name, coll_docs in docs.items():
@@ -469,6 +467,13 @@ def validate_json(docs: dict, mdb: MongoDatabase):
                 validation_errors[coll_name].append(str(e))
 
     if all(len(v) == 0 for v in validation_errors.values()):
+        # Second pass. Try instantiating linkml-sourced dataclass
+        in_docs.pop("@type", None)
+        try:
+            NMDCDatabase(**in_docs)
+        except Exception as e:
+            return {"result": "errors", "detail": str(e)}
+
         return {"result": "All Okay!"}
     else:
         return {"result": "errors", "detail": validation_errors}

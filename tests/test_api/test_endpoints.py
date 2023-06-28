@@ -135,7 +135,7 @@ def api_site_client():
     return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 
 
-def test_metadata_validate_json(api_site_client):
+def test_metadata_validate_json_0(api_site_client):
     rv = api_site_client.request(
         "POST",
         "/metadata/json:validate",

@@ -39,7 +39,7 @@ async-lru==2.0.2
     # via jupyterlab
 attrs==23.1.0
     # via jsonschema
-autoflake==2.1.1
+autoflake==2.2.0
     # via shed
 babel==2.12.1
     # via
@@ -61,15 +61,15 @@ beautifulsoup4==4.12.2
     #   google
     #   mkdocs-mermaid2-plugin
     #   nbconvert
-bioregistry==0.6.99
+bioregistry==0.6.108
     # via schemasheets
 black==23.3.0
     # via shed
 bleach==6.0.0
     # via nbconvert
-boto3==1.26.159
+boto3==1.26.162
     # via -r requirements/main.in
-botocore==1.29.159
+botocore==1.29.162
     # via
     #   boto3
     #   s3transfer
@@ -105,7 +105,6 @@ click==8.1.3
     #   prefixcommons
     #   prefixmaps
     #   pystow
-    #   sphinx-click
     #   terminusdb-client
     #   uvicorn
 colorama==0.4.6
@@ -120,7 +119,7 @@ croniter==1.4.1
     # via dagster
 cryptography==41.0.1
     # via python-jose
-curies==0.4.5
+curies==0.5.5
     # via
     #   bioregistry
     #   linkml-runtime
@@ -152,20 +151,14 @@ dependency-injector==4.41.0
     # via -r requirements/main.in
 deprecated==1.2.14
     # via linkml-runtime
-distlib==0.3.6
-    # via virtualenv
 dnspython==2.3.0
     # via
     #   email-validator
     #   pymongo
 docstring-parser==0.15
     # via dagster
-docutils==0.18.1
-    # via
-    #   myst-parser
-    #   sphinx
-    #   sphinx-click
-    #   sphinx-rtd-theme
+docutils==0.20.1
+    # via sphinx
 dotted-dict==1.1.3
     # via -r requirements/main.in
 ecdsa==0.18.0
@@ -190,10 +183,6 @@ fastjsonschema==2.17.1
     # via
     #   -r requirements/main.in
     #   nbformat
-filelock==3.12.2
-    # via
-    #   tox
-    #   virtualenv
 fnc==0.5.3
     # via -r requirements/main.in
 fqdn==1.5.1
@@ -214,7 +203,7 @@ google-api-core==2.11.1
     # via google-api-python-client
 google-api-python-client==2.90.0
     # via ontodev-cogs
-google-auth==2.20.0
+google-auth==2.21.0
     # via
     #   google-api-core
     #   google-api-python-client
@@ -325,7 +314,6 @@ jinja2==3.1.2
     #   linkml-dataops
     #   mkdocs
     #   mkdocs-material
-    #   myst-parser
     #   nbclassic
     #   nbconvert
     #   notebook
@@ -398,7 +386,7 @@ jupyter-events==0.6.3
     # via jupyter-server
 jupyter-lsp==2.2.0
     # via jupyterlab
-jupyter-server==2.6.0
+jupyter-server==2.7.0
     # via
     #   jupyter-lsp
     #   jupyterlab
@@ -421,7 +409,7 @@ lazy-model==0.0.5
     # via beanie
 libcst==1.0.1
     # via shed
-linkml==1.5.2
+linkml==1.5.6
     # via
     #   -r requirements/main.in
     #   exhaustion-check
@@ -430,7 +418,7 @@ linkml==1.5.2
     #   schemasheets
 linkml-dataops==0.1.0
     # via linkml
-linkml-runtime==1.5.2
+linkml-runtime==1.5.4
     # via
     #   -r requirements/main.in
     #   linkml
@@ -448,7 +436,6 @@ markdown-it-py==2.2.0
     # via
     #   jupytext
     #   mdit-py-plugins
-    #   myst-parser
 markupsafe==2.1.3
     # via
     #   jinja2
@@ -458,10 +445,8 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mdit-py-plugins==0.3.5
-    # via
-    #   jupytext
-    #   myst-parser
+mdit-py-plugins==0.4.0
+    # via jupytext
 mdurl==0.1.2
     # via markdown-it-py
 mergedeep==1.3.4
@@ -496,8 +481,6 @@ mypy-extensions==1.0.0
     # via
     #   black
     #   typing-inspect
-myst-parser==1.0.0
-    # via linkml
 nbclassic==1.0.0
     # via notebook
 nbclient==0.8.0
@@ -522,7 +505,7 @@ nest-asyncio==1.5.6
     #   ipykernel
     #   nbclassic
     #   notebook
-nmdc-schema==7.7.0
+nmdc-schema==7.7.1
     # via -r requirements/main.in
 notebook==6.5.4
     # via jupyter
@@ -558,7 +541,6 @@ packaging==23.1
     #   qtconsole
     #   qtpy
     #   sphinx
-    #   tox
 pandas==1.5.3
     # via
     #   -r requirements/main.in
@@ -583,11 +565,8 @@ platformdirs==3.8.0
     # via
     #   black
     #   jupyter-core
-    #   virtualenv
 pluggy==1.2.0
-    # via
-    #   pytest
-    #   tox
+    # via pytest
 ply==3.11
     # via jsonpath-ng
 prefixcommons==0.1.12
@@ -623,8 +602,6 @@ ptyprocess==0.7.0
     #   terminado
 pure-eval==0.2.2
     # via stack-data
-py==1.11.0
-    # via tox
 pyasn1==0.5.0
     # via
     #   pyasn1-modules
@@ -639,10 +616,12 @@ pydantic==1.10.9
     #   -r requirements/main.in
     #   beanie
     #   bioregistry
+    #   curies
     #   dagster
     #   fastapi
     #   lazy-model
     #   linkml
+    #   linkml-runtime
 pyflakes==3.0.1
     # via autoflake
 pygments==2.15.1
@@ -728,7 +707,6 @@ pyyaml==6.0
     #   linkml-runtime
     #   mkdocs
     #   mkdocs-mermaid2-plugin
-    #   myst-parser
     #   prefixcommons
     #   prefixmaps
     #   pymdown-extensions
@@ -843,7 +821,6 @@ six==1.16.0
     #   jsonpath-ng
     #   python-dateutil
     #   rfc3339-validator
-    #   tox
 sniffio==1.3.0
     # via anyio
 snowballstemmer==2.2.0
@@ -858,25 +835,14 @@ sparqlwrapper==2.0.0
     # via
     #   pyshex
     #   sparqlslurper
-sphinx==6.2.1
-    # via
-    #   myst-parser
-    #   numpydoc
-    #   sphinx-click
-    #   sphinx-rtd-theme
-    #   sphinxcontrib-jquery
-sphinx-click==4.4.0
-    # via linkml
-sphinx-rtd-theme==1.2.2
-    # via linkml
+sphinx==7.0.1
+    # via numpydoc
 sphinxcontrib-applehelp==1.0.4
     # via sphinx
 sphinxcontrib-devhelp==1.0.2
     # via sphinx
 sphinxcontrib-htmlhelp==2.0.1
     # via sphinx
-sphinxcontrib-jquery==4.1
-    # via sphinx-rtd-theme
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-qthelp==1.0.3
@@ -926,7 +892,6 @@ tomli==2.0.1
     #   dagster
     #   jupyterlab
     #   pytest
-    #   tox
 toolz==0.12.0
     # via -r requirements/main.in
 toposort==1.10
@@ -940,8 +905,6 @@ tornado==6.3.2
     #   nbclassic
     #   notebook
     #   terminado
-tox==3.28.0
-    # via linkml
 tqdm==4.65.0
     # via
     #   -r requirements/main.in
@@ -1002,8 +965,6 @@ uvicorn==0.22.0
     #   dagit
 uvloop==0.17.0
     # via uvicorn
-virtualenv==20.23.1
-    # via tox
 watchdog==3.0.0
     # via
     #   dagster
