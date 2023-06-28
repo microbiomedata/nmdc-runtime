@@ -6,6 +6,8 @@ import pkg_resources
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette import status
+from starlette.responses import RedirectResponse
 
 from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -28,6 +30,7 @@ from nmdc_runtime.api.endpoints import (
     users,
     workflows,
 )
+from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
@@ -324,6 +327,14 @@ async def lifespan(app: FastAPI):
     ensure_attribute_indexes()
     ensure_default_api_perms()
     yield
+
+
+@api_router.get("/")
+async def root():
+    return RedirectResponse(
+        BASE_URL_EXTERNAL + "/docs",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 app = FastAPI(
