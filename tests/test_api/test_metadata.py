@@ -147,7 +147,7 @@ def test_update_pi_websites():
 def test_update_biosample_ph():
     mdb = get_mongo_db()
     doc = json.loads(
-        (REPO_ROOT_DIR / "tests" / "files" / "nmdc:bsm-11-5nhz3402.json").read_text()
+        (REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-11-5nhz3402.json").read_text()
     )
     mdb.biosample_set.replace_one({"id": "nmdc:bsm-11-5nhz3402"}, doc, upsert=True)
     df = load_changesheet(
