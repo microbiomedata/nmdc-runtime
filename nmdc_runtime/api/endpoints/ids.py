@@ -1,3 +1,7 @@
+"""
+`router` here is deprecated in favor of `nmdc_runtime.minter.entrypoints.fastapi_app.router`
+"""
+
 import re
 from typing import List, Dict, Any
 
