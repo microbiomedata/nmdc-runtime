@@ -434,11 +434,12 @@ def validate_json(docs: dict, mdb: MongoDatabase):
     for coll_name, coll_docs in docs.items():
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
-        try:
-            with OverlayDB(mdb) as odb:
-                odb.replace_or_insert_many(coll_name, coll_docs)
-        except OverlayDBError as e:
-            validation_errors[coll_name].append(str(e))
+        if coll_docs:
+            try:
+                with OverlayDB(mdb) as odb:
+                    odb.replace_or_insert_many(coll_name, coll_docs)
+            except OverlayDBError as e:
+                validation_errors[coll_name].append(str(e))
 
     if all(len(v) == 0 for v in validation_errors.values()):
         return {"result": "All Okay!"}
