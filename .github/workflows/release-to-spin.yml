@@ -29,3 +29,27 @@ jobs:
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}
+  spin_rancher_nmdc_restarts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: restart nmdc/runtime-api
+        uses: colbyhill21/Rancher-Action@1.1
+        with:
+          args: '"rollout restart --namespace=nmdc deployment/runtime-api"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart nmdc/dagster-dagit
+        uses: colbyhill21/Rancher-Action@1.1
+        with:
+          args: '"rollout restart --namespace=nmdc deployment/dagster-dagit "'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
+      - name: restart nmdc/dagster-daemon
+        uses: colbyhill21/Rancher-Action@1.1
+        with:
+          args: '"rollout restart --namespace=nmdc deployment/dagster-daemon"'
+          token: ${{ secrets.RANCHER_TOKEN }}
+          context: ${{ secrets.RANCHER_CONTEXT }}
+          url: ${{ secrets.RANCHER_URL }}
