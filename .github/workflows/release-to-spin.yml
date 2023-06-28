@@ -5,27 +5,27 @@ on:
     types: [trigger-workflow-release-to-spin]
 
 jobs:
-  rancher_job:
+  spin_rancher_nmdc_dev_restarts:
     runs-on: ubuntu-latest
     steps:
-      - name: restart fastapi
+      - name: restart nmdc-dev/runtime-api
         uses: colbyhill21/Rancher-Action@1.1
         with: 
-          args: '"rollout restart deployment/runtime-fastapi --namespace=nmdc-dev"'
+          args: '"rollout restart --namespace=nmdc-dev deployment/runtime-api"'
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}
-      - name: restart dagit
+      - name: restart nmdc-dev/dagster-dagit
         uses: colbyhill21/Rancher-Action@1.1
         with: 
-          args: '"rollout restart deployment/dagit --namespace=nmdc-dev"'
+          args: '"rollout restart --namespace=nmdc-dev deployment/dagster-dagit "'
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}
-      - name: restart dagster-daemon
+      - name: restart nmdc-dev/dagster-daemon
         uses: colbyhill21/Rancher-Action@1.1
         with: 
-          args: '"rollout restart deployment/dagster-daemon --namespace=nmdc-dev"'
+          args: '"rollout restart --namespace=nmdc-dev deployment/dagster-daemon"'
           token: ${{ secrets.RANCHER_TOKEN }}
           context: ${{ secrets.RANCHER_CONTEXT }}
           url: ${{ secrets.RANCHER_URL }}
