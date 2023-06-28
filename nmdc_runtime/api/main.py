@@ -15,7 +15,6 @@ from nmdc_runtime.api.db.mongo import (
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
-    ids,
     jobs,
     metadata,
     nmdcschema,
@@ -47,7 +46,6 @@ api_router.include_router(triggers.router, tags=["triggers"])
 api_router.include_router(workflows.router, tags=["workflows"])
 api_router.include_router(object_types.router, tags=["object types"])
 api_router.include_router(queries.router, tags=["queries"])
-api_router.include_router(ids.router, tags=["identifiers"])
 api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
@@ -201,10 +199,6 @@ issue an update query).
 
             """
         ),
-    },
-    {
-        "name": "identifiers",
-        "description": "Tools for identifier generation and resolution.",
     },
     {
         "name": "metadata",
