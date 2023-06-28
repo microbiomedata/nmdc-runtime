@@ -339,11 +339,12 @@ async def root():
 
 app = FastAPI(
     title="NMDC Runtime API",
-    version="0.1.0",
+    version="0.2.0",
     description=(
-        "This is a draft of the NMDC Runtime API."
-        " The resource layout currently covers aspects of workflow execution and automation,"
-        " and is intended to facilitate discussion as more of the API is developed."
+        "The NMDC Runtime API, via on-demand functions "
+        "and via schedule-based and sensor-based automation, "
+        "supports validation and submission of metadata, as well as "
+        "orchestration of workflow execution activities."
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}'
