@@ -157,3 +157,27 @@ def test_metadata_validate_json_empty_collection(api_site_client):
         {"study_set": []},
     )
     assert rv.json()["result"] != "errors"
+
+
+def test_metadata_validate_json_with_type_attribute(api_site_client):
+    rv = api_site_client.request(
+        "POST",
+        "/metadata/json:validate",
+        {"study_set": [], "@type": "Database"},
+    )
+    assert rv.json()["result"] != "errors"
+    rv = api_site_client.request(
+        "POST",
+        "/metadata/json:validate",
+        {"study_set": [], "@type": "nmdc:Database"},
+    )
+    assert rv.json()["result"] != "errors"
+
+
+def test_metadata_validate_json_with_unknown_collection(api_site_client):
+    rv = api_site_client.request(
+        "POST",
+        "/metadata/json:validate",
+        {"studi_set": []},
+    )
+    assert rv.json()["result"] == "errors"
