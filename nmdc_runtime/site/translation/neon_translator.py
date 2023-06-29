@@ -1,3 +1,4 @@
+import re
 import sqlite3
 
 from typing import List, Dict
@@ -25,9 +26,9 @@ class NeonDataTranslator(Translator):
             "sls_soilChemistry",
             "sls_soilMoisture",
             "sls_soilpH",
+            "ntr_externalLab",
+            "ntr_internalLab",
         )
-
-        neon_ntr_data_tables = ("ntr_externalLab", "ntr_internalLab")
 
         if all(k in mms_data for k in neon_mms_data_tables):
             mms_data["mms_metagenomeDnaExtraction"].to_sql(
@@ -41,7 +42,7 @@ class NeonDataTranslator(Translator):
             )
         else:
             raise ValueError(
-                f"You are missing one of the MMS tables: {neon_mms_data_tables}"
+                f"You are missing one of the metagenomic microbe soil tables: {neon_mms_data_tables}"
             )
 
         if all(k in sls_data for k in neon_sls_data_tables):
@@ -60,12 +61,6 @@ class NeonDataTranslator(Translator):
             sls_data["sls_soilpH"].to_sql(
                 "sls_soilpH", self.conn, if_exists="replace", index=False
             )
-        else:
-            raise ValueError(
-                f"You are missing one of the SLS tables: {neon_sls_data_tables}"
-            )
-
-        if all(k in neon_ntr_data_tables for k in neon_ntr_data_tables):
             sls_data["ntr_externalLab"].to_sql(
                 "ntr_externalLab", self.conn, if_exists="replace", index=False
             )
@@ -74,7 +69,7 @@ class NeonDataTranslator(Translator):
             )
         else:
             raise ValueError(
-                f"You are missing one of the SLS tables: {neon_sls_data_tables}"
+                f"You are missing one of the soil periodic tables: {neon_sls_data_tables}"
             )
 
         neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
@@ -119,9 +114,8 @@ class NeonDataTranslator(Translator):
             if not biosample_row["collectDate"].isna().any()
             else None,
             temp=nmdc.QuantityValue(
-                has_raw_value=biosample_row["soilTemp"].values[0],
                 has_numeric_value=biosample_row["soilTemp"].values[0],
-                has_unit="degree celsius",
+                has_unit="C",
             )
             if not biosample_row["soilTemp"].isna().any()
             else None,
@@ -132,6 +126,7 @@ class NeonDataTranslator(Translator):
                 has_maximum_numeric_value=biosample_row["sampleBottomDepth"].values[0]
                 if not biosample_row["sampleBottomDepth"].isna().any()
                 else None,
+                has_unit="cm",
             ),
             samp_collec_device=biosample_row["soilSamplingDevice"].values[0]
             if not biosample_row["soilSamplingDevice"].isna().any()
@@ -148,43 +143,39 @@ class NeonDataTranslator(Translator):
             if not biosample_row["sampleType"].isna().any()
             else None,
             nitro=nmdc.QuantityValue(
-                has_raw_value=biosample_row["nitrogenPercent"].values[0],
                 has_numeric_value=biosample_row["nitrogenPercent"].values[0],
+                has_unit="percent",
             )
             if not biosample_row["nitrogenPercent"].isna().any()
             else None,
             org_carb=nmdc.QuantityValue(
-                has_raw_value=biosample_row["organicCPercent"].values[0],
                 has_numeric_value=biosample_row["organicCPercent"].values[0],
+                has_unit="percent",
             )
             if not biosample_row["organicCPercent"].isna().any()
             else None,
             carb_nitro_ratio=nmdc.QuantityValue(
-                has_raw_value=biosample_row["CNratio"].values[0],
                 has_numeric_value=biosample_row["CNratio"].values[0],
             )
             if not biosample_row["CNratio"].isna().any()
             else None,
-            ph_meth=nmdc.TextValue(
-                has_raw_value=biosample_row["samplingProtocolVersion"].values[0]
-            )
-            if not biosample_row["samplingProtocolVersion"].isna().any()
-            else None,
             ph=nmdc.Double(biosample_row["soilInWaterpH"].values[0])
             if not biosample_row["soilInWaterpH"].isna().any()
             else None,
-            water_content=[biosample_row["soilMoisture"].values[0]]
+            water_content=[
+                f"{biosample_row['soilMoisture'].values[0]} g of water/g of dry soil"
+            ]
             if not biosample_row["soilMoisture"].isna().any()
             else None,
             ammonium_nitrogen=nmdc.QuantityValue(
-                has_raw_value=biosample_row["kclAmmoniumNConc"].values[0],
                 has_numeric_value=biosample_row["kclAmmoniumNConc"].values[0],
+                has_unit="mg/L",
             )
             if not biosample_row["kclAmmoniumNConc"].isna().any()
             else None,
             tot_nitro_content=nmdc.QuantityValue(
-                has_raw_value=biosample_row["kclNitrateNitriteNConc"].values[0],
                 has_numeric_value=biosample_row["kclNitrateNitriteNConc"].values[0],
+                has_unit="mg/L",
             )
             if not biosample_row["kclNitrateNitriteNConc"].isna().any()
             else None,
@@ -211,28 +202,136 @@ class NeonDataTranslator(Translator):
         )
 
     def _translate_processed_sample(
-        self, processed_sample_id: str, dna_sample_id: str
+        self, processed_sample_id: str, sample_id: str
     ) -> nmdc.ProcessedSample:
-        return nmdc.ProcessedSample(id=processed_sample_id, name=dna_sample_id)
+        return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
 
-    def _translate_extraction_process(self) -> List[nmdc.PlannedProcess]:
-        pass
+    def _translate_extraction_process(
+        self,
+        extraction_id: str,
+        extraction_input: List[str],
+        processed_sample_id: List[str],
+        extraction_row: pd.DataFrame,
+    ) -> nmdc.Extraction:
+        return nmdc.Extraction(
+            id=extraction_id,
+            has_input=extraction_input,
+            has_output=processed_sample_id,
+            start_date=extraction_row["collectDate"].values[0]
+            if not extraction_row["collectDate"].isna().any()
+            else None,
+            end_date=extraction_row["processedDate"].values[0]
+            if not extraction_row["processedDate"].isna().any()
+            else None,
+            sample_mass=nmdc.QuantityValue(
+                has_numeric_value=extraction_row["sampleMass"].values[0], has_unit="g"
+            )
+            if not extraction_row["sampleMass"].isna().any()
+            else None,
+            quality_control_report=nmdc.QualityControlReport(
+                status=extraction_row["qaqcStatus"].values[0].lower()
+            )
+            if not extraction_row["qaqcStatus"].isna().any()
+            else None,
+            processing_institution="Battelle"
+            if (
+                not extraction_row["laboratoryName"].isna().any()
+                and re.search(
+                    "Battelle",
+                    extraction_row["laboratoryName"].values[0],
+                    re.IGNORECASE,
+                )
+            )
+            else "ANL"
+            if (
+                not extraction_row["laboratoryName"].isna().any()
+                and re.search(
+                    "Argonne", extraction_row["laboratoryName"].values[0], re.IGNORECASE
+                )
+            )
+            else None,
+        )
 
-    def _translate_omics_processing(self) -> nmdc.OmicsProcessing:
-        pass
+    def _translate_library_preparation(
+        self,
+        library_preparation_id: str,
+        library_preparation_input: List[str],
+        processed_sample_id: List[str],
+        library_preparation_row: pd.DataFrame,
+    ) -> nmdc.LibraryPreparation:
+        return nmdc.LibraryPreparation(
+            id=library_preparation_id,
+            has_input=library_preparation_input,
+            has_output=processed_sample_id,
+            start_date=library_preparation_row["collectDate"].values[0]
+            if not library_preparation_row["collectDate"].isna().any()
+            else None,
+            end_date=library_preparation_row["processedDate"].values[0]
+            if not library_preparation_row["processedDate"].isna().any()
+            else None,
+            processing_institution="Battelle"
+            if (
+                not library_preparation_row["laboratoryName"].isna().any()
+                and re.search(
+                    "Battelle",
+                    library_preparation_row["laboratoryName"].values[0],
+                    re.IGNORECASE,
+                )
+            )
+            else "ANL"
+            if (
+                not library_preparation_row["laboratoryName"].isna().any()
+                and re.search(
+                    "Argonne",
+                    library_preparation_row["laboratoryName"].values[0],
+                    re.IGNORECASE,
+                )
+            )
+            else None,
+        )
+
+    def _translate_omics_processing(
+        self,
+        omics_processing_id: str,
+        processed_sample_id: str,
+    ) -> nmdc.OmicsProcessing:
+        return nmdc.OmicsProcessing(
+            id=omics_processing_id, has_input=processed_sample_id
+        )
 
     def get_database(self) -> nmdc.Database:
         database = nmdc.Database()
 
         # Joining sls_metagenomicsPooling and merged tables
         query = """
-        SELECT sls_metagenomicsPooling.genomicsPooledIDList, sls_metagenomicsPooling.genomicsSampleID, merged.dnaSampleID, merged.sequenceAnalysisType
-        FROM sls_metagenomicsPooling
-        LEFT JOIN (
-            SELECT mms_metagenomeDnaExtraction.dnaSampleID, mms_metagenomeDnaExtraction.genomicsSampleID, mms_metagenomeDnaExtraction.sequenceAnalysisType
-            FROM mms_metagenomeSequencing
-            LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
-        ) AS merged ON sls_metagenomicsPooling.genomicsSampleID = merged.genomicsSampleID
+                SELECT 
+                sls_metagenomicsPooling.genomicsPooledIDList, 
+                sls_metagenomicsPooling.genomicsSampleID, 
+                merged.dnaSampleID, 
+                merged.sequenceAnalysisType,
+                merged.laboratoryName,
+                merged.collectDate,
+                merged.processedDate,
+                merged.sampleMaterial,
+                merged.sampleMass,
+                merged.nucleicAcidConcentration,
+                merged.qaqcStatus
+            FROM sls_metagenomicsPooling
+            LEFT JOIN (
+                SELECT 
+                    mms_metagenomeDnaExtraction.dnaSampleID, 
+                    mms_metagenomeDnaExtraction.genomicsSampleID, 
+                    mms_metagenomeDnaExtraction.sequenceAnalysisType,
+                    mms_metagenomeDnaExtraction.laboratoryName,
+                    mms_metagenomeDnaExtraction.collectDate,
+                    mms_metagenomeDnaExtraction.processedDate,
+                    mms_metagenomeDnaExtraction.sampleMaterial,
+                    mms_metagenomeDnaExtraction.sampleMass,
+                    mms_metagenomeDnaExtraction.nucleicAcidConcentration,
+                    mms_metagenomeDnaExtraction.qaqcStatus
+                FROM mms_metagenomeSequencing
+                LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
+            ) AS merged ON sls_metagenomicsPooling.genomicsSampleID = merged.genomicsSampleID
         """
         mms_sls_pooling_merged = pd.read_sql_query(query, self.conn)
         mms_sls_pooling_merged.to_sql(
@@ -241,40 +340,68 @@ class NeonDataTranslator(Translator):
 
         # for each of the split values
         query = """
-            WITH RECURSIVE split_values(sampleID, remaining_values, genomicsPooledIDList, dnaSampleID) AS (
+                WITH RECURSIVE split_values(sampleID, remaining_values, genomicsPooledIDList, dnaSampleID, genomicsSampleID, laboratoryName, collectDate, processedDate, sampleMaterial, sampleMass, nucleicAcidConcentration, qaqcStatus) AS (
+                    SELECT
+                        CASE
+                            WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, 1, instr(genomicsPooledIDList, '|') - 1)
+                            ELSE genomicsPooledIDList
+                        END AS sampleID,
+                        CASE
+                            WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, instr(genomicsPooledIDList, '|') + 1)
+                            ELSE NULL
+                        END AS remaining_values,
+                        genomicsPooledIDList,
+                        dnaSampleID,
+                        genomicsSampleID,
+                        laboratoryName,
+                        collectDate,
+                        processedDate,
+                        sampleMaterial,
+                        sampleMass,
+                        nucleicAcidConcentration,
+                        qaqcStatus
+                    FROM mms_sls_pooling_merged
+                    WHERE genomicsPooledIDList IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT
+                        CASE
+                            WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, 1, instr(remaining_values, '|') - 1)
+                            ELSE remaining_values
+                        END AS sampleID,
+                        CASE
+                            WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, instr(remaining_values, '|') + 1)
+                            ELSE NULL
+                        END AS remaining_values,
+                        genomicsPooledIDList,
+                        dnaSampleID,
+                        genomicsSampleID,
+                        laboratoryName,
+                        collectDate,
+                        processedDate,
+                        sampleMaterial,
+                        sampleMass,
+                        nucleicAcidConcentration,
+                        qaqcStatus
+                    FROM split_values
+                    WHERE remaining_values IS NOT NULL
+                )
                 SELECT
-                    CASE
-                        WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, 1, instr(genomicsPooledIDList, '|') - 1)
-                        ELSE genomicsPooledIDList
-                    END AS sampleID,
-                    CASE
-                        WHEN instr(genomicsPooledIDList, '|') > 0 THEN substr(genomicsPooledIDList, instr(genomicsPooledIDList, '|') + 1)
-                        ELSE NULL
-                    END AS remaining_values,
-                    genomicsPooledIDList,
-                    dnaSampleID
-                FROM mms_sls_pooling_merged
-                WHERE genomicsPooledIDList IS NOT NULL
-                
-                UNION ALL
-                
-                SELECT
-                    CASE
-                        WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, 1, instr(remaining_values, '|') - 1)
-                        ELSE remaining_values
-                    END AS sampleID,
-                    CASE
-                        WHEN instr(remaining_values, '|') > 0 THEN substr(remaining_values, instr(remaining_values, '|') + 1)
-                        ELSE NULL
-                    END AS remaining_values,
-                    genomicsPooledIDList,
-                    dnaSampleID
+                    split_values.sampleID,
+                    split_values.genomicsPooledIDList,
+                    split_values.dnaSampleID,
+                    split_values.laboratoryName,
+                    split_values.collectDate,
+                    split_values.processedDate,
+                    split_values.sampleMaterial,
+                    split_values.sampleMass,
+                    split_values.nucleicAcidConcentration,
+                    split_values.qaqcStatus,
+                    mms_sls_pooling_merged.sequenceAnalysisType,
+                    mms_sls_pooling_merged.genomicsSampleID
                 FROM split_values
-                WHERE remaining_values IS NOT NULL
-            )
-            SELECT split_values.sampleID, split_values.genomicsPooledIDList, split_values.dnaSampleID, mms_sls_pooling_merged.sequenceAnalysisType
-            FROM split_values
-            LEFT JOIN mms_sls_pooling_merged ON split_values.dnaSampleID = mms_sls_pooling_merged.dnaSampleID
+                LEFT JOIN mms_sls_pooling_merged ON split_values.dnaSampleID = mms_sls_pooling_merged.dnaSampleID
             """
         mms_sls_pooling_exploded = pd.read_sql_query(query, self.conn)
         mms_sls_pooling_exploded.to_sql(
@@ -361,6 +488,27 @@ class NeonDataTranslator(Translator):
             .to_dict()
         )
 
+        query = """
+            SELECT dnaSampleID, genomicsSampleID, collectDate, laboratoryName, processedDate, sampleMass, qaqcStatus
+            FROM soil_biosamples_envo
+            GROUP BY genomicsSampleID
+        """
+        extraction_table = pd.read_sql_query(query, self.conn)
+
+        query = """
+            SELECT 
+                mms_metagenomeDnaExtraction.dnaSampleID, 
+                mms_metagenomeDnaExtraction.genomicsSampleID, 
+                mms_metagenomeDnaExtraction.sequenceAnalysisType,
+                mms_metagenomeDnaExtraction.laboratoryName,
+                mms_metagenomeDnaExtraction.collectDate,
+                mms_metagenomeDnaExtraction.processedDate
+            FROM mms_metagenomeSequencing 
+            LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
+        """
+        library_preparation_table = pd.read_sql_query(query, self.conn)
+        omics_processing_table = pd.read_sql_query(query, self.conn)
+
         nmdc_pooling_ids = self._id_minter("nmdc:Pooling", len(pooling_ids_dict))
         neon_to_nmdc_pooling_ids = dict(
             zip(list(pooling_ids_dict.keys()), nmdc_pooling_ids)
@@ -369,8 +517,41 @@ class NeonDataTranslator(Translator):
         nmdc_processed_sample_ids = self._id_minter(
             "nmdc:ProcessedSample", len(pooling_ids_dict)
         )
-        neon_to_nmdc_processed_sample_ids = dict(
+        pooling_processed_sample_ids = dict(
             zip(list(pooling_ids_dict.keys()), nmdc_processed_sample_ids)
+        )
+
+        extraction_ids = extraction_table["genomicsSampleID"]
+        nmdc_extraction_ids = self._id_minter("nmdc:Extraction", len(extraction_ids))
+        nmdc_extraction_processed_sample_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(nmdc_extraction_ids)
+        )
+        neon_to_nmdc_extraction_ids = dict(zip(extraction_ids, nmdc_extraction_ids))
+        neon_to_nmdc_extraction_processed_sample_ids = dict(
+            zip(extraction_ids, nmdc_extraction_processed_sample_ids)
+        )
+
+        library_prepration_ids = library_preparation_table["dnaSampleID"]
+        nmdc_library_prepration_ids = self._id_minter(
+            "nmdc:LibraryPreparation", len(library_prepration_ids)
+        )
+
+        nmdc_library_preparation_processed_sample_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(nmdc_library_prepration_ids)
+        )
+        neon_to_nmdc_library_prepration_ids = dict(
+            zip(library_prepration_ids, nmdc_library_prepration_ids)
+        )
+        neon_to_nmdc_library_preparation_processed_sample_ids = dict(
+            zip(library_prepration_ids, nmdc_library_preparation_processed_sample_ids)
+        )
+
+        omics_processing_ids = omics_processing_table["dnaSampleID"]
+        nmdc_omics_processing_ids = self._id_minter(
+            "nmdc:OmicsProcessing", len(omics_processing_ids)
+        )
+        neon_to_nmdc_omics_processing_ids = dict(
+            zip(omics_processing_ids, nmdc_omics_processing_ids)
         )
 
         neon_biosample_ids = soil_biosamples_envo["sampleID"]
@@ -388,7 +569,7 @@ class NeonDataTranslator(Translator):
 
         for dna_sample_id, bsm_sample_ids in pooling_ids_dict.items():
             pooling_process_id = neon_to_nmdc_pooling_ids[dna_sample_id]
-            processed_sample_id = neon_to_nmdc_processed_sample_ids[dna_sample_id]
+            processed_sample_id = pooling_processed_sample_ids[dna_sample_id]
 
             bsm_values_list = [
                 neon_to_nmdc_biosample_ids[key]
@@ -413,5 +594,72 @@ class NeonDataTranslator(Translator):
             database.processed_sample_set.append(
                 self._translate_processed_sample(processed_sample_id, dna_sample_id)
             )
+
+        for genomics_sample_id, extraction_id in neon_to_nmdc_extraction_ids.items():
+            processed_sample_id = neon_to_nmdc_extraction_processed_sample_ids[
+                genomics_sample_id
+            ]
+            dna_sample_input = extraction_table[
+                extraction_table["genomicsSampleID"] == genomics_sample_id
+            ]["dnaSampleID"].values[0]
+            extraction_input = pooling_processed_sample_ids[dna_sample_input]
+
+            extraction_row = extraction_table[
+                extraction_table["genomicsSampleID"] == genomics_sample_id
+            ]
+
+            database.extraction_set.append(
+                self._translate_extraction_process(
+                    extraction_id, extraction_input, processed_sample_id, extraction_row
+                )
+            )
+
+            database.processed_sample_set.append(
+                self._translate_processed_sample(
+                    processed_sample_id, genomics_sample_id
+                )
+            )
+
+        for (
+            dna_sample_id,
+            library_preparation_id,
+        ) in neon_to_nmdc_library_prepration_ids.items():
+            processed_sample_id = neon_to_nmdc_library_preparation_processed_sample_ids[
+                dna_sample_id
+            ]
+
+            omics_processing_id = neon_to_nmdc_omics_processing_ids[dna_sample_id]
+
+            genomics_sample_id = library_preparation_table[
+                library_preparation_table["dnaSampleID"] == dna_sample_id
+            ]["genomicsSampleID"].values[0]
+
+            if genomics_sample_id in neon_to_nmdc_extraction_processed_sample_ids:
+                library_preparation_input = (
+                    neon_to_nmdc_extraction_processed_sample_ids[genomics_sample_id]
+                )
+
+                library_preparation_row = library_preparation_table[
+                    library_preparation_table["dnaSampleID"] == dna_sample_id
+                ]
+
+                database.library_preparation_set.append(
+                    self._translate_library_preparation(
+                        library_preparation_id,
+                        library_preparation_input,
+                        processed_sample_id,
+                        library_preparation_row,
+                    )
+                )
+
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(processed_sample_id, dna_sample_id)
+                )
+
+                database.omics_processing_set.append(
+                    self._translate_omics_processing(
+                        omics_processing_id, processed_sample_id
+                    )
+                )
 
         return database
