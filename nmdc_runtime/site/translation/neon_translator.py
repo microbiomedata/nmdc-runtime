@@ -1,7 +1,8 @@
 import re
+import math
 import sqlite3
 
-from typing import List, Dict
+from typing import List
 
 import pandas as pd
 
@@ -78,218 +79,227 @@ class NeonDataTranslator(Translator):
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-    def _translate_biosample(
-        self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
-    ) -> List[nmdc.Biosample]:
+    def _get_value_or_none(self, data, column_name):
+        """
+        Get the value from the specified column in the data DataFrame.
+        If the column value is NaN, return None.
+        """
+        if not data[column_name].isna().any():
+            if column_name == "horizon":
+                return f"{data[column_name].values[0]} horizon"
+            elif column_name == "qaqcStatus":
+                return data[column_name].values[0].lower()
+            else:
+                return data[column_name].values[0]
+            
+        return None
+
+
+    def _create_controlled_identified_term_value(self, id, name):
+        """
+        Create a ControlledIdentifiedTermValue object with the specified ID and name.
+        """
+        if id is None or name is None:
+            return None
+        return nmdc.ControlledIdentifiedTermValue(
+            term=nmdc.OntologyClass(id=id, name=name)
+        )
+
+
+    def _create_timestamp_value(self, value):
+        """
+        Create a TimestampValue object with the specified value.
+        """
+        if value is None:
+            return None
+        return nmdc.TimestampValue(has_raw_value=value)
+
+
+    def _create_quantity_value(self, numeric_value, unit):
+        """
+        Create a QuantityValue object with the specified numeric value and unit.
+        """
+        if numeric_value is None or math.isnan(numeric_value):
+            return None
+        return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
+
+
+    def _create_text_value(self, value):
+        """
+        Create a TextValue object with the specified value.
+        """
+        if value is None:
+            return None
+        return nmdc.TextValue(has_raw_value=value)
+
+
+    def _create_double_value(self, value):
+        """
+        Create a Double object with the specified value.
+        """
+        if value is None or math.isnan(value):
+            return None
+        return nmdc.Double(value)
+    
+
+    def _create_geolocation_value(self, latitude, longitude):
+        """
+        Create a GeolocationValue object with latitude and longitude from the biosample_row DataFrame.
+        """
+
+        if latitude is None or math.isnan(latitude) or longitude or math.isnan(longitude):
+            return None
+
+        return nmdc.GeolocationValue(
+            latitude=nmdc.DecimalDegree(latitude),
+            longitude=nmdc.DecimalDegree(longitude)
+        )
+
+
+    def _translate_biosample(self, neon_id, nmdc_id, biosample_row):
+        """
+        Translate a biosample_row DataFrame into a Biosample object.
+        """
         return nmdc.Biosample(
             id=nmdc_id,
             part_of="nmdc:sty-11-34xj1150",
-            env_broad_scale=nmdc.ControlledIdentifiedTermValue(
-                term=nmdc.OntologyClass(id="ENVO:00000446", name="terrestrial biome"),
+            env_broad_scale=self._create_controlled_identified_term_value(
+                "ENVO:00000446", "terrestrial biome"
             ),
-            env_local_scale=nmdc.ControlledIdentifiedTermValue(
-                term=nmdc.OntologyClass(
-                    id=biosample_row["envo_id"].values[0],
-                    name=biosample_row["envo_label"].values[0],
-                ),
+            env_local_scale=self._create_controlled_identified_term_value(
+                biosample_row["envo_id"].values[0], biosample_row["envo_label"].values[0]
             ),
-            env_medium=nmdc.ControlledIdentifiedTermValue(
-                term=nmdc.OntologyClass(id="ENVO:00001998", name="soil")
+            env_medium=self._create_controlled_identified_term_value(
+                "ENVO:00001998", "soil"
             ),
             name=neon_id,
-            lat_lon=nmdc.GeolocationValue(
-                latitude=nmdc.DecimalDegree(biosample_row["decimalLatitude"].values[0]),
-                longitude=nmdc.DecimalDegree(
-                    biosample_row["decimalLongitude"].values[0]
-                ),
-            )
-            if not biosample_row["decimalLatitude"].isna().any()
-            else None,
-            elev=nmdc.Float(biosample_row["elevation"].values[0])
-            if not biosample_row["elevation"].isna().any()
-            else None,
-            collection_date=nmdc.TimestampValue(
-                has_raw_value=biosample_row["collectDate"].values[0]
-            )
-            if not biosample_row["collectDate"].isna().any()
-            else None,
-            temp=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["soilTemp"].values[0],
-                has_unit="C",
-            )
-            if not biosample_row["soilTemp"].isna().any()
-            else None,
+            lat_lon=self._create_geolocation_value(biosample_row["decimalLatitude"].values[0], biosample_row["decimalLongitude"].values[0]),
+            elev=nmdc.Float(biosample_row["elevation"].values[0]),
+            collection_date=self._create_timestamp_value(
+                biosample_row["collectDate"].values[0]
+            ),
+            temp=self._create_quantity_value(
+                biosample_row["soilTemp"].values[0], "C"
+            ),
             depth=nmdc.QuantityValue(
-                has_minimum_numeric_value=biosample_row["sampleTopDepth"].values[0]
-                if not biosample_row["sampleTopDepth"].isna().any()
-                else None,
-                has_maximum_numeric_value=biosample_row["sampleBottomDepth"].values[0]
-                if not biosample_row["sampleBottomDepth"].isna().any()
-                else None,
+                has_minimum_numeric_value=self._get_value_or_none(
+                    biosample_row, "sampleTopDepth"
+                ),
+                has_maximum_numeric_value=self._get_value_or_none(
+                    biosample_row, "sampleBottomDepth"
+                ),
                 has_unit="cm",
             ),
-            samp_collec_device=biosample_row["soilSamplingDevice"].values[0]
-            if not biosample_row["soilSamplingDevice"].isna().any()
-            else None,
-            soil_horizon=f"{biosample_row['horizon'].values[0]} horizon"
-            if not biosample_row["horizon"].isna().any()
-            else None,
-            analysis_type=biosample_row["sequenceAnalysisType"].values[0]
-            if not biosample_row["sequenceAnalysisType"].isna().any()
-            else None,
-            env_package=nmdc.TextValue(
-                has_raw_value=biosample_row["sampleType"].values[0]
-            )
-            if not biosample_row["sampleType"].isna().any()
-            else None,
-            nitro=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["nitrogenPercent"].values[0],
-                has_unit="percent",
-            )
-            if not biosample_row["nitrogenPercent"].isna().any()
-            else None,
-            org_carb=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["organicCPercent"].values[0],
-                has_unit="percent",
-            )
-            if not biosample_row["organicCPercent"].isna().any()
-            else None,
-            carb_nitro_ratio=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["CNratio"].values[0],
-            )
-            if not biosample_row["CNratio"].isna().any()
-            else None,
-            ph=nmdc.Double(biosample_row["soilInWaterpH"].values[0])
-            if not biosample_row["soilInWaterpH"].isna().any()
-            else None,
+            samp_collec_device=self._get_value_or_none(
+                biosample_row, "soilSamplingDevice"
+            ),
+            soil_horizon=self._get_value_or_none(biosample_row, "horizon"),
+            analysis_type=self._get_value_or_none(biosample_row, "sequenceAnalysisType"),
+            env_package=self._create_text_value(biosample_row["sampleType"].values[0]),
+            nitro=self._create_quantity_value(
+                biosample_row["nitrogenPercent"].values[0], "percent"
+            ),
+            org_carb=self._create_quantity_value(
+                biosample_row["organicCPercent"].values[0], "percent"
+            ),
+            carb_nitro_ratio=self._create_quantity_value(
+                biosample_row["CNratio"].values[0], None
+            ),
+            ph=self._create_double_value(biosample_row["soilInWaterpH"].values[0]),
             water_content=[
                 f"{biosample_row['soilMoisture'].values[0]} g of water/g of dry soil"
             ]
             if not biosample_row["soilMoisture"].isna().any()
             else None,
-            ammonium_nitrogen=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["kclAmmoniumNConc"].values[0],
-                has_unit="mg/L",
-            )
-            if not biosample_row["kclAmmoniumNConc"].isna().any()
-            else None,
-            tot_nitro_content=nmdc.QuantityValue(
-                has_numeric_value=biosample_row["kclNitrateNitriteNConc"].values[0],
-                has_unit="mg/L",
-            )
-            if not biosample_row["kclNitrateNitriteNConc"].isna().any()
-            else None,
+            ammonium_nitrogen=self._create_quantity_value(
+                biosample_row["kclAmmoniumNConc"].values[0], "mg/L"
+            ),
+            tot_nitro_content=self._create_quantity_value(
+                biosample_row["kclNitrateNitriteNConc"].values[0], "mg/L"
+            ),
             type="nmdc:Biosample",
         )
 
+
     def _translate_pooling_process(
-        self,
-        nmdc_id: str,
-        processed_sample_id: str,
-        bsm_input_values_list: List[str],
-        pooling_row: pd.DataFrame,
-    ) -> nmdc.Pooling:
+        self, nmdc_id, processed_sample_id, bsm_input_values_list, pooling_row
+    ):
+        """
+        Translate a pooling_row DataFrame into a Pooling object.
+        """
         return nmdc.Pooling(
             id=nmdc_id,
             has_output=processed_sample_id,
             has_input=bsm_input_values_list,
-            start_date=pooling_row["startDate"].values[0]
-            if not pooling_row["startDate"].isna().any()
-            else None,
-            end_date=pooling_row["collectDate"].values[0]
-            if not pooling_row["collectDate"].isna().any()
-            else None,
+            start_date=self._get_value_or_none(pooling_row, "startDate"),
+            end_date=self._get_value_or_none(pooling_row, "collectDate"),
         )
 
-    def _translate_processed_sample(
-        self, processed_sample_id: str, sample_id: str
-    ) -> nmdc.ProcessedSample:
+
+    def _translate_processed_sample(self, processed_sample_id, sample_id):
+        """
+        Translate a processed sample ID and sample ID into a ProcessedSample object.
+        """
         return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
 
+
     def _translate_extraction_process(
-        self,
-        extraction_id: str,
-        extraction_input: List[str],
-        processed_sample_id: List[str],
-        extraction_row: pd.DataFrame,
-    ) -> nmdc.Extraction:
+        self, extraction_id, extraction_input, processed_sample_id, extraction_row
+    ):
+        """
+        Translate an extraction_row DataFrame into an Extraction object.
+        """
+        processing_institution = None
+        laboratory_name = self._get_value_or_none(extraction_row, "laboratoryName")
+        if laboratory_name is not None:
+            if re.search("Battelle", laboratory_name, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", laboratory_name, re.IGNORECASE):
+                processing_institution = "ANL"
+
         return nmdc.Extraction(
             id=extraction_id,
             has_input=extraction_input,
             has_output=processed_sample_id,
-            start_date=extraction_row["collectDate"].values[0]
-            if not extraction_row["collectDate"].isna().any()
-            else None,
-            end_date=extraction_row["processedDate"].values[0]
-            if not extraction_row["processedDate"].isna().any()
-            else None,
-            sample_mass=nmdc.QuantityValue(
-                has_numeric_value=extraction_row["sampleMass"].values[0], has_unit="g"
-            )
-            if not extraction_row["sampleMass"].isna().any()
-            else None,
+            start_date=self._get_value_or_none(extraction_row, "collectDate"),
+            end_date=self._get_value_or_none(extraction_row, "processedDate"),
+            sample_mass=self._create_quantity_value(
+                self._get_value_or_none(extraction_row, "sampleMass"), "g"
+            ),
             quality_control_report=nmdc.QualityControlReport(
-                status=extraction_row["qaqcStatus"].values[0].lower()
-            )
-            if not extraction_row["qaqcStatus"].isna().any()
-            else None,
-            processing_institution="Battelle"
-            if (
-                not extraction_row["laboratoryName"].isna().any()
-                and re.search(
-                    "Battelle",
-                    extraction_row["laboratoryName"].values[0],
-                    re.IGNORECASE,
-                )
-            )
-            else "ANL"
-            if (
-                not extraction_row["laboratoryName"].isna().any()
-                and re.search(
-                    "Argonne", extraction_row["laboratoryName"].values[0], re.IGNORECASE
-                )
-            )
-            else None,
+                status=self._get_value_or_none(extraction_row, "qaqcStatus")
+            ),
+            processing_institution=processing_institution,
         )
+
 
     def _translate_library_preparation(
         self,
-        library_preparation_id: str,
-        library_preparation_input: List[str],
-        processed_sample_id: List[str],
-        library_preparation_row: pd.DataFrame,
-    ) -> nmdc.LibraryPreparation:
+        library_preparation_id,
+        library_preparation_input,
+        processed_sample_id,
+        library_preparation_row,
+    ):
+        """
+        Translate a library_preparation_row DataFrame into a LibraryPreparation object.
+        """
+        processing_institution = None
+        laboratory_name = self._get_value_or_none(library_preparation_row, "laboratoryName")
+        if laboratory_name is not None:
+            if re.search("Battelle", laboratory_name, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", laboratory_name, re.IGNORECASE):
+                processing_institution = "ANL"
+
         return nmdc.LibraryPreparation(
             id=library_preparation_id,
             has_input=library_preparation_input,
             has_output=processed_sample_id,
-            start_date=library_preparation_row["collectDate"].values[0]
-            if not library_preparation_row["collectDate"].isna().any()
-            else None,
-            end_date=library_preparation_row["processedDate"].values[0]
-            if not library_preparation_row["processedDate"].isna().any()
-            else None,
-            processing_institution="Battelle"
-            if (
-                not library_preparation_row["laboratoryName"].isna().any()
-                and re.search(
-                    "Battelle",
-                    library_preparation_row["laboratoryName"].values[0],
-                    re.IGNORECASE,
-                )
-            )
-            else "ANL"
-            if (
-                not library_preparation_row["laboratoryName"].isna().any()
-                and re.search(
-                    "Argonne",
-                    library_preparation_row["laboratoryName"].values[0],
-                    re.IGNORECASE,
-                )
-            )
-            else None,
+            start_date=self._get_value_or_none(library_preparation_row, "collectDate"),
+            end_date=self._get_value_or_none(library_preparation_row, "processedDate"),
+            processing_institution=processing_institution,
         )
-
+    
     def _translate_omics_processing(
         self,
         omics_processing_id: str,
