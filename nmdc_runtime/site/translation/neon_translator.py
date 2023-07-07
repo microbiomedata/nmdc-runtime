@@ -2,12 +2,11 @@ import re
 import math
 import sqlite3
 
-from typing import List
-
 import pandas as pd
 
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
+from nmdc_runtime.site.util import get_basename
 
 
 class NeonDataTranslator(Translator):
@@ -79,6 +78,14 @@ class NeonDataTranslator(Translator):
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
+        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
+        self.neon_raw_data_file_mappings_df = pd.read_csv(
+            neon_raw_data_file_mappings_file, delimiter="\t"
+        )
+        self.neon_raw_data_file_mappings_df.to_sql(
+            "neonRawDataFile", self.conn, if_exists="replace", index=False
+        )
+
     def _get_value_or_none(self, data, column_name):
         """
         Get the value from the specified column in the data DataFrame.
@@ -89,11 +96,14 @@ class NeonDataTranslator(Translator):
                 return f"{data[column_name].values[0]} horizon"
             elif column_name == "qaqcStatus":
                 return data[column_name].values[0].lower()
+            elif column_name == "sampleTopDepth":
+                return float(data[column_name].values[0]) / 100
+            elif column_name == "sampleBottomDepth":
+                return float(data[column_name].values[0]) / 100
             else:
                 return data[column_name].values[0]
-            
-        return None
 
+        return None
 
     def _create_controlled_identified_term_value(self, id, name):
         """
@@ -105,7 +115,6 @@ class NeonDataTranslator(Translator):
             term=nmdc.OntologyClass(id=id, name=name)
         )
 
-
     def _create_timestamp_value(self, value):
         """
         Create a TimestampValue object with the specified value.
@@ -113,7 +122,6 @@ class NeonDataTranslator(Translator):
         if value is None:
             return None
         return nmdc.TimestampValue(has_raw_value=value)
-
 
     def _create_quantity_value(self, numeric_value, unit):
         """
@@ -123,7 +131,6 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
 
-
     def _create_text_value(self, value):
         """
         Create a TextValue object with the specified value.
@@ -132,7 +139,6 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.TextValue(has_raw_value=value)
 
-
     def _create_double_value(self, value):
         """
         Create a Double object with the specified value.
@@ -140,21 +146,24 @@ class NeonDataTranslator(Translator):
         if value is None or math.isnan(value):
             return None
         return nmdc.Double(value)
-    
 
     def _create_geolocation_value(self, latitude, longitude):
         """
         Create a GeolocationValue object with latitude and longitude from the biosample_row DataFrame.
         """
 
-        if latitude is None or math.isnan(latitude) or longitude or math.isnan(longitude):
+        if (
+            latitude is None
+            or math.isnan(latitude)
+            or longitude
+            or math.isnan(longitude)
+        ):
             return None
 
         return nmdc.GeolocationValue(
             latitude=nmdc.DecimalDegree(latitude),
-            longitude=nmdc.DecimalDegree(longitude)
+            longitude=nmdc.DecimalDegree(longitude),
         )
-
 
     def _translate_biosample(self, neon_id, nmdc_id, biosample_row):
         """
@@ -167,19 +176,23 @@ class NeonDataTranslator(Translator):
                 "ENVO:00000446", "terrestrial biome"
             ),
             env_local_scale=self._create_controlled_identified_term_value(
-                biosample_row["envo_id"].values[0], biosample_row["envo_label"].values[0]
+                biosample_row["envo_id"].values[0],
+                biosample_row["envo_label"].values[0],
             ),
             env_medium=self._create_controlled_identified_term_value(
                 "ENVO:00001998", "soil"
             ),
             name=neon_id,
-            lat_lon=self._create_geolocation_value(biosample_row["decimalLatitude"].values[0], biosample_row["decimalLongitude"].values[0]),
+            lat_lon=self._create_geolocation_value(
+                biosample_row["decimalLatitude"].values[0],
+                biosample_row["decimalLongitude"].values[0],
+            ),
             elev=nmdc.Float(biosample_row["elevation"].values[0]),
             collection_date=self._create_timestamp_value(
                 biosample_row["collectDate"].values[0]
             ),
             temp=self._create_quantity_value(
-                biosample_row["soilTemp"].values[0], "C"
+                biosample_row["soilTemp"].values[0], "Celsius"
             ),
             depth=nmdc.QuantityValue(
                 has_minimum_numeric_value=self._get_value_or_none(
@@ -188,13 +201,15 @@ class NeonDataTranslator(Translator):
                 has_maximum_numeric_value=self._get_value_or_none(
                     biosample_row, "sampleBottomDepth"
                 ),
-                has_unit="cm",
+                has_unit="m",
             ),
             samp_collec_device=self._get_value_or_none(
                 biosample_row, "soilSamplingDevice"
             ),
             soil_horizon=self._get_value_or_none(biosample_row, "horizon"),
-            analysis_type=self._get_value_or_none(biosample_row, "sequenceAnalysisType"),
+            analysis_type=self._get_value_or_none(
+                biosample_row, "sequenceAnalysisType"
+            ),
             env_package=self._create_text_value(biosample_row["sampleType"].values[0]),
             nitro=self._create_quantity_value(
                 biosample_row["nitrogenPercent"].values[0], "percent"
@@ -220,7 +235,6 @@ class NeonDataTranslator(Translator):
             type="nmdc:Biosample",
         )
 
-
     def _translate_pooling_process(
         self, nmdc_id, processed_sample_id, bsm_input_values_list, pooling_row
     ):
@@ -235,13 +249,22 @@ class NeonDataTranslator(Translator):
             end_date=self._get_value_or_none(pooling_row, "collectDate"),
         )
 
-
     def _translate_processed_sample(self, processed_sample_id, sample_id):
         """
         Translate a processed sample ID and sample ID into a ProcessedSample object.
         """
         return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
 
+    def _translate_data_object(self, do_id: str, url: str):
+        file_name = get_basename(url)
+
+        return nmdc.DataObject(
+            id=do_id,
+            name=file_name,
+            url=url,
+            description=f"sequencing results for {file_name}",
+            type="nmdc:DataObject",
+        )
 
     def _translate_extraction_process(
         self, extraction_id, extraction_input, processed_sample_id, extraction_row
@@ -272,7 +295,6 @@ class NeonDataTranslator(Translator):
             processing_institution=processing_institution,
         )
 
-
     def _translate_library_preparation(
         self,
         library_preparation_id,
@@ -284,7 +306,9 @@ class NeonDataTranslator(Translator):
         Translate a library_preparation_row DataFrame into a LibraryPreparation object.
         """
         processing_institution = None
-        laboratory_name = self._get_value_or_none(library_preparation_row, "laboratoryName")
+        laboratory_name = self._get_value_or_none(
+            library_preparation_row, "laboratoryName"
+        )
         if laboratory_name is not None:
             if re.search("Battelle", laboratory_name, re.IGNORECASE):
                 processing_institution = "Battelle"
@@ -299,14 +323,32 @@ class NeonDataTranslator(Translator):
             end_date=self._get_value_or_none(library_preparation_row, "processedDate"),
             processing_institution=processing_institution,
         )
-    
+
     def _translate_omics_processing(
         self,
         omics_processing_id: str,
         processed_sample_id: str,
+        raw_data_file_data: str,
+        omics_processing_row: pd.DataFrame,
     ) -> nmdc.OmicsProcessing:
+        processing_institution = None
+        sequencing_facility = self._get_value_or_none(
+            omics_processing_row, "sequencingFacilityID"
+        )
+        if sequencing_facility is not None:
+            if re.search("Battelle", sequencing_facility, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", sequencing_facility, re.IGNORECASE):
+                processing_institution = "ANL"
+
         return nmdc.OmicsProcessing(
-            id=omics_processing_id, has_input=processed_sample_id
+            id=omics_processing_id,
+            has_input=processed_sample_id,
+            has_output=raw_data_file_data,
+            processing_institution=processing_institution,
+            ncbi_project_name=self._get_value_or_none(
+                omics_processing_row, "ncbiProjectID"
+            ),
         )
 
     def get_database(self) -> nmdc.Database:
@@ -499,6 +541,18 @@ class NeonDataTranslator(Translator):
         )
 
         query = """
+            SELECT dnaSampleID, GROUP_CONCAT(rawDataFilePath, '|') AS rawDataFilePaths
+            FROM neonRawDataFile
+            GROUP BY dnaSampleID
+        """
+        neon_raw_data_files = pd.read_sql_query(query, self.conn)
+        neon_raw_data_files_dict = (
+            neon_raw_data_files.set_index("dnaSampleID")["rawDataFilePaths"]
+            .str.split("|")
+            .to_dict()
+        )
+
+        query = """
             SELECT dnaSampleID, genomicsSampleID, collectDate, laboratoryName, processedDate, sampleMass, qaqcStatus
             FROM soil_biosamples_envo
             GROUP BY genomicsSampleID
@@ -512,7 +566,9 @@ class NeonDataTranslator(Translator):
                 mms_metagenomeDnaExtraction.sequenceAnalysisType,
                 mms_metagenomeDnaExtraction.laboratoryName,
                 mms_metagenomeDnaExtraction.collectDate,
-                mms_metagenomeDnaExtraction.processedDate
+                mms_metagenomeDnaExtraction.processedDate,
+                mms_metagenomeSequencing.sequencingFacilityID,
+                mms_metagenomeSequencing.ncbiProjectID
             FROM mms_metagenomeSequencing 
             LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
         """
@@ -564,6 +620,14 @@ class NeonDataTranslator(Translator):
             zip(omics_processing_ids, nmdc_omics_processing_ids)
         )
 
+        neon_raw_file_paths = self.neon_raw_data_file_mappings_df["rawDataFilePath"]
+        nmdc_data_object_ids = self._id_minter(
+            "nmdc:DataObject", len(neon_raw_file_paths)
+        )
+        neon_to_nmdc_data_object_ids = dict(
+            zip(neon_raw_file_paths, nmdc_data_object_ids)
+        )
+
         neon_biosample_ids = soil_biosamples_envo["sampleID"]
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
@@ -592,18 +656,19 @@ class NeonDataTranslator(Translator):
                 mg_pooling_table["dnaSampleID"] == dna_sample_id
             ]
 
-            database.pooling_set.append(
-                self._translate_pooling_process(
-                    pooling_process_id,
-                    processed_sample_id,
-                    bsm_values_list,
-                    pooling_row,
+            if len(bsm_values_list) > 1:
+                database.pooling_set.append(
+                    self._translate_pooling_process(
+                        pooling_process_id,
+                        processed_sample_id,
+                        bsm_values_list,
+                        pooling_row,
+                    )
                 )
-            )
 
-            database.processed_sample_set.append(
-                self._translate_processed_sample(processed_sample_id, dna_sample_id)
-            )
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(processed_sample_id, dna_sample_id)
+                )
 
         for genomics_sample_id, extraction_id in neon_to_nmdc_extraction_ids.items():
             processed_sample_id = neon_to_nmdc_extraction_processed_sample_ids[
@@ -666,10 +731,27 @@ class NeonDataTranslator(Translator):
                     self._translate_processed_sample(processed_sample_id, dna_sample_id)
                 )
 
-                database.omics_processing_set.append(
-                    self._translate_omics_processing(
-                        omics_processing_id, processed_sample_id
+                has_output = None
+                if dna_sample_id in neon_raw_data_files_dict:
+                    has_output = neon_raw_data_files_dict[dna_sample_id]
+                    has_output_do_ids = [
+                        neon_to_nmdc_data_object_ids[item]
+                        for item in has_output
+                        if item in neon_to_nmdc_data_object_ids
+                    ]
+
+                    database.omics_processing_set.append(
+                        self._translate_omics_processing(
+                            omics_processing_id,
+                            processed_sample_id,
+                            has_output_do_ids,
+                            library_preparation_row,
+                        )
                     )
-                )
+
+        for raw_file_path, nmdc_data_object_id in neon_to_nmdc_data_object_ids.items():
+            database.data_object_set.append(
+                self._translate_data_object(nmdc_data_object_id, raw_file_path)
+            )
 
         return database
