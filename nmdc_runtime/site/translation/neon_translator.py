@@ -115,6 +115,14 @@ class NeonDataTranslator(Translator):
             term=nmdc.OntologyClass(id=id, name=name)
         )
 
+    def _create_controlled_term_value(self, name=None):
+        """
+        Create a ControlledIdentifiedTermValue object with the specified ID and name.
+        """
+        if id is None or name is None:
+            return None
+        return nmdc.ControlledTermValue(has_raw_value=name)
+
     def _create_timestamp_value(self, value):
         """
         Create a TimestampValue object with the specified value.
@@ -255,15 +263,18 @@ class NeonDataTranslator(Translator):
         """
         return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
 
-    def _translate_data_object(self, do_id: str, url: str):
+    def _translate_data_object(self, do_id: str, url: str, do_type: str, checksum: str):
         file_name = get_basename(url)
+        basename = file_name.split(".", 1)[0]
 
         return nmdc.DataObject(
             id=do_id,
             name=file_name,
             url=url,
-            description=f"sequencing results for {file_name}",
+            description=f"sequencing results for {basename}",
             type="nmdc:DataObject",
+            md5_checksum=checksum,
+            data_object_type=do_type,
         )
 
     def _translate_extraction_process(
@@ -349,6 +360,12 @@ class NeonDataTranslator(Translator):
             ncbi_project_name=self._get_value_or_none(
                 omics_processing_row, "ncbiProjectID"
             ),
+            omics_type=self._create_controlled_term_value(
+                omics_processing_row["investigation_type"].values[0]
+            ),
+            instrument_name=f"{self._get_value_or_none(omics_processing_row, 'sequencingMethod')} {self._get_value_or_none(omics_processing_row, 'instrument_model')}",
+            part_of="nmdc:sty-11-34xj1150",
+            name=f"Terrestrial soil microbial communities - {self._get_value_or_none(omics_processing_row, 'dnaSampleID')}",
         )
 
     def get_database(self) -> nmdc.Database:
@@ -568,7 +585,10 @@ class NeonDataTranslator(Translator):
                 mms_metagenomeDnaExtraction.collectDate,
                 mms_metagenomeDnaExtraction.processedDate,
                 mms_metagenomeSequencing.sequencingFacilityID,
-                mms_metagenomeSequencing.ncbiProjectID
+                mms_metagenomeSequencing.ncbiProjectID,
+                mms_metagenomeSequencing.investigation_type,
+                mms_metagenomeSequencing.sequencingMethod,
+                mms_metagenomeSequencing.instrument_model
             FROM mms_metagenomeSequencing 
             LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
         """
@@ -620,7 +640,8 @@ class NeonDataTranslator(Translator):
             zip(omics_processing_ids, nmdc_omics_processing_ids)
         )
 
-        neon_raw_file_paths = self.neon_raw_data_file_mappings_df["rawDataFilePath"]
+        neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
+        neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
         nmdc_data_object_ids = self._id_minter(
             "nmdc:DataObject", len(neon_raw_file_paths)
         )
@@ -656,6 +677,8 @@ class NeonDataTranslator(Translator):
                 mg_pooling_table["dnaSampleID"] == dna_sample_id
             ]
 
+            # if the number of biosamples that are input to a pooling process
+            # is one or less, then ignore it and go straight to extraction
             if len(bsm_values_list) > 1:
                 database.pooling_set.append(
                     self._translate_pooling_process(
@@ -732,13 +755,13 @@ class NeonDataTranslator(Translator):
                 )
 
                 has_output = None
+                has_output_do_ids = []
+
                 if dna_sample_id in neon_raw_data_files_dict:
                     has_output = neon_raw_data_files_dict[dna_sample_id]
-                    has_output_do_ids = [
-                        neon_to_nmdc_data_object_ids[item]
-                        for item in has_output
-                        if item in neon_to_nmdc_data_object_ids
-                    ]
+                    for item in has_output:
+                        if item in neon_to_nmdc_data_object_ids:
+                            has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
 
                     database.omics_processing_set.append(
                         self._translate_omics_processing(
@@ -750,8 +773,21 @@ class NeonDataTranslator(Translator):
                     )
 
         for raw_file_path, nmdc_data_object_id in neon_to_nmdc_data_object_ids.items():
+            checksum = None
+            do_type = None
+
+            checksum = neon_raw_data_file_mappings_df[
+                neon_raw_data_file_mappings_df["rawDataFilePath"] == raw_file_path
+            ]["checkSum"].values[0]
+            if "_R1.fastq.gz" in raw_file_path:
+                do_type = "Metagenome Raw Read 1"
+            elif "_R2.fastq.gz" in raw_file_path:
+                do_type = "Metagenome Raw Read 2"
+
             database.data_object_set.append(
-                self._translate_data_object(nmdc_data_object_id, raw_file_path)
+                self._translate_data_object(
+                    nmdc_data_object_id, raw_file_path, do_type, checksum
+                )
             )
 
         return database
