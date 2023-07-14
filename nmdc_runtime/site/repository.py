@@ -11,6 +11,7 @@ from dagster import (
     run_status_sensor,
     DagsterRunStatus,
     RunStatusSensorContext,
+    DefaultSensorStatus,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -119,7 +120,10 @@ def asset_materialization_metadata(asset_event, key):
     return None
 
 
-@sensor(job=ensure_jobs.to_job(name="ensure_job_triggered", **preset_normal))
+@sensor(
+    job=ensure_jobs.to_job(name="ensure_job_triggered", **preset_normal),
+    default_status=DefaultSensorStatus.RUNNING,
+)
 def process_workflow_job_triggers(_context):
     """Post a workflow job for each new object with an object_type matching an active trigger.
     (Source: nmdc_runtime.api.boot.triggers).
@@ -250,7 +254,10 @@ def claim_and_run_gold_translation_curation(_context, asset_event):
         yield SkipReason("No job found")
 
 
-@sensor(job=apply_metadata_in.to_job(name="apply_metadata_in_sensed", **preset_normal))
+@sensor(
+    job=apply_metadata_in.to_job(name="apply_metadata_in_sensed", **preset_normal),
+    default_status=DefaultSensorStatus.RUNNING,
+)
 def claim_and_run_metadata_in_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
@@ -321,7 +328,10 @@ def claim_and_run_metadata_in_jobs(_context):
         yield SkipReason("; ".join(skip_notes))
 
 
-@sensor(job=apply_changesheet.to_job(**preset_normal))
+@sensor(
+    job=apply_changesheet.to_job(**preset_normal),
+    default_status=DefaultSensorStatus.RUNNING,
+)
 def claim_and_run_apply_changesheet_jobs(_context):
     """
     claims job, and updates job operations with results and marking as done
