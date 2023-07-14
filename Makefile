@@ -83,7 +83,8 @@ nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
 		-L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		-L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
-		dtn02.nersc.gov '/bin/bash -c "while [[ 1 ]]; do echo heartbeat; sleep 300; done"'
+		-o ServerAliveInterval=60 \
+		dtn02.nersc.gov
 
 mongorestore-nmdcdb-lite-archive:
 	wget https://portal.nersc.gov/project/m3408/meta/mongodumps/nmdcdb.lite.archive.gz
