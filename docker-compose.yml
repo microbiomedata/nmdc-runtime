@@ -75,20 +75,24 @@ services:
       - .:/code
 
   mongo:
-    image: bitnami/mongodb:6.0.4
+    image: mongo:6.0.4
     container_name: mongo
     ports:
       - "27018:27017"
     volumes:
       - nmdc_runtime_mongo_data:/data/db
       - ./tests:/app_tests
+    secrets:
+      - mongoKeyFile
     restart: unless-stopped
+    command: ["--replSet", "dbrs", "--bind_ip_all", "--keyFile", "/run/secrets/mongoKeyFile"]
+    healthcheck:
+      test: test $$(echo "rs.initiate({_id:'dbrs',members:[{_id:0,host:\"mongo\"}]}).ok || rs.status().ok" | mongo --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
     environment:
-      MONGODB_ROOT_USER: admin
-      MONGODB_ROOT_PASSWORD: root
-      MONGODB_REPLICA_SET_MODE: primary
-      MONGODB_ADVERTISED_HOSTNAME: mongodb-primary
-      MONGODB_REPLICA_SET_KEY: replicasetkey123
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: root
 
   terminus:
     image: terminusdb/terminusdb-server:v11.0.6
@@ -112,3 +116,7 @@ volumes:
     driver: local
   nmdc_runtime_terminus_data:
     driver: local
+
+secrets:
+  mongoKeyFile:
+    file: ./mongoKeyFile
