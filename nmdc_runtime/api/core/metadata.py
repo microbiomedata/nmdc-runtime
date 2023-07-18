@@ -751,7 +751,7 @@ def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFram
         "text/tab-separated-values": "\t",
     }
     content_type = sheet_in.content_type
-    sep = content_types[content_type]
+    sep = content_types.get(content_type)
     filename = sheet_in.name
     if content_type not in content_types:
         raise HTTPException(
