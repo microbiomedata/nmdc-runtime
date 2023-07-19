@@ -5,6 +5,7 @@ on:
       - main
     paths:
       - 'docs/**'
+      - 'mkdocs_overrides/**'
       - 'mkdocs.yml'
       - '.github/workflows/mkdocs.yml'
 jobs:

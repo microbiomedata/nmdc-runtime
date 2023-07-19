@@ -2,6 +2,7 @@ site_name: nmdc-runtime docs
 site_description: Documentation for the National Microbiome Data Collaborative (NMDC) Runtime System and API
 site_url: https://microbiomedata.github.io/nmdc-runtime/
 repo_url: https://github.com/microbiomedata/nmdc-runtime/
+edit_uri_template: 'blob/main/docs/{path}'
 nav:
   - index.md
   - Tutorials:
@@ -29,6 +30,7 @@ nav:
 
 theme:
   name: material
+  custom_dir: mkdocs_overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
