@@ -347,7 +347,8 @@ app = FastAPI(
         "orchestration of workflow execution activities."
         "\n\n"
         "Dependency versions:\n\n"
-        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}'
+        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}\n\n'
+        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>"
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
