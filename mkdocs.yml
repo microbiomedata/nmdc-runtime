@@ -1,5 +1,7 @@
 site_name: nmdc-runtime docs
+site_description: Documentation for the National Microbiome Data Collaborative (NMDC) Runtime System and API
 site_url: https://microbiomedata.github.io/nmdc-runtime/
+repo_url: https://github.com/microbiomedata/nmdc-runtime/
 nav:
   - index.md
   - Tutorials:
