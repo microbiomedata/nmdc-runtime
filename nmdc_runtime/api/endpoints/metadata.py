@@ -46,6 +46,10 @@ router = APIRouter()
 async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
     content_type = uploaded_file.content_type
     name = uploaded_file.filename
+    if name.endswith(".csv"):
+        content_type = "text/csv"
+    elif name.endswith(".tsv"):
+        content_type = "text/tab-separated-values"
     contents: bytes = await uploaded_file.read()
     text = contents.decode()
     return ChangesheetIn(name=name, content_type=content_type, text=text)
