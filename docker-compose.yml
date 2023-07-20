@@ -82,10 +82,7 @@ services:
     volumes:
       - nmdc_runtime_mongo_data:/data/db
       - ./tests:/app_tests
-    secrets:
-      - mongoKeyFile
     restart: unless-stopped
-    command: ["--replSet", "rs0", "--keyFile", "/run/secrets/mongoKeyFile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root

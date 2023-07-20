@@ -1,8 +1,8 @@
 import os
 from contextlib import asynccontextmanager
 from importlib import import_module
+from importlib.metadata import version
 
-import pkg_resources
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -347,7 +347,7 @@ app = FastAPI(
         "orchestration of workflow execution activities."
         "\n\n"
         "Dependency versions:\n\n"
-        f'nmdc-schema={pkg_resources.get_distribution("nmdc_schema").version}\n\n'
+        f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>"
     ),
     openapi_tags=tags_metadata,

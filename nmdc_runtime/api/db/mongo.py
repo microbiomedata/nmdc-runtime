@@ -36,12 +36,6 @@ def get_mongo_db() -> MongoDatabase:
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
     )
-    try:
-        _client.admin.command("replSetGetConfig")
-    except OperationFailure as e:
-        if e.details["codeName"] == "NotYetInitialized":
-            _client.admin.command("replSetInitiate")
-
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
     return mdb
