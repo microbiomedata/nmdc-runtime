@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 from fastapi import APIRouter, Depends, HTTPException
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -26,6 +28,11 @@ def verify_collection_name(
 
 def strip_oid(doc):
     return dissoc(doc, "_id")
+
+
+@router.get("/nmdcschema/version")
+def get_nmdc_schema_version():
+    return version("nmdc_schema")
 
 
 @router.get(
