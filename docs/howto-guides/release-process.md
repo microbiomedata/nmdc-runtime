@@ -32,17 +32,18 @@ In order to make sure the schema, database, and NMDC Runtime API are in sync we 
 
 Here is a summary of the process:
 1. [NMDC Schema](https://github.com/microbiomedata/nmdc-schema) repo releases new version. All releases must include a migration script (even if it is null / empty) to run against MongoDB. See ADR 007
-2. Build a new NMDC-runtime image so that it is ready to be deployed (See above). 
-3. Database (Mongo) is switched to read-only mode to prevent inconsistencies.
+2. Submit/Merge a PR with updated schema version and any related code changes.
+3. Build a new NMDC-runtime image so that it is ready to be deployed (See above). 
+4. Database (Mongo) is switched to read-only mode to prevent inconsistencies.
      - TODO: decide on process for read-only mode)
-4. Run `mongodump` to dump database on local machine
+5. Run `mongodump` to dump database on local machine
      - TODO: document mongodump command
      - FUTURE: improved process for doing inline DB migrations
-5. Run migration script runs against DB dump to perform conversions
+6. Run migration script runs against DB dump to perform conversions
      - TODO: Finalize location and instructions for migration script
-6. Run validation to make sure new DB is consistent
+7. Run validation to make sure new DB is consistent
      - TODO: Steps for validation
-7. If validation succeeds run `mongorestore` to update database
+8. If validation succeeds run `mongorestore` to update database
      - TODO: Steps for Mongorestore
 9. Upgrade NMDC-runtime repo to latest version in Spin
 
