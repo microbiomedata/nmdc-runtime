@@ -93,3 +93,9 @@ The go-to people to troubleshoot deployment issues within NERSC Spin at this tim
 Data is stored in the `nmdc` database.
 
 If you need to delete objects copy it to `nmdc_deleted` database under the corresponding collection
+
+## nmdc-schema update
+
+1. Set the desired version of `nmdc-schema` in `requirements/main.in`.
+2. `make update-deps`.
+3. commit and push, to trigger GH actions.
