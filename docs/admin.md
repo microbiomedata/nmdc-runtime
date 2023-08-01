@@ -98,4 +98,4 @@ If you need to delete objects copy it to `nmdc_deleted` database under the corre
 
 1. Set the desired version of `nmdc-schema` in `requirements/main.in`.
 2. `make update-deps`.
-3. commit and push, to trigger GH actions.
+3. commit and push, start PR and seek approval + merge to `main`, which will trigger GH actions to deploy.
