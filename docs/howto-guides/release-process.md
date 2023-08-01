@@ -1,5 +1,6 @@
 # Release Process
 
+## NMDC Runtime Releases
 How do new versions of the API and NMDC Runtime site (Dagster daemon and Dagit frontend) get
 released? Here's how.
 
@@ -24,3 +25,28 @@ released? Here's how.
        - [build and push updated Docker images](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml) for the API server and for the NMDC Runtime site's Dagster daemon and Dagit dashboard, and
 
        - [deploy the new images to Spin](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/release-to-spin.yml).
+
+
+## Data Releases
+In order to make sure the schema, database, and NMDC Runtime API are in sync we need to coordinate data updates that require schema changes. 
+
+Here is a summary of the process:
+1. [NMDC Schema](https://github.com/microbiomedata/nmdc-schema) repo releases new version. All releases must include a migration script (even if it is null / empty) to run against MongoDB. See ADR 007
+2. Build a new NMDC-runtime image so that it is ready to be deployed (See above). 
+3. Database (Mongo) is switched to read-only mode to prevent inconsistencies.
+     - TODO: decide on process for read-only mode)
+4. Run `mongodump` to dump database on local machine
+     - TODO: document mongodump command
+     - FUTURE: improved process for doing inline DB migrations
+5. Run migration script runs against DB dump to perform conversions
+     - TODO: Finalize location and instructions for migration script
+6. Run validation to make sure new DB is consistent
+     - TODO: Steps for validation
+7. If validation succeeds run `mongorestore` to update database
+     - TODO: Steps for Mongorestore
+9. Upgrade NMDC-runtime repo to latest version in Spin
+
+
+
+
+
