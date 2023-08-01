@@ -85,8 +85,8 @@ Rancher 2 web interface to the NERSC Spin service's Kubernetes clusters, i.e.
 <https://rancher2.spin.nersc.gov/>. The Runtime system is currently deployed on the development
 cluster as part of the NMDC's `m3408` project, under the `nmdc-runtime-dev` namespace.
 
-The go-to people to troubleshoot deployment issues within NERSC Spin at this time are `dehays`,
-`dwinston`, and `scanon`.
+The go-to people to troubleshoot deployment issues within NERSC Spin at this time are `shreyas`,
+`dwinston`, `eecavanna`, and `scanon`.
 
 ## Databases
 
