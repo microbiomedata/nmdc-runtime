@@ -163,7 +163,7 @@ class NeonDataTranslator(Translator):
         if (
             latitude is None
             or math.isnan(latitude)
-            or longitude
+            or longitude is None
             or math.isnan(longitude)
         ):
             return None
@@ -366,6 +366,7 @@ class NeonDataTranslator(Translator):
             instrument_name=f"{self._get_value_or_none(omics_processing_row, 'sequencingMethod')} {self._get_value_or_none(omics_processing_row, 'instrument_model')}",
             part_of="nmdc:sty-11-34xj1150",
             name=f"Terrestrial soil microbial communities - {self._get_value_or_none(omics_processing_row, 'dnaSampleID')}",
+            type="nmdc:OmicsProcessing",
         )
 
     def get_database(self) -> nmdc.Database:
