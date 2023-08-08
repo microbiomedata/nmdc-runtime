@@ -707,17 +707,42 @@ class NeonDataTranslator(Translator):
                 extraction_table["genomicsSampleID"] == genomics_sample_id
             ]
 
-            database.extraction_set.append(
-                self._translate_extraction_process(
-                    extraction_id, extraction_input, processed_sample_id, extraction_row
-                )
-            )
+            genomics_pooled_id_list = mms_sls_pooling_merged[
+                mms_sls_pooling_merged["genomicsSampleID"] == genomics_sample_id
+            ]["genomicsPooledIDList"].values[0]
 
-            database.processed_sample_set.append(
-                self._translate_processed_sample(
-                    processed_sample_id, genomics_sample_id
+            # handler for creating extraction process records
+            # for both pooled and non-pooled samples
+            if "|" in genomics_pooled_id_list:
+                database.extraction_set.append(
+                    self._translate_extraction_process(
+                        extraction_id,
+                        extraction_input,
+                        processed_sample_id,
+                        extraction_row,
+                    )
                 )
-            )
+
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(
+                        processed_sample_id, genomics_sample_id
+                    )
+                )
+            else:
+                neon_biosample_id = soil_biosamples_envo[
+                    soil_biosamples_envo["sampleID"] == genomics_pooled_id_list
+                ]["sampleID"].values[0]
+
+                extraction_input = neon_to_nmdc_biosample_ids[neon_biosample_id]
+
+                database.extraction_set.append(
+                    self._translate_extraction_process(
+                        extraction_id,
+                        extraction_input,
+                        processed_sample_id,
+                        extraction_row,
+                    )
+                )
 
         for (
             dna_sample_id,
