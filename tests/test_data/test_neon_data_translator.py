@@ -800,3 +800,46 @@ class TestNeonDataTranslator:
             "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
         )
         assert response.status_code == 200
+
+    def test_get_value_or_none(self, translator):
+        # use one biosample record to test this method
+        test_biosample = sls_data["sls_soilCoreCollection"][sls_data["sls_soilCoreCollection"]["sampleID"] == "BLAN_005-M-8-0-20200713"]
+
+        # specific handler for horizon slot
+        expected_horizon = "M horizon"
+        actual_horizon = translator._get_value_or_none(test_biosample, "horizon")
+
+        assert expected_horizon == actual_horizon
+
+        # specific handler for depth slot
+        expected_minimum_depth = 0.0
+        actual_minimum_depth = translator._get_value_or_none(test_biosample, "sampleTopDepth")
+        assert expected_minimum_depth == actual_minimum_depth
+
+        expected_maximum_depth = 0.295
+        actual_maximum_depth = translator._get_value_or_none(test_biosample, "sampleBottomDepth")
+        assert expected_maximum_depth == actual_maximum_depth
+
+        expected_sample_id = "BLAN_005-M-8-0-20200713"
+        actual_sample_id = translator._get_value_or_none(test_biosample, "sampleID")
+        assert expected_sample_id == actual_sample_id
+
+        # test get_value_or_none() with invalid column
+        expected_result = None
+        actual_result = translator._get_value_or_none(test_biosample, "invalid_column")
+        assert expected_result == actual_result
+
+    def test_create_controlled_identified_term_value(self, translator):
+        env_broad_scale = translator._create_controlled_identified_term_value("ENVO:00000446", "terrestrial biome")
+        assert env_broad_scale.term.id == "ENVO:00000446"
+        assert env_broad_scale.term.name == "terrestrial biome"
+
+    def test_create_controlled_term_value(self, translator):
+        env_package = translator._create_controlled_term_value("soil")
+        assert env_package.has_raw_value == "soil"
+
+    def test_create_timestamp_value_with_valid_args(self, translator):
+        collect_date = translator._create_timestamp_value("2020-07-13T14:34Z")
+        assert collect_date.has_raw_value == "2020-07-13T14:34Z"
+
+    

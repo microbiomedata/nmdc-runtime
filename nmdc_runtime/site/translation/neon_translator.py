@@ -91,7 +91,7 @@ class NeonDataTranslator(Translator):
         Get the value from the specified column in the data DataFrame.
         If the column value is NaN, return None.
         """
-        if not data[column_name].isna().any():
+        if column_name in data and not data[column_name].isna().any():
             if column_name == "horizon":
                 return f"{data[column_name].values[0]} horizon"
             elif column_name == "qaqcStatus":
@@ -105,7 +105,7 @@ class NeonDataTranslator(Translator):
 
         return None
 
-    def _create_controlled_identified_term_value(self, id, name):
+    def _create_controlled_identified_term_value(self, id=None, name=None):
         """
         Create a ControlledIdentifiedTermValue object with the specified ID and name.
         """
@@ -123,7 +123,7 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.ControlledTermValue(has_raw_value=name)
 
-    def _create_timestamp_value(self, value):
+    def _create_timestamp_value(self, value=None):
         """
         Create a TimestampValue object with the specified value.
         """
@@ -131,7 +131,7 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.TimestampValue(has_raw_value=value)
 
-    def _create_quantity_value(self, numeric_value, unit):
+    def _create_quantity_value(self, numeric_value=None, unit=None):
         """
         Create a QuantityValue object with the specified numeric value and unit.
         """
@@ -139,7 +139,7 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
 
-    def _create_text_value(self, value):
+    def _create_text_value(self, value=None):
         """
         Create a TextValue object with the specified value.
         """
@@ -147,7 +147,7 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.TextValue(has_raw_value=value)
 
-    def _create_double_value(self, value):
+    def _create_double_value(self, value=None):
         """
         Create a Double object with the specified value.
         """
@@ -155,7 +155,7 @@ class NeonDataTranslator(Translator):
             return None
         return nmdc.Double(value)
 
-    def _create_geolocation_value(self, latitude, longitude):
+    def _create_geolocation_value(self, latitude=None, longitude=None):
         """
         Create a GeolocationValue object with latitude and longitude from the biosample_row DataFrame.
         """
