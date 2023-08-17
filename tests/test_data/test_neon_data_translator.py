@@ -892,3 +892,53 @@ class TestNeonDataTranslator:
         assert len(database.library_preparation_set) == 1
         assert len(database.omics_processing_set) == 1
         assert len(database.processed_sample_set) == 3
+
+        # verify contents of biosample_set
+        biosample_list = database.biosample_set
+        expected_biosample_names = [
+            "BLAN_005-M-8-0-20200713",
+            "BLAN_005-M-32-35-20200713",
+            "BLAN_005-M-1-39.5-20200713",
+        ]
+        for biosample in biosample_list:
+            actual_biosample_name = biosample["name"]
+            assert actual_biosample_name in expected_biosample_names
+
+        # verify contents of omics_processing_set
+        omics_processing_list = database.omics_processing_set
+        expected_omics_processing = [
+            "Terrestrial soil microbial communities - BLAN_005-M-20200713-COMP-DNA1"
+        ]
+        for omics_processing in omics_processing_list:
+            actual_omics_processing = omics_processing["name"]
+
+            assert actual_omics_processing in expected_omics_processing
+
+        # input to a Pooling is a Biosample
+        pooling_process_list = database.pooling_set
+        extraction_list = database.extraction_set
+        library_preparation_list = database.library_preparation_set
+        omics_processing_list = database.omics_processing_set
+
+        expected_input = [bsm["id"] for bsm in biosample_list]
+        for pooling_process in pooling_process_list:
+            pooling_output = pooling_process.has_output
+            pooling_input = pooling_process.has_input
+            assert sorted(expected_input) == sorted(pooling_input)
+
+            # output of a Pooling is input to Extraction
+            for extraction in extraction_list:
+                extraction_input = extraction.has_input
+                extraction_output = extraction.has_output
+                assert extraction_input == pooling_output
+
+                # output of Extraction is input to Library Preparation
+                for lib_prep in library_preparation_list:
+                    lib_prep_input = lib_prep.has_input
+                    lib_prep_output = lib_prep.has_output
+                    assert lib_prep_input == extraction_output
+
+                    # output of Library Preparation is input to OmicsProcessing
+                    for omics_processing in omics_processing_list:
+                        omics_processing_input = omics_processing.has_input
+                        assert omics_processing_input == lib_prep_output
