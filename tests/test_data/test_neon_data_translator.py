@@ -1,3 +1,5 @@
+import random
+import string
 import pytest
 from nmdc_runtime.site.translation.neon_translator import NeonDataTranslator
 import pandas as pd
@@ -504,6 +506,7 @@ sls_data = {
                 "smRemarks": "",
                 "smMeasuredBy": "",
                 "smDataQF": "0000-0001-9247-047X",
+                "soilInWaterpH": 4.6,
             },
             {
                 "uid": "b03b1475-f653-4822-9033-97da2fc7f56e",
@@ -803,7 +806,9 @@ class TestNeonDataTranslator:
 
     def test_get_value_or_none(self, translator):
         # use one biosample record to test this method
-        test_biosample = sls_data["sls_soilCoreCollection"][sls_data["sls_soilCoreCollection"]["sampleID"] == "BLAN_005-M-8-0-20200713"]
+        test_biosample = sls_data["sls_soilCoreCollection"][
+            sls_data["sls_soilCoreCollection"]["sampleID"] == "BLAN_005-M-8-0-20200713"
+        ]
 
         # specific handler for horizon slot
         expected_horizon = "M horizon"
@@ -813,11 +818,15 @@ class TestNeonDataTranslator:
 
         # specific handler for depth slot
         expected_minimum_depth = 0.0
-        actual_minimum_depth = translator._get_value_or_none(test_biosample, "sampleTopDepth")
+        actual_minimum_depth = translator._get_value_or_none(
+            test_biosample, "sampleTopDepth"
+        )
         assert expected_minimum_depth == actual_minimum_depth
 
         expected_maximum_depth = 0.295
-        actual_maximum_depth = translator._get_value_or_none(test_biosample, "sampleBottomDepth")
+        actual_maximum_depth = translator._get_value_or_none(
+            test_biosample, "sampleBottomDepth"
+        )
         assert expected_maximum_depth == actual_maximum_depth
 
         expected_sample_id = "BLAN_005-M-8-0-20200713"
@@ -830,7 +839,9 @@ class TestNeonDataTranslator:
         assert expected_result == actual_result
 
     def test_create_controlled_identified_term_value(self, translator):
-        env_broad_scale = translator._create_controlled_identified_term_value("ENVO:00000446", "terrestrial biome")
+        env_broad_scale = translator._create_controlled_identified_term_value(
+            "ENVO:00000446", "terrestrial biome"
+        )
         assert env_broad_scale.term.id == "ENVO:00000446"
         assert env_broad_scale.term.name == "terrestrial biome"
 
@@ -842,4 +853,42 @@ class TestNeonDataTranslator:
         collect_date = translator._create_timestamp_value("2020-07-13T14:34Z")
         assert collect_date.has_raw_value == "2020-07-13T14:34Z"
 
-    
+    def mock_minter(self, nmdc_data_type, count):
+        minted_nmdc_ids = []
+
+        if nmdc_data_type == "nmdc:Biosample":
+            prefix = "bsm"
+        elif nmdc_data_type == "nmdc:Pooling":
+            prefix = "poolp"
+        elif nmdc_data_type == "nmdc:Extraction":
+            prefix = "extrp"
+        elif nmdc_data_type == "nmdc:LibraryPreparation":
+            prefix = "libprp"
+        elif nmdc_data_type == "nmdc:ProcessedSample":
+            prefix = "procsm"
+        elif nmdc_data_type == "nmdc:OmicsProcessing":
+            prefix = "omprc"
+        elif nmdc_data_type == "nmdc:DataObject":
+            prefix = "dobj"
+        else:
+            raise ValueError(f"Invalid NMDC data type: `{nmdc_data_type}`")
+
+        for _ in range(count):
+            random_suffix = "".join(
+                random.choices(string.ascii_lowercase + string.digits, k=8)
+            )
+            minted_nmdc_ids.append(f"nmdc:{prefix}-11-{random_suffix}")
+
+        return minted_nmdc_ids
+
+    def test_get_database(self, translator):
+        translator._id_minter = self.mock_minter
+        database = translator.get_database()
+
+        # verify lengths of all collections in database
+        assert len(database.biosample_set) == 3
+        assert len(database.pooling_set) == 1
+        assert len(database.extraction_set) == 1
+        assert len(database.library_preparation_set) == 1
+        assert len(database.omics_processing_set) == 1
+        assert len(database.processed_sample_set) == 3
