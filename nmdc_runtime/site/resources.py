@@ -194,6 +194,7 @@ class RuntimeApiSiteClient(RuntimeApiClient):
 
     def mint_id(self, schema_class, how_many=1):
         body = {"schema_class": {"id": schema_class}, "how_many": how_many}
+        print(body)
         return self.request("POST", "/pids/mint", body)
 
 
@@ -349,7 +350,6 @@ class NeonApiClient:
             'X-API-Token': self.api_token
         })
         response.raise_for_status()
-        print(f'FETCH {url}')
         return response.json()
 
     def fetch_product_by_id(self, product_id: str):
