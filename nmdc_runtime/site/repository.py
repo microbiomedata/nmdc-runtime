@@ -33,6 +33,7 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
+    translate_neon_api_metadata_to_nmdc_schema_database,
     ingest_neon_metadata,
 )
 from nmdc_runtime.site.resources import (
@@ -537,8 +538,8 @@ def biosample_submission_ingest():
                 },
             },
         ),
-        ingest_neon_metadata.to_job(
-            description="This job fetches the metadata associated with a given data product code and translates it into an equivalent nmdc:Database object.",
+        translate_neon_api_metadata_to_nmdc_schema_database.to_job(
+            description="This job fetches the metadata associated with a given NEON data product code and translates it into an equivalent nmdc:Database object. The object is serialized to JSON and stored in DRS. This can be considered a dry-run for the `ingest_neon_metadata` job.",
             resource_defs=resource_defs,
             config={
                 "resources": merge(
@@ -570,6 +571,41 @@ def biosample_submission_ingest():
                         }
                     },
                     "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        ),
+        ingest_neon_metadata.to_job(
+            description="This job fetches the metadata associated with a given data product code and translates it into an equivalent nmdc:Database object. This object is validated and ingested into Mongo via a `POST /metadata/json:submit` request.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "neon_api_client": {
+                            "config": {
+                                "base_url": {"env": "NEON_API_BASE_URL"},
+                                "api_token": {"env": "NEON_API_TOKEN"},
+                            },
+                        }
+                    },
+                ),
+                "ops": {
+                    "get_neon_pipeline_mms_data_product": {
+                        "config": {
+                            "mms_data_product": {
+                                "product_id": "DP1.10107.001",
+                                "product_tables": "mms_metagenomeDnaExtraction, mms_metagenomeSequencing",
+                            }
+                        }
+                    },
+                    "get_neon_pipeline_sls_data_product": {
+                        "config": {
+                            "sls_data_product": {
+                                "product_id": "DP1.10086.001",
+                                "product_tables": "sls_metagenomicsPooling, sls_soilCoreCollection, sls_soilChemistry, sls_soilMoisture, sls_soilpH, ntr_externalLab, ntr_internalLab",
+                            }
+                        }
+                    },
                 },
             },
         ),

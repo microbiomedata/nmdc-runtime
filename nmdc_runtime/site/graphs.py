@@ -154,7 +154,7 @@ def ingest_metadata_submission():
     poll_for_run_completion(run_id)
 
 @graph
-def ingest_neon_metadata():
+def translate_neon_api_metadata_to_nmdc_schema_database():
     mms_data_product = get_neon_pipeline_mms_data_product()
     sls_data_product = get_neon_pipeline_sls_data_product()
 
@@ -168,3 +168,16 @@ def ingest_neon_metadata():
 
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
+
+
+@graph
+def ingest_neon_metadata():
+    mms_data_product = get_neon_pipeline_mms_data_product()
+    sls_data_product = get_neon_pipeline_sls_data_product()
+
+    mms_data = neon_mms_data_by_product(mms_data_product)
+    sls_data = neon_sls_data_by_product(sls_data_product)
+
+    database = nmdc_schema_database_from_neon_data(mms_data, sls_data)
+    run_id = submit_metadata_to_db(database)
+    poll_for_run_completion(run_id)
