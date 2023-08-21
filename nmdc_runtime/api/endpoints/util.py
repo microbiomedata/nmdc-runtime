@@ -60,6 +60,7 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     limit = req.max_page_size
     filter_ = json_util.loads(req.filter) if req.filter else {}
+    projection = req.projection.split(",") if req.projection else None
     if req.page_token:
         doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
         if doc is None:
@@ -77,7 +78,11 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             filter_ = merge(filter_, {"id": {"$gt": last_id}})
 
     if mdb[collection_name].count_documents(filter=filter_) <= limit:
-        rv = {"resources": list(mdb[collection_name].find(filter=filter_))}
+        rv = {
+            "resources": list(
+                mdb[collection_name].find(filter=filter_, projection=projection)
+            )
+        }
         return rv
     else:
         if "id_1" not in mdb[collection_name].index_information():
@@ -86,7 +91,11 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             )
         resources = list(
             mdb[collection_name].find(
-                filter=filter_, limit=limit, sort=[("id", 1)], allow_disk_use=True
+                filter=filter_,
+                projection=projection,
+                limit=limit,
+                sort=[("id", 1)],
+                allow_disk_use=True,
             )
         )
         last_id = resources[-1]["id"]
