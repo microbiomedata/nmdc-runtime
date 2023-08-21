@@ -1,4 +1,6 @@
-from typing import TypeVar, List, Optional, Generic
+from typing import TypeVar, List, Optional, Generic, Annotated
+
+from fastapi import Query
 
 from pydantic import BaseModel, root_validator, conint
 from pydantic.generics import GenericModel
@@ -12,9 +14,20 @@ class ListResponse(GenericModel, Generic[ResultT]):
 
 
 class ListRequest(BaseModel):
-    filter: Optional[str]
+    filter: Annotated[
+        Optional[str],
+        Query(
+            description='MongoDB-style JSON filter document. Example: `{"ecosystem_type": "Freshwater"}`'
+        ),
+    ]
     max_page_size: Optional[int] = 20
     page_token: Optional[str]
+    projection: Annotated[
+        Optional[str],
+        Query(
+            description="for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`"
+        ),
+    ]
 
 
 PerPageRange = conint(gt=0, le=200)

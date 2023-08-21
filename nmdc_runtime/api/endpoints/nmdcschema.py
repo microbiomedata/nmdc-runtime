@@ -1,5 +1,6 @@
 from importlib.metadata import version
 
+import pymongo
 from fastapi import APIRouter, Depends, HTTPException
 from nmdc_runtime.util import nmdc_database_collection_names
 from pymongo.database import Database as MongoDatabase
@@ -118,6 +119,20 @@ def get_by_id(
 def get_from_collection_by_id(
     collection_name: str,
     doc_id: str,
+    projection: str | None = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    return strip_oid(raise404_if_none(mdb[collection_name].find_one({"id": doc_id})))
+    """
+    for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
+    """
+    projection = projection.split(",") if projection else None
+    try:
+        return strip_oid(
+            raise404_if_none(
+                mdb[collection_name].find_one({"id": doc_id}, projection=projection)
+            )
+        )
+    except pymongo.errors.OperationFailure as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
