@@ -123,7 +123,7 @@ def get_from_collection_by_id(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    for projection: comma-separated field names. Example: `id,doi`
+    for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
     """
     projection = projection.split(",") if projection else None
     try:
