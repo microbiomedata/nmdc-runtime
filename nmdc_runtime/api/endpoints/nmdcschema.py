@@ -45,6 +45,10 @@ def get_nmdc_database_collection_stats(
 
     Field reference: <https://www.mongodb.com/docs/manual/reference/command/collStats/#std-label-collStats-output>.
     """
+    # Take set intersection of
+    #   (1) all collections defined by the NMDC schema, and
+    #   (2) all runtime collections
+    # Thus, only retrieve collections from the schema that are present (i.e. having actual documents) in the runtime.
     present_collection_names = set(nmdc_database_collection_names()) & set(
         mdb.list_collection_names()
     )
