@@ -460,11 +460,18 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
         if coll_docs:
-            try:
-                with OverlayDB(mdb) as odb:
-                    odb.replace_or_insert_many(coll_name, coll_docs)
-            except OverlayDBError as e:
-                validation_errors[coll_name].append(str(e))
+            if not isinstance(coll_docs, list):
+                validation_errors[coll_name].append("value must be a list")
+            elif not all(isinstance(d, dict) for d in coll_docs):
+                validation_errors[coll_name].append(
+                    "all elements of list must be dicts"
+                )
+            if not validation_errors[coll_name]:
+                try:
+                    with OverlayDB(mdb) as odb:
+                        odb.replace_or_insert_many(coll_name, coll_docs)
+                except OverlayDBError as e:
+                    validation_errors[coll_name].append(str(e))
 
     if all(len(v) == 0 for v in validation_errors.values()):
         # Second pass. Try instantiating linkml-sourced dataclass
