@@ -45,7 +45,6 @@ def get_nmdc_database_collection_stats(
 
     Field reference: <https://www.mongodb.com/docs/manual/reference/command/collStats/#std-label-collStats-output>.
     """
-
     # Take set intersection of
     #   (1) all collections defined by the NMDC schema, and
     #   (2) all runtime collections
