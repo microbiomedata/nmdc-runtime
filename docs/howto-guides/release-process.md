@@ -31,6 +31,7 @@ released? Here's how.
 In order to make sure the schema, database, and NMDC Runtime API are in sync we need to coordinate data updates that require schema changes. 
 
 Here is a summary of the process:
+
 1. [NMDC Schema](https://github.com/microbiomedata/nmdc-schema) repo releases new version. All releases must include a migration script (even if it is null / empty) to run against MongoDB. See [ADR 007](https://github.com/microbiomedata/NMDC_documentation/blob/main/decisions/0007-mongo-migration-scripts.md)
 2. Submit/Merge a PR with updated schema version and any related code changes.
 3. Build a new NMDC-runtime image so that it is ready to be deployed (See above). 
