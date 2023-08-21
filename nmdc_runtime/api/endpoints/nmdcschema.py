@@ -1,6 +1,7 @@
 from importlib.metadata import version
 
 from fastapi import APIRouter, Depends, HTTPException
+from nmdc_runtime.util import nmdc_database_collection_names
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
@@ -33,6 +34,41 @@ def strip_oid(doc):
 @router.get("/nmdcschema/version")
 def get_nmdc_schema_version():
     return version("nmdc_schema")
+
+
+@router.get("/nmdcschema/collection_stats")
+def get_nmdc_database_collection_stats(
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """
+    Get stats for nmdc:Database MongoDB collections
+
+    Field reference: <https://www.mongodb.com/docs/manual/reference/command/collStats/#std-label-collStats-output>.
+    """
+    present_collection_names = set(nmdc_database_collection_names()) & set(
+        mdb.list_collection_names()
+    )
+    stats = []
+    for n in present_collection_names:
+        for doc in mdb[n].aggregate(
+            [
+                {"$collStats": {"storageStats": {}}},
+                {
+                    "$project": {
+                        "ns": 1,
+                        "storageStats.size": 1,
+                        "storageStats.count": 1,
+                        "storageStats.avgObjSize": 1,
+                        "storageStats.storageSize": 1,
+                        "storageStats.totalIndexSize": 1,
+                        "storageStats.totalSize": 1,
+                        "storageStats.scaleFactor": 1,
+                    }
+                },
+            ]
+        ):
+            stats.append(doc)
+    return stats
 
 
 @router.get(
