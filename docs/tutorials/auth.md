@@ -20,7 +20,7 @@ Once authorized, hit `Close` to get back to the interactive API documentation:
 
 !!! info 
     You need to be already logged in to create a new user.
-    Also, only users `dehays`, `dwinston`, and `scanon` can create new users at this time.
+    Also, only users `aclum`, `dwinston`, `scanon`, and `scholia` can create new users at this time.
 
 Go to [POST /users](https://api.dev.microbiomedata.org/docs#/users/create_user_users_post), and
 click the `Try it out` button. In the request body, the only required fields are `username` and
@@ -29,9 +29,8 @@ those as an array value for the `site_admin` field.
 
 Share a new user's password securely with them. For example, a free instance of the open-source
 [snappass](https://github.com/pinterest/snappass) web app is hosted by `dwinston` at
-<https://snappass-polyneme.herokuapp.com/>. This will generate a one-time link that you can email to
-the new user (you cannot send the link via Slack because Slack by default opens links in order to
-display a preview of the page content).
+<https://snappass.polyneme.xyz/>. This will generate a one-time link that you can email, send via
+Slack message, etc. to the new user.
 
 ## Create a Site Client
 
