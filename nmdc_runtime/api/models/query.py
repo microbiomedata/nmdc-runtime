@@ -21,6 +21,11 @@ class CommandBase(BaseModel):
     comment: Optional[Any]
 
 
+class CollStatsCommand(CommandBase):
+    collStats: str
+    scale: Optional[int] = 1
+
+
 class CountCommand(CommandBase):
     count: str
     query: Optional[Document]
@@ -38,6 +43,17 @@ class FindCommand(CommandBase):
 
 class CommandResponse(BaseModel):
     ok: OneOrZero
+
+
+class CollStatsCommandResponse(CommandResponse):
+    ns: str
+    size: float
+    count: float
+    avgObjSize: Optional[float]
+    storageSize: float
+    totalIndexSize: float
+    totalSize: float
+    scaleFactor: float
 
 
 class CountCommandResponse(CommandResponse):
@@ -89,9 +105,12 @@ class GetMoreCommandResponse(CommandResponse):
     cursor: GetMoreCommandResponseCursor
 
 
-QueryCmd = Union[CountCommand, FindCommand, GetMoreCommand, DeleteCommand]
+QueryCmd = Union[
+    CollStatsCommand, CountCommand, FindCommand, GetMoreCommand, DeleteCommand
+]
 
 QueryResponseOptions = Union[
+    CollStatsCommandResponse,
     CountCommandResponse,
     FindCommandResponse,
     GetMoreCommandResponse,
@@ -101,6 +120,7 @@ QueryResponseOptions = Union[
 
 def command_response_for(type_):
     d = {
+        CollStatsCommand: CollStatsCommandResponse,
         CountCommand: CountCommandResponse,
         FindCommand: FindCommandResponse,
         GetMoreCommand: GetMoreCommandResponse,
