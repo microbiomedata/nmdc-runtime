@@ -25,7 +25,13 @@ class ListRequest(BaseModel):
     projection: Annotated[
         Optional[str],
         Query(
-            description="for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`"
+            description=(
+                "for MongoDB-like "
+                "[projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): "
+                "comma-separated list of fields you want the objects in the response to include. "
+                "Note: `id` will always be included. "
+                "Example: `ecosystem_type,name`"
+            )
         ),
     ]
 

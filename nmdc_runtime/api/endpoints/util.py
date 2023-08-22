@@ -60,7 +60,11 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     limit = req.max_page_size
     filter_ = json_util.loads(req.filter) if req.filter else {}
-    projection = req.projection.split(",") if req.projection else None
+    projection = (
+        list(set(comma_separated_values(req.projection)) | {"id"})
+        if req.projection
+        else None
+    )
     if req.page_token:
         doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
         if doc is None:
@@ -113,8 +117,8 @@ def maybe_unstring(val):
         return val
 
 
-def get_pairs(s):
-    return re.split(r"\s*,\s*", s)  # comma, perhaps surrounded by whitespace
+def comma_separated_values(s: str):
+    return [v.strip() for v in re.split(r"\s*,\s*", s)]
 
 
 def get_mongo_filter(filter_str):
@@ -122,7 +126,7 @@ def get_mongo_filter(filter_str):
     if not filter_str:
         return filter_
 
-    pairs = get_pairs(filter_str)
+    pairs = comma_separated_values(filter_str)
     if not all(len(split) == 2 for split in (p.split(":", maxsplit=1) for p in pairs)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -148,7 +152,7 @@ def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
     if not sort_str:
         return None
 
-    pairs = get_pairs(sort_str)
+    pairs = comma_separated_values(sort_str)
     for p in pairs:
         components = p.split(":", maxsplit=1)
         if len(components) == 1:
