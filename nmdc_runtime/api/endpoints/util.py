@@ -59,13 +59,14 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def check_filter(filter_: str):
+    filter_ = filter_.strip()
     if not filter_.startswith("{") or not filter_.endswith("}"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Given `filter` is not valid JSON object, which must start with '{{' and end with '}}'.",
+            detail=f"The given `filter` is not a valid JSON object, which must start with '{{' and end with '}}'.",
         )
     try:
-        d = json_util.loads(filter_)
+        json_util.loads(filter_)
     except JSONDecodeError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
