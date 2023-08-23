@@ -3,6 +3,7 @@ import os
 import re
 import tempfile
 from functools import lru_cache
+from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
 from typing import List, Optional, Set, Tuple
@@ -57,9 +58,26 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
+def check_filter(filter_: str):
+    filter_ = filter_.strip()
+    if not filter_.startswith("{") or not filter_.endswith("}"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"The given `filter` is not a valid JSON object, which must start with '{{' and end with '}}'.",
+        )
+    try:
+        json_util.loads(filter_)
+    except JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Given `filter` is not valid JSON: {e}",
+        )
+    return filter_
+
+
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     limit = req.max_page_size
-    filter_ = json_util.loads(req.filter) if req.filter else {}
+    filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
         list(set(comma_separated_values(req.projection)) | {"id"})
         if req.projection
