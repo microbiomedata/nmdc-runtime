@@ -99,7 +99,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_ = merge(filter_, {"id": {"$gt": last_id}})
 
-    if mdb[collection_name].count_documents(filter=filter_) <= limit:
+    if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
         rv = {
             "resources": list(
                 mdb[collection_name].find(filter=filter_, projection=projection)
@@ -221,6 +221,9 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         )
 
     filter_ = get_mongo_filter(req.filter)
+    projection = (
+        list(set(comma_separated_values(req.fields)) | {"id"}) if req.fields else None
+    )
     sort_ = get_mongo_sort(req.sort)
 
     total_count = mdb[collection_name].count_documents(filter=filter_)
@@ -235,7 +238,11 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         limit = req.per_page
         results, db_response_time_ms = timeit(
             mdb[collection_name].find(
-                filter=filter_, skip=skip, limit=limit, sort=sort_
+                filter=filter_,
+                skip=skip,
+                limit=limit,
+                sort=sort_,
+                projection=projection,
             )
         )
         rv = {
@@ -246,6 +253,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 "db_response_time_ms": db_response_time_ms,
                 "page": req.page,
                 "per_page": req.per_page,
+                "fields": req.fields or "$ALL_AVAILABLE_FIELDS",
             },
             "results": [strip_oid(d) for d in results],
             "group_by": [],
@@ -278,7 +286,9 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         limit = req.per_page
         sort_for_cursor = (sort_ or []) + [("id", 1)]
         results, db_response_time_ms = timeit(
-            mdb[collection_name].find(filter=filter_, limit=limit, sort=sort_for_cursor)
+            mdb[collection_name].find(
+                filter=filter_, limit=limit, sort=sort_for_cursor, projection=projection
+            )
         )
         last_id = results[-1]["id"]
 
@@ -308,6 +318,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 "page": None,
                 "per_page": req.per_page,
                 "next_cursor": token,
+                "fields": req.fields or "$ALL_AVAILABLE_FIELDS",
             },
             "results": [strip_oid(d) for d in results],
             "group_by": [],
