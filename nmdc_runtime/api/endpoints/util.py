@@ -254,11 +254,12 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 "db_response_time_ms": db_response_time_ms,
                 "page": req.page,
                 "per_page": req.per_page,
-                "fields": req.fields or "$ALL_AVAILABLE_FIELDS",
             },
             "results": [strip_oid(d) for d in results],
             "group_by": [],
         }
+        if req.fields:
+            rv["meta"]["fields"] = req.fields
 
     else:  # req.cursor is not None
         if req.cursor != "*":
@@ -319,11 +320,12 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 "page": None,
                 "per_page": req.per_page,
                 "next_cursor": token,
-                "fields": req.fields or "$ALL_AVAILABLE_FIELDS",
             },
             "results": [strip_oid(d) for d in results],
             "group_by": [],
         }
+        if req.fields:
+            rv["meta"]["fields"] = req.fields
     return rv
 
 
