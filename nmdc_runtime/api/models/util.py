@@ -36,7 +36,7 @@ class ListRequest(BaseModel):
     ]
 
 
-PerPageRange = conint(gt=0, le=200)
+PerPageRange = conint(gt=0, le=2_000)
 
 
 class FindRequest(BaseModel):
@@ -47,6 +47,12 @@ class FindRequest(BaseModel):
     per_page: Optional[PerPageRange] = 25
     cursor: Optional[str]
     group_by: Optional[str]
+    fields: Annotated[
+        Optional[str],
+        Query(
+            description="comma-separated list of fields you want the objects in the response to include"
+        ),
+    ]
 
     @root_validator(pre=True)
     def set_page_if_cursor_unset(cls, values):
