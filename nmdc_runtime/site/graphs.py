@@ -35,8 +35,7 @@ from nmdc_runtime.site.ops import (
     fetch_nmdc_portal_submission_by_id,
     translate_portal_submission_to_nmdc_schema_database,
     validate_metadata,
-    neon_mms_data_by_product,
-    neon_sls_data_by_product,
+    neon_data_by_product,
     nmdc_schema_database_from_neon_data,
     nmdc_schema_database_export_filename_neon,
     get_neon_pipeline_mms_data_product,
@@ -153,13 +152,14 @@ def ingest_metadata_submission():
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
 
+
 @graph
 def translate_neon_api_metadata_to_nmdc_schema_database():
     mms_data_product = get_neon_pipeline_mms_data_product()
     sls_data_product = get_neon_pipeline_sls_data_product()
 
-    mms_data = neon_mms_data_by_product(mms_data_product)
-    sls_data = neon_sls_data_by_product(sls_data_product)
+    mms_data = neon_data_by_product(mms_data_product)
+    sls_data = neon_data_by_product(sls_data_product)
 
     database = nmdc_schema_database_from_neon_data(mms_data, sls_data)
 
@@ -175,8 +175,8 @@ def ingest_neon_metadata():
     mms_data_product = get_neon_pipeline_mms_data_product()
     sls_data_product = get_neon_pipeline_sls_data_product()
 
-    mms_data = neon_mms_data_by_product(mms_data_product)
-    sls_data = neon_sls_data_by_product(sls_data_product)
+    mms_data = neon_data_by_product(mms_data_product)
+    sls_data = neon_data_by_product(sls_data_product)
 
     database = nmdc_schema_database_from_neon_data(mms_data, sls_data)
     run_id = submit_metadata_to_db(database)
