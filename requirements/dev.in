@@ -12,3 +12,4 @@ requests-mock
 setuptools
 setuptools-scm
 twine
+requests-cache
