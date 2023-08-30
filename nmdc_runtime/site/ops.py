@@ -57,7 +57,7 @@ from nmdc_runtime.site.resources import (
     GoldApiClient,
     RuntimeApiSiteClient,
     RuntimeApiUserClient,
-    NeonApiClient
+    NeonApiClient,
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.translation.neon_translator import NeonDataTranslator
@@ -589,7 +589,7 @@ def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> str:
 
 @op(required_resource_keys={"gold_api_client"})
 def gold_biosamples_by_study(
-        context: OpExecutionContext, study_id: str
+    context: OpExecutionContext, study_id: str
 ) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_biosamples_by_study(study_id)
@@ -597,7 +597,7 @@ def gold_biosamples_by_study(
 
 @op(required_resource_keys={"gold_api_client"})
 def gold_projects_by_study(
-        context: OpExecutionContext, study_id: str
+    context: OpExecutionContext, study_id: str
 ) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_projects_by_study(study_id)
@@ -605,7 +605,7 @@ def gold_projects_by_study(
 
 @op(required_resource_keys={"gold_api_client"})
 def gold_analysis_projects_by_study(
-        context: OpExecutionContext, study_id: str
+    context: OpExecutionContext, study_id: str
 ) -> List[Dict[str, Any]]:
     client: GoldApiClient = context.resources.gold_api_client
     return client.fetch_analysis_projects_by_study(study_id)
@@ -619,11 +619,11 @@ def gold_study(context: OpExecutionContext, study_id: str) -> Dict[str, Any]:
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_gold_study(
-        context: OpExecutionContext,
-        study: Dict[str, Any],
-        projects: List[Dict[str, Any]],
-        biosamples: List[Dict[str, Any]],
-        analysis_projects: List[Dict[str, Any]],
+    context: OpExecutionContext,
+    study: Dict[str, Any],
+    projects: List[Dict[str, Any]],
+    biosamples: List[Dict[str, Any]],
+    analysis_projects: List[Dict[str, Any]],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -650,8 +650,8 @@ def fetch_nmdc_portal_submission_by_id(context: OpExecutionContext) -> Dict[str,
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def translate_portal_submission_to_nmdc_schema_database(
-        context: OpExecutionContext,
-        metadata_submission: Dict[str, Any],
+    context: OpExecutionContext,
+    metadata_submission: Dict[str, Any],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -681,7 +681,7 @@ def nmdc_schema_object_to_dict(object: YAMLRoot) -> Dict[str, Any]:
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
 def export_json_to_drs(
-        context: OpExecutionContext, data: Dict, filename: str, description: str = ""
+    context: OpExecutionContext, data: Dict, filename: str, description: str = ""
 ) -> List[str]:
     mdb = context.resources.mongo.db
     username = context.op_config.get("username")
@@ -728,7 +728,7 @@ def get_neon_pipeline_sls_data_product(context: OpExecutionContext) -> dict:
 
 @op(required_resource_keys={"neon_api_client"})
 def neon_data_by_product(
-        context: OpExecutionContext, data_product: dict
+    context: OpExecutionContext, data_product: dict
 ) -> Dict[str, pd.DataFrame]:
     df_dict = {}
     client: NeonApiClient = context.resources.neon_api_client
@@ -745,7 +745,7 @@ def neon_data_by_product(
                 data_files = client.request(data_url)
                 for file in data_files["data"]["files"]:
                     if table_name in file["name"] and "expanded" in file["name"]:
-                        current_df = pd.read_csv(file['url'])
+                        current_df = pd.read_csv(file["url"])
                         df = pd.concat([df, current_df], ignore_index=True)
         df_dict[table_name] = df
 
@@ -754,9 +754,9 @@ def neon_data_by_product(
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def nmdc_schema_database_from_neon_data(
-        context: OpExecutionContext,
-        mms_data: Dict[str, pd.DataFrame],
-        sls_data: Dict[str, pd.DataFrame]
+    context: OpExecutionContext,
+    mms_data: Dict[str, pd.DataFrame],
+    sls_data: Dict[str, pd.DataFrame],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 

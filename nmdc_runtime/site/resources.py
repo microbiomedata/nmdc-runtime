@@ -340,15 +340,12 @@ def nmdc_portal_api_client_resource(context: InitResourceContext):
 
 @dataclass
 class NeonApiClient:
-
     base_url: str
     api_token: str
     session = requests_cache.CachedSession("neon_cache")
 
     def request(self, url):
-        response = self.session.get(url, headers={
-            'X-API-Token': self.api_token
-        })
+        response = self.session.get(url, headers={"X-API-Token": self.api_token})
         response.raise_for_status()
         return response.json()
 
@@ -356,16 +353,11 @@ class NeonApiClient:
         return self.request(self.base_url + f"/products/{product_id}")
 
 
-@resource(
-    config_schema={
-        "base_url": StringSource,
-        "api_token": StringSource
-    }
-)
+@resource(config_schema={"base_url": StringSource, "api_token": StringSource})
 def neon_api_client_resource(context: InitResourceContext):
     return NeonApiClient(
         base_url=context.resource_config["base_url"],
-        api_token=context.resource_config["api_token"]
+        api_token=context.resource_config["api_token"],
     )
 
 

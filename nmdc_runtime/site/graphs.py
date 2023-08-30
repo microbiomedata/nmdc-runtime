@@ -39,7 +39,7 @@ from nmdc_runtime.site.ops import (
     nmdc_schema_database_from_neon_data,
     nmdc_schema_database_export_filename_neon,
     get_neon_pipeline_mms_data_product,
-    get_neon_pipeline_sls_data_product
+    get_neon_pipeline_sls_data_product,
 )
 
 
