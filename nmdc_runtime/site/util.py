@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 
@@ -40,3 +41,7 @@ def collection_indexed_on_id(mdb: MongoDatabase) -> dict:
     return {
         name: ("id_1" in mdb[name].index_information()) for name in set_collection_names
     }
+
+
+def get_basename(filename: str) -> str:
+    return os.path.basename(filename)
