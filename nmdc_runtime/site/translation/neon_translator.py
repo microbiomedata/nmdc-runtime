@@ -1,6 +1,7 @@
 import re
 import math
 import sqlite3
+from typing import Union, List
 
 import pandas as pd
 
@@ -86,10 +87,17 @@ class NeonDataTranslator(Translator):
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
 
-    def _get_value_or_none(self, data, column_name):
+    def _get_value_or_none(
+        self, data: pd.DataFrame, column_name: str
+    ) -> Union[str, float, None]:
         """
         Get the value from the specified column in the data DataFrame.
-        If the column value is NaN, return None.
+        If the column value is NaN, return None. However, there are handlers
+        for a select set of columns - horizon, qaqcStatus, sampleTopDepth,
+        and sampleBottomDepth.
+
+        :param data: DataFrame to read the column value from.
+        :return: Either a string, float or None depending on the column/column values.
         """
         if column_name in data and not data[column_name].isna().any():
             if column_name == "horizon":
@@ -105,9 +113,15 @@ class NeonDataTranslator(Translator):
 
         return None
 
-    def _create_controlled_identified_term_value(self, id=None, name=None):
+    def _create_controlled_identified_term_value(
+        self, id: str = None, name: str = None
+    ) -> nmdc.ControlledIdentifiedTermValue:
         """
-        Create a ControlledIdentifiedTermValue object with the specified ID and name.
+        Create a ControlledIdentifiedTermValue object with the specified id and name.
+
+        :param id: CURIE (with defined prefix expansion) or full URI of term.
+        :param name: Name of term.
+        :return: ControlledIdentifiedTermValue with mandatorily specified value for `id`.
         """
         if id is None or name is None:
             return None
@@ -115,51 +129,86 @@ class NeonDataTranslator(Translator):
             term=nmdc.OntologyClass(id=id, name=name)
         )
 
-    def _create_controlled_term_value(self, name=None):
+    def _create_controlled_term_value(
+        self, name: str = None
+    ) -> nmdc.ControlledTermValue:
         """
-        Create a ControlledIdentifiedTermValue object with the specified ID and name.
+        Create a ControlledIdentifiedTermValue object with the specified id and name.
+
+        :param name: Name of term. This may or may not have an `id` associated with it,
+        hence the decision to record it in `has_raw_value` meaning, record as it is
+        in the data source.
+        :return: ControlledTermValue object with name in `has_raw_value`.
         """
         if id is None or name is None:
             return None
         return nmdc.ControlledTermValue(has_raw_value=name)
 
-    def _create_timestamp_value(self, value=None):
+    def _create_timestamp_value(self, value: str = None) -> nmdc.TimestampValue:
         """
         Create a TimestampValue object with the specified value.
+
+        :param value: Timestamp value recorded in ISO-8601 format.
+        Example: 2021-07-07T20:14Z.
+        :return: ISO-8601 timestamp wrapped in TimestampValue object.
         """
         if value is None:
             return None
         return nmdc.TimestampValue(has_raw_value=value)
 
-    def _create_quantity_value(self, numeric_value=None, unit=None):
+    def _create_quantity_value(
+        self, numeric_value: Union[str, int, float] = None, unit: str = None
+    ) -> nmdc.QuantityValue:
         """
         Create a QuantityValue object with the specified numeric value and unit.
+
+        :param numeric_value: Numeric value from a dataframe column that typically
+        records numerical values.
+        :param unit: Unit corresponding to the numeric value. Example: biogeochemical
+        measurement value like organic Carbon Nitrogen ratio.
+        :return: Numeric value and unit stored together in nested QuantityValue object.
         """
         if numeric_value is None or math.isnan(numeric_value):
             return None
         return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
 
-    def _create_text_value(self, value=None):
+    def _create_text_value(self, value: str = None) -> nmdc.TextValue:
         """
         Create a TextValue object with the specified value.
+
+        :param value: column that we expect to primarily have text values.
+        :return: Text wrapped in TextValue object.
         """
         if value is None:
             return None
         return nmdc.TextValue(has_raw_value=value)
 
-    def _create_double_value(self, value=None):
+    def _create_double_value(self, value: str = None) -> nmdc.Double:
         """
         Create a Double object with the specified value.
+
+        :param value: Values from a column which typically records numeric
+        (double) values like pH.
+        :return: String (possibly) cast/converted to nmdc Double object.
         """
         if value is None or math.isnan(value):
             return None
         return nmdc.Double(value)
 
-    def _create_geolocation_value(self, latitude=None, longitude=None):
+    def _create_geolocation_value(
+        self, latitude: str = None, longitude: str = None
+    ) -> nmdc.GeolocationValue:
         """
-        Create a GeolocationValue object with latitude and longitude from the biosample_row DataFrame.
-        """
+        Create a GeolocationValue object with latitude and longitude from the
+        biosample DataFrame. Takes in values from the NEON API table with
+        latitude (decimalLatitude) and longitude (decimalLongitude) values and
+        puts it in the respective slots in the GeolocationValue class object.
 
+        :param latitude: Value corresponding to `decimalLatitude` column.
+        :param longitude: Value corresponding to `decimalLongitude` column.
+        :return: Latitude and Longitude values wrapped in nmdc GeolocationValue
+        object.
+        """
         if (
             latitude is None
             or math.isnan(latitude)
@@ -173,9 +222,20 @@ class NeonDataTranslator(Translator):
             longitude=nmdc.DecimalDegree(longitude),
         )
 
-    def _translate_biosample(self, neon_id, nmdc_id, biosample_row):
+    def _translate_biosample(
+        self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
+    ) -> nmdc.Biosample:
         """
-        Translate a biosample_row DataFrame into a Biosample object.
+        Translate a row from the biosamples DataFrame into an nmdc Biosample object.
+        This method takes in a DataFrame with all the biosample metadata in biosample_row,
+        `nmdc_id`, which is the NMDC minted biosample id corresponding to a NEON biosample id
+        in `neon_id`.
+
+        :param neon_id: Neon biosample id, which is typically the value from `sampleID` column.
+        :param nmdc_id: NMDC minted biosample id, corresponding to `neon_id`.
+        :param biosample_row: DataFrame with biosample metadata.
+        :return: nmdc Biosample object with all the biosample metadata including correctly
+        specified ids.
         """
         return nmdc.Biosample(
             id=nmdc_id,
@@ -244,10 +304,22 @@ class NeonDataTranslator(Translator):
         )
 
     def _translate_pooling_process(
-        self, nmdc_id, processed_sample_id, bsm_input_values_list, pooling_row
-    ):
+        self,
+        nmdc_id: str,
+        processed_sample_id: str,
+        bsm_input_values_list: List[str],
+        pooling_row: pd.DataFrame,
+    ) -> nmdc.Pooling:
         """
-        Translate a pooling_row DataFrame into a Pooling object.
+        Create an nmdc Pooling process. The input to a Pooling process is a list of biosamples,
+        and the output of the process is a nmdc ProcessedSample. The metadata related to Pooling
+        process is in pooling_row.
+
+        :param nmdc_id: Minted NMDC Pooling process id.
+        :param processed_sample_id: Minted NMDC ProcessedSample id that is output from Pooling.
+        :param bsm_input_values_list: List of biosample ids that are input to Pooling.
+        :param pooling_row: DataFrame containing Pooling metadata.
+        :return: nmdc Pooling object.
         """
         return nmdc.Pooling(
             id=nmdc_id,
@@ -257,13 +329,38 @@ class NeonDataTranslator(Translator):
             end_date=self._get_value_or_none(pooling_row, "collectDate"),
         )
 
-    def _translate_processed_sample(self, processed_sample_id, sample_id):
+    def _translate_processed_sample(
+        self, processed_sample_id: str, sample_id: str
+    ) -> nmdc.ProcessedSample:
         """
-        Translate a processed sample ID and sample ID into a ProcessedSample object.
+        Create an nmdc ProcessedSample. ProcessedSample is typically the output of a PlannedProcess
+        like Pooling, Extraction, LibraryPreparation, etc. We are using this to create a
+        reference for the nmdc minted ProcessedSample ids in `processed_sample_set`. We are
+        associating the minted ids with the name of the sample it is coming from which can be
+        a value from either the `genomicsSampleID` column or from the `dnaSampleID` column.
+
+        :param processed_sample_id: NMDC minted ProcessedSampleID.
+        :param sample_id: Value from `genomicsSampleID` or `dnaSampleID` column.
+        :return: ProcessedSample objects to be stored in `processed_sample_set`.
         """
         return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
 
-    def _translate_data_object(self, do_id: str, url: str, do_type: str, checksum: str):
+    def _translate_data_object(
+        self, do_id: str, url: str, do_type: str, checksum: str
+    ) -> nmdc.DataObject:
+        """Create nmdc DataObject which is the output of an OmicsProcessing process. This
+        object mainly contains information about the sequencing file that was generated as
+        the result of running a Bioinformatics workflow on a certain ProcessedSample, which
+        is the result of a LibraryPreparation process.
+
+        :param do_id: NMDC minted DataObject id.
+        :param url: URL of zipped FASTQ file on NEON file server. Retrieved from file provided
+        by Hugh Cross at NEON.
+        :param do_type: Indicate whether it is FASTQ for Read 1 or Read 2 (paired end sequencing).
+        :param checksum: Checksum value for FASTQ in zip file, once again provided by Hugh Cross
+        at NEON.
+        :return: DataObject with all the sequencing file metadata.
+        """
         file_name = get_basename(url)
         basename = file_name.split(".", 1)[0]
 
@@ -278,10 +375,22 @@ class NeonDataTranslator(Translator):
         )
 
     def _translate_extraction_process(
-        self, extraction_id, extraction_input, processed_sample_id, extraction_row
-    ):
+        self,
+        extraction_id: str,
+        extraction_input: str,
+        processed_sample_id: str,
+        extraction_row: pd.DataFrame,
+    ) -> nmdc.Extraction:
         """
-        Translate an extraction_row DataFrame into an Extraction object.
+        Create an nmdc Extraction process, which is a process to model the DNA extraction in
+        a metagenome sequencing experiment. The input to an Extraction process is the
+        output from a Pooling process.
+
+        :param extraction_id: Minted id for Extraction process.
+        :param extraction_input: Input to an Extraction process is the output from a Pooling process.
+        :param processed_sample_id: Output of Extraction process is a ProcessedSample.
+        :param extraction_row: DataFrame with Extraction process metadata.
+        :return: Extraction process object.
         """
         processing_institution = None
         laboratory_name = self._get_value_or_none(extraction_row, "laboratoryName")
@@ -308,13 +417,23 @@ class NeonDataTranslator(Translator):
 
     def _translate_library_preparation(
         self,
-        library_preparation_id,
-        library_preparation_input,
-        processed_sample_id,
-        library_preparation_row,
+        library_preparation_id: str,
+        library_preparation_input: str,
+        processed_sample_id: str,
+        library_preparation_row: pd.DataFrame,
     ):
         """
-        Translate a library_preparation_row DataFrame into a LibraryPreparation object.
+        Create LibraryPreparation process object. The input to LibraryPreparation process
+        is the output ProcessedSample from an Extraction process. The output of LibraryPreparation
+        process is fed as input to an OmicsProcessing object.
+
+        :param library_preparation_id: Minted id for LibraryPreparation process.
+        :param library_preparation_input: Input to LibraryPreparation process is output from
+        Extraction process.
+        :param processed_sample_id: Minted ProcessedSample id which is output of LibraryPreparation
+        is also input to OmicsProcessing.
+        :param library_preparation_row: Metadata required to populate LibraryPreparation.
+        :return: Object that using LibraryPreparation process model.
         """
         processing_institution = None
         laboratory_name = self._get_value_or_none(
@@ -342,6 +461,19 @@ class NeonDataTranslator(Translator):
         raw_data_file_data: str,
         omics_processing_row: pd.DataFrame,
     ) -> nmdc.OmicsProcessing:
+        """Create nmdc OmicsProcessing object. This class typically models the run of a
+        Bioinformatics workflow on sequence data from a biosample. The input to an OmicsProcessing
+        process is the output from a LibraryPreparation process, and the output of OmicsProcessing
+        is a DataObject which has the FASTQ sequence file URLs embedded in them.
+
+        :param omics_processing_id: Minted id for an OmicsProcessing process.
+        :param processed_sample_id: ProcessedSample that is the output of LibraryPreparation.
+        :param raw_data_file_data: R1/R2 DataObjects which have links to workflow processed output
+        files embedded in them.
+        :param omics_processing_row: DataFrame with metadata for an OmicsProcessing workflow
+        process/run.
+        :return: OmicsProcessing object that models a Bioinformatics workflow process/run.
+        """
         processing_institution = None
         sequencing_facility = self._get_value_or_none(
             omics_processing_row, "sequencingFacilityID"
@@ -370,6 +502,27 @@ class NeonDataTranslator(Translator):
         )
 
     def get_database(self) -> nmdc.Database:
+        """The main entry point method that combines/uses all the above main (Biosample, Pooling, etc.)
+        nmdc object creation methods as well as the nmdc type (QuantityValue, GeolocationValue, etc.)
+        creation methods, to make an nmdc Database object. It populates multiple sets in the Mongo database -
+            * `biosample_set`: uses `_translate_biosample()`
+            * `pooling_set`: uses `_translate_pooling_process()`
+            * `extraction_set`: uses `_translate_extraction_process()`
+            * `library_preparation_set`: uses `_translate_library_preparation()`
+            * `omics_processing_set`: uses `_translate_omics_processing()`
+            * `processed_sample_set`: uses `_translate_processed_sample()`
+            * `data_object_set`: uses `_translate_data_object()`
+        The core Biosample information is in the `sls_soilCoreCollection` table. However, we
+        want to restrict ourselves to only those biosamples that have been sequenced and QC'd, so we
+        only get those samples that are in the `mms_metagenomeSequencing` (and `mms_metagenomeDnaExtraction`)
+        tables. A lot of these samples are pooled samples, so we look in the `sls_metagenomicsPooling`
+        to get all individual biosamples. Then we look through various other tables that contain metadata like
+        biogeochemical measurement values (in `sls_soilChemistry`, `sls_soilWaterpH`, etc.) and more.
+
+        Note: You will see a lot of SQLite queries being run in the body of this method. That is because
+        after evaluation, the running time overhead for pandas was very high, and the pipeline was simply
+        taking too long to run.
+        """
         database = nmdc.Database()
 
         # Joining sls_metagenomicsPooling and merged tables
