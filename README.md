@@ -79,26 +79,43 @@ database, as a hub for data management and workflow automation.
 
 ## Local Development
 
-Ensure Docker (and Docker Compose) are installed.
+Ensure Docker (and Docker Compose) are installed; and the Docker engine is running.
 
-Ensure you have a .env file for the docker services to source from. You may copy `.env.example` to
+```shell
+docker --version
+docker compose version
+docker info
+```
+
+Ensure the permissions of `./mongoKeyFile` are such that only the file's owner can read or write the file.
+
+```shell
+chmod 600 ./mongoKeyFile
+```
+
+Ensure you have a `.env` file for the Docker services to source from. You may copy `.env.example` to
 `.env` (which is gitignore'd) to get started.
 
-```
-# To load env in your shell session
-# export $(grep -v '^#' .env | xargs)
+```shell
+cp .env.example .env
 ```
 
-If you are connecting to resources that require a ssh tunnel, for example a MongoDB that is only
-accessible on the NERSC network,
+Create environment variables in your shell session, based upon the contents of the `.env` file.
 
+```shell
+export $(grep -v '^#' .env | xargs)
 ```
+
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+
+The following command could be useful to you, either directly or as a template (see `Makefile`).
+
+```shell
 make nersc-ssh-tunnel
 ```
 
-could be useful for you, directly or as a template.
+Finally, spin up the Docker Compose stack.
 
-Finally,
 ```bash
 make up-dev
 ```
