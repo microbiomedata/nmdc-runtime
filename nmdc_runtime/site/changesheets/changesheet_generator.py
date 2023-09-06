@@ -60,7 +60,7 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
     Base class for changesheet generators
     """
 
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
         self.changesheet = Changesheet()
         self.output_filename_root = f"{self.name}-{time.strftime('%Y%m%d-%H%M%S')}"
