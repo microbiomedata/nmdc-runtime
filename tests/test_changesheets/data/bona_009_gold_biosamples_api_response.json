@@ -1,0 +1,92 @@
+[
+  {
+    "biosampleGoldId": "Gb0356158",
+    "biosampleName": "Terrestrial soil microbial communities from Caribou Creek Watershed, Alaska, USA - BONA_009-O-20210707-comp-1",
+    "ncbiTaxId": 410658,
+    "ncbiTaxName": "soil metagenome",
+    "sampleCollectionSite": "forest topsoil",
+    "geographicLocation": "USA: Caribou Creek, Alaska",
+    "latitude": 65.169192,
+    "longitude": -147.520277,
+    "ecosystemPathId": 7666,
+    "ecosystem": "Environmental",
+    "ecosystemCategory": "Terrestrial",
+    "ecosystemType": "Soil",
+    "ecosystemSubtype": "Boreal forest/Taiga",
+    "specificEcosystem": "Unclassified",
+    "altitudeInMeters": null,
+    "altitudeInMeters2": null,
+    "dateCollected": "2021-07-07",
+    "depthInMeters": 0.1,
+    "depthInMeters2": null,
+    "description": "Terrestrial soil microbial communities from Caribou Creek Watershed, Alaska, USA",
+    "hostDiseases": [],
+    "elevationInMeters": 429.6,
+    "elevationInMeters2": null,
+    "geoLocation": "USA: Caribou Creek, Alaska",
+    "habitat": "Terrestrial soil",
+    "hostGender": null,
+    "hostName": null,
+    "hostNcbiTaxid": null,
+    "isoCountry": "USA",
+    "longhurst": null,
+    "nitrateConcentration": null,
+    "oxygenConcentration": null,
+    "ph": null,
+    "pressure": null,
+    "salinity": null,
+    "salinityConcentration": null,
+    "sampleBodySite": null,
+    "sampleBodySubsite": null,
+    "sampleCollectionTemperature": null,
+    "subsurfaceDepthInMeters": null,
+    "subsurfaceDepthInMeters2": null,
+    "visitNum": null,
+    "mixsPackage": null,
+    "envoBroadScale": {
+      "id": "ENVO_00000446",
+      "label": "terrestrial biome"
+    },
+    "envoLocalScale": {
+      "id": "ENVO_01000869",
+      "label": "area of scrub"
+    },
+    "envoMedium": {
+      "id": "ENVO_00001998",
+      "label": "soil"
+    },
+    "modDate": "2023-07-26",
+    "addDate": "2023-02-09",
+    "contacts": [
+      {
+        "name": "Tijana Glavina del Rio",
+        "email": "tglavina@lbl.gov",
+        "roles": [
+          "PM"
+        ]
+      },
+      {
+        "name": "Hugh Cross",
+        "email": "crossh@battelleecology.org",
+        "roles": [
+          "sample contact",
+          "co-PI"
+        ]
+      },
+      {
+        "name": "Kate Thibault",
+        "email": "kthibault@battelleecology.org",
+        "roles": [
+          "co-PI"
+        ]
+      },
+      {
+        "name": "Emiley Eloe-Fadrosh",
+        "email": "EAEloeFadrosh@lbl.gov",
+        "roles": [
+          "PI"
+        ]
+      }
+    ]
+  }
+]

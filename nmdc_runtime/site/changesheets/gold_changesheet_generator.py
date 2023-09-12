@@ -24,13 +24,27 @@ def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:
     return biosample["biosampleName"].split()[-1]
 
 
-def find_nmdc_biosample_by_gold_biosample_id(gold_biosample_id: str) -> Optional[JSON_OBJECT]:
+def get_nmdc_biosample_object_id(nmdc_biosample: JSON_OBJECT) -> str:
+    """
+    Get the object_id of the given NMDC biosample
+    :param nmdc_biosample: JSON_OBJECT
+    :return: str
+    """
+    return nmdc_biosample["_id"]["$oid"]
+
+def find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id: str) -> list[JSON_OBJECT]:
     """
     Find the NMDC biosample that includes the given GOLD biosample ID in gold_biosample_identifiers
     :param gold_biosample_id: str
     :return: JOSN_OBJECT
     """
-    return None
+    if not gold_biosample_id.startswith("GOLD:"):
+        gold_biosample_id = f"GOLD:{gold_biosample_id}"
+    query = {
+        "find": "biosample_set",
+        "filter": {"gold_biosample_identifiers": {"$elemMatch": {"$eq": gold_biosample_id}}}
+    }
+    return []
 
 def find_nmdc_biosample_id_via_omics_processing_name(gold_biosample_name_suffix: str) -> Optional[str]:
     """
@@ -55,6 +69,46 @@ class BaseGoldBiosampleChangesheetGenerator(BaseChangesheetGenerator):
         self.gold_biosample_names = [get_gold_biosample_name_suffix(x) for x in self.gold_biosamples]
 
 
+def compare_biosamples(nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT) -> list[ChangesheetLineItem]:
+    """
+    Compare the given NMDC and GOLD biosamples
+    :param nmdc_biosample: JSON_OBJECT
+    :param gold_biosample: JSON_OBJECT
+    :return: list[ChangesheetLineItem]
+    """
+    
+    line_items = []
+    
+    # Check the ecosystem metadata
+    line_items.extend(_check_gold_ecosystem_metadata(nmdc_biosample, gold_biosample))
+    
+    return line_items
+
+
+def _check_gold_ecosystem_metadata(nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT) -> list[ChangesheetLineItem]:
+    """
+    Check the ecosystem metadata of the given NMDC and GOLD biosamples
+    :param nmdc_biosample: JSON_OBJECT
+    :param gold_biosample: JSON_OBJECT
+    :return: list[ChangesheetLineItem]
+    """
+    # NMDC to GOLD ecosystem metadata mapping
+    ecosystem_keys = {
+        "ecosystem": "ecosystem",
+        "ecosystem_category": "ecosystemCategory",
+        "ecosystem_type": "ecosystemType",
+        "ecosystem_subtype": "ecosystemSubtype",
+    }
+    line_items = []
+    for k,v in ecosystem_keys.items():
+        if not nmdc_biosample.get(k):
+            line_items.append(ChangesheetLineItem(
+                get_nmdc_biosample_object_id(nmdc_biosample), 
+                "update", 
+                k, 
+                gold_biosample.get(v)))
+    return line_items
+
 class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
     """
     Class for generating changesheet for issue #397
@@ -65,15 +119,6 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
         super().__init__(name, gold_biosamples)
         logging.basicConfig(filename=self.output_filename_root + ".log", level=logging.INFO)
 
-    def compare_biosamples(self, nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT) -> list[ChangesheetLineItem]:
-        """
-        Compare the given NMDC and GOLD biosamples
-        :param nmdc_biosample: JSON_OBJECT
-        :param gold_biosample: JSON_OBJECT
-        :return: bool
-        """
-        return []
-
     def generate_changesheet(self) -> None:
         """
         Generate a changesheet for issue #397
@@ -82,11 +127,12 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
         for biosample in self.gold_biosamples:
             biosample_name_sfx = get_gold_biosample_name_suffix(biosample)
 
-            nmdc_biosample = find_nmdc_biosample_by_gold_biosample_id(biosample_name_sfx)
-            if nmdc_biosample:
-                line_items = self.compare_biosamples(nmdc_biosample, biosample)
-                for line_item in line_items:
-                    self.add_changesheet_line_item(line_item)
+            nmdc_biosamples = find_nmdc_biosamples_by_gold_biosample_id(biosample_name_sfx)
+            if nmdc_biosamples:
+                for nmdc_biosample in nmdc_biosamples:
+                    line_items = compare_biosamples(nmdc_biosample, biosample)
+                    for line_item in line_items:
+                        self.add_changesheet_line_item(line_item)
             else:
                 logging.info(f"Could not find NMDC biosample with gold_biosample_id {biosample_name_sfx}")
                 nmdc_biosample_id = find_nmdc_biosample_id_via_omics_processing_name(biosample_name_sfx)
@@ -94,7 +140,7 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
                     logging.info(f"Found NMDC biosample with omics_processing name {biosample_name_sfx}")
                     nmdc_biosample = get_nmdc_biosample_by_id(nmdc_biosample_id)
                     if nmdc_biosample:
-                        line_items = self.compare_biosamples(nmdc_biosample, biosample)
+                        line_items = compare_biosamples(nmdc_biosample, biosample)
                         for line_item in line_items:
                             self.add_changesheet_line_item(line_item)
                     else:

@@ -1,0 +1,247 @@
+{
+  "ok": 1,
+  "cursor": {
+    "firstBatch": [
+      {
+        "_id": {
+          "$oid": "64e3e875a29dd0cc4d3cf756"
+        },
+        "id": "nmdc:bsm-11-a1q56a63",
+        "name": "BONA_009-O-13-37.5-20210707",
+        "part_of": [
+          "nmdc:sty-11-34xj1150"
+        ],
+        "env_broad_scale": {
+          "term": {
+            "id": "ENVO:00000446",
+            "name": "terrestrial biome"
+          }
+        },
+        "env_local_scale": {
+          "term": {
+            "id": "ENVO:01000869",
+            "name": "area of scrub"
+          }
+        },
+        "env_medium": {
+          "term": {
+            "id": "ENVO:00001998",
+            "name": "soil"
+          }
+        },
+        "type": "nmdc:Biosample",
+        "img_identifiers": [
+          "img.taxon:3300060644"
+        ],
+        "biosample_categories": [
+          "NEON"
+        ],
+        "gold_biosample_identifiers": [
+          "GOLD:Gb0356158"
+        ],
+        "collection_date": {
+          "has_raw_value": "2021-07-07T19:44Z"
+        },
+        "depth": {
+          "has_unit": "m",
+          "has_minimum_numeric_value": 0,
+          "has_maximum_numeric_value": 0.151
+        },
+        "ecosystem": "Environmental",
+        "ecosystem_category": "Terrestrial",
+        "ecosystem_subtype": "Boreal forest/Taiga",
+        "ecosystem_type": "Soil",
+        "elev": 429.6,
+        "geo_loc_name": {
+          "has_raw_value": "USA: Alaska, Caribou-Poker Creeks Research Watershed"
+        },
+        "lat_lon": {
+          "latitude": 65.169192,
+          "longitude": -147.520277
+        },
+        "ph": 4.35,
+        "samp_collec_device": "brownie cutter",
+        "soil_horizon": "O horizon",
+        "specific_ecosystem": "Unclassified",
+        "temp": {
+          "has_unit": "Celsius",
+          "has_numeric_value": 3.5
+        },
+        "water_content": [
+          "1.11 g of water/g of dry soil"
+        ],
+        "analysis_type": [
+          "metagenomics"
+        ],
+        "samp_taxon_id": {
+          "has_raw_value": "soil metagenome [NCBITaxon:410658]",
+          "term": {
+            "id": "NCBITaxon:410658",
+            "name": "soil metagenome"
+          }
+        }
+      },
+      {
+        "_id": {
+          "$oid": "64e3e875a29dd0cc4d3cf757"
+        },
+        "id": "nmdc:bsm-11-ckr1wg69",
+        "name": "BONA_009-O-39.5-23.5-20210707",
+        "part_of": [
+          "nmdc:sty-11-34xj1150"
+        ],
+        "env_broad_scale": {
+          "term": {
+            "id": "ENVO:00000446",
+            "name": "terrestrial biome"
+          }
+        },
+        "env_local_scale": {
+          "term": {
+            "id": "ENVO:01000869",
+            "name": "area of scrub"
+          }
+        },
+        "env_medium": {
+          "term": {
+            "id": "ENVO:00001998",
+            "name": "soil"
+          }
+        },
+        "type": "nmdc:Biosample",
+        "img_identifiers": [
+          "img.taxon:3300060644"
+        ],
+        "biosample_categories": [
+          "NEON"
+        ],
+        "gold_biosample_identifiers": [
+          "GOLD:Gb0356158"
+        ],
+        "collection_date": {
+          "has_raw_value": "2021-07-07T20:14Z"
+        },
+        "depth": {
+          "has_unit": "m",
+          "has_minimum_numeric_value": 0,
+          "has_maximum_numeric_value": 0.111
+        },
+        "ecosystem": "Environmental",
+        "ecosystem_category": "Terrestrial",
+        "ecosystem_subtype": "Boreal forest/Taiga",
+        "ecosystem_type": "Soil",
+        "elev": 429.6,
+        "geo_loc_name": {
+          "has_raw_value": "USA: Alaska, Caribou-Poker Creeks Research Watershed"
+        },
+        "lat_lon": {
+          "latitude": 65.169192,
+          "longitude": -147.520277
+        },
+        "ph": 4.6,
+        "samp_collec_device": "brownie cutter",
+        "soil_horizon": "O horizon",
+        "specific_ecosystem": "Unclassified",
+        "temp": {
+          "has_unit": "Celsius",
+          "has_numeric_value": 8.4
+        },
+        "water_content": [
+          "1.008 g of water/g of dry soil"
+        ],
+        "analysis_type": [
+          "metagenomics"
+        ],
+        "samp_taxon_id": {
+          "has_raw_value": "soil metagenome [NCBITaxon:410658]",
+          "term": {
+            "id": "NCBITaxon:410658",
+            "name": "soil metagenome"
+          }
+        }
+      },
+      {
+        "_id": {
+          "$oid": "64e3e875a29dd0cc4d3cf758"
+        },
+        "id": "nmdc:bsm-11-b4e28g96",
+        "name": "BONA_009-O-16-2-20210707",
+        "part_of": [
+          "nmdc:sty-11-34xj1150"
+        ],
+        "env_broad_scale": {
+          "term": {
+            "id": "ENVO:00000446",
+            "name": "terrestrial biome"
+          }
+        },
+        "env_local_scale": {
+          "term": {
+            "id": "ENVO:01000869",
+            "name": "area of scrub"
+          }
+        },
+        "env_medium": {
+          "term": {
+            "id": "ENVO:00001998",
+            "name": "soil"
+          }
+        },
+        "type": "nmdc:Biosample",
+        "img_identifiers": [
+          "img.taxon:3300060644"
+        ],
+        "biosample_categories": [
+          "NEON"
+        ],
+        "gold_biosample_identifiers": [
+          "GOLD:Gb0356158"
+        ],
+        "collection_date": {
+          "has_raw_value": "2021-07-07T20:46Z"
+        },
+        "depth": {
+          "has_unit": "m",
+          "has_minimum_numeric_value": 0,
+          "has_maximum_numeric_value": 0.113
+        },
+        "ecosystem": "Environmental",
+        "ecosystem_category": "Terrestrial",
+        "ecosystem_subtype": "Boreal forest/Taiga",
+        "ecosystem_type": "Soil",
+        "elev": 429.6,
+        "geo_loc_name": {
+          "has_raw_value": "USA: Alaska, Caribou-Poker Creeks Research Watershed"
+        },
+        "lat_lon": {
+          "latitude": 65.169192,
+          "longitude": -147.520277
+        },
+        "ph": 4.74,
+        "samp_collec_device": "brownie cutter",
+        "soil_horizon": "O horizon",
+        "specific_ecosystem": "Unclassified",
+        "temp": {
+          "has_unit": "Celsius",
+          "has_numeric_value": 7.1
+        },
+        "water_content": [
+          "1.058 g of water/g of dry soil"
+        ],
+        "analysis_type": [
+          "metagenomics"
+        ],
+        "samp_taxon_id": {
+          "has_raw_value": "soil metagenome [NCBITaxon:410658]",
+          "term": {
+            "id": "NCBITaxon:410658",
+            "name": "soil metagenome"
+          }
+        }
+      }
+    ],
+    "partialResultsReturned": null,
+    "id": 0,
+    "ns": "nmdc.biosample_set"
+  }
+}
