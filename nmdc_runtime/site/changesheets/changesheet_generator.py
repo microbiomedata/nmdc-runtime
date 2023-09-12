@@ -5,9 +5,9 @@ changesheet_generator.py: Provides classes to generate and validate changesheets
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 import time
-from typing import ClassVar, Dict, Any
+from typing import ClassVar, Dict, Any, Optional
 
-JOSN_OBJECT = Dict[str, Any]  # TODO: de-duplicate this with the one in translator.py
+JSON_OBJECT = Dict[str, Any]  # TODO: de-duplicate this with the one in translator.py
 
 
 @dataclass
@@ -34,8 +34,25 @@ class ChangesheetGenerator(ABC):
     """
     Abstract base class for changesheet generators
     """
+    @abstractmethod
+    def __init__(self, name: str) -> None:
+        pass
 
-    def __int__(self) -> None:
+    @abstractmethod
+    def generate_changesheet(self) -> None:
+        """
+        Generate a changesheet
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def add_changesheet_line_item(self, line_item: ChangesheetLineItem) -> None:
+        """
+        Add a line item to the changesheet
+        :param line_item: ChangesheetLineItem
+        :return: None
+        """
         pass
 
     @abstractmethod
@@ -65,6 +82,14 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
         self.changesheet = Changesheet()
         self.output_filename_root = f"{self.name}-{time.strftime('%Y%m%d-%H%M%S')}"
 
+    def generate_changesheet(self) -> None:
+        """
+        Generate a changesheet
+        :return: None
+        """
+        return NotImplemented
+
+
     def add_changesheet_line_item(self, line_item: ChangesheetLineItem) -> None:
         """
         Add a line item to the changesheet
@@ -92,3 +117,12 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
             f.write(self.changesheet.header)
             for line_item in self.changesheet.line_items:
                 f.write(line_item.line)
+
+
+def get_nmdc_biosample_by_id(id_: str) -> Optional[JSON_OBJECT]:
+    """
+    Get an NMDC biosample by ID
+    :param id_: str
+    :return: JSON_OBJECT
+    """
+    return None
