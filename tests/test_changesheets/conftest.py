@@ -52,6 +52,14 @@ def nmdc_bona_009_biosample_no_ecosystem_metadata():
             biosample.pop(key)
         return biosample
 
+@pytest.fixture
+def nmdc_bona_009_biosample_no_gold_biosample_identifiers():
+    with open(TEST_DATA_DIR.joinpath(BONA_009_BIOSAMPLES_NMDC_QUERY_API_RESPONSE)) as f:
+        response = json.load(f)
+        biosample = response["cursor"]["firstBatch"][0]
+        biosample["gold_biosample_identifiers"] = []
+        return biosample
+
 
 @pytest.fixture
 def gold_biosample_expected_names():
@@ -99,4 +107,16 @@ def bona_009_no_ecosystem_metadata_expected_changesheet_line_items():
             "ecosystem_subtype",
             "Boreal forest/Taiga",
         ),
+    ]
+
+@pytest.fixture
+def bona_009_no_gold_biosample_identifiers_expected_changesheet_line_items():
+    return [
+        ChangesheetLineItem(
+            "64e3e875a29dd0cc4d3cf756",
+            "insert",
+            "gold_biosample_identifiers",
+            "GOLD:Gb0356158",
+        ),
+
     ]
