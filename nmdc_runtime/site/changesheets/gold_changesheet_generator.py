@@ -24,6 +24,7 @@ def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:
     return biosample["biosampleName"].split()[-1]
 
 
+
 def get_nmdc_biosample_object_id(nmdc_biosample: JSON_OBJECT) -> str:
     """
     Get the object_id of the given NMDC biosample
@@ -33,6 +34,14 @@ def get_nmdc_biosample_object_id(nmdc_biosample: JSON_OBJECT) -> str:
     return nmdc_biosample["_id"]["$oid"]
 
 # TODO: move this to a util module or common location
+def get_normalized_gold_biosample_identifier(gold_biosample: JSON_OBJECT) -> str:
+    """
+    Get the normalized GOLD biosample identifier for the given GOLD biosample
+    :param gold_biosample: JSON_OBJECT
+    :return: str
+    """
+    return normalize_gold_biosample_id(gold_biosample["biosampleGoldId"])
+
 def normalize_gold_biosample_id(gold_biosample_id: str) -> str:
     """
     Normalize the given GOLD biosample ID to the form "GOLD:<gold_biosample_id>"
@@ -54,6 +63,7 @@ def find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id: str) -> list[JS
         "find": "biosample_set",
         "filter": {"gold_biosample_identifiers": {"$elemMatch": {"$eq": gold_biosample_id}}}
     }
+    #TODO: Connect to API and run query
     return []
 
 def find_nmdc_biosample_id_via_omics_processing_name(gold_biosample_name_suffix: str) -> Optional[str]:
@@ -86,15 +96,15 @@ def compare_biosamples(nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT)
     :param gold_biosample: JSON_OBJECT
     :return: list[ChangesheetLineItem]
     """
-    
+
     line_items = []
-    
+
     # Check the ecosystem metadata
     line_items.extend(_check_gold_ecosystem_metadata(nmdc_biosample, gold_biosample))
-    
+
     # Check the GOLD biosample identifiers
     line_items.extend(_check_gold_biosample_identifiers(nmdc_biosample, gold_biosample))
-    
+
     return line_items
 
 
@@ -116,9 +126,9 @@ def _check_gold_ecosystem_metadata(nmdc_biosample: JSON_OBJECT, gold_biosample: 
     for k,v in ecosystem_keys.items():
         if not nmdc_biosample.get(k):
             line_items.append(ChangesheetLineItem(
-                get_nmdc_biosample_object_id(nmdc_biosample), 
-                "update", 
-                k, 
+                get_nmdc_biosample_object_id(nmdc_biosample),
+                "update",
+                k,
                 gold_biosample.get(v)))
     return line_items
 
@@ -130,7 +140,7 @@ def _check_gold_biosample_identifiers(nmdc_biosample: JSON_OBJECT, gold_biosampl
     :return: list[ChangesheetLineItem]
     """
     line_items = []
-    gold_biosample_identifier = normalize_gold_biosample_id(gold_biosample.get("biosampleGoldId"))
+    gold_biosample_identifier = get_normalized_gold_biosample_identifier(gold_biosample)
     if not gold_biosample_identifier in nmdc_biosample.get("gold_biosample_identifiers"):
         line_items.append(ChangesheetLineItem(
             get_nmdc_biosample_object_id(nmdc_biosample),
