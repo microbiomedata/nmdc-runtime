@@ -1,0 +1,57 @@
+[
+  {
+    "projectGoldId": "Gp0476562",
+    "projectName": "Terrestrial soil microbial communities from Abby Road, Pacific Northwest, WA, USA - ABBY_070-M-20170606-COMP-DNA1",
+    "legacyGoldId": null,
+    "studyGoldId": "Gs0144570",
+    "biosampleGoldId": "Gb0255526",
+    "organismGoldId": null,
+    "itsProposalId": null,
+    "itsSpid": null,
+    "itsSampleId": null,
+    "pmoProjectId": null,
+    "gptsProposalId": null,
+    "ncbiBioProjectAccession": null,
+    "ncbiBioSampleAccession": null,
+    "projectStatus": "Permanent Draft",
+    "sequencingStatus": "Complete",
+    "sequencingCenters": [
+      "Battelle Memorial Institute"
+    ],
+    "jgiFundingProgram": null,
+    "jgiFundingYear": null,
+    "hmpId": null,
+    "seqMethod": [
+      "Illumina NextSeq 550"
+    ],
+    "contacts": [
+      {
+        "name": "Lee Stanish",
+        "email": "lstanish@gmail.com",
+        "roles": [
+          "PI"
+        ]
+      },
+      {
+        "name": "Supratim Mukherjee",
+        "email": "supratimmukherjee@lbl.gov",
+        "roles": [
+          "submitter"
+        ]
+      },
+      {
+        "name": "Russell Neches",
+        "email": "ryneches@lbl.gov",
+        "roles": [
+          "other"
+        ]
+      }
+    ],
+    "genomePublications": [],
+    "otherPublications": [],
+    "sraExperimentIds": [],
+    "modDate": "2023-07-26",
+    "addDate": "2020-01-27",
+    "sequencingStrategy": "Metagenome"
+  }
+]

@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 
 from nmdc_runtime.site.changesheets.changesheet_generator import (
@@ -23,6 +24,18 @@ def gold_bona_009_biosample():
     with open(TEST_DATA_DIR.joinpath(BONA_009_GOLD_BIOSAMPLES_API_RESPONSE)) as f:
         response = json.load(f)
         return response[0]
+
+
+@pytest.fixture
+def omics_processing_to_biosamples_map():
+    return os.path.join(TEST_DATA_DIR, "omics_processing_to_biosamples_map.tsv")
+
+@pytest.fixture
+def expected_omics_processing_to_biosamples_map():
+    return {
+        "nmdc:omprc-11-t0jqr240": ["nmdc:bsm-11-n4htkv94", "nmdc:bsm-11-xkrpjq36"],
+        "nmdc:omprc-11-c4v85b38": ["nmdc:bsm-11-e552n350", "nmdc:bsm-11-mg8ehr76", "nmdc:bsm-11-v15pnd34"]
+    }
 
 
 @pytest.fixture
