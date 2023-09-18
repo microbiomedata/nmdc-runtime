@@ -70,11 +70,18 @@ def find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id: str) -> list[JS
 
 def find_nmdc_omics_processing_via_gold_biosample_name_suffix(gold_biosample_name_suffix: str) -> Optional[JSON_OBJECT]:
     """
-    Find the NMDC omics_processing that includes the given GOLD biosample name suffix in omics_processing_name
+    Find the NMDC omics_processing that includes the given GOLD biosample name suffix in omics_processing.name
     :param gold_biosample_name_suffix: str
     :return: JSON_OBJECT
     """
-    return None
+    query = {
+        "find": "omics_processing_set",
+        "filter": {"name": {"$regex": f".*{gold_biosample_name_suffix}.*"}}
+    }
+    #TODO: Connect to API and run query
+    return []
+
+
 
 
 
