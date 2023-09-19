@@ -14,4 +14,5 @@ Reference for contributing to this documentation.
     mkdocs.yml    # The configuration file.
     docs/
         index.md  # The documentation homepage.
+        nb/       # Jupyter notebooks.
         ...       # Other markdown pages, images and other files.
