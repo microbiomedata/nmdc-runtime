@@ -10,7 +10,7 @@ from nmdc_runtime.site.translation.translator import Translator
 from nmdc_runtime.site.util import get_basename
 
 
-class NeonDataTranslator(Translator):
+class NeonSoilDataTranslator(Translator):
     def __init__(self, mms_data: dict, sls_data: dict, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
