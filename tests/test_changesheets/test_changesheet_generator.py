@@ -1,4 +1,5 @@
 # ChangesheetGenerator tests
+import pytest
 from unittest.mock import patch, mock_open
 
 
@@ -11,10 +12,14 @@ def test_add_changesheet_line_item(base_changesheet_generator, insert_line_item)
     base_changesheet_generator.add_changesheet_line_item(insert_line_item)
     assert len(base_changesheet_generator.changesheet.line_items) == 1
     assert base_changesheet_generator.changesheet.line_items[0].id == "test_id:01234"
+    assert base_changesheet_generator.changesheet.line_items[
+               0].line == "test_id:01234\tinsert\tsome_attribute\tsome_value"
 
 
 def test_validate_changesheet(base_changesheet_generator):
-    assert base_changesheet_generator.validate_changesheet() == NotImplemented
+    with pytest.raises(NotImplementedError):
+        base_changesheet_generator.validate_changesheet()
+
 
 
 def test_write_changesheet(base_changesheet_generator, insert_line_item):

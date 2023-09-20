@@ -97,25 +97,25 @@ def insert_line_item():
 def bona_009_no_ecosystem_metadata_expected_changesheet_line_items():
     return [
         ChangesheetLineItem(
-            "64e3e875a29dd0cc4d3cf756",
+            "nmdc:bsm-11-a1q56a63",
             "update",
             "ecosystem",
             "Environmental",
         ),
         ChangesheetLineItem(
-            "64e3e875a29dd0cc4d3cf756",
+            "nmdc:bsm-11-a1q56a63",
             "update",
             "ecosystem_category",
             "Terrestrial",
         ),
         ChangesheetLineItem(
-            "64e3e875a29dd0cc4d3cf756",
+            "nmdc:bsm-11-a1q56a63",
             "update",
             "ecosystem_type",
             "Soil",
         ),
         ChangesheetLineItem(
-            "64e3e875a29dd0cc4d3cf756",
+            "nmdc:bsm-11-a1q56a63",
             "update",
             "ecosystem_subtype",
             "Boreal forest/Taiga",
@@ -126,7 +126,7 @@ def bona_009_no_ecosystem_metadata_expected_changesheet_line_items():
 def bona_009_no_gold_biosample_identifiers_expected_changesheet_line_items():
     return [
         ChangesheetLineItem(
-            "64e3e875a29dd0cc4d3cf756",
+            "nmdc:bsm-11-a1q56a63",
             "insert",
             "gold_biosample_identifiers",
             "GOLD:Gb0356158",

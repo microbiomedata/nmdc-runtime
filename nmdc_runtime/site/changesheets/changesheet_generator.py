@@ -87,7 +87,7 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
         Generate a changesheet
         :return: None
         """
-        return NotImplemented
+        raise NotImplemented
 
 
     def add_changesheet_line_item(self, line_item: ChangesheetLineItem) -> None:
@@ -103,7 +103,7 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
         Validate a changesheet against the NMDC runtime validation API
         :return: bool
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def write_changesheet(self, output_filename=None) -> None:
         """
