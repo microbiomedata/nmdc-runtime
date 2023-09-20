@@ -8,8 +8,8 @@ import logging
 import os
 from typing import ClassVar, Dict, Any, Optional, Union
 from nmdc_runtime.site.changesheets.changesheet_generator import (
-    BaseChangesheetGenerator, JSON_OBJECT,
-    ChangesheetLineItem, get_nmdc_biosample_by_id)
+    BaseChangesheetGenerator)
+from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, get_nmdc_biosample_by_id, JSON_OBJECT
 
 
 def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:

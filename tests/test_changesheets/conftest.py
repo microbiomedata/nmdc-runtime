@@ -3,8 +3,9 @@ import os
 import pytest
 
 from nmdc_runtime.site.changesheets.changesheet_generator import (
-    BaseChangesheetGenerator, ChangesheetLineItem
+    BaseChangesheetGenerator
 )
+from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem
 
 from nmdc_runtime.util import REPO_ROOT_DIR
 
