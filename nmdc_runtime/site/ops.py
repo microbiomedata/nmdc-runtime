@@ -60,7 +60,10 @@ from nmdc_runtime.site.resources import (
     NeonApiClient,
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
-from nmdc_runtime.site.translation.neon_translator import NeonDataTranslator
+from nmdc_runtime.site.translation.neon_translator import NeonSoilDataTranslator
+from nmdc_runtime.site.translation.neon_benthic_translator import (
+    NeonBenthicDataTranslator,
+)
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
@@ -726,6 +729,11 @@ def get_neon_pipeline_sls_data_product(context: OpExecutionContext) -> dict:
     return context.op_config["sls_data_product"]
 
 
+@op(config_schema={"benthic_data_product": dict})
+def get_neon_pipeline_benthic_data_product(context: OpExecutionContext) -> dict:
+    return context.op_config["benthic_data_product"]
+
+
 @op(required_resource_keys={"neon_api_client"})
 def neon_data_by_product(
     context: OpExecutionContext, data_product: dict
@@ -753,7 +761,7 @@ def neon_data_by_product(
 
 
 @op(required_resource_keys={"runtime_api_site_client"})
-def nmdc_schema_database_from_neon_data(
+def nmdc_schema_database_from_neon_soil_data(
     context: OpExecutionContext,
     mms_data: Dict[str, pd.DataFrame],
     sls_data: Dict[str, pd.DataFrame],
@@ -764,7 +772,24 @@ def nmdc_schema_database_from_neon_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonDataTranslator(mms_data, sls_data, id_minter=id_minter)
+    translator = NeonSoilDataTranslator(mms_data, sls_data, id_minter=id_minter)
+
+    database = translator.get_database()
+    return database
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def nmdc_schema_database_from_neon_benthic_data(
+    context: OpExecutionContext,
+    benthic_data: Dict[str, pd.DataFrame],
+) -> nmdc.Database:
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+
+    def id_minter(*args, **kwargs):
+        response = client.mint_id(*args, **kwargs)
+        return response.json()
+
+    translator = NeonBenthicDataTranslator(benthic_data, id_minter=id_minter)
 
     database = translator.get_database()
     return database
