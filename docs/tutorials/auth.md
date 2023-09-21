@@ -2,7 +2,7 @@
 
 ## Log in as a User
 
-Open <https://api.dev.microbiomedata.org/docs> and click on the `Authorize` button near the top of
+Open <https://api.microbiomedata.org/docs> and click on the `Authorize` button near the top of
 the page:
 
 ![auth button](../img/auth-button.png)
