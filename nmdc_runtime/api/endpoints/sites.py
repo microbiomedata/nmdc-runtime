@@ -98,9 +98,10 @@ def replace_site():
     pass
 
 
-@router.get("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.get("/sites/{site_id}/capabilities", include_in_schema=False)
 def list_site_capabilities(site_id: str):
-    return site_id
+    """Not yet implemented"""
+    pass
 
 
 @router.put("/sites/{site_id}/capabilities", response_model=List[Capability])
