@@ -104,9 +104,10 @@ def list_site_capabilities(site_id: str):
     pass
 
 
-@router.put("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.put("/sites/{site_id}/capabilities", include_in_schema=False)
 def replace_site_capabilities(site_id: str, capability_ids: List[str]):
-    return capability_ids
+    """Not yet implemented"""
+    pass
 
 
 def verify_client_site_pair(
