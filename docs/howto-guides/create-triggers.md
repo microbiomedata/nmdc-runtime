@@ -1,14 +1,14 @@
 # Create Workflow Triggers To Spawn Jobs
 
-Jobs represent work to be done. Specifically, a [Job](https://api.dev.microbiomedata.org/docs#/jobs)
-is a request to run a [Workflow](https://api.dev.microbiomedata.org/docs#/workflows) given a certain
-[Object](https://api.dev.microbiomedata.org/docs#/objects) as its input. The Runtime system will
+Jobs represent work to be done. Specifically, a [Job](https://api.microbiomedata.org/docs#/jobs)
+is a request to run a [Workflow](https://api.microbiomedata.org/docs#/workflows) given a certain
+[Object](https://api.microbiomedata.org/docs#/objects) as its input. The Runtime system will
 spawn a new Job when:
 
-1. An [Object](https://api.dev.microbiomedata.org/docs#/objects),
-2. is assigned an [Object Type](https://api.dev.microbiomedata.org/docs#/object_types),
-3. which is associated with a [Workflow](https://api.dev.microbiomedata.org/docs#/workflows),
-4. through a [Trigger](https://api.dev.microbiomedata.org/docs#/triggers).
+1. An [Object](https://api.microbiomedata.org/docs#/objects),
+2. is assigned an [Object Type](https://api.microbiomedata.org/docs#/object_types),
+3. which is associated with a [Workflow](https://api.microbiomedata.org/docs#/workflows),
+4. through a [Trigger](https://api.microbiomedata.org/docs#/triggers).
 
 <figure markdown style="max-width: 25em">
   ![Job Triggering](../img/job-triggering.png)
