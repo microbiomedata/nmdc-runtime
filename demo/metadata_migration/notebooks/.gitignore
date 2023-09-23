@@ -1,2 +1,3 @@
-mongodump.*.out
-tmp.*
+/.notebook.env
+/mongodump.*.out
+/tmp.*
