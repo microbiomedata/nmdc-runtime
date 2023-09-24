@@ -59,7 +59,7 @@ class Config:
 
         # Validate the connection string.
         uri = mongo_config["uri"]
-        if not re.match(r"mongodb:\/\/.*", uri):
+        if not re.match(r"^mongodb:\/\/.*", uri):  # note: this is a sanity test, not a comprehensive test
             raise ValueError(f"uri value in {mongo_config_file_path} is invalid.")
 
         return dict(uri=uri)
