@@ -3,7 +3,8 @@ from nmdc_runtime.site.changesheets.gold_changesheet_generator import (
     Issue397ChangesheetGenerator,
     get_gold_biosample_name_suffix,
     compare_biosamples,
-    get_nmdc_biosample_object_id
+    get_nmdc_biosample_object_id,
+    read_omics_procesing_to_biosamples_data_file
 )
 
 
@@ -42,7 +43,10 @@ def test_compare_biosamples_no_gold_biosample_identifiers(
     assert line_items == bona_009_no_gold_biosample_identifiers_expected_changesheet_line_items
 
 
-def test_issue397_changesheet_generator(gold_biosample_response, omics_processing_to_biosamples_map, expected_omics_processing_to_biosamples_map):
+def test_issue397_changesheet_generator(gold_biosample_response, omics_processing_to_biosamples_data_file,
+                                        expected_omics_processing_to_biosamples_map):
+    omics_processing_to_biosamples_map = read_omics_procesing_to_biosamples_data_file(
+        omics_processing_to_biosamples_data_file)
     changesheet_generator = Issue397ChangesheetGenerator("test_generator",
                                                          gold_biosample_response,
                                                          omics_processing_to_biosamples_map)

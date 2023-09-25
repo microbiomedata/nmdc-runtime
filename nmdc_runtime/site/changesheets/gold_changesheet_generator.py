@@ -4,12 +4,14 @@ gold_changesheet_generator.py: Provides classes to generate and validate changes
 with missing or incorrect GOLD-derived metadata.
 """
 import csv
+from dagster import op, graph
 import logging
 import os
 from typing import ClassVar, Dict, Any, Optional, Union
 from nmdc_runtime.site.changesheets.changesheet_generator import (
     BaseChangesheetGenerator)
 from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, get_nmdc_biosample_by_id, JSON_OBJECT
+from nmdc_runtime.site.ops import gold_biosamples_by_study
 
 
 def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:
@@ -196,16 +198,11 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
     """
     issue_link = "https://github.com/microbiomedata/issues/issues/397"
 
+    # TODO consider a SPARQL query to get the omics_processing_to_biosamples_map on the fly
     def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT],
-                 omics_to_biosample_map_file: Union[str, bytes, os.PathLike]) -> None:
+                 omics_to_biosample_map: dict) -> None:
         super().__init__(name, gold_biosamples)
-
-        self.omics_processing_to_biosamples_map = {}
-        with open(omics_to_biosample_map_file) as f:
-            reader = csv.DictReader(f, delimiter="\t")
-            for row in reader:
-                self.omics_processing_to_biosamples_map[row["OmicsProcessing"]] = row["Biosamples"].split("|")
-
+        self.omics_processing_to_biosamples_map = omics_to_biosample_map
         logging.basicConfig(filename=self.output_filename_root + ".log", level=logging.INFO)
 
     def generate_changesheet(self) -> None:
@@ -273,3 +270,39 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
         :return: bool
         """
         raise NotImplementedError
+
+
+def read_omics_procesing_to_biosamples_data_file(datafile: Union[str, bytes, os.PathLike]) -> Dict[str, list[str]]:
+    """
+    Get a map of omics_processing_id to biosample_id(s) separated by |
+    :param datafile:
+    :return: Dict[str, list[str]]
+    """
+    omics_processing_to_biosamples_map = {}
+    with open(datafile) as tsvfile:
+        reader = csv.DictReader(tsvfile, dialect='excel-tab')
+        for row in reader:
+            omics_processing_to_biosamples_map[row["OmicsProcessing"]] = row["Biosamples"].split("|")
+    return omics_processing_to_biosamples_map
+
+# TODO wrap above in a dagster op
+
+
+
+@graph
+def generate_issue_397_changesheet():
+    """
+    Generate a changesheet for issue #397
+    :return: None
+    """
+    GOLD_STUDY_ID = "Gs0114663"
+    # gold_biosamples = gold_biosamples_by_study(GOLD_STUDY_ID)
+    # omics_processing_to_biosamples_map = get_omics_procesing_to_biosamples_map()
+    #
+    # issue_397_changesheet_generator = Issue397ChangesheetGenerator("issue_397", gold_biosamples, omics_processing_to_biosamples_map)
+    # issue_397_changesheet_generator.generate_changesheet()
+    #
+    # issue_397_changesheet_generator.write_changesheet()
+    # issue_397_changesheet_generator.validate_changesheet()
+
+

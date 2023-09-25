@@ -28,7 +28,7 @@ def gold_bona_009_biosample():
 
 
 @pytest.fixture
-def omics_processing_to_biosamples_map():
+def omics_processing_to_biosamples_data_file():
     return os.path.join(TEST_DATA_DIR, "omics_processing_to_biosamples_map.tsv")
 
 @pytest.fixture
