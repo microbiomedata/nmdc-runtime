@@ -34,19 +34,11 @@ config_test = {
         }
     },
     "ops": {
-        "load_nmdc_etl_class": {
+        "read_omics_procesing_to_biosamples_data_file": {
             "config": {
                 "data_file": str(
-                    Path(__file__).parent.parent.parent.parent.joinpath(
-                        "metadata-translation/src/data/nmdc_merged_data.tsv.zip"
-                    )
-                ),
-                "sssom_map_file": "",
-                "spec_file": str(
-                    Path(__file__).parent.parent.parent.parent.joinpath(
-                        "nmdc_runtime/lib/nmdc_data_source.yaml"
-                    )
-                ),
+                    os.path.join(os.path.dirname(__file__), "data", "omics_processing_to_biosamples_map.tsv")
+                )
             }
         }
     },
@@ -321,3 +313,5 @@ def generate_issue_397_changesheet():
     issue_397_changesheet_generator = get_issue_397_changesheet_generator(gold_biosamples,
                                                                           omics_processing_to_biosamples_map)
 
+
+test_generate_issue_397_changesheet_job = generate_issue_397_changesheet.to_job(**preset_test)
