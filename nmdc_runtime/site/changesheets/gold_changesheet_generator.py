@@ -8,7 +8,10 @@ from dagster import graph, op
 import logging
 import os
 from pathlib import Path
-from nmdc_runtime.site.resources import mongo_resource
+from nmdc_runtime.site.resources import (
+    runtime_api_site_client_resource,
+    gold_api_client_resource,
+)
 from typing import Dict, Optional, List, Any
 from nmdc_runtime.site.changesheets.changesheet_generator import (
     BaseChangesheetGenerator)
@@ -17,34 +20,34 @@ from nmdc_runtime.site.ops import gold_biosamples_by_study
 from nmdc_runtime.site.site_utils.gold import get_gold_biosample_name_suffix, get_normalized_gold_biosample_identifier, \
     normalize_gold_biosample_id
 
-mode_test = {
-    "resource_defs": {"mongo": mongo_resource}
-}  # Connect to a real MongoDB instance for testing.
-
-config_test = {
-    "resources": {
-        "mongo": {
-            "config": {
-                # local docker container via docker-compose.yml
-                "host": "mongo",
-                "username": "admin",
-                "password": "root",
-                "dbname": "nmdc_etl_staging",
-            },
-        }
-    },
-    "ops": {
-        "read_omics_procesing_to_biosamples_data_file": {
-            "config": {
-                "data_file": str(
-                    os.path.join(os.path.dirname(__file__), "data", "omics_processing_to_biosamples_map.tsv")
-                )
-            }
-        }
-    },
+resource_defs = {
+    "runtime_api_site_client": runtime_api_site_client_resource,
+    "gold_api_client": gold_api_client_resource,
 }
 
-preset_test = dict(**mode_test, config=config_test)
+preset_normal = {
+    "config": {
+        "resources": {
+            "runtime_api_site_client": {
+                "config": {
+                    "base_url": {"env": "API_HOST"},
+                    "site_id": {"env": "API_SITE_ID"},
+                    "client_id": {"env": "API_SITE_CLIENT_ID"},
+                    "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                },
+            },
+            "gold_api_client": {
+                "config": {
+                    "base_url": {"env": "GOLD_API_BASE_URL"},
+                    "username": {"env": "GOLD_API_USERNAME"},
+                    "password": {"env": "GOLD_API_PASSWORD"},
+                },
+            },
+        },
+        "ops": {},
+    },
+    "resource_defs": resource_defs,
+}
 
 
 def find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id: str) -> list[JSON_OBJECT]:
@@ -275,7 +278,7 @@ def read_omics_procesing_to_biosamples_data_file() -> Dict[str, list[str]]:
     return omics_processing_to_biosamples_map
 
 
-@op(config_schema={"study_id": str})
+@op
 def get_issue_397_gold_study_id(context) -> str:
     """
     Get the GOLD study ID for issue #397
@@ -284,18 +287,18 @@ def get_issue_397_gold_study_id(context) -> str:
     return ISSUE_397_GOLD_STUDY_ID
 
 
-@op(required_resource_keys={"runtime_api_site_client"})
+@op
 def get_issue_397_changesheet_generator(context, gold_biosamples: List[Dict[str, Any]],
                                         omics_processing_to_biosamples_map) -> Issue397ChangesheetGenerator:
     """
     Initialize a changesheet generator for issue #397, generate the changesheet, and validate it
     :return: Issue397ChangesheetGenerator instance
     """
-    changesheet_generator =  Issue397ChangesheetGenerator("issue_397", gold_biosamples, omics_processing_to_biosamples_map)
+    changesheet_generator = Issue397ChangesheetGenerator("issue_397", gold_biosamples,
+                                                         omics_processing_to_biosamples_map)
     changesheet_generator.generate_changesheet()
     if not changesheet_generator.validate_changesheet():
         raise Exception("Changesheet validation failed")
-
 
     return changesheet_generator
 
@@ -314,4 +317,5 @@ def generate_issue_397_changesheet():
                                                                           omics_processing_to_biosamples_map)
 
 
-test_generate_issue_397_changesheet_job = generate_issue_397_changesheet.to_job(**preset_test)
+#
+test_generate_issue_397_changesheet_job = generate_issue_397_changesheet.to_job(**preset_normal)
