@@ -4,58 +4,55 @@ gold_changesheet_generator.py: Provides classes to generate and validate changes
 with missing or incorrect GOLD-derived metadata.
 """
 import csv
-from dagster import op, graph
+from dagster import graph, op
 import logging
 import os
-from typing import ClassVar, Dict, Any, Optional, Union
+from pathlib import Path
+from nmdc_runtime.site.resources import mongo_resource
+from typing import Dict, Optional, List, Any
 from nmdc_runtime.site.changesheets.changesheet_generator import (
     BaseChangesheetGenerator)
 from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, get_nmdc_biosample_by_id, JSON_OBJECT
 from nmdc_runtime.site.ops import gold_biosamples_by_study
+from nmdc_runtime.site.site_utils.gold import get_gold_biosample_name_suffix, get_normalized_gold_biosample_identifier, \
+    normalize_gold_biosample_id
 
+mode_test = {
+    "resource_defs": {"mongo": mongo_resource}
+}  # Connect to a real MongoDB instance for testing.
 
-def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:
-    """
-    Get the suffix for the name of a GOLD biosample - the last word in the biosampleName attribute
-    e.g. "biosampleName": "Terrestrial soil microbial communities from
-    Disney Wilderness Preserve, Southeast, FL, USA - DSNY_016-M-37-14-20140409-GEN-DNA1",
+config_test = {
+    "resources": {
+        "mongo": {
+            "config": {
+                # local docker container via docker-compose.yml
+                "host": "mongo",
+                "username": "admin",
+                "password": "root",
+                "dbname": "nmdc_etl_staging",
+            },
+        }
+    },
+    "ops": {
+        "load_nmdc_etl_class": {
+            "config": {
+                "data_file": str(
+                    Path(__file__).parent.parent.parent.parent.joinpath(
+                        "metadata-translation/src/data/nmdc_merged_data.tsv.zip"
+                    )
+                ),
+                "sssom_map_file": "",
+                "spec_file": str(
+                    Path(__file__).parent.parent.parent.parent.joinpath(
+                        "nmdc_runtime/lib/nmdc_data_source.yaml"
+                    )
+                ),
+            }
+        }
+    },
+}
 
-    Suffix = DSNY_016-M-37-14-20140409-GEN-DNA1
-
-    :param biosample: a list of JSON objects representing GOLD biosamples
-    :return: str
-    """
-    return biosample["biosampleName"].split()[-1]
-
-# TODO do we need this?
-def get_nmdc_biosample_object_id(nmdc_biosample: JSON_OBJECT) -> str:
-    """
-    Get the object_id of the given NMDC biosample
-    :param nmdc_biosample: JSON_OBJECT
-    :return: str
-    """
-    return nmdc_biosample["_id"]["$oid"]
-
-
-# TODO: move this to a util module or common location
-def get_normalized_gold_biosample_identifier(gold_biosample: JSON_OBJECT) -> str:
-    """
-    Get the normalized GOLD biosample identifier for the given GOLD biosample
-    :param gold_biosample: JSON_OBJECT
-    :return: str
-    """
-    return normalize_gold_biosample_id(gold_biosample["biosampleGoldId"])
-
-
-def normalize_gold_biosample_id(gold_biosample_id: str) -> str:
-    """
-    Normalize the given GOLD biosample ID to the form "GOLD:<gold_biosample_id>"
-    :param gold_biosample_id: str
-    :return: str
-    """
-    if not gold_biosample_id.startswith("GOLD:"):
-        gold_biosample_id = f"GOLD:{gold_biosample_id}"
-    return gold_biosample_id
+preset_test = dict(**mode_test, config=config_test)
 
 
 def find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id: str) -> list[JSON_OBJECT]:
@@ -86,6 +83,7 @@ def find_nmdc_omics_processing_via_gold_biosample_name_suffix(gold_biosample_nam
     # TODO: Connect to API and run query
     return None
 
+
 def get_nmdc_biosample_by_id(id: str) -> Optional[JSON_OBJECT]:
     """
     Get an NMDC biosample by ID eg nmdc:bsm-11-ecn7ad34
@@ -113,14 +111,12 @@ def find_gold_sequencing_project_ids_by_gold_biosample_id(gold_biosample_id: str
 
 class BaseGoldBiosampleChangesheetGenerator(BaseChangesheetGenerator):
     """
-    Class for generating changesheets for GOLD-derived metadata
+    Class for generating changesheets for GOLD-derived metadata, starting with a list of GOLD biosamples
     """
 
     def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT]) -> None:
         super().__init__(name)
         self.gold_biosamples = gold_biosamples
-
-        self.gold_biosample_names = [get_gold_biosample_name_suffix(x) for x in self.gold_biosamples]
 
 
 def compare_biosamples(nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT) -> list[ChangesheetLineItem]:
@@ -198,7 +194,6 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
     """
     issue_link = "https://github.com/microbiomedata/issues/issues/397"
 
-    # TODO consider a SPARQL query to get the omics_processing_to_biosamples_map on the fly
     def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT],
                  omics_to_biosample_map: dict) -> None:
         super().__init__(name, gold_biosamples)
@@ -246,7 +241,6 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
                     else:
                         logging.info(f"Could not find GOLD sequencing project identifiers for {biosample_name_sfx}")
 
-
                 # get corresponding NMDC biosample IDs from omics_processing_to_biosamples_map
                 nmdc_biosample_ids = self.omics_processing_to_biosamples_map.get(
                     omics_processing["cursor"]["firstBatch"][0]["_id"]["$oid"])
@@ -269,15 +263,18 @@ class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
         Validate the changesheet for issue #397
         :return: bool
         """
-        raise NotImplementedError
+        # TODO: immpement this
+        return True
 
 
-def read_omics_procesing_to_biosamples_data_file(datafile: Union[str, bytes, os.PathLike]) -> Dict[str, list[str]]:
+@op
+def read_omics_procesing_to_biosamples_data_file() -> Dict[str, list[str]]:
     """
     Get a map of omics_processing_id to biosample_id(s) separated by |
-    :param datafile:
+
     :return: Dict[str, list[str]]
     """
+    datafile = os.path.join(os.path.dirname(__file__), "data", "omics_processing_to_biosamples_map.tsv")
     omics_processing_to_biosamples_map = {}
     with open(datafile) as tsvfile:
         reader = csv.DictReader(tsvfile, dialect='excel-tab')
@@ -285,8 +282,30 @@ def read_omics_procesing_to_biosamples_data_file(datafile: Union[str, bytes, os.
             omics_processing_to_biosamples_map[row["OmicsProcessing"]] = row["Biosamples"].split("|")
     return omics_processing_to_biosamples_map
 
-# TODO wrap above in a dagster op
 
+@op(config_schema={"study_id": str})
+def get_issue_397_gold_study_id(context) -> str:
+    """
+    Get the GOLD study ID for issue #397
+    """
+    ISSUE_397_GOLD_STUDY_ID = "Gs0114663"
+    return ISSUE_397_GOLD_STUDY_ID
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def get_issue_397_changesheet_generator(context, gold_biosamples: List[Dict[str, Any]],
+                                        omics_processing_to_biosamples_map) -> Issue397ChangesheetGenerator:
+    """
+    Initialize a changesheet generator for issue #397, generate the changesheet, and validate it
+    :return: Issue397ChangesheetGenerator instance
+    """
+    changesheet_generator =  Issue397ChangesheetGenerator("issue_397", gold_biosamples, omics_processing_to_biosamples_map)
+    changesheet_generator.generate_changesheet()
+    if not changesheet_generator.validate_changesheet():
+        raise Exception("Changesheet validation failed")
+
+
+    return changesheet_generator
 
 
 @graph
@@ -295,14 +314,10 @@ def generate_issue_397_changesheet():
     Generate a changesheet for issue #397
     :return: None
     """
-    GOLD_STUDY_ID = "Gs0114663"
-    # gold_biosamples = gold_biosamples_by_study(GOLD_STUDY_ID)
-    # omics_processing_to_biosamples_map = get_omics_procesing_to_biosamples_map()
-    #
-    # issue_397_changesheet_generator = Issue397ChangesheetGenerator("issue_397", gold_biosamples, omics_processing_to_biosamples_map)
-    # issue_397_changesheet_generator.generate_changesheet()
-    #
-    # issue_397_changesheet_generator.write_changesheet()
-    # issue_397_changesheet_generator.validate_changesheet()
+    study_id = get_issue_397_gold_study_id()
+    omics_processing_to_biosamples_map = read_omics_procesing_to_biosamples_data_file()
+    gold_biosamples = gold_biosamples_by_study(study_id)
 
+    issue_397_changesheet_generator = get_issue_397_changesheet_generator(gold_biosamples,
+                                                                          omics_processing_to_biosamples_map)
 

@@ -11,36 +11,7 @@ from typing import ClassVar, Optional, Dict, Any
 
 JSON_OBJECT = Dict[str, Any]  # TODO: de-duplicate this with the one in translator.py
 
-config_test = {
-    "resources": {
-        "mongo": {
-            "config": {
-                # local docker container via docker-compose.yml
-                "host": "mongo",
-                "username": "admin",
-                "password": "root",
-                "dbname": "nmdc_etl_staging",
-            },
-        }
-    },
-    "ops": {
-        "load_nmdc_etl_class": {
-            "config": {
-                "data_file": str(
-                    Path(__file__).parent.parent.parent.parent.joinpath(
-                        "metadata-translation/src/data/nmdc_merged_data.tsv.zip"
-                    )
-                ),
-                "sssom_map_file": "",
-                "spec_file": str(
-                    Path(__file__).parent.parent.parent.parent.joinpath(
-                        "nmdc_runtime/lib/nmdc_data_source.yaml"
-                    )
-                ),
-            }
-        }
-    },
-}
+
 
 @dataclass
 class ChangesheetLineItem:

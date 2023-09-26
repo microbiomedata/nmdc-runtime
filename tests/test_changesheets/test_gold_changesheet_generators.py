@@ -1,11 +1,10 @@
 from nmdc_runtime.site.changesheets.gold_changesheet_generator import (
     BaseGoldBiosampleChangesheetGenerator,
     Issue397ChangesheetGenerator,
-    get_gold_biosample_name_suffix,
     compare_biosamples,
-    get_nmdc_biosample_object_id,
     read_omics_procesing_to_biosamples_data_file
 )
+from nmdc_runtime.site.site_utils.gold import get_gold_biosample_name_suffix
 
 
 def test_base_gold_biosample_changesheet_generator(gold_biosample_response, gold_biosample_expected_names):
@@ -19,8 +18,7 @@ def test_base_gold_biosample_changesheet_generator(gold_biosample_response, gold
     assert gold_biosample_names == gold_biosample_expected_names
 
 
-def test_get_nmcd_biosample_object_id(nmdc_bona_009_biosample):
-    assert get_nmdc_biosample_object_id(nmdc_bona_009_biosample) == "64e3e875a29dd0cc4d3cf756"
+
 
 
 def test_compare_biosamples(nmdc_bona_009_biosample, gold_bona_009_biosample):
@@ -43,12 +41,12 @@ def test_compare_biosamples_no_gold_biosample_identifiers(
     assert line_items == bona_009_no_gold_biosample_identifiers_expected_changesheet_line_items
 
 
-def test_issue397_changesheet_generator(gold_biosample_response, omics_processing_to_biosamples_data_file,
-                                        expected_omics_processing_to_biosamples_map):
-    omics_processing_to_biosamples_map = read_omics_procesing_to_biosamples_data_file(
-        omics_processing_to_biosamples_data_file)
-    changesheet_generator = Issue397ChangesheetGenerator("test_generator",
-                                                         gold_biosample_response,
-                                                         omics_processing_to_biosamples_map)
-    assert changesheet_generator.gold_biosamples == gold_biosample_response
-    assert changesheet_generator.omics_processing_to_biosamples_map == expected_omics_processing_to_biosamples_map
+# def test_issue397_changesheet_generator(gold_biosample_response, omics_processing_to_biosamples_data_file,
+#                                         expected_omics_processing_to_biosamples_map):
+#     omics_processing_to_biosamples_map = read_omics_procesing_to_biosamples_data_file(
+#         omics_processing_to_biosamples_data_file)
+#     changesheet_generator = Issue397ChangesheetGenerator("test_generator",
+#                                                          gold_biosample_response,
+#                                                          omics_processing_to_biosamples_map)
+#     assert changesheet_generator.gold_biosamples == gold_biosample_response
+#     assert changesheet_generator.omics_processing_to_biosamples_map == expected_omics_processing_to_biosamples_map

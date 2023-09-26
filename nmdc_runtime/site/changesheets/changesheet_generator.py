@@ -17,14 +17,6 @@ class ChangesheetGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate_changesheet(self) -> None:
-        """
-        Generate a changesheet
-        :return: None
-        """
-        pass
-
-    @abstractmethod
     def add_changesheet_line_item(self, line_item: ChangesheetLineItem) -> None:
         """
         Add a line item to the changesheet
@@ -59,14 +51,6 @@ class BaseChangesheetGenerator(ChangesheetGenerator):
         self.name = name
         self.changesheet = Changesheet()
         self.output_filename_root = f"{self.name}-{time.strftime('%Y%m%d-%H%M%S')}"
-
-    def generate_changesheet(self) -> None:
-        """
-        Generate a changesheet
-        :return: None
-        """
-        raise NotImplemented
-
 
     def add_changesheet_line_item(self, line_item: ChangesheetLineItem) -> None:
         """
