@@ -11,6 +11,9 @@ load_from:
   - python_package:
       package_name: nmdc_runtime.site.repository
       attribute: biosample_submission_ingest
+  - python_package:
+        package_name: nmdc_runtime.site.repository
+        attribute: test_changesheet_generation
 #  - python_package:
 #      package_name: nmdc_runtime.site.repository
 #      attribute: validation

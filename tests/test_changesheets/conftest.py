@@ -2,10 +2,8 @@ import json
 import os
 import pytest
 
-from nmdc_runtime.site.changesheets.changesheet_generator import (
-    BaseChangesheetGenerator
-)
-from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem
+
+from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, Changesheet
 
 from nmdc_runtime.util import REPO_ROOT_DIR
 
@@ -86,8 +84,8 @@ def gold_biosample_expected_names():
 
 
 @pytest.fixture
-def base_changesheet_generator():
-    return BaseChangesheetGenerator("test_changesheet_generator")
+def changesheet():
+    return Changesheet("test_changesheet_generator")
 
 
 @pytest.fixture

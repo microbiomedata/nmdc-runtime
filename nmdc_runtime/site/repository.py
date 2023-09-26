@@ -50,6 +50,9 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
+from nmdc_runtime.site.changesheets.gold import (
+    test_generate_issue_397_changesheet_job
+)
 from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
 from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
 from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
@@ -620,6 +623,14 @@ def biosample_submission_ingest():
             },
         ),
     ]
+
+
+@repository
+def test_changesheet_generation():
+    graph_jobs = [
+        test_generate_issue_397_changesheet_job,
+    ]
+    return graph_jobs
 
 
 # @repository

@@ -1,23 +1,21 @@
-# nmdc_runtime/site/change_sheets/gold_changesheet_generator.py
+# nmdc_runtime/site/change_sheets/gold.py
 """
-gold_changesheet_generator.py: Provides classes to generate and validate changesheets for NMDC database objects
+gold.py: Provides classes to generate and validate changesheets for NMDC database objects
 with missing or incorrect GOLD-derived metadata.
 """
 import csv
-from dagster import graph, op
-import logging
 import os
-from pathlib import Path
+from typing import Dict, Optional, List, Any
+
+from dagster import graph, op
+
+from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, JSON_OBJECT, Changesheet
+from nmdc_runtime.site.ops import gold_biosamples_by_study
 from nmdc_runtime.site.resources import (
     runtime_api_site_client_resource,
     gold_api_client_resource,
 )
-from typing import Dict, Optional, List, Any
-from nmdc_runtime.site.changesheets.changesheet_generator import (
-    BaseChangesheetGenerator)
-from nmdc_runtime.site.changesheets.changesheets import ChangesheetLineItem, get_nmdc_biosample_by_id, JSON_OBJECT
-from nmdc_runtime.site.ops import gold_biosamples_by_study
-from nmdc_runtime.site.site_utils.gold import get_gold_biosample_name_suffix, get_normalized_gold_biosample_identifier, \
+from nmdc_runtime.site.site_utils.gold import get_normalized_gold_biosample_identifier, \
     normalize_gold_biosample_id
 
 resource_defs = {
@@ -104,16 +102,6 @@ def find_gold_sequencing_project_ids_by_gold_biosample_id(gold_biosample_id: str
     return []
 
 
-class BaseGoldBiosampleChangesheetGenerator(BaseChangesheetGenerator):
-    """
-    Class for generating changesheets for GOLD-derived metadata, starting with a list of GOLD biosamples
-    """
-
-    def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT]) -> None:
-        super().__init__(name)
-        self.gold_biosamples = gold_biosamples
-
-
 def compare_biosamples(nmdc_biosample: JSON_OBJECT, gold_biosample: JSON_OBJECT) -> list[ChangesheetLineItem]:
     """
     Compare the given NMDC and GOLD biosamples
@@ -178,89 +166,92 @@ def _check_gold_biosample_identifiers(nmdc_biosample: JSON_OBJECT, gold_biosampl
     return line_items
 
 
-class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
-    """
-    Class for generating changesheet for issue #397
-
-    omics_to_biosample_map_file is a file containing a mapping of omics_processing_id to biosample_id(s) separated by |
-    e.g.
-    OmicsProcessing	Biosamples
-    nmdc:omprc-11-t0jqr240	nmdc:bsm-11-n4htkv94|nmdc:bsm-11-xkrpjq36
-    """
-    issue_link = "https://github.com/microbiomedata/issues/issues/397"
-
-    def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT],
-                 omics_to_biosample_map: dict) -> None:
-        super().__init__(name, gold_biosamples)
-        self.omics_processing_to_biosamples_map = omics_to_biosample_map
-        logging.basicConfig(filename=self.output_filename_root + ".log", level=logging.INFO)
-
-    def generate_changesheet(self) -> None:
-        """
-        Generate a changesheet for issue #397
-        :return: None
-        """
-        for gold_biosample in self.gold_biosamples:
-            biosample_name_sfx = get_gold_biosample_name_suffix(gold_biosample)
-            gold_biosample_id = get_normalized_gold_biosample_identifier(gold_biosample)
-
-            # We don't expect to find any NMDC biosamples with the given gold_biosample_id
-            # but just to be sure...
-            nmdc_biosamples = find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id)
-            if nmdc_biosamples:
-                for nmdc_biosample in nmdc_biosamples:
-                    line_items = compare_biosamples(nmdc_biosample, gold_biosample)
-                    for line_item in line_items:
-                        self.add_changesheet_line_item(line_item)
-
-            else:
-                # Try to find an NMDC OmicsProcessing with the given biosample_name_sfx in the name
-                logging.info(f"Could not find NMDC biosample with gold_biosample_id {biosample_name_sfx}")
-                omics_processing = find_nmdc_omics_processing_via_gold_biosample_name_suffix(biosample_name_sfx)
-                if not omics_processing:
-                    logging.info(f"Could not find NMDC omics_processing with name {biosample_name_sfx}")
-                    continue
-
-                logging.info(f"Found NMDC omics_processing with name {biosample_name_sfx}")
-
-                # check for missing gold_sequencing_project_identifiers
-                if not omics_processing.get("gold_sequencing_project_identifiers"):
-                    gold_sequencing_project_identifiers = find_gold_sequencing_project_ids_by_gold_biosample_id(
-                        gold_biosample_id)
-                    if gold_sequencing_project_identifiers:
-                        self.add_changesheet_line_item(ChangesheetLineItem(
-                            omics_processing["_id"]["$oid"],
-                            "insert items",
-                            "gold_sequencing_project_identifiers",
-                            gold_sequencing_project_identifiers))
-                    else:
-                        logging.info(f"Could not find GOLD sequencing project identifiers for {biosample_name_sfx}")
-
-                # get corresponding NMDC biosample IDs from omics_processing_to_biosamples_map
-                nmdc_biosample_ids = self.omics_processing_to_biosamples_map.get(
-                    omics_processing["cursor"]["firstBatch"][0]["_id"]["$oid"])
-                if not nmdc_biosample_ids:
-                    logging.info(f"Could not find NMDC biosamples for omics_processing {omics_processing}")
-                    continue
-
-                for nmdc_biosample_id in nmdc_biosample_ids:
-                    nmdc_biosample = get_nmdc_biosample_by_id(nmdc_biosample_id)
-                    if not nmdc_biosample:
-                        logging.info(f"Could not find NMDC biosample with id {nmdc_biosample_id}")
-                        continue
-
-                    line_items = compare_biosamples(nmdc_biosample, gold_biosample)
-                    for line_item in line_items:
-                        self.add_changesheet_line_item(line_item)
-
-    def validate_changesheet(self) -> bool:
-        """
-        Validate the changesheet for issue #397
-        :return: bool
-        """
-        # TODO: immpement this
-        return True
-
+# TODO: rewrite this as an op
+# class Issue397ChangesheetGenerator(BaseGoldBiosampleChangesheetGenerator):
+#     """
+#     Class for generating changesheet for issue #397
+#
+#     omics_to_biosample_map_file is a file containing a mapping of omics_processing_id to biosample_id(s) separated by |
+#     e.g.
+#     OmicsProcessing	Biosamples
+#     nmdc:omprc-11-t0jqr240	nmdc:bsm-11-n4htkv94|nmdc:bsm-11-xkrpjq36
+#
+#     issue_link: "https://github.com/microbiomedata/issues/issues/397"
+#     """
+#
+#
+#     def __init__(self, name: str, gold_biosamples: list[JSON_OBJECT],
+#                  omics_to_biosample_map: dict) -> None:
+#         super().__init__(name, gold_biosamples)
+#         self.omics_processing_to_biosamples_map = omics_to_biosample_map
+#         logging.basicConfig(filename=self.output_filename_root + ".log", level=logging.INFO)
+#
+#     def generate_changesheet(self) -> None:
+#         """
+#         Generate a changesheet for issue #397
+#         :return: None
+#         """
+#         for gold_biosample in self.gold_biosamples:
+#             biosample_name_sfx = get_gold_biosample_name_suffix(gold_biosample)
+#             gold_biosample_id = get_normalized_gold_biosample_identifier(gold_biosample)
+#
+#             # We don't expect to find any NMDC biosamples with the given gold_biosample_id
+#             # but just to be sure...
+#             nmdc_biosamples = find_nmdc_biosamples_by_gold_biosample_id(gold_biosample_id)
+#             if nmdc_biosamples:
+#                 for nmdc_biosample in nmdc_biosamples:
+#                     line_items = compare_biosamples(nmdc_biosample, gold_biosample)
+#                     for line_item in line_items:
+#                         self.add_changesheet_line_item(line_item)
+#
+#             else:
+#                 # Try to find an NMDC OmicsProcessing with the given biosample_name_sfx in the name
+#                 logging.info(f"Could not find NMDC biosample with gold_biosample_id {biosample_name_sfx}")
+#                 omics_processing = find_nmdc_omics_processing_via_gold_biosample_name_suffix(biosample_name_sfx)
+#                 if not omics_processing:
+#                     logging.info(f"Could not find NMDC omics_processing with name {biosample_name_sfx}")
+#                     continue
+#
+#                 logging.info(f"Found NMDC omics_processing with name {biosample_name_sfx}")
+#
+#                 # check for missing gold_sequencing_project_identifiers
+#                 if not omics_processing.get("gold_sequencing_project_identifiers"):
+#                     gold_sequencing_project_identifiers = find_gold_sequencing_project_ids_by_gold_biosample_id(
+#                         gold_biosample_id)
+#                     if gold_sequencing_project_identifiers:
+#                         self.add_changesheet_line_item(ChangesheetLineItem(
+#                             omics_processing["_id"]["$oid"],
+#                             "insert items",
+#                             "gold_sequencing_project_identifiers",
+#                             gold_sequencing_project_identifiers))
+#                     else:
+#                         logging.info(f"Could not find GOLD sequencing project identifiers for {biosample_name_sfx}")
+#
+#                 # get corresponding NMDC biosample IDs from omics_processing_to_biosamples_map
+#                 nmdc_biosample_ids = self.omics_processing_to_biosamples_map.get(
+#                     omics_processing["cursor"]["firstBatch"][0]["_id"]["$oid"])
+#                 if not nmdc_biosample_ids:
+#                     logging.info(f"Could not find NMDC biosamples for omics_processing {omics_processing}")
+#                     continue
+#
+#                 for nmdc_biosample_id in nmdc_biosample_ids:
+#                     nmdc_biosample = get_nmdc_biosample_by_id(nmdc_biosample_id)
+#                     if not nmdc_biosample:
+#                         logging.info(f"Could not find NMDC biosample with id {nmdc_biosample_id}")
+#                         continue
+#
+#                     line_items = compare_biosamples(nmdc_biosample, gold_biosample)
+#                     for line_item in line_items:
+#                         self.add_changesheet_line_item(line_item)
+#
+#     def validate_changesheet(self) -> bool:
+#         """
+#         Validate the changesheet for issue #397
+#         :return: bool
+#         """
+#         # TODO: immpement this
+#         return True
+#
 
 @op
 def read_omics_procesing_to_biosamples_data_file() -> Dict[str, list[str]]:
@@ -288,19 +279,15 @@ def get_issue_397_gold_study_id(context) -> str:
 
 
 @op
-def get_issue_397_changesheet_generator(context, gold_biosamples: List[Dict[str, Any]],
-                                        omics_processing_to_biosamples_map) -> Issue397ChangesheetGenerator:
+def generate_397_changesheet(context, gold_biosamples: List[Dict[str, Any]],
+                             omics_processing_to_biosamples_map) -> Changesheet:
     """
     Initialize a changesheet generator for issue #397, generate the changesheet, and validate it
     :return: Issue397ChangesheetGenerator instance
     """
-    changesheet_generator = Issue397ChangesheetGenerator("issue_397", gold_biosamples,
-                                                         omics_processing_to_biosamples_map)
-    changesheet_generator.generate_changesheet()
-    if not changesheet_generator.validate_changesheet():
-        raise Exception("Changesheet validation failed")
 
-    return changesheet_generator
+    # TODO : implement me
+    return Changesheet("test_changesheet_397")
 
 
 @graph
@@ -313,9 +300,9 @@ def generate_issue_397_changesheet():
     omics_processing_to_biosamples_map = read_omics_procesing_to_biosamples_data_file()
     gold_biosamples = gold_biosamples_by_study(study_id)
 
-    issue_397_changesheet_generator = get_issue_397_changesheet_generator(gold_biosamples,
-                                                                          omics_processing_to_biosamples_map)
+    changesheet = generate_397_changesheet(gold_biosamples, omics_processing_to_biosamples_map)
 
 
 #
-test_generate_issue_397_changesheet_job = generate_issue_397_changesheet.to_job(**preset_normal)
+test_generate_issue_397_changesheet_job = generate_issue_397_changesheet.to_job(name="test_changesheet_397",
+                                                                                **preset_normal)
