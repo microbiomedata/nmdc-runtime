@@ -4,6 +4,7 @@ from typing import Union, List
 
 import pandas as pd
 import requests
+import requests_cache
 
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
@@ -37,6 +38,7 @@ class NeonBenthicDataTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
+        requests_cache.install_cache("neon_api_cache", expire_after=3600)
 
         neon_amb_data_tables = (
             "mms_benthicMetagenomeSequencing",
@@ -260,8 +262,16 @@ class NeonBenthicDataTranslator(Translator):
             ),
             geo_loc_name=self._create_text_value(
                 self.get_site_by_code(biosample_row["siteID"].values[0])
-                if not biosample_row["siteID"].empty
+                if biosample_row["siteID"].values[0]
                 else None
+            ),
+            type="nmdc:Biosample",
+            analysis_type="metagenomics",
+            biosample_categories="NEON",
+            depth=nmdc.QuantityValue(
+                has_minimum_numeric_value=nmdc.Float("0"),
+                has_maximum_numeric_value=nmdc.Float("1"),
+                has_unit="meters",
             ),
         )
 
@@ -286,7 +296,6 @@ class NeonBenthicDataTranslator(Translator):
                 merged.sequenceAnalysisType,
                 merged.sampleMass,
                 merged.nucleicAcidConcentration,
-                merged.siteID,
                 afp.aquaticSiteType,
                 afp.habitatType,
                 afp.sampleMaterial,
@@ -295,6 +304,7 @@ class NeonBenthicDataTranslator(Translator):
                 afp.fieldSampleVolume,
                 afp.decimalLatitude,
                 afp.decimalLongitude,
+                afp.siteID,
                 afp.sampleID
             FROM amb_fieldParent AS afp
             LEFT JOIN
@@ -312,7 +322,6 @@ class NeonBenthicDataTranslator(Translator):
                         bs.investigation_type,
                         bs.qaqcStatus,
                         bs.ncbiProjectID,
-                        bs.siteID,
                         bd.genomicsSampleID,
                         bd.sequenceAnalysisType,
                         bd.sampleMass,
