@@ -1,8 +1,9 @@
-# nmdc_runtime/site/site_utils/gold.py
+# nmdc_runtime/site/normalization/gold.py
 """
 gold.py: Provides functions to normalize and validate JGI GOLD data.
 """
-from nmdc_runtime.site.changesheets.changesheets import JSON_OBJECT
+from typing import Dict, Any
+JSON_OBJECT = Dict[str, Any]
 
 
 def get_gold_biosample_name_suffix(biosample: JSON_OBJECT) -> str:
