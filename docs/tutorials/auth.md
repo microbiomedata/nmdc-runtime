@@ -2,7 +2,7 @@
 
 ## Log in as a User
 
-Open <https://api.dev.microbiomedata.org/docs> and click on the `Authorize` button near the top of
+Open <https://api.microbiomedata.org/docs> and click on the `Authorize` button near the top of
 the page:
 
 ![auth button](../img/auth-button.png)
@@ -22,7 +22,7 @@ Once authorized, hit `Close` to get back to the interactive API documentation:
     You need to be already logged in to create a new user.
     Also, only users `aclum`, `dwinston`, `scanon`, and `scholia` can create new users at this time.
 
-Go to [POST /users](https://api.dev.microbiomedata.org/docs#/users/create_user_users_post), and
+Go to [POST /users](https://api.microbiomedata.org/docs#/users/create_user_users_post), and
 click the `Try it out` button. In the request body, the only required fields are `username` and
 `password`. If you know the `id`s of any sites you would like the new user to administer, enter
 those as an array value for the `site_admin` field.
@@ -39,7 +39,7 @@ behalf of the site. This is used for managing certain API resources -- rather th
 responsible for a resource, a site is, and users that administer the site can come and go.
 
 Once logged in, you can use [GET
-/users/me](https://api.dev.microbiomedata.org/docs#/users/read_users_me_users_me__get) to see the
+/users/me](https://api.microbiomedata.org/docs#/users/read_users_me_users_me__get) to see the
 `id`s of sites you can administer. Example response:
 
 ```json
@@ -54,12 +54,12 @@ Once logged in, you can use [GET
 ```
 
 You can create your own sites via [POST
-/sites](https://api.dev.microbiomedata.org/docs#/sites/create_site_sites_post). If the `id` you
+/sites](https://api.microbiomedata.org/docs#/sites/create_site_sites_post). If the `id` you
 request already exists, you will get an error response. Do not worry about setting `capability_ids`;
 those can be set later.
 
 Once you have identified a site for which to generate credentials, use [POST
-/sites/{site_id}:generateCredentials](https://api.dev.microbiomedata.org/docs#/sites/generate_credentials_for_site_client_sites__site_id__generateCredentials_post)
+/sites/{site_id}:generateCredentials](https://api.microbiomedata.org/docs#/sites/generate_credentials_for_site_client_sites__site_id__generateCredentials_post)
 to do so. The response will look something like
 
 ```json
@@ -73,7 +73,7 @@ Save this information like you saved your username and password.
 
 ## Log in as a Site
 
-Click on the `Authorize` button near the top of <https://api.dev.microbiomedata.org/docs>. You may
+Click on the `Authorize` button near the top of <https://api.microbiomedata.org/docs>. You may
 need to `Logout` first. Scroll all the way down to the second form, the one with only two fields,
 `client_id` and `client_secret`:
 

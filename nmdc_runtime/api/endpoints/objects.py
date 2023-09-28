@@ -1,10 +1,11 @@
 from typing import List
 
 import botocore
-import pymongo
 from fastapi import APIRouter, status, Depends, HTTPException
 from gridfs import GridFS
 from pymongo import ReturnDocument
+from pymongo.database import Database as MongoDatabase
+import requests
 from starlette.responses import RedirectResponse
 from toolz import merge
 
@@ -27,6 +28,7 @@ from nmdc_runtime.api.models.object import (
 from nmdc_runtime.api.models.object_type import ObjectType, DrsObjectWithTypes
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.minter.config import typecodes
 
 router = APIRouter()
 
@@ -52,7 +54,7 @@ def supplied_object_id(mdb, client_site, obj_doc):
 @router.post("/objects", status_code=status.HTTP_201_CREATED, response_model=DrsObject)
 def create_object(
     object_in: DrsObjectIn,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
     """Create a new DrsObject.
@@ -90,7 +92,7 @@ def create_object(
 @router.get("/objects", response_model=ListResponse[DrsObject])
 def list_objects(
     req: ListRequest = Depends(),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "objects")
 
@@ -99,10 +101,53 @@ def list_objects(
     "/objects/{object_id}", response_model=DrsObject, response_model_exclude_unset=True
 )
 def get_object_info(
-    # TODO DrsId = Depends(normalize_id) # remove '-'s, i->1, lower(), etc.
     object_id: DrsId,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    Resolution strategy:
+
+    1. if object_id.startswith("sty"): # nmdc:Study typecode
+        then try https://data.microbiomedata.org/details/study/nmdc:{object_id}
+    2. if object_id.startswith("bsm"): # nmdc:Biosample typecode
+        then try https://data.microbiomedata.org/details/sample/nmdc:{object_id}
+    3. if object_id.startswith some known typecode
+        then try https://api.microbiomedata.org/nmdcschema/ids/nmdc:{object_id}
+    4. try https://w3id.org/nmdc/{object_id}
+    5. try mdb.objects.find_one({"id": object_id})
+    """
+    if object_id.startswith("sty"):
+        url_to_try = f"https://data.microbiomedata.org/details/study/nmdc:{object_id}"
+        rv = requests.head(url_to_try, allow_redirects=True)
+        if rv.status_code != 404:
+            return RedirectResponse(
+                url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+            )
+    elif object_id.startswith("bsm"):
+        url_to_try = f"https://data.microbiomedata.org/details/sample/nmdc:{object_id}"
+        rv = requests.head(url_to_try, allow_redirects=True)
+        if rv.status_code != 404:
+            return RedirectResponse(
+                url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+            )
+
+    # If "sty" or "bsm" ID doesn't have preferred landing page (above), try for JSON payload
+    if any(object_id.startswith(t["name"]) for t in typecodes()):
+        url_to_try = f"{BASE_URL_EXTERNAL}/nmdcschema/ids/nmdc:{object_id}"
+        rv = requests.head(url_to_try, allow_redirects=True)
+        if rv.status_code != 404:
+            return RedirectResponse(
+                url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+            )
+
+    url_to_try = f"https://w3id.org/nmdc/{object_id}"
+    rv = requests.head(url_to_try, allow_redirects=True)
+    print(rv.status_code)
+    if rv.status_code != 404:
+        return RedirectResponse(
+            url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+        )
+
     return raise404_if_none(mdb.objects.find_one({"id": object_id}))
 
 
@@ -126,9 +171,7 @@ def get_ga4gh_object_info(object_id: DrsId):
 
 
 @router.get("/objects/{object_id}/types", response_model=List[ObjectType])
-def list_object_types(
-    object_id: DrsId, mdb: pymongo.database.Database = Depends(get_mongo_db)
-):
+def list_object_types(object_id: DrsId, mdb: MongoDatabase = Depends(get_mongo_db)):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}, ["types"]))
     return list(mdb.object_types.find({"id": {"$in": doc.get("types", [])}}))
 
@@ -137,7 +180,7 @@ def list_object_types(
 def replace_object_types(
     object_id: str,
     object_type_ids: List[str],
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     unknown_type_ids = set(object_type_ids) - set(mdb.object_types.distinct("id"))
     if unknown_type_ids:
@@ -166,7 +209,7 @@ def object_access_id_ok(obj_doc, access_id):
 def get_object_access(
     object_id: DrsId,
     access_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
     obj_doc = raise404_if_none(mdb.objects.find_one({"id": object_id}))
@@ -201,7 +244,7 @@ def get_object_access(
 def update_object(
     object_id: str,
     object_patch: DrsObjectIn,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}))
