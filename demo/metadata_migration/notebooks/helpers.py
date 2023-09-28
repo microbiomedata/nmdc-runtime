@@ -69,16 +69,16 @@ class Config:
 
         # Parse and validate the notebook config file.
         notebook_config = self.parse_and_validate_notebook_config_file(notebook_config_file_path)
-        self.mongodump = notebook_config["mongodump_path"]
-        self.mongorestore = notebook_config["mongorestore_path"]
+        self.mongodump_path = notebook_config["mongodump_path"]
+        self.mongorestore_path = notebook_config["mongorestore_path"]
         self.origin_dump_folder_path = notebook_config["origin_dump_folder_path"]
         self.transformer_dump_folder_path = notebook_config["transformer_dump_folder_path"]
 
         # Parse and validate the Mongo config files.
-        origin_mongo_config_file_path = notebook_config["origin_mongo_config_file_path"]
-        transformer_mongo_config_file_path = notebook_config["transformer_mongo_config_file_path"]        
-        origin_mongo_server_config = self.parse_and_validate_mongo_config_file(origin_mongo_config_file_path)
-        transformer_mongo_server_config = self.parse_and_validate_mongo_config_file(transformer_mongo_config_file_path)
+        self.origin_mongo_config_file_path = notebook_config["origin_mongo_config_file_path"]
+        self.transformer_mongo_config_file_path = notebook_config["transformer_mongo_config_file_path"]        
+        origin_mongo_server_config = self.parse_and_validate_mongo_config_file(self.origin_mongo_config_file_path)
+        transformer_mongo_server_config = self.parse_and_validate_mongo_config_file(self.transformer_mongo_config_file_path)
         self.origin_mongo_server_uri = origin_mongo_server_config["uri"]
         self.transformer_mongo_server_uri = transformer_mongo_server_config["uri"]
 
