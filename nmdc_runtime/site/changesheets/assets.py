@@ -3,7 +3,7 @@
 assets.py: Provides software-defined assets for creating changesheets for NMDC database objects.
 """
 from contextlib import contextmanager
-from dagster import asset, ConfigurableResource, EnvVar
+from dagster import asset, ConfigurableResource, EnvVar, Definitions
 from nmdc_runtime.site.resources import GoldApiClient
 from typing import Iterator
 
@@ -14,12 +14,12 @@ class GoldApiResource(ConfigurableResource):
     """
     Resource for fetching GOLD biosamples
     """
-    base_url: str = EnvVar("GOLD_API_BASE_URL")
-    username: str = EnvVar("GOLD_API_USERNAME")
-    password: str = EnvVar("GOLD_API_PASSWORD")
+    base_url: str
+    username: str
+    password: str
 
-    @contextmanager
-    def get_client(self) -> Iterator[GoldApiClient]:
+
+    def get_client(self) -> GoldApiClient:
         """
         Get a GOLD API client
         :return: GoldApiClient
@@ -29,7 +29,7 @@ class GoldApiResource(ConfigurableResource):
             username=self.username,
             password=self.password,
         )
-        yield client
+        return client
 
 
 @asset
@@ -37,5 +37,8 @@ def gold_biosamples_for_study(gold_api_resource: GoldApiResource) -> None:
     """
     Biosamples for a GOLD study
     """
-    with gold_api_resource.get_client() as client:
-        yield client.fetch_biosamples_by_study(GOLD_NEON_SOIL_STUDY_ID)
+    client = gold_api_resource.get_client()
+    client.fetch_biosamples_by_study(GOLD_NEON_SOIL_STUDY_ID)
+
+
+
