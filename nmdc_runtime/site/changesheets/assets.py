@@ -33,9 +33,9 @@ class GoldApiResource(ConfigurableResource):
 
 
 @asset
-def gold_biosamples_by_study(gold_api_resource: GoldApiResource) -> None:
+def gold_biosamples_for_study(gold_api_resource: GoldApiResource) -> None:
     """
     Biosamples for a GOLD study
     """
     with gold_api_resource.get_client() as client:
-        yield client.get_biosamples_by_study(GOLD_NEON_SOIL_STUDY_ID)
+        yield client.fetch_biosamples_by_study(GOLD_NEON_SOIL_STUDY_ID)
