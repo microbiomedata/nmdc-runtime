@@ -6,7 +6,7 @@ import requests
 
 class GoldApiResource(ConfigurableResource):
     """
-    Resource for fetching GOLD biosamples
+    Resource for the GOLD API client
     """
     base_url: str
     username: str
