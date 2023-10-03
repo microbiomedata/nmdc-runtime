@@ -1,0 +1,59 @@
+{
+    "soil_horizon": "O horizon",
+    "id": "nmdc:bsm-11-v15pnd34",
+    "collection_date": {
+      "has_raw_value": "2020-07-13T12:55Z"
+    },
+    "geo_loc_name": {
+      "has_raw_value": "USA: Massachusetts, Harvard Forest & Quabbin Watershed"
+    },
+    "analysis_type": [
+      "metagenomics"
+    ],
+    "lat_lon": {
+      "latitude": 42.535686,
+      "longitude": -72.177968
+    },
+    "env_broad_scale": {
+      "term": {
+        "id": "ENVO:00000446",
+        "name": "terrestrial biome"
+      }
+    },
+    "samp_collec_device": "brownie cutter",
+    "type": "nmdc:Biosample",
+    "elev": 372.1,
+    "ph": 3.31,
+    "temp": {
+      "has_numeric_value": 15.1,
+      "has_unit": "Celsius"
+    },
+    "gold_biosample_identifiers": [],
+    "env_medium": {
+      "term": {
+        "id": "ENVO:00001998",
+        "name": "soil"
+      }
+    },
+    "biosample_categories": [
+      "NEON"
+    ],
+    "name": "HARV_034-O-19-2-20200713",
+    "water_content": [
+      "1.081 g of water/g of dry soil"
+    ],
+    "depth": {
+      "has_maximum_numeric_value": 0.09,
+      "has_minimum_numeric_value": 0,
+      "has_unit": "m"
+    },
+    "env_local_scale": {
+      "term": {
+        "id": "ENVO:01000843",
+        "name": "area of evergreen forest"
+      }
+    },
+    "part_of": [
+      "nmdc:sty-11-34xj1150"
+    ]
+  }
