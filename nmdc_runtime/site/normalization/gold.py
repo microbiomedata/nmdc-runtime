@@ -20,15 +20,6 @@ def get_gold_biosample_name_suffix(biosample_name: str) -> str:
     return biosample_name.split()[-1]
 
 
-def get_normalized_gold_biosample_identifier(biosample_gold_id) -> str:
-    """
-    Get the normalized GOLD biosample identifier for the given GOLD biosample
-    :param gold_biosample: JSON_OBJECT
-    :return: str
-    """
-    return normalize_gold_biosample_id(biosample_gold_id)
-
-
 def normalize_gold_biosample_id(gold_biosample_id: str) -> str:
     """
     Normalize the given GOLD biosample ID to the form "GOLD:<gold_biosample_id>"

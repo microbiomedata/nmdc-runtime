@@ -94,6 +94,16 @@ class RuntimeApiUserClient(RuntimeApiClient):
     def get_run_info(self, run_id: str):
         return self.request("GET", f"/runs/{run_id}")
 
+    def get_biosamples_by_gold_biosample_id(self, gold_biosample_id: str):
+        return self.request(
+            "GET",
+            f"/query:run",
+            {
+                "find": "biosample_set",
+                "filter": {"gold_biosample_identifiers": {"$elemMatch": {"$eq": gold_biosample_id}}},
+            }
+        )
+
 
 class RuntimeApiSiteClient(RuntimeApiClient):
     def __init__(

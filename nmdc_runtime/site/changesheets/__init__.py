@@ -7,9 +7,12 @@ from nmdc_runtime.site.changesheets.assets import (
     omics_processing_to_biosamples_map,
     gold_to_nmdc_biosamples_by_gold_identifier,
     gold_to_nmdc_biosamples_by_omics_processing_name,
-    resolved_gold_to_nmdc_biosample_pairs
+    resolved_gold_to_nmdc_biosample_pairs,
+    gold_nmdc_missing_ecosystem_metadata
 )
 from nmdc_runtime.site.changesheets.resources import GoldApiResource, RuntimeApiUserResource
+
+
 
 defs = Definitions(
     assets=[
@@ -17,7 +20,9 @@ defs = Definitions(
         omics_processing_to_biosamples_map,
         gold_to_nmdc_biosamples_by_gold_identifier,
         gold_to_nmdc_biosamples_by_omics_processing_name,
-        resolved_gold_to_nmdc_biosample_pairs
+        resolved_gold_to_nmdc_biosample_pairs,
+        gold_nmdc_missing_ecosystem_metadata,
+
     ],
     resources={
         "gold_api_resource": GoldApiResource(
