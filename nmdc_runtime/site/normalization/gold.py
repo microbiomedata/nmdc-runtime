@@ -2,8 +2,15 @@
 """
 gold.py: Provides functions to normalize and validate JGI GOLD data.
 """
+import logging
 from typing import Dict, Any
+
 JSON_OBJECT = Dict[str, Any]
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
 
 
 def get_gold_biosample_name_suffix(biosample_name: str) -> str:
@@ -28,7 +35,7 @@ def normalize_gold_biosample_id(gold_biosample_id: str) -> str:
     """
     if gold_biosample_id.startswith("GOLD:"):
         return gold_biosample_id
-    elif gold_biosample_id.startswith("Gb:"):
+    elif gold_biosample_id.startswith("Gb"):
         return f"GOLD:{gold_biosample_id}"
     elif gold_biosample_id.startswith("gold:") or gold_biosample_id.startswith("Gold:"):
         return f"GOLD:{gold_biosample_id[5:]}"
