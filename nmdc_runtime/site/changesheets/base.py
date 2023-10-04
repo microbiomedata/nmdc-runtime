@@ -12,14 +12,11 @@ from typing import Any, ClassVar, Dict
 from nmdc_runtime.site.resources import RuntimeApiUserClient
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s %("
-                               "message)s"
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(" "message)s"
 )
 
 JSON_OBJECT = Dict[str, Any]
-CHANGESHEETS_DIR = Path(__file__).parent.absolute().joinpath(
-    "changesheets_output"
-)
+CHANGESHEETS_DIR = Path(__file__).parent.absolute().joinpath("changesheets_output")
 
 
 @dataclass
@@ -57,9 +54,7 @@ class Changesheet:
         self.output_filename_root: str = f"{self.name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.output_filename: str = f"{self.output_filename_root}.tsv"
         self.log_filename: str = f"{self.output_filename_root}.log"
-        self.output_filepath: Path = self.output_dir.joinpath(
-            self.output_filename
-        )
+        self.output_filepath: Path = self.output_dir.joinpath(self.output_filename)
 
     def validate_changesheet(self, client: RuntimeApiUserClient) -> bool:
         """
@@ -69,9 +64,7 @@ class Changesheet:
         with open(self.output_filepath, "rb") as f:
             logging.info(f"Validating changesheet {self.output_filepath}")
             files = {"file": f}
-            resp = client.request(
-                "POST", "/changesheets/validate", {"files": files}
-            )
+            resp = client.request("POST", "/changesheets/validate", {"files": files})
             return resp.ok
 
     def write_changesheet(self) -> None:
