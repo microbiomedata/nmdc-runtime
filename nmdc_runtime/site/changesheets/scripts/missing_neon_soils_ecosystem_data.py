@@ -67,13 +67,13 @@ def goldbs_to_nmdcbs_and_omprc(
     # Search for NMDC biosamples with by GOLD biosample ID
     nmdc_biosamples = []
     logging.info(f"Searching for NMDC biosamples with {goldbs_id}...")
-    nmdcbs_respone = client.get_biosamples_by_gold_biosample_id(goldbs_id)
-    if nmdcbs_respone.status_code != 200:
+    nmdcbs_response = client.get_biosamples_by_gold_biosample_id(goldbs_id)
+    if nmdcbs_response.status_code != 200:
         logging.error(
-            f"Failed to retrieve NMDC biosamples with {goldbs_id}: {nmdcbs_respone.status_code}"
+            f"Failed to retrieve NMDC biosamples with {goldbs_id}: {nmdcbs_response.status_code}"
         )
 
-    nmdcbs = nmdcbs_respone.json()["cursor"]["firstBatch"]
+    nmdcbs = nmdcbs_response.json()["cursor"]["firstBatch"]
     logging.info(f"Found {len(nmdcbs)} NMDC biosamples with {goldbs_id}...")
     nmdc_biosamples.extend(nmdcbs)
 
@@ -251,24 +251,14 @@ def generate_changesheet(study_id):
                 changesheet.line_items.append(
                     compare_projects(gold_project, omprc_record)
                 )
-
-                # changesheet.line_items.extend(
-                #     compare_projects(gold_project, omprc_record)
-                # )
-
-        # gold_projects = gold_projects_response.json()
-        # for omprc_record in omprc_records:
-        #     for gold_project in gold_projects:
-        #         changesheet.line_items.extend(
-        #             compare_projects(gold_project, omprc_record)
-        #         )
-
     logging.info(f"Processed {len(gold_biosamples)} GOLD biosamples...")
     logging.info(f"found {nmdcbs_count} corresponding NMDC biosamples...")
     logging.info(f"unfindable_count: {unfindable_count}...")
     logging.info(f"changesheet has {len(changesheet.line_items)} line items...")
 
     changesheet.write_changesheet()
+
+    changesheet.validate_changesheet(runtime_api_user_client)
 
 
 if __name__ == "__main__":
