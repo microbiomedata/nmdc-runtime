@@ -9,7 +9,7 @@ from typing import List, Tuple
 from dagster import asset, Config, AssetIn, materialize, AssetExecutionContext
 
 from nmdc_runtime.site.changesheets.base import JSON_OBJECT, ChangesheetLineItem, Changesheet
-from nmdc_runtime.site.normalization.gold import get_gold_biosample_name_suffix, normalize_gold_biosample_id
+from nmdc_runtime.site.normalization.gold import get_gold_biosample_name_suffix, normalize_gold_id
 from nmdc_runtime.site.changesheets.resources import GoldApiResource, RuntimeApiUserResource
 
 GOLD_NEON_SOIL_STUDY_ID = "Gs0144570"

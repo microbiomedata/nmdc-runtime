@@ -27,16 +27,17 @@ def get_gold_biosample_name_suffix(biosample_name: str) -> str:
     return biosample_name.split()[-1]
 
 
-def normalize_gold_biosample_id(gold_biosample_id: str) -> str:
+def normalize_gold_id(gold_id: str) -> str:
     """
     Normalize the given GOLD biosample ID to the form "GOLD:<gold_biosample_id>"
-    :param gold_biosample_id: str
+    :param gold_id: str
     :return: str
     """
-    if gold_biosample_id.startswith("GOLD:"):
-        return gold_biosample_id
-    elif gold_biosample_id.startswith("Gb"):
-        return f"GOLD:{gold_biosample_id}"
-    elif gold_biosample_id.startswith("gold:") or gold_biosample_id.startswith("Gold:"):
-        return f"GOLD:{gold_biosample_id[5:]}"
-    return gold_biosample_id
+    if gold_id.startswith("GOLD:"):
+        return gold_id
+    elif gold_id.startswith("gold:") or gold_id.startswith("Gold:"):
+        return f"GOLD:{gold_id[5:]}"
+    elif gold_id.startswith("G") and ":" not in gold_id:
+        return f"GOLD:{gold_id}"
+    
+    return gold_id

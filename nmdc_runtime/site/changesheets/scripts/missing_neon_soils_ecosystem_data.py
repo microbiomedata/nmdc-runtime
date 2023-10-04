@@ -10,13 +10,19 @@ from pathlib import Path
 
 import click
 from dotenv import load_dotenv
+import time
+from typing import List, Tuple
 
 from nmdc_runtime.site.normalization.gold import (
     get_gold_biosample_name_suffix,
-    normalize_gold_biosample_id,
+    normalize_gold_id,
 )
 from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiUserClient
-from nmdc_runtime.site.changesheets.base import Changesheet, ChangesheetLineItem
+from nmdc_runtime.site.changesheets.base import (
+    Changesheet,
+    ChangesheetLineItem,
+    JSON_OBJECT,
+)
 
 load_dotenv()
 GOLD_NEON_SOIL_STUDY_ID = "Gs0144570"
@@ -41,13 +47,150 @@ def read_omics_processing_to_biosample_map() -> dict:
             omics_processing_to_biosamples[omics_processing_id] = biosample_ids.split(
                 "|"
             )
-    logging.info(
+    logging.debug(
         f"Read {lines_read} lines from OmicsProcessing-to-catted-Biosamples.tsv"
     )
     logging.info(
         f"Skipped {lines_skipped} lines from OmicsProcessing-to-catted-Biosamples.tsv"
     )
     return omics_processing_to_biosamples
+
+
+def goldbs_to_nmdcbs_and_omprc(
+    client, omprc_to_bs_map, goldbs
+) -> Tuple[List[JSON_OBJECT], List[JSON_OBJECT]]:
+    goldbs_id = normalize_gold_id(goldbs["biosampleGoldId"])
+    goldbs_name_suffix = get_gold_biosample_name_suffix(goldbs["biosampleName"])
+    logging.info(f"goldbs_id: {goldbs_id}")
+    logging.info(f"goldbs_name_suffix: {goldbs_name_suffix}")
+
+    # Search for NMDC biosamples with by GOLD biosample ID
+    nmdc_biosamples = []
+    logging.info(f"Searching for NMDC biosamples with {goldbs_id}...")
+    nmdcbs_respone = client.get_biosamples_by_gold_biosample_id(goldbs_id)
+    if nmdcbs_respone.status_code != 200:
+        logging.error(
+            f"Failed to retrieve NMDC biosamples with {goldbs_id}: {nmdcbs_respone.status_code}"
+        )
+
+    nmdcbs = nmdcbs_respone.json()["cursor"]["firstBatch"]
+    logging.info(f"Found {len(nmdcbs)} NMDC biosamples with {goldbs_id}...")
+    nmdc_biosamples.extend(nmdcbs)
+
+    # Search for NMDC biosamples via omics processing name containing GOLD biosample name suffix
+    logging.info(
+        f"Searching for NMDC omics processing name containing {goldbs_name_suffix}..."
+    )
+    omprc_response = client.get_omics_processing_by_name(goldbs_name_suffix)
+    if omprc_response.status_code != 200:
+        logging.error(
+            f"Failed to retrieve NMDC omics processing with {goldbs_name_suffix}: {omprc_response.status_code}"
+        )
+
+    omprc_records = omprc_response.json()["cursor"]["firstBatch"]
+    for omprc in omprc_records:
+        omprc_id = omprc["id"]
+        logging.info(f"omprc_id: {omprc_id}")
+        logging.info(
+            f"Searching for NMDC biosamples with omics processing {omprc_id}..."
+        )
+        nmdcbs_ids = omprc_to_bs_map.get(omprc_id, [])
+        logging.info(f"Found {len(nmdcbs_ids)} NMDC biosamples with {omprc_id}...")
+        for nmdcbs_id in nmdcbs_ids:
+            nmdcbs_req = client.request("GET", f"/biosamples/{nmdcbs_id}")
+            if nmdcbs_req.status_code != 200:
+                logging.error(
+                    f"Failed to retrieve NMDC biosample {nmdcbs_id}: {nmdcbs_req.status_code}"
+                )
+                continue
+            nmdcbs = nmdcbs_req.json()
+            nmdc_biosamples.append(nmdcbs)
+
+    logging.info(f"Found {len(nmdc_biosamples)} NMDC biosamples for {goldbs_id}...")
+    return nmdc_biosamples, omprc_records
+
+
+def compare_biosamples(goldbs, nmdcbs) -> List[ChangesheetLineItem]:
+    changesheet_line_items = []
+
+    # Check for missing ecosystem metadata
+    changesheet_line_items.extend(_check_ecosystem_metadata(goldbs, nmdcbs))
+
+    # Check for missing gold biosample identifiers
+    changesheet_line_items.extend(_check_gold_biosample_identifiers(goldbs, nmdcbs))
+
+    return changesheet_line_items
+
+
+def _check_ecosystem_metadata(goldbs, nmdcbs) -> List[ChangesheetLineItem]:
+    # nmdc to gold ecosystem key map
+    ecosystem_key_map = {
+        "ecosystem": "ecosystem",
+        "ecosystem_category": "ecosystemCategory",
+        "ecosystem_type": "ecosystemType",
+        "ecosystem_subtype": "ecosystemSubtype",
+    }
+    changesheet_line_items = []
+    for nmdc_key, gold_key in ecosystem_key_map.items():
+        if not gold_key in goldbs:
+            logging.warning(f"no {gold_key} for {goldbs['biosampleGoldId']}...")
+            continue
+        if not nmdc_key in nmdcbs:
+            changesheet_line_items.append(
+                ChangesheetLineItem(
+                    id=nmdcbs["id"],
+                    action="set",
+                    attribute=nmdc_key,
+                    value=goldbs.get(gold_key),
+                )
+            )
+            continue
+        if nmdcbs[nmdc_key] != goldbs.get(gold_key):
+            changesheet_line_items.append(
+                ChangesheetLineItem(
+                    id=nmdcbs["id"],
+                    action="update",
+                    attribute=nmdc_key,
+                    value=goldbs.get(gold_key),
+                )
+            )
+            continue
+
+    return changesheet_line_items
+
+
+def _check_gold_biosample_identifiers(goldbs, nmdcbs) -> List[ChangesheetLineItem]:
+    changesheet_line_items = []
+    goldbs_id = normalize_gold_id(goldbs["biosampleGoldId"])
+    if not goldbs_id in nmdcbs["gold_biosample_identifiers"]:
+        changesheet_line_items.append(
+            ChangesheetLineItem(
+                id=nmdcbs["id"],
+                action="add",
+                attribute="gold_biosample_identifiers",
+                value=goldbs_id,
+            )
+        )
+    return changesheet_line_items
+
+
+def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
+    gold_project_id = normalize_gold_id(gold_project["projectGoldId"])
+    if "alternative_identifiers" not in omprc_record:
+        return ChangesheetLineItem(
+            id=omprc_record["id"],
+            action="insert",
+            attribute="alternative_identifiers",
+            value=gold_project_id,
+        )
+
+    if gold_project_id not in omprc_record["alternative_identifiers"]:
+        return ChangesheetLineItem(
+            id=omprc_record["id"],
+            action="insert item",
+            attribute="alternative_identifiers",
+            value=gold_project_id,
+        )
 
 
 @click.command()
@@ -68,26 +211,64 @@ def generate_changesheet(study_id):
     logging.info("connected to GOLD API...")
 
     runtime_api_user_client = RuntimeApiUserClient(
-        base_url=os.getenv("API_HOST"),
-        username=os.getenv("API_ADMIN_USER"),
-        password=os.getenv("API_ADMIN_PASS"),
+        base_url=os.getenv("API_HOST_DEV"),
+        username=os.getenv("API_QUERY_USER"),
+        password=os.getenv("API_QUERY_PASS"),
     )
     logging.info("connected to NMDC API...")
 
-    omics_processing_to_biosamples = read_omics_processing_to_biosample_map()
-    logging.info(
-        f"read {len(omics_processing_to_biosamples)} omics processing to biosamples mappings..."
-    )
+    # Retrieve GOLD biosamples for the given study
     gold_biosamples = gold_api_client.fetch_biosamples_by_study(study_id)
     logging.info(f"retrieved {len(gold_biosamples)} biosamples from GOLD API...")
 
-    for goldbs in gold_biosamples:
-        logging.info(f"normalizing goldbs: {goldbs['biosampleGoldId']}...")
-        goldbs_id = normalize_gold_biosample_id(goldbs["biosampleGoldId"])
-        logging.info(f"normalized goldbs_id: {goldbs_id}")
-        goldbs_name_suffix = get_gold_biosample_name_suffix(goldbs["biosampleName"])
-        # logging.info(f"goldbs_id: {goldbs_id}")
-        # logging.info(f"goldbs_name_suffix: {goldbs_name_suffix}")
+    omprc_to_bs_map = read_omics_processing_to_biosample_map()
+
+    changesheet = Changesheet(name="missing_neon_soils_ecosystem_data")
+    # For each GOLD biosample, find the corresponding NMDC biosamples
+    nmdcbs_count = 0
+    unfindable_count = 0
+    for goldbs in gold_biosamples[0:2]:
+        nmdc_biosamples, omprc_records = goldbs_to_nmdcbs_and_omprc(
+            runtime_api_user_client, omprc_to_bs_map, goldbs
+        )
+        if not nmdc_biosamples:
+            logging.warning(
+                f"no corresponding NMDC biosamples found for {goldbs['biosampleGoldId']}..."
+            )
+            continue
+        logging.info(
+            f"found {len(nmdc_biosamples)} corresponding NMDC biosamples for {goldbs['biosampleGoldId']}..."
+        )
+        nmdcbs_count += len(nmdc_biosamples)
+        for nmdcbs in nmdc_biosamples:
+            changesheet.line_items.extend(compare_biosamples(goldbs, nmdcbs))
+
+        gold_projects = gold_api_client.request(
+            "/projects", params={"biosampleGoldId": goldbs["biosampleGoldId"]}
+        )
+        for gold_project in gold_projects:
+            for omprc_record in omprc_records:
+                changesheet.line_items.append(
+                    compare_projects(gold_project, omprc_record)
+                )
+
+                # changesheet.line_items.extend(
+                #     compare_projects(gold_project, omprc_record)
+                # )
+
+        # gold_projects = gold_projects_response.json()
+        # for omprc_record in omprc_records:
+        #     for gold_project in gold_projects:
+        #         changesheet.line_items.extend(
+        #             compare_projects(gold_project, omprc_record)
+        #         )
+
+    logging.info(f"Processed {len(gold_biosamples)} GOLD biosamples...")
+    logging.info(f"found {nmdcbs_count} corresponding NMDC biosamples...")
+    logging.info(f"unfindable_count: {unfindable_count}...")
+    logging.info(f"changesheet has {len(changesheet.line_items)} line items...")
+
+    changesheet.write_changesheet()
 
 
 if __name__ == "__main__":
