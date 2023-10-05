@@ -159,3 +159,7 @@ repl.ipynb
 *.crt
 
 tests/nmdcdb/
+*.tsv
+
+# changesheet generation - ignore the output directory
+nmdc_runtime/site/changesheets/changesheets_output/
