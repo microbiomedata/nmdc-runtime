@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette import status
 from starlette.responses import RedirectResponse
 
+from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.db.mongo import (
@@ -363,6 +364,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(Analytics)
 
 
 if __name__ == "__main__":

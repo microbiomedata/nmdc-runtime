@@ -159,3 +159,5 @@ repl.ipynb
 *.crt
 
 tests/nmdcdb/
+
+neon_cache.sqlite
