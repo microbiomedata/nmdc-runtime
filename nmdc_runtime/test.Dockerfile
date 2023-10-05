@@ -34,4 +34,4 @@ RUN pip install --no-cache-dir --editable .
 # Best practices: Prepare for C crashes.
 ENV PYTHONFAULTHANDLER=1
 
-ENTRYPOINT [ "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]
+ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]

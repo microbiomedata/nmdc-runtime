@@ -3,7 +3,6 @@ black
 coverage
 flake8
 invoke
-mock
 pip-tools
 pip
 pytest

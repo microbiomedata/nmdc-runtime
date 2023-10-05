@@ -23,7 +23,6 @@ linkml-runtime
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
-mock
 motor
 nmdc-schema==8.0.0
 openpyxl
