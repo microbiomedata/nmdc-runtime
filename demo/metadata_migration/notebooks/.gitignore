@@ -1,0 +1,5 @@
+/.notebook.env
+/.mongo.origin.yaml
+/.mongo.transformer.yaml
+/mongodump.*.out
+/tmp.*
