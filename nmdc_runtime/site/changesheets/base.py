@@ -7,6 +7,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
+import requests
 from typing import Any, ClassVar, Dict
 
 from nmdc_runtime.site.resources import RuntimeApiUserClient
@@ -53,7 +54,6 @@ class Changesheet:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.output_filename_root: str = f"{self.name}-{time.strftime('%Y%m%d-%H%M%S')}"
         self.output_filename: str = f"{self.output_filename_root}.tsv"
-        self.log_filename: str = f"{self.output_filename_root}.log"
         self.output_filepath: Path = self.output_dir.joinpath(self.output_filename)
 
     def validate_changesheet(self, client: RuntimeApiUserClient) -> bool:
@@ -61,11 +61,12 @@ class Changesheet:
         Validate the changesheet
         :return: None
         """
-        with open(self.output_filepath, "rb") as f:
-            logging.info(f"Validating changesheet {self.output_filepath}")
-            files = {"file": f}
-            resp = client.request("POST", "/changesheets/validate", {"files": files})
-            return resp.ok
+        logging.info(f"Validating changesheet {self.output_filepath}")
+        resp = requests.post(
+            "https://api.microbiomedata.org/metadata/changesheets:validate",
+            files={"uploaded_file": open(self.output_filepath, "rb")},
+        )
+        return resp.ok
 
     def write_changesheet(self) -> None:
         """

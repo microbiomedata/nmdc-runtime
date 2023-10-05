@@ -33,11 +33,11 @@ def normalize_gold_id(gold_id: str) -> str:
     :param gold_id: str
     :return: str
     """
-    if gold_id.startswith("GOLD:"):
+    if gold_id.startswith("gold:"):
         return gold_id
-    elif gold_id.startswith("gold:") or gold_id.startswith("Gold:"):
-        return f"GOLD:{gold_id[5:]}"
+    elif gold_id.startswith("GOLD:") or gold_id.startswith("Gold:"):
+        return f"gold:{gold_id[5:]}"
     elif gold_id.startswith("G") and ":" not in gold_id:
-        return f"GOLD:{gold_id}"
-    
+        return f"gold:{gold_id}"
+
     return gold_id
