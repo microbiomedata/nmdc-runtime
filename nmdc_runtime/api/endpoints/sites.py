@@ -40,6 +40,7 @@ from nmdc_runtime.api.models.site import (
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
+from nmdc_runtime.minter.bootstrap import refresh_minter_requesters_from_sites
 
 router = APIRouter()
 
@@ -56,6 +57,7 @@ def create_site(
             detail=f"site with supplied id {site.id} already exists",
         )
     mdb.sites.insert_one(site.dict())
+    refresh_minter_requesters_from_sites()
     rv = mdb.users.update_one(
         {"username": user.username},
         {"$addToSet": {"site_admin": site.id}},
