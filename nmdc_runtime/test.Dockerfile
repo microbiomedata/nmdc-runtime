@@ -29,7 +29,7 @@ COPY . /code
 RUN pip install --no-cache-dir --editable .
 
 ## Ensure wait-for-it
-#RUN chmod +x wait-for-it.sh
+RUN chmod +x wait-for-it.sh
 
 # Best practices: Prepare for C crashes.
 ENV PYTHONFAULTHANDLER=1
