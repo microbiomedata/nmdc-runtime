@@ -222,6 +222,23 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 )
 @click.option("--use_dev_api", is_flag=True, default=False, help=("Use the dev API"))
 def generate_changesheet(study_id, apply_changes, use_dev_api):
+    """
+    Generate a changesheet for missing ecosystem data for NEON soils samples by:
+    1. Retrieving GOLD biosamples for the given study
+    2. Finding the corresponding NMDC biosamples and omics processing records for each GOLD biosample
+    3. Comparing the GOLD biosample to the NMDC biosamples and omics processing records
+    4. Generating a changesheet for the differences
+    
+    WARNING: This script is not idempotent. It will generate a new changesheet each time it is run.
+
+    Changesheet is written to nmdc_runtime/site/changesheets/changesheets_output
+
+    :param study_id: The GOLD study ID
+    :param apply_changes: Whether to apply the changes via the
+    metadata/changesheets:apply endpoint (default: False) NOTE: not implemented!
+    :param use_dev_api: Use the dev API (default: False)
+    :return:
+    """
     start_time = time.time()
     logging.info("starting missing_neon_soils_ecosystem_data.py...")
     logging.info(f"study_id: {study_id}")
