@@ -220,9 +220,7 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 @click.option(
     "--apply_changes", is_flag=True, default=False, help=("Apply the changes")
 )
-@click.option(
-    "--use_dev_api", is_flag=True, default=False, help=("Use the dev API")
-)
+@click.option("--use_dev_api", is_flag=True, default=False, help=("Use the dev API"))
 def generate_changesheet(study_id, apply_changes, use_dev_api):
     start_time = time.time()
     logging.info("starting missing_neon_soils_ecosystem_data.py...")
