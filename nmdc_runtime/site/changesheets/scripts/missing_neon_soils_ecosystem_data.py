@@ -210,7 +210,10 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 @click.option(
     "--apply_changes", is_flag=True, default=False, help=("Apply the" "changes")
 )
-def generate_changesheet(study_id, apply_changes):
+@click.option(
+    "--use_dev_api", is_flag=True, default=False, help=("Use the " "dev " "API")
+)
+def generate_changesheet(study_id, apply_changes, use_dev_api):
     start_time = time.time()
     logging.info("starting missing_neon_soils_ecosystem_data.py...")
     logging.info(f"study_id: {study_id}")
@@ -222,8 +225,13 @@ def generate_changesheet(study_id, apply_changes):
     )
     logging.info("connected to GOLD API...")
 
+    if use_dev_api:
+        base_url = os.getenv("API_HOST_DEV")
+    else:
+        base_url = os.getenv("API_HOST")
+
     runtime_api_user_client = RuntimeApiUserClient(
-        base_url=os.getenv("API_HOST_DEV"),
+        base_url=base_url,
         username=os.getenv("API_QUERY_USER"),
         password=os.getenv("API_QUERY_PASS"),
     )
@@ -280,7 +288,7 @@ def generate_changesheet(study_id, apply_changes):
     changesheet.write_changesheet()
 
     logging.info("Validating changesheet...")
-    is_valid_changesheet = changesheet.validate_changesheet(runtime_api_user_client)
+    is_valid_changesheet = changesheet.validate_changesheet(base_url)
     logging.info(f"Changesheet is valid: {is_valid_changesheet}")
 
     if is_valid_changesheet and apply_changes:

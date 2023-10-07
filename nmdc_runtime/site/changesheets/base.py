@@ -16,7 +16,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(" "message)s"
 )
 
-JSON_OBJECT : TypeAlias = Dict[str, Any]
+JSON_OBJECT: TypeAlias = Dict[str, Any]
 CHANGESHEETS_DIR = Path(__file__).parent.absolute().joinpath("changesheets_output")
 
 
@@ -56,14 +56,15 @@ class Changesheet:
         self.output_filename: str = f"{self.output_filename_root}.tsv"
         self.output_filepath: Path = self.output_dir.joinpath(self.output_filename)
 
-    def validate_changesheet(self, client: RuntimeApiUserClient) -> bool:
+    def validate_changesheet(self, base_url: str) -> bool:
         """
         Validate the changesheet
         :return: None
         """
         logging.info(f"Validating changesheet {self.output_filepath}")
+        url = f"{base_url}/metadata/changesheets:validate"
         resp = requests.post(
-            "https://api.microbiomedata.org/metadata/changesheets:validate",
+            url,
             files={"uploaded_file": open(self.output_filepath, "rb")},
         )
         return resp.ok
