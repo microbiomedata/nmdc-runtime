@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 import requests
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, TypeAlias
 
 from nmdc_runtime.site.resources import RuntimeApiUserClient
 
@@ -16,7 +16,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(" "message)s"
 )
 
-JSON_OBJECT = Dict[str, Any]
+JSON_OBJECT : TypeAlias = Dict[str, Any]
 CHANGESHEETS_DIR = Path(__file__).parent.absolute().joinpath("changesheets_output")
 
 
