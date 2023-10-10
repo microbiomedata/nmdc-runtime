@@ -269,7 +269,18 @@ def all_docs_have_unique_id(coll) -> bool:
         return False
 
     total_count = coll.count_documents({})
-    return len(coll.distinct("id")) == total_count
+    return (
+        # avoid attempt to fetch large (>16mb) list of distinct IDs,
+        # a limitation of collection.distinct(). Use aggregation pipeline
+        # instead to compute on mongo server, using disk if necessary.
+        next(
+            coll.aggregate(
+                [{"$group": {"_id": "$id"}}, {"$count": "n_unique_ids"}],
+                allowDiskUse=True,
+            )
+        )["n_unique_ids"]
+        == total_count
+    )
 
 
 def specialize_activity_set_docs(docs):
