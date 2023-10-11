@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import pymongo.database
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, Response, status
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
@@ -24,6 +24,7 @@ router = APIRouter()
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
+    response: Response,
     form_data: OAuth2PasswordOrClientCredentialsRequestForm = Depends(),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
@@ -55,6 +56,16 @@ async def login_for_access_token(
             data={"sub": f"client:{form_data.client_id}"},
             expires_delta=access_token_expires,
         )
+
+    response.set_cookie(
+        "session",
+        value=access_token,
+        domain="localhost",
+        httponly=True,
+        max_age=(60 * 99),
+        expires=(60 * 99),
+    )
+
     return {
         "access_token": access_token,
         "token_type": "bearer",

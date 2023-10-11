@@ -198,6 +198,15 @@ def strip_oid(doc):
     return dissoc(doc, "_id")
 
 
+def strip_oid_recursive(doc):
+    if isinstance(doc, dict):
+        return {k: strip_oid_recursive(v) for k, v in doc.items() if k != "_id"}
+    elif isinstance(doc, list):
+        return [strip_oid_recursive(v) for v in doc]
+    else:
+        return doc
+
+
 def timeit(cursor):
     """Collect from cursor and return time taken in milliseconds."""
     tic = time_ns()

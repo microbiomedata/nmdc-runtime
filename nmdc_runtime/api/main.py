@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette import status
 from starlette.responses import RedirectResponse
 
+
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -24,6 +25,7 @@ from nmdc_runtime.api.endpoints import (
     object_types,
     objects,
     operations,
+    portal,
     queries,
     runs,
     sites,
@@ -46,6 +48,7 @@ api_router.include_router(sites.router, tags=["sites"])
 api_router.include_router(jobs.router, tags=["jobs"])
 api_router.include_router(objects.router, tags=["objects"])
 api_router.include_router(capabilities.router, tags=["capabilities"])
+api_router.include_router(portal.router, prefix="/api", tags=["portal"])
 api_router.include_router(triggers.router, tags=["triggers"])
 api_router.include_router(workflows.router, tags=["workflows"])
 api_router.include_router(object_types.router, tags=["object types"])

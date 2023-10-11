@@ -266,7 +266,7 @@ def pipeline_search(
     response_model=PipelineFindResponse,
     response_model_exclude_unset=True,
 )
-def pipeline_search(
+def pipeline_search_form(
     pipeline_spec: str = Form(...),
     description: str = Form(...),
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -276,7 +276,7 @@ def pipeline_search(
 
 
 @router.get("/pipeline_search", response_class=HTMLResponse)
-def pipeline_search(
+def pipeline_search_get(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     template = jinja_env.get_template("pipeline_search.html")
