@@ -1,3 +1,4 @@
+import re
 import math
 import sqlite3
 from typing import Union, List
@@ -73,6 +74,14 @@ class NeonBenthicDataTranslator(Translator):
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
+        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
+        self.neon_raw_data_file_mappings_df = pd.read_csv(
+            neon_raw_data_file_mappings_file, delimiter="\t"
+        )
+        self.neon_raw_data_file_mappings_df.to_sql(
+            "neonRawDataFile", self.conn, if_exists="replace", index=False
+        )
+
     def get_site_by_code(self, site_code: str) -> str:
         site_response = requests.get(
             f"https://data.neonscience.org/api/v0/sites/{site_code}"
@@ -95,7 +104,7 @@ class NeonBenthicDataTranslator(Translator):
         :param data: DataFrame to read the column value from.
         :return: Either a string, float or None depending on the column/column values.
         """
-        if column_name in data and not data[column_name].isna().any():
+        if column_name in data and not data[column_name].isna().any() and not data[column_name].empty:
             if column_name == "horizon":
                 return f"{data[column_name].values[0]} horizon"
             elif column_name == "qaqcStatus":
@@ -275,12 +284,183 @@ class NeonBenthicDataTranslator(Translator):
             ),
         )
 
+    def _translate_extraction_process(
+        self,
+        extraction_id: str,
+        extraction_input: str,
+        processed_sample_id: str,
+        extraction_row: pd.DataFrame,
+    ) -> nmdc.Extraction:
+        """
+        Create an nmdc Extraction process, which is a process to model the DNA extraction in
+        a metagenome sequencing experiment. The input to an Extraction process is the
+        output from a Pooling process.
+
+        :param extraction_id: Minted id for Extraction process.
+        :param extraction_input: Input to an Extraction process is the output from a Pooling process.
+        :param processed_sample_id: Output of Extraction process is a ProcessedSample.
+        :param extraction_row: DataFrame with Extraction process metadata.
+        :return: Extraction process object.
+        """
+        processing_institution = None
+        laboratory_name = self._get_value_or_none(extraction_row, "laboratoryName")
+        if laboratory_name is not None:
+            if re.search("Battelle", laboratory_name, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", laboratory_name, re.IGNORECASE):
+                processing_institution = "ANL"
+
+        return nmdc.Extraction(
+            id=extraction_id,
+            has_input=extraction_input,
+            has_output=processed_sample_id,
+            start_date=self._get_value_or_none(extraction_row, "collectDate"),
+            end_date=self._get_value_or_none(extraction_row, "processedDate"),
+            sample_mass=self._create_quantity_value(
+                self._get_value_or_none(extraction_row, "sampleMass"), "g"
+            ),
+            quality_control_report=nmdc.QualityControlReport(
+                status=self._get_value_or_none(extraction_row, "qaqcStatus")
+            ),
+            processing_institution=processing_institution,
+        )
+
+    def _translate_library_preparation(
+        self,
+        library_preparation_id: str,
+        library_preparation_input: str,
+        processed_sample_id: str,
+        library_preparation_row: pd.DataFrame,
+    ):
+        """
+        Create LibraryPreparation process object. The input to LibraryPreparation process
+        is the output ProcessedSample from an Extraction process. The output of LibraryPreparation
+        process is fed as input to an OmicsProcessing object.
+
+        :param library_preparation_id: Minted id for LibraryPreparation process.
+        :param library_preparation_input: Input to LibraryPreparation process is output from
+        Extraction process.
+        :param processed_sample_id: Minted ProcessedSample id which is output of LibraryPreparation
+        is also input to OmicsProcessing.
+        :param library_preparation_row: Metadata required to populate LibraryPreparation.
+        :return: Object that using LibraryPreparation process model.
+        """
+        processing_institution = None
+        laboratory_name = self._get_value_or_none(
+            library_preparation_row, "laboratoryName"
+        )
+        if laboratory_name is not None:
+            if re.search("Battelle", laboratory_name, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", laboratory_name, re.IGNORECASE):
+                processing_institution = "ANL"
+
+        return nmdc.LibraryPreparation(
+            id=library_preparation_id,
+            has_input=library_preparation_input,
+            has_output=processed_sample_id,
+            start_date=self._get_value_or_none(library_preparation_row, "collectDate"),
+            end_date=self._get_value_or_none(library_preparation_row, "processedDate"),
+            processing_institution=processing_institution,
+        )
+
+    def _translate_omics_processing(
+        self,
+        omics_processing_id: str,
+        processed_sample_id: str,
+        raw_data_file_data: str,
+        omics_processing_row: pd.DataFrame,
+    ) -> nmdc.OmicsProcessing:
+        """Create nmdc OmicsProcessing object. This class typically models the run of a
+        Bioinformatics workflow on sequence data from a biosample. The input to an OmicsProcessing
+        process is the output from a LibraryPreparation process, and the output of OmicsProcessing
+        is a DataObject which has the FASTQ sequence file URLs embedded in them.
+
+        :param omics_processing_id: Minted id for an OmicsProcessing process.
+        :param processed_sample_id: ProcessedSample that is the output of LibraryPreparation.
+        :param raw_data_file_data: R1/R2 DataObjects which have links to workflow processed output
+        files embedded in them.
+        :param omics_processing_row: DataFrame with metadata for an OmicsProcessing workflow
+        process/run.
+        :return: OmicsProcessing object that models a Bioinformatics workflow process/run.
+        """
+        processing_institution = None
+        sequencing_facility = self._get_value_or_none(
+            omics_processing_row, "sequencingFacilityID"
+        )
+        if sequencing_facility is not None:
+            if re.search("Battelle", sequencing_facility, re.IGNORECASE):
+                processing_institution = "Battelle"
+            elif re.search("Argonne", sequencing_facility, re.IGNORECASE):
+                processing_institution = "ANL"
+
+        return nmdc.OmicsProcessing(
+            id=omics_processing_id,
+            has_input=processed_sample_id,
+            has_output=raw_data_file_data,
+            processing_institution=processing_institution,
+            ncbi_project_name=self._get_value_or_none(
+                omics_processing_row, "ncbiProjectID"
+            ),
+            omics_type=self._create_controlled_term_value(
+                omics_processing_row["investigation_type"].values[0]
+            ),
+            instrument_name=f"{self._get_value_or_none(omics_processing_row, 'sequencingMethod')} {self._get_value_or_none(omics_processing_row, 'instrument_model')}",
+            part_of="nmdc:sty-11-34xj1150",
+            name=f"Terrestrial soil microbial communities - {self._get_value_or_none(omics_processing_row, 'dnaSampleID')}",
+            type="nmdc:OmicsProcessing",
+        )
+    
+    def _translate_processed_sample(
+        self, processed_sample_id: str, sample_id: str
+    ) -> nmdc.ProcessedSample:
+        """
+        Create an nmdc ProcessedSample. ProcessedSample is typically the output of a PlannedProcess
+        like Pooling, Extraction, LibraryPreparation, etc. We are using this to create a
+        reference for the nmdc minted ProcessedSample ids in `processed_sample_set`. We are
+        associating the minted ids with the name of the sample it is coming from which can be
+        a value from either the `genomicsSampleID` column or from the `dnaSampleID` column.
+
+        :param processed_sample_id: NMDC minted ProcessedSampleID.
+        :param sample_id: Value from `genomicsSampleID` or `dnaSampleID` column.
+        :return: ProcessedSample objects to be stored in `processed_sample_set`.
+        """
+        return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
+    
+    def _translate_data_object(
+        self, do_id: str, url: str, do_type: str, checksum: str
+    ) -> nmdc.DataObject:
+        """Create nmdc DataObject which is the output of an OmicsProcessing process. This
+        object mainly contains information about the sequencing file that was generated as
+        the result of running a Bioinformatics workflow on a certain ProcessedSample, which
+        is the result of a LibraryPreparation process.
+
+        :param do_id: NMDC minted DataObject id.
+        :param url: URL of zipped FASTQ file on NEON file server. Retrieved from file provided
+        by Hugh Cross at NEON.
+        :param do_type: Indicate whether it is FASTQ for Read 1 or Read 2 (paired end sequencing).
+        :param checksum: Checksum value for FASTQ in zip file, once again provided by Hugh Cross
+        at NEON.
+        :return: DataObject with all the sequencing file metadata.
+        """
+        file_name = get_basename(url)
+        basename = file_name.split(".", 1)[0]
+
+        return nmdc.DataObject(
+            id=do_id,
+            name=file_name,
+            url=url,
+            description=f"sequencing results for {basename}",
+            type="nmdc:DataObject",
+            md5_checksum=checksum,
+            data_object_type=do_type,
+        )
+
     def get_database(self):
         database = nmdc.Database()
 
         query = """
             SELECT
-                merged.collectDate,
                 merged.laboratoryName,
                 merged.sequencingFacilityID,
                 merged.processedDate,
@@ -305,7 +485,8 @@ class NeonBenthicDataTranslator(Translator):
                 afp.decimalLatitude,
                 afp.decimalLongitude,
                 afp.siteID,
-                afp.sampleID
+                afp.sampleID,
+                afp.collectDate
             FROM amb_fieldParent AS afp
             LEFT JOIN
                 (
@@ -367,6 +548,35 @@ class NeonBenthicDataTranslator(Translator):
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
 
+        neon_extraction_ids = benthic_samples["sampleID"]
+        nmdc_extraction_ids = self._id_minter("nmdc:Extraction", len(neon_extraction_ids))
+        neon_to_nmdc_extraction_ids = dict(zip(neon_extraction_ids, nmdc_extraction_ids))
+
+        neon_extraction_processed_ids = benthic_samples["sampleID"]
+        nmdc_extraction_processed_ids = self._id_minter("nmdc:ProcessedSample", len(neon_extraction_processed_ids))
+        neon_to_nmdc_extraction_processed_ids = dict(zip(neon_extraction_processed_ids, nmdc_extraction_processed_ids))
+
+        neon_lib_prep_ids = benthic_samples["sampleID"]
+        nmdc_lib_prep_ids = self._id_minter("nmdc:LibraryPreparation", len(neon_lib_prep_ids))
+        neon_to_nmdc_lib_prep_ids = dict(zip(neon_lib_prep_ids, nmdc_lib_prep_ids))
+
+        neon_lib_prep_processed_ids = benthic_samples["sampleID"]
+        nmdc_lib_prep_processed_ids = self._id_minter("nmdc:ProcessedSample", len(neon_lib_prep_processed_ids))
+        neon_to_nmdc_lib_prep_processed_ids = dict(zip(neon_lib_prep_processed_ids, nmdc_lib_prep_processed_ids))
+
+        neon_omprc_ids = benthic_samples["sampleID"]
+        nmdc_omprc_ids = self._id_minter("nmdc:OmicsProcessing", len(neon_omprc_ids))
+        neon_to_nmdc_omprc_ids = dict(zip(neon_omprc_ids, nmdc_omprc_ids))
+
+        neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
+        neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
+        nmdc_data_object_ids = self._id_minter(
+            "nmdc:DataObject", len(neon_raw_file_paths)
+        )
+        neon_to_nmdc_data_object_ids = dict(
+            zip(neon_raw_file_paths, nmdc_data_object_ids)
+        )
+
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
             biosample_row = benthic_samples_filtered[
                 benthic_samples_filtered["sampleID"] == neon_id
@@ -376,4 +586,102 @@ class NeonBenthicDataTranslator(Translator):
                 self._translate_biosample(neon_id, nmdc_id, biosample_row)
             )
 
+        for neon_id, nmdc_id in neon_to_nmdc_extraction_ids.items():
+            extraction_row = benthic_samples[
+                benthic_samples["sampleID"] == neon_id
+            ]
+
+            extraction_input = neon_to_nmdc_biosample_ids.get(neon_id)
+            processed_sample_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
+
+            if extraction_input is not None and processed_sample_id is not None:
+                database.extraction_set.append(
+                    self._translate_extraction_process(
+                        nmdc_id,
+                        extraction_input,
+                        processed_sample_id,
+                        extraction_row,
+                    )
+                )
+
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(
+                        processed_sample_id, self._get_value_or_none(extraction_row, "genomicsSampleID")
+                    )
+                )
+
+        query = """
+            SELECT dnaSampleID, GROUP_CONCAT(rawDataFilePath, '|') AS rawDataFilePaths
+            FROM neonRawDataFile
+            GROUP BY dnaSampleID
+        """
+        neon_raw_data_files = pd.read_sql_query(query, self.conn)
+        neon_raw_data_files_dict = (
+            neon_raw_data_files.set_index("dnaSampleID")["rawDataFilePaths"]
+            .str.split("|")
+            .to_dict()
+        )
+        filtered_neon_raw_data_files_dict = {key: value for key, value in neon_raw_data_files_dict.items() if len(value) <= 2}
+        
+        for neon_id, nmdc_id in neon_to_nmdc_lib_prep_ids.items():
+            lib_prep_row = benthic_samples[
+                benthic_samples["sampleID"] == neon_id
+            ]
+
+            lib_prep_input = neon_to_nmdc_extraction_processed_ids.get(neon_id)
+            processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(neon_id)
+
+            if lib_prep_input is not None and processed_sample_id is not None:
+                database.library_preparation_set.append(
+                    self._translate_library_preparation(
+                        nmdc_id,
+                        lib_prep_input,
+                        processed_sample_id,
+                        lib_prep_row,
+                    )
+                )
+
+                dna_sample_id = self._get_value_or_none(lib_prep_row, "dnaSampleID")
+
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(
+                        processed_sample_id, dna_sample_id
+                    )
+                )
+
+                has_output = None
+                has_output_do_ids = []
+
+                if dna_sample_id in filtered_neon_raw_data_files_dict:
+                    has_output = filtered_neon_raw_data_files_dict[dna_sample_id]
+                    for item in has_output:
+                        if item in neon_to_nmdc_data_object_ids:
+                            has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
+
+                        checksum = None
+                        do_type = None
+
+                        checksum = neon_raw_data_file_mappings_df[
+                            neon_raw_data_file_mappings_df["rawDataFilePath"] == item
+                        ]["checkSum"].values[0]
+                        if "_R1.fastq.gz" in item:
+                            do_type = "Metagenome Raw Read 1"
+                        elif "_R2.fastq.gz" in item:
+                            do_type = "Metagenome Raw Read 2"
+
+                        database.data_object_set.append(
+                            self._translate_data_object(
+                                neon_to_nmdc_data_object_ids.get(item), item, do_type, checksum
+                            )
+                        )
+
+                    database.omics_processing_set.append(
+                        self._translate_omics_processing(
+                            neon_to_nmdc_omprc_ids.get(neon_id),
+                            processed_sample_id,
+                            has_output_do_ids,
+                            lib_prep_row,
+                        )
+                    )
+                
         return database
