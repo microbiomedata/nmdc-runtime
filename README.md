@@ -111,7 +111,7 @@ If you are connecting to resources that require an SSH tunnel—for example, a M
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
 ```shell
-make nersc-ssh-tunnel
+make nersc-mongo-tunnels
 ```
 
 Finally, spin up the Docker Compose stack.
