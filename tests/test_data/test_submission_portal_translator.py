@@ -2,10 +2,15 @@ from pathlib import Path
 import random
 
 import yaml
+from linkml_runtime.dumpers import json_dumper
+
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
 from nmdc_schema import nmdc
+
+from nmdc_runtime.util import validate_json
+from tests.conftest import get_mongo_test_db
 
 
 def test_get_pi():
@@ -31,7 +36,7 @@ def test_get_doi():
     translator = SubmissionPortalTranslator()
     doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
-    assert doi.has_raw_value == "1234"
+    assert doi == ["1234"]
 
     doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
     assert doi is None
@@ -235,6 +240,7 @@ def test_get_from():
 
 
 def test_get_dataset(test_minter):
+    mongo_db = get_mongo_test_db()
     random.seed(0)
     with open(
         Path(__file__).parent / "test_submission_portal_translator_data.yaml"
@@ -249,3 +255,6 @@ def test_get_dataset(test_minter):
             expected = nmdc.Database(**test_data["output"])
             actual = translator.get_database()
             assert actual == expected
+
+            validation_result = validate_json(json_dumper.to_dict(actual), mongo_db)
+            assert validation_result == {"result": "All Okay!"}
