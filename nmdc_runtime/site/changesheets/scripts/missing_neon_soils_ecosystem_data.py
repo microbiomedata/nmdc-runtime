@@ -190,7 +190,7 @@ def _check_gold_biosample_identifiers(goldbs, nmdcbs) -> List[ChangesheetLineIte
                 id=nmdcbs["id"],
                 action="insert",
                 attribute="gold_biosample_identifiers",
-                value=goldbs_id,
+                value=goldbs_id + "|",
             )
         )
     return changesheet_line_items
@@ -198,20 +198,20 @@ def _check_gold_biosample_identifiers(goldbs, nmdcbs) -> List[ChangesheetLineIte
 
 def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
     gold_project_id = normalize_gold_id(gold_project["projectGoldId"])
-    if "alternative_identifiers" not in omprc_record:
+    if "gold_sequencing_project_identifiers" not in omprc_record:
         return ChangesheetLineItem(
             id=omprc_record["id"],
             action="insert",
-            attribute="alternative_identifiers",
-            value=gold_project_id,
+            attribute="gold_sequencing_project_identifiers",
+            value=gold_project_id + "|",
         )
 
-    if gold_project_id not in omprc_record["alternative_identifiers"]:
+    if gold_project_id not in omprc_record["gold_sequencing_project_identifiers"]:
         return ChangesheetLineItem(
             id=omprc_record["id"],
-            action="insert item",
-            attribute="alternative_identifiers",
-            value=gold_project_id,
+            action="insert",
+            attribute="gold_sequencing_project_identifiers",
+            value=gold_project_id + "|",
         )
 
 
@@ -220,7 +220,8 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 @click.option(
     "--apply_changes", is_flag=True, default=False, help=("Apply the changes")
 )
-@click.option("--use_dev_api", is_flag=True, default=True, help=("Use the dev API"))
+@click.option("--use_dev_api", is_flag=True, default=False, help=("Use the dev "
+                                                              "API"))
 def generate_changesheet(study_id, apply_changes, use_dev_api):
     """
     Generate a changesheet for missing ecosystem data for NEON soils samples by:
