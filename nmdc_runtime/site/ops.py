@@ -1,3 +1,4 @@
+import csv
 import json
 import mimetypes
 import os
@@ -8,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from zipfile import ZipFile
 import pandas as pd
+import requests
 
 from bson import ObjectId, json_util
 from dagster import (
@@ -773,3 +775,12 @@ def nmdc_schema_database_from_neon_data(
 @op
 def nmdc_schema_database_export_filename_neon() -> str:
     return "database_from_neon_metadata.json"
+
+
+@op
+def get_csv_file_from_url(url: str) -> List[Dict]:
+    response = requests.get(url)
+    response.raise_for_status()
+
+    reader = csv.DictReader(response.text.splitlines())
+    return [row for row in reader]
