@@ -51,19 +51,17 @@ class SubmissionPortalTranslator(Translator):
             orcid=study_form.get("piOrcid"),
         )
 
-    def _get_doi(
-        self, metadata_submission: JSON_OBJECT
-    ) -> Union[nmdc.AttributeValue, None]:
-        """Construct an nmdc:AttributeValue object using information from the context form data
+    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[str], None]:
+        """Get DOI information from the context form data
 
         :param metadata_submission: submission portal entry
-        :return: nmdc:AttributeValue
+        :return: string or None
         """
-        doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
-        if not doi:
+        dataset_doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
+        if not dataset_doi:
             return None
 
-        return nmdc.AttributeValue(has_raw_value=doi)
+        return [dataset_doi]
 
     def _get_has_credit_associations(
         self, metadata_submission: JSON_OBJECT
@@ -169,7 +167,7 @@ class SubmissionPortalTranslator(Translator):
         :param raw_value: string to parse
         :return: nmdc.OntologyClass
         """
-        match = re.fullmatch("_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
+        match = re.match("_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
         if not match or not match.group(2):
             logging.warning(
                 f'Could not infer OntologyClass id from value "{raw_value}"'
@@ -315,13 +313,13 @@ class SubmissionPortalTranslator(Translator):
             alternative_names=self._get_from(
                 metadata_submission, ["multiOmicsForm", "alternativeNames"]
             ),
+            dataset_dois=self._get_doi(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
-            doi=self._get_doi(metadata_submission),
-            emsl_proposal_identifier=self._get_from(
-                metadata_submission, ["multiOmicsForm", "studyNumber"]
-            ),
+            # emsl_proposal_identifier=self._get_from(
+            #     metadata_submission, ["multiOmicsForm", "studyNumber"]
+            # ),
             gold_study_identifiers=self._get_gold_study_identifiers(
                 metadata_submission
             ),
@@ -397,6 +395,8 @@ class SubmissionPortalTranslator(Translator):
 
                 transformed_value = None
                 if slot.multivalued:
+                    if isinstance(value, str):
+                        value = [v.strip() for v in value.split("|")]
                     transformed_value = [
                         self._transform_value_for_slot(item, slot) for item in value
                     ]
