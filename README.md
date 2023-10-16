@@ -6,8 +6,8 @@ http://nmdcstatus.polyneme.xyz/
 
 ## How It Fits In
 
-* [nmdc-metadata](https://github.com/microbiomedata/nmdc-metadata)
-tracks issues related to NMDC metadata, which may necessitate work across multiple repos.
+* [issues](https://github.com/microbiomedata/issues)  
+tracks issues related to NMDC, which may necessitate work across multiple repos.
   
 * [nmdc-schema](https://github.com/microbiomedata/nmdc-schema/)
 houses the LinkML schema specification, as well as generated artifacts (e.g. JSON Schema).
@@ -111,7 +111,7 @@ If you are connecting to resources that require an SSH tunnel—for example, a M
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
 ```shell
-make nersc-ssh-tunnel
+make nersc-mongo-tunnels
 ```
 
 Finally, spin up the Docker Compose stack.
