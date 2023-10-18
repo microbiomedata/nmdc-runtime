@@ -28,10 +28,10 @@ RUN pip install --no-cache-dir -r /code/requirements.txt
 COPY . /code
 RUN pip install --no-cache-dir --editable .
 
-# Ensure wait-for-it
+## Ensure wait-for-it
 RUN chmod +x wait-for-it.sh
 
 # Best practices: Prepare for C crashes.
 ENV PYTHONFAULTHANDLER=1
 
-ENTRYPOINT [ "./wait-for-it.sh" , "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]
+ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]

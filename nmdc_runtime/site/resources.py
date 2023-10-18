@@ -94,6 +94,30 @@ class RuntimeApiUserClient(RuntimeApiClient):
     def get_run_info(self, run_id: str):
         return self.request("GET", f"/runs/{run_id}")
 
+    def get_biosamples_by_gold_biosample_id(self, gold_biosample_id: str):
+        return self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "biosample_set",
+                "filter": {
+                    "gold_biosample_identifiers": {
+                        "$elemMatch": {"$eq": gold_biosample_id}
+                    }
+                },
+            },
+        )
+
+    def get_omics_processing_by_name(self, name: str):
+        return self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "omics_processing_set",
+                "filter": {"name": {"$regex": name, "$options": "i"}},
+            },
+        )
+
 
 class RuntimeApiSiteClient(RuntimeApiClient):
     def __init__(
