@@ -5,7 +5,7 @@ base.py: Provides data classes for creating changesheets for NMDC database objec
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import requests
 from typing import Any, ClassVar, Dict, TypeAlias
@@ -47,7 +47,7 @@ class Changesheet:
     """
 
     name: str
-    line_items: list = None
+    line_items: list = field(default_factory=list)
     header: ClassVar[str] = "id\taction\tattribute\tvalue"
     output_dir: Path = None
 
