@@ -270,8 +270,7 @@ def generate_changesheet(study_id, use_dev_api):
     changesheet = Changesheet(name=NAME)
     # For each GOLD biosample, find the corresponding NMDC biosamples
     nmdcbs_count = 0
-    unfindable_count = 0
-    unfindable_goldbs_id = []
+    unfindable_goldbs_ids = []
     for goldbs in gold_biosamples:
         (
             nmdc_biosamples,
@@ -283,8 +282,7 @@ def generate_changesheet(study_id, use_dev_api):
             logging.warning(
                 f"no corresponding NMDC biosamples found for {goldbs['biosampleGoldId']}..."
             )
-            unfindable_count += 1
-            unfindable_goldbs_id.append(goldbs["biosampleGoldId"])
+            unfindable_goldbs_ids.append(goldbs["biosampleGoldId"])
             continue
         logging.info(
             f"found {len(nmdc_biosamples)} corresponding NMDC biosamples for {goldbs['biosampleGoldId']}..."
@@ -306,9 +304,9 @@ def generate_changesheet(study_id, use_dev_api):
 
     logging.info(f"Processed {len(gold_biosamples)} GOLD biosamples...")
     logging.info(f"found {nmdcbs_count} corresponding NMDC biosamples...")
-    logging.info(f"unfindable_count: {unfindable_count}...")
-    for unfindable_goldbs_id in unfindable_goldbs_id:
-        logging.info(f"unfindable_goldbs_id: {unfindable_goldbs_id}...")
+    logging.info(f"unfindable_count: {len(unfindable_goldbs_ids)}...")
+    for unfindable_goldbs_ids in unfindable_goldbs_ids:
+        logging.info(f"unfindable_goldbs_id: {unfindable_goldbs_ids}...")
     logging.info(f"changesheet has {len(changesheet.line_items)} line items...")
 
     changesheet.write_changesheet()
