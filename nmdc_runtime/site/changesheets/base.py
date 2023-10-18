@@ -33,7 +33,11 @@ class ChangesheetLineItem:
 
     @property
     def line(self) -> str:
-        return f"{self.id}\t{self.action}\t{self.attribute}\t{self.value}"
+        """
+        Return the line item as a tab-separated string
+        """
+        cleaned_value = self.value.replace("\n", " ").replace("\t", " ").strip()
+        return f"{self.id}\t{self.action}\t{self.attribute}\t{cleaned_value}"
 
 
 @dataclass
