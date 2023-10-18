@@ -7,6 +7,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO
+from typing import Tuple
 from zipfile import ZipFile
 import pandas as pd
 import requests
@@ -27,6 +28,7 @@ from dagster import (
     RetryRequested,
     String,
     op,
+    Optional,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
@@ -79,7 +81,7 @@ from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from terminusdb_client.woqlquery import WOQLQuery as WQ
-from toolz import assoc, dissoc, get_in
+from toolz import assoc, dissoc, get_in, valfilter, identity
 
 
 @op
@@ -641,11 +643,33 @@ def nmdc_schema_database_from_gold_study(
 
 
 @op(
-    required_resource_keys={"nmdc_portal_api_client"},
-    config_schema={"submission_id": str},
+    config_schema={
+        "submission_id": str,
+        "omics_processing_mapping_file_url": str,
+        "data_object_mapping_file_url": str,
+    },
+    out={
+        "submission_id": Out(),
+        "omics_processing_mapping_file_url": Out(),
+        "data_object_mapping_file_url": Out(),
+    },
 )
-def fetch_nmdc_portal_submission_by_id(context: OpExecutionContext) -> Dict[str, Any]:
-    submission_id = context.op_config["submission_id"]
+def get_submission_portal_pipeline_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, str]:
+    return (
+        context.op_config["submission_id"],
+        context.op_config["omics_processing_mapping_file_url"],
+        context.op_config["data_object_mapping_file_url"],
+    )
+
+
+@op(
+    required_resource_keys={"nmdc_portal_api_client"},
+)
+def fetch_nmdc_portal_submission_by_id(
+    context: OpExecutionContext, submission_id: str
+) -> Dict[str, Any]:
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
     return client.fetch_metadata_submission(submission_id)
 
@@ -654,6 +678,8 @@ def fetch_nmdc_portal_submission_by_id(context: OpExecutionContext) -> Dict[str,
 def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any],
+    omics_processing_mapping: List,
+    data_object_mapping: List,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -661,7 +687,12 @@ def translate_portal_submission_to_nmdc_schema_database(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = SubmissionPortalTranslator(metadata_submission, id_minter=id_minter)
+    translator = SubmissionPortalTranslator(
+        metadata_submission,
+        omics_processing_mapping,
+        data_object_mapping,
+        id_minter=id_minter,
+    )
     database = translator.get_database()
     return database
 
@@ -779,8 +810,11 @@ def nmdc_schema_database_export_filename_neon() -> str:
 
 @op
 def get_csv_file_from_url(url: str) -> List[Dict]:
+    if not url:
+        return []
+
     response = requests.get(url)
     response.raise_for_status()
 
     reader = csv.DictReader(response.text.splitlines())
-    return [row for row in reader]
+    return [valfilter(identity, row) for row in reader]
