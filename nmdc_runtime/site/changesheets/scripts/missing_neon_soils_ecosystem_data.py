@@ -217,8 +217,7 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 
 @click.command()
 @click.option("--study_id", default=GOLD_NEON_SOIL_STUDY_ID, help="GOLD study ID")
-@click.option("--use_dev_api", is_flag=True, default=False, help=("Use the dev "
-                                                              "API"))
+@click.option("--use_dev_api", is_flag=True, default=False, help="Use the dev API")
 def generate_changesheet(study_id, use_dev_api):
     """
     Generate a changesheet for missing ecosystem data for NEON soils samples by:
