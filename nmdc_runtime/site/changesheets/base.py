@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 import requests
-from typing import Any, ClassVar, Dict, TypeAlias
+from typing import Any, ClassVar, Dict, TypeAlias, Optional
 
 from nmdc_runtime.site.resources import RuntimeApiUserClient
 
@@ -49,7 +49,7 @@ class Changesheet:
     name: str
     line_items: list = field(default_factory=list)
     header: ClassVar[str] = "id\taction\tattribute\tvalue"
-    output_dir: Path = None
+    output_dir: Optional[Path] = None
 
     def __post_init__(self):
         self.line_items = []
