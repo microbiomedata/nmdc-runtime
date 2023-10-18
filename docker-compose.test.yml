@@ -66,7 +66,7 @@ services:
       dockerfile: nmdc_runtime/fastapi.Dockerfile
     container_name: fastapi
     ports:
-      - "9000:9000"
+      - "8000:8000"
     env_file:
       - .env.test
     depends_on:

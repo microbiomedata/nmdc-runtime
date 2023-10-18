@@ -66,8 +66,8 @@ services:
       dockerfile: nmdc_runtime/fastapi.Dockerfile
     container_name: fastapi
     ports:
-      - "9000:9000"
-    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "9000"]
+      - "8000:8000"
+    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     env_file:
       - .env
     depends_on:
@@ -87,6 +87,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - nmdc-server_public
 
   terminus:
     image: terminusdb/terminusdb-server:v11.0.6
