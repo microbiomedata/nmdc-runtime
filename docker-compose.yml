@@ -86,8 +86,6 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
-    networks:
-      - nmdc-server_public
 
   terminus:
     image: terminusdb/terminusdb-server:v11.0.6
