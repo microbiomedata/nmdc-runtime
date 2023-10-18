@@ -835,3 +835,157 @@ output:
       - Software
       - Principal Investigator
       - Funding acquisition
+---
+input:
+  metadata_submission:
+    id: 00000000-0000-0000-0000-000000000000,
+    metadata_submission:
+      contextForm:
+        datasetDoi: doi:10.12345/10.12345/00000000
+      packageName: plant-associated
+      sampleData:
+        plant_associated_data:
+          - analysis_type:
+              - metagenomics
+            collection_date: '2016-05-09'
+            depth: '0'
+            ecosystem: Environmental
+            ecosystem_category: Terrestrial
+            ecosystem_subtype: Leaf
+            ecosystem_type: Plant-associated
+            elev: '286'
+            env_broad_scale: agricultural biome [ENVO:01001442]
+            env_local_scale: phyllosphere biome [ENVO:01001442]
+            env_medium: plant-associated biome [ENVO:01001001]
+            env_package: soil
+            geo_loc_name: 'USA: Kellogg Biological Station, Michigan'
+            growth_facil: field
+            lat_lon: 42.39 -85.37
+            samp_name: G5R1_MAIN_09MAY2016
+            samp_store_temp: -80 Celsius
+            source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+            specific_ecosystem: Phyllosphere
+      studyForm:
+        contributors:
+          - name: Test Testerson
+            orcid: 0000-0000-0000-0000
+            roles:
+              - Principal Investigator
+        description: This is a test submission
+        linkOutWebpage:
+          - http://www.example.com/submission-test
+        multiOmicsForm:
+          GOLDStudyId: ''
+          JGIStudyId: ''
+          NCBIBioProjectId: ''
+          alternativeNames: [ ]
+          studyNumber: ''
+        piEmail: test.testerson@example.com
+        piName: Test Testerson
+        piOrcid: 0000-0000-0000-0000
+        studyName: A test submission
+      templates:
+        - plant-associated
+  omics_processing_mapping:
+    - __biosample_source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+      processing_institution: JGI
+      instrument_name: Some fancy expensive thing
+      omics_type: Metagenome
+  data_object_mapping:
+    - __biosample_source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+      data_object_type: Metagenome Raw Reads
+      url: http://example.com/data.fastq.gz
+      name: Metagenome Raw Reads
+      description: Metagenome Raw Reads
+output:
+  biosample_set:
+    - id: nmdc:bsm-00-4wn6isig
+      name: G5R1_MAIN_09MAY2016
+      part_of:
+        - nmdc:sty-00-y0cq65zt
+      env_broad_scale:
+        has_raw_value: agricultural biome [ENVO:01001442]
+        term:
+          id: ENVO:01001442
+          name: agricultural biome
+      env_local_scale:
+        has_raw_value: phyllosphere biome [ENVO:01001442]
+        term:
+          id: ENVO:01001442
+          name: phyllosphere biome
+      env_medium:
+        has_raw_value: plant-associated biome [ENVO:01001001]
+        term:
+          id: ENVO:01001001
+          name: plant-associated biome
+      samp_name: G5R1_MAIN_09MAY2016
+      collection_date:
+        has_raw_value: '2016-05-09'
+      depth:
+        has_raw_value: '0'
+        has_numeric_value: 0.0
+      ecosystem: Environmental
+      ecosystem_category: Terrestrial
+      ecosystem_subtype: Leaf
+      ecosystem_type: Plant-associated
+      elev: 286.0
+      env_package:
+        has_raw_value: soil
+      geo_loc_name:
+        has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      growth_facil:
+        has_raw_value: field
+      lat_lon:
+        has_raw_value: 42.39 -85.37
+        latitude: 42.39
+        longitude: -85.37
+      samp_store_temp:
+        has_raw_value: -80 Celsius
+        has_unit: Celsius
+        has_numeric_value: -80.0
+      source_mat_id:
+        has_raw_value: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+      specific_ecosystem: Phyllosphere
+      analysis_type:
+        - metagenomics
+  data_object_set:
+    - id: nmdc:dobj-00-9gw1un94
+      name: Metagenome Raw Reads
+      description: Metagenome Raw Reads
+      data_object_type: Metagenome Raw Reads
+      url: http://example.com/data.fastq.gz
+      type: nmdc:DataObject
+  omics_processing_set:
+    - id: nmdc:omprc-00-q8jtgev4
+      has_input:
+        - nmdc:bsm-00-4wn6isig
+      add_date: '2023-10-17'
+      has_output:
+        - nmdc:dobj-00-9gw1un94
+      instrument_name: Some fancy expensive thing
+      mod_date: '2023-10-17'
+      omics_type:
+        has_raw_value: Metagenome
+      part_of:
+        - nmdc:sty-00-y0cq65zt
+      processing_institution: JGI
+      type: nmdc:OmicsProcessing
+  study_set:
+    - id: nmdc:sty-00-y0cq65zt
+      name: A test submission
+      description: This is a test submission
+      dataset_dois:
+        - doi:10.12345/10.12345/00000000
+      has_credit_associations:
+        - applies_to_person:
+            orcid: 0000-0000-0000-0000
+            name: Test Testerson
+          applied_roles:
+            - Principal Investigator
+      principal_investigator:
+        orcid: 0000-0000-0000-0000
+        email: test.testerson@example.com
+        name: Test Testerson
+      title: A test submission
+      websites:
+        - http://www.example.com/submission-test

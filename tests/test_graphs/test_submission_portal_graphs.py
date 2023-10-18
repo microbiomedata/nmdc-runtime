@@ -12,7 +12,7 @@ MOCK_PORTAL_SUBMISSION = {
     "id": MOCK_PORTAL_SUBMISSION_ID,
     "metadata_submission": {
         "packageName": "plant-associated",
-        "contextForm": {"datasetDoi": "10.12345/10.12345/00000000"},
+        "contextForm": {"datasetDoi": "doi:10.12345/10.12345/00000000"},
         "templates": ["plant-associated"],
         "studyForm": {
             "studyName": "A test submission",
@@ -80,9 +80,11 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
             "export_json_to_drs": {
                 "config": {"username": "test"},
             },
-            "fetch_nmdc_portal_submission_by_id": {
+            "get_submission_portal_pipeline_inputs": {
                 "config": {
                     "submission_id": MOCK_PORTAL_SUBMISSION_ID,
+                    "omics_processing_mapping_file_url": "",
+                    "data_object_mapping_file_url": "",
                 }
             },
         },

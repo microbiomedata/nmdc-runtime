@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 import random
 
@@ -239,15 +240,30 @@ def test_get_from():
     assert translator._get_from(metadata, ["one", "some_empty"]) == ["one", "three"]
 
 
-def test_get_dataset(test_minter):
+def test_get_dataset(test_minter, monkeypatch):
+    # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
+    # current date. In order to compare with a static expected output we need to patch
+    # the datetime.now() call to return a predefined date.
+    the_time = datetime.datetime(2023, 10, 17, 9, 0, 0)
+
+    class FrozenDatetime(datetime.datetime):
+        @classmethod
+        def now(cls, **kwargs):
+            return the_time
+
+    monkeypatch.setattr(
+        "nmdc_runtime.site.translation.submission_portal_translator.datetime",
+        FrozenDatetime,
+    )
+
     mongo_db = get_mongo_test_db()
-    random.seed(0)
     with open(
         Path(__file__).parent / "test_submission_portal_translator_data.yaml"
     ) as f:
         test_datasets = yaml.safe_load_all(f)
 
         for test_data in test_datasets:
+            random.seed(0)
             translator = SubmissionPortalTranslator(
                 **test_data["input"], id_minter=test_minter
             )
