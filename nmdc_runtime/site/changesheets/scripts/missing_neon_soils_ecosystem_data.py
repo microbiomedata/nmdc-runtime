@@ -217,12 +217,9 @@ def compare_projects(gold_project, omprc_record) -> ChangesheetLineItem:
 
 @click.command()
 @click.option("--study_id", default=GOLD_NEON_SOIL_STUDY_ID, help="GOLD study ID")
-@click.option(
-    "--apply_changes", is_flag=True, default=False, help=("Apply the changes")
-)
 @click.option("--use_dev_api", is_flag=True, default=False, help=("Use the dev "
                                                               "API"))
-def generate_changesheet(study_id, apply_changes, use_dev_api):
+def generate_changesheet(study_id, use_dev_api):
     """
     Generate a changesheet for missing ecosystem data for NEON soils samples by:
     1. Retrieving GOLD biosamples for the given study
@@ -235,8 +232,6 @@ def generate_changesheet(study_id, apply_changes, use_dev_api):
     Changesheet is written to nmdc_runtime/site/changesheets/changesheets_output
 
     :param study_id: The GOLD study ID
-    :param apply_changes: Whether to apply the changes via the
-    metadata/changesheets:apply endpoint (default: False) NOTE: not implemented!
     :param use_dev_api: Use the dev API (default: False)
     :return:
     """
@@ -322,17 +317,10 @@ def generate_changesheet(study_id, apply_changes, use_dev_api):
     is_valid_changesheet = changesheet.validate_changesheet(base_url)
     logging.info(f"Changesheet is valid: {is_valid_changesheet}")
 
-    if is_valid_changesheet and apply_changes:
-        logging.info("Applying changes...")
-        # TODO - apply changes
-        raise NotImplementedError
-    else:
-        logging.info("Changesheet not applied...")
-
     logging.info(
         f"missing_neon_soils_ecosystem_data.py completed in {time.time() - start_time} seconds..."
     )
 
 
 if __name__ == "__main__":
-    generate_changesheet()
+    generate_changesheet(,
