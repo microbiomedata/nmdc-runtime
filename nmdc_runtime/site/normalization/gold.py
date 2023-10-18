@@ -21,7 +21,7 @@ def get_gold_biosample_name_suffix(biosample_name: str) -> str:
 
     Suffix = DSNY_016-M-37-14-20140409-GEN-DNA1
 
-    :param biosample: a list of JSON objects representing GOLD biosamples
+    :param biosample_name: str - the value of the biosampleName attribute
     :return: str
     """
     return biosample_name.split()[-1]
@@ -29,13 +29,14 @@ def get_gold_biosample_name_suffix(biosample_name: str) -> str:
 
 def normalize_gold_id(gold_id: str) -> str:
     """
-    Normalize the given GOLD biosample ID to the form "GOLD:<gold_biosample_id>"
-    :param gold_id: str
-    :return: str
+    Normalize the given GOLD ID - e.g. biosample Gb012345 to the form
+    "gold:Gb012345"
+    :param gold_id: str - the GOLD ID to normalize
+    :return: str - the normalized GOLD ID
     """
     if gold_id.startswith("gold:"):
         return gold_id
-    elif gold_id.startswith("GOLD:") or gold_id.startswith("Gold:"):
+    elif gold_id.upper().startswith("GOLD:"):
         return f"gold:{gold_id[5:]}"
     elif gold_id.startswith("G") and ":" not in gold_id:
         return f"gold:{gold_id}"
