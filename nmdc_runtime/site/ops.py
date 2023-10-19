@@ -809,7 +809,17 @@ def nmdc_schema_database_export_filename_neon() -> str:
 
 
 @op
-def get_csv_file_from_url(url: str) -> List[Dict]:
+def get_csv_rows_from_url(url: str) -> List[Dict]:
+    """Download and parse a CSV file from a remote URL.
+
+    This method fetches data from the given URL and parses that data as CSV. The parsed data
+    is returned as a list (each element corresponds to a row) of dicts (each key is a column
+    name and the value is the corresponding cell value). The dict will *not* contain keys
+    for columns where the cell was empty.
+
+    :param url: Url to fetch and parse
+    :return: List[Dict]
+    """
     if not url:
         return []
 
@@ -817,4 +827,6 @@ def get_csv_file_from_url(url: str) -> List[Dict]:
     response.raise_for_status()
 
     reader = csv.DictReader(response.text.splitlines())
+    # Collect all the rows into a list of dicts while stripping out (valfilter) cells where the
+    # value is an empty string (identity returns a Falsy value).
     return [valfilter(identity, row) for row in reader]

@@ -67,7 +67,7 @@ class SubmissionPortalTranslator(Translator):
         """Get DOI information from the context form data
 
         :param metadata_submission: submission portal entry
-        :return: string or None
+        :return: list of strings or None
         """
         dataset_doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
         if not dataset_doi:
@@ -380,7 +380,7 @@ class SubmissionPortalTranslator(Translator):
         raw_values is a dict where the keys are slot names and the values are plain strings.
         Each of the items in this dict will be transformed by the _transform_value_for_slot
         method. If the slot is multivalued each individual value will be transformed. If the
-        slot is multivalued and the value is a string it will be split in pipe characters
+        slot is multivalued and the value is a string it will be split at pipe characters
         before transforming.
         """
         slot_names = self.schema_view.class_slots(class_name)
@@ -392,11 +392,12 @@ class SubmissionPortalTranslator(Translator):
 
             slot_definition = self.schema_view.induced_slot(column, class_name)
             if slot_definition.multivalued:
+                value_list = value
                 if isinstance(value, str):
-                    value = [v.strip() for v in value.split("|")]
+                    value_list = [v.strip() for v in value.split("|")]
                 transformed_value = [
                     self._transform_value_for_slot(item, slot_definition)
-                    for item in value
+                    for item in value_list
                 ]
             else:
                 transformed_value = self._transform_value_for_slot(
@@ -535,7 +536,7 @@ class SubmissionPortalTranslator(Translator):
                 for data_object_row in data_objects_by_sample_data_id.get(
                     sample_data_id, []
                 ):
-                    # For each row in the DataObject mapping file that correspond to the sample ID,
+                    # For each row in the DataObject mapping file that corresponds to the sample ID,
                     # transform the raw row data according to the DataObject class's slots, generate
                     # an instance, and connect that instance's minted ID to the OmicsProcessing
                     # instance
