@@ -3,7 +3,7 @@ import requests
 import requests_mock
 from dagster import build_op_context
 
-from nmdc_runtime.site.ops import get_csv_file_from_url
+from nmdc_runtime.site.ops import get_csv_rows_from_url
 
 
 def test_valid_data():
@@ -14,7 +14,7 @@ def test_valid_data():
             text='a,b,c\n1,hello,"apple, banana"\n2,wow,great',
         )
 
-        result = get_csv_file_from_url(context, "http://www.example.com/data.csv")
+        result = get_csv_rows_from_url(context, "http://www.example.com/data.csv")
         assert result == [
             {"a": "1", "b": "hello", "c": "apple, banana"},
             {"a": "2", "b": "wow", "c": "great"},
@@ -27,4 +27,4 @@ def test_not_found():
         mock.get("http://www.example.com/data.csv", status_code=404)
 
         with pytest.raises(requests.HTTPError):
-            get_csv_file_from_url(context, "http://www.example.com/data.csv")
+            get_csv_rows_from_url(context, "http://www.example.com/data.csv")
