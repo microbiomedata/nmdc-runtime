@@ -20,7 +20,6 @@ def op_context(client_config):
                 client_config
             )
         },
-        op_config={"submission_id": "353d751f-cff0-4558-9051-25a87ba00d3f"},
     )
 
 
@@ -31,6 +30,8 @@ def test_metadata_submission(op_context):
             json={"id": "353d751f-cff0-4558-9051-25a87ba00d3f"},
         )
 
-        fetch_nmdc_portal_submission_by_id(op_context)
+        fetch_nmdc_portal_submission_by_id(
+            op_context, "353d751f-cff0-4558-9051-25a87ba00d3f"
+        )
 
         assert len(mock.request_history) == 1

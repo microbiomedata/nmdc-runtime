@@ -1,13 +1,16 @@
 import logging
 import re
-from typing import Any, List, Optional, Union
-from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
-from nmdc_schema import nmdc
-from toolz import get_in, groupby, concat
+from datetime import datetime
+from functools import lru_cache
 from importlib import resources
+from typing import Any, List, Optional, Union
+
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
-from functools import lru_cache
+from nmdc_schema import nmdc
+from toolz import get_in, groupby, concat, valmap, dissoc
+
+from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
 
 @lru_cache
@@ -27,10 +30,19 @@ class SubmissionPortalTranslator(Translator):
     the nmdc:Biosample class (via a SchemaView instance)
     """
 
-    def __init__(self, metadata_submission: JSON_OBJECT = {}, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        metadata_submission: JSON_OBJECT = {},
+        omics_processing_mapping: Optional[list] = None,
+        data_object_mapping: Optional[list] = None,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.metadata_submission = metadata_submission
+        self.omics_processing_mapping = omics_processing_mapping
+        self.data_object_mapping = data_object_mapping
         self.schema_view: SchemaView = _get_schema_view()
 
     def _get_pi(
@@ -51,19 +63,17 @@ class SubmissionPortalTranslator(Translator):
             orcid=study_form.get("piOrcid"),
         )
 
-    def _get_doi(
-        self, metadata_submission: JSON_OBJECT
-    ) -> Union[nmdc.AttributeValue, None]:
-        """Construct an nmdc:AttributeValue object using information from the context form data
+    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[str], None]:
+        """Get DOI information from the context form data
 
         :param metadata_submission: submission portal entry
-        :return: nmdc:AttributeValue
+        :return: list of strings or None
         """
-        doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
-        if not doi:
+        dataset_doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
+        if not dataset_doi:
             return None
 
-        return nmdc.AttributeValue(has_raw_value=doi)
+        return [dataset_doi]
 
     def _get_has_credit_associations(
         self, metadata_submission: JSON_OBJECT
@@ -169,7 +179,7 @@ class SubmissionPortalTranslator(Translator):
         :param raw_value: string to parse
         :return: nmdc.OntologyClass
         """
-        match = re.fullmatch("_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
+        match = re.match("_*([^\[]+)(?:\[([^\]]+)\])", raw_value)
         if not match or not match.group(2):
             logging.warning(
                 f'Could not infer OntologyClass id from value "{raw_value}"'
@@ -315,13 +325,13 @@ class SubmissionPortalTranslator(Translator):
             alternative_names=self._get_from(
                 metadata_submission, ["multiOmicsForm", "alternativeNames"]
             ),
+            dataset_dois=self._get_doi(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
-            doi=self._get_doi(metadata_submission),
-            emsl_proposal_identifier=self._get_from(
-                metadata_submission, ["multiOmicsForm", "studyNumber"]
-            ),
+            # emsl_proposal_identifier=self._get_from(
+            #     metadata_submission, ["multiOmicsForm", "studyNumber"]
+            # ),
             gold_study_identifiers=self._get_gold_study_identifiers(
                 metadata_submission
             ),
@@ -364,6 +374,39 @@ class SubmissionPortalTranslator(Translator):
 
         return transformed_value
 
+    def _transform_dict_for_class(self, raw_values: dict, class_name: str) -> dict:
+        """Transform a dict of values according to class slots.
+
+        raw_values is a dict where the keys are slot names and the values are plain strings.
+        Each of the items in this dict will be transformed by the _transform_value_for_slot
+        method. If the slot is multivalued each individual value will be transformed. If the
+        slot is multivalued and the value is a string it will be split at pipe characters
+        before transforming.
+        """
+        slot_names = self.schema_view.class_slots(class_name)
+        transformed_values = {}
+        for column, value in raw_values.items():
+            if column not in slot_names:
+                logging.warning(f"No slot '{column}' on class '{class_name}'")
+                continue
+
+            slot_definition = self.schema_view.induced_slot(column, class_name)
+            if slot_definition.multivalued:
+                value_list = value
+                if isinstance(value, str):
+                    value_list = [v.strip() for v in value.split("|")]
+                transformed_value = [
+                    self._transform_value_for_slot(item, slot_definition)
+                    for item in value_list
+                ]
+            else:
+                transformed_value = self._transform_value_for_slot(
+                    value, slot_definition
+                )
+
+            transformed_values[column] = transformed_value
+        return transformed_values
+
     def _translate_biosample(
         self, sample_data: List[JSON_OBJECT], nmdc_biosample_id: str, nmdc_study_id: str
     ) -> nmdc.Biosample:
@@ -387,23 +430,9 @@ class SubmissionPortalTranslator(Translator):
             "part_of": nmdc_study_id,
             "name": sample_data[0].get("samp_name"),
         }
-        biosample_slot_names = self.schema_view.class_slots("Biosample")
         for tab in sample_data:
-            for column, value in tab.items():
-                if column not in biosample_slot_names:
-                    logging.warning(f"No slot {column} on nmdc:Biosample")
-                    continue
-                slot = self.schema_view.induced_slot(column, "Biosample")
-
-                transformed_value = None
-                if slot.multivalued:
-                    transformed_value = [
-                        self._transform_value_for_slot(item, slot) for item in value
-                    ]
-                else:
-                    transformed_value = self._transform_value_for_slot(value, slot)
-
-                slots[column] = transformed_value
+            transformed_tab = self._transform_dict_for_class(tab, "Biosample")
+            slots.update(transformed_tab)
 
         return nmdc.Biosample(**slots)
 
@@ -443,5 +472,88 @@ class SubmissionPortalTranslator(Translator):
             for sample_data_id, sample_data in sample_data_by_id.items()
             if sample_data
         ]
+
+        if self.omics_processing_mapping:
+            # If there is data from an OmicsProcessing mapping file, process it now. This part
+            # assumes that there is a column in that file with the header __biosample_source_mat_id
+            # that can be used to join with the sample data from the submission portal. The
+            # biosample identified by that `source_mat_id` will be referenced in the `has_input`
+            # slot of the OmicsProcessing object. If a DataObject mapping file was also provided,
+            # those objects will also be generated and referenced in the `has_output` slot of the
+            # OmicsProcessing object. By keying off of the `source_mat_id` slot of the submission's
+            # sample data there is an implicit 1:1 relationship between Biosample objects and
+            # OmicsProcessing objects generated here.
+            join_key = "__biosample_source_mat_id"
+            database.omics_processing_set = []
+            database.data_object_set = []
+            data_objects_by_sample_data_id = {}
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            if self.data_object_mapping:
+                # If DataObject mapping data was provided, group it by the sample ID key and then
+                # strip that key out of the resulting grouped data.
+                grouped = groupby(join_key, self.data_object_mapping)
+                data_objects_by_sample_data_id = valmap(
+                    lambda data_objects: [
+                        dissoc(data_object, join_key) for data_object in data_objects
+                    ],
+                    grouped,
+                )
+
+            for omics_processing_row in self.omics_processing_mapping:
+                # For each row in the OmicsProcessing mapping file, first grab the minted Biosample
+                # id that corresponds to the sample ID from the submission
+                sample_data_id = omics_processing_row.pop(join_key)
+                if (
+                    not sample_data_id
+                    or sample_data_id not in sample_data_to_nmdc_biosample_ids
+                ):
+                    logging.warning(
+                        f"Unrecognized biosample source_mat_id: {sample_data_id}"
+                    )
+                    continue
+                nmdc_biosample_id = sample_data_to_nmdc_biosample_ids[sample_data_id]
+
+                # Transform the raw row data according to the OmicsProcessing class's slots, and
+                # generate an instance. A few key slots do not come from the mapping file, but
+                # instead are defined here.
+                omics_processing_slots = {
+                    "id": self._id_minter("nmdc:OmicsProcessing", 1)[0],
+                    "has_input": [nmdc_biosample_id],
+                    "has_output": [],
+                    "part_of": nmdc_study_id,
+                    "add_date": today,
+                    "mod_date": today,
+                    "type": "nmdc:OmicsProcessing",
+                }
+                omics_processing_slots.update(
+                    self._transform_dict_for_class(
+                        omics_processing_row, "OmicsProcessing"
+                    )
+                )
+                omics_processing = nmdc.OmicsProcessing(**omics_processing_slots)
+
+                for data_object_row in data_objects_by_sample_data_id.get(
+                    sample_data_id, []
+                ):
+                    # For each row in the DataObject mapping file that corresponds to the sample ID,
+                    # transform the raw row data according to the DataObject class's slots, generate
+                    # an instance, and connect that instance's minted ID to the OmicsProcessing
+                    # instance
+                    data_object_id = self._id_minter("nmdc:DataObject", 1)[0]
+                    data_object_slots = {
+                        "id": data_object_id,
+                        "type": "nmdc:DataObject",
+                    }
+                    data_object_slots.update(
+                        self._transform_dict_for_class(data_object_row, "DataObject")
+                    )
+                    data_object = nmdc.DataObject(**data_object_slots)
+
+                    omics_processing.has_output.append(data_object_id)
+
+                    database.data_object_set.append(data_object)
+
+                database.omics_processing_set.append(omics_processing)
 
         return database
