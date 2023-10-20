@@ -63,14 +63,14 @@ $ stat -f "%z bytes" fake_biosample.json
 }
 ```
 
-After a [POST /objects](https://api.dev.microbiomedata.org/docs#/objects/create_object_objects_post)
+After a [POST /objects](https://api.microbiomedata.org/docs#/objects/create_object_objects_post)
 with the above as the request body, I get back a response object with an `id` that looks like
 `sys0***`.
 
 ## Annotate the DRS object with the "metadata-in" type
 
 Now, go to [PUT
-/objects/{object_id}/types](https://api.dev.microbiomedata.org/docs#/objects/replace_object_types_objects__object_id__types_put)
+/objects/{object_id}/types](https://api.microbiomedata.org/docs#/objects/replace_object_types_objects__object_id__types_put)
 and ensure the types array for the object is `["metadata-in"]`. This lets the Runtime know that you
 intend for this object to be ingested as NMDC metadata.
 
@@ -100,7 +100,7 @@ Here's an example of the general Runs view after our new metadata has been inges
 ![metadata-in-dagit-runs](../img/metadata-in-dagit-runs.png)
 
 And indeed it has been ingested! See
-<https://api.dev.microbiomedata.org/nmdcschema/biosample_set/fake> (unless we already deleted it --
+<https://api.microbiomedata.org/nmdcschema/biosample_set/fake> (unless we already deleted it --
 see section below).
 
 ## Removing a JSON document
@@ -118,7 +118,7 @@ see section below).
     Any to-be-deleted documents are backed up to a separate database immediately prior to deletion.
 
 A call to [POST
-/queries:run](https://api.dev.microbiomedata.org/docs#/queries/run_query_queries_run_post) with the
+/queries:run](https://api.microbiomedata.org/docs#/queries/run_query_queries_run_post) with the
 body
 
 ```json

@@ -9,15 +9,11 @@ attrs==23.1.0
     #   -c requirements/main.txt
     #   cattrs
     #   requests-cache
-black==23.7.0
+black==23.9.1
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
-bleach==6.0.0
-    # via
-    #   -c requirements/main.txt
-    #   readme-renderer
-build==0.10.0
+build==1.0.3
     # via pip-tools
 cattrs==23.1.2
     # via
@@ -36,7 +32,7 @@ click==8.1.7
     #   -c requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.3.0
+coverage==7.3.1
     # via
     #   -r requirements/dev.in
     #   pytest-cov
@@ -86,6 +82,8 @@ mypy-extensions==1.0.0
     # via
     #   -c requirements/main.txt
     #   black
+nh3==0.2.14
+    # via readme-renderer
 packaging==23.1
     # via
     #   -c requirements/main.txt
@@ -123,7 +121,7 @@ pygments==2.16.1
     #   rich
 pyproject-hooks==1.0.0
     # via build
-pytest==7.4.0
+pytest==7.4.2
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
@@ -133,7 +131,7 @@ pytest-asyncio==0.21.1
     # via -r requirements/dev.in
 pytest-cov==4.1.0
     # via -r requirements/dev.in
-readme-renderer==41.0
+readme-renderer==42.0
     # via twine
 requests==2.31.0
     # via
@@ -154,14 +152,13 @@ requests-toolbelt==0.10.1
     #   twine
 rfc3986==2.0.0
     # via twine
-rich==13.5.2
+rich==13.5.3
     # via twine
-setuptools-scm==7.1.0
+setuptools-scm==8.0.3
     # via -r requirements/dev.in
 six==1.16.0
     # via
     #   -c requirements/main.txt
-    #   bleach
     #   requests-mock
     #   url-normalize
 tomli==2.0.1
@@ -176,9 +173,10 @@ tomli==2.0.1
     #   setuptools-scm
 twine==4.0.2
     # via -r requirements/dev.in
-typing-extensions==4.7.1
+typing-extensions==4.8.0
     # via
     #   -c requirements/main.txt
+    #   black
     #   cattrs
     #   setuptools-scm
 url-normalize==1.4.3
@@ -191,13 +189,9 @@ urllib3==1.26.16
     #   requests
     #   requests-cache
     #   twine
-webencodings==0.5.1
-    # via
-    #   -c requirements/main.txt
-    #   bleach
 wheel==0.41.2
     # via pip-tools
-zipp==3.16.2
+zipp==3.17.0
     # via
     #   -c requirements/main.txt
     #   importlib-metadata
@@ -207,7 +201,7 @@ pip==23.2.1
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==68.1.2
+setuptools==68.2.2
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in

@@ -36,6 +36,7 @@ services:
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
       - dagster-postgresql
+    restart: on-failure
     volumes:
       - ./:/opt/dagster/lib
 
@@ -74,7 +75,7 @@ services:
       - .:/code
 
   mongo:
-    image: bitnami/mongodb:6.0.4
+    image: mongo:6.0.4
     container_name: mongo
     ports:
       - "27018:27017"
@@ -84,11 +85,8 @@ services:
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
     restart: unless-stopped
     environment:
-      MONGODB_ROOT_USER: admin
-      MONGODB_ROOT_PASSWORD: root
-      MONGODB_REPLICA_SET_MODE: primary
-      MONGODB_ADVERTISED_HOSTNAME: mongodb-primary
-      MONGODB_REPLICA_SET_KEY: replicasetkey123
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: root
 
   test:
     build:

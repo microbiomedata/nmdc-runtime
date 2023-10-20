@@ -1,19 +1,19 @@
 # Claim and Run Jobs
 
-The Runtime advertises jobs to be done, where a [Job](https://api.dev.microbiomedata.org/docs#/jobs)
-is a [Workflow](https://api.dev.microbiomedata.org/docs#/workflows) paired with a chosen input
-[Object](https://api.dev.microbiomedata.org/docs#/objects). See [Guide - Create Workflow Triggers To
+The Runtime advertises jobs to be done, where a [Job](https://api.microbiomedata.org/docs#/jobs)
+is a [Workflow](https://api.microbiomedata.org/docs#/workflows) paired with a chosen input
+[Object](https://api.microbiomedata.org/docs#/objects). See [Guide - Create Workflow Triggers To
 Spawn Jobs](guide-create-triggers.md) to learn how to arrange for jobs of interest to be
 automatically available when relevant new workflow inputs are available.
 
-You can list open jobs via [`GET /jobs`](https://api.dev.microbiomedata.org/docs#/jobs/list_jobs_jobs_get). To
+You can list open jobs via [`GET /jobs`](https://api.microbiomedata.org/docs#/jobs/list_jobs_jobs_get). To
 claim a job, [`POST` to
-`/jobs/{job_id}:claim`](https://api.dev.microbiomedata.org/docs#/jobs/claim_job_jobs__job_id__claim_post). The
-response will be an [Operation](https://api.dev.microbiomedata.org/docs#/operations) to track job
+`/jobs/{job_id}:claim`](https://api.microbiomedata.org/docs#/jobs/claim_job_jobs__job_id__claim_post). The
+response will be an [Operation](https://api.microbiomedata.org/docs#/operations) to track job
 execution and send updates to the system.
 
 [`PATCH
-/operations/{op_id}`](https://api.dev.microbiomedata.org/docs#/operations/update_operation_operations__op_id__patch)
+/operations/{op_id}`](https://api.microbiomedata.org/docs#/operations/update_operation_operations__op_id__patch)
 is how to report state transitions for the job execution. If a job execution has been completed
 successfully, has failed, or has been aborted, the `done` field for the operation must be set to
 `true`.
@@ -26,11 +26,11 @@ and run jobs are available in the codebase in
   submit metadata as Objects and associate them with the `metadata-in` Object Type. This in turn
   triggers the creation of Jobs (for the `metadata-in-1.0.0` Workflow) to validate and ingest the
   metadata. Because these jobs are not too intensive wrt data or compute, the Runtime itself hosts a
-  [Site](https://api.dev.microbiomedata.org/docs#/sites) that claims and runs these jobs. *
+  [Site](https://api.microbiomedata.org/docs#/sites) that claims and runs these jobs. *
 
 * `claim_and_run_apply_changesheet_jobs` senses new jobs to apply changesheets, that is, to apply
   surgical updates to existing metadata. Users submit changesheets via [`POST
-  /metadata/changesheets:submit`](https://api.dev.microbiomedata.org/docs#/metadata/submit_changesheet_metadata_changesheets_submit_post),
+  /metadata/changesheets:submit`](https://api.microbiomedata.org/docs#/metadata/submit_changesheet_metadata_changesheets_submit_post),
   which creates an Object on behalf of the user, annotates it with the `metadata-changesheet` Object
   Type. A registered trigger then creates a corresponding `apply-changesheet-1.0.0` job, which this
   sensor senses, allowing the Runtime Site to claim and run the job.

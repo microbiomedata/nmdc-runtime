@@ -3,6 +3,8 @@ site_description: Documentation for the National Microbiome Data Collaborative (
 site_url: https://microbiomedata.github.io/nmdc-runtime/
 repo_url: https://github.com/microbiomedata/nmdc-runtime/
 edit_uri_template: 'blob/main/docs/{path}'
+extra_css:
+  - stylesheets/extra.css
 nav:
   - index.md
   - Tutorials:
@@ -46,6 +48,7 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - footnotes
   - md_in_html
   - toc:
       permalink: true

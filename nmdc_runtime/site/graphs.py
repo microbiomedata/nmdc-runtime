@@ -41,6 +41,8 @@ from nmdc_runtime.site.ops import (
     nmdc_schema_database_export_filename_neon,
     get_neon_pipeline_mms_data_product,
     get_neon_pipeline_sls_data_product,
+    get_submission_portal_pipeline_inputs,
+    get_csv_rows_from_url,
     get_neon_pipeline_benthic_data_product,
 )
 
@@ -136,8 +138,19 @@ def gold_study_to_database():
 
 @graph
 def translate_metadata_submission_to_nmdc_schema_database():
-    metadata_submission = fetch_nmdc_portal_submission_by_id()
-    database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
+    (
+        submission_id,
+        omics_processing_mapping_file_url,
+        data_object_mapping_file_url,
+    ) = get_submission_portal_pipeline_inputs()
+
+    metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
+
+    database = translate_portal_submission_to_nmdc_schema_database(
+        metadata_submission, omics_processing_mapping, data_object_mapping
+    )
 
     validate_metadata(database)
 
@@ -149,8 +162,19 @@ def translate_metadata_submission_to_nmdc_schema_database():
 
 @graph
 def ingest_metadata_submission():
-    metadata_submission = fetch_nmdc_portal_submission_by_id()
-    database = translate_portal_submission_to_nmdc_schema_database(metadata_submission)
+    (
+        submission_id,
+        omics_processing_mapping_file_url,
+        data_object_mapping_file_url,
+    ) = get_submission_portal_pipeline_inputs()
+
+    metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
+
+    database = translate_portal_submission_to_nmdc_schema_database(
+        metadata_submission, omics_processing_mapping, data_object_mapping
+    )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
 

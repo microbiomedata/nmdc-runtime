@@ -520,8 +520,12 @@ def biosample_submission_ingest():
                 ),
                 "ops": {
                     "export_json_to_drs": {"config": {"username": "..."}},
-                    "fetch_nmdc_portal_submission_by_id": {
-                        "config": {"submission_id": "..."}
+                    "get_submission_portal_pipeline_inputs": {
+                        "config": {
+                            "submission_id": "",
+                            "omics_processing_mapping_file_url": "",
+                            "data_object_mapping_file_url": "",
+                        }
                     },
                 },
             },
@@ -544,8 +548,12 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
-                    "fetch_nmdc_portal_submission_by_id": {
-                        "config": {"submission_id": "..."}
+                    "get_submission_portal_pipeline_inputs": {
+                        "config": {
+                            "submission_id": "",
+                            "omics_processing_mapping_file_url": "",
+                            "data_object_mapping_file_url": "",
+                        }
                     },
                 },
             },

@@ -40,6 +40,7 @@ from nmdc_runtime.api.models.site import (
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
+from nmdc_runtime.minter.bootstrap import refresh_minter_requesters_from_sites
 
 router = APIRouter()
 
@@ -56,6 +57,7 @@ def create_site(
             detail=f"site with supplied id {site.id} already exists",
         )
     mdb.sites.insert_one(site.dict())
+    refresh_minter_requesters_from_sites()
     rv = mdb.users.update_one(
         {"username": user.username},
         {"$addToSet": {"site_admin": site.id}},
@@ -98,14 +100,16 @@ def replace_site():
     pass
 
 
-@router.get("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.get("/sites/{site_id}/capabilities", include_in_schema=False)
 def list_site_capabilities(site_id: str):
-    return site_id
+    """Not yet implemented"""
+    pass
 
 
-@router.put("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.put("/sites/{site_id}/capabilities", include_in_schema=False)
 def replace_site_capabilities(site_id: str, capability_ids: List[str]):
-    return capability_ids
+    """Not yet implemented"""
+    pass
 
 
 def verify_client_site_pair(

@@ -6,8 +6,8 @@ http://nmdcstatus.polyneme.xyz/
 
 ## How It Fits In
 
-* [nmdc-metadata](https://github.com/microbiomedata/nmdc-metadata)
-tracks issues related to NMDC metadata, which may necessitate work across multiple repos.
+* [issues](https://github.com/microbiomedata/issues)  
+tracks issues related to NMDC, which may necessitate work across multiple repos.
   
 * [nmdc-schema](https://github.com/microbiomedata/nmdc-schema/)
 houses the LinkML schema specification, as well as generated artifacts (e.g. JSON Schema).
@@ -79,26 +79,43 @@ database, as a hub for data management and workflow automation.
 
 ## Local Development
 
-Ensure Docker (and Docker Compose) are installed.
+Ensure Docker (and Docker Compose) are installed; and the Docker engine is running.
 
-Ensure you have a .env file for the docker services to source from. You may copy `.env.example` to
+```shell
+docker --version
+docker compose version
+docker info
+```
+
+Ensure the permissions of `./mongoKeyFile` are such that only the file's owner can read or write the file.
+
+```shell
+chmod 600 ./mongoKeyFile
+```
+
+Ensure you have a `.env` file for the Docker services to source from. You may copy `.env.example` to
 `.env` (which is gitignore'd) to get started.
 
-```
-# To load env in your shell session
-# export $(grep -v '^#' .env | xargs)
-```
-
-If you are connecting to resources that require a ssh tunnel, for example a MongoDB that is only
-accessible on the NERSC network,
-
-```
-make nersc-ssh-tunnel
+```shell
+cp .env.example .env
 ```
 
-could be useful for you, directly or as a template.
+Create environment variables in your shell session, based upon the contents of the `.env` file.
 
-Finally,
+```shell
+export $(grep -v '^#' .env | xargs)
+```
+
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+
+The following command could be useful to you, either directly or as a template (see `Makefile`).
+
+```shell
+make nersc-mongo-tunnels
+```
+
+Finally, spin up the Docker Compose stack.
+
 ```bash
 make up-dev
 ```

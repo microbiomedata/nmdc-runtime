@@ -15,8 +15,8 @@ This represents a set of [nmdc:Biosample](https://microbiomedata.github.io/nmdc-
 objects. There is just one, with an `id` of `42`.
 
 Let's validate it. Go to the [POST
-/metadata/json:validate](https://api.dev.microbiomedata.org/docs#/metadata/validate_json_metadata_json_validate_post)
-endpoint at <https://api.dev.microbiomedata.org/docs> and click "Try it out":
+/metadata/json:validate](https://api.microbiomedata.org/docs#/metadata/validate_json_metadata_json_validate_post)
+endpoint at <https://api.microbiomedata.org/docs> and click "Try it out":
 
 ![Try it Out](../img/validate-json-try-it-out.png)
 
@@ -31,14 +31,14 @@ to reproduce the request on the command line:
 ![Validation Response](../img/validate-json-response.png)
 
 Let's see what a "valid" response looks like. The [GET
-/nmdcschema/{collection_name}/{doc_id}](https://api.dev.microbiomedata.org/docs#/metadata/get_from_collection_by_id_nmdcschema__collection_name___doc_id__get)
+/nmdcschema/{collection_name}/{doc_id}](https://api.microbiomedata.org/docs#/metadata/get_from_collection_by_id_nmdcschema__collection_name___doc_id__get)
 endpoint allows us to get the NMDC-schema-validated JSON object for one of the NMDC metadata
 collections:
 
 ![Get one valid](../img/validate-json-get-one-valid.png)
 
 For example,
-[https://api.dev.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217](https://api.dev.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217)
+[https://api.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217](https://api.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217)
 is
 
 ```json
@@ -129,7 +129,7 @@ Hooray!
 ## Get a List of NMDC-Schema-Compliant Documents
 
 The [GET
-/nmdcschema/{collection_name}](https://api.dev.microbiomedata.org/docs#/metadata/list_from_collection_nmdcschema__collection_name__get)
+/nmdcschema/{collection_name}](https://api.microbiomedata.org/docs#/metadata/list_from_collection_nmdcschema__collection_name__get)
 endpoint allows you to get a filtered list of documents from one of the NMDC Schema collections:
 
 ![List from collections](../img/list-from-collection.png)
@@ -152,7 +152,7 @@ returned at a time. A much larger `max_page_size` is fine for programs/scripts, 
 web browser less responsive when using the interactive documentation.
 
 The response body for [our
-request](https://api.dev.microbiomedata.org/nmdcschema/biosample_set?filter=%7B%22part_of%22%3A%20%22gold%3AGs0114663%22%7D&max_page_size=20)
+request](https://api.microbiomedata.org/nmdcschema/biosample_set?filter=%7B%22part_of%22%3A%20%22gold%3AGs0114663%22%7D&max_page_size=20)
 has two fields, `resources` and `next_page_token`:
 
 ```json
