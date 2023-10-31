@@ -122,7 +122,7 @@ class NamedThing(DocumentTemplate):
     _key = LexicalKey(["id"])
     _abstract = []
     alternative_identifiers: Set[str]
-    description: Optional[str]
+    description: Optional[str] = None
     id: str
     name: Optional[str]
 
@@ -1105,7 +1105,7 @@ class ImageValue(AttributeValue):
         null
     """
 
-    description: Optional[str]
+    description: Optional[str] = None
     display_order: Optional[str]
     url: Optional[str]
 
@@ -1150,7 +1150,7 @@ class DataObject(NamedThing):
     _key = LexicalKey(["id"])
     compression_type: Optional[str]
     data_object_type: Optional[str]
-    description: Optional[str]
+    description: Optional[str] = None
     file_size_bytes: Optional["xsd:long"]
     md5_checksum: Optional[str]
     name: Optional[str]

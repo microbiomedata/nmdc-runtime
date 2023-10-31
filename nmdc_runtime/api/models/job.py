@@ -10,7 +10,7 @@ from nmdc_runtime.api.models.workflow import Workflow
 class JobBase(BaseModel):
     workflow: Workflow
     name: Optional[str]
-    description: Optional[str]
+    description: Optional[str] = None
 
 
 class JobClaim(BaseModel):

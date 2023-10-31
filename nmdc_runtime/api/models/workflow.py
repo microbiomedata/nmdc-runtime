@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class WorkflowBase(BaseModel):
     name: Optional[str]
-    description: Optional[str]
+    description: Optional[str] = None
     capability_ids: Optional[List[str]]
 
 

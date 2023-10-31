@@ -8,7 +8,7 @@ from nmdc_runtime.api.models.object import DrsObject
 
 class ObjectTypeBase(BaseModel):
     name: Optional[str]
-    description: Optional[str]
+    description: Optional[str] = None
 
 
 class ObjectType(ObjectTypeBase):
