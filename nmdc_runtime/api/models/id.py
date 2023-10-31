@@ -22,11 +22,11 @@ pattern_assigned_base_name = re.compile(_assigned_base_name)
 _base_object_name = f"{_naa}:{_shoulder}{_blade}"
 pattern_base_object_name = re.compile(_base_object_name)
 
-Naa = constr(regex=_naa)
-Shoulder = constr(regex=rf"^{_shoulder}$", min_length=2)
-Blade = constr(regex=_blade, min_length=4)
-AssignedBaseName = constr(regex=_assigned_base_name)
-BaseObjectName = constr(regex=_base_object_name)
+Naa = constr(pattern=_naa)
+Shoulder = constr(pattern=rf"^{_shoulder}$", min_length=2)
+Blade = constr(pattern=_blade, min_length=4)
+AssignedBaseName = constr(pattern=_assigned_base_name)
+BaseObjectName = constr(pattern=_base_object_name)
 
 NameAssigningAuthority = Literal[tuple(NAA_VALUES)]
 
@@ -74,7 +74,7 @@ class IdBindingRequest(BaseModel):
     a: Optional[str]
     v: Any
 
-    @root_validator()
+    @root_validator(skip_on_failure=True)
     def set_or_add_needs_value(cls, values):
         op = values.get("o")
         if op in (IdBindingOp.set, IdBindingOp.addToSet):
@@ -82,7 +82,7 @@ class IdBindingRequest(BaseModel):
                 raise ValueError("{'set','add'} operations needs value 'v'.")
         return values
 
-    @root_validator()
+    @root_validator(skip_on_failure=True)
     def set_or_add_or_rm_needs_attribute(cls, values):
         op = values.get("o")
         if op in (IdBindingOp.set, IdBindingOp.addToSet, IdBindingOp.rm):

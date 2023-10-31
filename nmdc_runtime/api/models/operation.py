@@ -9,7 +9,7 @@ from nmdc_runtime.api.models.util import ResultT
 MetadataT = TypeVar("MetadataT")
 
 
-PythonImportPath = constr(regex=r"^[A-Za-z0-9_.]+$")
+PythonImportPath = constr(pattern=r"^[A-Za-z0-9_.]+$")
 
 
 class OperationError(BaseModel):

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class CapabilityBase(BaseModel):
     name: Optional[str]
-    description: Optional[str]
+    description: Optional[str] = None
 
 
 class Capability(CapabilityBase):

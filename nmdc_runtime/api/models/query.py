@@ -141,7 +141,7 @@ class QueryRun(BaseModel):
     result: Optional[Any]
     error: Optional[Any]
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def result_xor_error(cls, values):
         result, error = values.get("result"), values.get("error")
         if result is None and error is None:

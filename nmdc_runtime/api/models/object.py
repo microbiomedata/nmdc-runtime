@@ -37,7 +37,7 @@ class AccessMethod(BaseModel):
     region: Optional[str]
     type: AccessMethodType = AccessMethodType.https
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def at_least_one_of_access_id_and_url(cls, values):
         access_id, access_url = values.get("access_id"), values.get("access_url")
         if access_id is None and access_url is None:
@@ -48,7 +48,7 @@ class AccessMethod(BaseModel):
 
 
 ChecksumType = constr(
-    regex=rf"(?P<checksumtype>({'|'.join(sorted(hashlib.algorithms_guaranteed))}))"
+    pattern=rf"(?P<checksumtype>({'|'.join(sorted(hashlib.algorithms_guaranteed))}))"
 )
 
 
@@ -57,8 +57,8 @@ class Checksum(BaseModel):
     type: ChecksumType
 
 
-DrsId = constr(regex=r"^[A-Za-z0-9._~\-]+$")
-PortableFilename = constr(regex=r"^[A-Za-z0-9._\-]+$")
+DrsId = constr(pattern=r"^[A-Za-z0-9._~\-]+$")
+PortableFilename = constr(pattern=r"^[A-Za-z0-9._\-]+$")
 
 
 class ContentsObject(BaseModel):
@@ -67,7 +67,7 @@ class ContentsObject(BaseModel):
     id: Optional[DrsId]
     name: PortableFilename
 
-    @root_validator()
+    @root_validator(skip_on_failure=True)
     def no_contents_means_single_blob(cls, values):
         contents, id_ = values.get("contents"), values.get("id")
         if contents is None and id_ is None:
@@ -77,7 +77,7 @@ class ContentsObject(BaseModel):
 
 ContentsObject.update_forward_refs()
 
-Mimetype = constr(regex=r"^\w+/[-+.\w]+$")
+Mimetype = constr(pattern=r"^\w+/[-+.\w]+$")
 SizeInBytes = conint(strict=True, ge=0)
 
 
@@ -88,7 +88,7 @@ class Error(BaseModel):
 
 class DrsObjectBase(BaseModel):
     aliases: Optional[List[str]]
-    description: Optional[str]
+    description: Optional[str] = None
     mime_type: Optional[Mimetype]
     name: Optional[PortableFilename]
 
@@ -102,7 +102,7 @@ class DrsObjectIn(DrsObjectBase):
     updated_time: Optional[datetime.datetime]
     version: Optional[str]
 
-    @root_validator()
+    @root_validator(skip_on_failure=True)
     def no_contents_means_single_blob(cls, values):
         contents, access_methods = values.get("contents"), values.get("access_methods")
         if contents is None and access_methods is None:
