@@ -9,7 +9,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi>=0.85.0 # using starlette >=0.20.3 for working colon-containing URL paths.
+fastapi>=0.104.1 # Pins Swagger UI version to 5.9.0 temporarily to handle a bug crashing it in 5.9.1
 fastjsonschema
 fnc
 frozendict

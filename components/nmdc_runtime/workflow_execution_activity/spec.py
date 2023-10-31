@@ -6,10 +6,11 @@ from nmdc_schema.nmdc import (
     WorkflowExecutionActivity,
     Database,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ActivityTree(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     children: list["ActivityTree"] = []
     data: WorkflowExecutionActivity
     spec: Workflow
