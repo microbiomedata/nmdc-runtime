@@ -35,7 +35,7 @@ ACCESS_TOKEN_EXPIRES = TokenExpires(days=0, hours=0, minutes=30)
 class Token(BaseModel):
     access_token: str
     token_type: str
-    expires: Optional[TokenExpires]
+    expires: Optional[TokenExpires] = None
 
 
 class TokenData(BaseModel):

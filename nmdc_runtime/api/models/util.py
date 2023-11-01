@@ -2,15 +2,15 @@ from typing import TypeVar, List, Optional, Generic, Annotated
 
 from fastapi import Query
 
-from pydantic import BaseModel, root_validator, conint
-from pydantic.generics import GenericModel
+from pydantic import model_validator, Field, BaseModel
+from typing_extensions import Annotated
 
 ResultT = TypeVar("ResultT")
 
 
-class ListResponse(GenericModel, Generic[ResultT]):
+class ListResponse(BaseModel, Generic[ResultT]):
     resources: List[ResultT]
-    next_page_token: Optional[str]
+    next_page_token: Optional[str] = None
 
 
 class ListRequest(BaseModel):
@@ -21,7 +21,7 @@ class ListRequest(BaseModel):
         ),
     ]
     max_page_size: Optional[int] = 20
-    page_token: Optional[str]
+    page_token: Optional[str] = None
     projection: Annotated[
         Optional[str],
         Query(
@@ -36,25 +36,25 @@ class ListRequest(BaseModel):
     ]
 
 
-PerPageRange = conint(gt=0, le=2_000)
+PerPageRange = Annotated[int, Field(gt=0, le=2_000)]
 
 
 class FindRequest(BaseModel):
-    filter: Optional[str]
-    search: Optional[str]
-    sort: Optional[str]
-    page: Optional[int]
+    filter: Optional[str] = None
+    search: Optional[str] = None
+    sort: Optional[str] = None
+    page: Optional[int] = None
     per_page: Optional[PerPageRange] = 25
-    cursor: Optional[str]
-    group_by: Optional[str]
+    cursor: Optional[str] = None
+    group_by: Optional[str] = None
     fields: Annotated[
         Optional[str],
         Query(
             description="comma-separated list of fields you want the objects in the response to include"
         ),
-    ]
+    ] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def set_page_if_cursor_unset(cls, values):
         page, cursor = values.get("page"), values.get("cursor")
         if page is not None and cursor is not None:

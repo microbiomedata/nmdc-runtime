@@ -9,7 +9,7 @@ from nmdc_runtime.minter.config import schema_classes
 class Entity(BaseModel):
     """A domain object whose attributes may change but has a recognizable identity over time."""
 
-    id: str | None
+    id: str | None = None
 
 
 class ValueObject(BaseModel):
@@ -65,7 +65,7 @@ class Identifier(Entity):
     typecode: Entity
     shoulder: Entity
     status: Status
-    bindings: Optional[dict]
+    bindings: Optional[dict] = None
 
 
 class Typecode(Entity):

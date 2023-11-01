@@ -2,23 +2,24 @@ import datetime
 from typing import Optional, Any, Dict, List, Union
 
 from pydantic import (
+    model_validator,
+    Field,
     BaseModel,
-    root_validator,
-    conint,
     PositiveInt,
     NonNegativeInt,
 )
+from typing_extensions import Annotated
 
 Document = Dict[str, Any]
 
-OneOrZero = conint(ge=0, le=1)
-One = conint(ge=1, le=1)
-MinusOne = conint(ge=-1, le=-1)
+OneOrZero = Annotated[int, Field(ge=0, le=1)]
+One = Annotated[int, Field(ge=1, le=1)]
+MinusOne = Annotated[int, Field(ge=-1, le=-1)]
 OneOrMinusOne = Union[One, MinusOne]
 
 
 class CommandBase(BaseModel):
-    comment: Optional[Any]
+    comment: Optional[Any] = None
 
 
 class CollStatsCommand(CommandBase):
@@ -28,17 +29,17 @@ class CollStatsCommand(CommandBase):
 
 class CountCommand(CommandBase):
     count: str
-    query: Optional[Document]
+    query: Optional[Document] = None
 
 
 class FindCommand(CommandBase):
     find: str
-    filter: Optional[Document]
-    projection: Optional[Dict[str, OneOrZero]]
+    filter: Optional[Document] = None
+    projection: Optional[Dict[str, OneOrZero]] = None
     allowPartialResults: Optional[bool] = True
     batchSize: Optional[PositiveInt] = 101
-    sort: Optional[Dict[str, OneOrMinusOne]]
-    limit: Optional[NonNegativeInt]
+    sort: Optional[Dict[str, OneOrMinusOne]] = None
+    limit: Optional[NonNegativeInt] = None
 
 
 class CommandResponse(BaseModel):
@@ -49,7 +50,7 @@ class CollStatsCommandResponse(CommandResponse):
     ns: str
     size: float
     count: float
-    avgObjSize: Optional[float]
+    avgObjSize: Optional[float] = None
     storageSize: float
     totalIndexSize: float
     totalSize: float
@@ -62,8 +63,8 @@ class CountCommandResponse(CommandResponse):
 
 class FindCommandResponseCursor(BaseModel):
     firstBatch: List[Document]
-    partialResultsReturned: Optional[bool]
-    id: Optional[int]
+    partialResultsReturned: Optional[bool] = None
+    id: Optional[int] = None
     ns: str
 
 
@@ -74,7 +75,7 @@ class FindCommandResponse(CommandResponse):
 class DeleteCommandDelete(BaseModel):
     q: Document
     limit: OneOrZero
-    hint: Optional[Dict[str, OneOrMinusOne]]
+    hint: Optional[Dict[str, OneOrMinusOne]] = None
 
 
 class DeleteCommand(CommandBase):
@@ -85,19 +86,19 @@ class DeleteCommand(CommandBase):
 class DeleteCommandResponse(CommandResponse):
     ok: OneOrZero
     n: NonNegativeInt
-    writeErrors: Optional[List[Document]]
+    writeErrors: Optional[List[Document]] = None
 
 
 class GetMoreCommand(CommandBase):
     getMore: int
     collection: str
-    batchSize: Optional[PositiveInt]
+    batchSize: Optional[PositiveInt] = None
 
 
 class GetMoreCommandResponseCursor(BaseModel):
     nextBatch: List[Document]
-    partialResultsReturned: Optional[bool]
-    id: Optional[int]
+    partialResultsReturned: Optional[bool] = None
+    id: Optional[int] = None
     ns: str
 
 
@@ -138,10 +139,10 @@ class Query(BaseModel):
 class QueryRun(BaseModel):
     qid: str
     ran_at: datetime.datetime
-    result: Optional[Any]
-    error: Optional[Any]
+    result: Optional[Any] = None
+    error: Optional[Any] = None
 
-    @root_validator(skip_on_failure=True)
+    @model_validator(mode="before")
     def result_xor_error(cls, values):
         result, error = values.get("result"), values.get("error")
         if result is None and error is None:
