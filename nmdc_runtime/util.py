@@ -17,13 +17,14 @@ from frozendict import frozendict
 from jsonschema.validators import Draft7Validator
 from nmdc_schema.nmdc_schema_accepting_legacy_ids import Database as NMDCDatabase
 from nmdc_schema.get_nmdc_view import ViewGetter
-from pydantic import conint, BaseModel
+from pydantic import Field, BaseModel
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import OperationFailure
 from toolz import merge, unique
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
+from typing_extensions import Annotated
 
 
 @lru_cache
@@ -354,7 +355,7 @@ class UpdateStatement(BaseModel):
 
 class DeleteStatement(BaseModel):
     q: dict
-    limit: conint(ge=0, le=1) = 1
+    limit: Annotated[int, Field(ge=0, le=1)] = 1
 
 
 class OverlayDBError(Exception):

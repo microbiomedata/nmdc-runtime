@@ -5,11 +5,11 @@ from pydantic import BaseModel
 
 
 class WorkflowBase(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     description: Optional[str] = None
-    capability_ids: Optional[List[str]]
+    capability_ids: Optional[List[str]] = None
 
 
 class Workflow(WorkflowBase):
     id: str
-    created_at: Optional[datetime.datetime]
+    created_at: Optional[datetime.datetime] = None

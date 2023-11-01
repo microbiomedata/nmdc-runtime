@@ -9,7 +9,7 @@ from nmdc_runtime.api.models.workflow import Workflow
 
 class JobBase(BaseModel):
     workflow: Workflow
-    name: Optional[str]
+    name: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -20,7 +20,7 @@ class JobClaim(BaseModel):
 
 class Job(JobBase):
     id: str
-    created_at: Optional[datetime.datetime]
+    created_at: Optional[datetime.datetime] = None
     config: Dict[str, Any]
     claims: List[JobClaim] = []
 
