@@ -7,7 +7,7 @@ from nmdc_runtime.api.models.object import DrsObject
 
 
 class ObjectTypeBase(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -17,4 +17,4 @@ class ObjectType(ObjectTypeBase):
 
 
 class DrsObjectWithTypes(DrsObject):
-    types: Optional[List[str]]
+    types: Optional[List[str]] = None

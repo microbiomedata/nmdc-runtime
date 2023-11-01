@@ -4,7 +4,7 @@ User models
 from typing import Optional, List
 
 from beanie import Document, Indexed
-from pydantic import EmailStr
+from pydantic import ConfigDict, EmailStr
 
 from nmdc_runtime.api.core.auth import verify_password
 from nmdc_runtime.domain.users.userSchema import UserAuth, UserUpdate, UserOut
@@ -21,9 +21,8 @@ class User(Document):
     full_name: Optional[str] = None
     site_admin: Optional[List[str]] = []
     disabled: Optional[bool] = False
-
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "username": "bob",
             "email": "test@test.com",
             "full_name": "test",
@@ -31,6 +30,7 @@ class User(Document):
             "site_admin": ["test_site"],
             "created_date": "1/1/2020",
         }
+    )
 
 
 class UserQueries(IUserQueries):

@@ -41,7 +41,7 @@ class JobSummary(OpenLineageBase):
 
 class Run(BaseModel):
     id: str
-    facets: Optional[dict]
+    facets: Optional[dict] = None
 
 
 class RunEventType(str, Enum):
