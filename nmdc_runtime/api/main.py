@@ -5,7 +5,9 @@ from importlib.metadata import version
 
 import uvicorn
 from fastapi import APIRouter, FastAPI
+from fastapi import applications
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from starlette import status
 from starlette.responses import RedirectResponse
 
@@ -365,6 +367,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(Analytics)
+
+
+# Invokes FastAPI's `get_swagger_ui_html` function, but overrides some of its parameters
+# so it fetches (from its usual CDN) a _specific_ version of the Swagger UI JS and CSS.
+#
+# In other words, we are _pinning_ the Swagger UI version to 5.9.0 (instead of allowing
+# FastAPI to fetch what it otherwise would, which is the latest `5.x.x` version).
+#
+# Note: This is part of a so-called "monkey patch" designed to prevent FastAPI from loading
+#       version 5.9.1 of the Swagger UI assets, which contain a bug described at:
+#       https://github.com/tiangolo/fastapi/pull/10529
+#
+# Reference: https://github.com/tiangolo/fastapi/issues/1762#issuecomment-662162612
+#
+def get_swagger_ui_html_PATCHED(*args, **kwargs):
+    pinned_swagger_js_url = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"
+    pinned_swagger_css_url = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css"
+    return get_swagger_ui_html(
+        *args, **kwargs,
+        swagger_js_url=pinned_swagger_js_url,
+        swagger_css_url=pinned_swagger_css_url)
+
+
+# Configure FastAPI to use the patched function instead of the original one.
+applications.get_swagger_ui_html = get_swagger_ui_html_PATCHED
 
 
 if __name__ == "__main__":
