@@ -332,6 +332,8 @@ class GoldApiClient(BasicAuthClient):
         return results[0]
 
 
+
+
 @resource(
     config_schema={
         "base_url": StringSource,
