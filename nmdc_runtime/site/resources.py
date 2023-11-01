@@ -108,6 +108,20 @@ class RuntimeApiUserClient(RuntimeApiClient):
             },
         )
 
+    def get_biosamples_for_study(self, study_id: str):
+        return self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "biosample_set",
+                "filter": {
+                    "part_of": {
+                        "$elemMatch": {"$eq": study_id}
+                    }
+                },
+            },
+        )
+
     def get_omics_processing_by_name(self, name: str):
         return self.request(
             "POST",
