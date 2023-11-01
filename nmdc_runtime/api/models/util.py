@@ -52,10 +52,9 @@ class FindRequest(BaseModel):
         Query(
             description="comma-separated list of fields you want the objects in the response to include"
         ),
-    ]
+    ] = None
 
     @model_validator(mode="before")
-    @classmethod
     def set_page_if_cursor_unset(cls, values):
         page, cursor = values.get("page"), values.get("cursor")
         if page is not None and cursor is not None:

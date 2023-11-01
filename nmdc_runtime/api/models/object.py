@@ -38,8 +38,7 @@ class AccessMethod(BaseModel):
     region: Optional[str] = None
     type: AccessMethodType = AccessMethodType.https
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def at_least_one_of_access_id_and_url(cls, values):
         access_id, access_url = values.get("access_id"), values.get("access_url")
         if access_id is None and access_url is None:
@@ -72,8 +71,7 @@ class ContentsObject(BaseModel):
     id: Optional[DrsId] = None
     name: PortableFilename
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def no_contents_means_single_blob(cls, values):
         contents, id_ = values.get("contents"), values.get("id")
         if contents is None and id_ is None:
@@ -108,8 +106,7 @@ class DrsObjectIn(DrsObjectBase):
     updated_time: Optional[datetime.datetime] = None
     version: Optional[str] = None
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def no_contents_means_single_blob(cls, values):
         contents, access_methods = values.get("contents"), values.get("access_methods")
         if contents is None and access_methods is None:

@@ -142,8 +142,7 @@ class QueryRun(BaseModel):
     result: Optional[Any] = None
     error: Optional[Any] = None
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def result_xor_error(cls, values):
         result, error = values.get("result"), values.get("error")
         if result is None and error is None:

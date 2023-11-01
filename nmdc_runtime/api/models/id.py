@@ -75,8 +75,7 @@ class IdBindingRequest(BaseModel):
     a: Optional[str] = None
     v: Any = None
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def set_or_add_needs_value(cls, values):
         op = values.get("o")
         if op in (IdBindingOp.set, IdBindingOp.addToSet):
@@ -84,8 +83,7 @@ class IdBindingRequest(BaseModel):
                 raise ValueError("{'set','add'} operations needs value 'v'.")
         return values
 
-    @model_validator(skip_on_failure=True)
-    @classmethod
+    @model_validator(mode="before")
     def set_or_add_or_rm_needs_attribute(cls, values):
         op = values.get("o")
         if op in (IdBindingOp.set, IdBindingOp.addToSet, IdBindingOp.rm):
