@@ -19,7 +19,7 @@ class ListRequest(BaseModel):
         Query(
             description='MongoDB-style JSON filter document. Example: `{"ecosystem_type": "Freshwater"}`'
         ),
-    ]
+    ] = None
     max_page_size: Optional[int] = 20
     page_token: Optional[str] = None
     projection: Annotated[
@@ -33,7 +33,7 @@ class ListRequest(BaseModel):
                 "Example: `ecosystem_type,name`"
             )
         ),
-    ]
+    ] = None
 
 
 PerPageRange = Annotated[int, Field(gt=0, le=2_000)]
