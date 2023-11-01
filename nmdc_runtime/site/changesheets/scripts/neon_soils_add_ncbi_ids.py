@@ -81,8 +81,32 @@ def generate_changesheet(study_id, use_dev_api):
     logging.info("connected to GOLD API...")
 
     # Retrieve all biosamples for the neon soils study
-    biosamples = runtime_api_user_client.get_biosamples_for_study(study_id)
+    res = runtime_api_user_client.get_biosamples_for_study(study_id)
+    if res.status_code != 200:
+        logging.error(
+            f"error retrieving biosamples for {study_id}: {res.status_code}"
+        )
+        return
+    biosamples = res.json()["cursor"]["firstBatch"]
     logging.info(f"retrieved {len(biosamples)} biosamples for {study_id}")
+
+    changesheet = Changesheet(name=NAME)
+    # For each biosample, retrieve the corresponding GOLD biosample record
+    for biosample in biosamples:
+        logging.info(f"processing biosample {biosample['id']}")
+        for gold_biosample_identifier in biosample["gold_biosample_identifiers"]:
+            # Retrieve the GOLD biosample record
+            res = gold_api_client.request("/biosamples", params={
+                "biosampleGoldId": gold_biosample_identifier})
+            if res.status_code != 200:
+                logging.error(
+                    f"error retrieving GOLD biosample record for "
+                    f"{gold_biosample_identifier}: {res.status_code}"
+                )
+                continue
+            # the /biosamples endpoint returns a list of records
+            gold_biosample_record = res.json()[0]
+
 
 
 
