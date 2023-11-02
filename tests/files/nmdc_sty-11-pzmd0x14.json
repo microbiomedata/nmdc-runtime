@@ -1,0 +1,65 @@
+{
+  "id": "nmdc:sty-11-pzmd0x14",
+  "name": "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)",
+  "type": "nmdc:Study",
+  "title": "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)",
+  "description": "The National Science Foundation's National Ecological Observatory Network (NEON) is a continental-scale observation facility operated by Battelle and designed to collect long-term open access ecological data to better understand how U.S. ecosystems are changing.",
+  "websites": [
+    "https://www.neonscience.org/",
+    "https://data.neonscience.org/data-products/DP1.20279.001",
+    "https://data.neonscience.org/api/v0/documents/NEON_metagenomes_userGuide_vE.pdf"
+  ],
+  "funding_sources": [
+    "NSF#1724433 National Ecological Observatory Network: Operations Activities"
+  ],
+  "principal_investigator": {
+    "name": "Kate Thibault",
+    "email": "kthibault@battelleecology.org",
+    "orcid": "orcid:0000-0003-3477-6424",
+    "has_raw_value": "Kate Thibault"
+  },
+  "has_credit_associations": [
+    {
+      "applies_to_person": {
+        "name": "Hugh Cross",
+        "email": "crossh@battelleecology.org",
+        "orcid": "orcid:0000-0002-6745-9479"
+      },
+      "applied_roles": [
+        "Methodology",
+        "Data curation"
+      ]
+    },
+    {
+      "applies_to_person": {
+        "name": "Kate Thibault",
+        "email": "kthibault@battelleecology.org",
+        "orcid": "orcid:0000-0003-3477-6424"
+      },
+      "applied_roles": [
+        "Principal Investigator"
+      ]
+    },
+    {
+      "applies_to_person": {
+        "name": "Stephanie Parker",
+        "email": "sparker@battelleecology.org",
+        "orcid": "0000-0002-7180-7245"
+      },
+      "applied_roles": [
+        "Methodology",
+        "Data curation"
+      ]
+    }
+  ],
+  "study_image": [
+    {
+      "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg"
+    }
+  ],
+  "gold_study_identifiers": [],
+  "part_of": [
+    "nmdc:sty-11-nxrz9m96"
+  ],
+  "study_category": "consortium"
+}

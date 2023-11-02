@@ -232,7 +232,9 @@ def ensure_initial_resources_on_boot():
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
 
         for model in collection_boot.construct():
-            doc = model.dict()
+            doc = model.model_dump(
+                mode="json",
+            )
             mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
 
     username = os.getenv("API_ADMIN_USER")
@@ -244,7 +246,7 @@ def ensure_initial_resources_on_boot():
                 username=username,
                 hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
                 site_admin=[os.getenv("API_SITE_ID")],
-            ).dict(exclude_unset=True),
+            ).model_dump(mode="json", exclude_unset=True),
             upsert=True,
         )
         mdb.users.create_index("username")
@@ -265,7 +267,9 @@ def ensure_initial_resources_on_boot():
                         ),
                     )
                 ],
-            ).dict(),
+            ).model_dump(
+                mode="json",
+            ),
             upsert=True,
         )
 

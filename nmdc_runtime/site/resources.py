@@ -60,7 +60,9 @@ class RuntimeApiClient:
         self.ensure_token()
         kwargs = {"url": self.base_url + url_path, "headers": self.headers}
         if isinstance(params_or_json_data, BaseModel):
-            params_or_json_data = params_or_json_data.dict(exclude_unset=True)
+            params_or_json_data = params_or_json_data.model_dump(
+                mode="json", exclude_unset=True
+            )
         if method.upper() == "GET":
             kwargs["params"] = params_or_json_data
         else:
