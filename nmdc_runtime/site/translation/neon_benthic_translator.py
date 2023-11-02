@@ -39,7 +39,7 @@ class NeonBenthicDataTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
-        requests_cache.install_cache("neon_api_cache", expire_after=3600)
+        requests_cache.install_cache("neon_api_cache")
 
         neon_amb_data_tables = (
             "mms_benthicMetagenomeSequencing",
@@ -104,7 +104,11 @@ class NeonBenthicDataTranslator(Translator):
         :param data: DataFrame to read the column value from.
         :return: Either a string, float or None depending on the column/column values.
         """
-        if column_name in data and not data[column_name].isna().any() and not data[column_name].empty:
+        if (
+            column_name in data
+            and not data[column_name].isna().any()
+            and not data[column_name].empty
+        ):
             if column_name == "horizon":
                 return f"{data[column_name].values[0]} horizon"
             elif column_name == "qaqcStatus":
@@ -232,7 +236,7 @@ class NeonBenthicDataTranslator(Translator):
     ) -> nmdc.Biosample:
         return nmdc.Biosample(
             id=nmdc_id,
-            part_of="nmdc:sty-11-34xj1150",
+            part_of="nmdc:sty-11-pzmd0x14",
             env_broad_scale=self._create_controlled_identified_term_value(
                 BENTHIC_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
@@ -316,7 +320,7 @@ class NeonBenthicDataTranslator(Translator):
             has_output=processed_sample_id,
             start_date=self._get_value_or_none(extraction_row, "collectDate"),
             end_date=self._get_value_or_none(extraction_row, "processedDate"),
-            sample_mass=self._create_quantity_value(
+            input_mass=self._create_quantity_value(
                 self._get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
             quality_control_report=nmdc.QualityControlReport(
@@ -410,7 +414,7 @@ class NeonBenthicDataTranslator(Translator):
             name=f"Terrestrial soil microbial communities - {self._get_value_or_none(omics_processing_row, 'dnaSampleID')}",
             type="nmdc:OmicsProcessing",
         )
-    
+
     def _translate_processed_sample(
         self, processed_sample_id: str, sample_id: str
     ) -> nmdc.ProcessedSample:
@@ -426,7 +430,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: ProcessedSample objects to be stored in `processed_sample_set`.
         """
         return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
-    
+
     def _translate_data_object(
         self, do_id: str, url: str, do_type: str, checksum: str
     ) -> nmdc.DataObject:
@@ -487,8 +491,7 @@ class NeonBenthicDataTranslator(Translator):
                 afp.siteID,
                 afp.sampleID,
                 afp.collectDate
-            FROM amb_fieldParent AS afp
-            LEFT JOIN
+            FROM 
                 (
                     SELECT
                         bs.collectDate,
@@ -514,6 +517,7 @@ class NeonBenthicDataTranslator(Translator):
                     ON 
                         bs.dnaSampleID = bd.dnaSampleID
                 ) AS merged
+            LEFT JOIN amb_fieldParent AS afp
             ON
                 merged.genomicsSampleID = afp.geneticSampleID
         """
@@ -522,47 +526,39 @@ class NeonBenthicDataTranslator(Translator):
             "benthicSamples", self.conn, if_exists="replace", index=False
         )
 
-        sql_query = """
-        WITH CTE AS (
-            SELECT
-                *,
-                ROW_NUMBER() OVER (PARTITION BY dnaSampleID, genomicsSampleID, sampleID ORDER BY ROWID) AS rn
-            FROM
-                benthicSamples
-        )
-        SELECT
-            *
-        FROM
-            CTE
-        WHERE
-            rn = 1;
-        """
-        benthic_samples_filtered = pd.read_sql_query(sql_query, self.conn)
-
-        benthic_samples_filtered = benthic_samples_filtered[
-            benthic_samples_filtered["sampleID"].notna()
-            & (benthic_samples_filtered["sampleID"] != "")
-        ]
-
-        neon_biosample_ids = benthic_samples_filtered["sampleID"]
+        neon_biosample_ids = benthic_samples["sampleID"]
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
 
         neon_extraction_ids = benthic_samples["sampleID"]
-        nmdc_extraction_ids = self._id_minter("nmdc:Extraction", len(neon_extraction_ids))
-        neon_to_nmdc_extraction_ids = dict(zip(neon_extraction_ids, nmdc_extraction_ids))
+        nmdc_extraction_ids = self._id_minter(
+            "nmdc:Extraction", len(neon_extraction_ids)
+        )
+        neon_to_nmdc_extraction_ids = dict(
+            zip(neon_extraction_ids, nmdc_extraction_ids)
+        )
 
         neon_extraction_processed_ids = benthic_samples["sampleID"]
-        nmdc_extraction_processed_ids = self._id_minter("nmdc:ProcessedSample", len(neon_extraction_processed_ids))
-        neon_to_nmdc_extraction_processed_ids = dict(zip(neon_extraction_processed_ids, nmdc_extraction_processed_ids))
+        nmdc_extraction_processed_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(neon_extraction_processed_ids)
+        )
+        neon_to_nmdc_extraction_processed_ids = dict(
+            zip(neon_extraction_processed_ids, nmdc_extraction_processed_ids)
+        )
 
         neon_lib_prep_ids = benthic_samples["sampleID"]
-        nmdc_lib_prep_ids = self._id_minter("nmdc:LibraryPreparation", len(neon_lib_prep_ids))
+        nmdc_lib_prep_ids = self._id_minter(
+            "nmdc:LibraryPreparation", len(neon_lib_prep_ids)
+        )
         neon_to_nmdc_lib_prep_ids = dict(zip(neon_lib_prep_ids, nmdc_lib_prep_ids))
 
         neon_lib_prep_processed_ids = benthic_samples["sampleID"]
-        nmdc_lib_prep_processed_ids = self._id_minter("nmdc:ProcessedSample", len(neon_lib_prep_processed_ids))
-        neon_to_nmdc_lib_prep_processed_ids = dict(zip(neon_lib_prep_processed_ids, nmdc_lib_prep_processed_ids))
+        nmdc_lib_prep_processed_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(neon_lib_prep_processed_ids)
+        )
+        neon_to_nmdc_lib_prep_processed_ids = dict(
+            zip(neon_lib_prep_processed_ids, nmdc_lib_prep_processed_ids)
+        )
 
         neon_omprc_ids = benthic_samples["sampleID"]
         nmdc_omprc_ids = self._id_minter("nmdc:OmicsProcessing", len(neon_omprc_ids))
@@ -578,8 +574,8 @@ class NeonBenthicDataTranslator(Translator):
         )
 
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
-            biosample_row = benthic_samples_filtered[
-                benthic_samples_filtered["sampleID"] == neon_id
+            biosample_row = benthic_samples[
+                benthic_samples["sampleID"] == neon_id
             ]
 
             database.biosample_set.append(
@@ -587,9 +583,7 @@ class NeonBenthicDataTranslator(Translator):
             )
 
         for neon_id, nmdc_id in neon_to_nmdc_extraction_ids.items():
-            extraction_row = benthic_samples[
-                benthic_samples["sampleID"] == neon_id
-            ]
+            extraction_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
 
             extraction_input = neon_to_nmdc_biosample_ids.get(neon_id)
             processed_sample_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
@@ -604,9 +598,12 @@ class NeonBenthicDataTranslator(Translator):
                     )
                 )
 
+                genomics_sample_id = self._get_value_or_none(extraction_row, "genomicsSampleID")
+
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id, self._get_value_or_none(extraction_row, "genomicsSampleID")
+                        processed_sample_id,
+                        f"Extracted DNA from {genomics_sample_id}",
                     )
                 )
 
@@ -621,12 +618,14 @@ class NeonBenthicDataTranslator(Translator):
             .str.split("|")
             .to_dict()
         )
-        filtered_neon_raw_data_files_dict = {key: value for key, value in neon_raw_data_files_dict.items() if len(value) <= 2}
-        
+        filtered_neon_raw_data_files_dict = {
+            key: value
+            for key, value in neon_raw_data_files_dict.items()
+            if len(value) <= 2
+        }
+
         for neon_id, nmdc_id in neon_to_nmdc_lib_prep_ids.items():
-            lib_prep_row = benthic_samples[
-                benthic_samples["sampleID"] == neon_id
-            ]
+            lib_prep_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
 
             lib_prep_input = neon_to_nmdc_extraction_processed_ids.get(neon_id)
             processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(neon_id)
@@ -645,7 +644,8 @@ class NeonBenthicDataTranslator(Translator):
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id, dna_sample_id
+                        processed_sample_id,
+                        f"Library preparation for {dna_sample_id}",
                     )
                 )
 
@@ -671,7 +671,10 @@ class NeonBenthicDataTranslator(Translator):
 
                         database.data_object_set.append(
                             self._translate_data_object(
-                                neon_to_nmdc_data_object_ids.get(item), item, do_type, checksum
+                                neon_to_nmdc_data_object_ids.get(item),
+                                item,
+                                do_type,
+                                checksum,
                             )
                         )
 
@@ -683,5 +686,5 @@ class NeonBenthicDataTranslator(Translator):
                             lib_prep_row,
                         )
                     )
-                
+
         return database
