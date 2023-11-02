@@ -29,7 +29,12 @@ def test_mint_and_resolve():
     s: InMemoryIDStore = get_test_inmemoryidstore()
     req_mint = minting_request()
     id_: Identifier = next(i for i in s.mint(req_mint))
-    req_res = ResolutionRequest(id_name=id_.name, **req_mint.dict())
+    req_res = ResolutionRequest(
+        id_name=id_.name,
+        **req_mint.model_dump(
+            mode="json",
+        ),
+    )
     assert s.resolve(req_res) is not None
 
 
@@ -37,9 +42,23 @@ def test_mint_and_delete():
     s: InMemoryIDStore = get_test_inmemoryidstore()
     req_mint = minting_request()
     id_: Identifier = next(i for i in s.mint(req_mint))
-    req_del = DeleteRequest(id_name=id_.name, **req_mint.dict())
+    req_del = DeleteRequest(
+        id_name=id_.name,
+        **req_mint.model_dump(
+            mode="json",
+        ),
+    )
     s.delete(req_del)
-    assert s.resolve(ResolutionRequest(**req_del.dict())) is None
+    assert (
+        s.resolve(
+            ResolutionRequest(
+                **req_del.model_dump(
+                    mode="json",
+                )
+            )
+        )
+        is None
+    )
 
 
 def test_mongo_mint_one():
@@ -70,7 +89,12 @@ def test_mongo_mint_and_resolve():
 
     req_mint = minting_request()
     id_: Identifier = next(i for i in s.mint(req_mint))
-    req_res = ResolutionRequest(id_name=id_.name, **req_mint.dict())
+    req_res = ResolutionRequest(
+        id_name=id_.name,
+        **req_mint.model_dump(
+            mode="json",
+        ),
+    )
     assert s.resolve(req_res) is not None
 
 
@@ -80,7 +104,21 @@ def test_mongo_mint_and_delete():
 
     req_mint = minting_request()
     id_: Identifier = next(i for i in s.mint(req_mint))
-    req_del = DeleteRequest(id_name=id_.name, **req_mint.dict())
+    req_del = DeleteRequest(
+        id_name=id_.name,
+        **req_mint.model_dump(
+            mode="json",
+        ),
+    )
     s.delete(req_del)
-    assert s.resolve(ResolutionRequest(**req_del.dict())) is None
+    assert (
+        s.resolve(
+            ResolutionRequest(
+                **req_del.model_dump(
+                    mode="json",
+                )
+            )
+        )
+        is None
+    )
     assert s.db["minter.id_records"].count_documents({}) == 0

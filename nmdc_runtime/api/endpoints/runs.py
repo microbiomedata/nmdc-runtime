@@ -94,5 +94,9 @@ def post_run_event(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Supplied run_event.run.id does not match run_id given in request URL.",
         )
-    mdb.run_events.insert_one(run_event.dict())
+    mdb.run_events.insert_one(
+        run_event.model_dump(
+            mode="json",
+        )
+    )
     return _get_run_summary(run_event.run.id, mdb)

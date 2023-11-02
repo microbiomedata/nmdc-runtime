@@ -405,7 +405,9 @@ def claim_and_run_apply_changesheet_jobs(_context):
 def done_object_put_ops(_context):
     client = get_runtime_api_site_client(run_config_frozen__normal_env)
     ops = [
-        op.dict()
+        op.model_dump(
+            mode="json",
+        )
         for op in client.list_operations(
             {
                 "filter": json.dumps(
