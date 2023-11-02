@@ -56,7 +56,11 @@ def create_site(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"site with supplied id {site.id} already exists",
         )
-    mdb.sites.insert_one(site.dict())
+    mdb.sites.insert_one(
+        site.model_dump(
+            mode="json",
+        )
+    )
     refresh_minter_requesters_from_sites()
     rv = mdb.users.update_one(
         {"username": user.username},
@@ -165,7 +169,11 @@ def put_object_in_site(
             },
         }
     )
-    mdb.operations.insert_one(op.dict())
+    mdb.operations.insert_one(
+        op.model_dump(
+            mode="json",
+        )
+    )
     return op
 
 

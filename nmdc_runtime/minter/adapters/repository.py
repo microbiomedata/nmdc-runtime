@@ -97,7 +97,9 @@ class InMemoryIDStore(IDStore):
                 )
             )
         for id_ in ids:
-            self.db[id_.id] = id_.dict()
+            self.db[id_.id] = id_.model_dump(
+                mode="json",
+            )
         return ids
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
@@ -184,7 +186,14 @@ class MongoIDStore(abc.ABC):
                     )
                     for id_name in not_taken
                 ]
-                self.db["minter.id_records"].insert_many([i.dict() for i in ids])
+                self.db["minter.id_records"].insert_many(
+                    [
+                        i.model_dump(
+                            mode="json",
+                        )
+                        for i in ids
+                    ]
+                )
                 collected.extend(ids)
             if len(collected) == req_mint.how_many:
                 break

@@ -78,7 +78,7 @@ def create_object(
 
     """
     id_supplied = supplied_object_id(
-        mdb, client_site, object_in.dict(exclude_unset=True)
+        mdb, client_site, object_in.model_dump(mode="json", exclude_unset=True)
     )
     drs_id = local_part(
         id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
@@ -255,7 +255,9 @@ def update_object(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"client authorized for different site_id than {object_mgr_site}",
         )
-    doc_object_patched = merge(doc, object_patch.dict(exclude_unset=True))
+    doc_object_patched = merge(
+        doc, object_patch.model_dump(mode="json", exclude_unset=True)
+    )
     mdb.operations.replace_one({"id": object_id}, doc_object_patched)
     return doc_object_patched
 

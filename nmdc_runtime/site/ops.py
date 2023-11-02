@@ -267,7 +267,11 @@ def get_operation(context):
 def produce_curated_db(context, op: Operation):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     mdb: MongoDatabase = context.resources.mongo.db
-    op = Operation[ResultT, JobOperationMetadata](**op.dict())
+    op = Operation[ResultT, JobOperationMetadata](
+        **op.model_dump(
+            mode="json",
+        )
+    )
     op_meta: JobOperationMetadata = op.metadata
     job_id = op_meta.job.id
     job = mdb.jobs.find_one({"id": job_id})
@@ -350,7 +354,12 @@ def filter_ops_undone_expired() -> str:
 @op(required_resource_keys={"runtime_api_site_client"})
 def list_operations(context, filter_: str) -> list:
     client = context.resources.runtime_api_site_client
-    ops = [op.dict() for op in client.list_operations({"filter": filter_})]
+    ops = [
+        op.model_dump(
+            mode="json",
+        )
+        for op in client.list_operations({"filter": filter_})
+    ]
     context.log.info(str(len(ops)))
     return ops
 
@@ -466,7 +475,7 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     op = Operation(**mdb.operations.find_one({"id": op_id}))
     op.done = True
     op.result = {"update_cmd": json.dumps(update_cmd)}
-    op_doc = op.dict(exclude_unset=True)
+    op_doc = op.model_dump(mode="json", exclude_unset=True)
     mdb.operations.replace_one({"id": op_id}, op_doc)
     return ["/operations/" + op_doc["id"]]
 

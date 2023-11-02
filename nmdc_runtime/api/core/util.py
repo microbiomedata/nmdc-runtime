@@ -98,6 +98,6 @@ def generate_secret(length=12):
 def json_clean(data, model, exclude_unset=False) -> dict:
     """Run data through a JSON serializer for a pydantic model."""
     if not isinstance(data, (dict, BaseModel)):
-        raise TypeError("`data` must be a pydantic model or its .dict()")
+        raise TypeError("`data` must be a pydantic model or its .model_dump()")
     m = model(**data) if isinstance(data, dict) else data
     return json.loads(m.json(exclude_unset=exclude_unset))

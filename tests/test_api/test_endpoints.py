@@ -1,4 +1,6 @@
+import json
 import os
+import re
 
 import pytest
 import requests
@@ -7,13 +9,17 @@ from tenacity import wait_random_exponential, retry
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
+from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
+from nmdc_runtime.util import REPO_ROOT_DIR
 
 
 def ensure_test_resources(mdb):
@@ -26,7 +32,7 @@ def ensure_test_resources(mdb):
             username=username,
             hashed_password=get_password_hash(password),
             site_admin=[site_id],
-        ).dict(exclude_unset=True),
+        ).model_dump(mode="json", exclude_unset=True),
         upsert=True,
     )
 
@@ -42,7 +48,9 @@ def ensure_test_resources(mdb):
                     hashed_secret=get_password_hash(client_secret),
                 )
             ],
-        ).dict(),
+        ).model_dump(
+            mode="json",
+        ),
         upsert=True,
     )
     wf_id = "test"
@@ -50,7 +58,9 @@ def ensure_test_resources(mdb):
     prev_ops = {"metadata.job.id": job_id, "metadata.site_id": site_id}
     mdb.operations.delete_many(prev_ops)
     job = Job(**{"id": job_id, "workflow": {"id": wf_id}, "config": {}, "claims": []})
-    mdb.jobs.replace_one({"id": job_id}, job.dict(exclude_unset=True), upsert=True)
+    mdb.jobs.replace_one(
+        {"id": job_id}, job.model_dump(mode="json", exclude_unset=True), upsert=True
+    )
     return {
         "site_client": {
             "site_id": site_id,
@@ -58,7 +68,7 @@ def ensure_test_resources(mdb):
             "client_secret": client_secret,
         },
         "user": {"username": username, "password": password},
-        "job": job.dict(exclude_unset=True),
+        "job": job.model_dump(mode="json", exclude_unset=True),
     }
 
 
@@ -114,7 +124,7 @@ def test_create_user():
         "POST",
         url=(base_url + "/users"),
         headers=headers,
-        json=user_in.dict(exclude_unset=True),
+        json=user_in.model_dump(mode="json", exclude_unset=True),
     )
 
     try:
@@ -181,3 +191,41 @@ def test_metadata_validate_json_with_unknown_collection(api_site_client):
         {"studi_set": []},
     )
     assert rv.json()["result"] == "errors"
+
+
+def test_submit_changesheet():
+    sheet_in = ChangesheetIn(
+        name="sheet",
+        content_type="text/tab-separated-values",
+        text="id\taction\tattribute\tvalue\nnmdc:bsm-12-7mysck21\tupdate\tpart_of\tnmdc:sty-11-pzmd0x14\n",
+    )
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
+        mdb.biosample_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+                ).read_text()
+            )
+        )
+    if not mdb.study_set.find_one({"id": "nmdc:sty-11-pzmd0x14"}):
+        mdb.study_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_sty-11-pzmd0x14.json"
+                ).read_text()
+            )
+        )
+    df_change = df_from_sheet_in(sheet_in, mdb)
+    _ = _validate_changesheet(df_change, mdb)
+    drs_obj_doc = persist_content_and_get_drs_object(
+        content=sheet_in.text,
+        username=rs["user"]["username"],
+        filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
+        content_type=sheet_in.content_type,
+        description="changesheet",
+        id_ns="changesheets",
+    )
+    mdb.objects.delete_one({"id": drs_obj_doc["id"]})
+    assert True
