@@ -2,12 +2,14 @@ import logging
 import os
 import re
 import tempfile
+from datetime import datetime
 from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
 from typing import List, Optional, Set, Tuple
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 from bson import json_util
 from dagster import DagsterRunStatus
@@ -433,7 +435,11 @@ def persist_content_and_get_drs_object(
             **drs_metadata_for(
                 filepath,
                 base={
-                    "description": description + f" (created by/for {username})",
+                    "description": (
+                        description
+                        + f" (created by/for {username}"
+                        + f" at {datetime.now(tz=ZoneInfo('America/Los_Angeles')).isoformat(timespec='minutes')})"
+                    ),
                     "access_methods": [{"access_id": drs_id}],
                 },
             )
