@@ -35,6 +35,7 @@ python-multipart
 pyyaml
 requests
 semver
+setuptools-scm
 tenacity
 terminusdb-client
 toolz
