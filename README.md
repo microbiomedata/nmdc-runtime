@@ -149,6 +149,7 @@ tutorial on Testing](https://docs.dagster.io/tutorial/testable).
 ## Release to PyPI
 
 ```
+rm -rf dist
 python -m build
 twine upload dist/*
 ```
