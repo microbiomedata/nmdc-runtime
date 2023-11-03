@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
 
+import fastapi
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse
 
@@ -342,9 +344,18 @@ async def root():
     )
 
 
+@api_router.get("/version")
+async def get_versions():
+    return {
+        "nmdc-runtime": get_version(),
+        "fastapi": fastapi.__version__,
+        "nmdc-schema": version("nmdc_schema"),
+    }
+
+
 app = FastAPI(
     title="NMDC Runtime API",
-    version="0.2.0",
+    version=get_version(),
     description=(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
