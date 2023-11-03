@@ -2,8 +2,9 @@
 # coding: utf-8
 # nmdc_runtime/site/changesheets/scripts/neon_soils_add_ncbi_ids.py
 """
-neon_soils_add_ncbi_ids.py: Add NCBI biosample IDs to neon soils biosamples, and
-add NCBI study ID to neon soils study.
+neon_soils_add_ncbi_ids.py: Add NCBI biosample accessions to neon soils
+biosamples, NCBI bioproject accessions to omics processing, and
+NCBI Umbrella bioproject accession to neon soils study.
 """
 import logging
 import time
