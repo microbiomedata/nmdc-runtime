@@ -2,6 +2,8 @@ from pymongo import MongoClient
 import time
 from typing import List, Dict
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
+
 # from nmdc_server.ingest import envo
 # from nmdc_server.config import Settings
 
@@ -384,26 +386,24 @@ if __name__ == "__main__":
     #     port=settings.mongo_port,
     #     directConnection=True,
     # )
-    client = MongoClient("mongodb://admin:root@localhost:27019")
+    mdb = get_mongo_db()
 
     # envo.mongo_load(client)
 
     print("Generating study_transformed...")
-    q = client.nmdc.study_set.aggregate(study_transformed_aggregation)
+    q = mdb.study_set.aggregate(study_transformed_aggregation)
     print("...done")
 
     print("Generating biosample_transformed...")
-    q = client.nmdc.biosample_set.aggregate(biosample_transformed_aggregation)
+    q = mdb.biosample_set.aggregate(biosample_transformed_aggregation)
     print("...done")
 
     print("Generating biosample_denormalized...")
-    q = client.nmdc.biosample_transformed.aggregate(biosample_denormalized_aggregation)
+    q = mdb.biosample_transformed.aggregate(biosample_denormalized_aggregation)
     print("...done")
 
     print("Generating omics_processing_denormalized...")
-    q = client.nmdc.omics_processing_set.aggregate(
-        omics_processing_denormalized_aggregation
-    )
+    q = mdb.omics_processing_set.aggregate(omics_processing_denormalized_aggregation)
     print("...done")
 
     end = time.time()
