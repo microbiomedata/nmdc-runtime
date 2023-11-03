@@ -19,6 +19,7 @@ jobs:
 
       - name: Build source and wheel archives
         run: |
+          make init
           python -m build
 
       - name: Publish distribution 📦 to PyPI
