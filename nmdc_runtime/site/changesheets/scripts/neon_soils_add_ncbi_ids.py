@@ -6,24 +6,20 @@ neon_soils_add_ncbi_ids.py: Add NCBI biosample IDs to neon soils biosamples, and
 add NCBI study ID to neon soils study.
 """
 import logging
-import os
-from pathlib import Path
 import time
 
 import click
 from dotenv import load_dotenv
 
-from nmdc_runtime.site.changesheets.base import (
-    Changesheet,
-    ChangesheetLineItem,
-    JSON_OBJECT,
-)
-
-from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiUserClient
+from nmdc_runtime.site.changesheets.base import (Changesheet,
+                                                 ChangesheetLineItem,
+                                                 get_gold_client,
+                                                 get_runtime_client)
 
 load_dotenv()
 NAME = "neon_soils_add_ncbi_ids"
 NMDC_STUDY_ID = "nmdc:sty-11-34xj1150"
+UMBRELLA_BIOPROJECT_ACCESSION = "PRJNA1029061"
 
 log_filename = f"{NAME}-{time.strftime('%Y%m%d-%H%M%S')}.log"
 logging.basicConfig(
@@ -31,19 +27,43 @@ logging.basicConfig(
     filename=log_filename, encoding="utf-8", filemode="w", )
 
 
+def _get_change_for_biosample(biosample, ncbi_biosample_accession):
+    """
+    Get the changes for the given biosample
+    :param biosample: dict - the biosample
+    :param ncbi_biosample_accession: str - the NCBI BioSample accession
+    :return: list - the changes
+    """
+    ncbi_biosample_accessions = biosample.get("insdc_biosample_identifiers", [])
+    if ncbi_biosample_accession in ncbi_biosample_accessions:
+        return
+    biosample_id = biosample["id"]
+    logging.info(f"creating change for biosample_id: {biosample_id}")
+    return ChangesheetLineItem(
+        id=biosample["id"], action="insert",
+        attribute="insdc_biosample_identifiers",
+        value=ncbi_biosample_accession, )
+
+
 @click.command()
 @click.option("--study_id", default=NMDC_STUDY_ID, help="NMDC study ID")
 @click.option(
-    "--use_dev_api", is_flag=True, default=False, help="Use the dev API"
+    "--use_dev_api", is_flag=True, default=True, help="Use the dev API"
 )
 def generate_changesheet(study_id, use_dev_api):
     """
     Generate a changesheet for neon soils study and biosamples by:
-    1. Retrieving all biosamples for neon soils study
-    2. For each biosample, retrieve the corresponding GOLD biosample record
-    3. Retrieve the NCBI biosample ID from the GOLD biosample record
-    4. Generate a changesheet for the neon soils biosamples, adding the NCBI IDs
-    5. Add changesheet line item for NCDB study ID
+    0. Changesheet line item: Umbrella BioProjectAccession to
+        study.insdc_project_identifiers
+    1. Retrieving all gold_study_identifiers for the neon soils study
+    2. For each gold_study_identifier, retrieve the GOLD projects
+    3. For each GOLD project,
+        A. retrieve the corresponding NMDC biosample(s). For each biosample,
+            - Changesheet line item:NCBI BioSampleAccession to
+            insdc_biosample_identifiers
+        B. Retrieve the corresponding NMDC omics_processing. For each,
+            - Changesheet line item:NCBI BioProjectAccession to
+            insdc_experiment_identifiers
 
     WARNING: This script is not idempotent. It will generate a new changesheet
     each time it is run.
@@ -58,56 +78,84 @@ def generate_changesheet(study_id, use_dev_api):
     logging.info(f"Using dev API: {use_dev_api}")
 
     # Initialize the NMDC API
-    if use_dev_api:
-        base_url = os.getenv("API_HOST_DEV")
-        logging.info("using dev API...")
-    else:
-        base_url = os.getenv("API_HOST")
-        logging.info("using prod API...")
-
-    runtime_api_user_client = RuntimeApiUserClient(
-        base_url=base_url,
-        username=os.getenv("API_QUERY_USER"),
-        password=os.getenv("API_QUERY_PASS"),
-    )
-    logging.info("connected to NMDC API...")
+    runtime_client = get_runtime_client(use_dev_api)
 
     # Initialize the GOLD API
-    gold_api_client = GoldApiClient(
-        base_url=os.getenv("GOLD_API_BASE_URL"),
-        username=os.getenv("GOLD_API_USERNAME"),
-        password=os.getenv("GOLD_API_PASSWORD"),
-    )
-    logging.info("connected to GOLD API...")
+    gold_client = get_gold_client()
 
-    # Retrieve all biosamples for the neon soils study
-    res = runtime_api_user_client.get_biosamples_for_study(study_id)
-    if res.status_code != 200:
-        logging.error(
-            f"error retrieving biosamples for {study_id}: {res.status_code}"
-        )
-        return
-    biosamples = res.json()["cursor"]["firstBatch"]
-    logging.info(f"retrieved {len(biosamples)} biosamples for {study_id}")
-
+    # Initialize the changesheet
     changesheet = Changesheet(name=NAME)
-    # For each biosample, retrieve the corresponding GOLD biosample record
-    for biosample in biosamples:
-        logging.info(f"processing biosample {biosample['id']}")
-        for gold_biosample_identifier in biosample["gold_biosample_identifiers"]:
-            # Retrieve the GOLD biosample record
-            res = gold_api_client.request("/biosamples", params={
-                "biosampleGoldId": gold_biosample_identifier})
-            if res.status_code != 200:
-                logging.error(
-                    f"error retrieving GOLD biosample record for "
-                    f"{gold_biosample_identifier}: {res.status_code}"
+
+    # 1. Retrieve all gold_study_identifiers for the neon soils study
+    logging.info(f"Retrieving gold_study_identifiers for {study_id}")
+    res = runtime_client.request("GET", f"/studies/{study_id}")
+    nmdc_study = res.json()
+    changesheet.line_items.append(
+        ChangesheetLineItem(
+            id=study_id, action="insert",
+            attribute="insdc_bioproject_identifiers",
+            value=UMBRELLA_BIOPROJECT_ACCESSION, )
+    )
+
+    gold_study_identifiers = nmdc_study["gold_study_identifiers"]
+    logging.info(f"gold_study_identifiers: {gold_study_identifiers}")
+    gold_project_count = 0
+    biosample_count = 0
+    for gold_study_identifier in gold_study_identifiers:
+
+        # 2. For each gold_study_identifier, retrieve the GOLD projects
+        if gold_study_identifier == 'gold:Gs0144570':
+            continue
+        logging.info(
+            f"Retrieving GOLD projects for gold_study_identifier: {gold_study_identifier}"
+        )
+        projects = gold_client.fetch_projects_by_study(gold_study_identifier)
+        logging.info(f"Retrieved {len(projects)} projects")
+
+        # 3. For each GOLD project,
+        for project in projects:
+            gold_project_count += 1
+            project_gold_id = project["projectGoldId"]
+            biosample_gold_id = project["biosampleGoldId"]
+            ncbi_bioproject_accession = project["ncbiBioProjectAccession"]
+            ncbi_biosample_accession = project["ncbiBioSampleAccession"]
+
+            # A. retrieve the corresponding NMDC biosample(s)
+            logging.info(
+                f"Retrieving NMDC biosamples for biosample_gold_id: {biosample_gold_id}"
+            )
+            biosamples = runtime_client.get_biosamples_by_gold_biosample_id(
+                biosample_gold_id
+            )
+            logging.info(f"Retrieved {len(biosamples)} biosamples")
+            for biosample in biosamples:
+                biosample_count += 1
+                biosample_id = biosample["id"]
+                logging.info(f"biosample_id: {biosample_id}")
+                # NcbiBioSampleAccession to insdc_biosample_identifiers
+                changesheet.line_items.append(
+                    _get_change_for_biosample(
+                        biosample, ncbi_biosample_accession
+                    )
                 )
-                continue
-            # the /biosamples endpoint returns a list of records
-            gold_biosample_record = res.json()[0]
+
+                # B. Retrieve the corresponding NMDC omics_processing
 
 
+    logging.info(f"gold_project_count: {gold_project_count}")
+    logging.info(f"biosample_count: {biosample_count}")
+    logging.info(f"changesheet has {len(changesheet.line_items)} line items")
+
+    # Write the changesheet
+    changesheet.write_changesheet()
+
+    # Validate the changesheet
+    if changesheet.validate_changesheet(runtime_client.base_url):
+        logging.info(f"Changesheet is valid")
+    else:
+        logging.error(f"Changesheet is invalid")
+
+    logging.info(f"Completed in {time.time() - start_time} seconds")
 
 
 if __name__ == "__main__":

@@ -89,13 +89,7 @@ def gold_biosample_to_nmdc_biosamples_and_omics_processing_records(
     # Search for NMDC biosamples with by GOLD biosample ID
     nmdc_biosamples = []
     logging.info(f"Searching for NMDC biosamples with {goldbs_id}...")
-    nmdcbs_response = runtime_api_client.get_biosamples_by_gold_biosample_id(goldbs_id)
-    if nmdcbs_response.status_code != 200:
-        logging.error(
-            f"Failed to retrieve NMDC biosamples with {goldbs_id}: {nmdcbs_response.status_code}"
-        )
-
-    nmdcbs = nmdcbs_response.json()["cursor"]["firstBatch"]
+    nmdcbs = runtime_api_client.get_biosamples_by_gold_biosample_id(goldbs_id)
     logging.info(f"Found {len(nmdcbs)} NMDC biosamples with {goldbs_id}...")
     nmdc_biosamples.extend(nmdcbs)
 
@@ -103,13 +97,7 @@ def gold_biosample_to_nmdc_biosamples_and_omics_processing_records(
     logging.info(
         f"Searching for NMDC omics processing name containing {goldbs_name_suffix}..."
     )
-    omprc_response = runtime_api_client.get_omics_processing_by_name(goldbs_name_suffix)
-    if omprc_response.status_code != 200:
-        logging.error(
-            f"Failed to retrieve NMDC omics processing with {goldbs_name_suffix}: {omprc_response.status_code}"
-        )
-
-    omprc_records = omprc_response.json()["cursor"]["firstBatch"]
+    omprc_records = runtime_api_client.get_omics_processing_by_name(goldbs_name_suffix)
     for omprc in omprc_records:
         omprc_id = omprc["id"]
         logging.info(f"omprc_id: {omprc_id}")
