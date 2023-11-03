@@ -52,13 +52,7 @@ biosample_transformed_aggregation: List[Dict] = [
         },
     },
     # Add a count so we can sort by the number of types of omics_processing each sample has
-    {
-        "$set": {
-            "multiomics_count": {
-                "$size": "$multiomics"
-            }
-        }
-    },
+    {"$set": {"multiomics_count": {"$size": "$multiomics"}}},
     # We don't want to actually store the related omics_processing
     {
         "$unset": "omics_processing",
@@ -105,12 +99,24 @@ study_transformed_aggregation: List[Dict] = [
                                 "$objectToArray": {
                                     "$reduce": {
                                         "input": "$omics_processing",
-                                        "initialValue": { omics_type: 0 for omics_type in omics_types },
+                                        "initialValue": {
+                                            omics_type: 0 for omics_type in omics_types
+                                        },
                                         "in": {
                                             omics_type: {
                                                 "$cond": {
-                                                    "if": {"$eq": ["$$this.omics_type.has_raw_value", omics_type] },
-                                                    "then": {"$add": [f"$$value.{omics_type}", 1]},
+                                                    "if": {
+                                                        "$eq": [
+                                                            "$$this.omics_type.has_raw_value",
+                                                            omics_type,
+                                                        ]
+                                                    },
+                                                    "then": {
+                                                        "$add": [
+                                                            f"$$value.{omics_type}",
+                                                            1,
+                                                        ]
+                                                    },
                                                     "else": f"$$value.{omics_type}",
                                                 },
                                             }
@@ -134,13 +140,7 @@ study_transformed_aggregation: List[Dict] = [
         "$unset": "omics_processing",
     },
     # Count the number of biosamples
-    {
-        "$set": {
-            "sample_count": {
-                "$size": "$biosample"
-            }
-        }
-    },
+    {"$set": {"sample_count": {"$size": "$biosample"}}},
     {
         "$unset": "biosample",
     },
@@ -148,6 +148,7 @@ study_transformed_aggregation: List[Dict] = [
         "$out": "study_transformed",
     },
 ]
+
 
 def denormalize_analysis_aggregation(base_type):
     aggregation = []
@@ -164,123 +165,153 @@ def denormalize_analysis_aggregation(base_type):
 
     for activity_type in activity_types:
         # Pull in activities and data_objects associated with each omics_processing
-        aggregation.extend([
-            {
-                "$lookup": {
-                    "from": f"{activity_type}_set",
-                    "localField": "id" if base_type == "omics_processing" else "omics_processing.id",
-                    "foreignField": "was_informed_by",
-                    "as": activity_type,
+        aggregation.extend(
+            [
+                {
+                    "$lookup": {
+                        "from": f"{activity_type}_set",
+                        "localField": "id"
+                        if base_type == "omics_processing"
+                        else "omics_processing.id",
+                        "foreignField": "was_informed_by",
+                        "as": activity_type,
+                    },
                 },
-            },
-            # Move this to after all analyses are concatenated - can be one step to get all data_object records
+                # Move this to after all analyses are concatenated - can be one step to get all data_object records
+                {
+                    "$lookup": {
+                        "from": "data_object_set",
+                        "localField": f"{activity_type}.has_output",
+                        "foreignField": "id",
+                        "as": f"{activity_type}_data_object",
+                        "pipeline": [
+                            {"$set": {"activity_type": activity_types[activity_type]}},
+                        ],
+                    },
+                },
+            ]
+        )
+
+    aggregation.extend(
+        [
+            # Lookup metagenome annotations
             {
                 "$lookup": {
-                    "from": "data_object_set",
-                    "localField": f"{activity_type}.has_output",
-                    "foreignField": "id",
-                    "as": f"{activity_type}_data_object",
+                    "from": "functional_annotation_agg",
+                    "localField": "metagenome_annotation_activity.id",
+                    "foreignField": "metagenome_annotation_id",
+                    "as": "metagenome_annotation",
                     "pipeline": [
-                        {"$set": {"activity_type": activity_types[activity_type]}},
+                        {
+                            "$set": {
+                                "id": "$gene_function_id",
+                                "activity_id": "$metagenome_annotation_id",
+                            },
+                        },
+                        {
+                            "$unset": [
+                                "_id",
+                                "metagenome_annotation_id",
+                                "gene_function_id",
+                            ]
+                        },
                     ],
                 },
             },
-        ])
-
-    aggregation.extend([
-        # Lookup metagenome annotations
-        {
-            "$lookup": {
-                "from": "functional_annotation_agg",
-                "localField": "metagenome_annotation_activity.id",
-                "foreignField": "metagenome_annotation_id",
-                "as": "metagenome_annotation",
-                "pipeline": [
-                    {
-                        "$set": {
-                            "id": "$gene_function_id",
-                            "activity_id": "$metagenome_annotation_id",
+            # Lookup metaproteomics annotations
+            {
+                "$lookup": {
+                    "from": "metap_gene_function_aggregation",
+                    "localField": "metaproteomics_analysis_activity.id",
+                    "foreignField": "metaproteomic_analysis_id",
+                    "as": "metaproteomics_annotation",
+                    "pipeline": [
+                        {
+                            "$set": {
+                                "id": "$gene_function_id",
+                                "activity_id": "$metaproteomic_analysis_id",
+                            },
                         },
-                    },
-                    {"$unset": ["_id", "metagenome_annotation_id", "gene_function_id"]},
-                ],
-            },
-        },
-        # Lookup metaproteomics annotations
-        {
-            "$lookup": {
-                "from": "metap_gene_function_aggregation",
-                "localField": "metaproteomics_analysis_activity.id",
-                "foreignField": "metaproteomic_analysis_id",
-                "as": "metaproteomics_annotation",
-                "pipeline": [
-                    {
-                        "$set": {
-                            "id": "$gene_function_id",
-                            "activity_id": "$metaproteomic_analysis_id",
+                        {
+                            "$unset": [
+                                "_id",
+                                "metaproteomic_analysis_id",
+                                "gene_function_id",
+                            ]
                         },
-                    },
-                    {"$unset": ["_id", "metaproteomic_analysis_id", "gene_function_id"]},
-                ],
+                    ],
+                },
             },
-        },
-        # Combine annotations into a single annotation array
-        {
-            "$set": {
-                "gene_function": {
-                    "$concatArrays": ["$metagenome_annotation", "$metaproteomics_annotation"]
-                }
-            },
-        },
-        {
-            "$unset": ["metagenome_annotation", "metaproteomics_annotation"],
-        },
-        # Combine all activities into a single activity array
-        {
-            "$set": {
-                "activity": {
-                    "$concatArrays": [f"${activity_type}" for activity_type in activity_types]
-                }
-            }
-        },
-        # Remove the monstrous has_peptide_quantifications array to speed search
-        {
-            "$set": {
-                "activity": {
-                    "$map": {
-                        "input": "$activity",
-                        "as": "d",
-                        "in": {
-                            "$setField": {
-                                "field": "has_peptide_quantifications",
-                                "value": "$$REMOVE",
-                                "input": "$$d"
-                            }
-                        }
+            # Combine annotations into a single annotation array
+            {
+                "$set": {
+                    "gene_function": {
+                        "$concatArrays": [
+                            "$metagenome_annotation",
+                            "$metaproteomics_annotation",
+                        ]
                     }
                 },
-            }
-        },
-        # We are done with the separate activity types since they are all in the activity array now
-        {
-            "$unset": list(activity_types.keys()),
-        },
-    ])
-
-    aggregation.extend([
-        # Combine all data objects into a single data_object array
-        {
-            "$set": {
-                "data_object": {
-                    "$concatArrays": [f"${activity_type}_data_object" for activity_type in activity_types]
+            },
+            {
+                "$unset": ["metagenome_annotation", "metaproteomics_annotation"],
+            },
+            # Combine all activities into a single activity array
+            {
+                "$set": {
+                    "activity": {
+                        "$concatArrays": [
+                            f"${activity_type}" for activity_type in activity_types
+                        ]
+                    }
                 }
-            }
-        },
-        # We no longer need the individual data_object fields
-        {
-            "$unset": [f"{activity_type}_data_object" for activity_type in activity_types]
-        },
-    ])
+            },
+            # Remove the monstrous has_peptide_quantifications array to speed search
+            {
+                "$set": {
+                    "activity": {
+                        "$map": {
+                            "input": "$activity",
+                            "as": "d",
+                            "in": {
+                                "$setField": {
+                                    "field": "has_peptide_quantifications",
+                                    "value": "$$REMOVE",
+                                    "input": "$$d",
+                                }
+                            },
+                        }
+                    },
+                }
+            },
+            # We are done with the separate activity types since they are all in the activity array now
+            {
+                "$unset": list(activity_types.keys()),
+            },
+        ]
+    )
+
+    aggregation.extend(
+        [
+            # Combine all data objects into a single data_object array
+            {
+                "$set": {
+                    "data_object": {
+                        "$concatArrays": [
+                            f"${activity_type}_data_object"
+                            for activity_type in activity_types
+                        ]
+                    }
+                }
+            },
+            # We no longer need the individual data_object fields
+            {
+                "$unset": [
+                    f"{activity_type}_data_object" for activity_type in activity_types
+                ]
+            },
+        ]
+    )
 
     return aggregation
 
@@ -331,7 +362,9 @@ omics_processing_denormalized_aggregation: List[Dict] = [
     },
 ]
 
-omics_processing_denormalized_aggregation += denormalize_analysis_aggregation("omics_processing")
+omics_processing_denormalized_aggregation += denormalize_analysis_aggregation(
+    "omics_processing"
+)
 
 omics_processing_denormalized_aggregation += [
     {
@@ -368,7 +401,9 @@ if __name__ == "__main__":
     print("...done")
 
     print("Generating omics_processing_denormalized...")
-    q = client.nmdc.omics_processing_set.aggregate(omics_processing_denormalized_aggregation)
+    q = client.nmdc.omics_processing_set.aggregate(
+        omics_processing_denormalized_aggregation
+    )
     print("...done")
 
     end = time.time()

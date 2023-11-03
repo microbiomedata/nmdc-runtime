@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pymongo.database import Database as MongoDatabase
 from nmdc_schema.nmdc_data import get_nmdc_file_type_enums
-from pydantic import BaseModel, Field # pylint: disable=no-name-in-module
+from pydantic import BaseModel, Field  # pylint: disable=no-name-in-module
 
 from nmdc_runtime.api.endpoints.util import strip_oid_recursive
 from nmdc_runtime.api.models.user import get_current_active_user, User
@@ -27,7 +27,9 @@ OMICS_PROCESSING_SEARCH_COLLECTION = "omics_processing_denormalized"
 
 # get the current user information
 @router.get("/me", tags=["user"], name="Return the current user name")
-async def me(_request: Request, user: str = Depends(get_current_active_user)) -> Optional[str]:
+async def me(
+    _request: Request, user: str = Depends(get_current_active_user)
+) -> Optional[str]:
     return user
 
 
@@ -151,6 +153,7 @@ class Table(Enum):
     env_medium = "env_medium"
 
     principal_investigator = "principal_investigator"
+
 
 # Custom exceptions to provide better error responses in the API.
 class InvalidAttributeException(Exception):
@@ -301,7 +304,7 @@ class KeggTermTextListResponse(BaseModel):
 class EnvoTreeNode(BaseModel):
     id: str
     label: str
-    children: List['EnvoTreeNode']
+    children: List["EnvoTreeNode"]
 
 
 class EnvoTreeResponse(BaseModel):
@@ -407,35 +410,37 @@ async def get_environmental_sankey(
 ):
     """Retrieve biosample counts by ecosystem used as input for a sankey diagram."""
     mongo_filter = conditions_to_mongo_filter(biosample_query.conditions)
-    results = mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate([
-        {
-            "$match": mongo_filter,
-        },
-        {
-            "$group": {
-                "_id": {
-                    "ecosystem": "$ecosystem",
-                    "ecosystem_category": "$ecosystem_category",
-                    "ecosystem_subtype": "$ecosystem_subtype",
-                    "ecosystem_type": "$ecosystem_type",
-                    "specific_ecosystem": "$specific_ecosystem",
+    results = mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
+        [
+            {
+                "$match": mongo_filter,
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "ecosystem": "$ecosystem",
+                        "ecosystem_category": "$ecosystem_category",
+                        "ecosystem_subtype": "$ecosystem_subtype",
+                        "ecosystem_type": "$ecosystem_type",
+                        "specific_ecosystem": "$specific_ecosystem",
+                    },
+                    "count": {
+                        "$count": {},
+                    },
                 },
-                "count": {
-                    "$count": {},
+            },
+            {
+                "$set": {
+                    "_id.count": "$count",
                 },
             },
-        },
-        {
-            "$set": {
-                "_id.count": "$count",
+            {
+                "$replaceRoot": {
+                    "newRoot": "$_id",
+                },
             },
-        },
-        {
-            "$replaceRoot": {
-                "newRoot": "$_id",
-            },
-        },
-    ])
+        ]
+    )
     return strip_oid_recursive(results)
 
 
@@ -449,34 +454,36 @@ async def get_environmental_geospatial(
 ):
     """Return samples binned by lat/lon and ecosystem type."""
     mongo_filter = conditions_to_mongo_filter(biosample_query.conditions)
-    results = mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate([
-        {
-            "$match": mongo_filter,
-        },
-        {
-            "$group": {
-                "_id": {
-                    "latitude": "$lat_lon.latitude",
-                    "longitude": "$lat_lon.longitude",
-                    "ecosystem": "$ecosystem",
-                    "ecosystem_category": "$ecosystem_category",
+    results = mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
+        [
+            {
+                "$match": mongo_filter,
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "latitude": "$lat_lon.latitude",
+                        "longitude": "$lat_lon.longitude",
+                        "ecosystem": "$ecosystem",
+                        "ecosystem_category": "$ecosystem_category",
+                    },
+                    "count": {
+                        "$count": {},
+                    },
                 },
-                "count": {
-                    "$count": {},
+            },
+            {
+                "$set": {
+                    "_id.count": "$count",
                 },
             },
-        },
-        {
-            "$set": {
-                "_id.count": "$count",
+            {
+                "$replaceRoot": {
+                    "newRoot": "$_id",
+                },
             },
-        },
-        {
-            "$replaceRoot": {
-                "newRoot": "$_id",
-            },
-        },
-    ])
+        ]
+    )
     return strip_oid_recursive(list(results))
 
 
@@ -509,7 +516,10 @@ def conditions_to_mongo_filter(conditions, base_type="biosample"):
         elif condition.op == Operation.greater_equal:
             mongo_filter[field_name] = {"$gte": condition.value}
         elif condition.op == "between":
-            mongo_filter[field_name] = {"$gte": condition.value[0], "$lte": condition.value[1]}
+            mongo_filter[field_name] = {
+                "$gte": condition.value[0],
+                "$lte": condition.value[1],
+            }
         elif condition.op == "has":
             mongo_filter[field_name] = {"$all": condition.value}
 
@@ -564,8 +574,10 @@ async def search_biosample(
 
     def data_object_is_selected(data_object):
         for condition in biosample_query.data_object_filter:
-            if (data_object.get("data_object_type") == condition.file_type and
-                data_object.get("activity_type") == condition.workflow.value):
+            if (
+                data_object.get("data_object_type") == condition.file_type
+                and data_object.get("activity_type") == condition.workflow.value
+            ):
                 return True
         return False
 
@@ -575,18 +587,26 @@ async def search_biosample(
 
     def add_data_object_selection_and_type(sample):
         for obj in sample["data_object"]:
-            obj["data_object_type_description"] = file_type_map.get(obj.get("data_object_type", None), None)
+            obj["data_object_type_description"] = file_type_map.get(
+                obj.get("data_object_type", None), None
+            )
             obj["selected"] = data_object_is_selected(obj)
         return sample
 
     return {
         "count": list(
-            mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate([*aggregation, {"$count": "count"}]
-        ))[0]["count"],
+            mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
+                [*aggregation, {"$count": "count"}]
+            )
+        )[0]["count"],
         "results": [
             strip_oid_recursive(add_data_object_selection_and_type(doc))
             for doc in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
-                [*aggregation, {"$skip": pagination.offset}, {"$limit": pagination.limit}]
+                [
+                    *aggregation,
+                    {"$skip": pagination.offset},
+                    {"$limit": pagination.limit},
+                ]
             )
         ],
     }
@@ -611,12 +631,14 @@ async def facet_biosample(
         },
     ]
 
-    return strip_oid_recursive({
-        "facets": {
-            facet_value_to_key(facet["_id"]): facet["count"]
-            for facet in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(aggregation)
-        },
-    })
+    return strip_oid_recursive(
+        {
+            "facets": {
+                facet_value_to_key(facet["_id"]): facet["count"]
+                for facet in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(aggregation)
+            },
+        }
+    )
 
 
 @router.post(
@@ -636,10 +658,10 @@ async def binned_facet_biosample(
         {
             "$group": {
                 "_id": {
-                    "year": { "$year": "$collection_date.has_date_value" },
-                    "month": { "$month": "$collection_date.has_date_value" },
+                    "year": {"$year": "$collection_date.has_date_value"},
+                    "month": {"$month": "$collection_date.has_date_value"},
                 },
-                "count": { "$count": {} }
+                "count": {"$count": {}},
             },
         },
     ]
@@ -656,24 +678,31 @@ async def binned_facet_biosample(
         if doc["month"] < 12:
             return {"month": doc["month"] + 1, "year": doc["year"]}
         return {"month": 1, "year": doc["year"] + 1}
+
     full_binned_data: List[Any] = []
     for doc in binned_data:
         if len(full_binned_data) == 0:
             full_binned_data.append(doc)
             continue
         while (
-            full_binned_data[-1]["_id"]["year"] != doc["_id"]["year"] or
-            full_binned_data[-1]["_id"]["month"] != doc["_id"]["month"]
+            full_binned_data[-1]["_id"]["year"] != doc["_id"]["year"]
+            or full_binned_data[-1]["_id"]["month"] != doc["_id"]["month"]
         ):
-            full_binned_data.append({"_id": next_month(full_binned_data[-1]["_id"]), "count": 0})
+            full_binned_data.append(
+                {"_id": next_month(full_binned_data[-1]["_id"]), "count": 0}
+            )
         full_binned_data[-1] = doc
 
     # Add one more month with zero count so we have a bin end boundary for the last bin
-    full_binned_data.append({"_id": next_month(full_binned_data[-1]["_id"]), "count": 0})
-    return strip_oid_recursive({
-        "bins": [date_string(d) for d in full_binned_data],
-        "facets": [d["count"] for d in full_binned_data][:-1],
-    })
+    full_binned_data.append(
+        {"_id": next_month(full_binned_data[-1]["_id"]), "count": 0}
+    )
+    return strip_oid_recursive(
+        {
+            "bins": [date_string(d) for d in full_binned_data],
+            "facets": [d["count"] for d in full_binned_data][:-1],
+        }
+    )
 
 
 @router.get(
@@ -732,12 +761,14 @@ async def kegg_text_search(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """Search for KEGG terms by text."""
-    return KeggTermTextListResponse(terms=[
-        KeggTermText(
-            term="K00001",
-            text="E1.1.1.1, adh; alcohol dehydrogenase [EC:1.1.1.1]",
-        )
-    ])
+    return KeggTermTextListResponse(
+        terms=[
+            KeggTermText(
+                term="K00001",
+                text="E1.1.1.1, adh; alcohol dehydrogenase [EC:1.1.1.1]",
+            )
+        ]
+    )
 
 
 @router.post(
@@ -757,31 +788,38 @@ async def search_study(
             "$match": conditions_to_mongo_filter(study_query.conditions),
         },
         {
-            "$unwind": { "path": "$study" },
+            "$unwind": {"path": "$study"},
         },
         {
             "$group": {
                 "_id": "$study.id",
-                "study": { "$first": "$study" },
+                "study": {"$first": "$study"},
             },
         },
         {
-            "$replaceRoot": { "newRoot": "$study" },
+            "$replaceRoot": {"newRoot": "$study"},
         },
     ]
 
-    return strip_oid_recursive({
-        "count": list(
-            mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
-                [*aggregation, {"$count": "count"}]
-            )
-        )[0]["count"],
-        "results": [
-            doc for doc in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
-                [*aggregation, {"$skip": pagination.offset}, {"$limit": pagination.limit}]
-            )
-        ],
-    })
+    return strip_oid_recursive(
+        {
+            "count": list(
+                mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
+                    [*aggregation, {"$count": "count"}]
+                )
+            )[0]["count"],
+            "results": [
+                doc
+                for doc in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(
+                    [
+                        *aggregation,
+                        {"$skip": pagination.offset},
+                        {"$limit": pagination.limit},
+                    ]
+                )
+            ],
+        }
+    )
 
 
 @router.post(
@@ -799,28 +837,30 @@ async def facet_study(
             "$match": conditions_to_mongo_filter(study_query.conditions),
         },
         {
-            "$unwind": { "path": "$study" },
+            "$unwind": {"path": "$study"},
         },
         {
             "$group": {
                 "_id": "$study.id",
-                "study": { "$first": "$study" },
+                "study": {"$first": "$study"},
             },
         },
         {
-            "$replaceRoot": { "newRoot": "$study" },
+            "$replaceRoot": {"newRoot": "$study"},
         },
         {
             "$sortByCount": f"${study_query.attribute}",
         },
     ]
 
-    return strip_oid_recursive({
-        "facets": {
-            facet_value_to_key(facet["_id"]): facet["count"]
-            for facet in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(aggregation)
-        },
-    })
+    return strip_oid_recursive(
+        {
+            "facets": {
+                facet_value_to_key(facet["_id"]): facet["count"]
+                for facet in mdb[BIOSAMPLE_SEARCH_COLLECTION].aggregate(aggregation)
+            },
+        }
+    )
 
 
 @router.get(
@@ -860,7 +900,8 @@ async def facet_omics_processing(
     aggregation = [
         {
             "$match": conditions_to_mongo_filter(
-                omics_processing_query.conditions, "omics_processing",
+                omics_processing_query.conditions,
+                "omics_processing",
             ),
         },
     ]
@@ -871,12 +912,16 @@ async def facet_omics_processing(
         },
     ]
 
-    return strip_oid_recursive({
-        "facets": {
-            facet_value_to_key(facet["_id"]): facet["count"]
-            for facet in mdb[OMICS_PROCESSING_SEARCH_COLLECTION].aggregate(aggregation)
-        },
-    })
+    return strip_oid_recursive(
+        {
+            "facets": {
+                facet_value_to_key(facet["_id"]): facet["count"]
+                for facet in mdb[OMICS_PROCESSING_SEARCH_COLLECTION].aggregate(
+                    aggregation
+                )
+            },
+        }
+    )
 
 
 # @router.get(
@@ -924,16 +969,16 @@ def data_object_aggregation(
             "$match": conditions_to_mongo_filter(data_object_query.conditions),
         },
         {
-            "$unwind": { "path": "$data_object" },
+            "$unwind": {"path": "$data_object"},
         },
         {
             "$group": {
                 "_id": "$data_object.id",
-                "data_object": { "$first": "$data_object" },
+                "data_object": {"$first": "$data_object"},
             },
         },
         {
-            "$replaceRoot": { "newRoot": "$data_object" },
+            "$replaceRoot": {"newRoot": "$data_object"},
         },
         {
             "$set": {
@@ -954,9 +999,9 @@ def data_object_aggregation(
             # We are not considering data_objects without a data_object_type
             continue
         if result.get(facet["_id"]["activity_type"]) is None:
-            result[facet["_id"]["activity_type"]] = { "count": 0, "file_types": dict() }
-        result[
-            facet["_id"]["activity_type"]]["file_types"][facet["_id"]["data_object_type"]
+            result[facet["_id"]["activity_type"]] = {"count": 0, "file_types": dict()}
+        result[facet["_id"]["activity_type"]]["file_types"][
+            facet["_id"]["data_object_type"]
         ] = facet["count"]
         result[facet["_id"]["activity_type"]]["count"] += facet["count"]
 
@@ -1080,6 +1125,7 @@ def data_object_aggregation(
 #             "Content-Disposition": "attachment; filename=archive.zip",
 #         },
 #     )
+
 
 @router.get(
     "/metadata_submission",
