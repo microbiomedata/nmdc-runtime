@@ -113,6 +113,23 @@ class RuntimeApiUserClient(RuntimeApiClient):
         response.raise_for_status()
         return response.json()["cursor"]["firstBatch"]
 
+    def get_omics_processing_records_by_gold_project_id(self, gold_project_id: str):
+        gold_project_id = normalize_gold_id(gold_project_id)
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "omics_processing_set",
+                "filter": {
+                    "gold_sequencing_project_identifiers": {
+                        "$elemMatch": {"$eq": gold_project_id}
+                    }
+                },
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
     def get_biosamples_for_study(self, study_id: str):
         response = self.request(
             "POST",

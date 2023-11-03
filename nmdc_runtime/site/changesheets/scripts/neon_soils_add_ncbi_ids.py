@@ -44,6 +44,25 @@ def _get_change_for_biosample(biosample, ncbi_biosample_accession):
         attribute="insdc_biosample_identifiers",
         value=ncbi_biosample_accession, )
 
+def _get_change_for_omics_processing(omics_processing_record,
+                                     ncbi_bioproject_accession):
+    """
+    Get the changes for the given omics_processing_record
+    :param omics_processing_record:
+    :param ncbi_bioproject_accession:
+    :return:
+    """
+    ncbi_bioproject_accessions = omics_processing_record.get(
+        "insdc_experiment_identifiers", [])
+    if ncbi_bioproject_accession in ncbi_bioproject_accessions:
+        return
+    omics_processing_id = omics_processing_record["id"]
+    logging.info(f"creating change for omics_processing_id: {omics_processing_id}")
+    return ChangesheetLineItem(
+        id=omics_processing_id, action="insert",
+        attribute="insdc_experiment_identifiers",
+        value=ncbi_bioproject_accession, )
+
 
 @click.command()
 @click.option("--study_id", default=NMDC_STUDY_ID, help="NMDC study ID")
@@ -105,6 +124,7 @@ def generate_changesheet(study_id, use_dev_api):
 
         # 2. For each gold_study_identifier, retrieve the GOLD projects
         if gold_study_identifier == 'gold:Gs0144570':
+            # TODO verify that this one has already been done
             continue
         logging.info(
             f"Retrieving GOLD projects for gold_study_identifier: {gold_study_identifier}"
@@ -133,14 +153,34 @@ def generate_changesheet(study_id, use_dev_api):
                 biosample_id = biosample["id"]
                 logging.info(f"biosample_id: {biosample_id}")
                 # NcbiBioSampleAccession to insdc_biosample_identifiers
-                changesheet.line_items.append(
-                    _get_change_for_biosample(
+                change =_get_change_for_biosample(
                         biosample, ncbi_biosample_accession
                     )
+                if change:
+                    changesheet.line_items.append(change)
+
+            # B. Retrieve the corresponding NMDC omics_processing
+            logging.info(
+                f"Retrieving NMDC omics_processing for project_gold_id: {project_gold_id}"
+            )
+            omics_processing_records = (
+                runtime_client.get_omics_processing_records_by_gold_project_id(
+                project_gold_id
+            ))
+            logging.info(
+                f"Retrieved {len(omics_processing_records)} omics_processings"
+            )
+            for omics_processing in omics_processing_records:
+                omics_processing_id = omics_processing["id"]
+                logging.info(
+                    f"omics_processing_id: {omics_processing_id}"
                 )
-
-                # B. Retrieve the corresponding NMDC omics_processing
-
+                # NcbiBioProjectAccession to insdc_experiment_identifiers
+                change = _get_change_for_omics_processing(
+                    omics_processing, ncbi_bioproject_accession
+                )
+                if change:
+                    changesheet.line_items.append(change)
 
     logging.info(f"gold_project_count: {gold_project_count}")
     logging.info(f"biosample_count: {biosample_count}")
