@@ -144,3 +144,11 @@ desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+
+
+## Release to PyPI
+
+```
+python -m build
+twine upload dist/*
+```
