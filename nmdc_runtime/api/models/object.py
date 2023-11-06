@@ -12,6 +12,7 @@ from pydantic import (
     BaseModel,
     AnyUrl,
     HttpUrl,
+    field_serializer,
 )
 from typing_extensions import Annotated
 
@@ -30,6 +31,10 @@ class AccessMethodType(str, Enum):
 class AccessURL(BaseModel):
     headers: Optional[Dict[str, str]] = None
     url: AnyUrl
+
+    @field_serializer("url")
+    def serialize_url(self, url: AnyUrl, _info):
+        return str(url)
 
 
 class AccessMethod(BaseModel):
@@ -77,6 +82,12 @@ class ContentsObject(BaseModel):
         if contents is None and id_ is None:
             raise ValueError("no contents means no further nesting, so id required")
         return values
+
+    @field_serializer("drs_uri")
+    def serialize_url(self, drs_uri: Optional[List[AnyUrl]], _info):
+        if drs_uri is not None and len(drs_uri) > 0:
+            return [str(u) for u in drs_uri]
+        return drs_uri
 
 
 ContentsObject.update_forward_refs()
@@ -127,6 +138,10 @@ class DrsObject(DrsObjectIn):
     id: DrsId
     self_uri: AnyUrl
 
+    @field_serializer("self_uri")
+    def serialize_url(self, self_uri: AnyUrl, _info):
+        return str(self_uri)
+
 
 Seconds = Annotated[int, Field(strict=True, gt=0)]
 
@@ -134,6 +149,10 @@ Seconds = Annotated[int, Field(strict=True, gt=0)]
 class ObjectPresignedUrl(BaseModel):
     url: HttpUrl
     expires_in: Seconds = 300
+
+    @field_serializer("url")
+    def serialize_url(self, url: HttpUrl, _info):
+        return str(url)
 
 
 class DrsObjectOutBase(DrsObjectBase):
@@ -144,6 +163,10 @@ class DrsObjectOutBase(DrsObjectBase):
     size: SizeInBytes
     updated_time: Optional[datetime.datetime] = None
     version: Optional[str] = None
+
+    @field_serializer("self_uri")
+    def serialize_url(self, slf_uri: AnyUrl, _info):
+        return str(self_uri)
 
 
 class DrsObjectBlobOut(DrsObjectOutBase):

@@ -40,9 +40,7 @@ def mint_ids(
             MintingRequest(
                 service=service,
                 requester=requester,
-                **req_mint.model_dump(
-                    mode="json",
-                ),
+                **req_mint.model_dump(),
             )
         )
         return [d.id for d in minted]

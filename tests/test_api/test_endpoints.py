@@ -32,7 +32,7 @@ def ensure_test_resources(mdb):
             username=username,
             hashed_password=get_password_hash(password),
             site_admin=[site_id],
-        ).model_dump(mode="json", exclude_unset=True),
+        ).model_dump(exclude_unset=True),
         upsert=True,
     )
 
@@ -48,9 +48,7 @@ def ensure_test_resources(mdb):
                     hashed_secret=get_password_hash(client_secret),
                 )
             ],
-        ).model_dump(
-            mode="json",
-        ),
+        ).model_dump(),
         upsert=True,
     )
     wf_id = "test"
@@ -59,7 +57,7 @@ def ensure_test_resources(mdb):
     mdb.operations.delete_many(prev_ops)
     job = Job(**{"id": job_id, "workflow": {"id": wf_id}, "config": {}, "claims": []})
     mdb.jobs.replace_one(
-        {"id": job_id}, job.model_dump(mode="json", exclude_unset=True), upsert=True
+        {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
     return {
         "site_client": {
@@ -68,7 +66,7 @@ def ensure_test_resources(mdb):
             "client_secret": client_secret,
         },
         "user": {"username": username, "password": password},
-        "job": job.model_dump(mode="json", exclude_unset=True),
+        "job": job.model_dump(exclude_unset=True),
     }
 
 
@@ -124,7 +122,7 @@ def test_create_user():
         "POST",
         url=(base_url + "/users"),
         headers=headers,
-        json=user_in.model_dump(mode="json", exclude_unset=True),
+        json=user_in.model_dump(exclude_unset=True),
     )
 
     try:

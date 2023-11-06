@@ -61,13 +61,13 @@ def update_operation(
             detail=f"client authorized for different site_id than {site_id_op}",
         )
     op_patch_metadata = merge(
-        op_patch.model_dump(mode="json", exclude_unset=True).get("metadata", {}),
+        op_patch.model_dump(exclude_unset=True).get("metadata", {}),
         pick(["site_id", "job", "model"], doc_op.get("metadata", {})),
     )
     doc_op_patched = merge(
         doc_op,
         assoc(
-            op_patch.model_dump(mode="json", exclude_unset=True),
+            op_patch.model_dump(exclude_unset=True),
             "metadata",
             op_patch_metadata,
         ),
