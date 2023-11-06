@@ -454,11 +454,11 @@ def _create_object(
     mdb: MongoDatabase, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
 ):
     drs_obj = DrsObject(
-        **object_in.model_dump(),
+        **object_in.model_dump(exclude_unset=True),
         id=drs_id,
         self_uri=self_uri,
     )
-    doc = drs_obj.model_dump()
+    doc = drs_obj.model_dump(exclude_unset=True)
     doc["_mgr_site"] = mgr_site  # manager site
     try:
         mdb.objects.insert_one(doc)
