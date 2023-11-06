@@ -388,7 +388,6 @@ def maybe_post_jobs(context, jobs: List[Job]):
             )
             continue
 
-        print(f"{job_object_id=}")
         object_id_timestamps = {
             d["id"]: d["created_time"]
             for d in mdb.objects.find(
