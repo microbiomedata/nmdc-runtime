@@ -7,12 +7,6 @@ from nmdc_runtime.site.repository import preset_normal
 
 @pytest.skip("Needs supplied state")
 def test_ensure_jobs():
-    """
-    This is an example test for a Dagster pipeline.
-
-    For hints on how to test your Dagster pipelines, see our documentation tutorial on Testing:
-    https://docs.dagster.io/tutorial/testable
-    """
     job = ensure_jobs.to_job(name="test_ensure_jobs", **preset_normal)
     run_config = merge({}, preset_normal["config"])
     run_config["ops"] = {
