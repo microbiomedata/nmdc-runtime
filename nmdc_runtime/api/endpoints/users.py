@@ -35,11 +35,7 @@ async def login_for_access_token(
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        access_token_expires = timedelta(
-            **ACCESS_TOKEN_EXPIRES.model_dump(
-                mode="json",
-            )
-        )
+        access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
         access_token = create_access_token(
             data={"sub": f"user:{user.username}"}, expires_delta=access_token_expires
         )
@@ -54,11 +50,7 @@ async def login_for_access_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         # TODO make below an absolute time
-        access_token_expires = timedelta(
-            **ACCESS_TOKEN_EXPIRES.model_dump(
-                mode="json",
-            )
-        )
+        access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
         access_token = create_access_token(
             data={"sub": f"client:{form_data.client_id}"},
             expires_delta=access_token_expires,
@@ -66,9 +58,7 @@ async def login_for_access_token(
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires": ACCESS_TOKEN_EXPIRES.model_dump(
-            mode="json",
-        ),
+        "expires": ACCESS_TOKEN_EXPIRES.model_dump(),
     }
 
 
@@ -94,10 +84,8 @@ def create_user(
     check_can_create_user(requester)
     mdb.users.insert_one(
         UserInDB(
-            **user_in.model_dump(
-                mode="json",
-            ),
+            **user_in.model_dump(),
             hashed_password=get_password_hash(user_in.password),
-        ).model_dump(mode="json", exclude_unset=True)
+        ).model_dump(exclude_unset=True)
     )
     return mdb.users.find_one({"username": user_in.username})

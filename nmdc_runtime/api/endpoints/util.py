@@ -454,11 +454,11 @@ def _create_object(
     mdb: MongoDatabase, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
 ):
     drs_obj = DrsObject(
-        **object_in.model_dump(exclude_unset=True, mode="json"),
+        **object_in.model_dump(),
         id=drs_id,
         self_uri=self_uri,
     )
-    doc = drs_obj.model_dump(exclude_unset=True, mode="json")
+    doc = drs_obj.model_dump()
     doc["_mgr_site"] = mgr_site  # manager site
     try:
         mdb.objects.insert_one(doc)
@@ -519,22 +519,16 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
                         "workflow": job.workflow,
                         "config": job.config,
                     }
-                ).model_dump(mode="json", exclude_unset=True),
+                ).model_dump(exclude_unset=True),
                 "site_id": site.id,
                 "model": dotted_path_for(JobOperationMetadata),
             },
         }
     )
-    mdb.operations.insert_one(
-        op.model_dump(
-            mode="json",
-        )
-    )
-    mdb.jobs.replace_one(
-        {"id": job.id}, job.model_dump(mode="json", exclude_unset=True)
-    )
+    mdb.operations.insert_one(op.model_dump())
+    mdb.jobs.replace_one({"id": job.id}, job.model_dump(exclude_unset=True))
 
-    return op.model_dump(mode="json", exclude_unset=True)
+    return op.model_dump(exclude_unset=True)
 
 
 @lru_cache

@@ -31,9 +31,7 @@ def test_mint_and_resolve():
     id_: Identifier = next(i for i in s.mint(req_mint))
     req_res = ResolutionRequest(
         id_name=id_.name,
-        **req_mint.model_dump(
-            mode="json",
-        ),
+        **req_mint.model_dump(),
     )
     assert s.resolve(req_res) is not None
 
@@ -44,21 +42,10 @@ def test_mint_and_delete():
     id_: Identifier = next(i for i in s.mint(req_mint))
     req_del = DeleteRequest(
         id_name=id_.name,
-        **req_mint.model_dump(
-            mode="json",
-        ),
+        **req_mint.model_dump(),
     )
     s.delete(req_del)
-    assert (
-        s.resolve(
-            ResolutionRequest(
-                **req_del.model_dump(
-                    mode="json",
-                )
-            )
-        )
-        is None
-    )
+    assert s.resolve(ResolutionRequest(**req_del.model_dump())) is None
 
 
 def test_mongo_mint_one():
@@ -91,9 +78,7 @@ def test_mongo_mint_and_resolve():
     id_: Identifier = next(i for i in s.mint(req_mint))
     req_res = ResolutionRequest(
         id_name=id_.name,
-        **req_mint.model_dump(
-            mode="json",
-        ),
+        **req_mint.model_dump(),
     )
     assert s.resolve(req_res) is not None
 
@@ -106,19 +91,8 @@ def test_mongo_mint_and_delete():
     id_: Identifier = next(i for i in s.mint(req_mint))
     req_del = DeleteRequest(
         id_name=id_.name,
-        **req_mint.model_dump(
-            mode="json",
-        ),
+        **req_mint.model_dump(),
     )
     s.delete(req_del)
-    assert (
-        s.resolve(
-            ResolutionRequest(
-                **req_del.model_dump(
-                    mode="json",
-                )
-            )
-        )
-        is None
-    )
+    assert s.resolve(ResolutionRequest(**req_del.model_dump())) is None
     assert s.db["minter.id_records"].count_documents({}) == 0

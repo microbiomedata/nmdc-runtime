@@ -93,11 +93,7 @@ def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: Us
         time=now(as_str=True),
         inputs=run_spec.inputs,
     )
-    mdb.run_events.insert_one(
-        event.model_dump(
-            mode="json",
-        )
-    )
+    mdb.run_events.insert_one(event.model_dump())
     return run_id
 
 
@@ -117,9 +113,7 @@ def _add_run_started_event(run_id: str, mdb: MongoDatabase):
             job=requested.job,
             type=RunEventType.STARTED,
             time=now(as_str=True),
-        ).model_dump(
-            mode="json",
-        )
+        ).model_dump()
     )
     return run_id
 
@@ -140,9 +134,7 @@ def _add_run_fail_event(run_id: str, mdb: MongoDatabase):
             job=requested.job,
             type=RunEventType.FAIL,
             time=now(as_str=True),
-        ).model_dump(
-            mode="json",
-        )
+        ).model_dump()
     )
     return run_id
 
@@ -164,8 +156,6 @@ def _add_run_complete_event(run_id: str, mdb: MongoDatabase, outputs: List[str])
             type=RunEventType.COMPLETE,
             time=now(as_str=True),
             outputs=outputs,
-        ).model_dump(
-            mode="json",
-        )
+        ).model_dump()
     )
     return run_id

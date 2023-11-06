@@ -44,11 +44,7 @@ def claim_metadata_ingest_jobs(
     )
     jobs = []
     while True:
-        rv = client.list_jobs(
-            lr.model_dump(
-                mode="json",
-            )
-        ).json()
+        rv = client.list_jobs(lr.model_dump()).json()
         jobs.extend(rv["resources"])
         if "next_page_token" not in rv:
             break

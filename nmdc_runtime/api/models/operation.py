@@ -1,7 +1,7 @@
 import datetime
 from typing import Generic, TypeVar, Optional, List, Any, Union
 
-from pydantic import StringConstraints, BaseModel, HttpUrl
+from pydantic import StringConstraints, BaseModel, HttpUrl, field_serializer
 
 from nmdc_runtime.api.models.util import ResultT
 from typing_extensions import Annotated
@@ -59,3 +59,7 @@ class ObjectPutMetadata(Metadata):
     site_id: str
     url: HttpUrl
     expires_in_seconds: int
+
+    @field_serializer("url")
+    def serialize_url(self, url: HttpUrl, _info):
+        return str(url)
