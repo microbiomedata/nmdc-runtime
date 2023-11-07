@@ -351,7 +351,9 @@ async def get_versions():
 
 app = FastAPI(
     title="NMDC Runtime API",
-    version=get_version(),
+    # TODO this does not work: `version=get_version()`
+    #   Below is hotfix for reasonable display in prod deployment.
+    version="1.0.7",
     description=(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
