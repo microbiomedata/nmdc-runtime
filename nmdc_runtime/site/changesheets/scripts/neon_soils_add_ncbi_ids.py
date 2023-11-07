@@ -43,7 +43,7 @@ def _get_change_for_biosample(biosample, ncbi_biosample_accession):
     return ChangesheetLineItem(
         id=biosample["id"], action="insert",
         attribute="insdc_biosample_identifiers",
-        value=ncbi_biosample_accession, )
+        value="biosample:" + ncbi_biosample_accession, )
 
 def _get_change_for_omics_processing(omics_processing_record,
                                      ncbi_bioproject_accession):
@@ -62,7 +62,7 @@ def _get_change_for_omics_processing(omics_processing_record,
     return ChangesheetLineItem(
         id=omics_processing_id, action="insert",
         attribute="insdc_experiment_identifiers",
-        value=ncbi_bioproject_accession, )
+        value="bioproject:" + ncbi_bioproject_accession, )
 
 
 @click.command()
@@ -114,7 +114,7 @@ def generate_changesheet(study_id, use_dev_api):
         ChangesheetLineItem(
             id=study_id, action="insert",
             attribute="insdc_bioproject_identifiers",
-            value=UMBRELLA_BIOPROJECT_ACCESSION, )
+            value="bioproject:" + UMBRELLA_BIOPROJECT_ACCESSION, )
     )
 
     gold_study_identifiers = nmdc_study["gold_study_identifiers"]
