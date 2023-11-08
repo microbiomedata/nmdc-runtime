@@ -28,9 +28,12 @@ def hash_from_str(s: str, algo="sha256") -> str:
     return getattr(hashlib, algo)(s.encode("utf-8")).hexdigest()
 
 
-def sha256hash_from_file(file_path: str):
+def sha256hash_from_file(file_path: str, timestamp: str):
     # https://stackoverflow.com/a/55542529
     h = hashlib.sha256()
+
+    timestamp_bytes = timestamp.encode('utf-8')
+    h.update(timestamp_bytes)
 
     with open(file_path, "rb") as file:
         while True:

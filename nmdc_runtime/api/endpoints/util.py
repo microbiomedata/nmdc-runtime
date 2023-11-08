@@ -442,6 +442,7 @@ def persist_content_and_get_drs_object(
                     ),
                     "access_methods": [{"access_id": drs_id}],
                 },
+                timestamp= datetime.now(tz=ZoneInfo('America/Los_Angeles')).isoformat(timespec='minutes')
             )
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
