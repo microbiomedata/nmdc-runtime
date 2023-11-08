@@ -452,7 +452,7 @@ nbformat==5.9.2
     #   nbconvert
 nest-asyncio==1.5.8
     # via ipykernel
-nmdc-schema==9.0.4
+nmdc-schema==9.1.0
     # via -r requirements/main.in
 notebook==7.0.6
     # via jupyter
