@@ -13,6 +13,7 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2023-11-07T19:45:00-08:00 update nmdc-schema package from 9.0.4 to 9.1.0
 * 2023-11-07T19:30:00-08:00 update nmdc-schema package from 8.1.2 to 9.0.4
 * 2023-11-07T17:30:00-08:00 update nmdc-schema package from 8.0.0 to 8.1.2
 * (missing entries)
