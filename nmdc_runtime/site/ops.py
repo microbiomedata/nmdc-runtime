@@ -680,6 +680,11 @@ def translate_portal_submission_to_nmdc_schema_database(
     metadata_submission: Dict[str, Any],
     omics_processing_mapping: List,
     data_object_mapping: List,
+    study_category: Optional[str],
+    study_doi_category: Optional[str],
+    study_doi_provider: Optional[str],
+    study_funding_sources: Optional[List[str]],
+    study_pi_image_url: Optional[str],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -692,6 +697,11 @@ def translate_portal_submission_to_nmdc_schema_database(
         omics_processing_mapping,
         data_object_mapping,
         id_minter=id_minter,
+        study_category=study_category,
+        study_doi_category=study_doi_category,
+        study_doi_provider=study_doi_provider,
+        study_funding_sources=study_funding_sources,
+        study_pi_image_url=study_pi_image_url,
     )
     database = translator.get_database()
     return database

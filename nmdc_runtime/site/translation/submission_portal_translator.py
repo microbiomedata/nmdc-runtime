@@ -94,6 +94,9 @@ class SubmissionPortalTranslator(Translator):
         if not dataset_doi:
             return None
 
+        if not dataset_doi.startswith('doi:'):
+            dataset_doi = f"doi:{dataset_doi}"
+
         return [
             nmdc.Doi(
                 doi_value=dataset_doi,
@@ -457,7 +460,7 @@ class SubmissionPortalTranslator(Translator):
         slots = {
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
-            "name": sample_data[0].get("samp_name"),
+            "name": sample_data[0].get("samp_name").strip(),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
