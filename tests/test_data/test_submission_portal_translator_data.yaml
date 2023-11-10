@@ -810,8 +810,14 @@ output:
       orcid: 0000-0002-7189-3067
       email: shade.ashley@gmail.com
       name: Ashley Shade
-    dataset_dois:
-    - doi:10.46936/10.25585/60000818
+    associated_dois:
+    - doi_value: doi:10.46936/10.25585/60000818
+      doi_provider: jgi
+      doi_category: dataset_doi
+    funding_sources:
+      - Some award ABC
+      - Another award XYZ
+    study_category: research_study
     title: Seasonal activities of the phyllosphere microbiome of perennial crops
     websites:
     - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9950430/
@@ -974,8 +980,13 @@ output:
     - id: nmdc:sty-00-y0cq65zt
       name: A test submission
       description: This is a test submission
-      dataset_dois:
-        - doi:10.12345/10.12345/00000000
+      associated_dois:
+        - doi_value: doi:10.12345/10.12345/00000000
+          doi_provider: jgi
+          doi_category: dataset_doi
+      funding_sources:
+        - Some award ABC
+        - Another award XYZ
       has_credit_associations:
         - applies_to_person:
             orcid: 0000-0000-0000-0000
@@ -986,6 +997,7 @@ output:
         orcid: 0000-0000-0000-0000
         email: test.testerson@example.com
         name: Test Testerson
+      study_category: research_study
       title: A test submission
       websites:
         - http://www.example.com/submission-test

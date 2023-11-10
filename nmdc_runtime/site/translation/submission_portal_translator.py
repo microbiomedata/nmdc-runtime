@@ -36,6 +36,10 @@ class SubmissionPortalTranslator(Translator):
         omics_processing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
         *args,
+        study_dataset_doi_provider: Optional[str] = None,
+        study_category: Optional[str] = None,
+        study_pi_image_url: Optional[str] = None,
+        study_funding_sources: Optional[list[str]] = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -43,6 +47,18 @@ class SubmissionPortalTranslator(Translator):
         self.metadata_submission = metadata_submission
         self.omics_processing_mapping = omics_processing_mapping
         self.data_object_mapping = data_object_mapping
+
+        self.study_dataset_doi_provider = (
+            nmdc.DoiProviderEnum(study_dataset_doi_provider)
+            if study_dataset_doi_provider
+            else None
+        )
+        self.study_category = (
+            nmdc.StudyCategoryEnum(study_category) if study_category else None
+        )
+        self.study_pi_image_url = study_pi_image_url
+        self.study_funding_sources = study_funding_sources
+
         self.schema_view: SchemaView = _get_schema_view()
 
     def _get_pi(
@@ -61,9 +77,10 @@ class SubmissionPortalTranslator(Translator):
             name=study_form.get("piName"),
             email=study_form.get("piEmail"),
             orcid=study_form.get("piOrcid"),
+            profile_image_url=self.study_pi_image_url,
         )
 
-    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[str], None]:
+    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.Doi], None]:
         """Get DOI information from the context form data
 
         :param metadata_submission: submission portal entry
@@ -73,7 +90,13 @@ class SubmissionPortalTranslator(Translator):
         if not dataset_doi:
             return None
 
-        return [dataset_doi]
+        return [
+            nmdc.Doi(
+                doi_value=dataset_doi,
+                doi_provider=self.study_dataset_doi_provider,
+                doi_category=nmdc.DoiCategoryEnum.dataset_doi,
+            )
+        ]
 
     def _get_has_credit_associations(
         self, metadata_submission: JSON_OBJECT
@@ -325,10 +348,11 @@ class SubmissionPortalTranslator(Translator):
             alternative_names=self._get_from(
                 metadata_submission, ["multiOmicsForm", "alternativeNames"]
             ),
-            dataset_dois=self._get_doi(metadata_submission),
+            associated_dois=self._get_doi(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
+            funding_sources=self.study_funding_sources,
             # emsl_proposal_identifier=self._get_from(
             #     metadata_submission, ["multiOmicsForm", "studyNumber"]
             # ),
@@ -345,6 +369,7 @@ class SubmissionPortalTranslator(Translator):
             name=self._get_from(metadata_submission, ["studyForm", "studyName"]),
             notes=self._get_from(metadata_submission, ["studyForm", "notes"]),
             principal_investigator=self._get_pi(metadata_submission),
+            study_category=self.study_category,
             title=self._get_from(metadata_submission, ["studyForm", "studyName"]),
             websites=self._get_from(
                 metadata_submission, ["studyForm", "linkOutWebpage"]
