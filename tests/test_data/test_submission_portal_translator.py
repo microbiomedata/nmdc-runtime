@@ -32,18 +32,49 @@ def test_get_pi():
     pi_person_value = translator._get_pi({})
     assert pi_person_value is None
 
+    translator = SubmissionPortalTranslator(
+        study_pi_image_url="http://www.example.org/image.jpg"
+    )
+    pi_person_value = translator._get_pi(
+        {
+            "studyForm": {
+                "piName": "Maria D. McDonald",
+                "piEmail": "MariaDMcDonald@example.edu",
+                "piOrcid": "0000-0000-0000-0001",
+            }
+        }
+    )
+    assert pi_person_value is not None
+    assert pi_person_value.name == "Maria D. McDonald"
+    assert pi_person_value.email == "MariaDMcDonald@example.edu"
+    assert pi_person_value.orcid == "0000-0000-0000-0001"
+    assert pi_person_value.profile_image_url == "http://www.example.org/image.jpg"
+
 
 def test_get_doi():
     translator = SubmissionPortalTranslator()
     doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
-    assert doi == ["1234"]
+    assert doi == [
+        nmdc.Doi(doi_value="1234", doi_category=nmdc.DoiCategoryEnum.dataset_doi)
+    ]
 
     doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
     assert doi is None
 
     doi = translator._get_doi({"contextForm": {}})
     assert doi is None
+
+    translator = SubmissionPortalTranslator(study_dataset_doi_provider="kbase")
+    doi = translator._get_doi({"contextForm": {"datasetDoi": "5678"}})
+    assert doi is not None
+    assert doi == [
+        nmdc.Doi(
+            doi_value="5678",
+            doi_provider=nmdc.DoiProviderEnum.kbase,
+            doi_category=nmdc.DoiCategoryEnum.dataset_doi,
+        )
+    ]
 
 
 def test_get_has_credit_associations():
@@ -267,7 +298,11 @@ def test_get_dataset(test_minter, monkeypatch):
             # fixture are stable across test runs
             random.seed(0)
             translator = SubmissionPortalTranslator(
-                **test_data["input"], id_minter=test_minter
+                **test_data["input"],
+                id_minter=test_minter,
+                study_category="research_study",
+                study_dataset_doi_provider="jgi",
+                study_funding_sources=["Some award ABC", "Another award XYZ"]
             )
 
             expected = nmdc.Database(**test_data["output"])
