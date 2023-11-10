@@ -65,14 +65,16 @@ def test_get_doi():
     doi = translator._get_doi({"contextForm": {}})
     assert doi is None
 
-    translator = SubmissionPortalTranslator(study_dataset_doi_provider="kbase")
+    translator = SubmissionPortalTranslator(
+        study_doi_provider="kbase", study_doi_category="award_doi"
+    )
     doi = translator._get_doi({"contextForm": {"datasetDoi": "5678"}})
     assert doi is not None
     assert doi == [
         nmdc.Doi(
             doi_value="5678",
             doi_provider=nmdc.DoiProviderEnum.kbase,
-            doi_category=nmdc.DoiCategoryEnum.dataset_doi,
+            doi_category=nmdc.DoiCategoryEnum.award_doi,
         )
     ]
 
@@ -301,7 +303,7 @@ def test_get_dataset(test_minter, monkeypatch):
                 **test_data["input"],
                 id_minter=test_minter,
                 study_category="research_study",
-                study_dataset_doi_provider="jgi",
+                study_doi_provider="jgi",
                 study_funding_sources=["Some award ABC", "Another award XYZ"]
             )
 

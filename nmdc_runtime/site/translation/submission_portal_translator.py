@@ -36,7 +36,8 @@ class SubmissionPortalTranslator(Translator):
         omics_processing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
         *args,
-        study_dataset_doi_provider: Optional[str] = None,
+        study_doi_category: Optional[str] = None,
+        study_doi_provider: Optional[str] = None,
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
         study_funding_sources: Optional[list[str]] = None,
@@ -48,10 +49,13 @@ class SubmissionPortalTranslator(Translator):
         self.omics_processing_mapping = omics_processing_mapping
         self.data_object_mapping = data_object_mapping
 
-        self.study_dataset_doi_provider = (
-            nmdc.DoiProviderEnum(study_dataset_doi_provider)
-            if study_dataset_doi_provider
-            else None
+        self.study_doi_category = (
+            nmdc.DoiCategoryEnum(study_doi_category)
+            if study_doi_category
+            else nmdc.DoiCategoryEnum.dataset_doi
+        )
+        self.study_doi_provider = (
+            nmdc.DoiProviderEnum(study_doi_provider) if study_doi_provider else None
         )
         self.study_category = (
             nmdc.StudyCategoryEnum(study_category) if study_category else None
@@ -93,8 +97,8 @@ class SubmissionPortalTranslator(Translator):
         return [
             nmdc.Doi(
                 doi_value=dataset_doi,
-                doi_provider=self.study_dataset_doi_provider,
-                doi_category=nmdc.DoiCategoryEnum.dataset_doi,
+                doi_provider=self.study_doi_provider,
+                doi_category=self.study_doi_category,
             )
         ]
 
