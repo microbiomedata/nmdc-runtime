@@ -30,22 +30,23 @@ from typing_extensions import Annotated
 @lru_cache
 def get_type_collections() -> dict:
     """Returns a dictionary mapping class names to Mongo collection names"""
+
     mappings = {}
 
-    def get_class_name_from_ref(s: str):
-        return s.split("/")[-1]
-
-    for collection_name, spec in nmdc_jsonschema["properties"].items():
+    # Process the `items` dictionary of each collection whose name ends with `_set`.
+    for collection_name, prop in nmdc_jsonschema["properties"].items():
         if collection_name.endswith("_set"):
-            items = spec["items"]
+            items = prop["items"]
+
+            # If the `items` dictionary has a key named `$ref`, get the single class name from it.
             if "$ref" in items:
-                ref = items["$ref"]
-                class_name = get_class_name_from_ref(ref)
+                class_name = items["$ref"].split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
                 mappings[class_name] = collection_name
+
+            # Else, if it has a key named `anyOf` whose value is a list, get the class name from each ref in the list.
             elif "anyOf" in items and isinstance(items["anyOf"], list):
                 for item in items["anyOf"]:
-                    ref = item["$ref"]
-                    class_name = get_class_name_from_ref(ref)
+                    class_name = item["$ref"].split("/")[-1]
                     mappings[class_name] = collection_name
 
     return mappings
