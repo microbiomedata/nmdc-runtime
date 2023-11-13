@@ -367,7 +367,7 @@ def specialize_activity_set_docs(docs):
 
 
 # Define a mapping from collection name to class name.
-collection_name_to_class_names: Dict[str, str] = {
+collection_name_to_class_names: Dict[str, List[str]] = {
     collection_name: get_class_names_from_collection_spec(spec)
     for collection_name, spec in nmdc_jsonschema["$defs"]["Database"]["properties"].items()
 }
