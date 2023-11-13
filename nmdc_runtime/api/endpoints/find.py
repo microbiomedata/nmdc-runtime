@@ -188,8 +188,8 @@ def attr_index_sort_key(attr):
     return "_" if attr == "id" else attr
 
 
-def documentation_links(jsonschema_dict, collection_names):
-    rv = {"Activity": []}
+def documentation_links(jsonschema_dict, collection_names) -> dict:
+    doc_links = {"Activity": []}
     for collection_name in collection_names:
 
         # Process each class name associated with this collection name, according to the schema.
@@ -203,8 +203,9 @@ def documentation_links(jsonschema_dict, collection_names):
                 assoc_path = [collection_name]
             else:
                 assoc_path = ["activity_set", collection_name]
-            rv = assoc_in(
-                rv,
+
+            doc_links: dict = assoc_in(
+                doc_links,
                 assoc_path,
                 {
                     "collection_name": collection_name,
@@ -213,17 +214,17 @@ def documentation_links(jsonschema_dict, collection_names):
                     "entity_attrs": sorted(
                         [
                             {
-                                "url": f"https://microbiomedata.github.io/nmdc-schema/{a}",
-                                "attr_name": a,
+                                "url": f"https://microbiomedata.github.io/nmdc-schema/{attr_name}",
+                                "attr_name": attr_name,
                             }
-                            for a in entity_attrs
+                            for attr_name in entity_attrs
                         ],
                         key=itemgetter("attr_name"),
                     ),
                 },
             )
 
-    return rv
+    return doc_links
 
 
 @router.get("/search", response_class=HTMLResponse)
