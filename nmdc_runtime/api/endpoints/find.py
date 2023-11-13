@@ -199,11 +199,16 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
 
             # Get the properties of this class, according to the schema.
             entity_attrs = list(jsonschema_dict["$defs"][class_name]["properties"])
+
+            # Special treatment: Nest most collection names within "activity_set" in the result.
+            # TODO: Explain this special treatment to facilitate code maintenance.
             if class_name in ("Biosample", "Study", "DataObject"):
                 assoc_path = [collection_name]
             else:
                 assoc_path = ["activity_set", collection_name]
 
+            # Add an object representing this collection's and class's relationship, to the `doc_links` dictionary.
+            # Reference: https://toolz.readthedocs.io/en/latest/api.html#toolz.dicttoolz.assoc_in
             doc_links: dict = assoc_in(
                 doc_links,
                 assoc_path,
