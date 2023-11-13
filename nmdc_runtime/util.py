@@ -41,13 +41,13 @@ def get_type_collections() -> dict:
             # If the `items` dictionary has a key named `$ref`, get the single class name from it.
             if "$ref" in items:
                 class_name = items["$ref"].split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
-                mappings[class_name] = collection_name
+                mappings[f"nmdc:{class_name}"] = collection_name
 
             # Else, if it has a key named `anyOf` whose value is a list, get the class name from each ref in the list.
             elif "anyOf" in items and isinstance(items["anyOf"], list):
                 for item in items["anyOf"]:
                     class_name = item["$ref"].split("/")[-1]
-                    mappings[class_name] = collection_name
+                    mappings[f"nmdc:{class_name}"] = collection_name
 
     return mappings
 
