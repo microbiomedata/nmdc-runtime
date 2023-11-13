@@ -30,7 +30,8 @@ from typing_extensions import Annotated
 
 def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = None) -> List[str]:
     """
-    Returns the list of classes referenced by the `$ref` values in a JSON Schema snippet describing a collection.
+    Returns the list of classes referenced by the `$ref` values in a JSON Schema snippet describing a collection,
+    applying an optional prefix to each class name.
 
     >>> get_class_names_from_collection_spec({"items": {"$ref": "#/$defs/A"}})
     ['A']
@@ -60,7 +61,7 @@ def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = Non
                 class_name = ref_dict.split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
                 class_names.append(class_name)
 
-    # Prepend the string "nmdc:" to each class name.
+    # Apply the specified prefix, if any, to each class name.
     if isinstance(prefix, str):
         class_names = list(map(lambda name: f"{prefix}{name}", class_names))
 
