@@ -10,7 +10,7 @@ from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
-from typing import List, Optional
+from typing import List, Optional, Set, Dict
 
 import fastjsonschema
 import requests
@@ -361,22 +361,27 @@ def specialize_activity_set_docs(docs):
 
 
 # Define a mapping from collection name to class name.
-collection_name_to_class_name = {
-    db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
-    for db_prop, db_prop_spec in get_nmdc_jsonschema_dict()["$defs"]["Database"][
-        "properties"
-    ].items()
-    if "items" in db_prop_spec and "$ref" in db_prop_spec["items"]
+collection_name_to_class_names: Dict[str, str] = {
+    collection_name: get_class_names_from_collection_spec(spec)
+    for collection_name, spec in nmdc_jsonschema["$defs"]["Database"]["properties"].items()
 }
 
 
 @lru_cache
-def schema_collection_names_with_id_field():
-    return {
-        coll_name
-        for coll_name, class_name in collection_name_to_class_name.items()
-        if "id" in get_nmdc_jsonschema_dict()["$defs"][class_name].get("properties", {})
-    }
+def schema_collection_names_with_id_field() -> Set[str]:
+    """
+    Returns the set of collection names for which any of the associated classes contains an `id` field.
+    """
+
+    target_collection_names = set()
+
+    for collection_name, class_names in collection_name_to_class_names.items():
+        for class_name in class_names:
+            if "id" in nmdc_jsonschema["$defs"][class_name].get("properties", {}):
+                target_collection_names.add(collection_name)
+                break
+
+    return target_collection_names
 
 
 def ensure_unique_id_indexes(mdb: MongoDatabase):
