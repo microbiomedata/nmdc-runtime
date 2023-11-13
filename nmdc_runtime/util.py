@@ -70,7 +70,7 @@ def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = Non
 
 @lru_cache
 def get_type_collections() -> dict:
-    """Returns a dictionary mapping class names to Mongo collection names"""
+    """Returns a dictionary mapping class names to Mongo collection names."""
 
     mappings = {}
 
