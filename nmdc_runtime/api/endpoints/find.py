@@ -23,6 +23,7 @@ from nmdc_runtime.api.models.util import (
     PipelineFindRequest,
     PipelineFindResponse,
 )
+from nmdc_runtime.util import get_class_names_from_collection_spec
 
 router = APIRouter()
 
@@ -189,35 +190,38 @@ def attr_index_sort_key(attr):
 
 def documentation_links(jsonschema_dict, collection_names):
     rv = {"Activity": []}
-    for cn in collection_names:
-        last_part = jsonschema_dict["$defs"]["Database"]["properties"][cn]["items"][
-            "$ref"
-        ].split("/")[-1]
-        entity_attrs = list(jsonschema_dict["$defs"][last_part]["properties"])
-        if last_part in ("Biosample", "Study", "DataObject"):
-            assoc_path = [cn]
-        else:
-            assoc_path = ["activity_set", cn]
-        rv = assoc_in(
-            rv,
-            assoc_path,
-            {
-                "collection_name": cn,
-                "entity_url": "https://microbiomedata.github.io/nmdc-schema/"
-                + last_part,
-                "entity_name": last_part,
-                "entity_attrs": sorted(
-                    [
-                        {
-                            "url": f"https://microbiomedata.github.io/nmdc-schema/{a}",
-                            "attr_name": a,
-                        }
-                        for a in entity_attrs
-                    ],
-                    key=itemgetter("attr_name"),
-                ),
-            },
-        )
+    for collection_name in collection_names:
+
+        # Process each class name associated with this collection name, according to the schema.
+        collection_spec = jsonschema_dict["$defs"]["Database"]["properties"][collection_name]
+        class_names = get_class_names_from_collection_spec(collection_spec)
+        for class_name in class_names:
+
+            # Get the properties of this class, according to the schema.
+            entity_attrs = list(jsonschema_dict["$defs"][class_name]["properties"])
+            if class_name in ("Biosample", "Study", "DataObject"):
+                assoc_path = [collection_name]
+            else:
+                assoc_path = ["activity_set", collection_name]
+            rv = assoc_in(
+                rv,
+                assoc_path,
+                {
+                    "collection_name": collection_name,
+                    "entity_url": f"https://microbiomedata.github.io/nmdc-schema/{class_name}",
+                    "entity_name": class_name,
+                    "entity_attrs": sorted(
+                        [
+                            {
+                                "url": f"https://microbiomedata.github.io/nmdc-schema/{a}",
+                                "attr_name": a,
+                            }
+                            for a in entity_attrs
+                        ],
+                        key=itemgetter("attr_name"),
+                    ),
+                },
+            )
 
     return rv
 
