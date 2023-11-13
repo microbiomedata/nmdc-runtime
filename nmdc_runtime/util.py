@@ -29,11 +29,26 @@ from typing_extensions import Annotated
 
 @lru_cache
 def get_type_collections():
-    return {
-        f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
-        for collection_name, spec in nmdc_jsonschema["properties"].items()
-        if collection_name.endswith("_set")
-    }
+    """Returns a dictionary mapping class names to Mongo collection names"""
+    mappings = {}
+
+    def get_class_name_from_ref(s: str):
+        return s.split("/")[-1]
+
+    for collection_name, spec in nmdc_jsonschema["properties"].items():
+        if collection_name.endswith("_set"):
+            items = spec["items"]
+            if "$ref" in items:
+                ref = items["$ref"]
+                class_name = get_class_name_from_ref(ref)
+                mappings[class_name] = collection_name
+            elif "anyOf" in items and isinstance(items["anyOf"], list):
+                for item in items["anyOf"]:
+                    ref = item["$ref"]
+                    class_name = get_class_name_from_ref(ref)
+                    mappings[class_name] = collection_name
+
+    return mappings
 
 
 def without_id_patterns(nmdc_jsonschema):
