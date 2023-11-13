@@ -376,7 +376,7 @@ collection_name_to_class_names: Dict[str, List[str]] = {
 @lru_cache
 def schema_collection_names_with_id_field() -> Set[str]:
     """
-    Returns the set of collection names for which any of the associated classes contains an `id` field.
+    Returns the set of collection names with which _any_ of the associated classes contains an `id` field.
     """
 
     target_collection_names = set()
