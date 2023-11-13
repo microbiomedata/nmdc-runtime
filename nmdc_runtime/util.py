@@ -10,6 +10,7 @@ from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
+from typing import List, Optional
 
 import fastjsonschema
 import requests
@@ -27,6 +28,45 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 from typing_extensions import Annotated
 
 
+def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = None) -> List[str]:
+    """
+    Returns the list of classes referenced by the `$ref` values in a JSON Schema snippet describing a collection.
+
+    >>> get_class_names_from_collection_spec({"items": {"$ref": "#/$defs/A"}})
+    ['A']
+    >>> get_class_names_from_collection_spec({"items": {"$ref": "#/$defs/A"}}, "p:")
+    ['p:A']
+    >>> get_class_names_from_collection_spec({"items": {"anyOf": [{"$ref": "#/$defs/A"}]}})
+    ['A']
+    >>> get_class_names_from_collection_spec({"items": {"anyOf": [{"$ref": "#/$defs/A"}, {"$ref": "#/$defs/B"}]}})
+    ['A', 'B']
+    >>> get_class_names_from_collection_spec({"items": {"anyOf": [{"$ref": "#/$defs/A"}, {"$ref": "#/$defs/B"}]}}, "p:")
+    ['p:A', 'p:B']
+    """
+
+    class_names = []
+    if "items" in spec:
+
+        # If the `items` dictionary has a key named `$ref`, get the single class name from it.
+        if "$ref" in spec["items"]:
+            ref_dict = spec["items"]["$ref"]
+            class_name = ref_dict.split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
+            class_names.append(class_name)
+
+        # Else, if it has a key named `anyOf` whose value is a list, get the class name from each ref in the list.
+        elif "anyOf" in spec["items"] and isinstance(spec["items"]["anyOf"], list):
+            for element in spec["items"]["anyOf"]:
+                ref_dict = element["$ref"]
+                class_name = ref_dict.split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
+                class_names.append(class_name)
+
+    # Prepend the string "nmdc:" to each class name.
+    if isinstance(prefix, str):
+        class_names = list(map(lambda name: f"{prefix}{name}", class_names))
+
+    return class_names
+
+
 @lru_cache
 def get_type_collections() -> dict:
     """Returns a dictionary mapping class names to Mongo collection names"""
@@ -34,20 +74,11 @@ def get_type_collections() -> dict:
     mappings = {}
 
     # Process the `items` dictionary of each collection whose name ends with `_set`.
-    for collection_name, prop in nmdc_jsonschema["properties"].items():
+    for collection_name, spec in nmdc_jsonschema["properties"].items():
         if collection_name.endswith("_set"):
-            items = prop["items"]
-
-            # If the `items` dictionary has a key named `$ref`, get the single class name from it.
-            if "$ref" in items:
-                class_name = items["$ref"].split("/")[-1]  # e.g. `#/$defs/Foo` --> `Foo`
-                mappings[f"nmdc:{class_name}"] = collection_name
-
-            # Else, if it has a key named `anyOf` whose value is a list, get the class name from each ref in the list.
-            elif "anyOf" in items and isinstance(items["anyOf"], list):
-                for item in items["anyOf"]:
-                    class_name = item["$ref"].split("/")[-1]
-                    mappings[f"nmdc:{class_name}"] = collection_name
+            class_names = get_class_names_from_collection_spec(spec, "nmdc:")
+            for class_name in class_names:
+                mappings[class_name] = collection_name
 
     return mappings
 
@@ -328,6 +359,7 @@ def specialize_activity_set_docs(docs):
     return docs, validation_errors
 
 
+# Define a mapping from collection name to class name.
 collection_name_to_class_name = {
     db_prop: db_prop_spec["items"]["$ref"].split("/")[-1]
     for db_prop, db_prop_spec in get_nmdc_jsonschema_dict()["$defs"]["Database"][
