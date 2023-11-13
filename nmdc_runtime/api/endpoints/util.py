@@ -431,6 +431,9 @@ def persist_content_and_get_drs_object(
         filepath = str(Path(save_dir).joinpath(filename))
         with open(filepath, "w") as f:
             f.write(content)
+        now_to_the_minute = datetime.now(tz=ZoneInfo("America/Los_Angeles")).isoformat(
+            timespec="minutes"
+        )
         object_in = DrsObjectIn(
             **drs_metadata_for(
                 filepath,
@@ -438,10 +441,11 @@ def persist_content_and_get_drs_object(
                     "description": (
                         description
                         + f" (created by/for {username}"
-                        + f" at {datetime.now(tz=ZoneInfo('America/Los_Angeles')).isoformat(timespec='minutes')})"
+                        + f" at {now_to_the_minute})"
                     ),
                     "access_methods": [{"access_id": drs_id}],
                 },
+                timestamp=now_to_the_minute,
             )
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
