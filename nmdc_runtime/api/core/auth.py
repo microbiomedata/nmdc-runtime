@@ -4,7 +4,7 @@ from typing import Optional, Dict
 
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
-from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel, OAuthFlowImplicit
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2, HTTPBasic, HTTPBasicCredentials
 from fastapi.security.utils import get_authorization_scheme_param
@@ -16,6 +16,7 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
+ORCID_CLIENT_ID = os.getenv("ORCID_CLIENT_ID")
 
 
 class ClientCredentials(BaseModel):
@@ -91,6 +92,9 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
         flows = OAuthFlowsModel(
             password={"tokenUrl": tokenUrl, "scopes": scopes},
             clientCredentials={"tokenUrl": tokenUrl},
+            implicit={
+                "authorizationUrl": f"https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}&response_type=token&scope=openid&redirect_uri=http://127.0.0.1:8000/orcid_token"
+            },
         )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
@@ -99,17 +103,21 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
         scheme, param = get_authorization_scheme_param(authorization)
         if not authorization or scheme.lower() != "bearer":
             if self.auto_error:
+                print("uh oh")
                 raise HTTPException(
                     status_code=HTTP_401_UNAUTHORIZED,
                     detail="Not authenticated",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             else:
+                print(request.url)
                 return None
         return param
 
 
-oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
+    tokenUrl="token", auto_error=False
+)
 optional_oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
     tokenUrl="token", auto_error=False
 )

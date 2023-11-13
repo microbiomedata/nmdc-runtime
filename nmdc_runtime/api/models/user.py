@@ -1,3 +1,4 @@
+import json
 from typing import Optional, List
 
 import pymongo.database
@@ -54,7 +55,9 @@ async def get_current_user(
     if mdb.invalidated_tokens.find_one({"_id": token}):
         raise credentials_exception
     try:
+        print(token)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(json.dump(payload, indent=2))
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
@@ -62,7 +65,8 @@ async def get_current_user(
             raise credentials_exception
         username = subject.split("user:", 1)[1]
         token_data = TokenData(subject=username)
-    except JWTError:
+    except JWTError as e:
+        print(f"jwt error: {e}")
         raise credentials_exception
     user = get_user(mdb, username=token_data.subject)
     if user is None:

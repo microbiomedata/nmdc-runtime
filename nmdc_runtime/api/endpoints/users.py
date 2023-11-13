@@ -2,6 +2,8 @@ from datetime import timedelta
 
 import pymongo.database
 from fastapi import Depends, APIRouter, HTTPException, status
+from starlette.requests import Request
+from starlette.responses import HTMLResponse
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
@@ -20,6 +22,31 @@ from nmdc_runtime.api.models.user import (
 )
 
 router = APIRouter()
+
+
+@router.get("/orcid_token")
+async def redirect_uri_for_orcid_token(req: Request):
+    raise Exception("hey!")
+    return HTMLResponse(
+        """
+    <head>
+    <script>
+        function getFragmentParameterByName(name) {
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\#&]" + name + "=([^&#]*)"),
+            results = regex.exec(window.location.hash);
+            return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+        }
+    </script>
+    </head>
+    <body>
+    <main id="token"></main>
+    </body>
+    <script>
+    document.getElementById("token").innerHTML = getFragmentParameterByName("id_token")
+    </script>
+    """
+    )
 
 
 @router.post("/token", response_model=Token)
