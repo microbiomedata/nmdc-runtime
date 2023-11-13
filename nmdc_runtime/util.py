@@ -28,7 +28,7 @@ from typing_extensions import Annotated
 
 
 @lru_cache
-def get_type_collections():
+def get_type_collections() -> dict:
     """Returns a dictionary mapping class names to Mongo collection names"""
     mappings = {}
 
