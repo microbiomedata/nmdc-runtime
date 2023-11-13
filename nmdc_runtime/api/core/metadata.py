@@ -733,6 +733,11 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
     for result in results_of_updates:
         if len(result.get("validation_errors", [])) > 0:
             validation_errors.append(result["validation_errors"])
+        if (
+            len(write_errors := result.get("update_info", {}).get("writeErrors", {}))
+            > 0
+        ):
+            validation_errors.append(write_errors)
 
     if validation_errors:
         raise HTTPException(
