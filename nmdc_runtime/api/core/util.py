@@ -32,7 +32,7 @@ def sha256hash_from_file(file_path: str, timestamp: str):
     # https://stackoverflow.com/a/55542529
     h = hashlib.sha256()
 
-    timestamp_bytes = timestamp.encode('utf-8')
+    timestamp_bytes = timestamp.encode("utf-8")
     h.update(timestamp_bytes)
 
     with open(file_path, "rb") as file:
