@@ -33,10 +33,16 @@ def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = Non
     Returns the list of classes referenced by the `$ref` values in a JSON Schema snippet describing a collection,
     applying an optional prefix to each class name.
 
+    >>> get_class_names_from_collection_spec({"items": {"foo": "#/$defs/A"}})
+    []
     >>> get_class_names_from_collection_spec({"items": {"$ref": "#/$defs/A"}})
     ['A']
     >>> get_class_names_from_collection_spec({"items": {"$ref": "#/$defs/A"}}, "p:")
     ['p:A']
+    >>> get_class_names_from_collection_spec({"items": {"anyOf": "not-a-list"}})
+    []
+    >>> get_class_names_from_collection_spec({"items": {"anyOf": []}})
+    []
     >>> get_class_names_from_collection_spec({"items": {"anyOf": [{"$ref": "#/$defs/A"}]}})
     ['A']
     >>> get_class_names_from_collection_spec({"items": {"anyOf": [{"$ref": "#/$defs/A"}, {"$ref": "#/$defs/B"}]}})
