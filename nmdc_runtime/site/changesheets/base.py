@@ -90,8 +90,8 @@ class Changesheet:
 
 def get_runtime_client(use_dev_api):
     if use_dev_api:
-        base_url = os.getenv("API_HOST_NAPA")
-        logging.info("using Napa API...")
+        base_url = os.getenv("API_HOST_DEV")
+        logging.info("using Dev API...")
     else:
         base_url = os.getenv("API_HOST")
         logging.info("using prod API...")
