@@ -223,7 +223,7 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
             ]
 
             # Make a dictionary describing this class.
-            class_descriptor: dict = {
+            class_descriptor = {
                 "collection_name": collection_name,
                 "entity_url": f"{base_url}/{class_name}",
                 "entity_name": class_name,
@@ -235,7 +235,7 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
 
         # Add a key/value pair describing this collection to the `doc_links` dictionary.
         # Reference: https://toolz.readthedocs.io/en/latest/api.html#toolz.dicttoolz.assoc_in
-        doc_links: dict = assoc_in(doc_links, keys=key_hierarchy, value=class_descriptors)
+        doc_links = assoc_in(doc_links, keys=key_hierarchy, value=class_descriptors)
 
     return doc_links
 
