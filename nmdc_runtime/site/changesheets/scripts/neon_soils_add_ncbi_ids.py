@@ -43,7 +43,7 @@ def _get_change_for_biosample(biosample, ncbi_biosample_accession):
     return ChangesheetLineItem(
         id=biosample["id"], action="insert",
         attribute="insdc_biosample_identifiers",
-        value="biosample:" + ncbi_biosample_accession, )
+        value="biosample:" + ncbi_biosample_accession + "|", )
 
 def _get_change_for_omics_processing(omics_processing_record,
                                      ncbi_bioproject_accession):
@@ -54,15 +54,15 @@ def _get_change_for_omics_processing(omics_processing_record,
     :return:
     """
     ncbi_bioproject_accessions = omics_processing_record.get(
-        "insdc_experiment_identifiers", [])
+        "insdc_bioproject_identifiers", [])
     if ncbi_bioproject_accession in ncbi_bioproject_accessions:
         return
     omics_processing_id = omics_processing_record["id"]
     logging.info(f"creating change for omics_processing_id: {omics_processing_id}")
     return ChangesheetLineItem(
         id=omics_processing_id, action="insert",
-        attribute="insdc_experiment_identifiers",
-        value="bioproject:" + ncbi_bioproject_accession, )
+        attribute="insdc_bioproject_identifiers",
+        value="bioproject:" + ncbi_bioproject_accession + "|", )
 
 
 @click.command()
@@ -83,7 +83,7 @@ def generate_changesheet(study_id, use_dev_api):
             insdc_biosample_identifiers
         B. Retrieve the corresponding NMDC omics_processing. For each,
             - Changesheet line item:NCBI BioProjectAccession to
-            insdc_experiment_identifiers
+            insdc_bioproject_identifiers
 
     WARNING: This script is not idempotent. It will generate a new changesheet
     each time it is run.
@@ -114,7 +114,7 @@ def generate_changesheet(study_id, use_dev_api):
         ChangesheetLineItem(
             id=study_id, action="insert",
             attribute="insdc_bioproject_identifiers",
-            value="bioproject:" + UMBRELLA_BIOPROJECT_ACCESSION, )
+            value="bioproject:" + UMBRELLA_BIOPROJECT_ACCESSION + "|", )
     )
 
     gold_study_identifiers = nmdc_study["gold_study_identifiers"]
