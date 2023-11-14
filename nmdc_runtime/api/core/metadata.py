@@ -20,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_name
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_names
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -169,7 +169,11 @@ def load_changesheet(
             class_name = data["type"].split(":")[-1]
             class_name = class_name_dict[class_name]
         else:
-            class_name = class_name_dict[collection_name_to_class_name[collection_name]]
+            # FIXME: As of nmdc-schema v9.1.0 (maybe earlier), a collection name can map to multiple class names.
+            #        In the case of multiple class names, which one do you want to assign to `class_name`?
+            #        Here, I have arbitrarily chosen to use the first class name in the list.
+            class_names = collection_name_to_class_names[collection_name]
+            class_name = class_name_dict[class_names[0]]
 
         # set class name for id
         df["linkml_class"] = class_name
