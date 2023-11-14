@@ -21,6 +21,34 @@ def _get_schema_view():
     )
 
 
+def group_dicts_by_key(key: str, seq: Optional[list[dict]]) -> Optional[dict]:
+    """Transform a sequence of dicts into a single dict based on values of `key` in each dict.
+
+    Unlike toolz.groupby: 1) this method only applies to sequences of dicts, 2) it only keeps one
+    value for each key, 3) it removes the key from the original dict.
+
+    Example:
+        >>> seq = [{'a': 'one', 'b': 1}, {'a': 'two', 'b': 2}, {'a': 'two', 'b': 3}]
+        >>> group_dicts_by_key('a', seq)
+        {'one': {'b': 1}, 'two': {'b': 3}}
+    """
+    if seq is None:
+        return None
+
+    grouped = {}
+    for idx, item in enumerate(seq):
+        key_value = item.pop(key)
+        if not key_value:
+            logging.warning(f"No key value found in index {idx}")
+            continue
+        if key_value in grouped:
+            logging.warning(
+                f"Duplicate key value {key_value}. Previous value will be overwritten."
+            )
+        grouped[key_value] = item
+    return grouped
+
+
 class SubmissionPortalTranslator(Translator):
     """A Translator subclass for handling submission portal entries
 
@@ -36,11 +64,18 @@ class SubmissionPortalTranslator(Translator):
         omics_processing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
         *args,
+        # Additional study-level metadata not captured by the submission portal currently
+        # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_doi_category: Optional[str] = None,
         study_doi_provider: Optional[str] = None,
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
         study_funding_sources: Optional[list[str]] = None,
+        # Additional biosample-level metadata with optional column mapping information not captured
+        # by the submission portal currently.
+        # See: https://github.com/microbiomedata/submission-schema/issues/162
+        biosample_extras: Optional[list[dict]] = None,
+        biosample_extras_slot_mapping: Optional[list[dict]] = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -62,6 +97,11 @@ class SubmissionPortalTranslator(Translator):
         )
         self.study_pi_image_url = study_pi_image_url
         self.study_funding_sources = study_funding_sources
+
+        self.biosample_extras = group_dicts_by_key("source_mat_id", biosample_extras)
+        self.biosample_extras_slot_mapping = group_dicts_by_key(
+            "subject_id", biosample_extras_slot_mapping
+        )
 
         self.schema_view: SchemaView = _get_schema_view()
 
@@ -94,7 +134,7 @@ class SubmissionPortalTranslator(Translator):
         if not dataset_doi:
             return None
 
-        if not dataset_doi.startswith('doi:'):
+        if not dataset_doi.startswith("doi:"):
             dataset_doi = f"doi:{dataset_doi}"
 
         return [
@@ -383,12 +423,14 @@ class SubmissionPortalTranslator(Translator):
             ),
         )
 
-    def _transform_value_for_slot(self, value: Any, slot: SlotDefinition):
+    def _transform_value_for_slot(
+        self, value: Any, slot: SlotDefinition, unit: Optional[str] = None
+    ):
         transformed_value = None
         if slot.range == "TextValue":
             transformed_value = nmdc.TextValue(has_raw_value=value)
         elif slot.range == "QuantityValue":
-            transformed_value = self._get_quantity_value(value)
+            transformed_value = self._get_quantity_value(value, unit=unit)
         elif slot.range == "ControlledIdentifiedTermValue":
             transformed_value = self._get_controlled_identified_term_value(value)
         elif slot.range == "ControlledTermValue":
@@ -406,7 +448,9 @@ class SubmissionPortalTranslator(Translator):
 
         return transformed_value
 
-    def _transform_dict_for_class(self, raw_values: dict, class_name: str) -> dict:
+    def _transform_dict_for_class(
+        self, raw_values: dict, class_name: str, slot_mappings: Optional[dict] = None
+    ) -> dict:
         """Transform a dict of values according to class slots.
 
         raw_values is a dict where the keys are slot names and the values are plain strings.
@@ -414,29 +458,44 @@ class SubmissionPortalTranslator(Translator):
         method. If the slot is multivalued each individual value will be transformed. If the
         slot is multivalued and the value is a string it will be split at pipe characters
         before transforming.
+
+        If slot_mappings is provided it should be a dict where each key is a potential non-NMDC
+        column name and corresponding value is a dict with keys for `object_id` (representing
+        the NMDC slot being mapped to; the name `object_id` is to overlap with the SSSOM standard
+        https://github.com/mapping-commons/sssom) and for `subject_unit` (useful for when the column
+        maps to a QuantityValue slot and the source metadata itself does not include the unit)
         """
         slot_names = self.schema_view.class_slots(class_name)
         transformed_values = {}
         for column, value in raw_values.items():
-            if column not in slot_names:
-                logging.warning(f"No slot '{column}' on class '{class_name}'")
+            slot_name = column
+            unit = None
+            if slot_mappings and column in slot_mappings:
+                mapped_column_name = slot_mappings[column].get("object_id")
+                if mapped_column_name and mapped_column_name.startswith("nmdc:"):
+                    slot_name = mapped_column_name.replace("nmdc:", "")
+
+                unit = slot_mappings[column].get("subject_unit")
+
+            if slot_name not in slot_names:
+                logging.warning(f"No slot '{slot_name}' on class '{class_name}'")
                 continue
 
-            slot_definition = self.schema_view.induced_slot(column, class_name)
+            slot_definition = self.schema_view.induced_slot(slot_name, class_name)
             if slot_definition.multivalued:
                 value_list = value
                 if isinstance(value, str):
                     value_list = [v.strip() for v in value.split("|")]
                 transformed_value = [
-                    self._transform_value_for_slot(item, slot_definition)
+                    self._transform_value_for_slot(item, slot_definition, unit)
                     for item in value_list
                 ]
             else:
                 transformed_value = self._transform_value_for_slot(
-                    value, slot_definition
+                    value, slot_definition, unit
                 )
 
-            transformed_values[column] = transformed_value
+            transformed_values[slot_name] = transformed_value
         return transformed_values
 
     def _translate_biosample(
@@ -457,14 +516,23 @@ class SubmissionPortalTranslator(Translator):
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
         :return: nmdc:Biosample
         """
+        source_mat_id = sample_data[0].get("source_mat_id", "").strip()
         slots = {
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
-            "name": sample_data[0].get("samp_name").strip(),
+            "name": sample_data[0].get("samp_name", "").strip(),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
             slots.update(transformed_tab)
+
+        if self.biosample_extras:
+            raw_extras = self.biosample_extras.get(source_mat_id)
+            if raw_extras:
+                transformed_extras = self._transform_dict_for_class(
+                    raw_extras, "Biosample", self.biosample_extras_slot_mapping
+                )
+                slots.update(transformed_extras)
 
         return nmdc.Biosample(**slots)
 
@@ -472,7 +540,7 @@ class SubmissionPortalTranslator(Translator):
         """Translate the submission portal entry to an nmdc:Database
 
         This method translates the submission portal entry into one nmdc:Study and a set
-        of nmdc:Biosample objects. THese are wrapped into an nmdc:Database. NMDC identifiers
+        of nmdc:Biosample objects. These are wrapped into an nmdc:Database. NMDC identifiers
         are minted for each new object.
 
         :return: nmdc:Database object

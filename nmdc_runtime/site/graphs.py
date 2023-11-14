@@ -140,14 +140,24 @@ def translate_metadata_submission_to_nmdc_schema_database():
         submission_id,
         omics_processing_mapping_file_url,
         data_object_mapping_file_url,
+        biosample_extras_file_url,
+        biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
     omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
+    biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
+    biosample_extras_slot_mapping = get_csv_rows_from_url(
+        biosample_extras_slot_mapping_file_url
+    )
 
     database = translate_portal_submission_to_nmdc_schema_database(
-        metadata_submission, omics_processing_mapping, data_object_mapping
+        metadata_submission,
+        omics_processing_mapping,
+        data_object_mapping,
+        biosample_extras=biosample_extras,
+        biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
 
     validate_metadata(database)
@@ -164,14 +174,24 @@ def ingest_metadata_submission():
         submission_id,
         omics_processing_mapping_file_url,
         data_object_mapping_file_url,
+        biosample_extras_file_url,
+        biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
     omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
+    biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
+    biosample_extras_slot_mapping = get_csv_rows_from_url(
+        biosample_extras_slot_mapping_file_url
+    )
 
     database = translate_portal_submission_to_nmdc_schema_database(
-        metadata_submission, omics_processing_mapping, data_object_mapping
+        metadata_submission,
+        omics_processing_mapping,
+        data_object_mapping,
+        biosample_extras=biosample_extras,
+        biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
