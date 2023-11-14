@@ -1,4 +1,5 @@
 from operator import itemgetter
+from typing import List
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -189,45 +190,52 @@ def attr_index_sort_key(attr):
 
 
 def documentation_links(jsonschema_dict, collection_names) -> dict:
+    """TODO: Add a docstring saying what this function does at a high level."""
+
+    # TODO: Document the purpose of this initial key.
     doc_links = {"Activity": []}
+
+    # Note: All documentation URLs generated within this function will begin with this.
+    base_url = r"https://microbiomedata.github.io/nmdc-schema"
+
     for collection_name in collection_names:
 
-        # Process each class name associated with this collection name, according to the schema.
+        # Since a given collection can be associated with multiple classes, the `doc_links` dictionary
+        # will have a _list_ of values for each collection.
+        class_descriptors = []
+
+        # If the collection name is one that the `search.html` page has a dedicated section for,
+        # give it a top-level key; otherwise, nest it under `activity_set`.
+        key_hierarchy: List[str] = ["activity_set", collection_name]
+        if collection_name in ("biosample_set", "study_set", "data_object_set"):
+            key_hierarchy = [collection_name]
+
+        # Process the name of each class that the schema associates with this collection.
         collection_spec = jsonschema_dict["$defs"]["Database"]["properties"][collection_name]
         class_names = get_class_names_from_collection_spec(collection_spec)
-        for class_name in class_names:
+        for idx, class_name in enumerate(class_names):
 
-            # Get the properties of this class, according to the schema.
+            # Make a list of dictionaries, each of which describes one attribute of this class.
             entity_attrs = list(jsonschema_dict["$defs"][class_name]["properties"])
+            entity_attr_descriptors = [
+                {"url": f"{base_url}/{attr_name}", "attr_name": attr_name}
+                for attr_name in entity_attrs
+            ]
 
-            # Special treatment: Nest most collection names within "activity_set" in the result.
-            # TODO: Explain this special treatment to facilitate code maintenance.
-            if class_name in ("Biosample", "Study", "DataObject"):
-                assoc_path = [collection_name]
-            else:
-                assoc_path = ["activity_set", collection_name]
+            # Make a dictionary describing this class.
+            class_descriptor: dict = {
+                "collection_name": collection_name,
+                "entity_url": f"{base_url}/{class_name}",
+                "entity_name": class_name,
+                "entity_attrs": sorted(entity_attr_descriptors, key=itemgetter("attr_name")),
+            }
 
-            # Add an object representing this collection's and class's relationship, to the `doc_links` dictionary.
-            # Reference: https://toolz.readthedocs.io/en/latest/api.html#toolz.dicttoolz.assoc_in
-            doc_links: dict = assoc_in(
-                doc_links,
-                assoc_path,
-                {
-                    "collection_name": collection_name,
-                    "entity_url": f"https://microbiomedata.github.io/nmdc-schema/{class_name}",
-                    "entity_name": class_name,
-                    "entity_attrs": sorted(
-                        [
-                            {
-                                "url": f"https://microbiomedata.github.io/nmdc-schema/{attr_name}",
-                                "attr_name": attr_name,
-                            }
-                            for attr_name in entity_attrs
-                        ],
-                        key=itemgetter("attr_name"),
-                    ),
-                },
-            )
+            # Add that descriptor to this collection's list of class descriptors.
+            class_descriptors.append(class_descriptor)
+
+        # Add a key/value pair describing this collection to the `doc_links` dictionary.
+        # Reference: https://toolz.readthedocs.io/en/latest/api.html#toolz.dicttoolz.assoc_in
+        doc_links: dict = assoc_in(doc_links, keys=key_hierarchy, value=class_descriptors)
 
     return doc_links
 
