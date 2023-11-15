@@ -27,8 +27,10 @@ from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
+from nmdc_runtime.site.normalization.gold import normalize_gold_id
 from nmdc_runtime.util import unfreeze, nmdc_jsonschema_validator_noidpatterns
 from nmdc_schema import nmdc
+
 
 
 class RuntimeApiClient:
@@ -95,7 +97,8 @@ class RuntimeApiUserClient(RuntimeApiClient):
         return self.request("GET", f"/runs/{run_id}")
 
     def get_biosamples_by_gold_biosample_id(self, gold_biosample_id: str):
-        return self.request(
+        gold_biosample_id = normalize_gold_id(gold_biosample_id)
+        response = self.request(
             "POST",
             f"/queries:run",
             {
@@ -107,9 +110,44 @@ class RuntimeApiUserClient(RuntimeApiClient):
                 },
             },
         )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
+    def get_omics_processing_records_by_gold_project_id(self, gold_project_id: str):
+        gold_project_id = normalize_gold_id(gold_project_id)
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "omics_processing_set",
+                "filter": {
+                    "gold_sequencing_project_identifiers": {
+                        "$elemMatch": {"$eq": gold_project_id}
+                    }
+                },
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
+    def get_biosamples_for_study(self, study_id: str):
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "biosample_set",
+                "filter": {
+                    "part_of": {
+                        "$elemMatch": {"$eq": study_id}
+                    }
+                },
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
 
     def get_omics_processing_by_name(self, name: str):
-        return self.request(
+        response = self.request(
             "POST",
             f"/queries:run",
             {
@@ -117,6 +155,8 @@ class RuntimeApiUserClient(RuntimeApiClient):
                 "filter": {"name": {"$regex": name, "$options": "i"}},
             },
         )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
 
 
 class RuntimeApiSiteClient(RuntimeApiClient):
@@ -318,6 +358,8 @@ class GoldApiClient(BasicAuthClient):
         if not results:
             return None
         return results[0]
+
+
 
 
 @resource(

@@ -30,6 +30,7 @@ pandas
 passlib[bcrypt]
 pymongo
 pydantic[email]>=1.10.0
+python-dotenv
 python-jose[cryptography]
 python-multipart
 pyyaml
