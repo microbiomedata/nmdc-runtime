@@ -199,7 +199,6 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
     base_url = r"https://microbiomedata.github.io/nmdc-schema"
 
     for collection_name in collection_names:
-
         # Since a given collection can be associated with multiple classes, the `doc_links` dictionary
         # will have a _list_ of values for each collection.
         class_descriptors = []
@@ -211,10 +210,11 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
             key_hierarchy = [collection_name]
 
         # Process the name of each class that the schema associates with this collection.
-        collection_spec = jsonschema_dict["$defs"]["Database"]["properties"][collection_name]
+        collection_spec = jsonschema_dict["$defs"]["Database"]["properties"][
+            collection_name
+        ]
         class_names = get_class_names_from_collection_spec(collection_spec)
         for idx, class_name in enumerate(class_names):
-
             # Make a list of dictionaries, each of which describes one attribute of this class.
             entity_attrs = list(jsonschema_dict["$defs"][class_name]["properties"])
             entity_attr_descriptors = [
@@ -227,7 +227,9 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
                 "collection_name": collection_name,
                 "entity_url": f"{base_url}/{class_name}",
                 "entity_name": class_name,
-                "entity_attrs": sorted(entity_attr_descriptors, key=itemgetter("attr_name")),
+                "entity_attrs": sorted(
+                    entity_attr_descriptors, key=itemgetter("attr_name")
+                ),
             }
 
             # Add that descriptor to this collection's list of class descriptors.

@@ -28,7 +28,9 @@ from nmdc_runtime.api.models.object import DrsObjectIn
 from typing_extensions import Annotated
 
 
-def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = None) -> List[str]:
+def get_class_names_from_collection_spec(
+    spec: dict, prefix: Optional[str] = None
+) -> List[str]:
     """
     Returns the list of classes referenced by the `$ref` values in a JSON Schema snippet describing a collection,
     applying an optional prefix to each class name.
@@ -53,7 +55,6 @@ def get_class_names_from_collection_spec(spec: dict, prefix: Optional[str] = Non
 
     class_names = []
     if "items" in spec:
-
         # If the `items` dictionary has a key named `$ref`, get the single class name from it.
         if "$ref" in spec["items"]:
             ref_dict = spec["items"]["$ref"]
@@ -369,7 +370,9 @@ def specialize_activity_set_docs(docs):
 # Define a mapping from collection name to class name.
 collection_name_to_class_names: Dict[str, List[str]] = {
     collection_name: get_class_names_from_collection_spec(spec)
-    for collection_name, spec in nmdc_jsonschema["$defs"]["Database"]["properties"].items()
+    for collection_name, spec in nmdc_jsonschema["$defs"]["Database"][
+        "properties"
+    ].items()
 }
 
 
