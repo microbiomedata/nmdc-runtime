@@ -72,10 +72,9 @@ jobs:
       NAMESPACE: ${{ github.event_name == 'release' && 'nmdc' || 'nmdc-dev' }}
 
     steps:
-      - name: Restart ${{ env.NAMESPACE }}/${{ matrix.deployment }}
-        uses: colbyhill21/Rancher-Action@1.1
+      - name: Redeploy ${{ env.NAMESPACE }}:${{ matrix.deployment }}
+        uses: fjogeleit/http-request-action@v1
         with:
-          args: '"rollout restart --namespace=${{ env.NAMESPACE }} deployment/${{ matrix.deployment }}"'
-          token: ${{ secrets.RANCHER_TOKEN }}
-          context: ${{ secrets.RANCHER_CONTEXT }}
-          url: ${{ secrets.RANCHER_URL }}
+          url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
+          method: POST
+          bearerToken: ${{ secrets.RANCHER_TOKEN }}
