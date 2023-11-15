@@ -15,16 +15,14 @@ released? Here's how.
      [our python-app.yml GitHub
      action](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/python-app.yml),
      which is triggered automatically when a change to any Python file in the repository is pushed to the
-     `main` branch, or to a Pull Request. You can monitor the status of Github Actions
+     `main` branch, or to a Pull Request. You can monitor the status of GitHub Actions
      [here](https://github.com/microbiomedata/nmdc-runtime/actions).
 
-2. Add a summary for the release to `RELEASES.md`. You can make an edit and push to the `main`
-   branch [via GitHub](https://github.com/microbiomedata/nmdc-runtime/blob/main/RELEASES.md). This will
-   trigger two GitHub actions in sequence to
+2. Create a new [GitHub Release](https://github.com/microbiomedata/nmdc-runtime/releases). This will trigger GitHub Actions which:
 
-   - [build and push updated Docker images](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml) for the API server and for the NMDC Runtime site's Dagster daemon and Dagit dashboard, and
+   - [build Docker images and deploy them to Spin](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-release-to-spin.yml) for the API server and for the NMDC Runtime site's Dagster daemon and Dagit dashboard.
 
-   - [deploy the new images to Spin](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/release-to-spin.yml).
+   - [build a Python package and publish it to PyPI](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/release-to-pypi.yml).
 
 
 ## Data Releases
