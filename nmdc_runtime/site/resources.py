@@ -17,7 +17,7 @@ from dagster import (
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
-from pydantic import BaseModel
+from pydantic import BaseModel, AnyUrl
 from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient
 from toolz import get_in
@@ -62,7 +62,7 @@ class RuntimeApiClient:
         self.ensure_token()
         kwargs = {"url": self.base_url + url_path, "headers": self.headers}
         if isinstance(params_or_json_data, BaseModel):
-            params_or_json_data = params_or_json_data.dict(exclude_unset=True)
+            params_or_json_data = params_or_json_data.model_dump(exclude_unset=True)
         if method.upper() == "GET":
             kwargs["params"] = params_or_json_data
         else:
@@ -234,15 +234,17 @@ class RuntimeApiSiteClient(RuntimeApiClient):
             access = AccessURL(
                 **self.get_object_access(object_id, method.access_id).json()
             )
-            if access.url.startswith(
+            if str(access.url).startswith(
                 os.getenv("API_HOST_EXTERNAL")
             ) and self.base_url == os.getenv("API_HOST"):
-                access.url = access.url.replace(
-                    os.getenv("API_HOST_EXTERNAL"), os.getenv("API_HOST")
+                access.url = AnyUrl(
+                    str(access.url).replace(
+                        os.getenv("API_HOST_EXTERNAL"), os.getenv("API_HOST")
+                    )
                 )
         else:
             access = AccessURL(url=method.access_url.url)
-        return requests.get(access.url)
+        return requests.get(str(access.url))
 
     def list_jobs(self, list_request=None):
         if list_request is None:

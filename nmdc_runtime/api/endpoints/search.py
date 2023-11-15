@@ -25,7 +25,7 @@ def data_objects(
     req: DataObjectListRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    filter_ = list_request_filter_to_mongo_filter(req.dict(exclude_unset=True))
+    filter_ = list_request_filter_to_mongo_filter(req.model_dump(exclude_unset=True))
     max_page_size = filter_.pop("max_page_size", None)
     page_token = filter_.pop("page_token", None)
     req = ListRequest(

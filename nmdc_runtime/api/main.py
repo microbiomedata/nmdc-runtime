@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
 
+import fastapi
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse
 
@@ -232,7 +234,7 @@ def ensure_initial_resources_on_boot():
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
 
         for model in collection_boot.construct():
-            doc = model.dict()
+            doc = model.model_dump()
             mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
 
     username = os.getenv("API_ADMIN_USER")
@@ -244,7 +246,7 @@ def ensure_initial_resources_on_boot():
                 username=username,
                 hashed_password=get_password_hash(os.getenv("API_ADMIN_PASS")),
                 site_admin=[os.getenv("API_SITE_ID")],
-            ).dict(exclude_unset=True),
+            ).model_dump(exclude_unset=True),
             upsert=True,
         )
         mdb.users.create_index("username")
@@ -265,7 +267,7 @@ def ensure_initial_resources_on_boot():
                         ),
                     )
                 ],
-            ).dict(),
+            ).model_dump(),
             upsert=True,
         )
 
@@ -338,9 +340,20 @@ async def root():
     )
 
 
+@api_router.get("/version")
+async def get_versions():
+    return {
+        "nmdc-runtime": get_version(),
+        "fastapi": fastapi.__version__,
+        "nmdc-schema": version("nmdc_schema"),
+    }
+
+
 app = FastAPI(
     title="NMDC Runtime API",
-    version="0.2.0",
+    # TODO this does not work: `version=get_version()`
+    #   Below is hotfix for reasonable display in prod deployment.
+    version="1.0.7",
     description=(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "

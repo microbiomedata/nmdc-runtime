@@ -446,7 +446,7 @@ nbformat==5.9.2
     #   nbconvert
 nest-asyncio==1.5.8
     # via ipykernel
-nmdc-schema==8.0.0
+nmdc-schema==9.1.0
     # via -r requirements/main.in
 notebook==7.0.6
     # via jupyter
@@ -477,6 +477,7 @@ packaging==23.2
     #   pytest
     #   qtconsole
     #   qtpy
+    #   setuptools-scm
     #   sphinx
 paginate==0.5.6
     # via mkdocs-material
@@ -715,7 +716,9 @@ rpds-py==0.12.0
 rsa==4.9
     # via python-jose
 ruamel-yaml==0.18.5
-    # via linkml-dataops
+    # via
+    #   linkml-dataops
+    #   nmdc-schema
 ruamel-yaml-clib==0.2.8
     # via ruamel-yaml
 s3transfer==0.7.0
@@ -724,6 +727,8 @@ semver==3.0.2
     # via -r requirements/main.in
 send2trash==1.8.2
     # via jupyter-server
+setuptools-scm==8.0.4
+    # via -r requirements/main.in
 shed==2023.6.1
     # via terminusdb-client
 shexjsg==0.8.2
@@ -857,6 +862,7 @@ typing-extensions==4.8.0
     #   prefixmaps
     #   pydantic
     #   pydantic-core
+    #   setuptools-scm
     #   sqlalchemy
     #   typing-inspect
 typing-inspect==0.9.0
@@ -919,3 +925,4 @@ setuptools==68.2.2
     # via
     #   dagster
     #   mkdocs-mermaid2-plugin
+    #   setuptools-scm

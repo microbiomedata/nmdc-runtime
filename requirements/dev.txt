@@ -85,7 +85,6 @@ packaging==23.2
     #   black
     #   build
     #   pytest
-    #   setuptools-scm
 pathspec==0.11.2
     # via
     #   -c requirements/main.txt
@@ -149,19 +148,27 @@ rfc3986==2.0.0
     # via twine
 rich==13.6.0
     # via twine
-setuptools-scm==8.0.4
-    # via -r requirements/dev.in
 six==1.16.0
     # via
     #   -c requirements/main.txt
     #   requests-mock
     #   url-normalize
+tomli==2.0.1
+    # via
+    #   -c requirements/main.txt
+    #   black
+    #   build
+    #   coverage
+    #   pip-tools
+    #   pyproject-hooks
+    #   pytest
 twine==4.0.2
     # via -r requirements/dev.in
 typing-extensions==4.8.0
     # via
     #   -c requirements/main.txt
-    #   setuptools-scm
+    #   black
+    #   cattrs
 url-normalize==1.4.3
     # via
     #   -c requirements/main.txt
@@ -189,4 +196,3 @@ setuptools==68.2.2
     #   -c requirements/main.txt
     #   -r requirements/dev.in
     #   pip-tools
-    #   setuptools-scm

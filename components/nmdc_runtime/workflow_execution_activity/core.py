@@ -94,7 +94,7 @@ def insert_into_keys(
     workflow: Workflow, data_objects: list[DataObject]
 ) -> dict[str, Any]:
     """Insert data object url into correct workflow input field."""
-    workflow_dict = workflow.dict()
+    workflow_dict = workflow.model_dump()
     for key in workflow_dict["inputs"]:
         for do in data_objects:
             if workflow_dict["inputs"][key] == str(do.data_object_type):

@@ -75,9 +75,9 @@ def run_query(
         id=qid,
         saved_at=saved_at,
     )
-    mdb.queries.insert_one(query.dict(exclude_unset=True))
+    mdb.queries.insert_one(query.model_dump(exclude_unset=True))
     cmd_response = _run_query(query, mdb)
-    return unmongo(cmd_response.dict(exclude_unset=True))
+    return unmongo(cmd_response.model_dump(exclude_unset=True))
 
 
 @router.get("/queries/{query_id}", response_model=Query)
@@ -107,7 +107,7 @@ def rerun_query(
         check_can_delete(user)
 
     cmd_response = _run_query(query, mdb)
-    return unmongo(cmd_response.dict(exclude_unset=True))
+    return unmongo(cmd_response.model_dump(exclude_unset=True))
 
 
 def _run_query(query, mdb) -> CommandResponse:
@@ -131,12 +131,12 @@ def _run_query(query, mdb) -> CommandResponse:
                     detail="Failed to back up to-be-deleted documents. operation aborted.",
                 )
 
-    q_response = mdb.command(query.cmd.dict(exclude_unset=True))
+    q_response = mdb.command(query.cmd.model_dump(exclude_unset=True))
     cmd_response: CommandResponse = command_response_for(q_type)(**q_response)
     query_run = (
         QueryRun(qid=query.id, ran_at=ran_at, result=cmd_response)
         if cmd_response.ok
         else QueryRun(qid=query.id, ran_at=ran_at, error=cmd_response)
     )
-    mdb.query_runs.insert_one(query_run.dict(exclude_unset=True))
+    mdb.query_runs.insert_one(query_run.model_dump(exclude_unset=True))
     return cmd_response

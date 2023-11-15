@@ -82,7 +82,7 @@ def put_object(filepath, url, mime_type=None):
         return requests.put(url, data=f, headers={"Content-Type": mime_type})
 
 
-def drs_metadata_for(filepath, base=None):
+def drs_metadata_for(filepath, base=None, timestamp=None):
     """given file path, get drs metadata
 
     required: size, created_time, and at least one checksum.
@@ -96,7 +96,7 @@ def drs_metadata_for(filepath, base=None):
         )
     if "checksums" not in base:
         base["checksums"] = [
-            {"type": "sha256", "checksum": sha256hash_from_file(filepath)}
+            {"type": "sha256", "checksum": sha256hash_from_file(filepath, timestamp)}
         ]
     if "mime_type" not in base:
         base["mime_type"] = mimetypes.guess_type(filepath)[0]
