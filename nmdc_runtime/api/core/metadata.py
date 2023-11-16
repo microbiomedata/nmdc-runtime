@@ -169,10 +169,13 @@ def load_changesheet(
             class_name = data["type"].split(":")[-1]
             class_name = class_name_dict[class_name]
         else:
-            # FIXME: As of nmdc-schema v9.1.0 (maybe earlier), a collection name can map to multiple class names.
-            #        In the case of multiple class names, which one do you want to assign to `class_name`?
-            #        Here, I have arbitrarily chosen to use the first class name in the list.
             class_names = collection_name_to_class_names[collection_name]
+            if len(class_names) > 1:
+                raise ValueError(
+                    "cannot unambiguously infer class of document"
+                    f" with `id` {id_} in collection {collection_name}."
+                    " Please ensure explicit `type` is present in document."
+                )
             class_name = class_name_dict[class_names[0]]
 
         # set class name for id
