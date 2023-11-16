@@ -210,11 +210,24 @@ class GoldStudyTranslator(Translator):
             return None
 
         numeric_value = None
+        has_minimum_numeric_value = None
+        has_maximum_numeric_value = None
+
         # TODO: in the future we will need better handling
         # to parse out the numerical portion of the quantity value
         # ex. temp might be 3 C, and we will need to parse out 3.0 from it
         if unit == "meters":
             numeric_value = nmdc.Double(field_value)
+            
+            has_maximum_numeric_value = gold_entity.get("depthInMeters2")
+            if has_maximum_numeric_value is not None:
+                has_minimum_numeric_value = nmdc.Double(field_value)
+
+                return nmdc.QuantityValue(
+                    has_minimum_numeric_value=has_minimum_numeric_value,
+                    has_maximum_numeric_value=has_maximum_numeric_value,
+                    has_unit=unit,
+                )
 
         return nmdc.QuantityValue(
             has_raw_value=field_value,
@@ -390,7 +403,7 @@ class GoldStudyTranslator(Translator):
         """
         return nmdc.Study(
             description=gold_study.get("description"),
-            gold_study_identifiers=self._get_curie("GOLD", gold_study["studyGoldId"]),
+            gold_study_identifiers=self._get_curie("gold", gold_study["studyGoldId"]),
             id=nmdc_study_id,
             name=gold_study.get("studyName"),
             principal_investigator=self._get_pi(gold_study),
@@ -440,7 +453,7 @@ class GoldStudyTranslator(Translator):
             env_local_scale=self._get_env_term_value(gold_biosample, "envoLocalScale"),
             env_medium=self._get_env_term_value(gold_biosample, "envoMedium"),
             geo_loc_name=self._get_text_value(gold_biosample, "geoLocation"),
-            gold_biosample_identifiers=self._get_curie("GOLD", gold_biosample_id),
+            gold_biosample_identifiers=self._get_curie("gold", gold_biosample_id),
             habitat=gold_biosample.get("habitat"),
             host_name=gold_biosample.get("hostName"),
             host_taxid=self._get_text_value(gold_biosample, "hostNcbiTaxid"),
@@ -498,7 +511,7 @@ class GoldStudyTranslator(Translator):
             id=nmdc_omics_processing_id,
             name=gold_project.get("projectName"),
             gold_sequencing_project_identifiers=self._get_curie(
-                "GOLD", gold_project_id
+                "gold", gold_project_id
             ),
             ncbi_project_name=gold_project.get("projectName"),
             type="nmdc:OmicsProcessing",
