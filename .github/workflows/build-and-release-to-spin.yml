@@ -4,15 +4,17 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
     paths:
       - '.github/workflows/build-and-release-to-spin.yml'
       - 'Makefile'
       - '**.Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
-  release:
-    types:
-      - released  # A release was published, or a pre-release was changed to a release.
+
+env:
+  IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   build:
@@ -44,7 +46,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
-            type=raw,value=prod,enable=${{ github.event_name == 'release' }}
+            type=raw,value=prod,enable=${{ env.IS_PROD_RELEASE }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -69,7 +71,7 @@ jobs:
         deployment: [ runtime-api, dagster-dagit, dagster-daemon ]
 
     env:
-      NAMESPACE: ${{ github.event_name == 'release' && 'nmdc' || 'nmdc-dev' }}
+      NAMESPACE: ${{ env.IS_PROD_RELEASE && 'nmdc' || 'nmdc-dev' }}
 
     steps:
       - name: Redeploy ${{ env.NAMESPACE }}:${{ matrix.deployment }}
