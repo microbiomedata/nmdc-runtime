@@ -44,7 +44,6 @@ jobs:
             latest=false
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=raw,value=prod,enable=${{ env.IS_PROD_RELEASE }}
 
