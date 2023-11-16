@@ -12,10 +12,12 @@ import time
 import click
 from dotenv import load_dotenv
 
-from nmdc_runtime.site.changesheets.base import (Changesheet,
-                                                 ChangesheetLineItem,
-                                                 get_gold_client,
-                                                 get_runtime_client)
+from nmdc_runtime.site.changesheets.base import (
+    Changesheet,
+    ChangesheetLineItem,
+    get_gold_client,
+    get_runtime_client,
+)
 
 load_dotenv()
 NAME = "neon_soils_add_ncbi_ids"
@@ -24,8 +26,12 @@ UMBRELLA_BIOPROJECT_ACCESSION = "PRJNA1029061"
 
 log_filename = f"{NAME}-{time.strftime('%Y%m%d-%H%M%S')}.log"
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
-    filename=log_filename, encoding="utf-8", filemode="w", )
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    filename=log_filename,
+    encoding="utf-8",
+    filemode="w",
+)
 
 
 def _get_change_for_biosample(biosample, ncbi_biosample_accession):
@@ -41,12 +47,16 @@ def _get_change_for_biosample(biosample, ncbi_biosample_accession):
     biosample_id = biosample["id"]
     logging.info(f"creating change for biosample_id: {biosample_id}")
     return ChangesheetLineItem(
-        id=biosample["id"], action="insert",
+        id=biosample["id"],
+        action="insert",
         attribute="insdc_biosample_identifiers",
-        value="biosample:" + ncbi_biosample_accession + "|", )
+        value="biosample:" + ncbi_biosample_accession + "|",
+    )
 
-def _get_change_for_omics_processing(omics_processing_record,
-                                     ncbi_bioproject_accession):
+
+def _get_change_for_omics_processing(
+    omics_processing_record, ncbi_bioproject_accession
+):
     """
     Get the changes for the given omics_processing_record
     :param omics_processing_record:
@@ -54,22 +64,23 @@ def _get_change_for_omics_processing(omics_processing_record,
     :return:
     """
     ncbi_bioproject_accessions = omics_processing_record.get(
-        "insdc_bioproject_identifiers", [])
+        "insdc_bioproject_identifiers", []
+    )
     if ncbi_bioproject_accession in ncbi_bioproject_accessions:
         return
     omics_processing_id = omics_processing_record["id"]
     logging.info(f"creating change for omics_processing_id: {omics_processing_id}")
     return ChangesheetLineItem(
-        id=omics_processing_id, action="insert",
+        id=omics_processing_id,
+        action="insert",
         attribute="insdc_bioproject_identifiers",
-        value="bioproject:" + ncbi_bioproject_accession + "|", )
+        value="bioproject:" + ncbi_bioproject_accession + "|",
+    )
 
 
 @click.command()
 @click.option("--study_id", default=NMDC_STUDY_ID, help="NMDC study ID")
-@click.option(
-    "--use_dev_api", is_flag=True, default=True, help="Use the dev API"
-)
+@click.option("--use_dev_api", is_flag=True, default=True, help="Use the dev API")
 def generate_changesheet(study_id, use_dev_api):
     """
     Generate a changesheet for neon soils study and biosamples by:
@@ -112,9 +123,11 @@ def generate_changesheet(study_id, use_dev_api):
     nmdc_study = res.json()
     changesheet.line_items.append(
         ChangesheetLineItem(
-            id=study_id, action="insert",
+            id=study_id,
+            action="insert",
             attribute="insdc_bioproject_identifiers",
-            value="bioproject:" + UMBRELLA_BIOPROJECT_ACCESSION + "|", )
+            value="bioproject:" + UMBRELLA_BIOPROJECT_ACCESSION + "|",
+        )
     )
 
     gold_study_identifiers = nmdc_study["gold_study_identifiers"]
@@ -122,9 +135,8 @@ def generate_changesheet(study_id, use_dev_api):
     gold_project_count = 0
     biosample_count = 0
     for gold_study_identifier in gold_study_identifiers:
-
         # 2. For each gold_study_identifier, retrieve the GOLD projects
-        if gold_study_identifier == 'gold:Gs0144570':
+        if gold_study_identifier == "gold:Gs0144570":
             # TODO verify that this one has already been done
             continue
         logging.info(
@@ -154,9 +166,7 @@ def generate_changesheet(study_id, use_dev_api):
                 biosample_id = biosample["id"]
                 logging.info(f"biosample_id: {biosample_id}")
                 # NcbiBioSampleAccession to insdc_biosample_identifiers
-                change =_get_change_for_biosample(
-                        biosample, ncbi_biosample_accession
-                    )
+                change = _get_change_for_biosample(biosample, ncbi_biosample_accession)
                 if change:
                     changesheet.line_items.append(change)
 
@@ -166,16 +176,13 @@ def generate_changesheet(study_id, use_dev_api):
             )
             omics_processing_records = (
                 runtime_client.get_omics_processing_records_by_gold_project_id(
-                project_gold_id
-            ))
-            logging.info(
-                f"Retrieved {len(omics_processing_records)} omics_processings"
+                    project_gold_id
+                )
             )
+            logging.info(f"Retrieved {len(omics_processing_records)} omics_processings")
             for omics_processing in omics_processing_records:
                 omics_processing_id = omics_processing["id"]
-                logging.info(
-                    f"omics_processing_id: {omics_processing_id}"
-                )
+                logging.info(f"omics_processing_id: {omics_processing_id}")
                 # NcbiBioProjectAccession to insdc_experiment_identifiers
                 change = _get_change_for_omics_processing(
                     omics_processing, ncbi_bioproject_accession

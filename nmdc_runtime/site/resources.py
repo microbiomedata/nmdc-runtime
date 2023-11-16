@@ -32,7 +32,6 @@ from nmdc_runtime.util import unfreeze, nmdc_jsonschema_validator_noidpatterns
 from nmdc_schema import nmdc
 
 
-
 class RuntimeApiClient:
     def __init__(self, base_url: str):
         self.base_url = base_url
@@ -136,11 +135,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             f"/queries:run",
             {
                 "find": "biosample_set",
-                "filter": {
-                    "part_of": {
-                        "$elemMatch": {"$eq": study_id}
-                    }
-                },
+                "filter": {"part_of": {"$elemMatch": {"$eq": study_id}}},
             },
         )
         response.raise_for_status()
@@ -358,8 +353,6 @@ class GoldApiClient(BasicAuthClient):
         if not results:
             return None
         return results[0]
-
-
 
 
 @resource(
