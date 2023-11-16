@@ -1,7 +1,5 @@
 import re
-import math
 import sqlite3
-from typing import Union, List
 
 import pandas as pd
 import requests
@@ -10,6 +8,7 @@ import requests_cache
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
 from nmdc_runtime.site.util import get_basename
+from nmdc_runtime.site.translation.neon_utils import _get_value_or_none, _create_controlled_identified_term_value, _create_controlled_term_value, _create_geolocation_value, _create_quantity_value, _create_timestamp_value, _create_text_value
 
 
 BENTHIC_BROAD_SCALE_MAPPINGS = {
@@ -92,152 +91,13 @@ class NeonBenthicDataTranslator(Translator):
                 " NEON", ""
             )
 
-    def _get_value_or_none(
-        self, data: pd.DataFrame, column_name: str
-    ) -> Union[str, float, None]:
-        """
-        Get the value from the specified column in the data DataFrame.
-        If the column value is NaN, return None. However, there are handlers
-        for a select set of columns - horizon, qaqcStatus, sampleTopDepth,
-        and sampleBottomDepth.
-
-        :param data: DataFrame to read the column value from.
-        :return: Either a string, float or None depending on the column/column values.
-        """
-        if (
-            column_name in data
-            and not data[column_name].isna().any()
-            and not data[column_name].empty
-        ):
-            if column_name == "horizon":
-                return f"{data[column_name].values[0]} horizon"
-            elif column_name == "qaqcStatus":
-                return data[column_name].values[0].lower()
-            elif column_name == "sampleTopDepth":
-                return float(data[column_name].values[0]) / 100
-            elif column_name == "sampleBottomDepth":
-                return float(data[column_name].values[0]) / 100
-            else:
-                return data[column_name].values[0]
-
-        return None
-
-    def _create_controlled_identified_term_value(
-        self, id: str = None, name: str = None
-    ) -> nmdc.ControlledIdentifiedTermValue:
-        """
-        Create a ControlledIdentifiedTermValue object with the specified id and name.
-
-        :param id: CURIE (with defined prefix expansion) or full URI of term.
-        :param name: Name of term.
-        :return: ControlledIdentifiedTermValue with mandatorily specified value for `id`.
-        """
-        if id is None:
-            return None
-        return nmdc.ControlledIdentifiedTermValue(
-            term=nmdc.OntologyClass(id=id, name=name)
-        )
-
-    def _create_controlled_term_value(
-        self, name: str = None
-    ) -> nmdc.ControlledTermValue:
-        """
-        Create a ControlledIdentifiedTermValue object with the specified id and name.
-
-        :param name: Name of term. This may or may not have an `id` associated with it,
-        hence the decision to record it in `has_raw_value` meaning, record as it is
-        in the data source.
-        :return: ControlledTermValue object with name in `has_raw_value`.
-        """
-        if name is None:
-            return None
-        return nmdc.ControlledTermValue(has_raw_value=name)
-
-    def _create_timestamp_value(self, value: str = None) -> nmdc.TimestampValue:
-        """
-        Create a TimestampValue object with the specified value.
-
-        :param value: Timestamp value recorded in ISO-8601 format.
-        Example: 2021-07-07T20:14Z.
-        :return: ISO-8601 timestamp wrapped in TimestampValue object.
-        """
-        if value is None:
-            return None
-        return nmdc.TimestampValue(has_raw_value=value)
-
-    def _create_quantity_value(
-        self, numeric_value: Union[str, int, float] = None, unit: str = None
-    ) -> nmdc.QuantityValue:
-        """
-        Create a QuantityValue object with the specified numeric value and unit.
-
-        :param numeric_value: Numeric value from a dataframe column that typically
-        records numerical values.
-        :param unit: Unit corresponding to the numeric value. Example: biogeochemical
-        measurement value like organic Carbon Nitrogen ratio.
-        :return: Numeric value and unit stored together in nested QuantityValue object.
-        """
-        if numeric_value is None or math.isnan(numeric_value):
-            return None
-        return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
-
-    def _create_text_value(self, value: str = None) -> nmdc.TextValue:
-        """
-        Create a TextValue object with the specified value.
-
-        :param value: column that we expect to primarily have text values.
-        :return: Text wrapped in TextValue object.
-        """
-        if value is None:
-            return None
-        return nmdc.TextValue(has_raw_value=value)
-
-    def _create_double_value(self, value: str = None) -> nmdc.Double:
-        """
-        Create a Double object with the specified value.
-
-        :param value: Values from a column which typically records numeric
-        (double) values like pH.
-        :return: String (possibly) cast/converted to nmdc Double object.
-        """
-        if value is None or math.isnan(value):
-            return None
-        return nmdc.Double(value)
-
-    def _create_geolocation_value(
-        self, latitude: str = None, longitude: str = None
-    ) -> nmdc.GeolocationValue:
-        """
-        Create a GeolocationValue object with latitude and longitude from the
-        biosample DataFrame. Takes in values from the NEON API table with
-        latitude (decimalLatitude) and longitude (decimalLongitude) values and
-        puts it in the respective slots in the GeolocationValue class object.
-
-        :param latitude: Value corresponding to `decimalLatitude` column.
-        :param longitude: Value corresponding to `decimalLongitude` column.
-        :return: Latitude and Longitude values wrapped in nmdc GeolocationValue
-        object.
-        """
-        if (
-            latitude is None
-            or math.isnan(latitude)
-            or longitude is None
-            or math.isnan(longitude)
-        ):
-            return None
-
-        return nmdc.GeolocationValue(
-            latitude=nmdc.DecimalDegree(latitude),
-            longitude=nmdc.DecimalDegree(longitude),
-        )
-
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
     ) -> nmdc.Biosample:
         return nmdc.Biosample(
             id=nmdc_id,
             part_of="nmdc:sty-11-pzmd0x14",
-            env_broad_scale=self._create_controlled_identified_term_value(
+            env_broad_scale=_create_controlled_identified_term_value(
                 BENTHIC_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_id"),
@@ -245,7 +105,7 @@ class NeonBenthicDataTranslator(Translator):
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_name"),
             ),
-            env_local_scale=self._create_controlled_identified_term_value(
+            env_local_scale=_create_controlled_identified_term_value(
                 BENTHIC_LOCAL_SCALE_MAPPINGS.get(
                     biosample_row["habitatType"].values[0]
                 ).get("term_id"),
@@ -253,7 +113,7 @@ class NeonBenthicDataTranslator(Translator):
                     biosample_row["habitatType"].values[0]
                 ).get("term_name"),
             ),
-            env_medium=self._create_controlled_identified_term_value(
+            env_medium=_create_controlled_identified_term_value(
                 BENTHIC_ENV_MEDIUM_MAPPINGS.get(
                     biosample_row["sampleMaterial"].values[0]
                 ).get("term_id"),
@@ -262,18 +122,18 @@ class NeonBenthicDataTranslator(Translator):
                 ).get("term_name"),
             ),
             name=neon_id,
-            lat_lon=self._create_geolocation_value(
+            lat_lon=_create_geolocation_value(
                 biosample_row["decimalLatitude"].values[0],
                 biosample_row["decimalLongitude"].values[0],
             ),
             elev=nmdc.Float(biosample_row["elevation"].values[0]),
-            collection_date=self._create_timestamp_value(
+            collection_date=_create_timestamp_value(
                 biosample_row["collectDate"].values[0]
             ),
-            samp_size=self._create_quantity_value(
+            samp_size=_create_quantity_value(
                 biosample_row["fieldSampleVolume"].values[0], "mL"
             ),
-            geo_loc_name=self._create_text_value(
+            geo_loc_name=_create_text_value(
                 self.get_site_by_code(biosample_row["siteID"].values[0])
                 if biosample_row["siteID"].values[0]
                 else None
@@ -307,7 +167,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: Extraction process object.
         """
         processing_institution = None
-        laboratory_name = self._get_value_or_none(extraction_row, "laboratoryName")
+        laboratory_name = _get_value_or_none(extraction_row, "laboratoryName")
         if laboratory_name is not None:
             if re.search("Battelle", laboratory_name, re.IGNORECASE):
                 processing_institution = "Battelle"
@@ -318,13 +178,13 @@ class NeonBenthicDataTranslator(Translator):
             id=extraction_id,
             has_input=extraction_input,
             has_output=processed_sample_id,
-            start_date=self._get_value_or_none(extraction_row, "collectDate"),
-            end_date=self._get_value_or_none(extraction_row, "processedDate"),
-            input_mass=self._create_quantity_value(
-                self._get_value_or_none(extraction_row, "sampleMass"), "g"
+            start_date=_get_value_or_none(extraction_row, "collectDate"),
+            end_date=_get_value_or_none(extraction_row, "processedDate"),
+            input_mass=_create_quantity_value(
+                _get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
             quality_control_report=nmdc.QualityControlReport(
-                status=self._get_value_or_none(extraction_row, "qaqcStatus")
+                status=_get_value_or_none(extraction_row, "qaqcStatus")
             ),
             processing_institution=processing_institution,
         )
@@ -350,7 +210,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: Object that using LibraryPreparation process model.
         """
         processing_institution = None
-        laboratory_name = self._get_value_or_none(
+        laboratory_name = _get_value_or_none(
             library_preparation_row, "laboratoryName"
         )
         if laboratory_name is not None:
@@ -363,8 +223,8 @@ class NeonBenthicDataTranslator(Translator):
             id=library_preparation_id,
             has_input=library_preparation_input,
             has_output=processed_sample_id,
-            start_date=self._get_value_or_none(library_preparation_row, "collectDate"),
-            end_date=self._get_value_or_none(library_preparation_row, "processedDate"),
+            start_date=_get_value_or_none(library_preparation_row, "collectDate"),
+            end_date=_get_value_or_none(library_preparation_row, "processedDate"),
             processing_institution=processing_institution,
         )
 
@@ -389,7 +249,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: OmicsProcessing object that models a Bioinformatics workflow process/run.
         """
         processing_institution = None
-        sequencing_facility = self._get_value_or_none(
+        sequencing_facility = _get_value_or_none(
             omics_processing_row, "sequencingFacilityID"
         )
         if sequencing_facility is not None:
@@ -403,15 +263,15 @@ class NeonBenthicDataTranslator(Translator):
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=self._get_value_or_none(
+            ncbi_project_name=_get_value_or_none(
                 omics_processing_row, "ncbiProjectID"
             ),
-            omics_type=self._create_controlled_term_value(
+            omics_type=_create_controlled_term_value(
                 omics_processing_row["investigation_type"].values[0]
             ),
-            instrument_name=f"{self._get_value_or_none(omics_processing_row, 'sequencingMethod')} {self._get_value_or_none(omics_processing_row, 'instrument_model')}",
+            instrument_name=f"{_get_value_or_none(omics_processing_row, 'sequencingMethod')} {_get_value_or_none(omics_processing_row, 'instrument_model')}",
             part_of="nmdc:sty-11-34xj1150",
-            name=f"Terrestrial soil microbial communities - {self._get_value_or_none(omics_processing_row, 'dnaSampleID')}",
+            name=f"Terrestrial soil microbial communities - {_get_value_or_none(omics_processing_row, 'dnaSampleID')}",
             type="nmdc:OmicsProcessing",
         )
 
@@ -598,7 +458,7 @@ class NeonBenthicDataTranslator(Translator):
                     )
                 )
 
-                genomics_sample_id = self._get_value_or_none(extraction_row, "genomicsSampleID")
+                genomics_sample_id = _get_value_or_none(extraction_row, "genomicsSampleID")
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
@@ -640,7 +500,7 @@ class NeonBenthicDataTranslator(Translator):
                     )
                 )
 
-                dna_sample_id = self._get_value_or_none(lib_prep_row, "dnaSampleID")
+                dna_sample_id = _get_value_or_none(lib_prep_row, "dnaSampleID")
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
