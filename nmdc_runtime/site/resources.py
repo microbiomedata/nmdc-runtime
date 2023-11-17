@@ -17,7 +17,7 @@ from dagster import (
 from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
-from pydantic import BaseModel
+from pydantic import BaseModel, AnyUrl
 from pymongo import MongoClient, ReplaceOne, InsertOne
 from terminusdb_client import WOQLClient
 from toolz import get_in
@@ -27,6 +27,7 @@ from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
+from nmdc_runtime.site.normalization.gold import normalize_gold_id
 from nmdc_runtime.util import unfreeze, nmdc_jsonschema_validator_noidpatterns
 from nmdc_schema import nmdc
 
@@ -95,7 +96,8 @@ class RuntimeApiUserClient(RuntimeApiClient):
         return self.request("GET", f"/runs/{run_id}")
 
     def get_biosamples_by_gold_biosample_id(self, gold_biosample_id: str):
-        return self.request(
+        gold_biosample_id = normalize_gold_id(gold_biosample_id)
+        response = self.request(
             "POST",
             f"/queries:run",
             {
@@ -107,9 +109,40 @@ class RuntimeApiUserClient(RuntimeApiClient):
                 },
             },
         )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
+    def get_omics_processing_records_by_gold_project_id(self, gold_project_id: str):
+        gold_project_id = normalize_gold_id(gold_project_id)
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "omics_processing_set",
+                "filter": {
+                    "gold_sequencing_project_identifiers": {
+                        "$elemMatch": {"$eq": gold_project_id}
+                    }
+                },
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
+    def get_biosamples_for_study(self, study_id: str):
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "biosample_set",
+                "filter": {"part_of": {"$elemMatch": {"$eq": study_id}}},
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
 
     def get_omics_processing_by_name(self, name: str):
-        return self.request(
+        response = self.request(
             "POST",
             f"/queries:run",
             {
@@ -117,6 +150,8 @@ class RuntimeApiUserClient(RuntimeApiClient):
                 "filter": {"name": {"$regex": name, "$options": "i"}},
             },
         )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
 
 
 class RuntimeApiSiteClient(RuntimeApiClient):
@@ -194,15 +229,17 @@ class RuntimeApiSiteClient(RuntimeApiClient):
             access = AccessURL(
                 **self.get_object_access(object_id, method.access_id).json()
             )
-            if access.url.startswith(
+            if str(access.url).startswith(
                 os.getenv("API_HOST_EXTERNAL")
             ) and self.base_url == os.getenv("API_HOST"):
-                access.url = access.url.replace(
-                    os.getenv("API_HOST_EXTERNAL"), os.getenv("API_HOST")
+                access.url = AnyUrl(
+                    str(access.url).replace(
+                        os.getenv("API_HOST_EXTERNAL"), os.getenv("API_HOST")
+                    )
                 )
         else:
             access = AccessURL(url=method.access_url.url)
-        return requests.get(access.url)
+        return requests.get(str(access.url))
 
     def list_jobs(self, list_request=None):
         if list_request is None:
