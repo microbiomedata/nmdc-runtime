@@ -57,14 +57,8 @@ down-test:
 follow-fastapi:
 	docker-compose logs fastapi -f
 
-fastapi-docker:
-	./docker-build.sh microbiomedata/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
-
 fastapi-deploy-spin:
 	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev
-
-dagster-docker:
-	./docker-build.sh microbiomedata/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
 dagster-deploy-spin:
 	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-dev
@@ -99,4 +93,4 @@ quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
-	fastapi-docker dagster-docker publish docs
+	publish docs
