@@ -77,7 +77,7 @@ docs-dev:
 	mkdocs serve -a localhost:8080
 
 nersc-sshproxy:
-	bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
+	bash ./nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
