@@ -17,6 +17,14 @@ env:
   IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
+  setup-variables:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set variables
+        run: |
+          echo "IS_PROD_RELEASE=${{ startsWith(github.ref, 'refs/tags/v') }}" >> "$GITHUB_ENV"
+          echo "RANCHER_NAMESPACE=${{ startsWith(github.ref, 'refs/tags/v') && 'nmdc' || 'nmdc-dev' }}" >> "$GITHUB_ENV"
+
   build:
     runs-on: ubuntu-latest
 
@@ -69,13 +77,10 @@ jobs:
       matrix:
         deployment: [ runtime-api, dagster-dagit, dagster-daemon ]
 
-    env:
-      NAMESPACE: ${{ env.IS_PROD_RELEASE && 'nmdc' || 'nmdc-dev' }}
-
     steps:
-      - name: Redeploy ${{ env.NAMESPACE }}:${{ matrix.deployment }}
+      - name: Redeploy ${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}
         uses: fjogeleit/http-request-action@v1
         with:
-          url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
+          url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
           method: POST
           bearerToken: ${{ secrets.RANCHER_TOKEN }}
