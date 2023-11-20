@@ -13,19 +13,12 @@ on:
       - '**.py'
       - 'requirements/main.txt'
 
+env:
+  IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+  RANCHER_NAMESPACE: ${{ startsWith(github.ref, 'refs/tags/v') && 'nmdc' || 'nmdc-dev' }}
+
 jobs:
-  setup-variables:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set variables
-        run: |
-          echo "IS_PROD_RELEASE=${{ startsWith(github.ref, 'refs/tags/v') }}" >> "$GITHUB_ENV"
-          echo "RANCHER_NAMESPACE=${{ startsWith(github.ref, 'refs/tags/v') && 'nmdc' || 'nmdc-dev' }}" >> "$GITHUB_ENV"
-
   build:
-    needs:
-      - setup-variables
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -72,9 +65,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   release:
-    needs:
-      - setup-variables
-      - build
+    needs: build
 
     runs-on: ubuntu-latest
 
