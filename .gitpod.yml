@@ -4,7 +4,7 @@
 
 # Learn more from ready-to-use templates: https://www.gitpod.io/docs/introduction/getting-started/quickstart
 image:
-    file: .gitpod.dockerfile
+    file: .gitpod.Dockerfile
 tasks:
   - name: Start Dev on Fresh Gitpod
     before: cp .env.example .env

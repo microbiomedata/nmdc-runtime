@@ -164,3 +164,5 @@ neon_cache.sqlite
 
 # output of changesheet generation
 nmdc_runtime/site/changesheets/changesheets_output/
+
+mdb-nmdc-dev.tar.gz
