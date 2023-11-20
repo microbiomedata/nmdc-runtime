@@ -77,20 +77,20 @@ docs-dev:
 	mkdocs serve -a localhost:8080
 
 nersc-sshproxy:
-	bash ./nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
+	bash ./nersc-sshproxy.sh -u ${NERSC_USERNAME} # https://docs.nersc.gov/connect/mfa/#sshproxy
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
 		-L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		-L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
 		-o ServerAliveInterval=60 \
-		dtn02.nersc.gov
+		${NERSC_USERNAME}@dtn02.nersc.gov
 
-mongorestore-nmdcdb-lite-archive:
-	wget https://portal.nersc.gov/project/m3408/meta/mongodumps/nmdcdb.lite.archive.gz
-	mongorestore --host localhost:27018 --username admin --password root --drop --gzip \
-		--archive=nmdcdb.lite.archive.gz
-	rm nmdcdb.lite.archive.gz
+mongorestore-nmdc-dev:
+	wget https://portal.nersc.gov/cfs/m3408/meta/mongodumps/mdb-nmdc-dev.tar.gz
+	docker cp mdb-nmdc-dev.tar.gz mongo:/
+	docker exec -it mongo bash -c "tar zxvf mdb-nmdc-dev.tar.gz && mongorestore -u admin -p root --authenticationDatabase=admin --drop --gzip -d nmdc /nmdc && rm -rf /nmdc"
+	rm mdb-nmdc-dev.tar.gz
 
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
