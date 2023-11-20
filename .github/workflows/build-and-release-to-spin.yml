@@ -69,10 +69,9 @@ jobs:
       matrix:
         deployment: [ runtime-api, dagster-dagit, dagster-daemon ]
 
-    env:
-      NAMESPACE: ${{ env.IS_PROD_RELEASE && 'nmdc' || 'nmdc-dev' }}
-
     steps:
+      - name: Set env var
+        run: echo "NAMESPACE=${{ env.IS_PROD_RELEASE && 'nmdc' || 'nmdc-dev' }} >> "$GITHUB_ENV"
       - name: Redeploy ${{ env.NAMESPACE }}:${{ matrix.deployment }}
         uses: fjogeleit/http-request-action@v1
         with:
