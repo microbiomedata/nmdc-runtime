@@ -20,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_name
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_names
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -169,7 +169,14 @@ def load_changesheet(
             class_name = data["type"].split(":")[-1]
             class_name = class_name_dict[class_name]
         else:
-            class_name = class_name_dict[collection_name_to_class_name[collection_name]]
+            class_names = collection_name_to_class_names[collection_name]
+            if len(class_names) > 1:
+                raise ValueError(
+                    "cannot unambiguously infer class of document"
+                    f" with `id` {id_} in collection {collection_name}."
+                    " Please ensure explicit `type` is present in document."
+                )
+            class_name = class_name_dict[class_names[0]]
 
         # set class name for id
         df["linkml_class"] = class_name
