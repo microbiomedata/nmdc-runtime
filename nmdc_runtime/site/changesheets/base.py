@@ -95,15 +95,16 @@ def get_runtime_client(use_dev_api):
     else:
         base_url = os.getenv("API_HOST")
         logging.info("using prod API...")
-    return  RuntimeApiUserClient(
-        base_url=base_url, username=os.getenv("API_QUERY_USER"),
-        password=os.getenv("API_QUERY_PASS"), )
-
+    return RuntimeApiUserClient(
+        base_url=base_url,
+        username=os.getenv("API_QUERY_USER"),
+        password=os.getenv("API_QUERY_PASS"),
+    )
 
 
 def get_gold_client():
     return GoldApiClient(
         base_url=os.getenv("GOLD_API_BASE_URL"),
         username=os.getenv("GOLD_API_USERNAME"),
-        password=os.getenv("GOLD_API_PASSWORD"), )
-
+        password=os.getenv("GOLD_API_PASSWORD"),
+    )
