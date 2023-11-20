@@ -155,15 +155,6 @@ def fetch_downloaded_json(url, save_dir):
         return json.load(f)
 
 
-# FIX (2021-12-16): this variable does not seem to be used anywhere else.
-# Can it be deleted? Commenting out for now.
-# type_collections = {
-#     f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
-#     for collection_name, spec in nmdc_jsonschema["properties"].items()
-#     if collection_name.endswith("_set")
-# }
-
-
 @router.post("/metadata/json:validate_urls_file")
 async def validate_json_urls_file(urls_file: UploadFile = File(...)):
     """

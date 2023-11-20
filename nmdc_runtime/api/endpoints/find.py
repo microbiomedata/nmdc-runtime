@@ -1,4 +1,5 @@
 from operator import itemgetter
+from typing import List
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -23,6 +24,7 @@ from nmdc_runtime.api.models.util import (
     PipelineFindRequest,
     PipelineFindResponse,
 )
+from nmdc_runtime.util import get_class_names_from_collection_spec
 
 router = APIRouter()
 
@@ -187,39 +189,57 @@ def attr_index_sort_key(attr):
     return "_" if attr == "id" else attr
 
 
-def documentation_links(jsonschema_dict, collection_names):
-    rv = {"Activity": []}
-    for cn in collection_names:
-        last_part = jsonschema_dict["$defs"]["Database"]["properties"][cn]["items"][
-            "$ref"
-        ].split("/")[-1]
-        entity_attrs = list(jsonschema_dict["$defs"][last_part]["properties"])
-        if last_part in ("Biosample", "Study", "DataObject"):
-            assoc_path = [cn]
-        else:
-            assoc_path = ["activity_set", cn]
-        rv = assoc_in(
-            rv,
-            assoc_path,
-            {
-                "collection_name": cn,
-                "entity_url": "https://microbiomedata.github.io/nmdc-schema/"
-                + last_part,
-                "entity_name": last_part,
-                "entity_attrs": sorted(
-                    [
-                        {
-                            "url": f"https://microbiomedata.github.io/nmdc-schema/{a}",
-                            "attr_name": a,
-                        }
-                        for a in entity_attrs
-                    ],
-                    key=itemgetter("attr_name"),
-                ),
-            },
-        )
+def documentation_links(jsonschema_dict, collection_names) -> dict:
+    """TODO: Add a docstring saying what this function does at a high level."""
 
-    return rv
+    # TODO: Document the purpose of this initial key.
+    doc_links = {"Activity": []}
+
+    # Note: All documentation URLs generated within this function will begin with this.
+    base_url = r"https://microbiomedata.github.io/nmdc-schema"
+
+    for collection_name in collection_names:
+        # Since a given collection can be associated with multiple classes, the `doc_links` dictionary
+        # will have a _list_ of values for each collection.
+        class_descriptors = []
+
+        # If the collection name is one that the `search.html` page has a dedicated section for,
+        # give it a top-level key; otherwise, nest it under `activity_set`.
+        key_hierarchy: List[str] = ["activity_set", collection_name]
+        if collection_name in ("biosample_set", "study_set", "data_object_set"):
+            key_hierarchy = [collection_name]
+
+        # Process the name of each class that the schema associates with this collection.
+        collection_spec = jsonschema_dict["$defs"]["Database"]["properties"][
+            collection_name
+        ]
+        class_names = get_class_names_from_collection_spec(collection_spec)
+        for idx, class_name in enumerate(class_names):
+            # Make a list of dictionaries, each of which describes one attribute of this class.
+            entity_attrs = list(jsonschema_dict["$defs"][class_name]["properties"])
+            entity_attr_descriptors = [
+                {"url": f"{base_url}/{attr_name}", "attr_name": attr_name}
+                for attr_name in entity_attrs
+            ]
+
+            # Make a dictionary describing this class.
+            class_descriptor = {
+                "collection_name": collection_name,
+                "entity_url": f"{base_url}/{class_name}",
+                "entity_name": class_name,
+                "entity_attrs": sorted(
+                    entity_attr_descriptors, key=itemgetter("attr_name")
+                ),
+            }
+
+            # Add that descriptor to this collection's list of class descriptors.
+            class_descriptors.append(class_descriptor)
+
+        # Add a key/value pair describing this collection to the `doc_links` dictionary.
+        # Reference: https://toolz.readthedocs.io/en/latest/api.html#toolz.dicttoolz.assoc_in
+        doc_links = assoc_in(doc_links, keys=key_hierarchy, value=class_descriptors)
+
+    return doc_links
 
 
 @router.get("/search", response_class=HTMLResponse)
