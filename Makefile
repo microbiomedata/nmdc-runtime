@@ -57,8 +57,14 @@ down-test:
 follow-fastapi:
 	docker-compose logs fastapi -f
 
+fastapi-docker:
+	./docker-build.sh microbiomedata/nmdc-runtime-fastapi nmdc_runtime/fastapi.Dockerfile
+
 fastapi-deploy-spin:
 	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev
+
+dagster-docker:
+	./docker-build.sh microbiomedata/nmdc-runtime-dagster nmdc_runtime/dagster.Dockerfile
 
 dagster-deploy-spin:
 	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-dev
@@ -71,26 +77,23 @@ docs-dev:
 	mkdocs serve -a localhost:8080
 
 nersc-sshproxy:
-	bash ./nersc-sshproxy.sh -u ${NERSC_USERNAME} # https://docs.nersc.gov/connect/mfa/#sshproxy
+	bash ~/nersc-sshproxy.sh # https://docs.nersc.gov/connect/mfa/#sshproxy
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
 		-L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		-L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
 		-o ServerAliveInterval=60 \
-		${NERSC_USERNAME}@dtn02.nersc.gov
+		dtn02.nersc.gov
 
-mongorestore-nmdc-dev:
-	wget https://portal.nersc.gov/cfs/m3408/meta/mongodumps/mdb-nmdc-dev.tar.gz
-	tar zxvf mdb-nmdc-dev.tar.gz
-	rm -rf nmdc/._* # Not sure why ._* files are extracted.
-	mongorestore -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
-		--drop --gzip -d nmdc nmdc
-	rm -rf nmdc/
-	rm mdb-nmdc-dev.tar.gz
+mongorestore-nmdcdb-lite-archive:
+	wget https://portal.nersc.gov/project/m3408/meta/mongodumps/nmdcdb.lite.archive.gz
+	mongorestore --host localhost:27018 --username admin --password root --drop --gzip \
+		--archive=nmdcdb.lite.archive.gz
+	rm nmdcdb.lite.archive.gz
 
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
-	publish docs
+	fastapi-docker dagster-docker publish docs

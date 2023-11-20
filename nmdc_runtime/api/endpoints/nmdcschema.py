@@ -2,8 +2,6 @@ from importlib.metadata import version
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
-
-from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import nmdc_database_collection_names
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -37,11 +35,6 @@ def strip_oid(doc):
 @router.get("/nmdcschema/version")
 def get_nmdc_schema_version():
     return version("nmdc_schema")
-
-
-@router.get("/nmdcschema/typecodes")
-def get_nmdc_schema_typecodes():
-    return typecodes()
 
 
 @router.get("/nmdcschema/collection_stats")

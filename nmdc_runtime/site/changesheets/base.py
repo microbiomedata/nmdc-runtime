@@ -4,17 +4,14 @@ base.py: Provides data classes for creating changesheets for NMDC database objec
 """
 
 import logging
-import os
 import time
 from dataclasses import dataclass, field
-from dotenv import load_dotenv
 from pathlib import Path
 import requests
 from typing import Any, ClassVar, Dict, TypeAlias, Optional
 
-from nmdc_runtime.site.resources import GoldApiClient, RuntimeApiUserClient
+from nmdc_runtime.site.resources import RuntimeApiUserClient
 
-load_dotenv()
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(" "message)s"
 )
@@ -86,25 +83,3 @@ class Changesheet:
             f.write(self.header + "\n")
             for line_item in self.line_items:
                 f.write(line_item.line + "\n")
-
-
-def get_runtime_client(use_dev_api):
-    if use_dev_api:
-        base_url = os.getenv("API_HOST_DEV")
-        logging.info("using Dev API...")
-    else:
-        base_url = os.getenv("API_HOST")
-        logging.info("using prod API...")
-    return RuntimeApiUserClient(
-        base_url=base_url,
-        username=os.getenv("API_QUERY_USER"),
-        password=os.getenv("API_QUERY_PASS"),
-    )
-
-
-def get_gold_client():
-    return GoldApiClient(
-        base_url=os.getenv("GOLD_API_BASE_URL"),
-        username=os.getenv("GOLD_API_USERNAME"),
-        password=os.getenv("GOLD_API_PASSWORD"),
-    )

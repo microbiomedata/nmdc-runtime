@@ -15,20 +15,16 @@ released? Here's how.
      [our python-app.yml GitHub
      action](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/python-app.yml),
      which is triggered automatically when a change to any Python file in the repository is pushed to the
-     `main` branch, or to a Pull Request. You can monitor the status of GitHub Actions
+     `main` branch, or to a Pull Request. You can monitor the status of Github Actions
      [here](https://github.com/microbiomedata/nmdc-runtime/actions).
 
-2. Create a new [GitHub Release](https://github.com/microbiomedata/nmdc-runtime/releases). When creating the new release:
-   - Use the "Choose a tag" dropdown to **create a new tag** by typing in a tag name which does not exist yet.
-   - The new tag name should start with `v` and be followed by a [semantic version number](https://semver.org/), for example `v3.0.2`.
-   - If the last published version is `vX.Y.Z`, the next release number should be `vX.Y.{Z+1}` for a patch release (bux fixes and refactoring), `vX.{Y+1}.0` for a minor release (new functionality that is backwards-compatible), or `v{X+1}.0.0` for a major release (new functionality that may be backwards-incompatible).
-   - You may leave the "Release title" input blank. If it is blank the release title will be populated with the tag name.
+2. Add a summary for the release to `RELEASES.md`. You can make an edit and push to the `main`
+   branch [via GitHub](https://github.com/microbiomedata/nmdc-runtime/blob/main/RELEASES.md). This will
+   trigger two GitHub actions in sequence to
 
-    Once the GitHub Release has been created, two GitHub Actions will be triggered which:
+   - [build and push updated Docker images](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-push-docker-images.yml) for the API server and for the NMDC Runtime site's Dagster daemon and Dagit dashboard, and
 
-   - [build Docker images and deploy them to Spin](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/build-and-release-to-spin.yml) for the API server and for the NMDC Runtime site's Dagster daemon and Dagit dashboard.
-
-   - [build a Python package and publish it to PyPI](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/release-to-pypi.yml).
+   - [deploy the new images to Spin](https://github.com/microbiomedata/nmdc-runtime/blob/main/.github/workflows/release-to-spin.yml).
 
 
 ## Data Releases
