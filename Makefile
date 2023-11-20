@@ -88,8 +88,10 @@ nersc-mongo-tunnels:
 
 mongorestore-nmdc-dev:
 	wget https://portal.nersc.gov/cfs/m3408/meta/mongodumps/mdb-nmdc-dev.tar.gz
-	docker cp mdb-nmdc-dev.tar.gz mongo:/
-	docker exec -it mongo bash -c "tar zxvf mdb-nmdc-dev.tar.gz && mongorestore -u admin -p root --authenticationDatabase=admin --drop --gzip -d nmdc /nmdc && rm -rf /nmdc"
+	tar zxvf mdb-nmdc-dev.tar.gz
+	mongorestore -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
+		--drop --gzip -d nmdc /nmdc
+	rm -rf nmdc/
 	rm mdb-nmdc-dev.tar.gz
 
 quick-blade:
