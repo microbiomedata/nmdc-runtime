@@ -8,4 +8,5 @@ image:
 tasks:
   - name: Start Dev on Fresh Gitpod
     before: cp .env.example .env
+    init: docker compose up mongo --detach && mongorestore-nmdc-dev
     command: make up-dev && docker-compose logs -f fastapi
