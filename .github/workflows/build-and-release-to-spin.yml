@@ -75,7 +75,6 @@ jobs:
   release:
     needs: build
 
-    if: ${{ env.IS_ORIGINAL_REPO }}
 
     runs-on: ubuntu-latest
 
@@ -85,6 +84,7 @@ jobs:
 
     steps:
       - name: Redeploy ${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}
+        if: ${{ env.IS_ORIGINAL_REPO }}
         uses: fjogeleit/http-request-action@v1
         with:
           url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
