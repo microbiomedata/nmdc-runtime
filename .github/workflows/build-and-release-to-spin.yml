@@ -14,8 +14,13 @@ on:
       - 'requirements/main.txt'
 
 env:
-  IS_FORK: ${{ github.repository != 'microbiomedata/nmdc-runtime' }}
+  # We don't want to do certain steps if this is running in a fork
+  IS_ORIGINAL_REPO: ${{ github.repository == 'microbiomedata/nmdc-runtime' }}
+
+  # Used to determine if we add the special `prod` Docker image tag
   IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+
+  # Used when sending redeploy action requests to Rancher
   RANCHER_NAMESPACE: ${{ startsWith(github.ref, 'refs/tags/v') && 'nmdc' || 'nmdc-dev' }}
 
 jobs:
@@ -62,7 +67,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ !env.IS_FORK }}
+          push: ${{ env.IS_ORIGINAL_REPO }}
           file: nmdc_runtime/${{ matrix.image }}.Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -70,7 +75,7 @@ jobs:
   release:
     needs: build
 
-    if: ${{ !env.IS_FORK }}
+    if: ${{ env.IS_ORIGINAL_REPO }}
 
     runs-on: ubuntu-latest
 
