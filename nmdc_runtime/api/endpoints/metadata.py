@@ -20,7 +20,6 @@ from nmdc_runtime.api.endpoints.util import (
     _request_dagster_run,
     permitted,
     persist_content_and_get_drs_object,
-    users_allowed,
 )
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -87,7 +86,7 @@ async def submit_changesheet(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Only users {users_allowed('/metadata/changesheets:submit')} "
+                f"Only specific users "
                 "are allowed to apply changesheets at this time."
             ),
         )
