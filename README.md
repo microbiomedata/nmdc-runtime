@@ -147,7 +147,7 @@ tutorial on Testing](https://docs.dagster.io/tutorial/testable).
 
 ## Publish to PyPI
 
-This repository contains a GitHub Actions workflow that publishes a Python package to PyPI.
+This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
 
 You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
 
@@ -157,6 +157,11 @@ python -m build
 twine upload dist/*
 ```
 
-Whether the Python package is published via the GitHub Actions workflow or manually, the published package will be available at: 
+## Links
 
-https://pypi.org/project/nmdc-runtime/
+Here are links related to this repository:
+
+- Production API server: https://api.microbiomedata.org
+- PyPI package: https://pypi.org/project/nmdc-runtime
+- DockerHub image (API server): https://hub.docker.com/r/microbiomedata/nmdc-runtime-fastapi
+- DockerHub image (Dagster): https://hub.docker.com/r/microbiomedata/nmdc-runtime-dagster
