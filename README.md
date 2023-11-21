@@ -145,11 +145,18 @@ desired and does not break over time.
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/tutorial/testable).
 
+## Publish to PyPI
 
-## Release to PyPI
+This repository contains a GitHub Actions workflow that publishes a Python package to PyPI.
+
+You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
 
 ```
 rm -rf dist
 python -m build
 twine upload dist/*
 ```
+
+Whether the Python package is published via the GitHub Actions workflow or manually, the published package will be available at: 
+
+https://pypi.org/project/nmdc-runtime/
