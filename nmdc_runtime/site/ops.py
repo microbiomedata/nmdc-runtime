@@ -64,7 +64,7 @@ from nmdc_runtime.site.resources import (
     NeonApiClient,
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
-from nmdc_runtime.site.translation.neon_translator import NeonSoilDataTranslator
+from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
 from nmdc_runtime.site.translation.neon_benthic_translator import (
     NeonBenthicDataTranslator,
 )
