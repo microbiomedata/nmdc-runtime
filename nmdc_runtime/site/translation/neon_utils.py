@@ -6,7 +6,7 @@ from nmdc_schema import nmdc
 
 
 def _get_value_or_none(
-        self, data: pd.DataFrame, column_name: str
+        data: pd.DataFrame, column_name: str
     ) -> Union[str, float, None]:
         """
         Get the value from the specified column in the data DataFrame.
