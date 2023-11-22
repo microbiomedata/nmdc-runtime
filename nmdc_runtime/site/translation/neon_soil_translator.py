@@ -271,7 +271,7 @@ class NeonSoilDataTranslator(Translator):
             has_output=processed_sample_id,
             start_date=_get_value_or_none(extraction_row, "collectDate"),
             end_date=_get_value_or_none(extraction_row, "processedDate"),
-            sample_mass=_create_quantity_value(
+            input_mass=_create_quantity_value(
                 _get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
             quality_control_report=nmdc.QualityControlReport(
