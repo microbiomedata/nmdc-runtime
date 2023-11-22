@@ -1,7 +1,8 @@
 import random
 import string
 import pytest
-from nmdc_runtime.site.translation.neon_translator import NeonDataTranslator
+from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
+from nmdc_runtime.site.translation.neon_utils import (_create_controlled_identified_term_value, _create_controlled_term_value, _create_timestamp_value, _get_value_or_none)
 import pandas as pd
 import requests
 
@@ -778,19 +779,19 @@ sls_data = {
 class TestNeonDataTranslator:
     @pytest.fixture
     def translator(self):
-        return NeonDataTranslator(mms_data, sls_data)
+        return NeonSoilDataTranslator(mms_data, sls_data)
 
     def test_missing_mms_table(self):
         # Test behavior when mms data is missing a table
         with pytest.raises(
             ValueError, match="missing one of the metagenomic microbe soil tables"
         ):
-            NeonDataTranslator({}, sls_data)
+            NeonSoilDataTranslator({}, sls_data)
 
     def test_missing_sls_table(self):
         # Test behavior when sls data is missing a table
         with pytest.raises(ValueError, match="missing one of the soil periodic tables"):
-            NeonDataTranslator(mms_data, {})
+            NeonSoilDataTranslator(mms_data, {})
 
     def test_neon_envo_mappings_download(self):
         response = requests.get(
@@ -804,7 +805,7 @@ class TestNeonDataTranslator:
         )
         assert response.status_code == 200
 
-    def test_get_value_or_none(self, translator):
+    def test_get_value_or_none(self):
         # use one biosample record to test this method
         test_biosample = sls_data["sls_soilCoreCollection"][
             sls_data["sls_soilCoreCollection"]["sampleID"] == "BLAN_005-M-8-0-20200713"
@@ -812,45 +813,45 @@ class TestNeonDataTranslator:
 
         # specific handler for horizon slot
         expected_horizon = "M horizon"
-        actual_horizon = translator._get_value_or_none(test_biosample, "horizon")
+        actual_horizon = _get_value_or_none(test_biosample, "horizon")
 
         assert expected_horizon == actual_horizon
 
         # specific handler for depth slot
         expected_minimum_depth = 0.0
-        actual_minimum_depth = translator._get_value_or_none(
+        actual_minimum_depth = _get_value_or_none(
             test_biosample, "sampleTopDepth"
         )
         assert expected_minimum_depth == actual_minimum_depth
 
         expected_maximum_depth = 0.295
-        actual_maximum_depth = translator._get_value_or_none(
+        actual_maximum_depth = _get_value_or_none(
             test_biosample, "sampleBottomDepth"
         )
         assert expected_maximum_depth == actual_maximum_depth
 
         expected_sample_id = "BLAN_005-M-8-0-20200713"
-        actual_sample_id = translator._get_value_or_none(test_biosample, "sampleID")
+        actual_sample_id = _get_value_or_none(test_biosample, "sampleID")
         assert expected_sample_id == actual_sample_id
 
         # test get_value_or_none() with invalid column
         expected_result = None
-        actual_result = translator._get_value_or_none(test_biosample, "invalid_column")
+        actual_result = _get_value_or_none(test_biosample, "invalid_column")
         assert expected_result == actual_result
 
-    def test_create_controlled_identified_term_value(self, translator):
-        env_broad_scale = translator._create_controlled_identified_term_value(
+    def test_create_controlled_identified_term_value(self):
+        env_broad_scale = _create_controlled_identified_term_value(
             "ENVO:00000446", "terrestrial biome"
         )
         assert env_broad_scale.term.id == "ENVO:00000446"
         assert env_broad_scale.term.name == "terrestrial biome"
 
-    def test_create_controlled_term_value(self, translator):
-        env_package = translator._create_controlled_term_value("soil")
+    def test_create_controlled_term_value(self):
+        env_package = _create_controlled_term_value("soil")
         assert env_package.has_raw_value == "soil"
 
-    def test_create_timestamp_value_with_valid_args(self, translator):
-        collect_date = translator._create_timestamp_value("2020-07-13T14:34Z")
+    def test_create_timestamp_value_with_valid_args(self):
+        collect_date = _create_timestamp_value("2020-07-13T14:34Z")
         assert collect_date.has_raw_value == "2020-07-13T14:34Z"
 
     def mock_minter(self, nmdc_data_type, count):
