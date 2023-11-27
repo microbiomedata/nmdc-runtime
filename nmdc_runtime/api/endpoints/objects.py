@@ -113,19 +113,23 @@ def get_object_info(
         then try https://data.microbiomedata.org/details/sample/nmdc:{object_id}
     3. if object_id.startswith some known typecode
         then try https://api.microbiomedata.org/nmdcschema/ids/nmdc:{object_id}
-    4. try https://w3id.org/nmdc/{object_id}
+    4. try https://microbiomedata.github.io/nmdc-schema/{object_id}
     5. try mdb.objects.find_one({"id": object_id})
     """
     if object_id.startswith("sty"):
-        url_to_try = f"https://data.microbiomedata.org/details/study/nmdc:{object_id}"
-        rv = requests.head(url_to_try, allow_redirects=True)
+        url_to_try = f"https://data.microbiomedata.org/api/study/nmdc:{object_id}"
+        rv = requests.get(
+            url_to_try, allow_redirects=True
+        )  # TODO use HEAD when enabled upstream
         if rv.status_code != 404:
             return RedirectResponse(
                 url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
             )
     elif object_id.startswith("bsm"):
-        url_to_try = f"https://data.microbiomedata.org/details/sample/nmdc:{object_id}"
-        rv = requests.head(url_to_try, allow_redirects=True)
+        url_to_try = f"https://data.microbiomedata.org/api/biosample/nmdc:{object_id}"
+        rv = requests.get(
+            url_to_try, allow_redirects=True
+        )  # TODO use HEAD when enabled upstream
         if rv.status_code != 404:
             return RedirectResponse(
                 url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
@@ -140,7 +144,7 @@ def get_object_info(
                 url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
             )
 
-    url_to_try = f"https://w3id.org/nmdc/{object_id}"
+    url_to_try = f"https://microbiomedata.github.io/nmdc-schema/{object_id}"
     rv = requests.head(url_to_try, allow_redirects=True)
     print(rv.status_code)
     if rv.status_code != 404:
