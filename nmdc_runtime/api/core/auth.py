@@ -4,7 +4,7 @@ from typing import Optional, Dict
 
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
-from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel, OAuthFlowImplicit
+from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.param_functions import Form
 from fastapi.security import OAuth2, HTTPBasic, HTTPBasicCredentials
 from fastapi.security.utils import get_authorization_scheme_param
@@ -17,6 +17,17 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ORCID_CLIENT_ID = os.getenv("ORCID_CLIENT_ID")
+
+# https://orcid.org/.well-known/openid-configuration
+# XXX do we want to live-load this?
+ORCID_JWK = {  # https://orcid.org/oauth/jwks
+    "e": "AQAB",
+    "kid": "production-orcid-org-7hdmdswarosg3gjujo8agwtazgkp1ojs",
+    "kty": "RSA",
+    "n": "jxTIntA7YvdfnYkLSN4wk__E2zf_wbb0SV_HLHFvh6a9ENVRD1_rHK0EijlBzikb-1rgDQihJETcgBLsMoZVQqGj8fDUUuxnVHsuGav_bf41PA7E_58HXKPrB2C0cON41f7K3o9TStKpVJOSXBrRWURmNQ64qnSSryn1nCxMzXpaw7VUo409ohybbvN6ngxVy4QR2NCC7Fr0QVdtapxD7zdlwx6lEwGemuqs_oG5oDtrRuRgeOHmRps2R6gG5oc-JqVMrVRv6F9h4ja3UgxCDBQjOVT1BFPWmMHnHCsVYLqbbXkZUfvP2sO1dJiYd_zrQhi-FtNth9qrLLv3gkgtwQ",
+    "use": "sig",
+}
+ORCID_JWS_VERITY_ALGORITHM = "RS256"
 
 
 class ClientCredentials(BaseModel):
@@ -92,9 +103,6 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
         flows = OAuthFlowsModel(
             password={"tokenUrl": tokenUrl, "scopes": scopes},
             clientCredentials={"tokenUrl": tokenUrl},
-            implicit={
-                "authorizationUrl": f"https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}&response_type=token&scope=openid&redirect_uri=http://127.0.0.1:8000/orcid_token"
-            },
         )
         super().__init__(flows=flows, scheme_name=scheme_name, auto_error=auto_error)
 
