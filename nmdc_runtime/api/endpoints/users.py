@@ -44,6 +44,11 @@ async def orcid_authorize():
 
 @router.get("/orcid_token")
 async def redirect_uri_for_orcid_token(req: Request):
+    """
+    Returns a web page that will display a user's orcid jwt token for copy/paste.
+
+    This route is loaded by orcid.org after a successful orcid user login.
+    """
     return HTMLResponse(
         """
     <head>
