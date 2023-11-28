@@ -89,6 +89,9 @@ async def login_for_access_token(
             data={"sub": f"user:{user.username}"}, expires_delta=access_token_expires
         )
     else:  # form_data.grant_type == "client_credentials"
+        # If the HTTP request didn't include a Client Secret, we validate the Client ID as an ORCID JWT.
+        # We get a username from that ORCID JWT and fetch the corresponding user record from our database,
+        # creating that user record if it doesn't already exist.
         if not form_data.client_secret:
             try:
                 payload = jws.verify(
