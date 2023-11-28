@@ -55,9 +55,7 @@ async def get_current_user(
     if mdb.invalidated_tokens.find_one({"_id": token}):
         raise credentials_exception
     try:
-        print(token)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(json.dumps(payload, indent=2))
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
