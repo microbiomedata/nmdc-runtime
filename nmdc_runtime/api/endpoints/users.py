@@ -1,18 +1,28 @@
+import json
 from datetime import timedelta
 
 import pymongo.database
 from fastapi import Depends, APIRouter, HTTPException, status
+from jose import jws, JWTError
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, RedirectResponse
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
     Token,
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
+    ORCID_CLIENT_ID,
+    ORCID_JWK,
+    ORCID_JWS_VERITY_ALGORITHM,
+    credentials_exception,
 )
 from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.api.core.util import generate_secret
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import authenticate_site_client
-from nmdc_runtime.api.models.user import UserInDB, UserIn
+from nmdc_runtime.api.models.user import UserInDB, UserIn, get_user
 from nmdc_runtime.api.models.user import (
     authenticate_user,
     User,
@@ -20,6 +30,45 @@ from nmdc_runtime.api.models.user import (
 )
 
 router = APIRouter()
+
+
+@router.get("/orcid_authorize")
+async def orcid_authorize():
+    """NOTE: You want to load /orcid_authorize directly in your web browser to initiate the login redirect flow."""
+    return RedirectResponse(
+        f"https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}"
+        "&response_type=token&scope=openid&"
+        f"redirect_uri={BASE_URL_EXTERNAL}/orcid_token"
+    )
+
+
+@router.get("/orcid_token")
+async def redirect_uri_for_orcid_token(req: Request):
+    """
+    Returns a web page that will display a user's orcid jwt token for copy/paste.
+
+    This route is loaded by orcid.org after a successful orcid user login.
+    """
+    return HTMLResponse(
+        """
+    <head>
+    <script>
+        function getFragmentParameterByName(name) {
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\#&]" + name + "=([^&#]*)"),
+            results = regex.exec(window.location.hash);
+            return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+        }
+    </script>
+    </head>
+    <body>
+    <main id="token"></main>
+    </body>
+    <script>
+    document.getElementById("token").innerHTML = getFragmentParameterByName("id_token")
+    </script>
+    """
+    )
 
 
 @router.post("/token", response_model=Token)
@@ -40,21 +89,55 @@ async def login_for_access_token(
             data={"sub": f"user:{user.username}"}, expires_delta=access_token_expires
         )
     else:  # form_data.grant_type == "client_credentials"
-        site = authenticate_site_client(
-            mdb, form_data.client_id, form_data.client_secret
-        )
-        if not site:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect client_id or client_secret",
-                headers={"WWW-Authenticate": "Bearer"},
+        # If the HTTP request didn't include a Client Secret, we validate the Client ID as an ORCID JWT.
+        # We get a username from that ORCID JWT and fetch the corresponding user record from our database,
+        # creating that user record if it doesn't already exist.
+        if not form_data.client_secret:
+            try:
+                payload = jws.verify(
+                    form_data.client_id,
+                    ORCID_JWK,
+                    algorithms=[ORCID_JWS_VERITY_ALGORITHM],
+                )
+                payload = json.loads(payload.decode())
+                issuer: str = payload.get("iss")
+                if issuer != "https://orcid.org":
+                    raise credentials_exception
+                subject: str = payload.get("sub")
+                user = get_user(mdb, subject)
+                if user is None:
+                    mdb.users.insert_one(
+                        UserInDB(
+                            username=subject,
+                            hashed_password=get_password_hash(generate_secret()),
+                        ).model_dump(exclude_unset=True)
+                    )
+                    user = get_user(mdb, subject)
+                assert user is not None, "failed to create orcid user"
+                access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
+                access_token = create_access_token(
+                    data={"sub": f"user:{user.username}"},
+                    expires_delta=access_token_expires,
+                )
+
+            except JWTError:
+                raise credentials_exception
+        else:  # form_data.client_secret
+            site = authenticate_site_client(
+                mdb, form_data.client_id, form_data.client_secret
             )
-        # TODO make below an absolute time
-        access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
-        access_token = create_access_token(
-            data={"sub": f"client:{form_data.client_id}"},
-            expires_delta=access_token_expires,
-        )
+            if not site:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect client_id or client_secret",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            # TODO make below an absolute time
+            access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
+            access_token = create_access_token(
+                data={"sub": f"client:{form_data.client_id}"},
+                expires_delta=access_token_expires,
+            )
     return {
         "access_token": access_token,
         "token_type": "bearer",
