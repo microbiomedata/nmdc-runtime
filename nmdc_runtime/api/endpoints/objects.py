@@ -123,7 +123,8 @@ def get_object_info(
         )  # TODO use HEAD when enabled upstream
         if rv.status_code != 404:
             return RedirectResponse(
-                url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+                f"https://data.microbiomedata.org/details/study/nmdc:{object_id}",
+                status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             )
     elif object_id.startswith("bsm"):
         url_to_try = f"https://data.microbiomedata.org/api/biosample/nmdc:{object_id}"
@@ -132,7 +133,8 @@ def get_object_info(
         )  # TODO use HEAD when enabled upstream
         if rv.status_code != 404:
             return RedirectResponse(
-                url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+                f"https://data.microbiomedata.org/details/sample/nmdc:{object_id}",
+                status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             )
 
     # If "sty" or "bsm" ID doesn't have preferred landing page (above), try for JSON payload
