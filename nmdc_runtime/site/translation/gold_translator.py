@@ -1,6 +1,6 @@
 import collections
 import re
-from typing import List, Union
+from typing import List, Tuple, Union
 from nmdc_schema import nmdc
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
@@ -188,20 +188,19 @@ class GoldStudyTranslator(Translator):
     def _get_quantity_value(
         self,
         gold_entity: JSON_OBJECT,
-        gold_field: str,
+        gold_field: Union[str, Tuple[str, str]],
         unit: Union[str, None] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Get any field of a GOLD entity object as a QuantityValue
 
         This method extracts any single field of a GOLD entity object (study, biosample, etc)
         and if it is not `None` returns it as an `nmdc:QuantityValue`. A has_numeric_value will
-        be inferred from the gold_field value in gold_entity. The inference is done only if the
-        unit is meters. Support for other units will be added incrementally. A unit can optionally
-        be provided, otherwise the unit will be `None`. If the value of the field is `None`,
-        `None` will be returned.
+        be inferred from the gold_field value in gold_entity if it is a simple string value. If
+        it is a tuple of two fields, a has_minimum_numeric_value and has_maximum_numeric_value
+        will be inferred from the gold_field values in gold_entity.
 
         :param gold_entity: GOLD entity object
-        :param gold_field: Name of the field to extract
+        :param gold_field: Name of the field to extract, or a tuple of two fields to extract a range
         :param unit: An optional unit as a string, defaults to None
         :return: QuantityValue object
         """
@@ -209,29 +208,28 @@ class GoldStudyTranslator(Translator):
         if field_value is None:
             return None
 
-        numeric_value = None
-        has_minimum_numeric_value = None
-        has_maximum_numeric_value = None
+        if isinstance(gold_field, tuple):
+            minimum_numeric_value = gold_entity.get(gold_field[0])
+            maximum_numeric_value = gold_entity.get(gold_field[1])
 
-        # TODO: in the future we will need better handling
-        # to parse out the numerical portion of the quantity value
-        # ex. temp might be 3 C, and we will need to parse out 3.0 from it
-        if unit == "meters":
-            numeric_value = nmdc.Double(field_value)
-            
-            has_maximum_numeric_value = gold_entity.get("depthInMeters2")
-            if has_maximum_numeric_value is not None:
-                has_minimum_numeric_value = nmdc.Double(field_value)
-
+            if minimum_numeric_value is None and maximum_numeric_value is None:
+                return None
+            elif minimum_numeric_value is not None and maximum_numeric_value is None:
                 return nmdc.QuantityValue(
-                    has_minimum_numeric_value=has_minimum_numeric_value,
-                    has_maximum_numeric_value=has_maximum_numeric_value,
+                    has_raw_value=field_value,
+                    has_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_unit=unit,
+                )
+            else:
+                return nmdc.QuantityValue(
+                    has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
                     has_unit=unit,
                 )
 
         return nmdc.QuantityValue(
             has_raw_value=field_value,
-            has_numeric_value=numeric_value,
+            has_numeric_value=nmdc.Double(field_value),
             has_unit=unit,
         )
 
@@ -440,7 +438,7 @@ class GoldStudyTranslator(Translator):
             collected_from=nmdc_field_site_id,
             collection_date=self._get_collection_date(gold_biosample),
             depth=self._get_quantity_value(
-                gold_biosample, "depthInMeters", unit="meters"
+                gold_biosample, ("depthInMeters", "depthInMeters2"), unit="meters"
             ),
             description=gold_biosample.get("description"),
             diss_oxygen=self._get_quantity_value(gold_biosample, "oxygenConcentration"),
