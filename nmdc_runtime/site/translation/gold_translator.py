@@ -204,10 +204,6 @@ class GoldStudyTranslator(Translator):
         :param unit: An optional unit as a string, defaults to None
         :return: QuantityValue object
         """
-        field_value = gold_entity.get(gold_field)
-        if field_value is None:
-            return None
-
         if isinstance(gold_field, tuple):
             minimum_numeric_value = gold_entity.get(gold_field[0])
             maximum_numeric_value = gold_entity.get(gold_field[1])
@@ -226,6 +222,10 @@ class GoldStudyTranslator(Translator):
                     has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
                     has_unit=unit,
                 )
+        
+        field_value = gold_entity.get(gold_field)
+        if field_value is None:
+            return None
 
         return nmdc.QuantityValue(
             has_raw_value=field_value,
