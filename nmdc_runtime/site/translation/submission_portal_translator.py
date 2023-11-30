@@ -503,7 +503,7 @@ class SubmissionPortalTranslator(Translator):
         sample_data: List[JSON_OBJECT],
         nmdc_biosample_id: str,
         nmdc_study_id: str,
-        submission_package_name: str,
+        default_env_package: str,
     ) -> nmdc.Biosample:
         """Translate sample data from portal submission into an `nmdc:Biosample` object.
 
@@ -518,6 +518,7 @@ class SubmissionPortalTranslator(Translator):
                             from each applicable submission portal tab
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
+        :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
         source_mat_id = sample_data[0].get("source_mat_id", "").strip()
@@ -525,7 +526,7 @@ class SubmissionPortalTranslator(Translator):
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
             "name": sample_data[0].get("samp_name", "").strip(),
-            "env_package": nmdc.TextValue(has_raw_value=submission_package_name),
+            "env_package": nmdc.TextValue(has_raw_value=default_env_package),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
@@ -572,9 +573,9 @@ class SubmissionPortalTranslator(Translator):
         database.biosample_set = [
             self._translate_biosample(
                 sample_data,
-                sample_data_to_nmdc_biosample_ids[sample_data_id],
-                nmdc_study_id,
-                package_name,
+                nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
+                nmdc_study_id=nmdc_study_id,
+                default_env_package=package_name,
             )
             for sample_data_id, sample_data in sample_data_by_id.items()
             if sample_data
