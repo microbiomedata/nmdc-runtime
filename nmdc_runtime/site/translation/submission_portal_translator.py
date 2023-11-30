@@ -499,12 +499,16 @@ class SubmissionPortalTranslator(Translator):
         return transformed_values
 
     def _translate_biosample(
-        self, sample_data: List[JSON_OBJECT], nmdc_biosample_id: str, nmdc_study_id: str
+        self,
+        sample_data: List[JSON_OBJECT],
+        nmdc_biosample_id: str,
+        nmdc_study_id: str,
+        submission_package_name: str,
     ) -> nmdc.Biosample:
         """Translate sample data from portal submission into an `nmdc:Biosample` object.
 
         sample_data is a list of objects where each object represents one row from a tab in
-        the submission portal. Each of the objects represent information about the same
+        the submission portal. Each of the objects represents information about the same
         underlying biosample. For each of the rows, each of the columns is iterated over.
         For each column, the corresponding slot from the nmdc:Biosample class is identified.
         The raw value from the submission portal is the transformed according to the range
@@ -521,6 +525,7 @@ class SubmissionPortalTranslator(Translator):
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
             "name": sample_data[0].get("samp_name", "").strip(),
+            "env_package": nmdc.TextValue(has_raw_value=submission_package_name),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
@@ -557,6 +562,7 @@ class SubmissionPortalTranslator(Translator):
         ]
 
         sample_data = metadata_submission_data.get("sampleData", {})
+        package_name = metadata_submission_data["packageName"]
         sample_data_by_id = groupby("source_mat_id", concat(sample_data.values()))
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
         sample_data_to_nmdc_biosample_ids = dict(
@@ -568,6 +574,7 @@ class SubmissionPortalTranslator(Translator):
                 sample_data,
                 sample_data_to_nmdc_biosample_ids[sample_data_id],
                 nmdc_study_id,
+                package_name,
             )
             for sample_data_id, sample_data in sample_data_by_id.items()
             if sample_data

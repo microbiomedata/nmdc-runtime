@@ -56,7 +56,7 @@ def test_get_doi():
     doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
     assert doi == [
-        nmdc.Doi(doi_value="1234", doi_category=nmdc.DoiCategoryEnum.dataset_doi)
+        nmdc.Doi(doi_value="doi:1234", doi_category=nmdc.DoiCategoryEnum.dataset_doi)
     ]
 
     doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
@@ -72,7 +72,7 @@ def test_get_doi():
     assert doi is not None
     assert doi == [
         nmdc.Doi(
-            doi_value="5678",
+            doi_value="doi:5678",
             doi_provider=nmdc.DoiProviderEnum.kbase,
             doi_category=nmdc.DoiCategoryEnum.award_doi,
         )
