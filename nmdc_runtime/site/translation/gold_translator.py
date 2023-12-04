@@ -222,7 +222,7 @@ class GoldStudyTranslator(Translator):
                     has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
                     has_unit=unit,
                 )
-        
+
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
