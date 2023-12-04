@@ -241,7 +241,9 @@ def test_get_quantity_value():
     assert value is None
 
     entity = {"arbitraryField1": 1, "arbitraryField2": 10}
-    value = translator._get_quantity_value(entity, ("arbitraryField1", "arbitraryField2"), unit="meters")
+    value = translator._get_quantity_value(
+        entity, ("arbitraryField1", "arbitraryField2"), unit="meters"
+    )
     assert value is not None
     assert value.has_minimum_numeric_value == 1.0
     assert value.has_maximum_numeric_value == 10.0
