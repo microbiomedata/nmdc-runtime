@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional, Any, Dict, List, Union
 
+from bson import ObjectId
 from pydantic import (
     model_validator,
     Field,
@@ -86,6 +87,32 @@ class DeleteCommand(CommandBase):
 class DeleteCommandResponse(CommandResponse):
     ok: OneOrZero
     n: NonNegativeInt
+    writeErrors: Optional[List[Document]] = None
+
+
+class UpdateStatement(BaseModel):
+    q: Document
+    u: Document
+    upsert: bool = False
+    multi: bool = False
+    hint: Optional[Dict[str, OneOrMinusOne]] = None
+
+
+class UpdateCommand(CommandBase):
+    update: str
+    updates: List[UpdateStatement]
+
+
+class DocumentUpserted(BaseModel):
+    index: NonNegativeInt
+    _id: ObjectId
+
+
+class UpdateCommandResponse(CommandResponse):
+    ok: OneOrZero
+    n: NonNegativeInt
+    nModified: NonNegativeInt
+    upserted: List[DocumentUpserted]
     writeErrors: Optional[List[Document]] = None
 
 
