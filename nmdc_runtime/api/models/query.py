@@ -112,7 +112,7 @@ class UpdateCommandResponse(CommandResponse):
     ok: OneOrZero
     n: NonNegativeInt
     nModified: NonNegativeInt
-    upserted: List[DocumentUpserted]
+    upserted: Optional[List[DocumentUpserted]] = None
     writeErrors: Optional[List[Document]] = None
 
 
@@ -134,7 +134,12 @@ class GetMoreCommandResponse(CommandResponse):
 
 
 QueryCmd = Union[
-    CollStatsCommand, CountCommand, FindCommand, GetMoreCommand, DeleteCommand
+    CollStatsCommand,
+    CountCommand,
+    FindCommand,
+    GetMoreCommand,
+    DeleteCommand,
+    UpdateCommand,
 ]
 
 QueryResponseOptions = Union[
@@ -143,6 +148,7 @@ QueryResponseOptions = Union[
     FindCommandResponse,
     GetMoreCommandResponse,
     DeleteCommandResponse,
+    UpdateCommandResponse,
 ]
 
 
@@ -153,6 +159,7 @@ def command_response_for(type_):
         FindCommand: FindCommandResponse,
         GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
+        UpdateCommand: UpdateCommandResponse,
     }
     return d.get(type_)
 

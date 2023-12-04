@@ -113,7 +113,7 @@ def _run_query(query, mdb) -> CommandResponse:
     ran_at = now()
     if q_type is DeleteCommand:
         collection_name = query.cmd.delete
-        if collection_name not in nmdc_schema_collection_names():
+        if collection_name not in nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
@@ -135,7 +135,7 @@ def _run_query(query, mdb) -> CommandResponse:
                 )
     elif q_type is UpdateCommand:
         collection_name = query.cmd.update
-        if collection_name not in nmdc_schema_collection_names():
+        if collection_name not in nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
@@ -163,5 +163,14 @@ def _run_query(query, mdb) -> CommandResponse:
         if cmd_response.ok
         else QueryRun(qid=query.id, ran_at=ran_at, error=cmd_response)
     )
+    if q_type in (DeleteCommand, UpdateCommand) and cmd_response.n == 0:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail=(
+                f"{'update' if q_type is UpdateCommand else 'delete'} command modified zero documents."
+                " I'm guessing that's not what you expected. Check the syntax of your request."
+                " But what do I know? I'm just a teapot.",
+            ),
+        )
     mdb.query_runs.insert_one(query_run.model_dump(exclude_unset=True))
     return cmd_response
