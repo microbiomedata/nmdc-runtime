@@ -120,10 +120,10 @@ def _run_query(query, mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
             )
-        find_specs = [
-            {"filter": dcd.q, "limit": dcd.limit} for dcd in query.cmd.deletes
+        delete_specs = [
+            {"filter": del_statement.q, "limit": del_statement.limit} for del_statement in query.cmd.deletes
         ]
-        for spec in find_specs:
+        for spec in delete_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
                 continue
@@ -135,6 +135,7 @@ def _run_query(query, mdb) -> CommandResponse:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to back up to-be-deleted documents. operation aborted.",
                 )
+
     elif q_type is UpdateCommand:
         collection_name = query.cmd.update
         if collection_name not in nmdc_schema_collection_names(mdb):
@@ -143,7 +144,7 @@ def _run_query(query, mdb) -> CommandResponse:
                 detail="Can only update documents in nmdc-schema collections.",
             )
         update_specs = [
-            {"filter": us.q, "limit": 0 if us.multi else 1} for us in query.cmd.updates
+            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1} for up_statement in query.cmd.updates
         ]
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))

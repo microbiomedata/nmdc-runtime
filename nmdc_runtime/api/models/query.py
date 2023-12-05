@@ -73,7 +73,7 @@ class FindCommandResponse(CommandResponse):
     cursor: FindCommandResponseCursor
 
 
-class DeleteCommandDelete(BaseModel):
+class DeleteStatement(BaseModel):
     q: Document
     limit: OneOrZero
     hint: Optional[Dict[str, OneOrMinusOne]] = None
@@ -81,7 +81,7 @@ class DeleteCommandDelete(BaseModel):
 
 class DeleteCommand(CommandBase):
     delete: str
-    deletes: List[DeleteCommandDelete]
+    deletes: List[DeleteStatement]
 
 
 class DeleteCommandResponse(CommandResponse):
