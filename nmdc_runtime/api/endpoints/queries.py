@@ -29,11 +29,13 @@ def unmongo(d: dict) -> dict:
     return json.loads(bson.json_util.dumps(d))
 
 
-def check_can_delete(user: User):
+def check_can_update_and_delete(user: User):
+    # update and delete queries require same level of permissions
     if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=(f"Only specific users " "are allowed to issue delete commands.",),
+            detail=(f"Only specific users " 
+                    "are allowed to issue update and delete commands.",),
         )
 
 
@@ -64,7 +66,7 @@ def run_query(
     ```
     """
     if isinstance(query_cmd, (DeleteCommand, UpdateCommand)):
-        check_can_delete(user)
+        check_can_update_and_delete(user)
 
     qid = generate_one_id(mdb, "qy")
     saved_at = now()
@@ -102,7 +104,7 @@ def rerun_query(
     doc = raise404_if_none(mdb.queries.find_one({"id": query_id}))
     query = Query(**doc)
     if isinstance(query, DeleteCommand):
-        check_can_delete(user)
+        check_can_update_and_delete(user)
 
     cmd_response = _run_query(query, mdb)
     return unmongo(cmd_response.model_dump(exclude_unset=True))
