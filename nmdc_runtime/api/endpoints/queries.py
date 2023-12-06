@@ -62,6 +62,11 @@ def run_query(
       "delete": "biosample_set",
       "deletes": [{"q": {"id": "NOT_A_REAL_ID"}, "limit": 1}]
     }
+
+    {
+        "update": "biosample_set",
+        "updates": [{"q": {"id": "nmdc:bsm-11-002vgm56"}, "u": {"$set": {"name": "BEAL_048-O-6.5-19.5-20160725"}}}]
+    }
     ```
     """
     if isinstance(query_cmd, (DeleteCommand, UpdateCommand)):
