@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional, Any, Dict, List, Union
 
+from bson import ObjectId
 from pydantic import (
     model_validator,
     Field,
@@ -72,7 +73,7 @@ class FindCommandResponse(CommandResponse):
     cursor: FindCommandResponseCursor
 
 
-class DeleteCommandDelete(BaseModel):
+class DeleteStatement(BaseModel):
     q: Document
     limit: OneOrZero
     hint: Optional[Dict[str, OneOrMinusOne]] = None
@@ -80,12 +81,40 @@ class DeleteCommandDelete(BaseModel):
 
 class DeleteCommand(CommandBase):
     delete: str
-    deletes: List[DeleteCommandDelete]
+    deletes: List[DeleteStatement]
 
 
 class DeleteCommandResponse(CommandResponse):
     ok: OneOrZero
     n: NonNegativeInt
+    writeErrors: Optional[List[Document]] = None
+
+
+# If `multi==True` all documents that meet the query criteria will be updated.
+# Else only a single document that meets the query criteria will be updated.
+class UpdateStatement(BaseModel):
+    q: Document
+    u: Document
+    upsert: bool = False
+    multi: bool = False
+    hint: Optional[Dict[str, OneOrMinusOne]] = None
+
+
+class UpdateCommand(CommandBase):
+    update: str
+    updates: List[UpdateStatement]
+
+
+class DocumentUpserted(BaseModel):
+    index: NonNegativeInt
+    _id: ObjectId
+
+
+class UpdateCommandResponse(CommandResponse):
+    ok: OneOrZero
+    n: NonNegativeInt
+    nModified: NonNegativeInt
+    upserted: Optional[List[DocumentUpserted]] = None
     writeErrors: Optional[List[Document]] = None
 
 
@@ -107,7 +136,12 @@ class GetMoreCommandResponse(CommandResponse):
 
 
 QueryCmd = Union[
-    CollStatsCommand, CountCommand, FindCommand, GetMoreCommand, DeleteCommand
+    CollStatsCommand,
+    CountCommand,
+    FindCommand,
+    GetMoreCommand,
+    DeleteCommand,
+    UpdateCommand,
 ]
 
 QueryResponseOptions = Union[
@@ -116,6 +150,7 @@ QueryResponseOptions = Union[
     FindCommandResponse,
     GetMoreCommandResponse,
     DeleteCommandResponse,
+    UpdateCommandResponse,
 ]
 
 
@@ -126,6 +161,7 @@ def command_response_for(type_):
         FindCommand: FindCommandResponse,
         GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
+        UpdateCommand: UpdateCommandResponse,
     }
     return d.get(type_)
 
