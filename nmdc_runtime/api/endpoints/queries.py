@@ -65,7 +65,7 @@ def run_query(
 
     {
         "update": "biosample_set",
-        "updates": [{"q": {"id": "nmdc:bsm-11-002vgm56"}, "u": {"$set": {"name": "BEAL_048-O-6.5-19.5-20160725"}}}]
+        "updates": [{"q": {"id": "YOUR_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
     }
     ```
     """
