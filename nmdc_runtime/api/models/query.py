@@ -90,6 +90,8 @@ class DeleteCommandResponse(CommandResponse):
     writeErrors: Optional[List[Document]] = None
 
 
+# If `multi==True` all documents that meet the query criteria will be updated.
+# Else only a single document that meets the query criteria will be updated.
 class UpdateStatement(BaseModel):
     q: Document
     u: Document

@@ -34,8 +34,7 @@ def check_can_update_and_delete(user: User):
     if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=(f"Only specific users " 
-                    "are allowed to issue update and delete commands.",),
+            detail="Only specific users are allowed to issue update and delete commands."
         )
 
 
