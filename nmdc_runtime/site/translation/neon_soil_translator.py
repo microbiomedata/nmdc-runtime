@@ -1,6 +1,7 @@
 import re
 import sqlite3
 from typing import Union, List
+from pathlib import Path
 
 import pandas as pd
 
@@ -82,13 +83,13 @@ class NeonSoilDataTranslator(Translator):
                 f"You are missing one of the soil periodic tables: {neon_sls_data_tables}"
             )
 
-        neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
+        neon_envo_mappings_file = Path("nmdc_runtime/site/translation/input/neon_raw_data_file_mappings.tsv")
         neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
         neon_envo_terms.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
+        neon_raw_data_file_mappings_file = Path("nmdc_runtime/site/translation/input/neon-nlcd-local-broad-mappings.tsv")
         self.neon_raw_data_file_mappings_df = pd.read_csv(
             neon_raw_data_file_mappings_file, delimiter="\t"
         )

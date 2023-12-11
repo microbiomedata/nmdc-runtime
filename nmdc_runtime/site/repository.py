@@ -1,5 +1,7 @@
 import json
 
+from typing import Any
+
 from dagster import (
     repository,
     ScheduleDefinition,
@@ -667,6 +669,27 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
+                    "export_json_to_drs": {"config": {"username": "..."}},
+                    "get_neon_pipeline_inputs": {
+                        "inputs": {
+                            "neon_envo_mappings_file_url": "",
+                            "neon_raw_data_file_mappings_file_url": "",
+                        }
+                    },
+                    "nmdc_schema_database_from_neon_benthic_data": {
+                        "config": {
+                            "neon_envo_mappings_file": {
+                                "json": {
+                                    "path": "https://example.com/neon_envo_mappings_file.csv"
+                                }
+                            },
+                            "neon_raw_data_file_mappings_file": {
+                                "json": {
+                                    "path": "https://example.com/neon_raw_data_file_mappings_file.csv"
+                                }
+                            },
+                        }
+                    },
                     "get_neon_pipeline_benthic_data_product": {
                         "config": {
                             "benthic_data_product": {
@@ -675,7 +698,6 @@ def biosample_submission_ingest():
                             }
                         }
                     },
-                    "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
         ),
