@@ -123,10 +123,10 @@ make up-dev
 Docker Compose is used to start local MongoDB and PostgresSQL (used by Dagster) instances, as well
 as a Dagster web server (dagit) and daemon (dagster-daemon).
 
-The Dagit web server is viewable at http://localhost:3000/.
+The Dagit web server is viewable at http://127.0.0.1:3000/. 
 
-The FastAPI service is viewable at http://localhost:8000/ -- e.g., rendered documentation at
-http://localhost:8000/redoc/.
+The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
+http://127.0.0.1:8000/redoc/.
 
 ## Local Testing
 
@@ -144,3 +144,24 @@ desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+
+## Publish to PyPI
+
+This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
+
+You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
+
+```
+rm -rf dist
+python -m build
+twine upload dist/*
+```
+
+## Links
+
+Here are links related to this repository:
+
+- Production API server: https://api.microbiomedata.org
+- PyPI package: https://pypi.org/project/nmdc-runtime
+- DockerHub image (API server): https://hub.docker.com/r/microbiomedata/nmdc-runtime-fastapi
+- DockerHub image (Dagster): https://hub.docker.com/r/microbiomedata/nmdc-runtime-dagster

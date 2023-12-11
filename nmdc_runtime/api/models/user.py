@@ -62,7 +62,8 @@ async def get_current_user(
             raise credentials_exception
         username = subject.split("user:", 1)[1]
         token_data = TokenData(subject=username)
-    except JWTError:
+    except JWTError as e:
+        print(f"jwt error: {e}")
         raise credentials_exception
     user = get_user(mdb, username=token_data.subject)
     if user is None:

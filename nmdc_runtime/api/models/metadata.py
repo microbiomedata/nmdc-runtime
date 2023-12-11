@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Extra
+from pydantic import ConfigDict, BaseModel
 
 
 class ChangesheetIn(BaseModel):
@@ -8,5 +8,4 @@ class ChangesheetIn(BaseModel):
 
 
 class Doc(BaseModel):
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")

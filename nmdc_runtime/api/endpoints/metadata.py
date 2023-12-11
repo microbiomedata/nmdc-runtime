@@ -20,7 +20,6 @@ from nmdc_runtime.api.endpoints.util import (
     _request_dagster_run,
     permitted,
     persist_content_and_get_drs_object,
-    users_allowed,
 )
 from nmdc_runtime.api.models.job import Job
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -87,7 +86,7 @@ async def submit_changesheet(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Only users {users_allowed('/metadata/changesheets:submit')} "
+                f"Only specific users "
                 "are allowed to apply changesheets at this time."
             ),
         )
@@ -153,15 +152,6 @@ def result_for_url_to_json_file(data, url, save_dir):
 def fetch_downloaded_json(url, save_dir):
     with open(os.path.join(save_dir, url_to_name(url))) as f:
         return json.load(f)
-
-
-# FIX (2021-12-16): this variable does not seem to be used anywhere else.
-# Can it be deleted? Commenting out for now.
-# type_collections = {
-#     f'nmdc:{spec["items"]["$ref"].split("/")[-1]}': collection_name
-#     for collection_name, spec in nmdc_jsonschema["properties"].items()
-#     if collection_name.endswith("_set")
-# }
 
 
 @router.post("/metadata/json:validate_urls_file")

@@ -409,7 +409,7 @@ def claim_and_run_apply_changesheet_jobs(_context):
 def done_object_put_ops(_context):
     client = get_runtime_api_site_client(run_config_frozen__normal_env)
     ops = [
-        op.dict()
+        op.model_dump()
         for op in client.list_operations(
             {
                 "filter": json.dumps(
@@ -523,10 +523,21 @@ def biosample_submission_ingest():
                 "ops": {
                     "export_json_to_drs": {"config": {"username": "..."}},
                     "get_submission_portal_pipeline_inputs": {
-                        "config": {
+                        "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": "",
-                            "data_object_mapping_file_url": "",
+                            "omics_processing_mapping_file_url": None,
+                            "data_object_mapping_file_url": None,
+                            "biosample_extras_file_url": None,
+                            "biosample_extras_slot_mapping_file_url": None,
+                        }
+                    },
+                    "translate_portal_submission_to_nmdc_schema_database": {
+                        "inputs": {
+                            "study_category": None,
+                            "study_doi_category": None,
+                            "study_doi_provider": None,
+                            "study_funding_sources": None,
+                            "study_pi_image_url": None,
                         }
                     },
                 },
@@ -551,10 +562,21 @@ def biosample_submission_ingest():
                 ),
                 "ops": {
                     "get_submission_portal_pipeline_inputs": {
-                        "config": {
+                        "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": "",
-                            "data_object_mapping_file_url": "",
+                            "omics_processing_mapping_file_url": None,
+                            "data_object_mapping_file_url": None,
+                            "biosample_extras_file_url": None,
+                            "biosample_extras_slot_mapping_file_url": None,
+                        }
+                    },
+                    "translate_portal_submission_to_nmdc_schema_database": {
+                        "inputs": {
+                            "study_category": None,
+                            "study_doi_category": None,
+                            "study_doi_provider": None,
+                            "study_funding_sources": None,
+                            "study_pi_image_url": None,
                         }
                     },
                 },

@@ -15,6 +15,14 @@
 #      mongodb://root:pass@localhost:27017/?authSource=admin
 #      ```
 #
+#    Example:
+#      Assuming the same scenario as in the previous example, but without
+#      access control enabled (i.e. no username/password),
+#      the value of `uri` would be:
+#      ```
+#      mongodb://localhost:27017/
+#      ```
+#
 #    Reference: 
 #      https://www.mongodb.com/docs/database-tools/mongodump/#std-option-mongodump.--uri
 #

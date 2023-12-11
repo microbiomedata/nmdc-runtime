@@ -37,7 +37,11 @@ def mint_ids(
     requester = Entity(id=site.id)
     try:
         minted = s.mint(
-            MintingRequest(service=service, requester=requester, **req_mint.dict())
+            MintingRequest(
+                service=service,
+                requester=requester,
+                **req_mint.model_dump(),
+            )
         )
         return [d.id for d in minted]
     except MinterError as e:

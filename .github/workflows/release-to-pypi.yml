@@ -1,0 +1,30 @@
+name: Publish Python Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-n-publish:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Build source and wheel archives
+        run: |
+          make init
+          python -m build
+
+      - name: Publish distribution 📦 to PyPI
+        if: github.repository == 'microbiomedata/nmdc-runtime'
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_PASSWORD }}

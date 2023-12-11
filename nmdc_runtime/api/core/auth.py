@@ -16,6 +16,18 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
+ORCID_CLIENT_ID = os.getenv("ORCID_CLIENT_ID")
+
+# https://orcid.org/.well-known/openid-configuration
+# XXX do we want to live-load this?
+ORCID_JWK = {  # https://orcid.org/oauth/jwks
+    "e": "AQAB",
+    "kid": "production-orcid-org-7hdmdswarosg3gjujo8agwtazgkp1ojs",
+    "kty": "RSA",
+    "n": "jxTIntA7YvdfnYkLSN4wk__E2zf_wbb0SV_HLHFvh6a9ENVRD1_rHK0EijlBzikb-1rgDQihJETcgBLsMoZVQqGj8fDUUuxnVHsuGav_bf41PA7E_58HXKPrB2C0cON41f7K3o9TStKpVJOSXBrRWURmNQ64qnSSryn1nCxMzXpaw7VUo409ohybbvN6ngxVy4QR2NCC7Fr0QVdtapxD7zdlwx6lEwGemuqs_oG5oDtrRuRgeOHmRps2R6gG5oc-JqVMrVRv6F9h4ja3UgxCDBQjOVT1BFPWmMHnHCsVYLqbbXkZUfvP2sO1dJiYd_zrQhi-FtNth9qrLLv3gkgtwQ",
+    "use": "sig",
+}
+ORCID_JWS_VERITY_ALGORITHM = "RS256"
 
 
 class ClientCredentials(BaseModel):
@@ -35,7 +47,7 @@ ACCESS_TOKEN_EXPIRES = TokenExpires(days=0, hours=0, minutes=30)
 class Token(BaseModel):
     access_token: str
     token_type: str
-    expires: Optional[TokenExpires]
+    expires: Optional[TokenExpires] = None
 
 
 class TokenData(BaseModel):
@@ -105,11 +117,14 @@ class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             else:
+                print(request.url)
                 return None
         return param
 
 
-oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
+    tokenUrl="token", auto_error=False
+)
 optional_oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
     tokenUrl="token", auto_error=False
 )

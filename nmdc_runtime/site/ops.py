@@ -270,7 +270,7 @@ def get_operation(context):
 def produce_curated_db(context, op: Operation):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     mdb: MongoDatabase = context.resources.mongo.db
-    op = Operation[ResultT, JobOperationMetadata](**op.dict())
+    op = Operation[ResultT, JobOperationMetadata](**op.model_dump())
     op_meta: JobOperationMetadata = op.metadata
     job_id = op_meta.job.id
     job = mdb.jobs.find_one({"id": job_id})
@@ -353,7 +353,7 @@ def filter_ops_undone_expired() -> str:
 @op(required_resource_keys={"runtime_api_site_client"})
 def list_operations(context, filter_: str) -> list:
     client = context.resources.runtime_api_site_client
-    ops = [op.dict() for op in client.list_operations({"filter": filter_})]
+    ops = [op.model_dump() for op in client.list_operations({"filter": filter_})]
     context.log.info(str(len(ops)))
     return ops
 
@@ -469,7 +469,7 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
     op = Operation(**mdb.operations.find_one({"id": op_id}))
     op.done = True
     op.result = {"update_cmd": json.dumps(update_cmd)}
-    op_doc = op.dict(exclude_unset=True)
+    op_doc = op.model_dump(exclude_unset=True)
     mdb.operations.replace_one({"id": op_id}, op_doc)
     return ["/operations/" + op_doc["id"]]
 
@@ -646,24 +646,27 @@ def nmdc_schema_database_from_gold_study(
 
 
 @op(
-    config_schema={
-        "submission_id": str,
-        "omics_processing_mapping_file_url": str,
-        "data_object_mapping_file_url": str,
-    },
     out={
         "submission_id": Out(),
-        "omics_processing_mapping_file_url": Out(),
-        "data_object_mapping_file_url": Out(),
+        "omics_processing_mapping_file_url": Out(Optional[str]),
+        "data_object_mapping_file_url": Out(Optional[str]),
+        "biosample_extras_file_url": Out(Optional[str]),
+        "biosample_extras_slot_mapping_file_url": Out(Optional[str]),
     },
 )
 def get_submission_portal_pipeline_inputs(
-    context: OpExecutionContext,
-) -> Tuple[str, str, str]:
+    submission_id: str,
+    omics_processing_mapping_file_url: Optional[str],
+    data_object_mapping_file_url: Optional[str],
+    biosample_extras_file_url: Optional[str],
+    biosample_extras_slot_mapping_file_url: Optional[str],
+) -> Tuple[str, str | None, str | None, str | None, str | None]:
     return (
-        context.op_config["submission_id"],
-        context.op_config["omics_processing_mapping_file_url"],
-        context.op_config["data_object_mapping_file_url"],
+        submission_id,
+        omics_processing_mapping_file_url,
+        data_object_mapping_file_url,
+        biosample_extras_file_url,
+        biosample_extras_slot_mapping_file_url,
     )
 
 
@@ -683,6 +686,13 @@ def translate_portal_submission_to_nmdc_schema_database(
     metadata_submission: Dict[str, Any],
     omics_processing_mapping: List,
     data_object_mapping: List,
+    study_category: Optional[str],
+    study_doi_category: Optional[str],
+    study_doi_provider: Optional[str],
+    study_funding_sources: Optional[List[str]],
+    study_pi_image_url: Optional[str],
+    biosample_extras: Optional[list[dict]],
+    biosample_extras_slot_mapping: Optional[list[dict]],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -695,6 +705,13 @@ def translate_portal_submission_to_nmdc_schema_database(
         omics_processing_mapping,
         data_object_mapping,
         id_minter=id_minter,
+        study_category=study_category,
+        study_doi_category=study_doi_category,
+        study_doi_provider=study_doi_provider,
+        study_funding_sources=study_funding_sources,
+        study_pi_image_url=study_pi_image_url,
+        biosample_extras=biosample_extras,
+        biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
     database = translator.get_database()
     return database
@@ -859,7 +876,7 @@ def nmdc_schema_database_export_filename_neon() -> str:
 
 
 @op
-def get_csv_rows_from_url(url: str) -> List[Dict]:
+def get_csv_rows_from_url(url: Optional[str]) -> List[Dict]:
     """Download and parse a CSV file from a remote URL.
 
     This method fetches data from the given URL and parses that data as CSV. The parsed data
