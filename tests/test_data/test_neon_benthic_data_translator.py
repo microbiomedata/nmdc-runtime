@@ -1,11 +1,12 @@
-import random
-import string
 import pytest
 from nmdc_runtime.site.translation.neon_benthic_translator import (
     NeonBenthicDataTranslator,
 )
 import pandas as pd
-import requests
+
+from linkml_runtime.dumpers import json_dumper
+from nmdc_runtime.util import validate_json
+from tests.conftest import get_mongo_test_db
 
 # Mock data for testing
 benthic_data = {
@@ -133,49 +134,10 @@ benthic_data = {
 
 class TestNeonBenthicDataTranslator:
     @pytest.fixture
-    def translator(self):
-        return NeonBenthicDataTranslator(benthic_data)
-
-    def test_neon_envo_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        )
-        assert response.status_code == 200
-
-    def test_neon_raw_data_file_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        )
-        assert response.status_code == 200
-
-    def mock_minter(self, nmdc_data_type, count):
-        minted_nmdc_ids = []
-
-        if nmdc_data_type == "nmdc:Biosample":
-            prefix = "bsm"
-        elif nmdc_data_type == "nmdc:Extraction":
-            prefix = "extrp"
-        elif nmdc_data_type == "nmdc:LibraryPreparation":
-            prefix = "libprp"
-        elif nmdc_data_type == "nmdc:ProcessedSample":
-            prefix = "procsm"
-        elif nmdc_data_type == "nmdc:OmicsProcessing":
-            prefix = "omprc"
-        elif nmdc_data_type == "nmdc:DataObject":
-            prefix = "dobj"
-        else:
-            raise ValueError(f"Invalid NMDC data type: `{nmdc_data_type}`")
-
-        for _ in range(count):
-            random_suffix = "".join(
-                random.choices(string.ascii_lowercase + string.digits, k=8)
-            )
-            minted_nmdc_ids.append(f"nmdc:{prefix}-11-{random_suffix}")
-
-        return minted_nmdc_ids
+    def translator(self, test_minter):
+        return NeonBenthicDataTranslator(benthic_data, id_minter=test_minter)
 
     def test_get_database(self, translator):
-        translator._id_minter = self.mock_minter
         database = translator.get_database()
 
         # verify lengths of all collections in database
@@ -221,3 +183,8 @@ class TestNeonBenthicDataTranslator:
                 for omics_processing in omics_processing_list:
                     omics_processing_input = omics_processing.has_input
                     assert omics_processing_input == lib_prep_output
+
+        mongo_db = get_mongo_test_db()
+        validation_result = validate_json(json_dumper.to_dict(database), mongo_db)
+        assert validation_result == {"result": "All Okay!"}
+        
