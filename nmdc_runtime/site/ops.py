@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
 import pandas as pd
@@ -815,6 +815,9 @@ def nmdc_schema_database_from_neon_soil_data(
 def nmdc_schema_database_from_neon_benthic_data(
     context: OpExecutionContext,
     benthic_data: Dict[str, pd.DataFrame],
+    site_code_mapping: Dict[str, str],
+    neon_envo_mappings_file: pd.DataFrame,
+    neon_raw_data_file_mappings_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -822,10 +825,32 @@ def nmdc_schema_database_from_neon_benthic_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonBenthicDataTranslator(benthic_data, id_minter=id_minter)
+    translator = NeonBenthicDataTranslator(
+        benthic_data,
+        site_code_mapping,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        id_minter=id_minter,
+    )
 
     database = translator.get_database()
     return database
+
+
+@op(
+    out={
+        "neon_envo_mappings_file_url": Out(),
+        "neon_raw_data_file_mappings_file_url": Out(),
+    },
+)
+def get_neon_pipeline_inputs(
+    neon_envo_mappings_file_url: str,
+    neon_raw_data_file_mappings_file_url: str,
+) -> Tuple[str, str]:
+    return (
+        neon_envo_mappings_file_url,
+        neon_raw_data_file_mappings_file_url,
+    )
 
 
 @op
@@ -855,3 +880,45 @@ def get_csv_rows_from_url(url: str) -> List[Dict]:
     # Collect all the rows into a list of dicts while stripping out (valfilter) cells where the
     # value is an empty string (identity returns a Falsy value).
     return [valfilter(identity, row) for row in reader]
+
+
+@op
+def get_df_from_url(url: str, delimiter: str = ",") -> pd.DataFrame:
+    """Download and return a pandas DataFrame from a given URL.
+
+    :param url: raw URL of the file to be downloaded as a DataFrame
+    :param delimiter: delimiter used to separate rows/columns in the file, defaults to ","
+    :return: pandas DataFrame of CSV/TSV/etc content
+    """
+    if not url:
+        return pd.DataFrame()
+
+    response = requests.get(url)
+    response.raise_for_status()
+
+    # Using StringIO to create a file-like object from the response text
+    file_like_object = StringIO(response.text)
+
+    # Using Pandas read_csv to directly read the file-like object
+    df = pd.read_csv(file_like_object, delimiter=delimiter)
+
+    return df
+
+
+@op
+def site_code_mapping() -> dict:
+    endpoint = "https://data.neonscience.org/api/v0/sites/"
+    response = requests.get(endpoint)
+    if response.status_code == 200:
+        sites_data = response.json()
+        site_code_mapping = {
+            site["siteCode"]: f"USA: {site['stateName']}, {site['siteName']}".replace(
+                " NEON", ""
+            )
+            for site in sites_data["data"]
+        }
+        return site_code_mapping
+    else:
+        raise Exception(
+            f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
+        )

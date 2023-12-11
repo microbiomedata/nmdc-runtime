@@ -44,6 +44,9 @@ from nmdc_runtime.site.ops import (
     get_submission_portal_pipeline_inputs,
     get_csv_rows_from_url,
     get_neon_pipeline_benthic_data_product,
+    get_neon_pipeline_inputs,
+    get_df_from_url,
+    site_code_mapping,
 )
 
 
@@ -211,11 +214,28 @@ def ingest_neon_soil_metadata():
 
 @graph
 def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
-    mms_benthic_data_product = get_neon_pipeline_benthic_data_product()
+    (
+        neon_envo_mappings_file_url,
+        neon_raw_data_file_mappings_file_url,
+    ) = get_neon_pipeline_inputs()
 
+    mms_benthic_data_product = get_neon_pipeline_benthic_data_product()
     mms_benthic = neon_data_by_product(mms_benthic_data_product)
 
-    database = nmdc_schema_database_from_neon_benthic_data(mms_benthic)
+    sites_mapping_dict = site_code_mapping()
+
+    neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
+
+    neon_raw_data_file_mappings_file = get_df_from_url(
+        neon_raw_data_file_mappings_file_url
+    )
+
+    database = nmdc_schema_database_from_neon_benthic_data(
+        mms_benthic,
+        sites_mapping_dict,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+    )
 
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename_neon()
@@ -230,6 +250,10 @@ def ingest_neon_benthic_metadata():
 
     mms_benthic = neon_data_by_product(mms_benthic_data_product)
 
-    database = nmdc_schema_database_from_neon_benthic_data(mms_benthic)
+    sites_mapping_dict = site_code_mapping()
+
+    database = nmdc_schema_database_from_neon_benthic_data(
+        mms_benthic, sites_mapping_dict
+    )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
