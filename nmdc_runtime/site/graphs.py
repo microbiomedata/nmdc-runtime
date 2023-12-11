@@ -210,7 +210,18 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
     mms_data = neon_data_by_product(mms_data_product)
     sls_data = neon_data_by_product(sls_data_product)
 
-    database = nmdc_schema_database_from_neon_soil_data(mms_data, sls_data)
+    (
+        neon_envo_mappings_file_url,
+        neon_raw_data_file_mappings_file_url,
+    ) = get_neon_pipeline_inputs()
+
+    neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
+
+    neon_raw_data_file_mappings_file = get_df_from_url(
+        neon_raw_data_file_mappings_file_url
+    )
+
+    database = nmdc_schema_database_from_neon_soil_data(mms_data, sls_data, neon_envo_mappings_file, neon_raw_data_file_mappings_file)
 
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename_neon()

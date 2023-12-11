@@ -677,17 +677,9 @@ def biosample_submission_ingest():
                         }
                     },
                     "nmdc_schema_database_from_neon_benthic_data": {
-                        "config": {
-                            "neon_envo_mappings_file": {
-                                "json": {
-                                    "path": "https://example.com/neon_envo_mappings_file.csv"
-                                }
-                            },
-                            "neon_raw_data_file_mappings_file": {
-                                "json": {
-                                    "path": "https://example.com/neon_raw_data_file_mappings_file.csv"
-                                }
-                            },
+                        "inputs": {
+                            "neon_envo_mappings_file": "",
+                            "neon_raw_data_file_mappings_file": "",
                         }
                     },
                     "get_neon_pipeline_benthic_data_product": {

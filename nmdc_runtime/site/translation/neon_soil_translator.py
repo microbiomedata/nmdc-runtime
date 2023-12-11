@@ -1,7 +1,6 @@
 import re
 import sqlite3
-from typing import Union, List
-from pathlib import Path
+from typing import List
 
 import pandas as pd
 
@@ -12,7 +11,13 @@ from nmdc_runtime.site.translation.neon_utils import _get_value_or_none, _create
 
 
 class NeonSoilDataTranslator(Translator):
-    def __init__(self, mms_data: dict, sls_data: dict, *args, **kwargs) -> None:
+    def __init__(self, 
+                mms_data: dict, 
+                sls_data: dict, 
+                neon_envo_mappings_file: pd.DataFrame,
+                neon_raw_data_file_mappings_file: pd.DataFrame,
+                *args, 
+                **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
@@ -73,20 +78,16 @@ class NeonSoilDataTranslator(Translator):
             raise ValueError(
                 f"You are missing one of the soil periodic tables: {neon_sls_data_tables}"
             )
-
-        neon_envo_mappings_file = Path("nmdc_runtime/site/translation/input/neon_raw_data_file_mappings.tsv")
-        neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
-        neon_envo_terms.to_sql(
+        
+        neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        neon_raw_data_file_mappings_file = Path("nmdc_runtime/site/translation/input/neon-nlcd-local-broad-mappings.tsv")
-        self.neon_raw_data_file_mappings_df = pd.read_csv(
-            neon_raw_data_file_mappings_file, delimiter="\t"
-        )
+        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
+
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
