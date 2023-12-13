@@ -34,7 +34,7 @@ def check_can_update_and_delete(user: User):
     if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only specific users are allowed to issue update and delete commands."
+            detail="Only specific users are allowed to issue update and delete commands.",
         )
 
 
@@ -125,7 +125,8 @@ def _run_query(query, mdb) -> CommandResponse:
                 detail="Can only delete documents in nmdc-schema collections.",
             )
         delete_specs = [
-            {"filter": del_statement.q, "limit": del_statement.limit} for del_statement in query.cmd.deletes
+            {"filter": del_statement.q, "limit": del_statement.limit}
+            for del_statement in query.cmd.deletes
         ]
         for spec in delete_specs:
             docs = list(mdb[collection_name].find(**spec))
@@ -148,7 +149,8 @@ def _run_query(query, mdb) -> CommandResponse:
                 detail="Can only update documents in nmdc-schema collections.",
             )
         update_specs = [
-            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1} for up_statement in query.cmd.updates
+            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
+            for up_statement in query.cmd.updates
         ]
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
