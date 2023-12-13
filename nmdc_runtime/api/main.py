@@ -302,16 +302,12 @@ def ensure_default_api_perms():
     allowed = {
         "/metadata/changesheets:submit": [
             "admin",
-            "dwinston",
-            "mam",
-            "montana",
-            "pajau",
-            "spatil",
         ],
         "/queries:run(query_cmd:DeleteCommand)": [
             "admin",
-            "dwinston",
-            "scanon",
+        ],
+        "/metadata/json:submit": [
+            "admin",
         ],
     }
     for doc in [
