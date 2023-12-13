@@ -249,7 +249,7 @@ def ensure_initial_resources_on_boot():
             ).model_dump(exclude_unset=True),
             upsert=True,
         )
-        mdb.users.create_index("username")
+        mdb.users.create_index("username", unique=True)
 
     site_id = os.getenv("API_SITE_ID")
     runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) > 0
