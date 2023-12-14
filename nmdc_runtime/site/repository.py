@@ -594,10 +594,27 @@ def biosample_submission_ingest():
                                 "base_url": {"env": "NEON_API_BASE_URL"},
                                 "api_token": {"env": "NEON_API_TOKEN"},
                             },
-                        }
+                        },
+                        "mongo": {
+                            "config": {
+                                "dbname": {"env": "MONGO_DBNAME"},
+                                "host": {"env": "MONGO_HOST"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "username": {"env": "MONGO_USERNAME"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
                     },
                 ),
                 "ops": {
+                    "export_json_to_drs": {"config": {"username": "..."}},
                     "get_neon_pipeline_mms_data_product": {
                         "config": {
                             "mms_data_product": {
@@ -614,7 +631,12 @@ def biosample_submission_ingest():
                             }
                         }
                     },
-                    "export_json_to_drs": {"config": {"username": ""}},
+                    "get_neon_pipeline_inputs": {
+                        "inputs": {
+                            "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
+                            "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                        }
+                    },
                 },
             },
         ),
@@ -650,6 +672,12 @@ def biosample_submission_ingest():
                             }
                         }
                     },
+                    "get_neon_pipeline_inputs": {
+                        "inputs": {
+                            "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
+                            "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                        }
+                    },
                 },
             },
         ),
@@ -665,21 +693,31 @@ def biosample_submission_ingest():
                                 "base_url": {"env": "NEON_API_BASE_URL"},
                                 "api_token": {"env": "NEON_API_TOKEN"},
                             },
-                        }
+                        },
+                        "mongo": {
+                            "config": {
+                                "dbname": {"env": "MONGO_DBNAME"},
+                                "host": {"env": "MONGO_HOST"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "username": {"env": "MONGO_USERNAME"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
                     },
                 ),
                 "ops": {
                     "export_json_to_drs": {"config": {"username": "..."}},
                     "get_neon_pipeline_inputs": {
                         "inputs": {
-                            "neon_envo_mappings_file_url": "",
-                            "neon_raw_data_file_mappings_file_url": "",
-                        }
-                    },
-                    "nmdc_schema_database_from_neon_benthic_data": {
-                        "inputs": {
-                            "neon_envo_mappings_file": "",
-                            "neon_raw_data_file_mappings_file": "",
+                            "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
+                            "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
                         }
                     },
                     "get_neon_pipeline_benthic_data_product": {
@@ -715,6 +753,12 @@ def biosample_submission_ingest():
                                 "product_id": "DP1.20279.001",
                                 "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
                             }
+                        }
+                    },
+                    "get_neon_pipeline_inputs": {
+                        "inputs": {
+                            "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
+                            "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
                         }
                     },
                 },
