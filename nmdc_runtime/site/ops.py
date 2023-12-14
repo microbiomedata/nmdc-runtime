@@ -824,11 +824,13 @@ def nmdc_schema_database_from_neon_soil_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonSoilDataTranslator(mms_data, 
-                                        sls_data, 
-                                        neon_envo_mappings_file,
-                                        neon_raw_data_file_mappings_file,
-                                        id_minter=id_minter)
+    translator = NeonSoilDataTranslator(
+        mms_data,
+        sls_data,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        id_minter=id_minter,
+    )
 
     database = translator.get_database()
     return database
@@ -864,7 +866,7 @@ def nmdc_schema_database_from_neon_benthic_data(
     out={
         "neon_envo_mappings_file_url": Out(),
         "neon_raw_data_file_mappings_file_url": Out(),
-    },
+    }
 )
 def get_neon_pipeline_inputs(
     neon_envo_mappings_file_url: str,
