@@ -110,7 +110,9 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         }
         return rv
     else:
-        if "id_1" not in mdb[collection_name].index_information():
+        # the below line committed in anger. nmdc schema collections should have an 'id' field.
+        id_field = "_id" if collection_name == "functional_annotation_agg" else "id"
+        if id_field == "id" and "id_1" not in mdb[collection_name].index_information():
             logging.warning(
                 f"list_resources: no index set on 'id' for collection {collection_name}"
             )
@@ -119,11 +121,11 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
                 filter=filter_,
                 projection=projection,
                 limit=limit,
-                sort=[("id", 1)],
+                sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
         )
-        last_id = resources[-1]["id"]
+        last_id = resources[-1][id_field]
         token = generate_one_id(mdb, "page_tokens")
         mdb.page_tokens.insert_one(
             {"_id": token, "ns": collection_name, "last_id": last_id}
