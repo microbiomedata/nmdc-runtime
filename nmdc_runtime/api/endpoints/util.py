@@ -110,12 +110,13 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         }
         return rv
     else:
-        # the below line committed in anger. nmdc schema collections should have an 'id' field.
-        id_field = "_id" if collection_name == "functional_annotation_agg" else "id"
-        if id_field == "id" and "id_1" not in mdb[collection_name].index_information():
+        # the below block committed in anger. nmdc schema collections should have an 'id' field.
+        id_field = "id"
+        if "id_1" not in mdb[collection_name].index_information():
             logging.warning(
                 f"list_resources: no index set on 'id' for collection {collection_name}"
             )
+            id_field = "_id"  # expected atm for functional_annotation_agg
         resources = list(
             mdb[collection_name].find(
                 filter=filter_,
