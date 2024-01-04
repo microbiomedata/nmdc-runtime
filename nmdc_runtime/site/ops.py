@@ -68,6 +68,9 @@ from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTrans
 from nmdc_runtime.site.translation.neon_benthic_translator import (
     NeonBenthicDataTranslator,
 )
+from nmdc_runtime.site.translation.neon_surface_water_translator import (
+    NeonSurfaceWaterDataTranslator,
+)
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
@@ -784,6 +787,11 @@ def get_neon_pipeline_benthic_data_product(context: OpExecutionContext) -> dict:
     return context.op_config["benthic_data_product"]
 
 
+@op(config_schema={"surface_water_data_product": dict})
+def get_neon_pipeline_surface_water_data_product(context: OpExecutionContext) -> dict:
+    return context.op_config["surface_water_data_product"]
+
+
 @op(required_resource_keys={"neon_api_client"})
 def neon_data_by_product(
     context: OpExecutionContext, data_product: dict
@@ -840,6 +848,23 @@ def nmdc_schema_database_from_neon_benthic_data(
         return response.json()
 
     translator = NeonBenthicDataTranslator(benthic_data, id_minter=id_minter)
+
+    database = translator.get_database()
+    return database
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def nmdc_schema_database_from_neon_surface_water_data(
+    context: OpExecutionContext,
+    surface_water_data: Dict[str, pd.DataFrame],
+) -> nmdc.Database:
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+
+    def id_minter(*args, **kwargs):
+        response = client.mint_id(*args, **kwargs)
+        return response.json()
+
+    translator = NeonSurfaceWaterDataTranslator(surface_water_data, id_minter=id_minter)
 
     database = translator.get_database()
     return database

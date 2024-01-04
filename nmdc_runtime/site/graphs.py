@@ -38,9 +38,11 @@ from nmdc_runtime.site.ops import (
     neon_data_by_product,
     nmdc_schema_database_from_neon_soil_data,
     nmdc_schema_database_from_neon_benthic_data,
+    nmdc_schema_database_from_neon_surface_water_data,
     nmdc_schema_database_export_filename_neon,
     get_neon_pipeline_mms_data_product,
     get_neon_pipeline_sls_data_product,
+    get_neon_pipeline_surface_water_data_product,
     get_submission_portal_pipeline_inputs,
     get_csv_rows_from_url,
     get_neon_pipeline_benthic_data_product,
@@ -251,5 +253,31 @@ def ingest_neon_benthic_metadata():
     mms_benthic = neon_data_by_product(mms_benthic_data_product)
 
     database = nmdc_schema_database_from_neon_benthic_data(mms_benthic)
+    run_id = submit_metadata_to_db(database)
+    poll_for_run_completion(run_id)
+
+
+@graph
+def translate_neon_api_surface_water_metadata_to_nmdc_schema_database():
+    mms_surface_water_data_product = get_neon_pipeline_surface_water_data_product()
+
+    mms_surface_water = neon_data_by_product(mms_surface_water_data_product)
+
+    database = nmdc_schema_database_from_neon_surface_water_data(mms_surface_water)
+
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_schema_database_export_filename_neon()
+
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
+
+
+@graph
+def ingest_neon_surface_water_metadata():
+    mms_surface_water_data_product = get_neon_pipeline_surface_water_data_product()
+
+    mms_surface_water = neon_data_by_product(mms_surface_water_data_product)
+
+    database = nmdc_schema_database_from_neon_benthic_data(mms_surface_water)
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
