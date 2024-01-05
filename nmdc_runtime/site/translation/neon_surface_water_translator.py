@@ -9,26 +9,37 @@ import requests_cache
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
 from nmdc_runtime.site.util import get_basename
-from nmdc_runtime.site.translation.neon_utils import _get_value_or_none, _create_controlled_identified_term_value, _create_controlled_term_value, _create_geolocation_value, _create_quantity_value, _create_timestamp_value, _create_text_value
+from nmdc_runtime.site.translation.neon_utils import (
+    _get_value_or_none,
+    _create_controlled_identified_term_value,
+    _create_controlled_term_value,
+    _create_geolocation_value,
+    _create_quantity_value,
+    _create_timestamp_value,
+    _create_text_value,
+)
 
 
-BENTHIC_BROAD_SCALE_MAPPINGS = {
+SURFACE_WATER_BROAD_SCALE_MAPPINGS = {
     "lake": {"term_id": "ENVO:01000252", "term_name": "freshwater lake biome"},
     "river": {"term_id": "ENVO:01000253", "term_name": "freshwater river biome"},
 }
 
-BENTHIC_LOCAL_SCALE_MAPPINGS = {
+SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
     "lake": {
         "buoy.c0": {"term_id": "ENVO:01001191", "term_name": "water surface"},
         "buoy.c1": {"term_id": "ENVO:00002131", "term_name": "epilimnion"},
         "buoy.c2": {"term_id": "ENVO:00002269", "term_name": "thermocline"},
         "buoy.c3": {"term_id": "ENVO:00002130", "term_name": "hypolimnion"},
-        "littoral": {"term_id": "ENVO:01000409", "term_name": "freshwater littoral zone"},
+        "littoral": {
+            "term_id": "ENVO:01000409",
+            "term_name": "freshwater littoral zone",
+        },
     },
     "river": {"term_id": "ENVO:01000297", "term_name": "freshwater river"},
 }
 
-BENTHIC_ENV_MEDIUM_MAPPINGS = {
+SURFACE_WATER_MEDIUM_MAPPINGS = {
     "lake": {
         "term_id": "ENVO:04000007",
         "term_name": "lake water",
@@ -102,35 +113,58 @@ class NeonSurfaceWaterDataTranslator(Translator):
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
     ) -> nmdc.Biosample:
-        def map_local_scale(aquatic_site_type: str, named_location: Optional[str] = None) -> Dict[str, str]:
-            if aquatic_site_type == "lake" and named_location in BENTHIC_LOCAL_SCALE_MAPPINGS.get(aquatic_site_type, {}):
-                return BENTHIC_LOCAL_SCALE_MAPPINGS[aquatic_site_type][named_location]
+        def map_local_scale(
+            aquatic_site_type: str, named_location: Optional[str] = None
+        ) -> Dict[str, str]:
+            if aquatic_site_type == "lake":
+                for key in SURFACE_WATER_LOCAL_SCALE_MAPPINGS.get(
+                    aquatic_site_type, {}
+                ):
+                    if key in named_location:
+                        return SURFACE_WATER_LOCAL_SCALE_MAPPINGS[aquatic_site_type][
+                            key
+                        ]
             elif aquatic_site_type == "river":
-                return BENTHIC_LOCAL_SCALE_MAPPINGS.get(aquatic_site_type, {})
+                return SURFACE_WATER_LOCAL_SCALE_MAPPINGS.get(aquatic_site_type, {})
             return {}
         
+        lower_depth = biosample_row["lowerSegmentDepth"].values[0]
+        upper_depth = biosample_row["upperSegmentDepth"].values[0]
+
+        depth = None
+        if not pd.isna(lower_depth) and not pd.isna(upper_depth):
+            depth = nmdc.QuantityValue(
+                has_minimum_numeric_value=nmdc.Float(lower_depth),
+                has_maximum_numeric_value=nmdc.Float(upper_depth),
+                has_unit="m",
+            )
+
         return nmdc.Biosample(
             id=nmdc_id,
             part_of="nmdc:sty-11-pzmd0x14",
             env_broad_scale=_create_controlled_identified_term_value(
-                BENTHIC_BROAD_SCALE_MAPPINGS.get(
+                SURFACE_WATER_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_id"),
-                BENTHIC_BROAD_SCALE_MAPPINGS.get(
+                SURFACE_WATER_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_name"),
             ),
             env_local_scale=_create_controlled_identified_term_value(
-                **map_local_scale(
+                map_local_scale(
                     biosample_row["aquaticSiteType"].values[0],
-                    biosample_row["namedLocation"].values[0]
-                )
+                    biosample_row["namedLocation"].values[0],
+                ).get("term_id"),
+                map_local_scale(
+                    biosample_row["aquaticSiteType"].values[0],
+                    biosample_row["namedLocation"].values[0],
+                ).get("term_name"),
             ),
             env_medium=_create_controlled_identified_term_value(
-                BENTHIC_ENV_MEDIUM_MAPPINGS.get(
+                SURFACE_WATER_MEDIUM_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_id"),
-                BENTHIC_ENV_MEDIUM_MAPPINGS.get(
+                SURFACE_WATER_MEDIUM_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
                 ).get("term_name"),
             ),
@@ -143,22 +177,29 @@ class NeonSurfaceWaterDataTranslator(Translator):
             collection_date=_create_timestamp_value(
                 biosample_row["collectDate"].values[0]
             ),
-            # samp_size=_create_quantity_value(
-            #     biosample_row["fieldSampleVolume"].values[0], "mL"
-            # ),
             geo_loc_name=_create_text_value(
                 self.get_site_by_code(biosample_row["siteID"].values[0])
                 if biosample_row["siteID"].values[0]
                 else None
             ),
+            samp_collec_device=biosample_row["samplerType"].values[0],
+            diss_oxygen=_create_quantity_value(
+                biosample_row["dissolvedOxygen"].values[0], "mg/L"
+            ),
+            conduc=_create_quantity_value(
+                biosample_row["specificConductance"].values[0], "uS/cm"
+            ),
+            temp=_create_quantity_value(
+                biosample_row["waterTemp"].values[0], "Celsius"
+            ),
             type="nmdc:Biosample",
             analysis_type="metagenomics",
             biosample_categories="NEON",
-            depth=nmdc.QuantityValue(
-                has_minimum_numeric_value=nmdc.Float("0"),
-                has_maximum_numeric_value=nmdc.Float("1"),
-                has_unit="meters",
+            depth=depth,
+            samp_size=_create_quantity_value(
+                biosample_row["geneticFilteredSampleVolume"].values[0], "mL"
             ),
+            env_package=_create_text_value(biosample_row["sampleMaterial"].values[0]),
         )
 
     def _translate_extraction_process(
@@ -223,9 +264,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
         :return: Object that using LibraryPreparation process model.
         """
         processing_institution = None
-        laboratory_name = _get_value_or_none(
-            library_preparation_row, "laboratoryName"
-        )
+        laboratory_name = _get_value_or_none(library_preparation_row, "laboratoryName")
         if laboratory_name is not None:
             if re.search("Battelle", laboratory_name, re.IGNORECASE):
                 processing_institution = "Battelle"
@@ -276,9 +315,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(
-                omics_processing_row, "ncbiProjectID"
-            ),
+            ncbi_project_name=_get_value_or_none(omics_processing_row, "ncbiProjectID"),
             omics_type=_create_controlled_term_value(
                 omics_processing_row["investigation_type"].values[0]
             ),
@@ -355,12 +392,20 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     merged.siteID,
                     merged.collectDate,
                     afg.geneticSampleID,
+                    afg.geneticFilteredSampleVolume,
+                    afg.sampleMaterial,
                     afs.parentSampleID,
                     afs.namedLocation,
                     afs.decimalLatitude,
                     afs.decimalLongitude,
                     afs.elevation,
-                    afs.aquaticSiteType
+                    afs.aquaticSiteType,
+                    afs.samplerType,
+                    afs.dissolvedOxygen,
+                    afs.specificConductance,
+                    afs.waterTemp,
+                    afs.lowerSegmentDepth,
+                    afs.upperSegmentDepth
                 FROM 
                     (
                         SELECT
@@ -376,10 +421,13 @@ class NeonSurfaceWaterDataTranslator(Translator):
                             msq.qaqcStatus,
                             msq.ncbiProjectID,
                             msq.siteID,
+                            msq.labPrepMethod,
                             mde.genomicsSampleID,
                             mde.sequenceAnalysisType,
                             mde.sampleMass,
-                            mde.nucleicAcidConcentration
+                            mde.nucleicAcidConcentration,
+                            mde.nucleicAcidQuantMethod,
+                            mde.nucleicAcidPurity
                         FROM 
                             mms_swMetagenomeSequencing AS msq
                         JOIN 
@@ -387,12 +435,14 @@ class NeonSurfaceWaterDataTranslator(Translator):
                         ON 
                             msq.dnaSampleID = mde.dnaSampleID
                     ) AS merged
-                LEFT JOIN amc_fieldGenetic AS afg
+                JOIN amc_fieldGenetic AS afg
                 ON
                     merged.genomicsSampleID = afg.geneticSampleID
-                LEFT JOIN amc_fieldSuperParent AS afs
+                JOIN amc_fieldSuperParent AS afs
                 ON
                     afg.parentSampleID = afs.parentSampleID
+                WHERE
+                    afs.aquaticSiteType <> "stream"
         """
         surface_water_samples = pd.read_sql_query(query, self.conn)
 
@@ -453,7 +503,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
             )
 
         for neon_id, nmdc_id in neon_to_nmdc_extraction_ids.items():
-            extraction_row = surface_water_samples[surface_water_samples["parentSampleID"] == neon_id]
+            extraction_row = surface_water_samples[
+                surface_water_samples["parentSampleID"] == neon_id
+            ]
 
             extraction_input = neon_to_nmdc_biosample_ids.get(neon_id)
             processed_sample_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
@@ -468,7 +520,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     )
                 )
 
-                genomics_sample_id = _get_value_or_none(extraction_row, "genomicsSampleID")
+                genomics_sample_id = _get_value_or_none(
+                    extraction_row, "genomicsSampleID"
+                )
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
@@ -495,7 +549,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
         }
 
         for neon_id, nmdc_id in neon_to_nmdc_lib_prep_ids.items():
-            lib_prep_row = surface_water_samples[surface_water_samples["parentSampleID"] == neon_id]
+            lib_prep_row = surface_water_samples[
+                surface_water_samples["parentSampleID"] == neon_id
+            ]
 
             lib_prep_input = neon_to_nmdc_extraction_processed_ids.get(neon_id)
             processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(neon_id)
