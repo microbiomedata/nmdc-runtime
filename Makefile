@@ -18,14 +18,14 @@ update-deps:
 update: update-deps init
 
 up-dev:
-	docker-compose up --build --force-recreate --detach --remove-orphans
+	docker compose up --build --force-recreate --detach --remove-orphans
 
 dev-reset-db:
 	docker compose \
 		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
 up-test:
-	docker-compose --file docker-compose.test.yml \
+	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
 test-build:
@@ -49,13 +49,13 @@ lint:
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
 down-dev:
-	docker-compose down
+	docker compose down
 
 down-test:
-	docker-compose --file docker-compose.test.yml down
+	docker compose --file docker-compose.test.yml down
 
 follow-fastapi:
-	docker-compose logs fastapi -f
+	docker compose logs fastapi -f
 
 fastapi-deploy-spin:
 	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev
