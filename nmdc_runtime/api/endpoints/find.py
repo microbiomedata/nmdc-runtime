@@ -38,6 +38,10 @@ def find_studies(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    The `GET /studies` endpoint is a general purpose way to retrieve NMDC studies based on parameters provided by the user.
+    Studies can be filtered and sorted based on the applicable [Study attributes](https://microbiomedata.github.io/nmdc-schema/Study/).
+    """
     return find_resources(req, mdb, "study_set")
 
 
