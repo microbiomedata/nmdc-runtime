@@ -234,8 +234,7 @@ The applicable parameters of the ___find___ endpoints, with acceptable syntax an
 <br/>
 
 Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query in a meaningful way. Please note that endpoints with parameters that do not have a red `* required` label next to them, are optional.<br/>
-<br/>        
-        """,
+""",
     },
     {
         "name": "runs",
