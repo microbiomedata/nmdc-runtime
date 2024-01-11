@@ -13,7 +13,7 @@ from starlette.responses import RedirectResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
-from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.api.core.auth import get_password_hash, ORCID_CLIENT_ID
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -356,7 +356,10 @@ app = FastAPI(
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
-        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>"
+        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
+        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
+        "&response_type=token&scope=openid&"
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_token">Login with ORCiD</a>'
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
