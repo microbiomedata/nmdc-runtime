@@ -86,12 +86,6 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 f"You are missing one of the aquatic benthic microbiome tables: {neon_amb_data_tables}"
             )
 
-        neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
-        neon_envo_terms.to_sql(
-            "neonEnvoTerms", self.conn, if_exists="replace", index=False
-        )
-
         neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
         self.neon_raw_data_file_mappings_df = pd.read_csv(
             neon_raw_data_file_mappings_file, delimiter="\t"
@@ -127,21 +121,27 @@ class NeonSurfaceWaterDataTranslator(Translator):
             elif aquatic_site_type == "river":
                 return SURFACE_WATER_LOCAL_SCALE_MAPPINGS.get(aquatic_site_type, {})
             return {}
-        
-        lower_depth = biosample_row["lowerSegmentDepth"].values[0]
-        upper_depth = biosample_row["upperSegmentDepth"].values[0]
 
         depth = None
-        if not pd.isna(lower_depth) and not pd.isna(upper_depth):
-            depth = nmdc.QuantityValue(
-                has_minimum_numeric_value=nmdc.Float(lower_depth),
-                has_maximum_numeric_value=nmdc.Float(upper_depth),
-                has_unit="m",
-            )
+        minimum_depth = biosample_row["lakeSampleDepth1"].values[0]
+        maximum_depth = biosample_row["lakeSampleDepth2"].values[0]
+
+        if not pd.isna(minimum_depth):
+            if not pd.isna(maximum_depth):
+                depth = nmdc.QuantityValue(
+                    has_minimum_numeric_value=nmdc.Float(minimum_depth),
+                    has_maximum_numeric_value=nmdc.Float(maximum_depth),
+                    has_unit="m",
+                )
+            else:
+                depth = nmdc.QuantityValue(
+                    has_numeric_value=nmdc.Float(minimum_depth),
+                    has_unit="m",
+                )
 
         return nmdc.Biosample(
             id=nmdc_id,
-            part_of="nmdc:sty-11-pzmd0x14",
+            part_of="nmdc:sty-11-hht5sb92",
             env_broad_scale=_create_controlled_identified_term_value(
                 SURFACE_WATER_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
@@ -189,9 +189,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             conduc=_create_quantity_value(
                 biosample_row["specificConductance"].values[0], "uS/cm"
             ),
-            temp=_create_quantity_value(
-                biosample_row["waterTemp"].values[0], "Celsius"
-            ),
+            temp=_create_quantity_value(biosample_row["waterTemp"].values[0], "Cel"),
             type="nmdc:Biosample",
             analysis_type="metagenomics",
             biosample_categories="NEON",
@@ -199,7 +197,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             samp_size=_create_quantity_value(
                 biosample_row["geneticFilteredSampleVolume"].values[0], "mL"
             ),
-            env_package=_create_text_value(biosample_row["sampleMaterial"].values[0]),
+            env_package=nmdc.TextValue(has_raw_value="water"),
         )
 
     def _translate_extraction_process(
@@ -404,8 +402,8 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     afs.dissolvedOxygen,
                     afs.specificConductance,
                     afs.waterTemp,
-                    afs.lowerSegmentDepth,
-                    afs.upperSegmentDepth
+                    afs.lakeSampleDepth1,
+                    afs.lakeSampleDepth2
                 FROM 
                     (
                         SELECT
