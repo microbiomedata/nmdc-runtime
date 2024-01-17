@@ -196,7 +196,6 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-
         ## used for testing
         if test_rows != 0:
             nmdc_df = nmdc_df.head(test_rows)
