@@ -995,7 +995,6 @@ def make_quantity_value(nmdc_objs: list, tx_attributes: list, **kwargs) -> list:
     for attribute in tx_attributes:
         for obj in nmdc_objs:
             if has_raw_value(obj, attribute):
-
                 val = getattr(obj, attribute)
 
                 ## split raw value after first space
