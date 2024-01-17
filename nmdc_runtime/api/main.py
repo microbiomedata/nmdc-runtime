@@ -430,6 +430,8 @@ def custom_swagger_ui_html(
     soup = BeautifulSoup(response.body.decode(), "html.parser")
     last_script_tag = soup.body.select("script")[-1]
     js = last_script_tag.get_text()
+    # TODO need to inject call as thunk to SwaggerUIBundle.onComplete
+    #  see https://github.com/swagger-api/swagger-ui/issues/4382
     js += f"""
     ui.preauthorizeApiKey("bearerAuth", "{access_token}");
     """
