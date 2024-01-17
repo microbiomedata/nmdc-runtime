@@ -2,7 +2,9 @@ import json
 from datetime import timedelta
 
 import pymongo.database
+import requests
 from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi.openapi.docs import get_swagger_ui_html
 from jose import jws, JWTError
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
@@ -16,6 +18,7 @@ from nmdc_runtime.api.core.auth import (
     ORCID_JWK,
     ORCID_JWS_VERITY_ALGORITHM,
     credentials_exception,
+    ORCID_CLIENT_SECRET,
 )
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
@@ -30,6 +33,44 @@ from nmdc_runtime.api.models.user import (
 )
 
 router = APIRouter()
+
+
+@router.get("/orcid_cookie_test", include_in_schema=False)
+def orcid_cookie_test():
+    return HTMLResponse(
+        '<img src="/static/ORCIDiD_icon128x128.png" />'
+        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
+        "&response_type=code&scope=openid&"
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
+    )
+
+
+# {{GLOBALS_orcid_authorize_url}}&state={{request.url.path}}
+
+
+@router.get("/orcid_code", response_class=RedirectResponse)
+async def receive_orcid_code(request: Request, code: str, state: str | None = None):
+    rv = requests.post(
+        "https://orcid.org/oauth/token",
+        data=(
+            f"client_id={ORCID_CLIENT_ID}&client_secret={ORCID_CLIENT_SECRET}&"
+            f"grant_type=authorization_code&code={code}&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
+        ),
+        headers={
+            "Content-type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+    )
+    token_response = rv.json()
+    print(f"{token_response=}")
+    response = RedirectResponse(state or request.url_for("custom_swagger_ui_html"))
+    for key in ["user_orcid", "user_name", "user_id_token"]:
+        response.set_cookie(
+            key=key,
+            value=token_response[key.replace("user_", "")],
+            max_age=2592000,
+        )
+    return response
 
 
 @router.get("/orcid_authorize")
