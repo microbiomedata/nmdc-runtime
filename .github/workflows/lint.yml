@@ -28,3 +28,7 @@ jobs:
         make init
         make lint
         make black
+    - name: commit and push if reformatted
+      run: |
+        if git status --short | grep -q '\.py$'; then git add *.py && git commit -m "style: reformat" && git push; fi
+        
