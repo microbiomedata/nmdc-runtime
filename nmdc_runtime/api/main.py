@@ -343,8 +343,6 @@ async def get_versions():
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
-
-
 app = FastAPI(
     title="NMDC Runtime API",
     version=get_version(),
