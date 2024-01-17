@@ -7,13 +7,14 @@ from typing import Annotated
 import fastapi
 import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI, Cookie
+from bs4 import BeautifulSoup
+from fastapi import APIRouter, FastAPI, Cookie, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from setuptools_scm import get_version
 from starlette import status
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
@@ -414,9 +415,9 @@ def custom_swagger_ui_html(
         if rv.status_code != 200:
             rv.reason = rv.text
             rv.raise_for_status()
-        access_token = rv["access_token"]
+        access_token = rv.json()["access_token"]
 
-    return get_swagger_ui_html(
+    response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
@@ -424,13 +425,16 @@ def custom_swagger_ui_html(
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
         swagger_ui_parameters={
             "withCredentials": True,
-            # "onComplete": (
-            #     "function() {"
-            #     f'ui.preauthorizeApiKey("bearerAuth", "{access_token}");'
-            #     "}"
-            # ),
         },
     )
+    soup = BeautifulSoup(response.body.decode(), "html.parser")
+    last_script_tag = soup.body.select("script")[-1]
+    js = last_script_tag.get_text()
+    js += f"""
+    ui.preauthorizeApiKey("bearerAuth", "{access_token}");
+    """
+    last_script_tag.string = js
+    return HTMLResponse(soup.prettify())
 
 
 if __name__ == "__main__":

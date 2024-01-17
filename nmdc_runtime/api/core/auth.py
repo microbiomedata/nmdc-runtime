@@ -11,6 +11,7 @@ from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from starlette import status
 from starlette.requests import Request
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
@@ -151,9 +152,7 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
                 status_code=HTTP_400_BAD_REQUEST,
                 detail="grant_type password requires username and password",
             )
-        if grant_type == "client_credentials" and (
-            client_id is None or client_secret is None
-        ):
+        if grant_type == "client_credentials" and (client_id is None):
             if basic_creds:
                 client_id = basic_creds.username
                 client_secret = basic_creds.password
