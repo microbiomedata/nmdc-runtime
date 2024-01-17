@@ -212,7 +212,7 @@ class GoldStudyTranslator(Translator):
                 return None
             elif minimum_numeric_value is not None and maximum_numeric_value is None:
                 return nmdc.QuantityValue(
-                    has_raw_value=field_value,
+                    has_raw_value=minimum_numeric_value,
                     has_numeric_value=nmdc.Double(minimum_numeric_value),
                     has_unit=unit,
                 )
