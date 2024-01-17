@@ -2,7 +2,12 @@ import random
 import string
 import pytest
 from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
-from nmdc_runtime.site.translation.neon_utils import (_create_controlled_identified_term_value, _create_controlled_term_value, _create_timestamp_value, _get_value_or_none)
+from nmdc_runtime.site.translation.neon_utils import (
+    _create_controlled_identified_term_value,
+    _create_controlled_term_value,
+    _create_timestamp_value,
+    _get_value_or_none,
+)
 import pandas as pd
 import requests
 
@@ -819,15 +824,11 @@ class TestNeonDataTranslator:
 
         # specific handler for depth slot
         expected_minimum_depth = 0.0
-        actual_minimum_depth = _get_value_or_none(
-            test_biosample, "sampleTopDepth"
-        )
+        actual_minimum_depth = _get_value_or_none(test_biosample, "sampleTopDepth")
         assert expected_minimum_depth == actual_minimum_depth
 
         expected_maximum_depth = 0.295
-        actual_maximum_depth = _get_value_or_none(
-            test_biosample, "sampleBottomDepth"
-        )
+        actual_maximum_depth = _get_value_or_none(test_biosample, "sampleBottomDepth")
         assert expected_maximum_depth == actual_maximum_depth
 
         expected_sample_id = "BLAN_005-M-8-0-20200713"
