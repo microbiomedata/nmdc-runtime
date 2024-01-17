@@ -41,6 +41,9 @@ test-run:
 
 test: test-build test-run
 
+black:
+	black nmdc_runtime
+
 lint:
 	# Python syntax errors or undefined names
 	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
