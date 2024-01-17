@@ -334,8 +334,6 @@ async def root():
         BASE_URL_EXTERNAL + "/docs",
         status_code=status.HTTP_303_SEE_OTHER,
     )
-
-
 @api_router.get("/version")
 async def get_versions():
     return {
