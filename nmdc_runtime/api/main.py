@@ -334,6 +334,8 @@ async def root():
         BASE_URL_EXTERNAL + "/docs",
         status_code=status.HTTP_303_SEE_OTHER,
     )
+
+
 @api_router.get("/version")
 async def get_versions():
     return {
@@ -341,6 +343,8 @@ async def get_versions():
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
+
+
 app = FastAPI(
     title="NMDC Runtime API",
     version=get_version(),
