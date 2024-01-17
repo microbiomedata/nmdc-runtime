@@ -51,6 +51,13 @@ lint:
 	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
+PIP_PINNED_FLAKE8 := $(shell grep 'flake8==' requirements/dev.txt)
+PIP_PINNED_BLACK := $(shell grep 'black==' requirements/dev.txt)
+
+init-lint-and-black:
+	pip install $(PIP_PINNED_FLAKE8)
+	pip install $(PIP_PINNED_BLACK)
+
 down-dev:
 	docker compose down
 
