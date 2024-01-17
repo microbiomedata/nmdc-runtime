@@ -8,7 +8,15 @@ import requests_cache
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
 from nmdc_runtime.site.util import get_basename
-from nmdc_runtime.site.translation.neon_utils import _get_value_or_none, _create_controlled_identified_term_value, _create_controlled_term_value, _create_geolocation_value, _create_quantity_value, _create_timestamp_value, _create_text_value
+from nmdc_runtime.site.translation.neon_utils import (
+    _get_value_or_none,
+    _create_controlled_identified_term_value,
+    _create_controlled_term_value,
+    _create_geolocation_value,
+    _create_quantity_value,
+    _create_timestamp_value,
+    _create_text_value,
+)
 
 
 BENTHIC_BROAD_SCALE_MAPPINGS = {
@@ -210,9 +218,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: Object that using LibraryPreparation process model.
         """
         processing_institution = None
-        laboratory_name = _get_value_or_none(
-            library_preparation_row, "laboratoryName"
-        )
+        laboratory_name = _get_value_or_none(library_preparation_row, "laboratoryName")
         if laboratory_name is not None:
             if re.search("Battelle", laboratory_name, re.IGNORECASE):
                 processing_institution = "Battelle"
@@ -263,9 +269,7 @@ class NeonBenthicDataTranslator(Translator):
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(
-                omics_processing_row, "ncbiProjectID"
-            ),
+            ncbi_project_name=_get_value_or_none(omics_processing_row, "ncbiProjectID"),
             omics_type=_create_controlled_term_value(
                 omics_processing_row["investigation_type"].values[0]
             ),
@@ -434,9 +438,7 @@ class NeonBenthicDataTranslator(Translator):
         )
 
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
-            biosample_row = benthic_samples[
-                benthic_samples["sampleID"] == neon_id
-            ]
+            biosample_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
 
             database.biosample_set.append(
                 self._translate_biosample(neon_id, nmdc_id, biosample_row)
@@ -458,7 +460,9 @@ class NeonBenthicDataTranslator(Translator):
                     )
                 )
 
-                genomics_sample_id = _get_value_or_none(extraction_row, "genomicsSampleID")
+                genomics_sample_id = _get_value_or_none(
+                    extraction_row, "genomicsSampleID"
+                )
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
