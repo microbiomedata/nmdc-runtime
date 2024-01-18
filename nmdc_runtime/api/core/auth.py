@@ -6,7 +6,13 @@ from fastapi import Depends
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.param_functions import Form
-from fastapi.security import OAuth2, HTTPBasic, HTTPBasicCredentials
+from fastapi.security import (
+    OAuth2,
+    HTTPBasic,
+    HTTPBasicCredentials,
+    HTTPBearer,
+    HTTPAuthorizationCredentials,
+)
 from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -131,15 +137,24 @@ optional_oauth2_scheme = OAuth2PasswordOrClientCredentialsBearer(
     tokenUrl="token", auto_error=False
 )
 
+bearer_scheme = HTTPBearer(scheme_name="bearerAuth", auto_error=False)
+
 
 async def basic_credentials(req: Request):
     return await HTTPBasic(auto_error=False)(req)
+
+
+async def bearer_credentials(req: Request):
+    return await HTTPBearer(scheme_name="bearerAuth", auto_error=False)(req)
 
 
 class OAuth2PasswordOrClientCredentialsRequestForm:
     def __init__(
         self,
         basic_creds: Optional[HTTPBasicCredentials] = Depends(basic_credentials),
+        bearer_creds: Optional[HTTPAuthorizationCredentials] = Depends(
+            bearer_credentials
+        ),
         grant_type: str = Form(None, regex="^password$|^client_credentials$"),
         username: Optional[str] = Form(None),
         password: Optional[str] = Form(None),
@@ -147,12 +162,18 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
         client_id: Optional[str] = Form(None),
         client_secret: Optional[str] = Form(None),
     ):
-        if grant_type == "password" and (username is None or password is None):
+        if bearer_creds:
+            self.grant_type = "client_credentials"
+            self.username, self.password = None, None
+            self.scopes = scope.split()
+            self.client_id = bearer_creds.credentials
+            self.client_secret = None
+        elif grant_type == "password" and (username is None or password is None):
             raise HTTPException(
                 status_code=HTTP_400_BAD_REQUEST,
                 detail="grant_type password requires username and password",
             )
-        if grant_type == "client_credentials" and (client_id is None):
+        elif grant_type == "client_credentials" and (client_id is None):
             if basic_creds:
                 client_id = basic_creds.username
                 client_secret = basic_creds.password

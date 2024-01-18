@@ -1,4 +1,5 @@
 import os
+import re
 from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
@@ -7,8 +8,7 @@ from typing import Annotated
 import fastapi
 import requests
 import uvicorn
-from bs4 import BeautifulSoup
-from fastapi import APIRouter, FastAPI, Cookie, HTTPException
+from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +18,6 @@ from starlette.responses import RedirectResponse, HTMLResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
-    all_docs_have_unique_id,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
@@ -366,9 +365,10 @@ app = FastAPI(
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
+        '<auth-action><img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
         f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
-        "&response_type=token&scope=openid&"
-        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_token">Login with ORCiD</a>'
+        "&response_type=code&scope=openid&"
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a></auth-action>'
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
@@ -398,8 +398,7 @@ def custom_swagger_ui_html(
 ):
     access_token = None
     if user_id_token:
-        print(user_id_token)
-        # POST /token to get bearer token
+        # get bearer token
         rv = requests.post(
             url=f"{BASE_URL_EXTERNAL}/token",
             data={
@@ -417,26 +416,41 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
+    swagger_ui_parameters = {"withCredentials": True}
+    if access_token is not None:
+        swagger_ui_parameters.update(
+            {
+                "onComplete": f"""<unquote-safe>() => {{ ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>) }}</unquote-safe>""",
+            }
+        )
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
-        swagger_ui_parameters={
-            "withCredentials": True,
-        },
+        swagger_ui_parameters=swagger_ui_parameters,
     )
-    soup = BeautifulSoup(response.body.decode(), "html.parser")
-    last_script_tag = soup.body.select("script")[-1]
-    js = last_script_tag.get_text()
-    # TODO need to inject call as thunk to SwaggerUIBundle.onComplete
-    #  see https://github.com/swagger-api/swagger-ui/issues/4382
-    js += f"""
-    ui.preauthorizeApiKey("bearerAuth", "{access_token}");
-    """
-    last_script_tag.string = js
-    return HTMLResponse(soup.prettify())
+    content = (
+        response.body.decode()
+        .replace('"<unquote-safe>', "")
+        .replace('</unquote-safe>"', "")
+        .replace("<double-quote>", '"')
+        .replace("</double-quote>", '"')
+    )
+    auth_action_element_pattern = r"<auth-action>(.+?)</auth-action>"
+    if access_token is not None:
+        print("HEY")
+        content = re.sub(
+            auth_action_element_pattern,
+            rf'<a href="{BASE_URL_EXTERNAL}/logout">Logout</a>',
+            content,
+            flags=re.DOTALL,
+        )
+    else:
+        content = re.sub(auth_action_element_pattern, r"\1", content, flags=re.DOTALL)
+
+    return HTMLResponse(content=content)
 
 
 if __name__ == "__main__":

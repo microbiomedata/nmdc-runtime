@@ -35,14 +35,14 @@ from nmdc_runtime.api.models.user import (
 router = APIRouter()
 
 
-@router.get("/orcid_cookie_test", include_in_schema=False)
-def orcid_cookie_test():
-    return HTMLResponse(
-        '<img src="/static/ORCIDiD_icon128x128.png" />'
-        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
-        "&response_type=code&scope=openid&"
-        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
-    )
+# @router.get("/orcid_cookie_test", include_in_schema=False)
+# def orcid_cookie_test():
+#     return HTMLResponse(
+#         '<img src="/static/ORCIDiD_icon128x128.png" />'
+#         f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
+#         "&response_type=code&scope=openid&"
+#         f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
+#     )
 
 
 # {{GLOBALS_orcid_authorize_url}}&state={{request.url.path}}
@@ -62,7 +62,6 @@ async def receive_orcid_code(request: Request, code: str, state: str | None = No
         },
     )
     token_response = rv.json()
-    print(f"{token_response=}")
     response = RedirectResponse(state or request.url_for("custom_swagger_ui_html"))
     for key in ["user_orcid", "user_name", "user_id_token"]:
         response.set_cookie(
