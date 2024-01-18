@@ -36,8 +36,10 @@ from nmdc_runtime.site.graphs import (
     hello_graph,
     translate_neon_api_soil_metadata_to_nmdc_schema_database,
     translate_neon_api_benthic_metadata_to_nmdc_schema_database,
+    translate_neon_api_surface_water_metadata_to_nmdc_schema_database,
     ingest_neon_soil_metadata,
     ingest_neon_benthic_metadata,
+    ingest_neon_surface_water_metadata
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -700,6 +702,61 @@ def biosample_submission_ingest():
                             "benthic_data_product": {
                                 "product_id": "DP1.20279.001",
                                 "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
+                            }
+                        }
+                    },
+                },
+            },
+        ),
+        translate_neon_api_surface_water_metadata_to_nmdc_schema_database.to_job(
+            description="This job fetches the metadata associated with a given NEON data product code and translates it into an equivalent nmdc:Database object. The object is serialized to JSON and stored in DRS. This can be considered a dry-run for the `ingest_neon_metadata` job.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "neon_api_client": {
+                            "config": {
+                                "base_url": {"env": "NEON_API_BASE_URL"},
+                                "api_token": {"env": "NEON_API_TOKEN"},
+                            },
+                        }
+                    },
+                ),
+                "ops": {
+                    "get_neon_pipeline_surface_water_data_product": {
+                        "config": {
+                            "surface_water_data_product": {
+                                "product_id": "DP1.20281.001",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
+                            }
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        ),
+        ingest_neon_surface_water_metadata.to_job(
+            description="",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "neon_api_client": {
+                            "config": {
+                                "base_url": {"env": "NEON_API_BASE_URL"},
+                                "api_token": {"env": "NEON_API_TOKEN"},
+                            },
+                        }
+                    },
+                ),
+                "ops": {
+                    "get_neon_pipeline_surface_water_data_product": {
+                        "config": {
+                            "surface_water_data_product": {
+                                "product_id": "DP1.20281.001",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
                             }
                         }
                     },
