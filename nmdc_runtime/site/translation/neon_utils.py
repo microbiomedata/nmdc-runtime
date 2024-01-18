@@ -5,35 +5,38 @@ import pandas as pd
 from nmdc_schema import nmdc
 
 
-def _get_value_or_none(
-        data: pd.DataFrame, column_name: str
-    ) -> Union[str, float, None]:
-        """
-        Get the value from the specified column in the data DataFrame.
-        If the column value is NaN, return None. However, there are handlers
-        for a select set of columns - horizon, qaqcStatus, sampleTopDepth,
-        and sampleBottomDepth.
+def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float, None]:
+    """
+    Get the value from the specified column in the data DataFrame.
+    If the column value is NaN, return None. However, there are handlers
+    for a select set of columns - horizon, qaqcStatus, sampleTopDepth,
+    and sampleBottomDepth.
 
-        :param data: DataFrame to read the column value from.
-        :return: Either a string, float or None depending on the column/column values.
-        """
-        if (
-            column_name in data
-            and not data[column_name].isna().any()
-            and not data[column_name].empty
+    :param data: DataFrame to read the column value from.
+    :return: Either a string, float or None depending on the column/column values.
+    """
+    if (
+        column_name in data
+        and not data[column_name].isna().any()
+        and not data[column_name].empty
+    ):
+        if column_name == "horizon":
+            return f"{data[column_name].values[0]} horizon"
+        elif (
+            column_name == "qaqcStatus"
+            or column_name == "extrQaqcStatus"
+            or column_name == "seqQaqcStatus"
         ):
-            if column_name == "horizon":
-                return f"{data[column_name].values[0]} horizon"
-            elif column_name == "qaqcStatus":
-                return data[column_name].values[0].lower()
-            elif column_name == "sampleTopDepth":
-                return float(data[column_name].values[0]) / 100
-            elif column_name == "sampleBottomDepth":
-                return float(data[column_name].values[0]) / 100
-            else:
-                return data[column_name].values[0]
+            return data[column_name].values[0].lower()
+        elif column_name == "sampleTopDepth":
+            return float(data[column_name].values[0]) / 100
+        elif column_name == "sampleBottomDepth":
+            return float(data[column_name].values[0]) / 100
+        else:
+            return data[column_name].values[0]
 
-        return None
+    return None
+
 
 def _create_controlled_identified_term_value(
     id: str = None, name: str = None
@@ -47,13 +50,10 @@ def _create_controlled_identified_term_value(
     """
     if id is None or name is None:
         return None
-    return nmdc.ControlledIdentifiedTermValue(
-        term=nmdc.OntologyClass(id=id, name=name)
-    )
+    return nmdc.ControlledIdentifiedTermValue(term=nmdc.OntologyClass(id=id, name=name))
 
-def _create_controlled_term_value(
-    name: str = None
-) -> nmdc.ControlledTermValue:
+
+def _create_controlled_term_value(name: str = None) -> nmdc.ControlledTermValue:
     """
     Create a ControlledIdentifiedTermValue object with the specified id and name.
 
@@ -66,6 +66,7 @@ def _create_controlled_term_value(
         return None
     return nmdc.ControlledTermValue(has_raw_value=name)
 
+
 def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
     """
     Create a TimestampValue object with the specified value.
@@ -77,6 +78,7 @@ def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
     if value is None:
         return None
     return nmdc.TimestampValue(has_raw_value=value)
+
 
 def _create_quantity_value(
     numeric_value: Union[str, int, float] = None, unit: str = None
@@ -94,6 +96,7 @@ def _create_quantity_value(
         return None
     return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
 
+
 def _create_text_value(value: str = None) -> nmdc.TextValue:
     """
     Create a TextValue object with the specified value.
@@ -104,6 +107,7 @@ def _create_text_value(value: str = None) -> nmdc.TextValue:
     if value is None:
         return None
     return nmdc.TextValue(has_raw_value=value)
+
 
 def _create_double_value(value: str = None) -> nmdc.Double:
     """
@@ -116,6 +120,7 @@ def _create_double_value(value: str = None) -> nmdc.Double:
     if value is None or math.isnan(value):
         return None
     return nmdc.Double(value)
+
 
 def _create_geolocation_value(
     latitude: str = None, longitude: str = None

@@ -23,6 +23,7 @@ from nmdc_runtime.site.translation.neon_utils import (
 SURFACE_WATER_BROAD_SCALE_MAPPINGS = {
     "lake": {"term_id": "ENVO:01000252", "term_name": "freshwater lake biome"},
     "river": {"term_id": "ENVO:01000253", "term_name": "freshwater river biome"},
+    "stream": {"term_id": "ENVO:03605008", "term_name": "freshwater stream biome"},
 }
 
 SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
@@ -37,6 +38,7 @@ SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
         },
     },
     "river": {"term_id": "ENVO:01000297", "term_name": "freshwater river"},
+    "stream": {"term_id": "ENVO:03605007", "term_name": "freshwater stream"},
 }
 
 SURFACE_WATER_MEDIUM_MAPPINGS = {
@@ -45,6 +47,7 @@ SURFACE_WATER_MEDIUM_MAPPINGS = {
         "term_name": "lake water",
     },
     "river": {"term_id": "ENVO:01000599", "term_name": "river water"},
+    "stream": {"term_id": "ENVO:03605006", "term_name": "stream water"},
 }
 
 
@@ -118,7 +121,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
                         return SURFACE_WATER_LOCAL_SCALE_MAPPINGS[aquatic_site_type][
                             key
                         ]
-            elif aquatic_site_type == "river":
+            elif aquatic_site_type == "river" or aquatic_site_type == "stream":
                 return SURFACE_WATER_LOCAL_SCALE_MAPPINGS.get(aquatic_site_type, {})
             return {}
 
@@ -175,7 +178,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             ),
             elev=nmdc.Float(biosample_row["elevation"].values[0]),
             collection_date=_create_timestamp_value(
-                biosample_row["collectDate"].values[0]
+                biosample_row["seqCollectDate"].values[0]
             ),
             geo_loc_name=_create_text_value(
                 self.get_site_by_code(biosample_row["siteID"].values[0])
@@ -230,13 +233,13 @@ class NeonSurfaceWaterDataTranslator(Translator):
             id=extraction_id,
             has_input=extraction_input,
             has_output=processed_sample_id,
-            start_date=_get_value_or_none(extraction_row, "collectDate"),
-            end_date=_get_value_or_none(extraction_row, "processedDate"),
+            start_date=_get_value_or_none(extraction_row, "extrCollectDate"),
+            end_date=_get_value_or_none(extraction_row, "extrProcessedDate"),
             input_mass=_create_quantity_value(
                 _get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
             quality_control_report=nmdc.QualityControlReport(
-                status=_get_value_or_none(extraction_row, "qaqcStatus")
+                status=_get_value_or_none(extraction_row, "extrQaqcStatus")
             ),
             processing_institution=processing_institution,
         )
@@ -273,8 +276,8 @@ class NeonSurfaceWaterDataTranslator(Translator):
             id=library_preparation_id,
             has_input=library_preparation_input,
             has_output=processed_sample_id,
-            start_date=_get_value_or_none(library_preparation_row, "collectDate"),
-            end_date=_get_value_or_none(library_preparation_row, "processedDate"),
+            start_date=_get_value_or_none(library_preparation_row, "seqCollectDate"),
+            end_date=_get_value_or_none(library_preparation_row, "seqProcessedDate"),
             processing_institution=processing_institution,
         )
 
@@ -318,8 +321,8 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 omics_processing_row["investigation_type"].values[0]
             ),
             instrument_name=f"{_get_value_or_none(omics_processing_row, 'sequencingMethod')} {_get_value_or_none(omics_processing_row, 'instrument_model')}",
-            part_of="nmdc:sty-11-34xj1150",
-            name=f"Terrestrial soil microbial communities - {_get_value_or_none(omics_processing_row, 'dnaSampleID')}",
+            part_of="nmdc:sty-11-hht5sb92",
+            name=f"Surface water microbial communities - {_get_value_or_none(omics_processing_row, 'dnaSampleID')}",
             type="nmdc:OmicsProcessing",
         )
 
@@ -375,20 +378,22 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 SELECT
                     merged.laboratoryName,
                     merged.sequencingFacilityID,
-                    merged.processedDate,
+                    merged.extrProcessedDate,
+                    merged.seqProcessedDate,
                     merged.dnaSampleID,
                     merged.internalLabID,
                     merged.instrument_model,
                     merged.sequencingMethod,
                     merged.investigation_type,
-                    merged.qaqcStatus,
+                    merged.extrQaqcStatus,
                     merged.ncbiProjectID,
                     merged.genomicsSampleID,
                     merged.sequenceAnalysisType,
                     merged.sampleMass,
                     merged.nucleicAcidConcentration,
                     merged.siteID,
-                    merged.collectDate,
+                    merged.seqCollectDate,
+                    merged.extrCollectDate,
                     afg.geneticSampleID,
                     afg.geneticFilteredSampleVolume,
                     afg.sampleMaterial,
@@ -407,16 +412,18 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 FROM 
                     (
                         SELECT
-                            msq.collectDate,
+                            msq.collectDate AS seqCollectDate,
+                            mde.collectDate AS extrCollectDate,
                             msq.laboratoryName,
                             msq.sequencingFacilityID,
-                            msq.processedDate,
+                            msq.processedDate AS seqProcessedDate,
+                            mde.processedDate AS extrProcessedDate,
                             msq.dnaSampleID,
                             msq.internalLabID,
                             msq.instrument_model,
                             msq.sequencingMethod,
                             msq.investigation_type,
-                            msq.qaqcStatus,
+                            mde.qaqcStatus AS extrQaqcStatus,
                             msq.ncbiProjectID,
                             msq.siteID,
                             msq.labPrepMethod,
@@ -439,8 +446,6 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 JOIN amc_fieldSuperParent AS afs
                 ON
                     afg.parentSampleID = afs.parentSampleID
-                WHERE
-                    afs.aquaticSiteType <> "stream"
         """
         surface_water_samples = pd.read_sql_query(query, self.conn)
 
