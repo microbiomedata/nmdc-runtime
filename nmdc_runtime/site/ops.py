@@ -908,12 +908,11 @@ def get_csv_rows_from_url(url: Optional[str]) -> List[Dict]:
 
 
 @op
-def get_df_from_url(url: str, delimiter: str = ",") -> pd.DataFrame:
-    """Download and return a pandas DataFrame from a given URL.
+def get_df_from_url(url: str) -> pd.DataFrame:
+    """Download and return a pandas DataFrame from the URL of a TSV file.
 
-    :param url: raw URL of the file to be downloaded as a DataFrame
-    :param delimiter: delimiter used to separate rows/columns in the file, defaults to ","
-    :return: pandas DataFrame of CSV/TSV/etc content
+    :param url: raw URL of the TSV file to be downloaded as a DataFrame
+    :return: pandas DataFrame of TSV data
     """
     if not url:
         return pd.DataFrame()
@@ -921,11 +920,8 @@ def get_df_from_url(url: str, delimiter: str = ",") -> pd.DataFrame:
     response = requests.get(url)
     response.raise_for_status()
 
-    # Using StringIO to create a file-like object from the response text
-    file_like_object = StringIO(response.text)
-
     # Using Pandas read_csv to directly read the file-like object
-    df = pd.read_csv(file_like_object, delimiter=delimiter)
+    df = pd.read_csv(url, delimiter="\t")
 
     return df
 
