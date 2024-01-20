@@ -365,10 +365,10 @@ app = FastAPI(
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
-        '<auth-action><img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
+        '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
         f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
         "&response_type=code&scope=openid&"
-        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a></auth-action>'
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
