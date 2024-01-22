@@ -18,14 +18,14 @@ update-deps:
 update: update-deps init
 
 up-dev:
-	docker-compose up --build --force-recreate --detach --remove-orphans
+	docker compose up --build --force-recreate --detach --remove-orphans
 
 dev-reset-db:
 	docker compose \
 		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
 up-test:
-	docker-compose --file docker-compose.test.yml \
+	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
 test-build:
@@ -41,6 +41,9 @@ test-run:
 
 test: test-build test-run
 
+black:
+	black nmdc_runtime
+
 lint:
 	# Python syntax errors or undefined names
 	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
@@ -48,14 +51,21 @@ lint:
 	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
+PIP_PINNED_FLAKE8 := $(shell grep 'flake8==' requirements/dev.txt)
+PIP_PINNED_BLACK := $(shell grep 'black==' requirements/dev.txt)
+
+init-lint-and-black:
+	pip install $(PIP_PINNED_FLAKE8)
+	pip install $(PIP_PINNED_BLACK)
+
 down-dev:
-	docker-compose down
+	docker compose down
 
 down-test:
-	docker-compose --file docker-compose.test.yml down
+	docker compose --file docker-compose.test.yml down
 
 follow-fastapi:
-	docker-compose logs fastapi -f
+	docker compose logs fastapi -f
 
 fastapi-deploy-spin:
 	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev

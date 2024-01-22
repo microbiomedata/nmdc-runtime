@@ -239,6 +239,11 @@ async def submit_json_nmdcdb(
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
+    if not permitted(user.username, "/metadata/json:submit"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specific users are allowed to submit json at this time.",
+        )
     rv = validate_json(docs, mdb)
     if rv["result"] == "errors":
         raise HTTPException(
