@@ -438,18 +438,6 @@ def custom_swagger_ui_html(
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
     )
-    auth_action_element_pattern = r"<auth-action>(.+?)</auth-action>"
-    if access_token is not None:
-        print("HEY")
-        content = re.sub(
-            auth_action_element_pattern,
-            rf'<a href="{BASE_URL_EXTERNAL}/logout">Logout</a>',
-            content,
-            flags=re.DOTALL,
-        )
-    else:
-        content = re.sub(auth_action_element_pattern, r"\1", content, flags=re.DOTALL)
-
     return HTMLResponse(content=content)
 
 
