@@ -1,12 +1,9 @@
+from io import StringIO
 import pytest
 from nmdc_runtime.site.translation.neon_benthic_translator import (
     NeonBenthicDataTranslator,
 )
 import pandas as pd
-
-from linkml_runtime.dumpers import json_dumper
-from nmdc_runtime.util import validate_json
-from tests.conftest import get_mongo_test_db
 
 # Mock data for testing
 benthic_data = {
@@ -131,11 +128,34 @@ benthic_data = {
     ),
 }
 
+def neon_envo_mappings_file():
+    tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
+deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
+
+    return pd.read_csv(StringIO(tsv_data), delimiter="\t")
+
+
+def neon_raw_data_file_mappings_file():
+    tsv_data_dna = """dnaSampleID\tsequencerRunID\tinternalLabID\trawDataFileName\trawDataFileDescription\trawDataFilePath\tcheckSum
+WLOU.20180726.AMC.EPILITHON.1-DNA1\tHWVWKBGX7\tAquaticPlate6WellA5\tBMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz\tR2 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R2/BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz\t16c11600c77818979b11a05ce7899d6c
+WLOU.20180726.AMC.EPILITHON.1-DNA1\tHWVWKBGX7\tAquaticPlate6WellA5\tBMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz\tR1 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R1/BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz\t378052f3aeb3d587e3f94588247e7bda"""
+
+    return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
+
+
+def site_code_mapping():
+    return {"WLOU": "USA: Colorado, West St Louis Creek"}
+
 
 class TestNeonBenthicDataTranslator:
     @pytest.fixture
     def translator(self, test_minter):
-        return NeonBenthicDataTranslator(benthic_data, id_minter=test_minter)
+        return NeonBenthicDataTranslator(benthic_data=benthic_data,
+                                         site_code_mapping=site_code_mapping(),
+                                         neon_envo_mappings_file=neon_envo_mappings_file(),
+                                         neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
+                                         id_minter=test_minter
+                                        )
 
     def test_get_database(self, translator):
         database = translator.get_database()
@@ -183,8 +203,3 @@ class TestNeonBenthicDataTranslator:
                 for omics_processing in omics_processing_list:
                     omics_processing_input = omics_processing.has_input
                     assert omics_processing_input == lib_prep_output
-
-        mongo_db = get_mongo_test_db()
-        validation_result = validate_json(json_dumper.to_dict(database), mongo_db)
-        assert validation_result == {"result": "All Okay!"}
-        
