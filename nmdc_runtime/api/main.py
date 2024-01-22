@@ -369,6 +369,8 @@ app = FastAPI(
         f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
         "&response_type=code&scope=openid&"
         f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
+        " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
+        " in the below-right 'Authorized' button.)"
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
