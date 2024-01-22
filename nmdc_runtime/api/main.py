@@ -1,19 +1,27 @@
 import os
+import re
 from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
+from typing import Annotated
 
 import fastapi
+import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 from setuptools_scm import get_version
 from starlette import status
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
 
 from nmdc_runtime.api.analytics import Analytics
-from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
-from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.util import (
+    ensure_unique_id_indexes,
+    REPO_ROOT_DIR,
+)
+from nmdc_runtime.api.core.auth import get_password_hash, ORCID_CLIENT_ID
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -356,10 +364,15 @@ app = FastAPI(
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
-        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>"
+        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
+        '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
+        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_CLIENT_ID}'
+        "&response_type=code&scope=openid&"
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
+    docs_url=None,
 )
 app.include_router(api_router)
 
@@ -372,6 +385,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(Analytics)
+app.mount(
+    "/static",
+    StaticFiles(directory=REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")),
+    name="static",
+)
+
+
+@app.get("/docs", include_in_schema=False)
+def custom_swagger_ui_html(
+    user_id_token: Annotated[str | None, Cookie()] = None,
+):
+    access_token = None
+    if user_id_token:
+        # get bearer token
+        rv = requests.post(
+            url=f"{BASE_URL_EXTERNAL}/token",
+            data={
+                "client_id": user_id_token,
+                "client_secret": "",
+                "grant_type": "client_credentials",
+            },
+            headers={
+                "Content-type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+        )
+        if rv.status_code != 200:
+            rv.reason = rv.text
+            rv.raise_for_status()
+        access_token = rv.json()["access_token"]
+
+    swagger_ui_parameters = {"withCredentials": True}
+    if access_token is not None:
+        swagger_ui_parameters.update(
+            {
+                "onComplete": f"""<unquote-safe>() => {{ ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>) }}</unquote-safe>""",
+            }
+        )
+    response = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title,
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+        swagger_ui_parameters=swagger_ui_parameters,
+    )
+    content = (
+        response.body.decode()
+        .replace('"<unquote-safe>', "")
+        .replace('</unquote-safe>"', "")
+        .replace("<double-quote>", '"')
+        .replace("</double-quote>", '"')
+    )
+    return HTMLResponse(content=content)
 
 
 if __name__ == "__main__":

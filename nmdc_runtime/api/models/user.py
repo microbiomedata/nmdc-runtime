@@ -12,6 +12,7 @@ from nmdc_runtime.api.core.auth import (
     oauth2_scheme,
     credentials_exception,
     TokenData,
+    bearer_scheme,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
@@ -49,6 +50,7 @@ def authenticate_user(mdb, username: str, password: str):
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
+    bearer_credentials: str = Depends(bearer_scheme),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ) -> UserInDB:
     if mdb.invalidated_tokens.find_one({"_id": token}):
