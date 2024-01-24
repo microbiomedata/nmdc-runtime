@@ -36,6 +36,10 @@ def strip_oid(doc):
 
 @router.get("/nmdcschema/version")
 def get_nmdc_schema_version():
+    """
+    To view the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version the database is currently using,
+    try executing the GET /nmdcschema/version endpoint
+    """
     return version("nmdc_schema")
 
 
@@ -49,7 +53,8 @@ def get_nmdc_database_collection_stats(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Get stats for nmdc:Database MongoDB collections
+    To get the NMDC Database MongoDB collection statistics, like the total count of records in a collection or the size
+    of the collection, try executing the GET /nmdcschema/collection_stats endpoint
 
     Field reference: <https://www.mongodb.com/docs/manual/reference/command/collStats/#std-label-collStats-output>.
     """
@@ -94,6 +99,11 @@ def list_from_collection(
     req: ListRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
+    collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
+    that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
+    """
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
@@ -108,6 +118,10 @@ def get_by_id(
     doc_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    If the identifier of the record is known, the GET /nmdcshema/ids/{doc_id} can be used to retrieve the specified record.
+    \n Note that only one identifier may be used at a time, and therefore, only one record may be retrieved at a time using this method.
+    """
     id_dict = map_id_to_collection(mdb)
     collection_name = get_collection_for_id(doc_id, id_dict)
     return strip_oid(
@@ -130,6 +144,11 @@ def get_from_collection_by_id(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
+    If both the identifier and the collection name of the desired record is known, the
+    GET /nmdcschema/{collection_name}/{doc_id} can be used to retrieve the record. The projection parameter is optionally
+    available for this endpoint to retrieve only desired attributes from a record. Please note that only one record can
+    be retrieved at one time using this method.
+
     for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
     """
     projection = projection.split(",") if projection else None
