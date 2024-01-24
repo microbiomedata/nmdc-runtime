@@ -14,11 +14,11 @@ from nmdc_runtime.api.core.auth import (
     Token,
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
-    ORCID_CLIENT_ID,
+    ORCID_NMDC_CLIENT_ID,
     ORCID_JWK,
     ORCID_JWS_VERITY_ALGORITHM,
     credentials_exception,
-    ORCID_CLIENT_SECRET,
+    ORCID_NMDC_CLIENT_SECRET,
 )
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
@@ -40,7 +40,7 @@ async def receive_orcid_code(request: Request, code: str, state: str | None = No
     rv = requests.post(
         "https://orcid.org/oauth/token",
         data=(
-            f"client_id={ORCID_CLIENT_ID}&client_secret={ORCID_CLIENT_SECRET}&"
+            f"client_id={ORCID_NMDC_CLIENT_ID}&client_secret={ORCID_NMDC_CLIENT_SECRET}&"
             f"grant_type=authorization_code&code={code}&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
         ),
         headers={
