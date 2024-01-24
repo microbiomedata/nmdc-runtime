@@ -54,6 +54,10 @@ def find_study_by_id(
     study_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    If the study identifier is known, a study can be retrieved directly using the GET /studies/{study_id} endpoint.
+    \n Note that only one study can be retrieved at a time using this method.
+    """
     return strip_oid(raise404_if_none(mdb["study_set"].find_one({"id": study_id})))
 
 
@@ -66,6 +70,10 @@ def find_biosamples(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    The GET /biosamples endpoint is a general purpose way to retrieve biosample metadata using user-provided filter and sort criteria.
+    Please see the applicable [Biosample attributes](https://microbiomedata.github.io/nmdc-schema/Biosample/).
+    """
     return find_resources(req, mdb, "biosample_set")
 
 
@@ -78,6 +86,10 @@ def find_biosample_by_id(
     sample_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    If the biosample identifier is known, a biosample can be retrieved directly using the GET /biosamples/{sample_id}.
+    \n Note that only one biosample metadata record can be retrieved at a time using this method.
+    """
     return strip_oid(raise404_if_none(mdb["biosample_set"].find_one({"id": sample_id})))
 
 
@@ -90,6 +102,10 @@ def find_data_objects(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint may be used along with various parameters.
+    Please see the applicable [Data Object](https://microbiomedata.github.io/nmdc-schema/DataObject/) attributes.
+    """
     return find_resources(req, mdb, "data_object_set")
 
 
@@ -149,6 +165,10 @@ def find_data_object_by_id(
     data_object_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    If the data object identifier is known, the metadata can be retrieved using the GET /data_objects/{data_object_id} endpoint.
+    \n Note that only one data object metadata record may be retrieved at a time using this method.
+    """
     return strip_oid(
         raise404_if_none(mdb["data_object_set"].find_one({"id": data_object_id}))
     )
@@ -163,6 +183,17 @@ def find_activities(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    The GET /activities endpoint is a general way to fetch metadata about various activities (e.g. metagenome assembly,
+    natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
+    [WorkflowExecutionActivity](https://microbiomedata.github.io/nmdc-schema/WorkflowExecutionActivity/)
+    or [PlannedProcess](https://microbiomedata.github.io/nmdc-schema/PlannedProcess/) classes may be used in the filter
+    and sort parameters, including attributes of subclasses of `WorkflowExecutionActivity` and *PlannedProcess*.
+
+    For example, attributes used in subclasses such as MetabolomicsAnalysisActivity (subclass of `WorkflowExecutionActivity`)
+    or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of `PlannedProcess`),
+    can be used as input criteria for the filter and sort parameters of this endpoint.
+    """
     return find_resources_spanning(req, mdb, activity_collection_names(mdb))
 
 
@@ -175,6 +206,10 @@ def find_activity_by_id(
     activity_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    If the activity identifier is known, the activity metadata can be retrieved using the GET /activities/activity_id endpoint.
+    \n Note that only one metadata record for an activity may be returned at a time using this method.
+    """
     doc = None
     for name in activity_collection_names(mdb):
         doc = mdb[name].find_one({"id": activity_id})
