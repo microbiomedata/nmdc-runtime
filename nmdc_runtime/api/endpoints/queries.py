@@ -67,6 +67,10 @@ def run_query(
         "update": "biosample_set",
         "updates": [{"q": {"id": "YOUR_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
     }
+
+    {
+        "aggregate":
+    }
     ```
     """
     if isinstance(query_cmd, (DeleteCommand, UpdateCommand)):
@@ -140,7 +144,6 @@ def _run_query(query, mdb) -> CommandResponse:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to back up to-be-deleted documents. operation aborted.",
                 )
-
     elif q_type is UpdateCommand:
         collection_name = query.cmd.update
         if collection_name not in nmdc_schema_collection_names(mdb):

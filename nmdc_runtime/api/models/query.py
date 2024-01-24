@@ -8,6 +8,8 @@ from pydantic import (
     BaseModel,
     PositiveInt,
     NonNegativeInt,
+    field_validator,
+    ConfigDict,
 )
 from typing_extensions import Annotated
 
@@ -43,6 +45,31 @@ class FindCommand(CommandBase):
     limit: Optional[NonNegativeInt] = None
 
 
+class AggregateCommand(CommandBase):
+    aggregate: str
+    pipeline: List[Document]
+    cursor: Optional[Document] = None
+
+    @field_validator("pipeline")
+    @classmethod
+    def disallow_invalid_pipeline_stages(
+        cls, pipeline: List[Document]
+    ) -> List[Document]:
+        deny_list = ["$out", "$merge"]
+
+        if any(
+            key in deny_list for pipeline_stage in pipeline for key in pipeline_stage
+        ):
+            raise ValueError("$Out and $merge pipeline stages are not allowed.")
+
+        return pipeline
+
+    @field_validator("cursor")
+    @classmethod
+    def set_default_value_for_cursor(cls, cursor: Optional[Document]) -> Document:
+        return cursor or {}
+
+
 class CommandResponse(BaseModel):
     ok: OneOrZero
 
@@ -62,7 +89,7 @@ class CountCommandResponse(CommandResponse):
     n: NonNegativeInt
 
 
-class FindCommandResponseCursor(BaseModel):
+class CommandResponseCursor(BaseModel):
     firstBatch: List[Document]
     partialResultsReturned: Optional[bool] = None
     id: Optional[int] = None
@@ -70,7 +97,12 @@ class FindCommandResponseCursor(BaseModel):
 
 
 class FindCommandResponse(CommandResponse):
-    cursor: FindCommandResponseCursor
+    cursor: CommandResponseCursor
+
+
+class AggregateCommandResponse(CommandResponse):
+    # model_config = ConfigDict(extra="allow")
+    cursor: CommandResponseCursor
 
 
 class DeleteStatement(BaseModel):
@@ -142,6 +174,7 @@ QueryCmd = Union[
     GetMoreCommand,
     DeleteCommand,
     UpdateCommand,
+    AggregateCommand,
 ]
 
 QueryResponseOptions = Union[
@@ -151,6 +184,7 @@ QueryResponseOptions = Union[
     GetMoreCommandResponse,
     DeleteCommandResponse,
     UpdateCommandResponse,
+    AggregateCommandResponse,
 ]
 
 
@@ -162,6 +196,7 @@ def command_response_for(type_):
         GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
         UpdateCommand: UpdateCommandResponse,
+        AggregateCommand: AggregateCommandResponse,
     }
     return d.get(type_)
 
