@@ -23,8 +23,8 @@ from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
-ORCID_CLIENT_ID = os.getenv("ORCID_CLIENT_ID")
-ORCID_CLIENT_SECRET = os.getenv("ORCID_CLIENT_SECRET")
+ORCID_NMDC_CLIENT_ID = os.getenv("ORCID_NMDC_CLIENT_ID")
+ORCID_NMDC_CLIENT_SECRET = os.getenv("ORCID_NMDC_CLIENT_SECRET")
 
 # https://orcid.org/.well-known/openid-configuration
 # XXX do we want to live-load this?
