@@ -103,8 +103,9 @@ def find_data_objects(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint may be used along with various parameters.
-    Please see the applicable [Data Object](https://microbiomedata.github.io/nmdc-schema/DataObject/) attributes.
+    To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint
+    may be used along with various parameters. Please see the applicable [Data Object](https://microbiomedata.github.io/nmdc-schema/DataObject/)
+    attributes.
     """
     return find_resources(req, mdb, "data_object_set")
 
@@ -188,10 +189,10 @@ def find_activities(
     natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
     [WorkflowExecutionActivity](https://microbiomedata.github.io/nmdc-schema/WorkflowExecutionActivity/)
     or [PlannedProcess](https://microbiomedata.github.io/nmdc-schema/PlannedProcess/) classes may be used in the filter
-    and sort parameters, including attributes of subclasses of `WorkflowExecutionActivity` and *PlannedProcess*.
+    and sort parameters, including attributes of subclasses of *WorkflowExecutionActivity* and *PlannedProcess*.
 
-    For example, attributes used in subclasses such as MetabolomicsAnalysisActivity (subclass of `WorkflowExecutionActivity`)
-    or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of `PlannedProcess`),
+    For example, attributes used in subclasses such as MetabolomicsAnalysisActivity (subclass of *WorkflowExecutionActivity*)
+    or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
     return find_resources_spanning(req, mdb, activity_collection_names(mdb))
