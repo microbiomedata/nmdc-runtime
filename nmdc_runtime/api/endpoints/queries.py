@@ -69,7 +69,9 @@ def run_query(
     }
 
     {
-        "aggregate":
+        "aggregate": "biosample_set",
+        "pipeline": [{"$match": {}}],
+        "cursor": {"batchSize": 1}
     }
     ```
     """
