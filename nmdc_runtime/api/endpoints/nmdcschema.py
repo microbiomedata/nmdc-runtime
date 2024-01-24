@@ -103,13 +103,6 @@ def list_from_collection(
     The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
     collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
     that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
-    Args:
-        collection_name:
-        req:
-        mdb:
-
-    Returns:
-
     """
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
