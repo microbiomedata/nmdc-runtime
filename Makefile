@@ -41,12 +41,22 @@ test-run:
 
 test: test-build test-run
 
+black:
+	black nmdc_runtime
+
 lint:
 	# Python syntax errors or undefined names
 	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
+
+PIP_PINNED_FLAKE8 := $(shell grep 'flake8==' requirements/dev.txt)
+PIP_PINNED_BLACK := $(shell grep 'black==' requirements/dev.txt)
+
+init-lint-and-black:
+	pip install $(PIP_PINNED_FLAKE8)
+	pip install $(PIP_PINNED_BLACK)
 
 down-dev:
 	docker compose down

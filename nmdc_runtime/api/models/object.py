@@ -165,7 +165,7 @@ class DrsObjectOutBase(DrsObjectBase):
     version: Optional[str] = None
 
     @field_serializer("self_uri")
-    def serialize_url(self, slf_uri: AnyUrl, _info):
+    def serialize_url(self, self_uri: AnyUrl, _info):
         return str(self_uri)
 
 
