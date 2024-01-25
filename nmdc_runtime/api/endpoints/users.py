@@ -1,13 +1,14 @@
 import json
 from datetime import timedelta
+from typing import Annotated
 
 import pymongo.database
 import requests
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import Depends, APIRouter, HTTPException, status, Cookie
 from fastapi.openapi.docs import get_swagger_ui_html
 from jose import jws, JWTError
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
@@ -35,7 +36,7 @@ from nmdc_runtime.api.models.user import (
 router = APIRouter()
 
 
-@router.get("/orcid_code", response_class=RedirectResponse)
+@router.get("/orcid_code", response_class=RedirectResponse, include_in_schema=False)
 async def receive_orcid_code(request: Request, code: str, state: str | None = None):
     rv = requests.post(
         "https://orcid.org/oauth/token",
@@ -57,6 +58,14 @@ async def receive_orcid_code(request: Request, code: str, state: str | None = No
             max_age=2592000,
         )
     return response
+
+
+@router.get("/orcid_jwt")
+async def get_orcid_jwt(user_id_token: Annotated[str | None, Cookie()] = None):
+    if user_id_token:
+        return PlainTextResponse(content=user_id_token)
+    else:
+        return PlainTextResponse(content="No ORCiD cookie found. Did you log in?")
 
 
 @router.post("/token", response_model=Token)
