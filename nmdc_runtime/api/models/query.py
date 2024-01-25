@@ -11,6 +11,7 @@ from pydantic import (
     field_validator,
     ConfigDict,
 )
+from toolz import assoc
 from typing_extensions import Annotated
 
 Document = Dict[str, Any]
@@ -64,10 +65,12 @@ class AggregateCommand(CommandBase):
 
         return pipeline
 
-    @field_validator("cursor")
+    @model_validator(mode="before")
     @classmethod
-    def set_default_value_for_cursor(cls, cursor: Optional[Document]) -> Document:
-        return cursor or {}
+    def ensure_default_value_for_cursor(cls, data: Any) -> Document:
+        if isinstance(data, dict) and "cursor" not in data:
+            return assoc(data, "cursor", {"batchSize": 25})
+        return data
 
 
 class CommandResponse(BaseModel):

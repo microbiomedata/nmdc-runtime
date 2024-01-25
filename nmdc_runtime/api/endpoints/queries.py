@@ -45,6 +45,11 @@ def run_query(
     user: User = Depends(get_current_active_user),
 ):
     """
+    Allows `find`, `aggregate`, `update`, and `delete` commands for users with permissions.
+
+    For `find` and `aggregate`, note that cursor batching/pagination does *not*
+    work via this API, so ensure that you construct a command that will return
+    what you need in the "first batch". Also, the maximum size of the returned payload is 16MB.
 
     Examples:
     ```
@@ -70,8 +75,8 @@ def run_query(
 
     {
         "aggregate": "biosample_set",
-        "pipeline": [{"$match": {}}],
-        "cursor": {"batchSize": 1}
+        "pipeline": [{"$sortByCount": "$part_of"}],
+        "cursor": {"batchSize": 25}
     }
     ```
     """
