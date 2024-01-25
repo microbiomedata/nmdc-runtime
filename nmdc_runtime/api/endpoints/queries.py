@@ -45,6 +45,11 @@ def run_query(
     user: User = Depends(get_current_active_user),
 ):
     """
+    Allows `find`, `aggregate`, `update`, and `delete` commands for users with permissions.
+
+    For `find` and `aggregate`, note that cursor batching/pagination does *not*
+    work via this API, so ensure that you construct a command that will return
+    what you need in the "first batch". Also, the maximum size of the returned payload is 16MB.
 
     Examples:
     ```
@@ -66,6 +71,12 @@ def run_query(
     {
         "update": "biosample_set",
         "updates": [{"q": {"id": "YOUR_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
+    }
+
+    {
+        "aggregate": "biosample_set",
+        "pipeline": [{"$sortByCount": "$part_of"}],
+        "cursor": {"batchSize": 25}
     }
     ```
     """
@@ -140,7 +151,6 @@ def _run_query(query, mdb) -> CommandResponse:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to back up to-be-deleted documents. operation aborted.",
                 )
-
     elif q_type is UpdateCommand:
         collection_name = query.cmd.update
         if collection_name not in nmdc_schema_collection_names(mdb):
