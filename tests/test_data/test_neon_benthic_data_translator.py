@@ -1,11 +1,9 @@
-import random
-import string
+from io import StringIO
 import pytest
 from nmdc_runtime.site.translation.neon_benthic_translator import (
     NeonBenthicDataTranslator,
 )
 import pandas as pd
-import requests
 
 # Mock data for testing
 benthic_data = {
@@ -130,52 +128,36 @@ benthic_data = {
     ),
 }
 
+def neon_envo_mappings_file():
+    tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
+deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
+
+    return pd.read_csv(StringIO(tsv_data), delimiter="\t")
+
+
+def neon_raw_data_file_mappings_file():
+    tsv_data_dna = """dnaSampleID\tsequencerRunID\tinternalLabID\trawDataFileName\trawDataFileDescription\trawDataFilePath\tcheckSum
+WLOU.20180726.AMC.EPILITHON.1-DNA1\tHWVWKBGX7\tAquaticPlate6WellA5\tBMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz\tR2 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R2/BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz\t16c11600c77818979b11a05ce7899d6c
+WLOU.20180726.AMC.EPILITHON.1-DNA1\tHWVWKBGX7\tAquaticPlate6WellA5\tBMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz\tR1 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R1/BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz\t378052f3aeb3d587e3f94588247e7bda"""
+
+    return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
+
+
+def site_code_mapping():
+    return {"WLOU": "USA: Colorado, West St Louis Creek"}
+
 
 class TestNeonBenthicDataTranslator:
     @pytest.fixture
-    def translator(self):
-        return NeonBenthicDataTranslator(benthic_data)
-
-    def test_neon_envo_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        )
-        assert response.status_code == 200
-
-    def test_neon_raw_data_file_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        )
-        assert response.status_code == 200
-
-    def mock_minter(self, nmdc_data_type, count):
-        minted_nmdc_ids = []
-
-        if nmdc_data_type == "nmdc:Biosample":
-            prefix = "bsm"
-        elif nmdc_data_type == "nmdc:Extraction":
-            prefix = "extrp"
-        elif nmdc_data_type == "nmdc:LibraryPreparation":
-            prefix = "libprp"
-        elif nmdc_data_type == "nmdc:ProcessedSample":
-            prefix = "procsm"
-        elif nmdc_data_type == "nmdc:OmicsProcessing":
-            prefix = "omprc"
-        elif nmdc_data_type == "nmdc:DataObject":
-            prefix = "dobj"
-        else:
-            raise ValueError(f"Invalid NMDC data type: `{nmdc_data_type}`")
-
-        for _ in range(count):
-            random_suffix = "".join(
-                random.choices(string.ascii_lowercase + string.digits, k=8)
-            )
-            minted_nmdc_ids.append(f"nmdc:{prefix}-11-{random_suffix}")
-
-        return minted_nmdc_ids
+    def translator(self, test_minter):
+        return NeonBenthicDataTranslator(benthic_data=benthic_data,
+                                         site_code_mapping=site_code_mapping(),
+                                         neon_envo_mappings_file=neon_envo_mappings_file(),
+                                         neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
+                                         id_minter=test_minter
+                                        )
 
     def test_get_database(self, translator):
-        translator._id_minter = self.mock_minter
         database = translator.get_database()
 
         # verify lengths of all collections in database

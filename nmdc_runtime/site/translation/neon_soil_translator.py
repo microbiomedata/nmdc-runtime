@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import Union, List
+from typing import List
 
 import pandas as pd
 
@@ -20,7 +20,15 @@ from nmdc_runtime.site.translation.neon_utils import (
 
 
 class NeonSoilDataTranslator(Translator):
-    def __init__(self, mms_data: dict, sls_data: dict, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        mms_data: dict,
+        sls_data: dict,
+        neon_envo_mappings_file: pd.DataFrame,
+        neon_raw_data_file_mappings_file: pd.DataFrame,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
@@ -82,16 +90,11 @@ class NeonSoilDataTranslator(Translator):
                 f"You are missing one of the soil periodic tables: {neon_sls_data_tables}"
             )
 
-        neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
-        neon_envo_terms.to_sql(
+        neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        self.neon_raw_data_file_mappings_df = pd.read_csv(
-            neon_raw_data_file_mappings_file, delimiter="\t"
-        )
+        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
