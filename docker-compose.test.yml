@@ -95,8 +95,6 @@ services:
     container_name: test
     env_file:
       - .env.test
-    profiles:
-      - donotstart
     depends_on:
       - mongo
       - fastapi
