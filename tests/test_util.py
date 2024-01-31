@@ -34,6 +34,10 @@ nmdc_jsonschema_validator = fastjsonschema.compile(
 )
 
 
+
+
+
+
 # @pytest.mark.skip(reason="Skipping failed tests to restore automated pipeline")
 def test_nmdc_jsonschema_using_new_id_scheme():
     # nmdc_database_collection_instance_class_names
