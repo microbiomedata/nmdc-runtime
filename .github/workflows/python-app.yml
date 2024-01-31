@@ -38,5 +38,5 @@ jobs:
 #        make lint
     - name: Test with pytest
       run: |
-#        make up-test
+        make up-test
         make test
