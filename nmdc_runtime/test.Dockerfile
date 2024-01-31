@@ -34,4 +34,6 @@ RUN chmod +x wait-for-it.sh
 # Best practices: Prepare for C crashes.
 ENV PYTHONFAULTHANDLER=1
 
-ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]
+# disable stop after first failure to run all tests
+ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest"]
+#ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "-x"]
