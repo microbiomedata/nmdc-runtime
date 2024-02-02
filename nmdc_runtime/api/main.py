@@ -17,6 +17,7 @@ from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse
 
 from nmdc_runtime.api.analytics import Analytics
+from nmdc_runtime.api.models.agent import Privilege
 from nmdc_runtime.util import (
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
@@ -387,11 +388,33 @@ def ensure_default_api_perms():
         db["_runtime.api.allow"].create_index("action")
 
 
+def ensure_builtin_roles_and_privileges():
+    db = get_mongo_db()
+    privileges = [
+        Privilege(re="/users", actions=["create"]),
+        Privilege(re="/jobs", actions=["create", "read"]),
+        Privilege(re="/objects", actions=["create"]),
+        Privilege(re="/objects", actions=["update"]),
+        Privilege(re="/queries", actions=["read"]),
+        Privilege(re="/queries", actions=["update"]),
+        Privilege(re="/queries", actions=["delete"]),
+        Privilege(re="/metadata", actions=["create", "update"]),
+        Privilege(re="/runs", actions=["create"]),
+        Privilege(re="/v1/workflows/activities", actions=["create"]),
+        Privilege(re="/pids", actions=["create", "read"]),
+        Privilege(re="/pids", actions=["update", "delete"]),
+    ]
+    for p in privileges:
+        doc = p.model_dump()
+        db["roles"].replace_one(doc, doc, upsert=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
+    ensure_builtin_roles_and_privileges()
     yield
 
 
