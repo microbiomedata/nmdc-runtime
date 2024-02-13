@@ -1,10 +1,13 @@
-import random
-import string
+from io import StringIO
 import pytest
 from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
-from nmdc_runtime.site.translation.neon_utils import (_create_controlled_identified_term_value, _create_controlled_term_value, _create_timestamp_value, _get_value_or_none)
+from nmdc_runtime.site.translation.neon_utils import (
+    _create_controlled_identified_term_value,
+    _create_controlled_term_value,
+    _create_timestamp_value,
+    _get_value_or_none,
+)
 import pandas as pd
-import requests
 
 # Mock data for testing
 mms_data = {
@@ -775,35 +778,42 @@ sls_data = {
     ),
 }
 
+def neon_envo_mappings_file():
+    tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
+deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
+
+    return pd.read_csv(StringIO(tsv_data), delimiter="\t")
+
+
+def neon_raw_data_file_mappings_file():
+    tsv_data_dna = """dnaSampleID\tsequencerRunID\tinternalLabID\trawDataFileName\trawDataFileDescription\trawDataFilePath\tcheckSum
+BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661_R1.fastq.gz\tR1 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HVT2HBGXJ_mms_R1/BMI_HVT2HBGXJ_20S_08_0661_R1.fastq.gz\t8b5794e91b1e79e02f1a3e7ef53a73b3
+BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661_R2.fastq.gz\tR2 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HVT2HBGXJ_mms_R2/BMI_HVT2HBGXJ_20S_08_0661_R2.fastq.gz\t44dc66147143a6eb1e806defa7f3706e"""
+
+    return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
+
 
 class TestNeonDataTranslator:
     @pytest.fixture
-    def translator(self):
-        return NeonSoilDataTranslator(mms_data, sls_data)
+    def translator(self, test_minter):
+        return NeonSoilDataTranslator(mms_data=mms_data, 
+                                      sls_data=sls_data, 
+                                      neon_envo_mappings_file=neon_envo_mappings_file(), 
+                                      neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(), 
+                                      id_minter=test_minter
+                                    )
 
-    def test_missing_mms_table(self):
+    def test_missing_mms_table(self, test_minter):
         # Test behavior when mms data is missing a table
         with pytest.raises(
             ValueError, match="missing one of the metagenomic microbe soil tables"
         ):
-            NeonSoilDataTranslator({}, sls_data)
+            NeonSoilDataTranslator({}, sls_data, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
 
-    def test_missing_sls_table(self):
+    def test_missing_sls_table(self, test_minter):
         # Test behavior when sls data is missing a table
         with pytest.raises(ValueError, match="missing one of the soil periodic tables"):
-            NeonSoilDataTranslator(mms_data, {})
-
-    def test_neon_envo_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        )
-        assert response.status_code == 200
-
-    def test_neon_raw_data_file_mappings_download(self):
-        response = requests.get(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        )
-        assert response.status_code == 200
+            NeonSoilDataTranslator(mms_data, {}, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
 
     def test_get_value_or_none(self):
         # use one biosample record to test this method
@@ -819,15 +829,11 @@ class TestNeonDataTranslator:
 
         # specific handler for depth slot
         expected_minimum_depth = 0.0
-        actual_minimum_depth = _get_value_or_none(
-            test_biosample, "sampleTopDepth"
-        )
+        actual_minimum_depth = _get_value_or_none(test_biosample, "sampleTopDepth")
         assert expected_minimum_depth == actual_minimum_depth
 
         expected_maximum_depth = 0.295
-        actual_maximum_depth = _get_value_or_none(
-            test_biosample, "sampleBottomDepth"
-        )
+        actual_maximum_depth = _get_value_or_none(test_biosample, "sampleBottomDepth")
         assert expected_maximum_depth == actual_maximum_depth
 
         expected_sample_id = "BLAN_005-M-8-0-20200713"
@@ -854,36 +860,7 @@ class TestNeonDataTranslator:
         collect_date = _create_timestamp_value("2020-07-13T14:34Z")
         assert collect_date.has_raw_value == "2020-07-13T14:34Z"
 
-    def mock_minter(self, nmdc_data_type, count):
-        minted_nmdc_ids = []
-
-        if nmdc_data_type == "nmdc:Biosample":
-            prefix = "bsm"
-        elif nmdc_data_type == "nmdc:Pooling":
-            prefix = "poolp"
-        elif nmdc_data_type == "nmdc:Extraction":
-            prefix = "extrp"
-        elif nmdc_data_type == "nmdc:LibraryPreparation":
-            prefix = "libprp"
-        elif nmdc_data_type == "nmdc:ProcessedSample":
-            prefix = "procsm"
-        elif nmdc_data_type == "nmdc:OmicsProcessing":
-            prefix = "omprc"
-        elif nmdc_data_type == "nmdc:DataObject":
-            prefix = "dobj"
-        else:
-            raise ValueError(f"Invalid NMDC data type: `{nmdc_data_type}`")
-
-        for _ in range(count):
-            random_suffix = "".join(
-                random.choices(string.ascii_lowercase + string.digits, k=8)
-            )
-            minted_nmdc_ids.append(f"nmdc:{prefix}-11-{random_suffix}")
-
-        return minted_nmdc_ids
-
     def test_get_database(self, translator):
-        translator._id_minter = self.mock_minter
         database = translator.get_database()
 
         # verify lengths of all collections in database

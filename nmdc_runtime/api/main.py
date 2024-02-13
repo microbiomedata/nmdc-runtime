@@ -1,19 +1,27 @@
 import os
+import re
 from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
+from typing import Annotated
 
 import fastapi
+import requests
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 from setuptools_scm import get_version
 from starlette import status
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, HTMLResponse
 
 from nmdc_runtime.api.analytics import Analytics
-from nmdc_runtime.util import all_docs_have_unique_id, ensure_unique_id_indexes
-from nmdc_runtime.api.core.auth import get_password_hash
+from nmdc_runtime.util import (
+    ensure_unique_id_indexes,
+    REPO_ROOT_DIR,
+)
+from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -208,11 +216,70 @@ issue an update query).
     },
     {
         "name": "metadata",
-        "description": "Tools for metadata validation and registration/submission.",
+        "description": """
+The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from 
+collection set types (including [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
+[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
+[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
+[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html)).<br/>
+ 
+The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various GET endpoints 
+that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__  endpoints, 
+parameters for the __metadata__ endpoints that do not have a red ___* required___ next to them are optional. <br/>
+
+Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of the metadata endpoints 
+uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/). 
+The applicable parameters of the __metadata__ endpoints, with acceptable syntax and examples, are in the table below.
+
+<details>
+<summary>More Details</summary>
+
+| Parameter | Description | Syntax | Example |
+| :---: | :-----------: | :-------: | :---: | 
+| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/) of the NMDC Schema | String | `biosample_set` |
+| filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | [MongoDB-like query language](https://www.mongodb.com/docs/manual/tutorial/query-documents/). All strings should be in double quotation marks. | `{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}` | 
+| max_page_size | Specifies the maximum number of documents returned at a time | Integer | `25`
+| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. ![next_page_token](../_static/images/howto_guides/api_gui/metadata_page_token_param.png) | String | `nmdc:sys0ae1sh583`
+| projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
+| doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
+<br/>
+</details>        
+        """,
     },
     {
         "name": "find",
-        "description": "Find NMDC metadata entities.",
+        "description": """
+The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with 
+NMDC metadata entities already specified - where metadata about [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
+[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
+[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
+[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html) can be retrieved using GET requests. 
+
+Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query in a meaningful way. 
+Please note that endpoints with parameters that do not have a red ___* required___ label next to them are optional.<br/>
+
+The applicable parameters of the ___find___ endpoints, with acceptable syntax and examples, are in the table below.
+
+<details><summary>More Details</summary>
+
+| Parameter | Description | Syntax | Example |
+| :---: | :-----------: | :-------: | :---: |
+| filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | Comma separated string of attribute:value pairs. Can include comparison operators like >=, <=, <, and >. May use a `.search` after the attribute name to conduct a full text search of the field that are of type string. e.g. `attribute:value,attribute.search:value` | `ecosystem_category:Plants, lat_lon.latitude:>35.0` |
+| search | Not yet implemented | Coming Soon | Not yet implemented |
+| sort | Specifies the order in which the query returns the matching documents | Comma separated string of attribute:value pairs, where the value can be empty, `asc`, or `desc` (for ascending or descending order) e.g. `attribute` or `attribute:asc` or `attribute:desc`| `depth.has_numeric_value:desc, ecosystem_type` |
+| page | Specifies the desired page number among the paginated results | Integer | `3` |
+| per_page | Specifies the number of results returned per page. Maximum allowed is 2,000 | Integer | `50` |
+| cursor | A bookmark for where a query can pick up where it has left off. To use cursor paging, set the `cursor` parameter to `*`. The results will include a `next_cursor` value in the response's `meta` object that can be used in the `cursor` parameter to retrieve the subsequent results ![next_cursor](../_static/images/howto_guides/api_gui/find_cursor.png) | String | `*` or `nmdc:sys0zr0fbt71` |
+| group_by | Not yet implemented | Coming Soon | Not yet implemented |
+| fields | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ess_dive_datasets` |
+| study_id | The unique identifier of a study | Curie e.g. `prefix:identifier` | `nmdc:sty-11-34xj1150` |
+| sample_id | The unique identifier of a biosample | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-w43vsm21` |
+| data_object_id | The unique identifier of a data object | Curie e.g. `prefix:identifier` | `nmdc:dobj-11-7c6np651` |
+| activity_id | The unique identifier for an NMDC workflow execution activity | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|<br/>
+<br/>
+</details>
+
+""",
     },
     {
         "name": "runs",
@@ -356,10 +423,17 @@ app = FastAPI(
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
-        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>"
+        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
+        '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
+        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
+        "&response_type=code&scope=openid&"
+        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
+        " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
+        " in the below-right 'Authorized' button.)"
     ),
     openapi_tags=tags_metadata,
     lifespan=lifespan,
+    docs_url=None,
 )
 app.include_router(api_router)
 
@@ -372,6 +446,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(Analytics)
+app.mount(
+    "/static",
+    StaticFiles(directory=REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")),
+    name="static",
+)
+
+
+@app.get("/docs", include_in_schema=False)
+def custom_swagger_ui_html(
+    user_id_token: Annotated[str | None, Cookie()] = None,
+):
+    access_token = None
+    if user_id_token:
+        # get bearer token
+        rv = requests.post(
+            url=f"{BASE_URL_EXTERNAL}/token",
+            data={
+                "client_id": user_id_token,
+                "client_secret": "",
+                "grant_type": "client_credentials",
+            },
+            headers={
+                "Content-type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+        )
+        if rv.status_code != 200:
+            rv.reason = rv.text
+            rv.raise_for_status()
+        access_token = rv.json()["access_token"]
+
+    swagger_ui_parameters = {"withCredentials": True}
+    if access_token is not None:
+        swagger_ui_parameters.update(
+            {
+                "onComplete": f"""<unquote-safe>() => {{ ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>) }}</unquote-safe>""",
+            }
+        )
+    response = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title,
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+        swagger_ui_parameters=swagger_ui_parameters,
+    )
+    content = (
+        response.body.decode()
+        .replace('"<unquote-safe>', "")
+        .replace('</unquote-safe>"', "")
+        .replace("<double-quote>", '"')
+        .replace("</double-quote>", '"')
+    )
+    return HTMLResponse(content=content)
 
 
 if __name__ == "__main__":

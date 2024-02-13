@@ -2,13 +2,20 @@ import re
 import sqlite3
 
 import pandas as pd
-import requests
 import requests_cache
 
 from nmdc_schema import nmdc
 from nmdc_runtime.site.translation.translator import Translator
 from nmdc_runtime.site.util import get_basename
-from nmdc_runtime.site.translation.neon_utils import _get_value_or_none, _create_controlled_identified_term_value, _create_controlled_term_value, _create_geolocation_value, _create_quantity_value, _create_timestamp_value, _create_text_value
+from nmdc_runtime.site.translation.neon_utils import (
+    _get_value_or_none,
+    _create_controlled_identified_term_value,
+    _create_controlled_term_value,
+    _create_geolocation_value,
+    _create_quantity_value,
+    _create_timestamp_value,
+    _create_text_value,
+)
 
 
 BENTHIC_BROAD_SCALE_MAPPINGS = {
@@ -34,7 +41,15 @@ BENTHIC_ENV_MEDIUM_MAPPINGS = {
 
 
 class NeonBenthicDataTranslator(Translator):
-    def __init__(self, benthic_data: dict, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        benthic_data: dict,
+        site_code_mapping: dict,
+        neon_envo_mappings_file: pd.DataFrame,
+        neon_raw_data_file_mappings_file: pd.DataFrame,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
@@ -67,29 +82,16 @@ class NeonBenthicDataTranslator(Translator):
                 f"You are missing one of the aquatic benthic microbiome tables: {neon_amb_data_tables}"
             )
 
-        neon_envo_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv"
-        neon_envo_terms = pd.read_csv(neon_envo_mappings_file, delimiter="\t")
-        neon_envo_terms.to_sql(
+        neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        self.neon_raw_data_file_mappings_df = pd.read_csv(
-            neon_raw_data_file_mappings_file, delimiter="\t"
-        )
+        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
 
-    def get_site_by_code(self, site_code: str) -> str:
-        site_response = requests.get(
-            f"https://data.neonscience.org/api/v0/sites/{site_code}"
-        )
-        if site_response.status_code == 200:
-            site_response = site_response.json()
-            return f"USA: {site_response['data']['stateName']}, {site_response['data']['siteName']}".replace(
-                " NEON", ""
-            )
+        self.site_code_mapping = site_code_mapping
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
@@ -134,7 +136,7 @@ class NeonBenthicDataTranslator(Translator):
                 biosample_row["fieldSampleVolume"].values[0], "mL"
             ),
             geo_loc_name=_create_text_value(
-                self.get_site_by_code(biosample_row["siteID"].values[0])
+                self.site_code_mapping[biosample_row["siteID"].values[0]]
                 if biosample_row["siteID"].values[0]
                 else None
             ),
@@ -210,9 +212,7 @@ class NeonBenthicDataTranslator(Translator):
         :return: Object that using LibraryPreparation process model.
         """
         processing_institution = None
-        laboratory_name = _get_value_or_none(
-            library_preparation_row, "laboratoryName"
-        )
+        laboratory_name = _get_value_or_none(library_preparation_row, "laboratoryName")
         if laboratory_name is not None:
             if re.search("Battelle", laboratory_name, re.IGNORECASE):
                 processing_institution = "Battelle"
@@ -263,9 +263,7 @@ class NeonBenthicDataTranslator(Translator):
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(
-                omics_processing_row, "ncbiProjectID"
-            ),
+            ncbi_project_name=_get_value_or_none(omics_processing_row, "ncbiProjectID"),
             omics_type=_create_controlled_term_value(
                 omics_processing_row["investigation_type"].values[0]
             ),
@@ -434,9 +432,7 @@ class NeonBenthicDataTranslator(Translator):
         )
 
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
-            biosample_row = benthic_samples[
-                benthic_samples["sampleID"] == neon_id
-            ]
+            biosample_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
 
             database.biosample_set.append(
                 self._translate_biosample(neon_id, nmdc_id, biosample_row)
@@ -458,7 +454,9 @@ class NeonBenthicDataTranslator(Translator):
                     )
                 )
 
-                genomics_sample_id = _get_value_or_none(extraction_row, "genomicsSampleID")
+                genomics_sample_id = _get_value_or_none(
+                    extraction_row, "genomicsSampleID"
+                )
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(

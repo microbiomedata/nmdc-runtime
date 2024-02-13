@@ -166,3 +166,6 @@ neon_cache.sqlite
 nmdc_runtime/site/changesheets/changesheets_output/
 
 mdb-nmdc-dev.tar.gz
+
+# superceded by .github/workflows/build-and-release-to-spin.yml
+docker-build.sh
