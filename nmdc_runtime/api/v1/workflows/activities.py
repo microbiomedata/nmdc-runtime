@@ -2,17 +2,16 @@
 import os
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import BulkWriteError
 from starlette import status
 
-from components.nmdc_runtime.workflow_execution_activity import (
-    ActivityService,
-    Database,
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    activity_collection_names,
 )
-from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.site.resources import MongoDB
 from nmdc_runtime.util import validate_json
@@ -45,9 +44,9 @@ async def post_activity(
     """
     _ = site  # must be authenticated
     try:
-        if "activity_set" not in activity_set:
-            raise ValueError("need to supply `activity_set`")
-        activity_set = {"activity_set": activity_set["activity_set"]}
+        for collection_name in activity_set:
+            if collection_name not in activity_collection_names(mdb):
+                raise ValueError("keys must be nmdc-schema activity collection names`")
         rv = validate_json(activity_set, mdb)
         if rv["result"] == "errors":
             raise HTTPException(
