@@ -21,8 +21,8 @@ router = APIRouter(
 )
 
 
-# async def job_to_db(job_spec: dict[str, Any], mdb: AsyncIOMotorDatabase) -> None:
-#     return await mdb["jobs"].insert_one(job_spec)
+async def job_to_db(job_spec: dict[str, Any], mdb: AsyncIOMotorDatabase) -> None:
+    return await mdb["jobs"].insert_one(job_spec)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -31,16 +31,17 @@ async def post_activity(
     site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ) -> dict[str, str]:
-    """Post activity set to database and claim job.
-
-    Parameters
+    """
+    **NOTE: This endpoint is DEPRECATED. Please migrate to `~/workflows/activities`.**
     ----------
-    activity_set : dict[str,Any]
+    The `v1/workflows/activities` endpoint will be removed in an upcoming release.
+    --
+    Post activity set to database and claim job.
+
+    Parameters: activity_set: dict[str,Any]
         Set of activities for specific workflows.
 
-    Returns
-    -------
-    dict[str,str]
+    Returns: dict[str,str]
     """
     _ = site  # must be authenticated
     try:

@@ -61,6 +61,21 @@ async def post_activity(
     site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    Please migrate all workflows from `v1/workflows/activities` to this endpoint.
+    -------
+    Post activity set to database and claim job.
+
+    Parameters
+    -------
+    activity_set: dict[str,Any]
+             Set of activities for specific workflows.
+
+    Returns
+    -------
+    dict[str,str]
+
+    """
     _ = site  # must be authenticated
     try:
         # verify activities in activity_set are nmdc-schema compliant
