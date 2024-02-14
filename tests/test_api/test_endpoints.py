@@ -228,3 +228,46 @@ def test_submit_changesheet():
     )
     mdb.objects.delete_one({"id": drs_obj_doc["id"]})
     assert True
+
+
+def test_submit_workflow_activities(api_site_client):
+    test_collection, test_id = (
+        "read_qc_analysis_activity_set",
+        "nmdc:wfrqc-11-t0tvnp52.2",
+    )
+    test_payload = {
+        test_collection: [
+            {
+                "id": test_id,
+                "name": "Read QC Activity for nmdc:wfrqc-11-t0tvnp52.1",
+                "started_at_time": "2024-01-11T20:48:30.718133+00:00",
+                "ended_at_time": "2024-01-11T21:11:44.884260+00:00",
+                "was_informed_by": "nmdc:omprc-11-9mvz7z22",
+                "execution_resource": "NERSC-Perlmutter",
+                "git_url": "https://github.com/microbiomedata/ReadsQC",
+                "has_input": ["nmdc:dobj-11-gpthnj64"],
+                "has_output": [
+                    "nmdc:dobj-11-w5dak635",
+                    "nmdc:dobj-11-g6d71n77",
+                    "nmdc:dobj-11-bds7qq03",
+                ],
+                "type": "nmdc:ReadQcAnalysisActivity",
+                "part_of": ["nmdc:omprc-11-9mvz7z22"],
+                "version": "v1.0.8",
+            }
+        ]
+    }
+    mdb = get_mongo_db()
+    if doc_to_restore := mdb[test_collection].find_one({"id": test_id}):
+        mdb[test_collection].delete_one({"id": test_id})
+    rv = api_site_client.request(
+        "POST",
+        "/v1/workflows/activities",
+        test_payload,
+    )
+    assert rv.json() == {"message": "jobs accepted"}
+    rv = api_site_client.request("GET", f"/nmdcschema/ids/{test_id}")
+    mdb[test_collection].delete_one({"id": test_id})
+    if doc_to_restore:
+        mdb[test_collection].insert_one(doc_to_restore)
+    assert "id" in rv.json() and "input_read_count" not in rv.json()
