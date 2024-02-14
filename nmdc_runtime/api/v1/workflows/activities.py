@@ -21,8 +21,8 @@ router = APIRouter(
 )
 
 
-async def job_to_db(job_spec: dict[str, Any], mdb: AsyncIOMotorDatabase) -> None:
-    return await mdb["jobs"].insert_one(job_spec)
+# async def job_to_db(job_spec: dict[str, Any], mdb: AsyncIOMotorDatabase) -> None:
+#     return await mdb["jobs"].insert_one(job_spec)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -44,15 +44,18 @@ async def post_activity(
     """
     _ = site  # must be authenticated
     try:
+        # verify activities in activity_set are nmdc-schema compliant
         for collection_name in activity_set:
             if collection_name not in activity_collection_names(mdb):
                 raise ValueError("keys must be nmdc-schema activity collection names`")
+        # validate request JSON
         rv = validate_json(activity_set, mdb)
         if rv["result"] == "errors":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=str(rv),
             )
+        # create mongodb instance for dagster
         mongo_resource = MongoDB(
             host=os.getenv("MONGO_HOST"),
             dbname=os.getenv("MONGO_DBNAME"),
