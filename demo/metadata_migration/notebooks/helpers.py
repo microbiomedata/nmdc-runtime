@@ -1,9 +1,13 @@
 from pathlib import Path
 import re
 from typing import Dict
+from enum import StrEnum
+from datetime import datetime
 
 from dotenv import dotenv_values
 import yaml
+from pymongo import MongoClient
+from nmdc_schema.migrators.migrator_base import MigratorBase
 
 
 class Config:
@@ -113,3 +117,59 @@ class Config:
         )
         self.origin_mongo_server_uri = origin_mongo_server_config["uri"]
         self.transformer_mongo_server_uri = transformer_mongo_server_config["uri"]
+
+
+class MigrationStatus(StrEnum):
+    r"""
+    Enumeration of all possible migration statuses that can be recorded.
+    Reference: https://docs.python.org/3/library/enum.html#enum.StrEnum
+    """
+    IN_PROGRESS = 'IN_PROGRESS'
+    DONE = 'DONE'
+
+
+class Bookkeeper:
+    def __init__(self, mongo_client: MongoClient):
+        r"""Initialize a bookkeeper that can use the specified Mongo client."""
+        self.database = "nmdc"
+        self.collection_name = "_migration_history"
+        self.view_name = "_migration_current_schema_version"
+
+        # Store references to the database and collection.
+        self.db = mongo_client[self.database]
+        self.collection = self.db.get_collection(self.collection_name)
+
+    @staticmethod
+    def get_current_timestamp() -> str:
+        r"""Returns an ISO 8601 timestamp (string) representing the current time in UTC."""
+        utc_now = datetime.utcnow()
+        iso_utc_now = utc_now.isoformat()
+        return iso_utc_now
+
+    def record_migration_status(self, migrator: MigratorBase, migration_status: MigrationStatus):
+        r"""Records a migration status (along with some metadata) in the collection."""
+        document = dict(
+            from_schema_version=migrator.get_origin_version(),
+            to_schema_version=migrator.get_destination_version(),
+            migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
+            migration_status=migration_status,
+            recorded_at=self.get_current_timestamp(),
+        )
+        self.collection.insert_one(document)
+
+    def ensure_current_schema_version_view_exists(self):
+        r"""
+        Ensures the MongoDB view that indicates the current schema version, exists.
+
+        References:
+        - https://www.mongodb.com/community/forums/t/is-there-anyway-to-create-view-using-python/161363/2
+        - https://www.mongodb.com/docs/manual/reference/method/db.createView/#mongodb-method-db.createView
+        - https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.create_collection
+        """
+        if self.view_name not in self.db.list_collection_names():  # also lists views
+            agg_pipeline = [{'$sort': {'recorded_at': -1}}, {'$limit': 1}]  # get document having the latest timestamp
+            self.db.create_collection(name=self.view_name,
+                                      viewOn=self.collection_name,
+                                      pipeline=agg_pipeline,
+                                      check_exists=True,  # only create the view if it doesn't already exist
+                                      comment="The most recent migration status record.")
