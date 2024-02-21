@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 from typing import Dict
-from enum import StrEnum
+from enum import Enum
 from datetime import datetime
 
 from dotenv import dotenv_values
@@ -119,10 +119,15 @@ class Config:
         self.transformer_mongo_server_uri = transformer_mongo_server_config["uri"]
 
 
-class MigrationEvent(StrEnum):
+class MigrationEvent(str, Enum):
     r"""
     Enumeration of all migration events that can be recorded.
-    Reference: https://docs.python.org/3/library/enum.html#enum.StrEnum
+    Reference: https://docs.python.org/3.10/library/enum.html#others
+
+    >>> MigrationEvent.MIGRATION_COMPLETED.value
+    'MIGRATION_COMPLETED'
+    >>> MigrationEvent.MIGRATION_STARTED.value
+    'MIGRATION_STARTED'
     """
     MIGRATION_STARTED = 'MIGRATION_STARTED'
     MIGRATION_COMPLETED = 'MIGRATION_COMPLETED'
@@ -166,7 +171,7 @@ class Bookkeeper:
         """
         document = dict(
             created_at=self.get_current_timestamp(),
-            event=event,
+            event=event.value,
             from_schema_version=migrator.get_origin_version(),
             to_schema_version=to_schema_version,
             migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
@@ -195,7 +200,7 @@ class Bookkeeper:
                         '_id': 0,  # omit the `_id` field
                         'schema_version': {  # add this field based upon the migration status
                             '$cond': {
-                                'if': {'$eq': ['$event', MigrationEvent.MIGRATION_COMPLETED]},
+                                'if': {'$eq': ['$event', MigrationEvent.MIGRATION_COMPLETED.value]},
                                 'then': '$to_schema_version',  # database conforms to this version of the NMDC Schema
                                 'else': None,  # database doesn't necessarily conform to any version of the NMDC Schema
                             }
