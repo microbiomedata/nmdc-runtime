@@ -158,7 +158,7 @@ class Bookkeeper:
         r"""Returns an ISO 8601 timestamp (string) representing the current time in UTC."""
         utc_now = datetime.utcnow()
         iso_utc_now = utc_now.isoformat()
-        return iso_utc_now
+        return iso_utc_now  # e.g. "2024-02-21T04:31:03.115107"
 
     def record_migration_event(self, migrator: MigratorBase, to_schema_version: str, event: MigrationEvent) -> None:
         r"""
