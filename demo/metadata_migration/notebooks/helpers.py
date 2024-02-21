@@ -133,7 +133,7 @@ class Bookkeeper:
             self,
             mongo_client: MongoClient,
             database_name: str = "nmdc",
-            collection_name: str = "_migration_log",
+            collection_name: str = "_migration_events",
             view_name: str = "_migration_latest_schema_version",
     ):
         r"""Initialize a bookkeeper, which you can use to record migration-related events in a MongoDB database."""
