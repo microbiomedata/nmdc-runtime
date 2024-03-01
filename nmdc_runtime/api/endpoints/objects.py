@@ -107,6 +107,7 @@ def get_object_info(
     """
     Resolution strategy:
 
+    0. if object_id == 'nmdc', go to <https://microbiomedata.github.io/nmdc-schema/>.
     1. if object_id.startswith("sty"): # nmdc:Study typecode
         then try https://data.microbiomedata.org/details/study/nmdc:{object_id}
     2. if object_id.startswith("bsm"): # nmdc:Biosample typecode
@@ -116,6 +117,11 @@ def get_object_info(
     4. try https://microbiomedata.github.io/nmdc-schema/{object_id}
     5. try mdb.objects.find_one({"id": object_id})
     """
+    if object_id == "nmdc":
+        return RedirectResponse(
+            "https://microbiomedata.github.io/nmdc-schema",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        )
     if object_id.startswith("sty"):
         url_to_try = f"https://data.microbiomedata.org/api/study/nmdc:{object_id}"
         rv = requests.get(
