@@ -1,6 +1,7 @@
 from typing import Optional
 import unittest
 import re
+import os
 from datetime import datetime, timedelta
 
 from pymongo import MongoClient, timeout
@@ -9,12 +10,11 @@ from nmdc_schema.migrators.migrator_base import MigratorBase
 
 from demo.metadata_migration.notebooks.bookkeeper import Bookkeeper, MigrationEvent
 
-# Define constants.
-# TODO: Move these to an environment configuration file.
-MONGO_HOST: str = "localhost"  # or `host.docker.internal`
-MONGO_PORT: int = 27017
-MONGO_USER: Optional[str] = None
-MONGO_PASS: Optional[str] = None
+# Consume environment variables.
+MONGO_HOST: Optional[str] = os.getenv("MONGO_HOST", "localhost")
+MONGO_USER: Optional[str] = os.getenv("MONGO_USERNAME", None)
+MONGO_PASS: Optional[str] = os.getenv("MONGO_PASSWORD", None)
+
 MONGO_DATABASE_NAME: str = "test-migration-bookkeeper"
 MONGO_TIMEOUT_DURATION: int = 3  # seconds
 
@@ -59,10 +59,8 @@ class TestBookkeeper(unittest.TestCase):
         # Connect to the MongoDB server and store a reference to the connection.
         self.mongo_client = MongoClient(
             host=MONGO_HOST,
-            port=MONGO_PORT,
             username=MONGO_USER,
             password=MONGO_PASS,
-            authSource="admin",
         )
         with timeout(MONGO_TIMEOUT_DURATION):
             # Try connecting to the database server.
