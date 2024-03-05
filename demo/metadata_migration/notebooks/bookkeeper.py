@@ -65,7 +65,7 @@ class Bookkeeper:
 
         # If a custom schema version identifier was specified, use that; otherwise, use the one built into the migrator.
         to_schema_version_str = migrator.get_destination_version()
-        if to_schema_version_str is not None:
+        if to_schema_version is not None:
             to_schema_version_str = to_schema_version
 
         document = dict(
