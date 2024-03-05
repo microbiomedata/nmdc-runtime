@@ -1,6 +1,7 @@
 """
 Validates data in the EMSL collection in the nmdc_etl_staging database.
 """
+
 from dagster import op, graph
 from nmdc_runtime.site.validation.util import (
     preset_prod,

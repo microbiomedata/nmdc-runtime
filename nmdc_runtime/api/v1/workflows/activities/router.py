@@ -1,4 +1,5 @@
 """Under embargo due to E999 SyntaxError"""
+
 # """Module"""
 # from fastapi import APIRouter, Depends, HTTPException
 # from nmdc_runtime.api.models.site import Site, get_current_client_site

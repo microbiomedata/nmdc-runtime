@@ -1,6 +1,7 @@
 """
 Validates data in the JGI collection in the nmdc_etl_staging database.
 """
+
 from dagster import op, graph
 
 from nmdc_runtime.site.ops import local_file_to_api_object

@@ -160,11 +160,11 @@ class NeonSoilDataTranslator(Translator):
                 biosample_row["CNratio"].values[0], None
             ),
             ph=_create_double_value(biosample_row["soilInWaterpH"].values[0]),
-            water_content=[
-                f"{biosample_row['soilMoisture'].values[0]} g of water/g of dry soil"
-            ]
-            if not biosample_row["soilMoisture"].isna().any()
-            else None,
+            water_content=(
+                [f"{biosample_row['soilMoisture'].values[0]} g of water/g of dry soil"]
+                if not biosample_row["soilMoisture"].isna().any()
+                else None
+            ),
             ammonium_nitrogen=_create_quantity_value(
                 biosample_row["kclAmmoniumNConc"].values[0], "mg/L"
             ),
