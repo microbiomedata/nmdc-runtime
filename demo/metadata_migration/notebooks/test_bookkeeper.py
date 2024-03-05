@@ -20,8 +20,8 @@ MONGO_TIMEOUT_DURATION: int = 3  # seconds
 
 
 class FakeMigrator(MigratorBase):
-    _to_version = "A.B.C.test"
-    _from_version = "X.Y.Z.test"
+    _to_version = "A.B.C"
+    _from_version = "X.Y.Z"
 
     def upgrade(self):
         pass
@@ -168,6 +168,16 @@ class TestBookkeeper(unittest.TestCase):
         self.assertTrue(view.count_documents({}) == 1)
         view_doc = view.find({})[0]
         self.assertEqual(view_doc["schema_version"], migrator.get_destination_version())
+
+        # Finally, record another "migration started" event.
+        bk.record_migration_event(
+            migrator=migrator, event=MigrationEvent.MIGRATION_STARTED
+        )
+
+        # Confirm the document in the view once again says the schema version is `null`.
+        self.assertTrue(view.count_documents({}) == 1)
+        view_doc = view.find({})[0]
+        self.assertIsNone(view_doc["schema_version"])
 
 
 if __name__ == "__main__":
