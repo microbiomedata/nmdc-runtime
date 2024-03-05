@@ -1,6 +1,6 @@
 from pathlib import Path
 import re
-from typing import Dict
+from typing import Dict, Optional
 from enum import Enum
 from datetime import datetime
 
@@ -160,20 +160,25 @@ class Bookkeeper:
         iso_utc_now = utc_now.isoformat()
         return iso_utc_now  # e.g. "2024-02-21T04:31:03.115107"
 
-    def record_migration_event(self, migrator: MigratorBase, to_schema_version: str, event: MigrationEvent) -> None:
+    def record_migration_event(
+        self, migrator: MigratorBase,
+        event: MigrationEvent,
+        to_schema_version: Optional[str] = None
+    ) -> None:
         r"""
         Records a migration event in the collection.
 
         The `to_schema_version` parameter is independent of the `migrator` parameter because, even though the migrator
         does have a `.get_destination_version()` method, the string returned by that method is the one defined when the
         migrator was _written_, which is sometimes more generic than the one used for data validation when the migrator
-        is _run_ (e.g. "1.2" as opposed to "1.2.3"). I think the latter value will make more sense to consumers.
+        is _run_ (e.g. "1.2" as opposed to "1.2.3"). So, this method provides a means by which the calling code can,
+        optionally, specify a more precise version identifier.
         """
         document = dict(
             created_at=self.get_current_timestamp(),
             event=event.value,
             from_schema_version=migrator.get_origin_version(),
-            to_schema_version=to_schema_version,
+            to_schema_version=migrator.get_destination_version() if to_schema_version is None else to_schema_version,
             migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
         )
         self.collection.insert_one(document)
