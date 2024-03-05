@@ -2,7 +2,7 @@ import unittest
 from tempfile import NamedTemporaryFile as TempFile, mkdtemp
 import shutil
 
-from .helpers import Config
+from demo.metadata_migration.notebooks.helpers import Config
 
 
 class TestConfig(unittest.TestCase):

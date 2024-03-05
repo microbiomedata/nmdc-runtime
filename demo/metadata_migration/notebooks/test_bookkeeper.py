@@ -7,11 +7,11 @@ from pymongo import MongoClient, timeout
 from pymongo.database import Database
 from nmdc_schema.migrators.migrator_base import MigratorBase
 
-from .bookkeeper import Bookkeeper, MigrationEvent
+from demo.metadata_migration.notebooks.bookkeeper import Bookkeeper, MigrationEvent
 
 # Define constants.
 # TODO: Move these to an environment configuration file.
-MONGO_HOST: str = "host.docker.internal"  # or `localhost`
+MONGO_HOST: str = "localhost"  # or `host.docker.internal`
 MONGO_PORT: int = 27017
 MONGO_USER: Optional[str] = None
 MONGO_PASS: Optional[str] = None

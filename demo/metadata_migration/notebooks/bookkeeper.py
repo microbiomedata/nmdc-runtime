@@ -21,6 +21,9 @@ class MigrationEvent(str, Enum):
 
 
 class Bookkeeper:
+    r"""
+    A class you can use to record migration-related events in a Mongo database.
+    """
     def __init__(
         self,
         mongo_client: MongoClient,
@@ -28,7 +31,6 @@ class Bookkeeper:
         collection_name: str = "_migration_events",
         view_name: str = "_migration_latest_schema_version",
     ):
-        r"""Initialize a bookkeeper, which you can use to record migration-related events in a MongoDB database."""
         self.database_name = database_name
         self.collection_name = collection_name
         self.view_name = view_name
