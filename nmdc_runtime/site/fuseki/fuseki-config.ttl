@@ -1,0 +1,32 @@
+@prefix :        <#> .
+@prefix fuseki:  <http://jena.apache.org/fuseki#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ja:      <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix tdb:     <http://jena.hpl.hp.com/2008/tdb#> .
+@prefix afn:     <http://jena.apache.org/ARQ/function#> .
+@prefix nmdc:   <http://w3id.org/nmdc/> .
+
+[] rdf:type fuseki:Server ;
+   fuseki:services (
+     <#nmdc>
+   ) .
+
+<#nmdc> rdf:type fuseki:Service ;
+    fuseki:name                       "nmdc" ;
+    fuseki:serviceQuery               "query" ;
+    fuseki:serviceQuery               "sparql" ;
+    fuseki:serviceUpdate              "update" ;
+    fuseki:serviceUpload              "upload" ;
+    fuseki:serviceReadWriteGraphStore "data" ;
+    fuseki:dataset                    <#dataset> .
+
+<#dataset> rdf:type tdb:DatasetTDB ; tdb:location "/fuseki-base/nmdc-db.tdb" .
+
+#<#dataset> rdf:type ja:RDFDataset ;
+#    ja:defaultGraph <#model> .
+#
+#<#model> rdf:type      ja:MemoryModel ;
+#        .
+#   ja:content [ja:externalContent <file:/fuseki-base/nmdc-db.ttl>] ;
+#   ja:content [ja:externalContent <file:/fuseki-base/nmdc-schema.owl>] .
