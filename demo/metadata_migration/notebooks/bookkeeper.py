@@ -62,13 +62,17 @@ class Bookkeeper:
         is _run_ (e.g. "1.2" as opposed to "1.2.3"). So, this method provides a means by which the calling code can,
         optionally, specify a more precise version identifier.
         """
+
+        # If a custom schema version identifier was specified, use that; otherwise, use the one built into the migrator.
+        to_schema_version_str = migrator.get_destination_version()
+        if to_schema_version_str is not None:
+            to_schema_version_str = to_schema_version
+
         document = dict(
             created_at=self.get_current_timestamp(),
             event=event.value,
             from_schema_version=migrator.get_origin_version(),
-            to_schema_version=migrator.get_destination_version()
-            if to_schema_version is None
-            else to_schema_version,
+            to_schema_version=to_schema_version_str,
             migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
         )
         self.collection.insert_one(document)
