@@ -1,4 +1,5 @@
 """Endpoints module."""
+
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Response, status

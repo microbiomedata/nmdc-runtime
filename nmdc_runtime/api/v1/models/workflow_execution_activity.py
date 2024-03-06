@@ -1,4 +1,5 @@
 """Beans."""
+
 from typing import List
 
 from nmdc_runtime.workflow_execution_activity import (

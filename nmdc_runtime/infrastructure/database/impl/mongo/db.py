@@ -1,6 +1,7 @@
 """
 Database initialization
 """
+
 import os
 
 from beanie import init_beanie
