@@ -14,7 +14,7 @@ from demo.metadata_migration.notebooks.bookkeeper import Bookkeeper, MigrationEv
 MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
 MONGO_USER: Optional[str] = os.getenv("MONGO_USERNAME", None)
 MONGO_PASS: Optional[str] = os.getenv("MONGO_PASSWORD", None)
-MONGO_DATABASE_NAME: str = os.getenv("MONGO_DBNAME", "test-migration-bookkeeper")
+MONGO_DATABASE_NAME: str = os.getenv("MONGO_TEST_DBNAME", "test-migration-bookkeeper")
 
 MONGO_TIMEOUT_DURATION: int = 3  # seconds
 
