@@ -1,3 +1,7 @@
+# Note: This modules name starts with `manual_test_` instead of `test_` to signify that its author (currently) expects
+#       people to run it manually as opposed to via automated test infrastructure. Its author chose that route after a
+#       GitHub Actions workflow that runs tests in `test_` modules kept failing due to a database access issue.
+
 from typing import Optional
 import unittest
 import re
@@ -32,7 +36,7 @@ class TestBookkeeper(unittest.TestCase):
     Tests targeting the `Bookkeeper` class.
 
     You can format this file like this:
-    $ python -m black demo/metadata_migration/notebooks/test_bookkeeper.py
+    $ python -m black demo/metadata_migration/notebooks/manual_test_bookkeeper.py
 
     You can start up a containerized MongoDB server like this:
     $ docker run --rm --detach --name mongo-test-migration-bookkeeper -p 27017:27017 mongo
@@ -41,7 +45,7 @@ class TestBookkeeper(unittest.TestCase):
     - host.docker.internal:27017
 
     You can run these tests like this:
-    $ python -m unittest -v demo/metadata_migration/notebooks/test_bookkeeper.py
+    $ python -m unittest -v demo/metadata_migration/notebooks/manual_test_bookkeeper.py
 
     Reference: https://docs.python.org/3/library/unittest.html#basic-example
     """
