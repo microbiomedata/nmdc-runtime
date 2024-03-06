@@ -1,4 +1,4 @@
-# Note: This modules name starts with `manual_test_` instead of `test_` to signify that its author (currently) expects
+# Note: This module's name starts with `manual_test_` instead of `test_` to signify that its author (currently) expects
 #       people to run it manually as opposed to via automated test infrastructure. Its author chose that route after a
 #       GitHub Actions workflow that runs tests in `test_` modules kept failing due to a database access issue.
 
