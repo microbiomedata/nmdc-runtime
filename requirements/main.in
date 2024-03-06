@@ -24,7 +24,7 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==10.1.1
+nmdc-schema==10.1.2
 openpyxl
 pandas
 passlib[bcrypt]
