@@ -14,7 +14,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from setuptools_scm import get_version
 from starlette import status
-from starlette.responses import RedirectResponse, HTMLResponse
+from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
@@ -453,6 +453,11 @@ app.mount(
 )
 
 
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("static/favicon.ico")
+
+
 @app.get("/docs", include_in_schema=False)
 def custom_swagger_ui_html(
     user_id_token: Annotated[str | None, Cookie()] = None,
@@ -490,6 +495,7 @@ def custom_swagger_ui_html(
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+        swagger_favicon_url="/static/favicon.ico",
         swagger_ui_parameters=swagger_ui_parameters,
     )
     content = (
