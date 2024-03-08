@@ -16,6 +16,7 @@ class MigrationEvent(str, Enum):
     >>> MigrationEvent.MIGRATION_STARTED.value
     'MIGRATION_STARTED'
     """
+
     MIGRATION_STARTED = "MIGRATION_STARTED"
     MIGRATION_COMPLETED = "MIGRATION_COMPLETED"
 
@@ -24,6 +25,7 @@ class Bookkeeper:
     r"""
     A class you can use to record migration-related events in a Mongo database.
     """
+
     def __init__(
         self,
         mongo_client: MongoClient,
