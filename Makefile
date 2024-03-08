@@ -29,8 +29,7 @@ up-test:
 		up --build --force-recreate --detach --remove-orphans
 
 test-build:
-	docker compose --file docker-compose.test.yml \
-		up test --build --force-recreate --detach --remove-orphans
+	docker compose --file docker-compose.test.yml build test
 
 test-dbinit:
 	docker compose --file docker-compose.test.yml \

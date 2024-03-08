@@ -169,3 +169,7 @@ mdb-nmdc-dev.tar.gz
 
 # superceded by .github/workflows/build-and-release-to-spin.yml
 docker-build.sh
+
+neon.db
+neon_api_cache.sqlite
+nmdc-db.nt.gz
