@@ -39,4 +39,4 @@ jobs:
     - name: Test with pytest
       run: |
         make up-test
-        make test-run
+        make test

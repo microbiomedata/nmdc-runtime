@@ -89,6 +89,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: root
 
   test:
+    profiles:
+      - donotstart
     build:
       context: .
       dockerfile: nmdc_runtime/test.Dockerfile

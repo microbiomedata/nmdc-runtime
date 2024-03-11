@@ -1,6 +1,7 @@
 """
 User models
 """
+
 from typing import Optional, List
 
 from beanie import Document, Indexed
