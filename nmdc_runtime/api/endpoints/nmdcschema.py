@@ -17,7 +17,13 @@ from toolz import dissoc
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db, nmdc_schema_collection_names
-from nmdc_runtime.api.endpoints.util import list_resources, check_filter, FUSEKI_HOST
+from nmdc_runtime.api.endpoints.util import (
+    list_resources,
+    check_filter,
+    FUSEKI_HOST,
+    FUSEKI_USER,
+    FUSEKI_PASSWD,
+)
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     ListRequest,
@@ -165,6 +171,8 @@ def get_nmdc_schema_associations(
     }} {limit}"""
 
     sparql = SPARQLWrapper(f"{FUSEKI_HOST}/nmdc")
+    sparql.user = FUSEKI_USER
+    sparql.passwd = FUSEKI_PASSWD
     sparql.setReturnFormat(SPARQL_JSON)
     sparql.setQuery(query)
     try:
