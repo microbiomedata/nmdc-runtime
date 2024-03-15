@@ -69,7 +69,9 @@ async def post_activity(
     Parameters
     -------
     activity_set: dict[str,Any]
-             Set of activities for specific workflows.
+             Set of activities for specific workflows, in the form of a nmdc:Database.
+             Other collections (such as data_object_set) are allowed, as they may be associated
+             with the activities submitted.
 
     Returns
     -------
@@ -78,10 +80,6 @@ async def post_activity(
     """
     _ = site  # must be authenticated
     try:
-        # verify activities in activity_set are nmdc-schema compliant
-        for collection_name in activity_set:
-            if collection_name not in activity_collection_names(mdb):
-                raise ValueError("keys must be nmdc-schema activity collection names`")
         # validate request JSON
         rv = validate_json(activity_set, mdb)
         if rv["result"] == "errors":
@@ -97,7 +95,6 @@ async def post_activity(
             password=os.getenv("MONGO_PASSWORD"),
         )
         mongo_resource.add_docs(activity_set, validate=False, replace=True)
-        # TODO: Update return value to List[Activity]
         return {"message": "jobs accepted"}
     except BulkWriteError as e:
         raise HTTPException(status_code=409, detail=str(e))
