@@ -46,10 +46,6 @@ async def post_activity(
     """
     _ = site  # must be authenticated
     try:
-        # verify activities in activity_set are nmdc-schema compliant
-        for collection_name in activity_set:
-            if collection_name not in activity_collection_names(mdb):
-                raise ValueError("keys must be nmdc-schema activity collection names`")
         # validate request JSON
         rv = validate_json(activity_set, mdb)
         if rv["result"] == "errors":
