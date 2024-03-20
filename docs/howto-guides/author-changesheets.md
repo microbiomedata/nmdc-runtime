@@ -31,7 +31,7 @@ flowchart LR;
     * `id`: The *id* value corresponding to the *id* of the JSON document in the database. Specifying this will tell the changesheet what record in the database needs to be modified. There are no restrictions on the ids that can be modified. For example, it can be a Biosample *id* (with typecode *bsm*), or a Study *id* (with typecode *sty*), or another class of *id*.
     * `action`: The action to be performed on the database. It may be one of the following: 
         * `insert` / `insert item` / `insert items`: Add new values to a multivalued field, i.e., a field/key on a document which captures a list of values instead of single values.
-        * `remove`: Drop a key/value pair for a single value slot. Leave `value` field empty on changesheet.
+        * `remove`: Drop a key/value pair for a single-value slot. Leave `value` field empty on changesheet.
         * `remove item` / `remove items`: Remove item(s) from a list of values for a multivalued slot. 
         * `update` / `set` / `replace` / `replace items`: Update the value of a particular field/key on a document and replace it with a new value.
     * `attribute`: the name of the field/key in the NMDC JSON document that is to be modified.
