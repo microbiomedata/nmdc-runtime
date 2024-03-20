@@ -32,7 +32,7 @@ flowchart LR;
     * `action`: The action to be performed on the database. It may be one of the following: 
         * `insert` / `insert item` / `insert items`: Add new values to a multivalued field, i.e., a field/key on a document which captures a list of values instead of single values.
         * `remove`: Drop a key/value pair for a single-value slot. Leave `value` field empty on changesheet.
-        * `remove item` / `remove items`: Remove item(s) from a list of values for a multivalued slot. 
+        * `remove item` / `remove items`: Remove item(s) from a list/set of values for a multivalued slot. 
         * `update` / `set` / `replace` / `replace items`: Update the value of a particular field/key on a document and replace it with a new value.
     * `attribute`: the name of the field/key in the NMDC JSON document that is to be modified.
     * `value`: New value, which may be added (if it wasn't present already) to a multi-valued field for an `insert` action. For an `update` action, it will overwrite any current value.
