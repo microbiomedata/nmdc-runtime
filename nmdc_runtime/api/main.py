@@ -46,8 +46,6 @@ from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
-from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
-from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -65,7 +63,6 @@ api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
 api_router.include_router(router_v1, tags=["v1"])
-api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
 
 tags_metadata = [
     {
@@ -345,9 +342,6 @@ def ensure_initial_resources_on_boot():
         [("checksums.type", 1), ("checksums.checksum", 1)], unique=True
     )
 
-    # Minting resources
-    minter_bootstrap()
-
 
 def ensure_attribute_indexes():
     mdb = get_mongo_db()
@@ -458,7 +452,6 @@ async def favicon():
     return FileResponse("static/favicon.ico")
 
 
-@app.get("/docs", include_in_schema=False)
 def custom_swagger_ui_html(
     user_id_token: Annotated[str | None, Cookie()] = None,
 ):
@@ -507,6 +500,10 @@ def custom_swagger_ui_html(
     )
     return HTMLResponse(content=content)
 
+
+app.add_api_route(
+    "/docs", custom_swagger_ui_html, methods=["GET"], include_in_schema=False
+)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
