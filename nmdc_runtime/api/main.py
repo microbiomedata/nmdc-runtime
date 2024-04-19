@@ -8,6 +8,7 @@ from typing import Annotated
 import fastapi
 import requests
 import uvicorn
+from bs4 import BeautifulSoup
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -483,10 +484,16 @@ def custom_swagger_ui_html(
         access_token = rv.json()["access_token"]
 
     swagger_ui_parameters = {"withCredentials": True}
+    onComplete = ""
     if access_token is not None:
+        onComplete += f"""ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>); """
+    if os.getenv("INFO_BANNER_INNERHTML"):
+        info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
+        onComplete += f"""banner = document.createElement(<double-quote>section</double-quote>); banner.classList.add(<double-quote>nmdc-info-banner</double-quote>); banner.classList.add(<double-quote>block</double-quote>); banner.classList.add(<double-quote>col-12</double-quote>); banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`; document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner); """
+    if onComplete:
         swagger_ui_parameters.update(
             {
-                "onComplete": f"""<unquote-safe>() => {{ ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>) }}</unquote-safe>""",
+                "onComplete": f"""<unquote-safe>() => {{ {onComplete} }}</unquote-safe>""",
             }
         )
     response = get_swagger_ui_html(
@@ -504,6 +511,10 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        .replace(
+            "</head>",
+            "<style>.nmdc-info-banner { padding: 1em; background-color: #448aff1a; border: .075rem solid #448aff; }</style></head>",
+        )
     )
     return HTMLResponse(content=content)
 
