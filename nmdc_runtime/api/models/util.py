@@ -49,6 +49,8 @@ class AssociationsRequest(BaseModel):
     start_type: str
     start_id: str
     target_type: str
+    target_filter: Optional[str] = None
+    target_projection: Optional[str] = None
     limit: NonNegativeInt = 5
 
 

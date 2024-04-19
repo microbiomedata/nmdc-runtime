@@ -23,6 +23,7 @@ from nmdc_runtime.api.endpoints.util import (
     FUSEKI_HOST,
     FUSEKI_USER,
     FUSEKI_PASSWD,
+    comma_separated_values,
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse, AssociationsRequest
@@ -163,7 +164,7 @@ def get_nmdc_schema_associations(
     sparql.setQuery(query)
     try:
         ret = sparql.queryAndConvert()
-        return [
+        target_ids = [
             b["o"]["value"].replace("https://w3id.org/nmdc/", "nmdc:")
             for b in ret["results"]["bindings"]
         ]
@@ -172,6 +173,26 @@ def get_nmdc_schema_associations(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(e),
         )
+    target_filter = (
+        json_util.loads(check_filter(req.target_filter)) if req.target_filter else {}
+    )
+    if target_ids:
+        target_filter["id"] = {"$in": target_ids}
+        print(target_filter)
+        print(target_type_collection_name)
+        target_docs = list_resources(
+            ListRequest(
+                filter=json_util.dumps(target_filter),
+                projection=req.target_projection,
+                max_page_size=0,
+            ),
+            mdb,
+            target_type_collection_name,
+        )
+        print(target_docs)
+        return [strip_oid(d) for d in target_docs["resources"]]
+    else:
+        return []
 
 
 @router.get(
