@@ -52,14 +52,15 @@ SURFACE_WATER_MEDIUM_MAPPINGS = {
 
 
 class NeonSurfaceWaterDataTranslator(Translator):
-    def __init__(self, 
-                surface_water_data: dict, 
-                site_code_mapping: dict,
-                neon_envo_mappings_file: pd.DataFrame,
-                neon_raw_data_file_mappings_file: pd.DataFrame,
-                *args,
-                **kwargs,
-                ) -> None:
+    def __init__(
+        self,
+        surface_water_data: dict,
+        site_code_mapping: dict,
+        neon_envo_mappings_file: pd.DataFrame,
+        neon_raw_data_file_mappings_file: pd.DataFrame,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
@@ -95,11 +96,11 @@ class NeonSurfaceWaterDataTranslator(Translator):
             raise ValueError(
                 f"You are missing one of the aquatic benthic microbiome tables: {neon_amb_data_tables}"
             )
-        
+
         neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
-        
+
         self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
             "neonRawDataFile", self.conn, if_exists="replace", index=False

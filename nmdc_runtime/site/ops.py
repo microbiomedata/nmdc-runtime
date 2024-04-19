@@ -884,11 +884,13 @@ def nmdc_schema_database_from_neon_surface_water_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonSurfaceWaterDataTranslator(surface_water_data, 
-                                                site_code_mapping,
-                                                neon_envo_mappings_file,
-                                                neon_raw_data_file_mappings_file,
-                                                id_minter=id_minter)
+    translator = NeonSurfaceWaterDataTranslator(
+        surface_water_data,
+        site_code_mapping,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        id_minter=id_minter,
+    )
 
     database = translator.get_database()
     return database

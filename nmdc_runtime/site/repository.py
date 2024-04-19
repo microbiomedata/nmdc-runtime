@@ -41,7 +41,7 @@ from nmdc_runtime.site.graphs import (
     translate_neon_api_surface_water_metadata_to_nmdc_schema_database,
     ingest_neon_soil_metadata,
     ingest_neon_benthic_metadata,
-    ingest_neon_surface_water_metadata
+    ingest_neon_surface_water_metadata,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -845,7 +845,7 @@ def biosample_submission_ingest():
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
                         }
-                    },                    
+                    },
                 },
             },
         ),
