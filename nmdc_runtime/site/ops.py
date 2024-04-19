@@ -874,6 +874,9 @@ def nmdc_schema_database_from_neon_benthic_data(
 def nmdc_schema_database_from_neon_surface_water_data(
     context: OpExecutionContext,
     surface_water_data: Dict[str, pd.DataFrame],
+    site_code_mapping: Dict[str, str],
+    neon_envo_mappings_file: pd.DataFrame,
+    neon_raw_data_file_mappings_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -881,10 +884,30 @@ def nmdc_schema_database_from_neon_surface_water_data(
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
-    translator = NeonSurfaceWaterDataTranslator(surface_water_data, id_minter=id_minter)
+    translator = NeonSurfaceWaterDataTranslator(surface_water_data, 
+                                                site_code_mapping,
+                                                neon_envo_mappings_file,
+                                                neon_raw_data_file_mappings_file,
+                                                id_minter=id_minter)
 
     database = translator.get_database()
     return database
+
+
+@op(
+    out={
+        "neon_envo_mappings_file_url": Out(),
+        "neon_raw_data_file_mappings_file_url": Out(),
+    }
+)
+def get_neon_pipeline_inputs(
+    neon_envo_mappings_file_url: str,
+    neon_raw_data_file_mappings_file_url: str,
+) -> Tuple[str, str]:
+    return (
+        neon_envo_mappings_file_url,
+        neon_raw_data_file_mappings_file_url,
+    )
 
 
 @op

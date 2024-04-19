@@ -52,7 +52,14 @@ SURFACE_WATER_MEDIUM_MAPPINGS = {
 
 
 class NeonSurfaceWaterDataTranslator(Translator):
-    def __init__(self, surface_water_data: dict, *args, **kwargs) -> None:
+    def __init__(self, 
+                surface_water_data: dict, 
+                site_code_mapping: dict,
+                neon_envo_mappings_file: pd.DataFrame,
+                neon_raw_data_file_mappings_file: pd.DataFrame,
+                *args,
+                **kwargs,
+                ) -> None:
         super().__init__(*args, **kwargs)
 
         self.conn = sqlite3.connect("neon.db")
@@ -88,24 +95,17 @@ class NeonSurfaceWaterDataTranslator(Translator):
             raise ValueError(
                 f"You are missing one of the aquatic benthic microbiome tables: {neon_amb_data_tables}"
             )
-
-        neon_raw_data_file_mappings_file = "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv"
-        self.neon_raw_data_file_mappings_df = pd.read_csv(
-            neon_raw_data_file_mappings_file, delimiter="\t"
+        
+        neon_envo_mappings_file.to_sql(
+            "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
+        
+        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
 
-    def get_site_by_code(self, site_code: str) -> str:
-        site_response = requests.get(
-            f"https://data.neonscience.org/api/v0/sites/{site_code}"
-        )
-        if site_response.status_code == 200:
-            site_response = site_response.json()
-            return f"USA: {site_response['data']['stateName']}, {site_response['data']['siteName']}".replace(
-                " NEON", ""
-            )
+        self.site_code_mapping = site_code_mapping
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
@@ -181,7 +181,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 biosample_row["seqCollectDate"].values[0]
             ),
             geo_loc_name=_create_text_value(
-                self.get_site_by_code(biosample_row["siteID"].values[0])
+                self.site_code_mapping[biosample_row["siteID"].values[0]]
                 if biosample_row["siteID"].values[0]
                 else None
             ),
@@ -238,8 +238,8 @@ class NeonSurfaceWaterDataTranslator(Translator):
             input_mass=_create_quantity_value(
                 _get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
-            quality_control_report=nmdc.QualityControlReport(
-                status=_get_value_or_none(extraction_row, "extrQaqcStatus")
+            qc_status=nmdc.StatusEnum(
+                _get_value_or_none(extraction_row, "extrQaqcStatus")
             ),
             processing_institution=processing_institution,
         )
