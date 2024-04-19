@@ -25,12 +25,7 @@ from nmdc_runtime.api.endpoints.util import (
     FUSEKI_PASSWD,
 )
 from nmdc_runtime.api.models.metadata import Doc
-from nmdc_runtime.api.models.util import (
-    ListRequest,
-    ListResponse,
-    AssociationsRequest,
-    AssociationDirectionEnum,
-)
+from nmdc_runtime.api.models.util import ListRequest, ListResponse, AssociationsRequest
 
 router = APIRouter()
 
@@ -110,13 +105,8 @@ def get_nmdc_schema_associations(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    For a given focus node of type nmdc:`start_type` that is found via `start_query`,
+    For a given focus node of type nmdc:`start_type` with id `start_id`,
     find target nodes of type nmdc:`target_type`.
-
-    The `downstream` direction flows from studies to data objects, whereas `upstream` is the reverse,
-    traversing along the direction of dependency.
-
-    `start_query` uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/).
 
     You should not use the Swagger UI for values of `limit` much larger than `1000`.
     Set `limit` to `0` (zero) for no limit.
@@ -138,37 +128,33 @@ def get_nmdc_schema_associations(
             detail=f'target_type "{req.target_type}" is not a known nmdc-schema class',
         )
 
-    filter_ = json_util.loads(check_filter(req.start_query))
-    if mdb[start_type_collection_name].count_documents(filter_) > 1:
+    start_node = mdb[start_type_collection_name].find_one({"id": req.start_id})
+    if start_node is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f'start_query "{req.start_query}" yields more than one entity.',
+            detail=f'start_id "{req.start_id}" not found.',
         )
-    focus_node_ids = (
-        [d["id"] for d in mdb[start_type_collection_name].find(filter_, ["id"])]
-        if filter_
-        else None
-    )
 
-    values_stmt = (
-        f"VALUES ?focus_node {{ {' '.join(focus_node_ids)} }}" if focus_node_ids else ""
-    )
-    start_pattern = f"?focus_node nmdc:type nmdc:{req.start_type} ."
+    values_stmt = f"VALUES ?start_node {{ {start_node['id']} }}"
+    start_pattern = f"?start_node nmdc:type nmdc:{req.start_type} ."
     target_pattern = f"?o nmdc:type nmdc:{req.target_type} ."
-    downstream_pattern = "?o nmdc:depends_on+ ?focus_node ."
-    upstream_pattern = "?focus_node nmdc:depends_on+ ?o ."
-    upstream_where = (
-        f"""{values_stmt} {start_pattern} {target_pattern} {upstream_pattern}"""
-    )
-    downstream_where = (
-        f"""{values_stmt} {start_pattern} {target_pattern} {downstream_pattern}"""
-    )
+    objects_that_can_reach_start_node_pattern = "?o nmdc:depends_on+ ?start_node ."
+    objects_reachable_from_start_node_pattern = "?start_node nmdc:depends_on+ ?o ."
+    where_clause = f"""
+        {values_stmt} {start_pattern} {target_pattern}
+        {{
+          {{ {objects_that_can_reach_start_node_pattern} }}
+          UNION
+          {{ {objects_reachable_from_start_node_pattern} }}
+        }}
+    """
     limit = f"LIMIT {req.limit}" if req.limit != 0 else ""
     query = f"""
     PREFIX nmdc: <https://w3id.org/nmdc/>
     SELECT DISTINCT ?o WHERE {{ 
-        {downstream_where if req.direction == AssociationDirectionEnum.downstream else upstream_where}
+        {where_clause}
     }} {limit}"""
+    print(query)
 
     sparql = SPARQLWrapper(f"{FUSEKI_HOST}/nmdc")
     sparql.user = FUSEKI_USER

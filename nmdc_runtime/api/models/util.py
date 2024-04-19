@@ -47,9 +47,8 @@ class AssociationDirectionEnum(str, Enum):
 
 class AssociationsRequest(BaseModel):
     start_type: str
-    start_query: str
+    start_id: str
     target_type: str
-    direction: AssociationDirectionEnum = AssociationDirectionEnum.downstream
     limit: NonNegativeInt = 5
 
 
