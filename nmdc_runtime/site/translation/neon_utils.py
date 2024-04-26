@@ -22,7 +22,11 @@ def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float
     ):
         if column_name == "horizon":
             return f"{data[column_name].values[0]} horizon"
-        elif column_name == "qaqcStatus":
+        elif (
+            column_name == "qaqcStatus"
+            or column_name == "extrQaqcStatus"
+            or column_name == "seqQaqcStatus"
+        ):
             return data[column_name].values[0].lower()
         elif column_name == "sampleTopDepth":
             return float(data[column_name].values[0]) / 100
