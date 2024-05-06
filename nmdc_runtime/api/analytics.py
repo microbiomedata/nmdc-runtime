@@ -49,11 +49,17 @@ class Analytics(BaseHTTPMiddleware):
         start = time()
         response = await call_next(request)
 
+        # Allow requests to lack a "user-agent" header (case-insensitive).
+        # Reference: https://www.starlette.io/requests/#headers
+        user_agent = None
+        if "user-agent" in request.headers:
+            user_agent = request.headers["user-agent"]
+
         request_data = {
             "hostname": request.url.hostname,
             "ip_address": request.client.host,
             "path": request.url.path,
-            "user_agent": request.headers["user-agent"],
+            "user_agent": user_agent,
             "method": request.method,
             "status": response.status_code,
             "response_time": int((time() - start) * 1000),
