@@ -97,12 +97,8 @@ class NCBISubmissionXML:
                 continue
 
             xml_key = attribute_mappings.get(json_key, json_key)
-            value_type = slot_range_mappings.get(
-                json_key, "string"
-            )
-            handler = self.type_handlers.get(
-                value_type, handle_string_value
-            )
+            value_type = slot_range_mappings.get(json_key, "string")
+            handler = self.type_handlers.get(value_type, handle_string_value)
 
             formatted_value = handler(value)
             attributes[xml_key] = formatted_value
