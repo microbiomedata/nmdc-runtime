@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+
 # import xml.etree.ElementTree as ET
 import pandas as pd
 import requests
@@ -772,16 +773,14 @@ def export_json_to_drs(
 
 @op(
     description="NCBI Submission XML file rendered in a Dagster Asset",
-    out=Out(description="XML content rendered through Dagit UI")
+    out=Out(description="XML content rendered through Dagit UI"),
 )
 def ncbi_submission_xml_asset(context: OpExecutionContext, data: str):
     context.log_event(
         AssetMaterialization(
             asset_key="ncbi_submission_xml",
             description="NCBI Submission XML Data",
-            metadata={
-                "xml": MetadataValue.text(data)
-            }
+            metadata={"xml": MetadataValue.text(data)},
         )
     )
 
@@ -997,7 +996,7 @@ def site_code_mapping() -> dict:
         raise Exception(
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
-    
+
 
 @op(config_schema={"study_id": str})
 def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
@@ -1008,7 +1007,7 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
     study_id: str,
-    ) -> str:
+) -> str:
     ncbi_exporter = NCBISubmissionXML(study_id)
     ncbi_xml = ncbi_exporter.get_submission_xml()
     return ncbi_xml
