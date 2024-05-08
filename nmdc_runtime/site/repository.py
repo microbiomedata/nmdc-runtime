@@ -42,6 +42,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_soil_metadata,
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
+    nmdc_study_to_ncbi_submission_export,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -851,6 +852,18 @@ def biosample_submission_ingest():
         ),
     ]
 
+
+@repository
+def biosample_export():
+    return [
+        nmdc_study_to_ncbi_submission_export.to_job(
+            config={
+                "ops": {
+                    "get_ncbi_export_pipeline_inputs": {"config": {"study_id": ""}},
+                },
+            },
+        ),
+    ]
 
 # @repository
 # def validation():

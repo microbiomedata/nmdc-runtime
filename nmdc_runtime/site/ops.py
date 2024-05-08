@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+# import xml.etree.ElementTree as ET
 import pandas as pd
 import requests
 
@@ -55,6 +56,7 @@ from nmdc_runtime.api.models.run import (
     _add_run_complete_event,
 )
 from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
@@ -768,6 +770,24 @@ def export_json_to_drs(
     return ["/objects/" + drs_object["id"]]
 
 
+@op(
+    description="NCBI Submission XML file rendered in a Dagster Asset",
+    out=Out(description="XML content rendered through Dagit UI")
+)
+def ncbi_submission_xml_asset(context: OpExecutionContext, data: str):
+    context.log_event(
+        AssetMaterialization(
+            asset_key="ncbi_submission_xml",
+            description="NCBI Submission XML Data",
+            metadata={
+                "xml": MetadataValue.text(data)
+            }
+        )
+    )
+
+    return Output(data)
+
+
 def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
 
@@ -977,3 +997,18 @@ def site_code_mapping() -> dict:
         raise Exception(
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
+    
+
+@op(config_schema={"study_id": str})
+def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
+    return context.op_config["study_id"]
+
+
+@op
+def ncbi_submission_xml_from_nmdc_study(
+    context: OpExecutionContext,
+    study_id: str,
+    ) -> str:
+    ncbi_exporter = NCBISubmissionXML(study_id)
+    ncbi_xml = ncbi_exporter.get_submission_xml()
+    return ncbi_xml
