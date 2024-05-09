@@ -1,3 +1,8 @@
+import json
+import datetime
+import xml.etree.ElementTree as ET
+import xml.dom.minidom
+
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
@@ -9,9 +14,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
     load_mappings,
 )
-import datetime
-import xml.etree.ElementTree as ET
-import xml.dom.minidom
 
 
 class NCBISubmissionXML:
@@ -77,6 +79,64 @@ class NCBISubmissionXML:
             ],
         )
         self.root.append(description)
+
+    def set_descriptor(self, title, description, url):
+        descriptor_elements = []
+        descriptor_elements.append(self.set_element("Title", title))
+        descriptor_elements.append(
+            self.set_element(
+                "Description", children=[self.set_element("p", description)]
+            )
+        )
+
+        external_resources = json.loads(url)
+        for label, link in external_resources.items():
+            external_link = self.set_element("ExternalLink", attrib={"label": label})
+            url_element = self.set_element("URL", link)
+            external_link.append(url_element)
+            descriptor_elements.append(external_link)
+
+        return descriptor_elements
+
+    def set_bioproject(self, title, project_id, description, data_type, url):
+        action = self.set_element("Action")
+        add_data = self.set_element("AddData", attrib={"target_db": "BioProject"})
+
+        data_element = self.set_element("Data", attrib={"content_type": "XML"})
+        xml_content = self.set_element("XmlContent")
+        project = self.set_element("Project", attrib={"schema_version": "2.0"})
+
+        project_id_element = self.set_element("ProjectID")
+        spuid = self.set_element("SPUID", project_id, {"spuid_namespace": self.org})
+        project_id_element.append(spuid)
+
+        descriptor = self.set_descriptor(title, description, url)
+        project_type = self.set_element("ProjectType")
+        project_type_submission = self.set_element(
+            "ProjectTypeSubmission", attrib={"sample_scope": "eEnvironment"}
+        )
+        intended_data_type_set = self.set_element("IntendedDataTypeSet")
+        data_type_element = self.set_element("DataType", data_type)
+
+        intended_data_type_set.append(data_type_element)
+        project_type_submission.append(intended_data_type_set)
+        project_type.append(project_type_submission)
+
+        project.extend([project_id_element] + descriptor + [project_type])
+
+        xml_content.append(project)
+        data_element.append(xml_content)
+        add_data.append(data_element)
+
+        identifier = self.set_element("Identifier")
+        spuid_identifier = self.set_element(
+            "SPUID", project_id, {"spuid_namespace": self.org}
+        )
+        identifier.append(spuid_identifier)
+        add_data.append(identifier)
+
+        action.append(add_data)
+        self.root.append(action)
 
     def set_biosample(
         self,
@@ -174,6 +234,8 @@ class NCBISubmissionXML:
 
     def get_submission_xml(self):
         self.set_description()
+
+        # initialize/make call to self.set_bioproject() here
 
         # TODO: iterate over all biosamples in the study
         # make call to self.set_biosample() here
