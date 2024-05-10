@@ -879,8 +879,8 @@ def biosample_export():
                                 "title": "",
                                 "spuid": "",
                                 "sid": "",
-                                "name": "",
-                                "pkg": "",
+                                "organism_name": "",
+                                "package": "",
                             },
                         }
                     },

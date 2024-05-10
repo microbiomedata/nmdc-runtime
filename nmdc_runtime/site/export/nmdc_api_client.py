@@ -1,11 +1,18 @@
+import os
+import json
 import requests
+
+from dotenv import load_dotenv
 
 
 class NMDCApiClient:
-    def __init__(self, api_base_url):
-        if not api_base_url.endswith("/"):
-            api_base_url += "/"
-        self.base_url = api_base_url
+    def __init__(self, api_base_url=None):
+        load_dotenv()
+        self.base_url = api_base_url or os.getenv("API_HOST")
+        if not self.base_url:
+            raise ValueError("API base URL for runtime environment is required.")
+        if not self.base_url.endswith("/"):
+            self.base_url += "/"
         self.headers = {
             "accept": "application/json",
             "Content-Type": "application/json",
@@ -16,19 +23,19 @@ class NMDCApiClient:
         Get the biosamples that are part of a study.
         """
         biosample_records = []
-        params = {
-            "filter": '{"part_of": "' + study_id + '"}',
-            "max_page_size": "1000",
-        }
+        params = {"filter": json.dumps({"part_of": study_id}), "max_page_size": "1000"}
         url = self.base_url + "nmdcschema/biosample_set"
-        response = requests.get(url, params=params, headers=self.headers)
-        response.raise_for_status()
-        biosample_records.extend(response.json()["resources"])
-        # Get the next page of results, if any
-        while response.json().get("next_page_token") is not None:
-            params["page_token"] = response.json()["next_page_token"]
+
+        while True:
             response = requests.get(url, params=params, headers=self.headers)
             response.raise_for_status()
-            biosample_records.extend(response.json()["resources"])
+            data = response.json()
+            biosample_records.extend(data["resources"])
+
+            # Check if there's a next page
+            next_page_token = data.get("next_page_token")
+            if not next_page_token:
+                break
+            params["page_token"] = next_page_token
 
         return biosample_records

@@ -1010,6 +1010,7 @@ def site_code_mapping() -> dict:
                     "first": String,
                     "last": String,
                     "user": String,
+                    "organization": String,
                 }
             ),
             is_required=True,
@@ -1033,8 +1034,8 @@ def site_code_mapping() -> dict:
                     "title": String,
                     "spuid": String,
                     "sid": String,
-                    "name": String,
-                    "pkg": String,
+                    "organism_name": String,
+                    "package": String,
                 }
             ),
             is_required=True,

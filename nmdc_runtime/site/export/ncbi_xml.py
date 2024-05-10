@@ -1,4 +1,3 @@
-import json
 import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -14,6 +13,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
     load_mappings,
 )
+from nmdc_runtime.site.export.nmdc_api_client import NMDCApiClient
 
 
 class NCBISubmissionXML:
@@ -29,6 +29,7 @@ class NCBISubmissionXML:
         self.ncbi_biosample_metadata = ncbi_submission_fields.get(
             "ncbi_biosample_metadata", {}
         )
+        self.nmdc_api_client = NMDCApiClient()
 
         # dispatcher dictionary capturing handlers for NMDC object to NCBI flat Attribute
         # type handlers
@@ -142,91 +143,95 @@ class NCBISubmissionXML:
         title,
         spuid,
         sid,
-        name,
-        pkg,
+        organism_name,
+        package,
         org,
-        nmdc_biosample,
+        nmdc_biosamples,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/issue-1940/assets/ncbi_mappings/ncbi_attribute_mappings_filled.tsv"
         )
 
-        attributes = {}
-        for json_key, value in nmdc_biosample.items():
-            if isinstance(value, list):
-                continue
+        for biosample in nmdc_biosamples:
+            attributes = {}
+            for json_key, value in biosample.items():
+                if isinstance(value, list):
+                    continue  # Skip processing for list values
 
-            xml_key = attribute_mappings.get(json_key, json_key)
-            value_type = slot_range_mappings.get(json_key, "string")
-            handler = self.type_handlers.get(value_type, handle_string_value)
+                xml_key = attribute_mappings.get(json_key, json_key)
+                value_type = slot_range_mappings.get(json_key, "string")
+                handler = self.type_handlers.get(value_type, handle_string_value)
 
-            formatted_value = handler(value)
-            attributes[xml_key] = formatted_value
+                formatted_value = handler(value)
+                attributes[xml_key] = formatted_value
 
-        # Create the BioSample XML block with these attributes
-        biosample_elements = [
-            self.set_element(
-                "SampleId",
-                children=[self.set_element("SPUID", sid, {"spuid_namespace": org})],
-            ),
-            self.set_element(
-                "Descriptor",
-                children=[
-                    self.set_element("Title", title),
-                    self.set_element(
-                        "Description", children=[self.set_element("p", spuid)]
-                    ),
-                ],
-            ),
-            self.set_element(
-                "Organism", children=[self.set_element("OrganismName", name)]
-            ),
-            self.set_element("Package", pkg),
-            self.set_element(
-                "Attributes",
-                children=[
-                    self.set_element(
-                        "Attribute", attributes[key], {"attribute_name": key}
-                    )
-                    for key in sorted(attributes)
-                ],
-            ),
-        ]
-
-        action = self.set_element(
-            "Action",
-            children=[
+            # Create the BioSample XML block with these attributes for each biosample
+            biosample_elements = [
                 self.set_element(
-                    "AddData",
-                    attrib={"target_db": "BioSample"},
+                    "SampleId",
+                    children=[self.set_element("SPUID", sid, {"spuid_namespace": org})],
+                ),
+                self.set_element(
+                    "Descriptor",
                     children=[
+                        self.set_element("Title", title),
                         self.set_element(
-                            "Data",
-                            attrib={"content_type": "XML"},
-                            children=[
-                                self.set_element(
-                                    "XmlContent",
-                                    children=[
-                                        self.set_element(
-                                            "BioSample",
-                                            attrib={"schema_version": "2.0"},
-                                            children=biosample_elements,
-                                        )
-                                    ],
-                                )
-                            ],
-                        ),
-                        self.set_element(
-                            "Identifier",
-                            children=[
-                                self.set_element("SPUID", sid, {"spuid_namespace": org})
-                            ],
+                            "Description", children=[self.set_element("p", spuid)]
                         ),
                     ],
-                )
-            ],
-        )
-        self.root.append(action)
+                ),
+                self.set_element(
+                    "Organism",
+                    children=[self.set_element("OrganismName", organism_name)],
+                ),
+                self.set_element("Package", package),
+                self.set_element(
+                    "Attributes",
+                    children=[
+                        self.set_element(
+                            "Attribute", attributes[key], {"attribute_name": key}
+                        )
+                        for key in sorted(attributes)
+                    ],
+                ),
+            ]
+
+            action = self.set_element(
+                "Action",
+                children=[
+                    self.set_element(
+                        "AddData",
+                        attrib={"target_db": "BioSample"},
+                        children=[
+                            self.set_element(
+                                "Data",
+                                attrib={"content_type": "XML"},
+                                children=[
+                                    self.set_element(
+                                        "XmlContent",
+                                        children=[
+                                            self.set_element(
+                                                "BioSample",
+                                                attrib={"schema_version": "2.0"},
+                                                children=biosample_elements,
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            self.set_element(
+                                "Identifier",
+                                children=[
+                                    self.set_element(
+                                        "SPUID", sid, {"spuid_namespace": org}
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            self.root.append(action)
 
     def get_submission_xml(self):
         self.set_description(
@@ -245,14 +250,18 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
+        biosamples_list = self.nmdc_api_client.get_biosamples_part_of_study(
+            self.nmdc_study_id
+        )
+
         self.set_biosample(
             title=self.ncbi_biosample_metadata.get("title", ""),
             spuid=self.ncbi_biosample_metadata.get("spuid", ""),
             sid=self.ncbi_biosample_metadata.get("sid", ""),
-            name=self.ncbi_biosample_metadata.get("name", ""),
-            pkg=self.ncbi_biosample_metadata.get("pkg", ""),
+            organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
+            package=self.ncbi_biosample_metadata.get("package", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
-            nmdc_biosample={},
+            nmdc_biosamples=biosamples_list,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
