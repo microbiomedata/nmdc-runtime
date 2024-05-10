@@ -17,14 +17,18 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
 
 
 class NCBISubmissionXML:
-    def __init__(
-        self, ncbi_submission_fields: dict
-    ):
+    def __init__(self, ncbi_submission_fields: dict):
         self.root = ET.Element("Submission")
         self.nmdc_study_id = ncbi_submission_fields.get("nmdc_study_id")
-        self.ncbi_submission_metadata = ncbi_submission_fields.get("ncbi_submission_metadata", {})
-        self.ncbi_bioproject_metadata = ncbi_submission_fields.get("ncbi_bioproject_metadata", {})
-        self.ncbi_biosample_metadata = ncbi_submission_fields.get("ncbi_biosample_metadata", {})
+        self.ncbi_submission_metadata = ncbi_submission_fields.get(
+            "ncbi_submission_metadata", {}
+        )
+        self.ncbi_bioproject_metadata = ncbi_submission_fields.get(
+            "ncbi_bioproject_metadata", {}
+        )
+        self.ncbi_biosample_metadata = ncbi_submission_fields.get(
+            "ncbi_biosample_metadata", {}
+        )
 
         # dispatcher dictionary capturing handlers for NMDC object to NCBI flat Attribute
         # type handlers
@@ -48,14 +52,14 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
-    def set_description(
-        self, email, user, first, last, org, date=None
-    ):
+    def set_description(self, email, user, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
             "Description",
             children=[
-                self.set_element("Comment", f"NMDC Submission for {self.nmdc_study_id}"),
+                self.set_element(
+                    "Comment", f"NMDC Submission for {self.nmdc_study_id}"
+                ),
                 self.set_element("Submitter", attrib={"user_name": user}),
                 self.set_element(
                     "Organization",
@@ -163,9 +167,7 @@ class NCBISubmissionXML:
         biosample_elements = [
             self.set_element(
                 "SampleId",
-                children=[
-                    self.set_element("SPUID", sid, {"spuid_namespace": org})
-                ],
+                children=[self.set_element("SPUID", sid, {"spuid_namespace": org})],
             ),
             self.set_element(
                 "Descriptor",
@@ -217,9 +219,7 @@ class NCBISubmissionXML:
                         self.set_element(
                             "Identifier",
                             children=[
-                                self.set_element(
-                                    "SPUID", sid, {"spuid_namespace": org}
-                                )
+                                self.set_element("SPUID", sid, {"spuid_namespace": org})
                             ],
                         ),
                     ],
@@ -252,7 +252,7 @@ class NCBISubmissionXML:
             name=self.ncbi_biosample_metadata.get("name", ""),
             pkg=self.ncbi_biosample_metadata.get("pkg", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
-            nmdc_biosample={}
+            nmdc_biosample={},
         )
 
         rough_string = ET.tostring(self.root, "unicode")
