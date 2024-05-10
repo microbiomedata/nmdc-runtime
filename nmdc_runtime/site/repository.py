@@ -862,6 +862,7 @@ def biosample_export():
                     "get_ncbi_export_pipeline_inputs": {
                         "config": {
                             "nmdc_study_id": "",
+                            "nmdc_ncbi_attribute_mapping_file_url": "",
                             "ncbi_submission_metadata": {
                                 "email": "",
                                 "first": "",

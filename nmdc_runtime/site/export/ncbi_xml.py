@@ -20,6 +20,9 @@ class NCBISubmissionXML:
     def __init__(self, ncbi_submission_fields: dict):
         self.root = ET.Element("Submission")
         self.nmdc_study_id = ncbi_submission_fields.get("nmdc_study_id")
+        self.nmdc_ncbi_attribute_mapping_file_url = ncbi_submission_fields.get(
+            "nmdc_ncbi_attribute_mapping_file_url"
+        )
         self.ncbi_submission_metadata = ncbi_submission_fields.get(
             "ncbi_submission_metadata", {}
         )
@@ -149,7 +152,7 @@ class NCBISubmissionXML:
         nmdc_biosamples,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
-            "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/issue-1940/assets/ncbi_mappings/ncbi_attribute_mappings_filled.tsv"
+            self.nmdc_ncbi_attribute_mapping_file_url
         )
 
         for biosample in nmdc_biosamples:

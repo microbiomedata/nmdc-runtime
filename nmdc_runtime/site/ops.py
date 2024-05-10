@@ -1003,6 +1003,7 @@ def site_code_mapping() -> dict:
 @op(
     config_schema={
         "nmdc_study_id": str,
+        "nmdc_ncbi_attribute_mapping_file_url": str,
         "ncbi_submission_metadata": Field(
             Permissive(
                 {
@@ -1046,12 +1047,16 @@ def site_code_mapping() -> dict:
 )
 def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
     nmdc_study_id = context.op_config["nmdc_study_id"]
+    nmdc_ncbi_attribute_mapping_file_url = context.op_config[
+        "nmdc_ncbi_attribute_mapping_file_url"
+    ]
     ncbi_submission_metadata = context.op_config.get("ncbi_submission_metadata", {})
     ncbi_bioproject_metadata = context.op_config.get("ncbi_bioproject_metadata", {})
     ncbi_biosample_metadata = context.op_config.get("ncbi_biosample_metadata", {})
 
     return {
         "nmdc_study_id": nmdc_study_id,
+        "nmdc_ncbi_attribute_mapping_file_url": nmdc_ncbi_attribute_mapping_file_url,
         "ncbi_submission_metadata": ncbi_submission_metadata,
         "ncbi_bioproject_metadata": ncbi_bioproject_metadata,
         "ncbi_biosample_metadata": ncbi_biosample_metadata,
