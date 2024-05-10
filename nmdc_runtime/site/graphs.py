@@ -388,6 +388,6 @@ def ingest_neon_surface_water_metadata():
 
 @graph
 def nmdc_study_to_ncbi_submission_export():
-    study_id = get_ncbi_export_pipeline_inputs()
-    xml_data = ncbi_submission_xml_from_nmdc_study(study_id)
+    ncbi_submission_fields = get_ncbi_export_pipeline_inputs()
+    xml_data = ncbi_submission_xml_from_nmdc_study(ncbi_submission_fields)
     ncbi_submission_xml_asset(xml_data)

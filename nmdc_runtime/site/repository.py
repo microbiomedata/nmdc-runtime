@@ -859,7 +859,31 @@ def biosample_export():
         nmdc_study_to_ncbi_submission_export.to_job(
             config={
                 "ops": {
-                    "get_ncbi_export_pipeline_inputs": {"config": {"study_id": ""}},
+                    "get_ncbi_export_pipeline_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                            "ncbi_submission_metadata": {
+                                "email": "",
+                                "first": "",
+                                "last": "",
+                                "user": "",
+                                "organization": "",
+                            },
+                            "ncbi_bioproject_metadata": {
+                                "title": "",
+                                "project_id": "",
+                                "description": "",
+                                "data_type": "",
+                            },
+                            "ncbi_biosample_metadata": {
+                                "title": "",
+                                "spuid": "",
+                                "sid": "",
+                                "name": "",
+                                "pkg": "",
+                            },
+                        }
+                    },
                 },
             },
         ),

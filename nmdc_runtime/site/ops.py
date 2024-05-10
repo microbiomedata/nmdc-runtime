@@ -31,6 +31,8 @@ from dagster import (
     String,
     op,
     Optional,
+    Field,
+    Permissive,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
@@ -998,16 +1000,68 @@ def site_code_mapping() -> dict:
         )
 
 
-@op(config_schema={"study_id": str})
+@op(
+    config_schema={
+        "nmdc_study_id": str,
+        "ncbi_submission_metadata": Field(
+            Permissive(
+                {
+                    "email": String,
+                    "first": String,
+                    "last": String,
+                    "user": String,
+                }
+            ),
+            is_required=True,
+            description="General metadata about the NCBI submission.",
+        ),
+        "ncbi_bioproject_metadata": Field(
+            Permissive(
+                {
+                    "title": String,
+                    "project_id": String,
+                    "description": String,
+                    "data_type": String,
+                }
+            ),
+            is_required=True,
+            description="Metadata for NCBI BioProject in the Submission.",
+        ),
+        "ncbi_biosample_metadata": Field(
+            Permissive(
+                {
+                    "title": String,
+                    "spuid": String,
+                    "sid": String,
+                    "name": String,
+                    "pkg": String,
+                }
+            ),
+            is_required=True,
+            description="Metadata for one or many NCBI BioSample in the Submission.",
+        ),
+    },
+    out=Out(Dict),
+)
 def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
-    return context.op_config["study_id"]
+    nmdc_study_id = context.op_config["nmdc_study_id"]
+    ncbi_submission_metadata = context.op_config.get("ncbi_submission_metadata", {})
+    ncbi_bioproject_metadata = context.op_config.get("ncbi_bioproject_metadata", {})
+    ncbi_biosample_metadata = context.op_config.get("ncbi_biosample_metadata", {})
+
+    return {
+        "nmdc_study_id": nmdc_study_id,
+        "ncbi_submission_metadata": ncbi_submission_metadata,
+        "ncbi_bioproject_metadata": ncbi_bioproject_metadata,
+        "ncbi_biosample_metadata": ncbi_biosample_metadata,
+    }
 
 
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
-    study_id: str,
+    ncbi_exporter_metadata: dict,
 ) -> str:
-    ncbi_exporter = NCBISubmissionXML(study_id)
+    ncbi_exporter = NCBISubmissionXML(ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml()
     return ncbi_xml

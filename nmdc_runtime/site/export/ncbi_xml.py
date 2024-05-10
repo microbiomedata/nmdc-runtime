@@ -18,11 +18,13 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
 
 class NCBISubmissionXML:
     def __init__(
-        self, study_id: str, org="National Microbiome Data Collaborative (NMDC)"
+        self, ncbi_submission_fields: dict
     ):
         self.root = ET.Element("Submission")
-        self.study_id = study_id
-        self.org = org
+        self.nmdc_study_id = ncbi_submission_fields.get("nmdc_study_id")
+        self.ncbi_submission_metadata = ncbi_submission_fields.get("ncbi_submission_metadata", {})
+        self.ncbi_bioproject_metadata = ncbi_submission_fields.get("ncbi_bioproject_metadata", {})
+        self.ncbi_biosample_metadata = ncbi_submission_fields.get("ncbi_biosample_metadata", {})
 
         # dispatcher dictionary capturing handlers for NMDC object to NCBI flat Attribute
         # type handlers
@@ -47,19 +49,19 @@ class NCBISubmissionXML:
         return element
 
     def set_description(
-        self, email="aclum@lbl.gov", user="NMDC", first="Alicia", last="Clum", date=None
+        self, email, user, first, last, org, date=None
     ):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
             "Description",
             children=[
-                self.set_element("Comment", f"NMDC Submission for {self.study_id}"),
+                self.set_element("Comment", f"NMDC Submission for {self.nmdc_study_id}"),
                 self.set_element("Submitter", attrib={"user_name": user}),
                 self.set_element(
                     "Organization",
                     attrib={"role": "owner", "type": "center"},
                     children=[
-                        self.set_element("Name", self.org),
+                        self.set_element("Name", org),
                         self.set_element(
                             "Contact",
                             attrib={"email": email},
@@ -80,7 +82,7 @@ class NCBISubmissionXML:
         )
         self.root.append(description)
 
-    def set_descriptor(self, title, description, url):
+    def set_descriptor(self, title, description):
         descriptor_elements = []
         descriptor_elements.append(self.set_element("Title", title))
         descriptor_elements.append(
@@ -89,16 +91,9 @@ class NCBISubmissionXML:
             )
         )
 
-        external_resources = json.loads(url)
-        for label, link in external_resources.items():
-            external_link = self.set_element("ExternalLink", attrib={"label": label})
-            url_element = self.set_element("URL", link)
-            external_link.append(url_element)
-            descriptor_elements.append(external_link)
-
         return descriptor_elements
 
-    def set_bioproject(self, title, project_id, description, data_type, url):
+    def set_bioproject(self, title, project_id, description, data_type, org):
         action = self.set_element("Action")
         add_data = self.set_element("AddData", attrib={"target_db": "BioProject"})
 
@@ -107,10 +102,10 @@ class NCBISubmissionXML:
         project = self.set_element("Project", attrib={"schema_version": "2.0"})
 
         project_id_element = self.set_element("ProjectID")
-        spuid = self.set_element("SPUID", project_id, {"spuid_namespace": self.org})
+        spuid = self.set_element("SPUID", project_id, {"spuid_namespace": org})
         project_id_element.append(spuid)
 
-        descriptor = self.set_descriptor(title, description, url)
+        descriptor = self.set_descriptor(title, description)
         project_type = self.set_element("ProjectType")
         project_type_submission = self.set_element(
             "ProjectTypeSubmission", attrib={"sample_scope": "eEnvironment"}
@@ -130,7 +125,7 @@ class NCBISubmissionXML:
 
         identifier = self.set_element("Identifier")
         spuid_identifier = self.set_element(
-            "SPUID", project_id, {"spuid_namespace": self.org}
+            "SPUID", project_id, {"spuid_namespace": org}
         )
         identifier.append(spuid_identifier)
         add_data.append(identifier)
@@ -145,6 +140,7 @@ class NCBISubmissionXML:
         sid,
         name,
         pkg,
+        org,
         nmdc_biosample,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
@@ -168,7 +164,7 @@ class NCBISubmissionXML:
             self.set_element(
                 "SampleId",
                 children=[
-                    self.set_element("SPUID", sid, {"spuid_namespace": self.org})
+                    self.set_element("SPUID", sid, {"spuid_namespace": org})
                 ],
             ),
             self.set_element(
@@ -222,7 +218,7 @@ class NCBISubmissionXML:
                             "Identifier",
                             children=[
                                 self.set_element(
-                                    "SPUID", sid, {"spuid_namespace": self.org}
+                                    "SPUID", sid, {"spuid_namespace": org}
                                 )
                             ],
                         ),
@@ -233,12 +229,31 @@ class NCBISubmissionXML:
         self.root.append(action)
 
     def get_submission_xml(self):
-        self.set_description()
+        self.set_description(
+            email=self.ncbi_submission_metadata.get("email", ""),
+            user=self.ncbi_submission_metadata.get("user", ""),
+            first=self.ncbi_submission_metadata.get("first", ""),
+            last=self.ncbi_submission_metadata.get("last", ""),
+            org=self.ncbi_submission_metadata.get("organization", ""),
+        )
 
-        # initialize/make call to self.set_bioproject() here
+        self.set_bioproject(
+            title=self.ncbi_bioproject_metadata.get("title", ""),
+            project_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+            description=self.ncbi_bioproject_metadata.get("description", ""),
+            data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
+            org=self.ncbi_submission_metadata.get("organization", ""),
+        )
 
-        # TODO: iterate over all biosamples in the study
-        # make call to self.set_biosample() here
+        self.set_biosample(
+            title=self.ncbi_biosample_metadata.get("title", ""),
+            spuid=self.ncbi_biosample_metadata.get("spuid", ""),
+            sid=self.ncbi_biosample_metadata.get("sid", ""),
+            name=self.ncbi_biosample_metadata.get("name", ""),
+            pkg=self.ncbi_biosample_metadata.get("pkg", ""),
+            org=self.ncbi_submission_metadata.get("organization", ""),
+            nmdc_biosample={}
+        )
 
         rough_string = ET.tostring(self.root, "unicode")
         reparsed = xml.dom.minidom.parseString(rough_string)
