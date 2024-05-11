@@ -37,6 +37,10 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# mongo-restore
+*.tar
+*.agz
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -54,6 +58,8 @@ coverage.xml
 # Translations
 *.mo
 *.pot
+
+
 
 # Django stuff:
 *.log
@@ -103,6 +109,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.localhost
 .venv
 env/
 venv/
