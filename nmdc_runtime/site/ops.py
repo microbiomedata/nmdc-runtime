@@ -1032,9 +1032,6 @@ def site_code_mapping() -> dict:
         "ncbi_biosample_metadata": Field(
             Permissive(
                 {
-                    "title": String,
-                    "spuid": String,
-                    "sid": String,
                     "organism_name": String,
                     "package": String,
                 }

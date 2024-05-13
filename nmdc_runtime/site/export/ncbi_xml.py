@@ -143,9 +143,6 @@ class NCBISubmissionXML:
 
     def set_biosample(
         self,
-        title,
-        spuid,
-        sid,
         organism_name,
         package,
         org,
@@ -157,9 +154,16 @@ class NCBISubmissionXML:
 
         for biosample in nmdc_biosamples:
             attributes = {}
+            sample_id_value = None
+
             for json_key, value in biosample.items():
                 if isinstance(value, list):
                     continue  # Skip processing for list values
+
+                # Special handling for NMDC Biosample "id"
+                if json_key == "id":
+                    sample_id_value = value
+                    continue
 
                 xml_key = attribute_mappings.get(json_key, json_key)
                 value_type = slot_range_mappings.get(json_key, "string")
@@ -172,14 +176,18 @@ class NCBISubmissionXML:
             biosample_elements = [
                 self.set_element(
                     "SampleId",
-                    children=[self.set_element("SPUID", sid, {"spuid_namespace": org})],
+                    children=[
+                        self.set_element(
+                            "SPUID", sample_id_value, {"spuid_namespace": org}
+                        )
+                    ],
                 ),
                 self.set_element(
                     "Descriptor",
                     children=[
-                        self.set_element("Title", title),
                         self.set_element(
-                            "Description", children=[self.set_element("p", spuid)]
+                            "Title",
+                            f"NMDC Biosample {sample_id_value} from {organism_name} part of {self.nmdc_study_id} study",
                         ),
                     ],
                 ),
@@ -226,7 +234,9 @@ class NCBISubmissionXML:
                                 "Identifier",
                                 children=[
                                     self.set_element(
-                                        "SPUID", sid, {"spuid_namespace": org}
+                                        "SPUID",
+                                        sample_id_value,
+                                        {"spuid_namespace": org},
                                     ),
                                 ],
                             ),
@@ -258,9 +268,6 @@ class NCBISubmissionXML:
         )
 
         self.set_biosample(
-            title=self.ncbi_biosample_metadata.get("title", ""),
-            spuid=self.ncbi_biosample_metadata.get("spuid", ""),
-            sid=self.ncbi_biosample_metadata.get("sid", ""),
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
             package=self.ncbi_biosample_metadata.get("package", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),

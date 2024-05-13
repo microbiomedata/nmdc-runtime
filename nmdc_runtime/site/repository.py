@@ -877,9 +877,6 @@ def biosample_export():
                                 "data_type": "",
                             },
                             "ncbi_biosample_metadata": {
-                                "title": "",
-                                "spuid": "",
-                                "sid": "",
                                 "organism_name": "",
                                 "package": "",
                             },
