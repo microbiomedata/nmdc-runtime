@@ -15,7 +15,7 @@ def handle_quantity_value(slot_value):
             slot_value["has_maximum_numeric_value"]
             - slot_value["has_minimum_numeric_value"]
         )
-        return f"({range_value}) {slot_value['has_unit']}"
+        return f"{range_value} {slot_value['has_unit']}"
     elif "has_raw_value" in slot_value:
         return slot_value["has_raw_value"]
     return "Unknown format"
