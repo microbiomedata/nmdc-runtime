@@ -165,7 +165,10 @@ class NCBISubmissionXML:
                     sample_id_value = value
                     continue
 
-                xml_key = attribute_mappings.get(json_key, json_key)
+                if json_key not in attribute_mappings:
+                    continue
+
+                xml_key = attribute_mappings[json_key]
                 value_type = slot_range_mappings.get(json_key, "string")
                 handler = self.type_handlers.get(value_type, handle_string_value)
 
