@@ -48,6 +48,8 @@ def handle_controlled_identified_term_value(slot_value):
         term = slot_value["term"]
         if "name" in term and "id" in term:
             return f"{term['name']} [{term['id']}]"
+        elif "id" in term:
+            return term["id"]
     elif "has_raw_value" in slot_value:
         return slot_value["has_raw_value"]
     return "Unknown format"
