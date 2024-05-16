@@ -62,8 +62,6 @@ beautifulsoup4==4.12.3
     #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
     #   nbconvert
-bioregistry==0.10.158
-    # via nmdc-schema
 black==24.2.0
     # via shed
 bleach==6.1.0
@@ -97,7 +95,6 @@ click==8.1.7
     # via
     #   -r requirements/main.in
     #   beanie
-    #   bioregistry
     #   black
     #   dagster
     #   dagster-webserver
@@ -105,9 +102,7 @@ click==8.1.7
     #   linkml
     #   linkml-runtime
     #   mkdocs
-    #   more-click
     #   prefixcommons
-    #   pystow
     #   terminusdb-client
     #   uvicorn
 colorama==0.4.6
@@ -126,7 +121,6 @@ cryptography==42.0.5
     # via python-jose
 curies==0.7.7
     # via
-    #   bioregistry
     #   linkml-runtime
     #   prefixmaps
 dagit==1.6.8
@@ -441,8 +435,6 @@ mkdocs-mermaid2-plugin==0.6.0
     #   nmdc-schema
 mkdocs-redirects==1.2.1
     # via nmdc-schema
-more-click==0.1.2
-    # via bioregistry
 motor==3.3.2
     # via
     #   -r requirements/main.in
@@ -468,7 +460,7 @@ nbformat==5.9.2
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-nmdc-schema==10.2.0
+nmdc-schema==10.3.0
     # via -r requirements/main.in
 notebook==7.1.1
     # via jupyter
@@ -574,7 +566,6 @@ pydantic==2.6.3
     # via
     #   -r requirements/main.in
     #   beanie
-    #   bioregistry
     #   curies
     #   dagster
     #   fastapi
@@ -617,8 +608,6 @@ pyshexc==0.9.1
     # via
     #   linkml
     #   pyshex
-pystow==0.5.4
-    # via bioregistry
 pytest==8.0.2
     # via pytest-logging
 pytest-logging==2015.11.4
@@ -711,7 +700,6 @@ regex==2023.12.25
 requests==2.31.0
     # via
     #   -r requirements/main.in
-    #   bioregistry
     #   curies
     #   dagster
     #   dagster-graphql
@@ -723,7 +711,6 @@ requests==2.31.0
     #   mkdocs-mermaid2-plugin
     #   prefixcommons
     #   pyshex
-    #   pystow
     #   requests-cache
     #   requests-toolbelt
     #   sphinx
@@ -870,9 +857,7 @@ tornado==6.4
 tqdm==4.66.2
     # via
     #   -r requirements/main.in
-    #   bioregistry
     #   dagster
-    #   pystow
     #   terminusdb-client
 traitlets==5.14.1
     # via
