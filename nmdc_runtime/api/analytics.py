@@ -49,11 +49,17 @@ class Analytics(BaseHTTPMiddleware):
         start = time()
         response = await call_next(request)
 
+        # Build a dictionary that describes the incoming request.
+        #
+        # Note: `request.headers` is an instance of `MultiDict`. References:
+        #       - https://www.starlette.io/requests/#headers
+        #       - https://multidict.aio-libs.org/en/stable/multidict/
+        #
         request_data = {
             "hostname": request.url.hostname,
             "ip_address": request.client.host,
             "path": request.url.path,
-            "user_agent": request.headers["user-agent"],
+            "user_agent": request.headers.get("user-agent"),
             "method": request.method,
             "status": response.status_code,
             "response_time": int((time() - start) * 1000),
