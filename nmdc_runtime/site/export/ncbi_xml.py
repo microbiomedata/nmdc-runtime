@@ -278,7 +278,6 @@ class NCBISubmissionXML:
             nmdc_biosamples=biosamples_list,
         )
 
-
         rough_string = ET.tostring(self.root, "unicode")
         reparsed = xml.dom.minidom.parseString(rough_string)
         submission_xml = reparsed.toprettyxml(indent="    ", newl="\n")
@@ -286,10 +285,10 @@ class NCBISubmissionXML:
         # ============= Uncomment the following code to validate the XML against NCBI XSDs ============ #
         # submission_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/submission.xsd?view=co"
         # submission_xsd_validation = validate_xml(submission_xml, submission_xsd_url)
-        
+
         # bioproject_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/bioproject.xsd?view=co"
         # bioproject_xsd_validation = validate_xml(submission_xml, bioproject_xsd_url)
-        
+
         # biosample_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/biosample.xsd?view=co"
         # biosample_xsd_validation = validate_xml(submission_xml, biosample_xsd_url)
 

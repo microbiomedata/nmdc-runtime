@@ -103,11 +103,11 @@ def validate_xml(xml, xsd_url):
     response.raise_for_status()
     xsd_content = response.text
 
-    xml_schema_doc = etree.parse(BytesIO(xsd_content.encode('utf-8')))
+    xml_schema_doc = etree.parse(BytesIO(xsd_content.encode("utf-8")))
     xml_schema = etree.XMLSchema(xml_schema_doc)
 
-    if '<?xml' in xml:
-        xml_doc = etree.parse(BytesIO(xml.encode('utf-8')))
+    if "<?xml" in xml:
+        xml_doc = etree.parse(BytesIO(xml.encode("utf-8")))
     else:
         xml_doc = etree.parse(StringIO(xml))
 

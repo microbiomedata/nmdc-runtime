@@ -13,3 +13,4 @@ setuptools
 twine
 requests-cache
 pytest-mock
+lxml

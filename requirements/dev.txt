@@ -72,6 +72,10 @@ jaraco-functools==4.0.1
     # via keyring
 keyring==25.2.1
     # via twine
+lxml==5.2.2
+    # via
+    #   -c requirements/main.txt
+    #   -r requirements/dev.in
 markdown-it-py==3.0.0
     # via
     #   -c requirements/main.txt
