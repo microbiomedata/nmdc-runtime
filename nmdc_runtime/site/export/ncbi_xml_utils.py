@@ -1,4 +1,5 @@
-from io import StringIO
+from lxml import etree
+from io import BytesIO, StringIO
 import csv
 import requests
 
@@ -95,3 +96,23 @@ def load_mappings(url):
         slot_range_mappings[json_key] = data_type if data_type else "default"
 
     return attribute_mappings, slot_range_mappings
+
+
+def validate_xml(xml, xsd_url):
+    response = requests.get(xsd_url)
+    response.raise_for_status()
+    xsd_content = response.text
+
+    xml_schema_doc = etree.parse(BytesIO(xsd_content.encode('utf-8')))
+    xml_schema = etree.XMLSchema(xml_schema_doc)
+
+    if '<?xml' in xml:
+        xml_doc = etree.parse(BytesIO(xml.encode('utf-8')))
+    else:
+        xml_doc = etree.parse(StringIO(xml))
+
+    xml_doc = etree.parse(StringIO(xml))
+
+    if not xml_schema.validate(xml_doc):
+        raise ValueError(f"There were errors while validating against: {xsd_url}")
+    return True
