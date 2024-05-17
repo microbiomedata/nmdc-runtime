@@ -7,14 +7,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.github/workflows/python-app.yml'
+      - '.github/workflows/pytest.yml'
       - 'Makefile'
       - '**.Dockerfile'
       - '**.py'
       - 'requirements/main.txt'      
   pull_request:
     paths:
-      - '.github/workflows/python-app.yml'
+      - '.github/workflows/pytest.yml'
       - 'Makefile'
       - '**.Dockerfile'
       - '**.py'
