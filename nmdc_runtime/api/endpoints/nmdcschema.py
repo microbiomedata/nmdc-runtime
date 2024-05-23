@@ -135,9 +135,7 @@ def get_by_id(
 
 
 @router.get("/nmdcschema/ids/{hypothetical_doc_id}/collection-and-class-name")
-def get_collection_name_and_class_name_by_doc_id(
-    hypothetical_doc_id: str
-):
+def get_collection_name_and_class_name_by_doc_id(hypothetical_doc_id: str):
     r"""
     Gets the name of the Mongo collection that could contain a document having this `id`
     and the name of the NMDC Schema class whose instances could have this `id`.
@@ -146,17 +144,17 @@ def get_collection_name_and_class_name_by_doc_id(
     #       not used here because that function (a) only processes collections whose
     #       names end with `_set` and (b) only works for `id` values that are in
     #       use in the database (as opposed to hypothetical `id` values).
-    
+
     # Extract the typecode portion, if any, of the specified `id`.
     #
-    # Examples: 
+    # Examples:
     # - "nmdc:foo-123-456" → "foo"
     # - "foo:nmdc-123-456" → `None`
     #
     pattern = re.compile(r"^nmdc:(\w+)?-")
     match = pattern.search(hypothetical_doc_id)
     typecode_portion = match.group(1) if match else None
-    
+
     if typecode_portion is None:
         return None  # abort
 
@@ -181,10 +179,12 @@ def get_collection_name_and_class_name_by_doc_id(
         # If this slot doesn't represent a Mongo collection, abort this iteration.
         if not (slot_definition.multivalued and slot_definition.inlined_as_list):
             continue
-        
+
         # Determine the names of the classes whose instances can be stored in this collection.
         name_of_eligible_class = slot_definition.range
-        names_of_eligible_classes = schema_view.class_descendants(name_of_eligible_class)
+        names_of_eligible_classes = schema_view.class_descendants(
+            name_of_eligible_class
+        )
         if schema_class_name in names_of_eligible_classes:
             collection_name = slot_name
             break
