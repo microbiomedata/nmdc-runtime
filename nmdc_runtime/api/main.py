@@ -441,7 +441,8 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
+    # Allow requests from client-side web apps hosted in local development environments, on microbiomedata.org, and on GitHub Pages.
+    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)|(https://microbiomedata\.github\.io)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
