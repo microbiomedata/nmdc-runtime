@@ -1,4 +1,5 @@
 from importlib.metadata import version
+import re
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,6 +9,8 @@ from nmdc_runtime.util import nmdc_database_collection_names
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
+from linkml_runtime.utils.schemaview import SchemaView
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
@@ -129,6 +132,71 @@ def get_by_id(
             collection_name and (mdb[collection_name].find_one({"id": doc_id}))
         )
     )
+
+
+@router.get("/nmdcschema/ids/{hypothetical_doc_id}/collection-and-class-name")
+def get_collection_name_and_class_name_by_doc_id(
+    hypothetical_doc_id: str
+):
+    r"""
+    Gets the name of the Mongo collection that could contain a document having this `id`
+    and the name of the NMDC Schema class whose instances could have this `id`.
+    """
+    # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
+    #       not used here because that function (a) only processes collections whose
+    #       names end with `_set` and (b) only works for `id` values that are in
+    #       use in the database (as opposed to hypothetical `id` values).
+    
+    # Extract the typecode portion, if any, of the specified `id`.
+    #
+    # Examples: 
+    # - "nmdc:foo-123-456" → "foo"
+    # - "foo:nmdc-123-456" → `None`
+    #
+    pattern = re.compile(r"^nmdc:(\w+)?-")
+    match = pattern.search(hypothetical_doc_id)
+    typecode_portion = match.group(1) if match else None
+    
+    if typecode_portion is None:
+        return None  # abort
+
+    # Determine the schema class, if any, of which the specified `id` could belong to an instance.
+    schema_class_name = None
+    for typecode in typecodes():
+        if typecode_portion == typecode:
+            schema_class_name_prefixed = typecode["schema_class"]
+            schema_class_name = schema_class_name_prefixed.replace("nmdc:", "", 1)
+            break
+
+    if schema_class_name is None:
+        return None  # abort
+
+    # Determine the Mongo collection in which instances of that schema class can reside.
+    collection_name = None
+    DATABASE_CLASS_NAME = "Database"
+    schema_view = SchemaView(get_nmdc_schema_definition())
+    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
+        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
+
+        # If this slot doesn't represent a Mongo collection, abort this iteration.
+        if not (slot_definition.multivalued and slot_definition.inlined_as_list):
+            continue
+        
+        # Determine the names of the classes whose instances can be stored in this collection.
+        name_of_eligible_class = slot_definition.range
+        names_of_eligible_classes = schema_view.class_descendants(name_of_eligible_class)
+        if schema_class_name in names_of_eligible_classes:
+            collection_name = slot_name
+            break
+
+    if collection_name is None:
+        return None  # abort
+
+    return {
+        "id": hypothetical_doc_id,
+        "collection_name": collection_name,
+        "class_name": schema_class_name,
+    }
 
 
 @router.get(
