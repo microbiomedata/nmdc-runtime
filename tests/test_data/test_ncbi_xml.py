@@ -15,10 +15,10 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_float_value,
     handle_string_value,
 )
-from nmdc_runtime.site.export.nmdc_api_client import NMDCApiClient
 
-MOCK_SUBMISSION_FIELDS = {
-    "nmdc_study_id": "nmdc:sty-11-12345",
+MOCK_NCBI_NMDC_STUDY_ID = "nmdc:sty-11-12345"
+
+MOCK_NCBI_SUBMISSION_METADATA = {
     "nmdc_ncbi_attribute_mapping_file_url": "http://example.com/mappings.tsv",
     "ncbi_submission_metadata": {
         "email": "user@example.com",
@@ -43,12 +43,10 @@ MOCK_SUBMISSION_FIELDS = {
 
 @pytest.fixture
 def ncbi_submission_client():
-    return NCBISubmissionXML(ncbi_submission_fields=MOCK_SUBMISSION_FIELDS)
-
-
-@pytest.fixture
-def nmdc_api_client():
-    return NMDCApiClient(api_base_url="http://fakeapi.com/")
+    return NCBISubmissionXML(
+        nmdc_study_id=MOCK_NCBI_NMDC_STUDY_ID,
+        ncbi_submission_metadata=MOCK_NCBI_SUBMISSION_METADATA,
+    )
 
 
 @pytest.fixture
@@ -89,11 +87,11 @@ class TestNCBISubmissionXML:
 
     def test_set_description(self, ncbi_submission_client):
         ncbi_submission_client.set_description(
-            MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["email"],
-            MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["user"],
-            MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["first"],
-            MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["last"],
-            MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["organization"],
+            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["email"],
+            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["user"],
+            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["first"],
+            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["last"],
+            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["organization"],
         )
         description = ET.tostring(
             ncbi_submission_client.root.find("Description"), "unicode"
@@ -116,13 +114,19 @@ class TestNCBISubmissionXML:
 
     def test_set_bioproject(self, ncbi_submission_client):
         ncbi_submission_client.set_bioproject(
-            title=MOCK_SUBMISSION_FIELDS["ncbi_bioproject_metadata"]["title"],
-            project_id=MOCK_SUBMISSION_FIELDS["ncbi_bioproject_metadata"]["project_id"],
-            description=MOCK_SUBMISSION_FIELDS["ncbi_bioproject_metadata"][
+            title=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"]["title"],
+            project_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
+                "project_id"
+            ],
+            description=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
                 "description"
             ],
-            data_type=MOCK_SUBMISSION_FIELDS["ncbi_bioproject_metadata"]["data_type"],
-            org=MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["organization"],
+            data_type=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
+                "data_type"
+            ],
+            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
+                "organization"
+            ],
         )
         bioproject_xml = ET.tostring(
             ncbi_submission_client.root.find(".//Project"), "unicode"
@@ -178,11 +182,13 @@ class TestNCBISubmissionXML:
             ),
         )
         ncbi_submission_client.set_biosample(
-            organism_name=MOCK_SUBMISSION_FIELDS["ncbi_biosample_metadata"][
+            organism_name=MOCK_NCBI_SUBMISSION_METADATA["ncbi_biosample_metadata"][
                 "organism_name"
             ],
-            package=MOCK_SUBMISSION_FIELDS["ncbi_biosample_metadata"]["package"],
-            org=MOCK_SUBMISSION_FIELDS["ncbi_submission_metadata"]["organization"],
+            package=MOCK_NCBI_SUBMISSION_METADATA["ncbi_biosample_metadata"]["package"],
+            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
+                "organization"
+            ],
             nmdc_biosamples=nmdc_biosample,
         )
         biosample_xml = ET.tostring(
@@ -237,11 +243,7 @@ class TestNCBISubmissionXML:
             ),
         )
 
-        mocker.patch.object(
-            NMDCApiClient, "get_biosamples_part_of_study", return_value=nmdc_biosample
-        )
-
-        submission_xml = ncbi_submission_client.get_submission_xml()
+        submission_xml = ncbi_submission_client.get_submission_xml(nmdc_biosample)
 
         assert "nmdc:bsm-12-gnfpt483" in submission_xml
         assert "E. coli" in submission_xml
@@ -250,27 +252,6 @@ class TestNCBISubmissionXML:
         assert "2014-08-05T18:40Z" in submission_xml
         assert "testuser" in submission_xml
         assert "Test Project" in submission_xml
-
-
-class TestNMDCApiClient:
-    def test_get_biosamples_part_of_study_success(self, mocker, nmdc_api_client):
-        mock_response = mocker.MagicMock()
-        mock_response.json.return_value = {
-            "resources": [
-                {"id": "nmdc:bsm-12-gnfpt483", "part_of": ["nmdc:sty-11-hht5sb92"]}
-            ],
-            "next_page_token": None,
-        }
-        mocker.patch("requests.get", return_value=mock_response)
-        result = nmdc_api_client.get_biosamples_part_of_study("nmdc:sty-11-hht5sb92")
-        assert result == [
-            {"id": "nmdc:bsm-12-gnfpt483", "part_of": ["nmdc:sty-11-hht5sb92"]}
-        ]
-
-    def test_get_biosamples_part_of_study_failure(self, mocker, nmdc_api_client):
-        mocker.patch("requests.get", side_effect=HTTPError("API Error"))
-        with pytest.raises(HTTPError):
-            nmdc_api_client.get_biosamples_part_of_study("nmdc:sty-11-hht5sb92")
 
 
 class TestNCBIXMLUtils:

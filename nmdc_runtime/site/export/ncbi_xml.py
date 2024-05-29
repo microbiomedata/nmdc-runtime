@@ -14,26 +14,26 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     load_mappings,
     validate_xml,
 )
-from nmdc_runtime.site.export.nmdc_api_client import NMDCApiClient
 
 
 class NCBISubmissionXML:
-    def __init__(self, ncbi_submission_fields: dict):
+    def __init__(self, nmdc_study_id: str, ncbi_submission_metadata: dict):
         self.root = ET.Element("Submission")
-        self.nmdc_study_id = ncbi_submission_fields.get("nmdc_study_id")
-        self.nmdc_ncbi_attribute_mapping_file_url = ncbi_submission_fields.get(
+
+        self.nmdc_study_id = nmdc_study_id
+
+        self.nmdc_ncbi_attribute_mapping_file_url = ncbi_submission_metadata.get(
             "nmdc_ncbi_attribute_mapping_file_url"
         )
-        self.ncbi_submission_metadata = ncbi_submission_fields.get(
+        self.ncbi_submission_metadata = ncbi_submission_metadata.get(
             "ncbi_submission_metadata", {}
         )
-        self.ncbi_bioproject_metadata = ncbi_submission_fields.get(
+        self.ncbi_bioproject_metadata = ncbi_submission_metadata.get(
             "ncbi_bioproject_metadata", {}
         )
-        self.ncbi_biosample_metadata = ncbi_submission_fields.get(
+        self.ncbi_biosample_metadata = ncbi_submission_metadata.get(
             "ncbi_biosample_metadata", {}
         )
-        self.nmdc_api_client = NMDCApiClient()
 
         # dispatcher dictionary capturing handlers for NMDC object to NCBI flat Attribute
         # type handlers
@@ -250,7 +250,7 @@ class NCBISubmissionXML:
             )
             self.root.append(action)
 
-    def get_submission_xml(self):
+    def get_submission_xml(self, biosamples_list: list):
         self.set_description(
             email=self.ncbi_submission_metadata.get("email", ""),
             user=self.ncbi_submission_metadata.get("user", ""),
@@ -265,10 +265,6 @@ class NCBISubmissionXML:
             description=self.ncbi_bioproject_metadata.get("description", ""),
             data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
-        )
-
-        biosamples_list = self.nmdc_api_client.get_biosamples_part_of_study(
-            self.nmdc_study_id
         )
 
         self.set_biosample(

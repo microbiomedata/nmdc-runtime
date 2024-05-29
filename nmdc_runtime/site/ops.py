@@ -1000,9 +1000,13 @@ def site_code_mapping() -> dict:
         )
 
 
+@op(config_schema={"nmdc_study_id": str})
+def get_ncbi_export_pipeline_study_id(context: OpExecutionContext) -> str:
+    return context.op_config["nmdc_study_id"]
+
+
 @op(
     config_schema={
-        "nmdc_study_id": str,
         "nmdc_ncbi_attribute_mapping_file_url": str,
         "ncbi_submission_metadata": Field(
             Permissive(
@@ -1043,7 +1047,6 @@ def site_code_mapping() -> dict:
     out=Out(Dict),
 )
 def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
-    nmdc_study_id = context.op_config["nmdc_study_id"]
     nmdc_ncbi_attribute_mapping_file_url = context.op_config[
         "nmdc_ncbi_attribute_mapping_file_url"
     ]
@@ -1052,7 +1055,6 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
     ncbi_biosample_metadata = context.op_config.get("ncbi_biosample_metadata", {})
 
     return {
-        "nmdc_study_id": nmdc_study_id,
         "nmdc_ncbi_attribute_mapping_file_url": nmdc_ncbi_attribute_mapping_file_url,
         "ncbi_submission_metadata": ncbi_submission_metadata,
         "ncbi_bioproject_metadata": ncbi_bioproject_metadata,
@@ -1063,8 +1065,10 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
+    nmdc_study_id: str,
     ncbi_exporter_metadata: dict,
+    biosamples: list,
 ) -> str:
-    ncbi_exporter = NCBISubmissionXML(ncbi_exporter_metadata)
-    ncbi_xml = ncbi_exporter.get_submission_xml()
+    ncbi_exporter = NCBISubmissionXML(nmdc_study_id, ncbi_exporter_metadata)
+    ncbi_xml = ncbi_exporter.get_submission_xml(biosamples)
     return ncbi_xml

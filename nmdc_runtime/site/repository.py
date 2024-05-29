@@ -855,13 +855,32 @@ def biosample_submission_ingest():
 
 @repository
 def biosample_export():
+    normal_resources = run_config_frozen__normal_env["resources"]
     return [
         nmdc_study_to_ncbi_submission_export.to_job(
+            resource_defs=resource_defs,
             config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                    },
+                ),
                 "ops": {
-                    "get_ncbi_export_pipeline_inputs": {
+                    "get_ncbi_export_pipeline_study_id": {
                         "config": {
                             "nmdc_study_id": "",
+                        }
+                    },
+                    "get_ncbi_export_pipeline_inputs": {
+                        "config": {
                             "nmdc_ncbi_attribute_mapping_file_url": "",
                             "ncbi_submission_metadata": {
                                 "email": "",
