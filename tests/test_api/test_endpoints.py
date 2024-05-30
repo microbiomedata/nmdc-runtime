@@ -151,16 +151,20 @@ def api_user_client():
 
 def test_queries_run_invalid_update(api_user_client):
     # FIXME I know this isn't right, but I wanted to paste an example request-reponse pair. -DW
-    rv = api_user_client.request(
-        "POST",
-        "/queries:run",
-        {
-            "update": "omics_processing_set",
-            "updates": [
-                {"q": {"id": "nmdc:omprc-11-hhkbcg72"}, "u": {"$unset": "has_output"}}
-            ],
-        },
-    )
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "omics_processing_set",
+                "updates": [
+                    {
+                        "q": {"id": "nmdc:omprc-11-hhkbcg72"},
+                        "u": {"$unset": "has_output"},
+                    }
+                ],
+            },
+        )
     expected_response = {
         "detail": [
             {
@@ -170,7 +174,7 @@ def test_queries_run_invalid_update(api_user_client):
             }
         ]
     }
-    assert rv.json() == expected_response
+    assert exc_info.value == expected_response
 
 
 @pytest.fixture
