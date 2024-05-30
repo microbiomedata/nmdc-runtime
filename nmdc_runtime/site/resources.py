@@ -19,7 +19,6 @@ from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
 from pydantic import BaseModel, AnyUrl
 from pymongo import MongoClient, ReplaceOne, InsertOne
-from terminusdb_client import WOQLClient
 from toolz import get_in
 from toolz import merge
 
