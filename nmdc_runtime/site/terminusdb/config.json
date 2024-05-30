@@ -1,6 +1,0 @@
-{
-    "database": "nmdc",
-    "endpoint": "http://localhost:6364",
-    "team": "admin",
-    "use JWT token": false
-}
