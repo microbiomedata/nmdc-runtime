@@ -87,16 +87,6 @@ def hello_mongo():
     mongo_stats()
 
 
-@graph
-def update_terminus():
-    """
-    A pipeline definition. This example pipeline has a single solid.
-
-    For more hints on writing Dagster pipelines, see our documentation overview on Pipelines:
-    https://docs.dagster.io/overview/solids-pipelines/pipelines
-    """
-    update_schema()
-
 
 @graph
 def housekeeping():
