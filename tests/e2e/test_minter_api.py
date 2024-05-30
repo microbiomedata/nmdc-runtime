@@ -15,7 +15,9 @@ def _get_client():
     return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 
 
-@pytest.mark.xfail(reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint")
+@pytest.mark.xfail(
+    reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint"
+)
 def test_minter_api_mint():
     client = _get_client()
     rv = client.request(
@@ -24,7 +26,9 @@ def test_minter_api_mint():
     assert len(rv) == 1 and rv[0].startswith("nmdc:")
 
 
-@pytest.mark.xfail(reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint")
+@pytest.mark.xfail(
+    reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint"
+)
 def test_minter_api_resolve():
     client = _get_client()
     [id_name] = client.request(
@@ -34,7 +38,9 @@ def test_minter_api_resolve():
     assert rv["id"] == id_name and rv["status"] == "draft"
 
 
-@pytest.mark.xfail(reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint")
+@pytest.mark.xfail(
+    reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint"
+)
 def test_minter_api_bind():
     client = _get_client()
     [id_name] = client.request(
@@ -52,8 +58,9 @@ def test_minter_api_bind():
     )
 
 
-@pytest.mark.xfail(reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint")
-
+@pytest.mark.xfail(
+    reason="Expect 422 Client Error: Unprocessable Entity for url: http://fastapi:8000/pids/mint"
+)
 def test_minter_api_delete():
     client = _get_client()
     [id_name] = client.request(

@@ -16,6 +16,7 @@ import click
 import data_operations as dop
 from pandasql import sqldf
 
+
 ## helper for pandasql
 def pysqldf(q):
     return sqldf(q, globals())
