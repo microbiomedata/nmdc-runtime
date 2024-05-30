@@ -18,7 +18,11 @@ from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
+from nmdc_runtime.site.resources import (
+    get_mongo,
+    RuntimeApiSiteClient,
+    RuntimeApiUserClient,
+)
 from nmdc_runtime.util import REPO_ROOT_DIR
 
 
@@ -136,6 +140,37 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
+
+
+@pytest.fixture
+def api_user_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
+
+
+def test_queries_run_invalid_update(api_user_client):
+    # FIXME I know this isn't right, but I wanted to paste an example request-reponse pair. -DW
+    rv = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "update": "omics_processing_set",
+            "updates": [
+                {"q": {"id": "nmdc:omprc-11-hhkbcg72"}, "u": {"$unset": "has_output"}}
+            ],
+        },
+    )
+    expected_response = {
+        "detail": [
+            {
+                "index": 0,
+                "code": 9,
+                "errmsg": 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "has_output"}',
+            }
+        ]
+    }
+    assert rv.json() == expected_response
 
 
 @pytest.fixture

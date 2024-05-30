@@ -182,6 +182,11 @@ def _run_query(query, mdb) -> CommandResponse:
         if cmd_response.ok
         else QueryRun(qid=query.id, ran_at=ran_at, error=cmd_response)
     )
+    if cmd_response.writeErrors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=cmd_response.writeErrors,
+        )
     if q_type in (DeleteCommand, UpdateCommand) and cmd_response.n == 0:
         raise HTTPException(
             status_code=status.HTTP_418_IM_A_TEAPOT,
