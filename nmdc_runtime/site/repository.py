@@ -863,6 +863,14 @@ def biosample_export():
                 "resources": merge(
                     unfreeze(normal_resources),
                     {
+                        "mongo": {
+                            "config": {
+                                "host": {"env": "MONGO_HOST"},
+                                "username": {"env": "MONGO_USERNAME"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "dbname": {"env": "MONGO_DBNAME"},
+                            },
+                        },
                         "runtime_api_site_client": {
                             "config": {
                                 "base_url": {"env": "API_HOST"},

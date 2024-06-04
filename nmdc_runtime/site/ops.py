@@ -37,6 +37,7 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -60,6 +61,7 @@ from nmdc_runtime.api.models.run import (
 )
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
+from nmdc_runtime.site.export.ncbi_xml_utils import fetch_data_objects_from_biosamples
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
@@ -1062,13 +1064,24 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
     }
 
 
+@op(required_resource_keys={"mongo"})
+def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: list):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_data_objects = fetch_data_objects_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_data_objects
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
     nmdc_study_id: str,
     ncbi_exporter_metadata: dict,
     biosamples: list,
+    data_objects: list,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study_id, ncbi_exporter_metadata)
-    ncbi_xml = ncbi_exporter.get_submission_xml(biosamples)
+    ncbi_xml = ncbi_exporter.get_submission_xml(biosamples, data_objects)
     return ncbi_xml

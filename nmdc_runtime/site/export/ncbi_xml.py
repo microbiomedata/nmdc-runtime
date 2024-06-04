@@ -176,7 +176,6 @@ class NCBISubmissionXML:
                 formatted_value = handler(value)
                 attributes[xml_key] = formatted_value
 
-            # Create the BioSample XML block with these attributes for each biosample
             biosample_elements = [
                 self.set_element(
                     "SampleId",
@@ -250,7 +249,95 @@ class NCBISubmissionXML:
             )
             self.root.append(action)
 
-    def get_submission_xml(self, biosamples_list: list):
+    def set_fastq(
+        self,
+        biosample_data_objects: list,
+        bioproject_id: str,
+        org: str,
+    ):
+        fastq_files = []
+        biosample_ids = []
+
+        for entry in biosample_data_objects:
+            for biosample_id, data_objects in entry.items():
+                biosample_ids.append(biosample_id)
+                for data_object in data_objects:
+                    if "url" in data_object:
+                        fastq_files.append(data_object["url"])
+
+        if fastq_files:
+            files_elements = [
+                self.set_element(
+                    "File",
+                    "",
+                    {"file_path": f},
+                    [self.set_element("DataType", "generic-data")],
+                )
+                for f in fastq_files
+            ]
+
+            attribute_elements = [
+                self.set_element(
+                    "AttributeRefId",
+                    attrib={"name": "BioProject"},
+                    children=[
+                        self.set_element(
+                            "RefId",
+                            children=[
+                                self.set_element(
+                                    "SPUID",
+                                    bioproject_id,
+                                    {"spuid_namespace": org},
+                                )
+                            ],
+                        )
+                    ],
+                )
+            ]
+
+            for biosample_id in biosample_ids:
+                attribute_elements.append(
+                    self.set_element(
+                        "AttributeRefId",
+                        attrib={"name": "BioSample"},
+                        children=[
+                            self.set_element(
+                                "RefId",
+                                children=[
+                                    self.set_element(
+                                        "SPUID",
+                                        biosample_id,
+                                        {"spuid_namespace": org},
+                                    )
+                                ],
+                            )
+                        ],
+                    )
+                )
+
+            identifier_element = self.set_element(
+                "Identifier",
+                children=[
+                    self.set_element("SPUID", bioproject_id, {"spuid_namespace": org})
+                ],
+            )
+
+            action = self.set_element(
+                "Action",
+                children=[
+                    self.set_element(
+                        "AddFiles",
+                        attrib={"target_db": "SRA"},
+                        children=files_elements
+                        + attribute_elements
+                        + [identifier_element],
+                    ),
+                ],
+            )
+
+            self.root.append(action)
+
+    def get_submission_xml(self, biosamples_list: list, data_objects_list: list):
         self.set_description(
             email=self.ncbi_submission_metadata.get("email", ""),
             user=self.ncbi_submission_metadata.get("user", ""),
@@ -272,6 +359,12 @@ class NCBISubmissionXML:
             package=self.ncbi_biosample_metadata.get("package", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
             nmdc_biosamples=biosamples_list,
+        )
+
+        self.set_fastq(
+            biosample_data_objects=data_objects_list,
+            bioproject_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+            org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
         rough_string = ET.tostring(self.root, "unicode")

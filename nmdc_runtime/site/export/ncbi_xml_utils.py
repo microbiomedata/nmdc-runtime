@@ -4,6 +4,59 @@ import csv
 import requests
 
 
+# TODO: do not hardcode this mapping
+def get_classname_from_typecode(doc_id):
+    typecode = doc_id.split(":")[1].split("-")[0]
+    class_map = {
+        "bsm": "Biosample",
+        "extr": "Extraction",
+        "pool": "Pooling",
+        "libprep": "LibraryPreparation",
+        "procsm": "ProcessedSample",
+        "omprc": "OmicsProcessing",
+        "dobj": "DataObject",
+    }
+    return class_map.get(typecode)
+
+
+def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
+    biosample_data_objects = []
+
+    for biosample in biosamples_list:
+        current_ids = [biosample["id"]]
+        collected_data_objects = []
+
+        while current_ids:
+            new_current_ids = []
+            for current_id in current_ids:
+                query = {"has_input": current_id}
+                document = all_docs_collection.find_one(query)
+
+                if not document:
+                    continue
+
+                has_output = document.get("has_output")
+                if not has_output:
+                    continue
+
+                for output_id in has_output:
+                    if get_classname_from_typecode(output_id) == "DataObject":
+                        data_object_doc = all_docs_collection.find_one(
+                            {"id": output_id}
+                        )
+                        if data_object_doc:
+                            collected_data_objects.append(data_object_doc)
+                    else:
+                        new_current_ids.append(output_id)
+
+            current_ids = new_current_ids
+
+        if collected_data_objects:
+            biosample_data_objects.append({biosample["id"]: collected_data_objects})
+
+    return biosample_data_objects
+
+
 def handle_quantity_value(slot_value):
     if "has_numeric_value" in slot_value and "has_unit" in slot_value:
         return f"{slot_value['has_numeric_value']} {slot_value['has_unit']}"
