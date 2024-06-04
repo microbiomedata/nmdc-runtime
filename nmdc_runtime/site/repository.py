@@ -902,6 +902,7 @@ def biosample_export():
                                 "project_id": "",
                                 "description": "",
                                 "data_type": "",
+                                "exists": False,
                             },
                             "ncbi_biosample_metadata": {
                                 "organism_name": "",

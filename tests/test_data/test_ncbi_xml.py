@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 import pytest
-from requests.exceptions import HTTPError
 import xml.etree.ElementTree as ET
 
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
@@ -32,6 +31,7 @@ MOCK_NCBI_SUBMISSION_METADATA = {
         "project_id": "PRJNA12345",
         "description": "A test project",
         "data_type": "metagenome",
+        "exists": False,
     },
     "ncbi_biosample_metadata": {
         "title": "Test Sample",
@@ -213,6 +213,9 @@ class TestNCBISubmissionXML:
                 "organization"
             ],
             nmdc_biosamples=nmdc_biosample,
+            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
+                "project_id"
+            ],
         )
         biosample_xml = ET.tostring(
             ncbi_submission_client.root.find(".//BioSample"), "unicode"
@@ -220,6 +223,7 @@ class TestNCBISubmissionXML:
         assert "E. coli" in biosample_xml
         assert "Test Package" in biosample_xml
         assert "Test Org" in biosample_xml
+        assert "PRJNA12345" in biosample_xml
 
     def test_set_fastq(self, ncbi_submission_client, data_objects_list, nmdc_biosample):
         biosample_data_objects = [
@@ -236,13 +240,18 @@ class TestNCBISubmissionXML:
             ],
         )
 
-        action_xml = ET.tostring(
-            ncbi_submission_client.root.find(".//Action"), "unicode"
-        )
-        assert "BMI_HVKNKBGX5_Tube347_R2.fastq.gz" in action_xml
-        assert "PRJNA12345" in action_xml
-        assert "nmdc:bsm-12-p9q5v236" in action_xml
-        assert "Test Org" in action_xml
+        action_elements = ncbi_submission_client.root.findall(".//Action")
+        assert len(action_elements) == len(biosample_data_objects)
+
+        for action_element in action_elements:
+            action_xml = ET.tostring(action_element, "unicode")
+            assert (
+                "BMI_HVKNKBGX5_Tube347_R1.fastq.gz" in action_xml
+                or "BMI_HVKNKBGX5_Tube347_R2.fastq.gz" in action_xml
+            )
+            assert "PRJNA12345" in action_xml
+            assert "nmdc:bsm-12-p9q5v236" in action_xml
+            assert "Test Org" in action_xml
 
     def test_get_submission_xml(
         self, mocker, ncbi_submission_client, nmdc_biosample, data_objects_list
@@ -306,7 +315,7 @@ class TestNCBISubmissionXML:
         )
 
         submission_xml = ncbi_submission_client.get_submission_xml(
-            nmdc_biosample, biosample_data_objects
+            nmdc_biosample, data_objects_list
         )
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
@@ -417,7 +426,7 @@ class TestNCBIXMLUtils:
             "Biosample\tenv_local_scale\tControlledIdentifiedTermValue\tenv_local_scale\t\t\n"
             "Biosample\tenv_medium\tControlledIdentifiedTermValue\tenv_medium\t\t\n"
             "Biosample\tenv_package\tTextValue\tenv_package\t\t\n"
-            "Biosample\tgeo_loc_name\tQuantityValue\tgeo_loc_name\t\t\n"
+            "Biosample\tgeo_loc_name\tTextValue\tgeo_loc_name\t\t\n"
             "Biosample\tid\turiorcurie\t\t\t\n"
             "Biosample\tlat_lon\tGeolocationValue\tlat_lon\t\t\n"
             "Biosample\tname\tstring\tsample_name\t\t\n"
@@ -465,7 +474,7 @@ class TestNCBIXMLUtils:
             "env_local_scale": "ControlledIdentifiedTermValue",
             "env_medium": "ControlledIdentifiedTermValue",
             "env_package": "TextValue",
-            "geo_loc_name": "QuantityValue",
+            "geo_loc_name": "TextValue",
             "id": "uriorcurie",
             "lat_lon": "GeolocationValue",
             "name": "string",

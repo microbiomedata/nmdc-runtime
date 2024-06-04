@@ -33,6 +33,7 @@ from dagster import (
     Optional,
     Field,
     Permissive,
+    Bool,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
@@ -1030,6 +1031,7 @@ def get_ncbi_export_pipeline_study_id(context: OpExecutionContext) -> str:
                     "project_id": String,
                     "description": String,
                     "data_type": String,
+                    "exists": Bool,
                 }
             ),
             is_required=True,

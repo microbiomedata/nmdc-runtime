@@ -1,7 +1,9 @@
+import os
 import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
+from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
@@ -147,6 +149,7 @@ class NCBISubmissionXML:
         organism_name,
         package,
         org,
+        bioproject_id,
         nmdc_biosamples,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
@@ -197,6 +200,14 @@ class NCBISubmissionXML:
                 self.set_element(
                     "Organism",
                     children=[self.set_element("OrganismName", organism_name)],
+                ),
+                self.set_element(
+                    "BioProject",
+                    children=[
+                        self.set_element(
+                            "PrimaryId", bioproject_id, {"db": "BioProject"}
+                        )
+                    ],
                 ),
                 self.set_element("Package", package),
                 self.set_element(
@@ -255,87 +266,94 @@ class NCBISubmissionXML:
         bioproject_id: str,
         org: str,
     ):
-        fastq_files = []
-        biosample_ids = []
-
         for entry in biosample_data_objects:
+            fastq_files = []
+            biosample_ids = []
+
             for biosample_id, data_objects in entry.items():
                 biosample_ids.append(biosample_id)
                 for data_object in data_objects:
                     if "url" in data_object:
-                        fastq_files.append(data_object["url"])
-
-        if fastq_files:
-            files_elements = [
-                self.set_element(
-                    "File",
-                    "",
-                    {"file_path": f},
-                    [self.set_element("DataType", "generic-data")],
-                )
-                for f in fastq_files
-            ]
-
-            attribute_elements = [
-                self.set_element(
-                    "AttributeRefId",
-                    attrib={"name": "BioProject"},
-                    children=[
-                        self.set_element(
-                            "RefId",
-                            children=[
-                                self.set_element(
-                                    "SPUID",
-                                    bioproject_id,
-                                    {"spuid_namespace": org},
-                                )
-                            ],
+                        url = urlparse(data_object["url"])
+                        file_path = os.path.join(
+                            os.path.basename(os.path.dirname(url.path)),
+                            os.path.basename(url.path),
                         )
-                    ],
-                )
-            ]
+                        fastq_files.append(file_path)
 
-            for biosample_id in biosample_ids:
-                attribute_elements.append(
+            if fastq_files:
+                files_elements = [
+                    self.set_element(
+                        "File",
+                        "",
+                        {"file_path": f},
+                        [self.set_element("DataType", "generic-data")],
+                    )
+                    for f in fastq_files
+                ]
+
+                attribute_elements = [
                     self.set_element(
                         "AttributeRefId",
-                        attrib={"name": "BioSample"},
+                        attrib={"name": "BioProject"},
                         children=[
                             self.set_element(
                                 "RefId",
                                 children=[
                                     self.set_element(
                                         "SPUID",
-                                        biosample_id,
+                                        bioproject_id,
                                         {"spuid_namespace": org},
                                     )
                                 ],
                             )
                         ],
                     )
+                ]
+
+                for biosample_id in biosample_ids:
+                    attribute_elements.append(
+                        self.set_element(
+                            "AttributeRefId",
+                            attrib={"name": "BioSample"},
+                            children=[
+                                self.set_element(
+                                    "RefId",
+                                    children=[
+                                        self.set_element(
+                                            "SPUID",
+                                            biosample_id,
+                                            {"spuid_namespace": org},
+                                        )
+                                    ],
+                                )
+                            ],
+                        )
+                    )
+
+                identifier_element = self.set_element(
+                    "Identifier",
+                    children=[
+                        self.set_element(
+                            "SPUID", bioproject_id, {"spuid_namespace": org}
+                        )
+                    ],
                 )
 
-            identifier_element = self.set_element(
-                "Identifier",
-                children=[
-                    self.set_element("SPUID", bioproject_id, {"spuid_namespace": org})
-                ],
-            )
+                action = self.set_element(
+                    "Action",
+                    children=[
+                        self.set_element(
+                            "AddFiles",
+                            attrib={"target_db": "SRA"},
+                            children=files_elements
+                            + attribute_elements
+                            + [identifier_element],
+                        ),
+                    ],
+                )
 
-            action = self.set_element(
-                "Action",
-                children=[
-                    self.set_element(
-                        "AddFiles",
-                        attrib={"target_db": "SRA"},
-                        children=files_elements
-                        + attribute_elements
-                        + [identifier_element],
-                    ),
-                ],
-            )
-
-            self.root.append(action)
+                self.root.append(action)
 
     def get_submission_xml(self, biosamples_list: list, data_objects_list: list):
         self.set_description(
@@ -346,18 +364,20 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
-        self.set_bioproject(
-            title=self.ncbi_bioproject_metadata.get("title", ""),
-            project_id=self.ncbi_bioproject_metadata.get("project_id", ""),
-            description=self.ncbi_bioproject_metadata.get("description", ""),
-            data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
-            org=self.ncbi_submission_metadata.get("organization", ""),
-        )
+        if not self.ncbi_bioproject_metadata.get("exists"):
+            self.set_bioproject(
+                title=self.ncbi_bioproject_metadata.get("title", ""),
+                project_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+                description=self.ncbi_bioproject_metadata.get("description", ""),
+                data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
+                org=self.ncbi_submission_metadata.get("organization", ""),
+            )
 
         self.set_biosample(
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
             package=self.ncbi_biosample_metadata.get("package", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
+            bioproject_id=self.ncbi_bioproject_metadata.get("project_id", ""),
             nmdc_biosamples=biosamples_list,
         )
 
