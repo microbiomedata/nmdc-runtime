@@ -55,26 +55,49 @@ def nmdc_biosample():
         {
             "analysis_type": ["metagenomics"],
             "biosample_categories": ["NEON"],
-            "collection_date": {"has_raw_value": "2014-08-05T18:40Z"},
-            "conduc": {"has_numeric_value": 567, "has_unit": "uS/cm"},
-            "elev": 1178.7,
+            "collection_date": {"has_raw_value": "2015-07-21T18:00Z"},
+            "depth": {
+                "has_maximum_numeric_value": 1,
+                "has_minimum_numeric_value": 0,
+                "has_unit": "meters",
+            },
+            "elev": 1179.5,
             "env_broad_scale": {
-                "term": {"id": "ENVO:03605008", "name": "freshwater stream biome"}
+                "term": {"id": "ENVO:01000253", "name": "freshwater river biome"}
             },
-            "env_local_scale": {
-                "term": {"id": "ENVO:03605007", "name": "freshwater stream"}
-            },
-            "env_medium": {"term": {"id": "ENVO:03605006", "name": "stream water"}},
-            "env_package": {"has_raw_value": "water"},
+            "env_local_scale": {"term": {"id": "ENVO:03600094", "name": "stream pool"}},
+            "env_medium": {"term": {"id": "ENVO:00002007", "name": "sediment"}},
             "geo_loc_name": {"has_raw_value": "USA: Colorado, Arikaree River"},
-            "id": "nmdc:bsm-12-gnfpt483",
-            "lat_lon": {"latitude": 39.758359, "longitude": -102.448595},
-            "name": "ARIK.SS.20140805",
-            "part_of": ["nmdc:sty-11-hht5sb92"],
-            "samp_collec_device": "Grab",
-            "temp": {"has_numeric_value": 20.1, "has_unit": "Cel"},
+            "id": "nmdc:bsm-12-p9q5v236",
+            "lat_lon": {"latitude": 39.758206, "longitude": -102.447148},
+            "name": "ARIK.20150721.AMC.EPIPSAMMON.3",
+            "part_of": ["nmdc:sty-11-34xj1150"],
             "type": "nmdc:Biosample",
         }
+    ]
+
+
+@pytest.fixture
+def data_objects_list():
+    return [
+        {
+            "data_object_type": "Metagenome Raw Read 1",
+            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_R1",
+            "id": "nmdc:dobj-12-b3ft7a80",
+            "md5_checksum": "cae0a9342d786e731ae71f6f37b76120",
+            "name": "BMI_HVKNKBGX5_Tube347_R1.fastq.gz",
+            "type": "nmdc:DataObject",
+            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_mms_R1/BMI_HVKNKBGX5_Tube347_R1.fastq.gz",
+        },
+        {
+            "data_object_type": "Metagenome Raw Read 2",
+            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_R2",
+            "id": "nmdc:dobj-12-1zv4q961",
+            "md5_checksum": "7340fe25644183a4f56d36ce52389d83",
+            "name": "BMI_HVKNKBGX5_Tube347_R2.fastq.gz",
+            "type": "nmdc:DataObject",
+            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_mms_R2/BMI_HVKNKBGX5_Tube347_R2.fastq.gz",
+        },
     ]
 
 
@@ -198,7 +221,32 @@ class TestNCBISubmissionXML:
         assert "Test Package" in biosample_xml
         assert "Test Org" in biosample_xml
 
-    def test_get_submission_xml(self, mocker, ncbi_submission_client, nmdc_biosample):
+    def test_set_fastq(self, ncbi_submission_client, data_objects_list, nmdc_biosample):
+        biosample_data_objects = [
+            {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
+        ]
+
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=biosample_data_objects,
+            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
+                "project_id"
+            ],
+            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
+                "organization"
+            ],
+        )
+
+        action_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//Action"), "unicode"
+        )
+        assert "BMI_HVKNKBGX5_Tube347_R2.fastq.gz" in action_xml
+        assert "PRJNA12345" in action_xml
+        assert "nmdc:bsm-12-p9q5v236" in action_xml
+        assert "Test Org" in action_xml
+
+    def test_get_submission_xml(
+        self, mocker, ncbi_submission_client, nmdc_biosample, data_objects_list
+    ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
             return_value=(
@@ -243,13 +291,29 @@ class TestNCBISubmissionXML:
             ),
         )
 
-        submission_xml = ncbi_submission_client.get_submission_xml(nmdc_biosample)
+        biosample_data_objects = [
+            {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
+        ]
 
-        assert "nmdc:bsm-12-gnfpt483" in submission_xml
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=biosample_data_objects,
+            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
+                "project_id"
+            ],
+            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
+                "organization"
+            ],
+        )
+
+        submission_xml = ncbi_submission_client.get_submission_xml(
+            nmdc_biosample, biosample_data_objects
+        )
+
+        assert "nmdc:bsm-12-p9q5v236" in submission_xml
         assert "E. coli" in submission_xml
-        assert "stream water" in submission_xml
+        assert "sediment" in submission_xml
         assert "USA: Colorado, Arikaree River" in submission_xml
-        assert "2014-08-05T18:40Z" in submission_xml
+        assert "2015-07-21T18:00Z" in submission_xml
         assert "testuser" in submission_xml
         assert "Test Project" in submission_xml
 
