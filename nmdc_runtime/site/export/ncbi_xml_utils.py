@@ -1,21 +1,22 @@
-from lxml import etree
 from io import BytesIO, StringIO
+from nmdc_runtime.minter.config import typecodes
+from lxml import etree
+
 import csv
 import requests
 
 
-# TODO: do not hardcode this mapping
-def get_classname_from_typecode(doc_id):
-    typecode = doc_id.split(":")[1].split("-")[0]
-    class_map = {
-        "bsm": "Biosample",
-        "extr": "Extraction",
-        "pool": "Pooling",
-        "libprep": "LibraryPreparation",
-        "procsm": "ProcessedSample",
-        "omprc": "OmicsProcessing",
-        "dobj": "DataObject",
+def _build_class_map(class_map_data):
+    return {
+        entry["name"]: entry["schema_class"].split(":")[1] for entry in class_map_data
     }
+
+
+def get_classname_from_typecode(doc_id):
+    class_map_data = typecodes()
+    class_map = _build_class_map(class_map_data)
+
+    typecode = doc_id.split(":")[1].split("-")[0]
     return class_map.get(typecode)
 
 
