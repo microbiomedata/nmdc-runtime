@@ -22,7 +22,6 @@ from nmdc_runtime.site.ops import (
     hello,
     mongo_stats,
     submit_metadata_to_db,
-    update_schema,
     filter_ops_undone_expired,
     construct_jobs,
     maybe_post_jobs,
