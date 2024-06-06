@@ -781,11 +781,22 @@ def export_json_to_drs(
     out=Out(description="XML content rendered through Dagit UI"),
 )
 def ncbi_submission_xml_asset(context: OpExecutionContext, data: str):
+    filename = "ncbi_submission.xml"
+    file_path = os.path.join(context.instance.storage_directory(), filename)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "w") as f:
+        f.write(data)
+
     context.log_event(
         AssetMaterialization(
             asset_key="ncbi_submission_xml",
             description="NCBI Submission XML Data",
-            metadata={"xml": MetadataValue.text(data)},
+            metadata={
+                "file_path": MetadataValue.path(file_path),
+                "xml": MetadataValue.text(data),
+            },
         )
     )
 
