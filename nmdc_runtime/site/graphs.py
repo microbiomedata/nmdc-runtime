@@ -86,7 +86,6 @@ def hello_mongo():
     mongo_stats()
 
 
-
 @graph
 def housekeeping():
     delete_operations(list_operations(filter_ops_undone_expired()))
