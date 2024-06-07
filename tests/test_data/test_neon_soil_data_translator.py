@@ -778,7 +778,6 @@ sls_data = {
     ),
 }
 
-
 def neon_envo_mappings_file():
     tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
 deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
@@ -797,37 +796,24 @@ BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661
 class TestNeonDataTranslator:
     @pytest.fixture
     def translator(self, test_minter):
-        return NeonSoilDataTranslator(
-            mms_data=mms_data,
-            sls_data=sls_data,
-            neon_envo_mappings_file=neon_envo_mappings_file(),
-            neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
-            id_minter=test_minter,
-        )
+        return NeonSoilDataTranslator(mms_data=mms_data, 
+                                      sls_data=sls_data, 
+                                      neon_envo_mappings_file=neon_envo_mappings_file(), 
+                                      neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(), 
+                                      id_minter=test_minter
+                                    )
 
     def test_missing_mms_table(self, test_minter):
         # Test behavior when mms data is missing a table
         with pytest.raises(
             ValueError, match="missing one of the metagenomic microbe soil tables"
         ):
-            NeonSoilDataTranslator(
-                {},
-                sls_data,
-                neon_envo_mappings_file(),
-                neon_raw_data_file_mappings_file(),
-                id_minter=test_minter,
-            )
+            NeonSoilDataTranslator({}, sls_data, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
 
     def test_missing_sls_table(self, test_minter):
         # Test behavior when sls data is missing a table
         with pytest.raises(ValueError, match="missing one of the soil periodic tables"):
-            NeonSoilDataTranslator(
-                mms_data,
-                {},
-                neon_envo_mappings_file(),
-                neon_raw_data_file_mappings_file(),
-                id_minter=test_minter,
-            )
+            NeonSoilDataTranslator(mms_data, {}, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
 
     def test_get_value_or_none(self):
         # use one biosample record to test this method
@@ -874,9 +860,7 @@ class TestNeonDataTranslator:
         collect_date = _create_timestamp_value("2020-07-13T14:34Z")
         assert collect_date.has_raw_value == "2020-07-13T14:34Z"
 
-    @pytest.mark.xfail(
-        reason="AttributeError: module 'nmdc_schema.nmdc' has no attribute 'QualityControlReport'"
-    )
+    @pytest.mark.xfail(reason="AttributeError: module 'nmdc_schema.nmdc' has no attribute 'QualityControlReport'")
     def test_get_database(self, translator):
         database = translator.get_database()
 

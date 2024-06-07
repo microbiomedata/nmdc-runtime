@@ -1,5 +1,4 @@
 """Core functionality of the activity service module."""
-
 from dataclasses import fields
 from typing import Any, TypedDict
 from uuid import uuid1

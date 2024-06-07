@@ -1,5 +1,4 @@
 """blah."""
-
 from setuptools import find_packages, setup  # type: ignore
 
 with open("README.md") as f:

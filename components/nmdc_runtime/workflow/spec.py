@@ -25,9 +25,9 @@ class Sequencing(Workflow):
     enabled: bool = True
     git_repo: str = ""
     version: str = "1.0.0"
-    activity: Literal["metagenome_sequencing_activity_set"] = (
+    activity: Literal[
         "metagenome_sequencing_activity_set"
-    )
+    ] = "metagenome_sequencing_activity_set"
     predecessor: str = ""
     id_type: str = ""
     input_prefix: str = ""
@@ -69,9 +69,9 @@ class MetagenomeAnnotation(Workflow):
     git_repo: str = "https://github.com/microbiomedata/mg_annotation"
     version: str = "1.0.0"
     wdl: str = "annotation_full.wdl"
-    activity: Literal["metagenome_annotation_activity_set"] = (
+    activity: Literal[
         "metagenome_annotation_activity_set"
-    )
+    ] = "metagenome_annotation_activity_set"
     predecessor: str = "MetagenomeAssembly"
     input_prefix: str = "annotation"
     id_type: str = "mgann"
@@ -152,9 +152,9 @@ class ReadBasedAnalysis(Workflow):
     git_repo: str = "https://github.com/microbiomedata/ReadbasedAnalysis"
     version: str = "1.0.2"
     wdl: str = "ReadbasedAnalysis.wdl"
-    activity: Literal["read_based_taxonomy_analysis_activity_set"] = (
+    activity: Literal[
         "read_based_taxonomy_analysis_activity_set"
-    )
+    ] = "read_based_taxonomy_analysis_activity_set"
     predecessor: str = "Read QC Analysis"
     input_prefix: str = "nmdc_rba"
     id_type: str = "mgrba"
@@ -162,14 +162,9 @@ class ReadBasedAnalysis(Workflow):
 
 
 class WorkflowModel(BaseModel):
-    workflow: (
-        ReadQcAnalysis
-        | MetagenomeAssembly
-        | MAGs
-        | ReadBasedAnalysis
-        | Sequencing
-        | MetagenomeAnnotation
-    ) = Field(..., discriminator="activity")
+    workflow: ReadQcAnalysis | MetagenomeAssembly | MAGs | ReadBasedAnalysis | Sequencing | MetagenomeAnnotation = Field(
+        ..., discriminator="activity"
+    )
 
 
 def get_all_workflows() -> list[Workflow]:

@@ -128,7 +128,6 @@ benthic_data = {
     ),
 }
 
-
 def neon_envo_mappings_file():
     tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
 deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
@@ -151,17 +150,14 @@ def site_code_mapping():
 class TestNeonBenthicDataTranslator:
     @pytest.fixture
     def translator(self, test_minter):
-        return NeonBenthicDataTranslator(
-            benthic_data=benthic_data,
-            site_code_mapping=site_code_mapping(),
-            neon_envo_mappings_file=neon_envo_mappings_file(),
-            neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
-            id_minter=test_minter,
-        )
+        return NeonBenthicDataTranslator(benthic_data=benthic_data,
+                                         site_code_mapping=site_code_mapping(),
+                                         neon_envo_mappings_file=neon_envo_mappings_file(),
+                                         neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
+                                         id_minter=test_minter
+                                        )
 
-    @pytest.mark.xfail(
-        reason="AttributeError: module 'nmdc_schema.nmdc' has no attribute 'QualityControlReport'"
-    )
+    @pytest.mark.xfail(reason="AttributeError: module 'nmdc_schema.nmdc' has no attribute 'QualityControlReport'")
     def test_get_database(self, translator):
         database = translator.get_database()
 
