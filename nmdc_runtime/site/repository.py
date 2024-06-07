@@ -50,7 +50,6 @@ from nmdc_runtime.site.resources import (
     nmdc_portal_api_client_resource,
     gold_api_client_resource,
     neon_api_client_resource,
-    terminus_resource,
     mongo_resource,
 )
 from nmdc_runtime.site.resources import (
@@ -68,7 +67,6 @@ resource_defs = {
     "nmdc_portal_api_client": nmdc_portal_api_client_resource,
     "gold_api_client": gold_api_client_resource,
     "neon_api_client": neon_api_client_resource,
-    "terminus": terminus_resource,
     "mongo": mongo_resource,
 }
 
