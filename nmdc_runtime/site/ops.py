@@ -946,10 +946,10 @@ def materialize_all_docs(context) -> int:
     mdb = context.resources.mongo.db
 
     collection_names = sorted(nmdc_schema_collection_names(mdb))
+    # add functional_annotation_agg
     collection_names = [
         n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})
     ]
-
     for name in collection_names:
         assert len(collection_name_to_class_names[name]) == 1
 
@@ -957,34 +957,25 @@ def materialize_all_docs(context) -> int:
         r"""
         Returns a list consisting of the name of the class of the instance pass in,
         and the names of all of its ancestor classes.
-
-        TODO: Consider renaming function to be a verb; e.g. `get_class_hierarchy_as_list`.
-
-        TODO: Document the purpose of the `rv` list (does not seem to be used anywhere).
         """
 
         rv = []
         current_class = obj.__class__
 
         def recurse_through_bases(cls):
-            if cls.__name__ == "YAMLRoot":  # base case
+            if cls.__name__ == "YAMLRoot":
                 return rv
             rv.append(cls.__name__)
             for base in cls.__bases__:
-                recurse_through_bases(base)  # recursive invocation
+                recurse_through_bases(base)
             return rv
 
-        return recurse_through_bases(current_class)  # initial invocation
+        return recurse_through_bases(current_class)
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
     mdb.alldocs.drop()
 
-    # Set up progress bar
-    n_docs_total = sum(
-        mdb[name].estimated_document_count() for name in collection_names
-    )
-
-    # for each collection name
+    # iterate through collections to build alldocs
     context.log.info("constructing `alldocs` collection")
     for coll_name in collection_names:
         # for each doc in collection, remove the mongo-generated '_id' field
@@ -996,29 +987,13 @@ def materialize_all_docs(context) -> int:
             print(f"no {coll_name}!")
             raise e
 
-        # Calculate class_hierarchy_as_list once per collection.
-        #
-        # Note: This seems to assume that the class hierarchy is identical for each document
-        #       in a given collection, which may not be the case since a collection whose
-        #       range is a "parent" class can store instances of descendant classes (and the
-        #       class hierarchy of the latter would differ from that of the former).
-        #
-        exemplar = getattr(nmdcdb, coll_name)[
-            0
-        ]  # get first instance (i.e. document) in list
+        # Calculate class_hierarchy_as_list once per collection, using the first document in list
+        exemplar = getattr(nmdcdb, coll_name)[0]
         newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
 
         # For each document in this collection, replace the value of the `type` field with
         # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
-        # and insert the resulting document into the `alldocs` collection. Note that we are not
-        # relying on the original value of the `type` field, since it's unreliable (see below).
-
-        # NOTE: `type` is currently a string, does not exist for all classes, and can have typos.
-        # Both of these are fixed in berkeley schema but is risky to use at this time
-
-        # TODO: Consider omitting fields that neither (a) are the `id` field, nor (b) have the potential
-        #       to reference a document. Those fields aren't related to referential integrity.
-
+        # and insert the resulting document into the `alldocs` collection.
         mdb.alldocs.insert_many(
             [
                 assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
@@ -1028,6 +1003,7 @@ def materialize_all_docs(context) -> int:
 
     # Prior to re-ID-ing, some IDs are not unique across Mongo collections (eg nmdc:0078a0f981ad3f92693c2bc3b6470791)
     # Re-idx for `alldocs` collection
+    # TODO: This step may not be needed post-re-ID-ing
     mdb.alldocs.create_index("id")
     context.log.info("refreshed `alldocs` collection")
 
