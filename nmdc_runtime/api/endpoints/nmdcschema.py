@@ -135,7 +135,7 @@ def get_by_id(
 
 
 @router.get("/nmdcschema/ids/{hypothetical_doc_id}/collection-and-class-name")
-def get_collection_name_and_class_name_by_doc_id(hypothetical_doc_id: str):
+def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
     r"""
     Gets the name of the Mongo collection that could contain a document having this `id`
     and the name of the NMDC Schema class whose instances could have this `id`.
@@ -161,7 +161,7 @@ def get_collection_name_and_class_name_by_doc_id(hypothetical_doc_id: str):
     # Determine the schema class, if any, of which the specified `id` could belong to an instance.
     schema_class_name = None
     for typecode in typecodes():
-        if typecode_portion == typecode:
+        if typecode_portion == typecode["name"]:
             schema_class_name_prefixed = typecode["schema_class"]
             schema_class_name = schema_class_name_prefixed.replace("nmdc:", "", 1)
             break
@@ -170,7 +170,7 @@ def get_collection_name_and_class_name_by_doc_id(hypothetical_doc_id: str):
         return None  # abort
 
     # Determine the Mongo collection in which instances of that schema class can reside.
-    collection_name = None
+    collection_names = []
     DATABASE_CLASS_NAME = "Database"
     schema_view = SchemaView(get_nmdc_schema_definition())
     for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
@@ -186,15 +186,14 @@ def get_collection_name_and_class_name_by_doc_id(hypothetical_doc_id: str):
             name_of_eligible_class
         )
         if schema_class_name in names_of_eligible_classes:
-            collection_name = slot_name
-            break
+            collection_names.append(slot_name)
 
-    if collection_name is None:
+    if not collection_names:
         return None  # abort
 
     return {
         "id": hypothetical_doc_id,
-        "collection_name": collection_name,
+        "collection_names": collection_names,
         "class_name": schema_class_name,
     }
 
