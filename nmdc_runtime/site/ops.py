@@ -933,3 +933,102 @@ def site_code_mapping() -> dict:
         raise Exception(
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
+
+
+@op(required_resource_keys={"mongo"})
+def materialize_all_docs(context) -> int:
+    from toolz import dissoc, assoc
+
+    from nmdc_runtime.api.db.mongo import nmdc_schema_collection_names
+    from nmdc_runtime.util import collection_name_to_class_names
+    from nmdc_schema.nmdc_schema_accepting_legacy_ids import Database as NMDCDatabase
+
+    mdb = context.resources.mongo.db
+
+    collection_names = sorted(nmdc_schema_collection_names(mdb))
+    collection_names = [
+        n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})
+    ]
+
+    for name in collection_names:
+        assert len(collection_name_to_class_names[name]) == 1
+
+    def class_hierarchy_as_list(obj) -> list[str]:
+        r"""
+        Returns a list consisting of the name of the class of the instance pass in,
+        and the names of all of its ancestor classes.
+
+        TODO: Consider renaming function to be a verb; e.g. `get_class_hierarchy_as_list`.
+
+        TODO: Document the purpose of the `rv` list (does not seem to be used anywhere).
+        """
+
+        rv = []
+        current_class = obj.__class__
+
+        def recurse_through_bases(cls):
+            if cls.__name__ == "YAMLRoot":  # base case
+                return rv
+            rv.append(cls.__name__)
+            for base in cls.__bases__:
+                recurse_through_bases(base)  # recursive invocation
+            return rv
+
+        return recurse_through_bases(current_class)  # initial invocation
+
+    # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
+    mdb.alldocs.drop()
+
+    # Set up progress bar
+    n_docs_total = sum(
+        mdb[name].estimated_document_count() for name in collection_names
+    )
+
+    # for each collection name
+    context.log.info("constructing `alldocs` collection")
+    for coll_name in collection_names:
+        # for each doc in collection, remove the mongo-generated '_id' field
+        try:
+            nmdcdb = NMDCDatabase(
+                **{coll_name: [dissoc(mdb[coll_name].find_one(), "_id")]}
+            )
+        except ValueError as e:
+            print(f"no {coll_name}!")
+            raise e
+
+        # Calculate class_hierarchy_as_list once per collection.
+        #
+        # Note: This seems to assume that the class hierarchy is identical for each document
+        #       in a given collection, which may not be the case since a collection whose
+        #       range is a "parent" class can store instances of descendant classes (and the
+        #       class hierarchy of the latter would differ from that of the former).
+        #
+        exemplar = getattr(nmdcdb, coll_name)[
+            0
+        ]  # get first instance (i.e. document) in list
+        newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
+
+        # For each document in this collection, replace the value of the `type` field with
+        # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
+        # and insert the resulting document into the `alldocs` collection. Note that we are not
+        # relying on the original value of the `type` field, since it's unreliable (see below).
+
+        # NOTE: `type` is currently a string, does not exist for all classes, and can have typos.
+        # Both of these are fixed in berkeley schema but is risky to use at this time
+
+        # TODO: Consider omitting fields that neither (a) are the `id` field, nor (b) have the potential
+        #       to reference a document. Those fields aren't related to referential integrity.
+
+        mdb.alldocs.insert_many(
+            [
+                assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
+                for doc in mdb[coll_name].find()
+            ]
+        )
+
+    # Prior to re-ID-ing, some IDs are not unique across Mongo collections (eg nmdc:0078a0f981ad3f92693c2bc3b6470791)
+    # Re-idx for `alldocs` collection
+    mdb.alldocs.create_index("id")
+    context.log.info("refreshed `alldocs` collection")
+
+    return mdb.all_docs.estimated_document_count()
