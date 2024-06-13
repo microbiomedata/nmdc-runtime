@@ -212,7 +212,7 @@ def get_class_name_and_collection_names_by_doc_id(
         )
 
     # Use the Mongo database to determine which of those collections a document having that `id` actually
-    # resides, if any. If multiple collections contains such a document, report only the first one.
+    # resides in, if any. If multiple collections contain such a document, report only the first one.
     containing_collection_name = None
     for collection_name in collection_names:
         collection = mdb.get_collection(name=collection_name)
