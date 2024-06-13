@@ -282,11 +282,13 @@ def test_submit_workflow_activities(api_site_client):
 
 
 def test_get_class_name_and_collection_names_by_doc_id():
+    base_url = os.getenv("API_HOST")
+
     # Happy path.
     id_ = "nmdc:sty-1-foobar"
     response = requests.request(
         "GET",
-        f"/nmdcschema/ids/{id_}/class-and-collection-names"
+        f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
     )
     body = response.json()
     assert response.status_code == 200
@@ -298,6 +300,6 @@ def test_get_class_name_and_collection_names_by_doc_id():
     id_ = "fake:sty-1-foobar"
     response = requests.request(
         "GET",
-        f"/nmdcschema/ids/{id_}/class-and-collection-names"
+        f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
     )
     assert response.status_code == 404
