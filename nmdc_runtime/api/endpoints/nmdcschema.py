@@ -137,8 +137,8 @@ def get_by_id(
 @router.get("/nmdcschema/ids/{hypothetical_doc_id}/collection-and-class-name")
 def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
     r"""
-    Gets the name of the Mongo collection that could contain a document having this `id`
-    and the name of the NMDC Schema class whose instances could have this `id`.
+    Gets the name of the Mongo collection(s) that could contain a document having this `id`
+    and the name of the NMDC Schema class of which an instance could have this `id`.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
@@ -169,7 +169,7 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
     if schema_class_name is None:
         return None  # abort
 
-    # Determine the Mongo collection in which instances of that schema class can reside.
+    # Determine the Mongo collection(s) in which instances of that schema class can reside.
     collection_names = []
     DATABASE_CLASS_NAME = "Database"
     schema_view = SchemaView(get_nmdc_schema_definition())
@@ -188,7 +188,7 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
         if schema_class_name in names_of_eligible_classes:
             collection_names.append(slot_name)
 
-    if not collection_names:
+    if len(collection_names) == 0:
         return None  # abort
 
     return {
