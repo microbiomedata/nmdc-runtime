@@ -279,3 +279,25 @@ def test_submit_workflow_activities(api_site_client):
     if doc_to_restore:
         mdb[test_collection].insert_one(doc_to_restore)
     assert "id" in rv.json() and "input_read_count" not in rv.json()
+
+
+def test_get_class_name_and_collection_names_by_doc_id():
+    # Happy path.
+    id_ = "nmdc:sty-1-foobar"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["id"] == "nmdc:sty-1-foobar"
+    assert body["class_name"] == "Study"
+    assert "study_set" in body["collection_names"]
+
+    # Invalid typecode.
+    id_ = "fake:sty-1-foobar"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
+    )
+    assert response.status_code == 404
