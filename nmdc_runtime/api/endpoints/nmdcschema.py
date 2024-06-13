@@ -139,6 +139,9 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
     r"""
     Gets the name of the Mongo collection(s) that could contain a document having this `id`
     and the name of the NMDC Schema class of which an instance could have this `id`.
+
+    Returns an HTTP 404 response if either (a) no associated collection names are found or
+    (b) no associated class name is found.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
@@ -156,7 +159,10 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
     typecode_portion = match.group(1) if match else None
 
     if typecode_portion is None:
-        return None  # abort
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No associated collection names or class name were found.",
+        )
 
     # Determine the schema class, if any, of which the specified `id` could belong to an instance.
     schema_class_name = None
@@ -167,7 +173,10 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
             break
 
     if schema_class_name is None:
-        return None  # abort
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No associated class name was found.",
+        )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
     collection_names = []
@@ -189,7 +198,11 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
             collection_names.append(slot_name)
 
     if len(collection_names) == 0:
-        return None  # abort
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'An associated class name was found ("{schema_class_name}"), '
+                   f"but no associated collection names were found.",
+        )
 
     return {
         "id": hypothetical_doc_id,
