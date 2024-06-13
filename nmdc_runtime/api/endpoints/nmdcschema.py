@@ -201,7 +201,7 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'An associated class name was found ("{schema_class_name}"), '
-                   f"but no associated collection names were found.",
+            f"but no associated collection names were found.",
         )
 
     return {
