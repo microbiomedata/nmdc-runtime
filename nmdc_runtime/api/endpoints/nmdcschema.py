@@ -135,16 +135,18 @@ def get_by_id(
 
 
 @router.get("/nmdcschema/ids/{hypothetical_doc_id}/class-and-collection-names")
-def get_class_name_and_collection_names_by_doc_id(hypothetical_doc_id: str):
+def get_class_name_and_collection_names_by_doc_id(
+    hypothetical_doc_id: str,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
     r"""
-    Gets the name of the Mongo collection(s) that could contain a document having this `id`
-    and the name of the NMDC Schema class of which an instance could have this `id`.
+    Gets the name of the NMDC Schema class of which an instance could have that `id`,
+    the names of the Mongo collection(s) that could contain a document having that `id`,
+    and—in the situation where a document having that `id` actually exists in one of those
+    collections—the name of that collection.
 
     Returns an HTTP 404 response if either (a) no associated collection names are found or
     (b) no associated class name is found.
-
-    Note: This endpoint does not use the Mongo database. The Mongo collection names it
-          returns are names of slots of the `Database` class in the NMDC Schema.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
@@ -203,14 +205,26 @@ def get_class_name_and_collection_names_by_doc_id(hypothetical_doc_id: str):
     if len(collection_names) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'An associated class name was found ("{schema_class_name}"), '
-            f"but no associated collection names were found.",
+            detail=(
+                f'An associated class name was found ("{schema_class_name}"), '
+                f"but no associated collection names were found."
+            ),
         )
+
+    # Use the Mongo database to determine which of those collections a document having that `id` actually
+    # resides, if any. If multiple collections contains such a document, report only the first one.
+    containing_collection_name = None
+    for collection_name in collection_names:
+        collection = mdb.get_collection(name=collection_name)
+        if collection.count_documents(dict(id=hypothetical_doc_id)) > 0:
+            containing_collection_name = collection_name
+            break
 
     return {
         "id": hypothetical_doc_id,
         "class_name": schema_class_name,
         "collection_names": collection_names,
+        "containing_collection_name": containing_collection_name,
     }
 
 

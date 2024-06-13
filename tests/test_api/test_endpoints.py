@@ -284,7 +284,12 @@ def test_submit_workflow_activities(api_site_client):
 def test_get_class_name_and_collection_names_by_doc_id():
     base_url = os.getenv("API_HOST")
 
-    # Happy path.
+    # Seed the database.
+    mdb = get_mongo_db()
+    study_set_collection = mdb["nmdc"].get_collection("study_set")
+    study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
+
+    # Valid id, and document exists in database.
     id_ = "nmdc:sty-1-foobar"
     response = requests.request(
         "GET",
@@ -292,12 +297,26 @@ def test_get_class_name_and_collection_names_by_doc_id():
     )
     body = response.json()
     assert response.status_code == 200
-    assert body["id"] == "nmdc:sty-1-foobar"
+    assert body["id"] == id_
     assert body["class_name"] == "Study"
     assert "study_set" in body["collection_names"]
+    assert body["containing_collection_name"] == "study_set"
+
+    # Valid id, but document does not exist in database.
+    id_ = "nmdc:sty-1-bazqux"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["id"] == id_
+    assert body["class_name"] == "Study"
+    assert "study_set" in body["collection_names"]
+    assert body["containing_collection_name"] is None
 
     # Invalid typecode.
-    id_ = "fake:sty-1-foobar"
+    id_ = "nmdc:foo-1-foobar"
     response = requests.request(
         "GET",
         f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
