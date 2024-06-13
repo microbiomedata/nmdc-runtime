@@ -134,8 +134,8 @@ def get_by_id(
     )
 
 
-@router.get("/nmdcschema/ids/{hypothetical_doc_id}/collection-and-class-name")
-def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
+@router.get("/nmdcschema/ids/{hypothetical_doc_id}/class-and-collection-names")
+def get_class_name_and_collection_names_by_doc_id(hypothetical_doc_id: str):
     r"""
     Gets the name of the Mongo collection(s) that could contain a document having this `id`
     and the name of the NMDC Schema class of which an instance could have this `id`.
@@ -206,8 +206,8 @@ def get_collection_names_and_class_name_by_doc_id(hypothetical_doc_id: str):
 
     return {
         "id": hypothetical_doc_id,
-        "collection_names": collection_names,
         "class_name": schema_class_name,
+        "collection_names": collection_names,
     }
 
 
