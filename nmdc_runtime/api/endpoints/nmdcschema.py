@@ -216,7 +216,7 @@ def get_class_name_and_collection_names_by_doc_id(
     containing_collection_name = None
     for collection_name in collection_names:
         collection = mdb.get_collection(name=collection_name)
-        if collection.count_documents(dict(id=hypothetical_doc_id)) > 0:
+        if collection.count_documents(dict(id=hypothetical_doc_id), limit=1) > 0:
             containing_collection_name = collection_name
             break
 
