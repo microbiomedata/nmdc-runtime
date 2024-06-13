@@ -166,7 +166,7 @@ def get_class_name_and_collection_names_by_doc_id(
     if typecode_portion is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No associated collection names or class name were found.",
+            detail=f"No compatible collection names or class name were found.",
         )
 
     # Determine the schema class, if any, of which the specified `id` could belong to an instance.
@@ -180,7 +180,7 @@ def get_class_name_and_collection_names_by_doc_id(
     if schema_class_name is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No associated class name was found.",
+            detail=f"No compatible class name was found.",
         )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
@@ -206,8 +206,8 @@ def get_class_name_and_collection_names_by_doc_id(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
-                f'An associated class name was found ("{schema_class_name}"), '
-                f"but no associated collection names were found."
+                f'A compatible class name was found ("{schema_class_name}"), '
+                f"but no compatible collection names were found."
             ),
         )
 
@@ -222,8 +222,8 @@ def get_class_name_and_collection_names_by_doc_id(
 
     return {
         "id": hypothetical_doc_id,
-        "class_name": schema_class_name,
-        "collection_names": collection_names,
+        "compatible_class_name": schema_class_name,
+        "compatible_collection_names": collection_names,
         "containing_collection_name": containing_collection_name,
     }
 

@@ -298,8 +298,8 @@ def test_get_class_name_and_collection_names_by_doc_id():
     body = response.json()
     assert response.status_code == 200
     assert body["id"] == id_
-    assert body["class_name"] == "Study"
-    assert "study_set" in body["collection_names"]
+    assert body["compatible_class_name"] == "Study"
+    assert "study_set" in body["compatible_collection_names"]
     assert body["containing_collection_name"] == "study_set"
 
     # Valid id, but document does not exist in database.
@@ -311,8 +311,8 @@ def test_get_class_name_and_collection_names_by_doc_id():
     body = response.json()
     assert response.status_code == 200
     assert body["id"] == id_
-    assert body["class_name"] == "Study"
-    assert "study_set" in body["collection_names"]
+    assert body["compatible_class_name"] == "Study"
+    assert "study_set" in body["compatible_collection_names"]
     assert body["containing_collection_name"] is None
 
     # Invalid typecode.
