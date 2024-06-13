@@ -286,7 +286,7 @@ def test_get_class_name_and_collection_names_by_doc_id():
 
     # Seed the database.
     mdb = get_mongo_db()
-    study_set_collection = mdb["nmdc"].get_collection("study_set")
+    study_set_collection = mdb.get_collection(name="study_set")
     study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
 
     # Valid id, and document exists in database.
