@@ -142,6 +142,9 @@ def get_class_name_and_collection_names_by_doc_id(hypothetical_doc_id: str):
 
     Returns an HTTP 404 response if either (a) no associated collection names are found or
     (b) no associated class name is found.
+
+    Note: This endpoint does not use the Mongo database. The Mongo collection names it
+          returns are names of slots of the `Database` class in the NMDC Schema.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
