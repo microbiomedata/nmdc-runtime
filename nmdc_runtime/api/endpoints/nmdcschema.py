@@ -168,7 +168,7 @@ def get_collection_name_by_doc_id(
     if typecode_portion is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'No document having `id` "{doc_id}" was found.',
+            detail=f'The typecode portion of the specified `id` is invalid.',
         )
 
     # Determine the schema class, if any, of which the specified `id` could belong to an instance.
@@ -182,7 +182,7 @@ def get_collection_name_by_doc_id(
     if schema_class_name is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'No document having `id` "{doc_id}" was found.',
+            detail=f'The specified `id` is not compatible with any schema classes.',
         )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
@@ -207,7 +207,7 @@ def get_collection_name_by_doc_id(
     if len(collection_names) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'No document having `id` "{doc_id}" was found.',
+            detail=f'The specified `id` is not compatible with any database collections.',
         )
 
     # Use the Mongo database to determine which of those collections a document having that `id` actually
@@ -218,6 +218,12 @@ def get_collection_name_by_doc_id(
         if collection.count_documents(dict(id=doc_id), limit=1) > 0:
             containing_collection_name = collection_name
             break
+
+    if containing_collection_name is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'The specified `id` does not belong to any documents.',
+        )
 
     return {
         "id": doc_id,
