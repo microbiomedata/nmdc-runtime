@@ -289,7 +289,7 @@ def test_get_class_name_and_collection_names_by_doc_id():
     study_set_collection = mdb.get_collection(name="study_set")
     study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
 
-    # Valid id, and document exists in database.
+    # Valid `id`, and the document exists in database.
     id_ = "nmdc:sty-1-foobar"
     response = requests.request(
         "GET",
@@ -298,24 +298,17 @@ def test_get_class_name_and_collection_names_by_doc_id():
     body = response.json()
     assert response.status_code == 200
     assert body["id"] == id_
-    assert body["compatible_class_name"] == "Study"
-    assert "study_set" in body["compatible_collection_names"]
-    assert body["containing_collection_name"] == "study_set"
+    assert body["collection_name"] == "study_set"
 
-    # Valid id, but document does not exist in database.
+    # Valid `id`, but the document does not exist in database.
     id_ = "nmdc:sty-1-bazqux"
     response = requests.request(
         "GET",
         f"{base_url}/nmdcschema/ids/{id_}/class-and-collection-names"
     )
-    body = response.json()
-    assert response.status_code == 200
-    assert body["id"] == id_
-    assert body["compatible_class_name"] == "Study"
-    assert "study_set" in body["compatible_collection_names"]
-    assert body["containing_collection_name"] is None
+    assert response.status_code == 404
 
-    # Invalid typecode.
+    # Invalid `id` (because "foo" is an invalid typecode).
     id_ = "nmdc:foo-1-foobar"
     response = requests.request(
         "GET",

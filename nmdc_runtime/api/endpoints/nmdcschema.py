@@ -134,19 +134,21 @@ def get_by_id(
     )
 
 
-@router.get("/nmdcschema/ids/{hypothetical_doc_id}/class-and-collection-names")
-def get_class_name_and_collection_names_by_doc_id(
-    hypothetical_doc_id: str,
+@router.get("/nmdcschema/ids/{doc_id}/collection-name")
+def get_collection_name_by_doc_id(
+    doc_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
-    Gets the name of the NMDC Schema class of which an instance could have that `id`,
-    the names of the Mongo collection(s) that could contain a document having that `id`,
-    and—in the situation where a document having that `id` actually exists in one of those
-    collections—the name of that collection.
+    Returns the name of the collection, if any, containing the document having the specified `id`.
 
-    Returns an HTTP 404 response if either (a) no associated collection names are found or
-    (b) no associated class name is found.
+    This endpoint uses the NMDC Schema to determine the schema class of which an instance could have
+    the specified value as its `id`; and then uses the NMDC Schema to determine the names of the
+    `Database` slots (i.e. Mongo collection names) that could contain instances of that schema class.
+
+    This endpoint then searches those Mongo collections for a document having that `id`.
+    If it finds one, it responds with the name of the collection containing the document.
+    If it does not find one, it response with an `HTTP 404 Not Found` response.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
@@ -160,13 +162,13 @@ def get_class_name_and_collection_names_by_doc_id(
     # - "foo:nmdc-123-456" → `None`
     #
     pattern = re.compile(r"^nmdc:(\w+)?-")
-    match = pattern.search(hypothetical_doc_id)
+    match = pattern.search(doc_id)
     typecode_portion = match.group(1) if match else None
 
     if typecode_portion is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No compatible collection names or class name were found.",
+            detail=f'No document having `id` "{doc_id}" was found.',
         )
 
     # Determine the schema class, if any, of which the specified `id` could belong to an instance.
@@ -180,7 +182,7 @@ def get_class_name_and_collection_names_by_doc_id(
     if schema_class_name is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No compatible class name was found.",
+            detail=f'No document having `id` "{doc_id}" was found.',
         )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
@@ -205,10 +207,7 @@ def get_class_name_and_collection_names_by_doc_id(
     if len(collection_names) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                f'A compatible class name was found ("{schema_class_name}"), '
-                f"but no compatible collection names were found."
-            ),
+            detail=f'No document having `id` "{doc_id}" was found.',
         )
 
     # Use the Mongo database to determine which of those collections a document having that `id` actually
@@ -216,15 +215,13 @@ def get_class_name_and_collection_names_by_doc_id(
     containing_collection_name = None
     for collection_name in collection_names:
         collection = mdb.get_collection(name=collection_name)
-        if collection.count_documents(dict(id=hypothetical_doc_id), limit=1) > 0:
+        if collection.count_documents(dict(id=doc_id), limit=1) > 0:
             containing_collection_name = collection_name
             break
 
     return {
-        "id": hypothetical_doc_id,
-        "compatible_class_name": schema_class_name,
-        "compatible_collection_names": collection_names,
-        "containing_collection_name": containing_collection_name,
+        "id": doc_id,
+        "collection_name": containing_collection_name,
     }
 
 
