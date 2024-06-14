@@ -48,6 +48,7 @@ from nmdc_runtime.api.core.metadata import (
 )
 from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.endpoints.find import find_study_by_id
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
@@ -1014,9 +1015,12 @@ def site_code_mapping() -> dict:
         )
 
 
-@op(config_schema={"nmdc_study_id": str})
-def get_ncbi_export_pipeline_study_id(context: OpExecutionContext) -> str:
-    return context.op_config["nmdc_study_id"]
+@op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
+def get_ncbi_export_pipeline_study(context: OpExecutionContext) -> Any:
+    nmdc_study = find_study_by_id(
+        context.op_config["nmdc_study_id"], context.resources.mongo.db
+    )
+    return nmdc_study
 
 
 @op(
@@ -1025,10 +1029,6 @@ def get_ncbi_export_pipeline_study_id(context: OpExecutionContext) -> str:
         "ncbi_submission_metadata": Field(
             Permissive(
                 {
-                    "email": String,
-                    "first": String,
-                    "last": String,
-                    "user": String,
                     "organization": String,
                 }
             ),
@@ -1038,9 +1038,7 @@ def get_ncbi_export_pipeline_study_id(context: OpExecutionContext) -> str:
         "ncbi_bioproject_metadata": Field(
             Permissive(
                 {
-                    "title": String,
                     "project_id": String,
-                    "description": String,
                     "data_type": String,
                     "exists": Bool,
                 }
@@ -1090,11 +1088,11 @@ def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: li
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
-    nmdc_study_id: str,
+    nmdc_study: Any,
     ncbi_exporter_metadata: dict,
     biosamples: list,
     data_objects: list,
 ) -> str:
-    ncbi_exporter = NCBISubmissionXML(nmdc_study_id, ncbi_exporter_metadata)
+    ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(biosamples, data_objects)
     return ncbi_xml

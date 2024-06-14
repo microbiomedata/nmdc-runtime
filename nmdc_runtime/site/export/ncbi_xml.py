@@ -3,6 +3,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
+from typing import Any
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
@@ -19,10 +20,19 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
 
 
 class NCBISubmissionXML:
-    def __init__(self, nmdc_study_id: str, ncbi_submission_metadata: dict):
+    def __init__(self, nmdc_study: Any, ncbi_submission_metadata: dict):
         self.root = ET.Element("Submission")
 
-        self.nmdc_study_id = nmdc_study_id
+        self.nmdc_study_id = nmdc_study.get("id")
+        self.nmdc_study_title = nmdc_study.get("title")
+        self.nmdc_study_description = nmdc_study.get("description")
+        self.ncbi_bioproject_id = nmdc_study.get("insdc_bioproject_identifiers")
+        self.nmdc_pi_email = nmdc_study.get("principal_investigator", {}).get("email")
+        nmdc_study_pi_name = (
+            nmdc_study.get("principal_investigator", {}).get("name").split()
+        )
+        self.first_name = nmdc_study_pi_name[0]
+        self.last_name = nmdc_study_pi_name[1] if len(nmdc_study_pi_name) > 1 else None
 
         self.nmdc_ncbi_attribute_mapping_file_url = ncbi_submission_metadata.get(
             "nmdc_ncbi_attribute_mapping_file_url"
@@ -357,18 +367,18 @@ class NCBISubmissionXML:
 
     def get_submission_xml(self, biosamples_list: list, data_objects_list: list):
         self.set_description(
-            email=self.ncbi_submission_metadata.get("email", ""),
-            user=self.ncbi_submission_metadata.get("user", ""),
-            first=self.ncbi_submission_metadata.get("first", ""),
-            last=self.ncbi_submission_metadata.get("last", ""),
+            email=self.nmdc_pi_email,
+            user="National Microbiome Data Collaborative (NMDC)",
+            first=self.first_name,
+            last=self.last_name,
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
         if not self.ncbi_bioproject_metadata.get("exists"):
             self.set_bioproject(
-                title=self.ncbi_bioproject_metadata.get("title", ""),
+                title=self.nmdc_study_title,
                 project_id=self.ncbi_bioproject_metadata.get("project_id", ""),
-                description=self.ncbi_bioproject_metadata.get("description", ""),
+                description=self.nmdc_study_description,
                 data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
                 org=self.ncbi_submission_metadata.get("organization", ""),
             )

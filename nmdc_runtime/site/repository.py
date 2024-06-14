@@ -882,7 +882,7 @@ def biosample_export():
                     },
                 ),
                 "ops": {
-                    "get_ncbi_export_pipeline_study_id": {
+                    "get_ncbi_export_pipeline_study": {
                         "config": {
                             "nmdc_study_id": "",
                         }
@@ -891,16 +891,10 @@ def biosample_export():
                         "config": {
                             "nmdc_ncbi_attribute_mapping_file_url": "",
                             "ncbi_submission_metadata": {
-                                "email": "",
-                                "first": "",
-                                "last": "",
-                                "user": "",
                                 "organization": "",
                             },
                             "ncbi_bioproject_metadata": {
-                                "title": "",
                                 "project_id": "",
-                                "description": "",
                                 "data_type": "",
                                 "exists": False,
                             },
