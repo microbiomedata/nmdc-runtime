@@ -526,7 +526,7 @@ protobuf==4.25.3
     # via
     #   dagster
     #   grpcio-health-checking
-psutil==5.9.8
+psutil==6.0.0
     # via ipykernel
 psycopg2-binary==2.9.9
     # via dagster-postgres
@@ -758,7 +758,7 @@ sparqlwrapper==2.0.0
     # via
     #   pyshex
     #   sparqlslurper
-sqlalchemy==2.0.30
+sqlalchemy==2.0.31
     # via
     #   alembic
     #   dagster
