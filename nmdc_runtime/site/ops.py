@@ -85,7 +85,6 @@ from nmdc_runtime.util import (
     specialize_activity_set_docs,
     collection_name_to_class_names,
     class_hierarchy_as_list,
-    schema_collection_names_with_id_field,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
@@ -951,7 +950,10 @@ def materialize_all_docs(context) -> int:
         assert (
             len(collection_name_to_class_names[name]) == 1
         ), f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
+<<<<<<< HEAD
     context.log.info(f"{collection_names=}")
+=======
+>>>>>>> 576b81658c80dc4c5f72c53ad5396e4e0415d8b1
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
     mdb.alldocs.drop()
