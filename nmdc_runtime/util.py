@@ -376,6 +376,24 @@ collection_name_to_class_names: Dict[str, List[str]] = {
 }
 
 
+def class_hierarchy_as_list(obj) -> list[str]:
+    """
+    get list of inherited classes for each concrete class
+    """
+    rv = []
+    current_class = obj.__class__
+
+    def recurse_through_bases(cls):
+        if cls.__name__ == "YAMLRoot":
+            return rv
+        rv.append(cls.__name__)
+        for base in cls.__bases__:
+            recurse_through_bases(base)
+        return rv
+
+    return recurse_through_bases(current_class)
+
+
 @lru_cache
 def schema_collection_names_with_id_field() -> Set[str]:
     """

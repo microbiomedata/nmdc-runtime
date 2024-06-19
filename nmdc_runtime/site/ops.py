@@ -12,6 +12,7 @@ from zipfile import ZipFile
 import pandas as pd
 import requests
 
+
 from bson import ObjectId, json_util
 from dagster import (
     Any,
@@ -33,6 +34,8 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
+
+from nmdc_runtime.api.db.mongo import nmdc_schema_collection_names
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -80,9 +83,10 @@ from nmdc_runtime.util import (
     pluralize,
     put_object,
     validate_json,
-    specialize_activity_set_docs,
+    specialize_activity_set_docs, collection_name_to_class_names, class_hierarchy_as_list,
 )
 from nmdc_schema import nmdc
+from nmdc_schema.nmdc import Database as NMDCDatabase
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -935,76 +939,57 @@ def site_code_mapping() -> dict:
         )
 
 
+
 @op(required_resource_keys={"mongo"})
 def materialize_all_docs(context) -> int:
-    from toolz import dissoc, assoc
-
-    from nmdc_runtime.api.db.mongo import nmdc_schema_collection_names
-    from nmdc_runtime.util import collection_name_to_class_names
-    from nmdc_schema.nmdc_schema_accepting_legacy_ids import Database as NMDCDatabase
-
     mdb = context.resources.mongo.db
 
+    # get names of relevant collections
     collection_names = sorted(nmdc_schema_collection_names(mdb))
-    # add functional_annotation_agg
     collection_names = [
         n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})
     ]
+    context.log.info(f"{collection_names=}")
     for name in collection_names:
-        assert len(collection_name_to_class_names[name]) == 1
+         assert len(collection_name_to_class_names[name]) == 1, \
+            f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
 
-    def class_hierarchy_as_list(obj) -> list[str]:
-        r"""
-        Returns a list consisting of the name of the class of the instance pass in,
-        and the names of all of its ancestor classes.
-        """
-
-        rv = []
-        current_class = obj.__class__
-
-        def recurse_through_bases(cls):
-            if cls.__name__ == "YAMLRoot":
-                return rv
-            rv.append(cls.__name__)
-            for base in cls.__bases__:
-                recurse_through_bases(base)
-            return rv
-
-        return recurse_through_bases(current_class)
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
     mdb.alldocs.drop()
 
-    # iterate through collections to build alldocs
+    # Build alldocs
     context.log.info("constructing `alldocs` collection")
-    for coll_name in collection_names:
-        # for each doc in collection, remove the mongo-generated '_id' field
+
+    for collection in collection_names:
+
+        # For each collection, build an nmdcdc schema collection object
+        # Calculate class_hierarchy_as_list once per collection, using the first document in list
         try:
             nmdcdb = NMDCDatabase(
-                **{coll_name: [dissoc(mdb[coll_name].find_one(), "_id")]}
+                **{collection: [dissoc(mdb[collection].find_one(), "_id")]}
             )
+            exemplar = getattr(nmdcdb, collection)[0]
+            newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
         except ValueError as e:
-            print(f"no {coll_name}!")
+            context.log.info(f"Collection {collection} does not exist.")
             raise e
 
-        # Calculate class_hierarchy_as_list once per collection, using the first document in list
-        exemplar = getattr(nmdcdb, coll_name)[0]
-        newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
+
+        context.log.info(f"For {collection=} class hierarchy as list is {newdoc_type=}")
+        context.log.info(f"count is {mdb[collection].estimated_document_count()} documents")
 
         # For each document in this collection, replace the value of the `type` field with
         # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
         # and insert the resulting document into the `alldocs` collection.
-        mdb.alldocs.insert_many(
+        mdb.alldocs.insert_many( # times out
             [
                 assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
-                for doc in mdb[coll_name].find()
+                for doc in mdb[collection].find()
             ]
         )
 
-    # Prior to re-ID-ing, some IDs are not unique across Mongo collections (eg nmdc:0078a0f981ad3f92693c2bc3b6470791)
     # Re-idx for `alldocs` collection
-    # TODO: This step may not be needed post-re-ID-ing
-    mdb.alldocs.create_index("id")
+    mdb.alldocs.create_index("id", unique=True)
     context.log.info("refreshed `alldocs` collection")
-
     return mdb.all_docs.estimated_document_count()
