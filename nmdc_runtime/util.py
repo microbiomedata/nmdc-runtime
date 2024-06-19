@@ -411,6 +411,11 @@ def schema_collection_names_with_id_field() -> Set[str]:
     return target_collection_names
 
 
+def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[str]:
+    collection_names = sorted(schema_collection_names_with_id_field())
+    return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
+
+
 def ensure_unique_id_indexes(mdb: MongoDatabase):
     """Ensure that any collections with an "id" field have an index on "id"."""
     candidate_names = (

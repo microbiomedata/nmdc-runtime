@@ -35,7 +35,6 @@ from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
 
-from nmdc_runtime.api.db.mongo import nmdc_schema_collection_names
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -86,6 +85,8 @@ from nmdc_runtime.util import (
     specialize_activity_set_docs,
     collection_name_to_class_names,
     class_hierarchy_as_list,
+    schema_collection_names_with_id_field,
+    populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
@@ -944,17 +945,13 @@ def site_code_mapping() -> dict:
 @op(required_resource_keys={"mongo"})
 def materialize_all_docs(context) -> int:
     mdb = context.resources.mongo.db
+    collection_names = populated_schema_collection_names_with_id_field(mdb)
 
-    # get names of relevant collections
-    collection_names = sorted(nmdc_schema_collection_names(mdb))
-    collection_names = [
-        n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})
-    ]
-    context.log.info(f"{collection_names=}")
     for name in collection_names:
         assert (
             len(collection_name_to_class_names[name]) == 1
         ), f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
+    context.log.info(f"{collection_names=}")
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
     mdb.alldocs.drop()
@@ -993,5 +990,7 @@ def materialize_all_docs(context) -> int:
 
     # Re-idx for `alldocs` collection
     mdb.alldocs.create_index("id", unique=True)
-    context.log.info("refreshed `alldocs` collection")
-    return mdb.all_docs.estimated_document_count()
+    context.log.info(
+        f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
+    )
+    return mdb.alldocs.estimated_document_count()
