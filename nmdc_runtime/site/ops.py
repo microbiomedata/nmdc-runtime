@@ -950,10 +950,8 @@ def materialize_all_docs(context) -> int:
         assert (
             len(collection_name_to_class_names[name]) == 1
         ), f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
-<<<<<<< HEAD
+
     context.log.info(f"{collection_names=}")
-=======
->>>>>>> 576b81658c80dc4c5f72c53ad5396e4e0415d8b1
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
     mdb.alldocs.drop()
@@ -975,19 +973,21 @@ def materialize_all_docs(context) -> int:
             context.log.info(f"Collection {collection} does not exist.")
             raise e
 
-        context.log.info(f"For {collection=} class hierarchy as list is {newdoc_type=}")
         context.log.info(
-            f"count is {mdb[collection].estimated_document_count()} documents"
+            f"Found {mdb[collection].estimated_document_count()} estimated documents for {collection=}."
         )
-
         # For each document in this collection, replace the value of the `type` field with
         # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
         # and insert the resulting document into the `alldocs` collection.
-        mdb.alldocs.insert_many(  # times out
+
+        inserted_many_result = mdb.alldocs.insert_many(  # times out
             [
                 assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
                 for doc in mdb[collection].find()
             ]
+        )
+        context.log.info(
+            f"Inserted {len(inserted_many_result.inserted_ids)} documents for {collection=}."
         )
 
     # Re-idx for `alldocs` collection
