@@ -31,7 +31,6 @@ pandas
 passlib[bcrypt]
 pymongo
 pydantic[email]>=1.10.0
-pytest-mock
 python-dotenv
 python-jose[cryptography]
 python-multipart

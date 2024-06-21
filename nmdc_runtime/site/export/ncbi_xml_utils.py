@@ -198,13 +198,9 @@ def validate_xml(xml, xsd_url):
     xml_schema_doc = etree.parse(BytesIO(xsd_content.encode("utf-8")))
     xml_schema = etree.XMLSchema(xml_schema_doc)
 
-    if "<?xml" in xml:
-        xml_doc = etree.parse(BytesIO(xml.encode("utf-8")))
-    else:
-        xml_doc = etree.parse(StringIO(xml))
-
-    xml_doc = etree.parse(StringIO(xml))
+    xml_doc = etree.parse(BytesIO(xml.encode("utf-8")))
 
     if not xml_schema.validate(xml_doc):
         raise ValueError(f"There were errors while validating against: {xsd_url}")
+
     return True

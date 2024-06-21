@@ -10,7 +10,6 @@ from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
 
-# import xml.etree.ElementTree as ET
 import pandas as pd
 import requests
 
