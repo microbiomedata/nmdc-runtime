@@ -22,7 +22,6 @@ from nmdc_runtime.site.ops import (
     hello,
     mongo_stats,
     submit_metadata_to_db,
-    update_schema,
     filter_ops_undone_expired,
     construct_jobs,
     maybe_post_jobs,
@@ -92,17 +91,6 @@ def hello_graph():
 @graph
 def hello_mongo():
     mongo_stats()
-
-
-@graph
-def update_terminus():
-    """
-    A pipeline definition. This example pipeline has a single solid.
-
-    For more hints on writing Dagster pipelines, see our documentation overview on Pipelines:
-    https://docs.dagster.io/overview/solids-pipelines/pipelines
-    """
-    update_schema()
 
 
 @graph
