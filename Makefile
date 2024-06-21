@@ -3,14 +3,22 @@ init:
 	pip install -r requirements/dev.txt
 	pip install --editable .[dev]
 
+# Updates Python dependencies based upon the contents of the `requirements/main.in` and `requirements/dev.in` files.
+#
+# To omit the `--upgrade` option (included by default) when running `pip-compile`:
+# ```
+# $ make update-deps UPDATE_DEPS_MAIN_UPGRADE_OPT='' UPDATE_DEPS_DEV_UPGRADE_OPT=''
+# ```
+UPDATE_DEPS_MAIN_UPGRADE_OPT ?= --upgrade
+UPDATE_DEPS_DEV_UPGRADE_OPT ?= --upgrade
 update-deps:
     # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
 	pip install --upgrade pip-tools pip setuptools
-	pip-compile --upgrade --build-isolation \
+	pip-compile $(UPDATE_DEPS_MAIN_UPGRADE_OPT) --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements/main.txt \
 		requirements/main.in
-	pip-compile --allow-unsafe --upgrade --build-isolation \
+	pip-compile --allow-unsafe $(UPDATE_DEPS_DEV_UPGRADE_OPT) --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements/dev.txt \
 		requirements/dev.in

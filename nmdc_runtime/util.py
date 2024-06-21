@@ -16,7 +16,7 @@ import fastjsonschema
 import requests
 from frozendict import frozendict
 from jsonschema.validators import Draft7Validator
-from nmdc_schema.nmdc_schema_accepting_legacy_ids import Database as NMDCDatabase
+from nmdc_schema.nmdc import Database as NMDCDatabase
 from nmdc_schema.get_nmdc_view import ViewGetter
 from pydantic import Field, BaseModel
 from pymongo.database import Database as MongoDatabase
