@@ -57,6 +57,7 @@ def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
 
     return biosample_data_objects
 
+
 def fetch_omics_processing_from_biosamples(all_docs_collection, biosamples_list):
     biosample_data_objects = []
 
