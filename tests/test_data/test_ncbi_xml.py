@@ -15,28 +15,72 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
 )
 
-MOCK_NCBI_NMDC_STUDY_ID = "nmdc:sty-11-12345"
+MOCK_NMDC_STUDY = {
+    "id": "nmdc:sty-11-34xj1150",
+    "name": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
+    "description": "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing. Typically, measurements are done on plot-level composite samples and represent up to three randomly selected sampling locations within a plot.",
+    "gold_study_identifiers": ["gold:Gs0144570", "gold:Gs0161344"],
+    "principal_investigator": {
+        "has_raw_value": "Kate Thibault",
+        "email": "kthibault@battelleecology.org",
+        "name": "Kate Thibault",
+        "orcid": "orcid:0000-0003-3477-6424",
+        "profile_image_url": "https://portal.nersc.gov/project/m3408/profile_images/thibault_katy.jpg",
+    },
+    "title": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
+    "type": "nmdc:Study",
+    "websites": [
+        "https://data.neonscience.org/data-products/DP1.10107.001",
+        "https://data.neonscience.org/api/v0/documents/NEON.DOC.014048vO",
+        "https://data.neonscience.org/api/v0/documents/NEON_metagenomes_userGuide_vE.pdf",
+    ],
+    "study_image": [
+        {
+            "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg"
+        }
+    ],
+    "funding_sources": [
+        "NSF#1724433 National Ecological Observatory Network: Operations Activities"
+    ],
+    "has_credit_associations": [
+        {
+            "applies_to_person": {
+                "name": "Hugh Cross",
+                "email": "crossh@battelleecology.org",
+                "orcid": "orcid:0000-0002-6745-9479",
+            },
+            "applied_roles": ["Methodology", "Data curation"],
+        },
+        {
+            "applies_to_person": {
+                "name": "Samantha Weintraub-Leff",
+                "email": "sweintraub@battelleecology.org",
+                "orcid": "orcid:0000-0003-4789-5086",
+            },
+            "applied_roles": ["Methodology", "Data curation"],
+        },
+        {
+            "applies_to_person": {
+                "name": "Kate Thibault",
+                "email": "kthibault@battelleecology.org",
+                "orcid": "orcid:0000-0003-3477-6424",
+            },
+            "applied_roles": ["Principal Investigator"],
+        },
+    ],
+    "part_of": ["nmdc:sty-11-nxrz9m96"],
+    "study_category": "consortium",
+    "insdc_bioproject_identifiers": ["bioproject:PRJNA1029061"],
+    "homepage_website": ["https://www.neonscience.org/"],
+}
 
 MOCK_NCBI_SUBMISSION_METADATA = {
     "nmdc_ncbi_attribute_mapping_file_url": "http://example.com/mappings.tsv",
     "ncbi_submission_metadata": {
-        "email": "user@example.com",
-        "user": "testuser",
-        "first": "Test",
-        "last": "User",
         "organization": "Test Org",
     },
-    "ncbi_bioproject_metadata": {
-        "title": "Test Project",
-        "project_id": "PRJNA12345",
-        "description": "A test project",
-        "data_type": "metagenome",
-        "exists": False,
-    },
     "ncbi_biosample_metadata": {
-        "title": "Test Sample",
         "organism_name": "E. coli",
-        "package": "Test Package",
     },
 }
 
@@ -44,7 +88,7 @@ MOCK_NCBI_SUBMISSION_METADATA = {
 @pytest.fixture
 def ncbi_submission_client():
     return NCBISubmissionXML(
-        nmdc_study_id=MOCK_NCBI_NMDC_STUDY_ID,
+        nmdc_study=MOCK_NMDC_STUDY,
         ncbi_submission_metadata=MOCK_NCBI_SUBMISSION_METADATA,
     )
 
@@ -73,6 +117,24 @@ def nmdc_biosample():
             "name": "ARIK.20150721.AMC.EPIPSAMMON.3",
             "part_of": ["nmdc:sty-11-34xj1150"],
             "type": "nmdc:Biosample",
+        }
+    ]
+
+
+@pytest.fixture
+def omics_processing_list():
+    return [
+        {
+            "has_input": ["nmdc:procsm-12-ehktny16"],
+            "has_output": ["nmdc:dobj-12-1zv4q961", "nmdc:dobj-12-b3ft7a80"],
+            "id": "nmdc:omprc-12-zqm9p096",
+            "instrument_name": "Illumina NextSeq550",
+            "name": "Terrestrial soil microbial communities - ARIK.20150721.AMC.EPIPSAMMON.3-DNA1",
+            "ncbi_project_name": "PRJNA406976",
+            "omics_type": {"has_raw_value": "metagenome"},
+            "part_of": ["nmdc:sty-11-34xj1150"],
+            "processing_institution": "Battelle",
+            "type": "nmdc:OmicsProcessing",
         }
     ]
 
@@ -110,11 +172,11 @@ class TestNCBISubmissionXML:
 
     def test_set_description(self, ncbi_submission_client):
         ncbi_submission_client.set_description(
-            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["email"],
-            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["user"],
-            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["first"],
-            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["last"],
-            MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"]["organization"],
+            ncbi_submission_client.nmdc_pi_email,
+            "testuser",
+            "Kate",
+            "Thibault",
+            "Test Org",
         )
         description = ET.tostring(
             ncbi_submission_client.root.find("Description"), "unicode"
@@ -128,35 +190,33 @@ class TestNCBISubmissionXML:
         contact_first = root.find("Organization/Contact/Name/First").text
         contact_last = root.find("Organization/Contact/Name/Last").text
 
-        assert comment == "NMDC Submission for nmdc:sty-11-12345"
+        assert comment == f"NMDC Submission for {MOCK_NMDC_STUDY['id']}"
         assert submitter == "testuser"
         assert org_name == "Test Org"
-        assert contact_email == "user@example.com"
-        assert contact_first == "Test"
-        assert contact_last == "User"
+        assert contact_email == "kthibault@battelleecology.org"
+        assert contact_first == "Kate"
+        assert contact_last == "Thibault"
 
     def test_set_bioproject(self, ncbi_submission_client):
         ncbi_submission_client.set_bioproject(
-            title=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"]["title"],
-            project_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "project_id"
-            ],
-            description=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "description"
-            ],
-            data_type=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "data_type"
-            ],
-            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
-                "organization"
-            ],
+            title=MOCK_NMDC_STUDY["title"],
+            project_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
+            description=MOCK_NMDC_STUDY["description"],
+            data_type="metagenome",
+            org="Test Org",
         )
         bioproject_xml = ET.tostring(
             ncbi_submission_client.root.find(".//Project"), "unicode"
         )
-        assert "Test Project" in bioproject_xml
-        assert "PRJNA12345" in bioproject_xml
-        assert "A test project" in bioproject_xml
+        assert (
+            "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
+            in bioproject_xml
+        )
+        assert "bioproject:PRJNA1029061" in bioproject_xml
+        assert (
+            "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing."
+            in bioproject_xml
+        )
         assert "metagenome" in bioproject_xml
         assert "Test Org" in bioproject_xml
 
@@ -208,22 +268,19 @@ class TestNCBISubmissionXML:
             organism_name=MOCK_NCBI_SUBMISSION_METADATA["ncbi_biosample_metadata"][
                 "organism_name"
             ],
-            package=MOCK_NCBI_SUBMISSION_METADATA["ncbi_biosample_metadata"]["package"],
             org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
                 "organization"
             ],
+            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             nmdc_biosamples=nmdc_biosample,
-            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "project_id"
-            ],
+            nmdc_omics_processing=[],
         )
         biosample_xml = ET.tostring(
             ncbi_submission_client.root.find(".//BioSample"), "unicode"
         )
         assert "E. coli" in biosample_xml
-        assert "Test Package" in biosample_xml
         assert "Test Org" in biosample_xml
-        assert "PRJNA12345" in biosample_xml
+        assert "PRJNA1029061" in biosample_xml
 
     def test_set_fastq(self, ncbi_submission_client, data_objects_list, nmdc_biosample):
         biosample_data_objects = [
@@ -232,12 +289,8 @@ class TestNCBISubmissionXML:
 
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
-            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "project_id"
-            ],
-            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
-                "organization"
-            ],
+            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
+            org="Test Org",
         )
 
         action_elements = ncbi_submission_client.root.findall(".//Action")
@@ -249,7 +302,7 @@ class TestNCBISubmissionXML:
                 "BMI_HVKNKBGX5_Tube347_R1.fastq.gz" in action_xml
                 or "BMI_HVKNKBGX5_Tube347_R2.fastq.gz" in action_xml
             )
-            assert "PRJNA12345" in action_xml
+            assert "PRJNA1029061" in action_xml
             assert "nmdc:bsm-12-p9q5v236" in action_xml
             assert "Test Org" in action_xml
 
@@ -306,16 +359,12 @@ class TestNCBISubmissionXML:
 
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
-            bioproject_id=MOCK_NCBI_SUBMISSION_METADATA["ncbi_bioproject_metadata"][
-                "project_id"
-            ],
-            org=MOCK_NCBI_SUBMISSION_METADATA["ncbi_submission_metadata"][
-                "organization"
-            ],
+            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
+            org="Test Org",
         )
 
         submission_xml = ncbi_submission_client.get_submission_xml(
-            nmdc_biosample, data_objects_list
+            nmdc_biosample, [], biosample_data_objects
         )
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
@@ -323,8 +372,11 @@ class TestNCBISubmissionXML:
         assert "sediment" in submission_xml
         assert "USA: Colorado, Arikaree River" in submission_xml
         assert "2015-07-21T18:00Z" in submission_xml
-        assert "testuser" in submission_xml
-        assert "Test Project" in submission_xml
+        assert "National Microbiome Data Collaborative (NMDC)" in submission_xml
+        assert (
+            "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
+            in submission_xml
+        )
 
 
 class TestNCBIXMLUtils:

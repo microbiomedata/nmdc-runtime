@@ -40,9 +40,6 @@ class NCBISubmissionXML:
         self.ncbi_submission_metadata = ncbi_submission_metadata.get(
             "ncbi_submission_metadata", {}
         )
-        self.ncbi_bioproject_metadata = ncbi_submission_metadata.get(
-            "ncbi_bioproject_metadata", {}
-        )
         self.ncbi_biosample_metadata = ncbi_submission_metadata.get(
             "ncbi_biosample_metadata", {}
         )
@@ -157,10 +154,10 @@ class NCBISubmissionXML:
     def set_biosample(
         self,
         organism_name,
-        package,
         org,
         bioproject_id,
         nmdc_biosamples,
+        nmdc_omics_processing,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
@@ -169,10 +166,14 @@ class NCBISubmissionXML:
         for biosample in nmdc_biosamples:
             attributes = {}
             sample_id_value = None
+            env_package = None
 
             for json_key, value in biosample.items():
                 if isinstance(value, list):
                     continue  # Skip processing for list values
+
+                if json_key == "env_package":
+                    env_package = f"MIMS.me.{handle_text_value(value)}.6.0"
 
                 # Special handling for NMDC Biosample "id"
                 if json_key == "id":
@@ -219,7 +220,7 @@ class NCBISubmissionXML:
                         )
                     ],
                 ),
-                self.set_element("Package", package),
+                self.set_element("Package", env_package),
                 self.set_element(
                     "Attributes",
                     children=[
@@ -365,7 +366,23 @@ class NCBISubmissionXML:
 
                 self.root.append(action)
 
-    def get_submission_xml(self, biosamples_list: list, data_objects_list: list):
+    def get_submission_xml(
+        self,
+        biosamples_list: list,
+        biosample_omics_processing_list: list,
+        biosample_data_objects_list: list,
+    ):
+        data_type = None
+        ncbi_project_id = None
+        for bsm_omprc in biosample_omics_processing_list:
+            for _, omprc_list in bsm_omprc.items():
+                for omprc in omprc_list:
+                    if "omics_type" in omprc:
+                        data_type = handle_text_value(omprc["omics_type"]).capitalize()
+
+                    if "ncbi_project_name" in omprc:
+                        ncbi_project_id = omprc["ncbi_project_name"]
+
         self.set_description(
             email=self.nmdc_pi_email,
             user="National Microbiome Data Collaborative (NMDC)",
@@ -374,26 +391,26 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
-        if not self.ncbi_bioproject_metadata.get("exists"):
+        if not ncbi_project_id:
             self.set_bioproject(
                 title=self.nmdc_study_title,
-                project_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+                project_id=ncbi_project_id,
                 description=self.nmdc_study_description,
-                data_type=self.ncbi_bioproject_metadata.get("data_type", ""),
+                data_type=data_type,
                 org=self.ncbi_submission_metadata.get("organization", ""),
             )
 
         self.set_biosample(
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
-            package=self.ncbi_biosample_metadata.get("package", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
-            bioproject_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+            bioproject_id=ncbi_project_id,
             nmdc_biosamples=biosamples_list,
+            nmdc_omics_processing=biosample_omics_processing_list,
         )
 
         self.set_fastq(
-            biosample_data_objects=data_objects_list,
-            bioproject_id=self.ncbi_bioproject_metadata.get("project_id", ""),
+            biosample_data_objects=biosample_data_objects_list,
+            bioproject_id=ncbi_project_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
@@ -403,12 +420,12 @@ class NCBISubmissionXML:
 
         # ============= Uncomment the following code to validate the XML against NCBI XSDs ============ #
         # submission_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/submission.xsd?view=co"
-        # submission_xsd_validation = validate_xml(submission_xml, submission_xsd_url)
+        # validate_xml(submission_xml, submission_xsd_url)
 
         # bioproject_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/bioproject.xsd?view=co"
-        # bioproject_xsd_validation = validate_xml(submission_xml, bioproject_xsd_url)
+        # validate_xml(submission_xml, bioproject_xsd_url)
 
         # biosample_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/biosample.xsd?view=co"
-        # biosample_xsd_validation = validate_xml(submission_xml, biosample_xsd_url)
+        # validate_xml(submission_xml, biosample_xsd_url)
 
         return submission_xml

@@ -57,6 +57,43 @@ def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
 
     return biosample_data_objects
 
+def fetch_omics_processing_from_biosamples(all_docs_collection, biosamples_list):
+    biosample_data_objects = []
+
+    for biosample in biosamples_list:
+        current_ids = [biosample["id"]]
+        collected_data_objects = []
+
+        while current_ids:
+            new_current_ids = []
+            for current_id in current_ids:
+                query = {"has_input": current_id}
+                document = all_docs_collection.find_one(query)
+
+                if not document:
+                    continue
+
+                has_output = document.get("has_output")
+                if not has_output:
+                    continue
+
+                for output_id in has_output:
+                    if get_classname_from_typecode(output_id) == "DataObject":
+                        omics_processing_doc = all_docs_collection.find_one(
+                            {"id": document["id"]}
+                        )
+                        if omics_processing_doc:
+                            collected_data_objects.append(omics_processing_doc)
+                    else:
+                        new_current_ids.append(output_id)
+
+            current_ids = new_current_ids
+
+        if collected_data_objects:
+            biosample_data_objects.append({biosample["id"]: collected_data_objects})
+
+    return biosample_data_objects
+
 
 def handle_quantity_value(slot_value):
     if "has_numeric_value" in slot_value and "has_unit" in slot_value:

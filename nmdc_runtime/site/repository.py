@@ -893,14 +893,8 @@ def biosample_export():
                             "ncbi_submission_metadata": {
                                 "organization": "",
                             },
-                            "ncbi_bioproject_metadata": {
-                                "project_id": "",
-                                "data_type": "",
-                                "exists": False,
-                            },
                             "ncbi_biosample_metadata": {
                                 "organism_name": "",
-                                "package": "",
                             },
                         }
                     },

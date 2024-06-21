@@ -63,7 +63,10 @@ from nmdc_runtime.api.models.run import (
 )
 from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
-from nmdc_runtime.site.export.ncbi_xml_utils import fetch_data_objects_from_biosamples
+from nmdc_runtime.site.export.ncbi_xml_utils import (
+    fetch_data_objects_from_biosamples,
+    fetch_omics_processing_from_biosamples,
+)
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
@@ -1035,22 +1038,10 @@ def get_ncbi_export_pipeline_study(context: OpExecutionContext) -> Any:
             is_required=True,
             description="General metadata about the NCBI submission.",
         ),
-        "ncbi_bioproject_metadata": Field(
-            Permissive(
-                {
-                    "project_id": String,
-                    "data_type": String,
-                    "exists": Bool,
-                }
-            ),
-            is_required=True,
-            description="Metadata for NCBI BioProject in the Submission.",
-        ),
         "ncbi_biosample_metadata": Field(
             Permissive(
                 {
                     "organism_name": String,
-                    "package": String,
                 }
             ),
             is_required=True,
@@ -1064,13 +1055,11 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
         "nmdc_ncbi_attribute_mapping_file_url"
     ]
     ncbi_submission_metadata = context.op_config.get("ncbi_submission_metadata", {})
-    ncbi_bioproject_metadata = context.op_config.get("ncbi_bioproject_metadata", {})
     ncbi_biosample_metadata = context.op_config.get("ncbi_biosample_metadata", {})
 
     return {
         "nmdc_ncbi_attribute_mapping_file_url": nmdc_ncbi_attribute_mapping_file_url,
         "ncbi_submission_metadata": ncbi_submission_metadata,
-        "ncbi_bioproject_metadata": ncbi_bioproject_metadata,
         "ncbi_biosample_metadata": ncbi_biosample_metadata,
     }
 
@@ -1085,14 +1074,27 @@ def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: li
     return biosample_data_objects
 
 
+@op(required_resource_keys={"mongo"})
+def get_omics_processing_from_biosamples(context: OpExecutionContext, biosamples: list):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_omics_processing = fetch_omics_processing_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_omics_processing
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
     nmdc_study: Any,
     ncbi_exporter_metadata: dict,
     biosamples: list,
+    omics_processing_records: list,
     data_objects: list,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
-    ncbi_xml = ncbi_exporter.get_submission_xml(biosamples, data_objects)
+    ncbi_xml = ncbi_exporter.get_submission_xml(
+        biosamples, omics_processing_records, data_objects
+    )
     return ncbi_xml
