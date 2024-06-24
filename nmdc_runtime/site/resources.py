@@ -371,16 +371,31 @@ def gold_api_client_resource(context: InitResourceContext):
 
 @dataclass
 class NmdcPortalApiClient:
+
     base_url: str
-    # Using a cookie for authentication is not ideal and should be replaced
-    # when this API has an another authentication method
-    session_cookie: str
+    refresh_token: str
+    access_token: Optional[str] = None
+    access_token_expires_at: Optional[datetime] = None
+
+    def _request(self, method: str, endpoint: str, **kwargs):
+        if self.access_token is None or datetime.now() > self.access_token_expires_at:
+            refresh_response = requests.post(
+                f"{self.base_url}/auth/refresh",
+                json={"refresh_token": self.refresh_token},
+            )
+            refresh_response.raise_for_status()
+            refresh_body = refresh_response.json()
+            self.access_token_expires_at = datetime.now() + timedelta(
+                seconds=refresh_body["expires"]
+            )
+            self.access_token = refresh_body["access_token"]
+
+        headers = kwargs.get("headers", {})
+        headers["Authorization"] = f"Bearer {self.access_token}"
+        return requests.request(method, f"{self.base_url}{endpoint}", **kwargs, headers=headers)
 
     def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
-        response = requests.get(
-            f"{self.base_url}/api/metadata_submission/{id}",
-            cookies={"session": self.session_cookie},
-        )
+        response = self._request("GET", f"/api/metadata_submission/{id}")
         response.raise_for_status()
         return response.json()
 
@@ -388,13 +403,13 @@ class NmdcPortalApiClient:
 @resource(
     config_schema={
         "base_url": StringSource,
-        "session_cookie": StringSource,
+        "refresh_token": StringSource,
     }
 )
 def nmdc_portal_api_client_resource(context: InitResourceContext):
     return NmdcPortalApiClient(
         base_url=context.resource_config["base_url"],
-        session_cookie=context.resource_config["session_cookie"],
+        refresh_token=context.resource_config["refresh_token"],
     )
 
 

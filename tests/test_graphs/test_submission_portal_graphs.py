@@ -1,11 +1,12 @@
 import pytest
 import requests_mock
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.site.graphs import (
     translate_metadata_submission_to_nmdc_schema_database,
 )
 from nmdc_runtime.site.repository import resource_defs
-
+from tests.test_api.test_endpoints import ensure_test_resources
 
 MOCK_PORTAL_API_BASE = "http://www.example.com/nmdc-portal-api"
 MOCK_PORTAL_SUBMISSION_ID = "test-submission-id"
@@ -70,9 +71,11 @@ MOCK_PORTAL_SUBMISSION = {
 }
 
 
-@pytest.mark.xfail(reason="DagsterInvalidConfigError: Error in config for job translate_metadata_submission_to_nmdc_schema_database")
 def test_translate_metadata_submission_to_nmdc_schema_database():
     """Smoke test for translate_metadata_submission_to_nmdc_schema_database job"""
+
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
 
     job = translate_metadata_submission_to_nmdc_schema_database.to_job(
         resource_defs=resource_defs
@@ -83,12 +86,26 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                 "config": {"username": "test"},
             },
             "get_submission_portal_pipeline_inputs": {
-                "config": {
+                "inputs": {
                     "submission_id": MOCK_PORTAL_SUBMISSION_ID,
-                    "omics_processing_mapping_file_url": "",
-                    "data_object_mapping_file_url": "",
+                    "biosample_extras_file_url": None,
+                    "biosample_extras_slot_mapping_file_url": None,
+                    "data_object_mapping_file_url": None,
+                    "omics_processing_mapping_file_url": None,
                 }
             },
+            "translate_portal_submission_to_nmdc_schema_database": {
+                "inputs": {
+                    "study_category": "research_study",
+                    "study_doi_category": "dataset_doi",
+                    "study_doi_provider": "jgi",
+                    "study_funding_sources": [
+                        "funder 1",
+                        "funder 2",
+                    ],
+                    "study_pi_image_url": "http://www.example.com/test.png",
+                }
+            }
         },
         "resources": {
             "mongo": {
@@ -102,15 +119,13 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
             "nmdc_portal_api_client": {
                 "config": {
                     "base_url": MOCK_PORTAL_API_BASE,
-                    "session_cookie": "xyz",
+                    "refresh_token": "xyz123",
                 }
             },
             "runtime_api_site_client": {
                 "config": {
                     "base_url": {"env": "API_HOST"},
-                    "client_id": {"env": "API_SITE_CLIENT_ID"},
-                    "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
-                    "site_id": {"env": "API_SITE_ID"},
+                    **rs["site_client"],
                 }
             },
             "runtime_api_user_client": {
@@ -124,6 +139,10 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
     }
 
     with requests_mock.mock(real_http=True) as mock:
+        mock.post(f"{MOCK_PORTAL_API_BASE}/auth/refresh", json={
+            "access_token": "abcde",
+            "expires": 86400,
+        })
         mock.get(
             f"{MOCK_PORTAL_API_BASE}/api/metadata_submission/{MOCK_PORTAL_SUBMISSION_ID}",
             json=MOCK_PORTAL_SUBMISSION,
