@@ -13,6 +13,9 @@ from toolz import get_in, groupby, concat, valmap, dissoc
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
 
+BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
+
+
 @lru_cache
 def _get_schema_view():
     """Return a SchemaView instance representing the NMDC schema"""
@@ -98,7 +101,7 @@ class SubmissionPortalTranslator(Translator):
         self.study_pi_image_url = study_pi_image_url
         self.study_funding_sources = study_funding_sources
 
-        self.biosample_extras = group_dicts_by_key("source_mat_id", biosample_extras)
+        self.biosample_extras = group_dicts_by_key(BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras)
         self.biosample_extras_slot_mapping = group_dicts_by_key(
             "subject_id", biosample_extras_slot_mapping
         )
@@ -521,7 +524,7 @@ class SubmissionPortalTranslator(Translator):
         :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
-        source_mat_id = sample_data[0].get("source_mat_id", "").strip()
+        biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
@@ -533,7 +536,7 @@ class SubmissionPortalTranslator(Translator):
             slots.update(transformed_tab)
 
         if self.biosample_extras:
-            raw_extras = self.biosample_extras.get(source_mat_id)
+            raw_extras = self.biosample_extras.get(biosample_key)
             if raw_extras:
                 transformed_extras = self._transform_dict_for_class(
                     raw_extras, "Biosample", self.biosample_extras_slot_mapping
@@ -564,7 +567,7 @@ class SubmissionPortalTranslator(Translator):
 
         sample_data = metadata_submission_data.get("sampleData", {})
         package_name = metadata_submission_data["packageName"]
-        sample_data_by_id = groupby("source_mat_id", concat(sample_data.values()))
+        sample_data_by_id = groupby(BIOSAMPLE_UNIQUE_KEY_SLOT, concat(sample_data.values()))
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
         sample_data_to_nmdc_biosample_ids = dict(
             zip(sample_data_by_id.keys(), nmdc_biosample_ids)
@@ -583,15 +586,15 @@ class SubmissionPortalTranslator(Translator):
 
         if self.omics_processing_mapping:
             # If there is data from an OmicsProcessing mapping file, process it now. This part
-            # assumes that there is a column in that file with the header __biosample_source_mat_id
+            # assumes that there is a column in that file with the header __biosample_samp_name
             # that can be used to join with the sample data from the submission portal. The
-            # biosample identified by that `source_mat_id` will be referenced in the `has_input`
+            # biosample identified by that `samp_name` will be referenced in the `has_input`
             # slot of the OmicsProcessing object. If a DataObject mapping file was also provided,
             # those objects will also be generated and referenced in the `has_output` slot of the
-            # OmicsProcessing object. By keying off of the `source_mat_id` slot of the submission's
+            # OmicsProcessing object. By keying off of the `samp_name` slot of the submission's
             # sample data there is an implicit 1:1 relationship between Biosample objects and
             # OmicsProcessing objects generated here.
-            join_key = "__biosample_source_mat_id"
+            join_key = f"__biosample_{BIOSAMPLE_UNIQUE_KEY_SLOT}"
             database.omics_processing_set = []
             database.data_object_set = []
             data_objects_by_sample_data_id = {}
@@ -617,7 +620,7 @@ class SubmissionPortalTranslator(Translator):
                     or sample_data_id not in sample_data_to_nmdc_biosample_ids
                 ):
                     logging.warning(
-                        f"Unrecognized biosample source_mat_id: {sample_data_id}"
+                        f"Unrecognized biosample {BIOSAMPLE_UNIQUE_KEY_SLOT}: {sample_data_id}"
                     )
                     continue
                 nmdc_biosample_id = sample_data_to_nmdc_biosample_ids[sample_data_id]
