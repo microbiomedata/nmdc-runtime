@@ -59,6 +59,9 @@ def ensure_test_resources(mdb):
     mdb.jobs.replace_one(
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
+    mdb["minter.requesters"].replace_one(
+        {"id": site_id}, {"id": site_id}, upsert=True
+    )
     return {
         "site_client": {
             "site_id": site_id,
