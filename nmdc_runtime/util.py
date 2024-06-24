@@ -376,6 +376,24 @@ collection_name_to_class_names: Dict[str, List[str]] = {
 }
 
 
+def class_hierarchy_as_list(obj) -> list[str]:
+    """
+    get list of inherited classes for each concrete class
+    """
+    rv = []
+    current_class = obj.__class__
+
+    def recurse_through_bases(cls):
+        if cls.__name__ == "YAMLRoot":
+            return rv
+        rv.append(cls.__name__)
+        for base in cls.__bases__:
+            recurse_through_bases(base)
+        return rv
+
+    return recurse_through_bases(current_class)
+
+
 @lru_cache
 def schema_collection_names_with_id_field() -> Set[str]:
     """
@@ -391,6 +409,11 @@ def schema_collection_names_with_id_field() -> Set[str]:
                 break
 
     return target_collection_names
+
+
+def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[str]:
+    collection_names = sorted(schema_collection_names_with_id_field())
+    return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
 def ensure_unique_id_indexes(mdb: MongoDatabase):
