@@ -125,6 +125,8 @@ class NCBISubmissionXML:
 
         descriptor = self.set_descriptor(title, description)
         project_type = self.set_element("ProjectType")
+        # "sample_scope" is a enumeration feild. Docs: https://www.ncbi.nlm.nih.gov/data_specs/schema/other/bioproject/Core.xsd
+        # scope is "eEnvironment" when "Content of species in a sample is not known, i.e. microbiome,metagenome, etc.."
         project_type_submission = self.set_element(
             "ProjectTypeSubmission", attrib={"sample_scope": "eEnvironment"}
         )
@@ -422,10 +424,10 @@ class NCBISubmissionXML:
         # submission_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/submission.xsd?view=co"
         # validate_xml(submission_xml, submission_xsd_url)
 
-        # bioproject_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/bioproject.xsd?view=co"
+        # bioproject_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/bioproject/bioproject.xsd?view=co"
         # validate_xml(submission_xml, bioproject_xsd_url)
 
-        # biosample_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/common/biosample.xsd?view=co"
+        # biosample_xsd_url = "https://www.ncbi.nlm.nih.gov/viewvc/v1/trunk/submit/public-docs/biosample/biosample.xsd?view=co"
         # validate_xml(submission_xml, biosample_xsd_url)
 
         return submission_xml
