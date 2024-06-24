@@ -101,7 +101,9 @@ class SubmissionPortalTranslator(Translator):
         self.study_pi_image_url = study_pi_image_url
         self.study_funding_sources = study_funding_sources
 
-        self.biosample_extras = group_dicts_by_key(BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras)
+        self.biosample_extras = group_dicts_by_key(
+            BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras
+        )
         self.biosample_extras_slot_mapping = group_dicts_by_key(
             "subject_id", biosample_extras_slot_mapping
         )
@@ -567,7 +569,9 @@ class SubmissionPortalTranslator(Translator):
 
         sample_data = metadata_submission_data.get("sampleData", {})
         package_name = metadata_submission_data["packageName"]
-        sample_data_by_id = groupby(BIOSAMPLE_UNIQUE_KEY_SLOT, concat(sample_data.values()))
+        sample_data_by_id = groupby(
+            BIOSAMPLE_UNIQUE_KEY_SLOT, concat(sample_data.values())
+        )
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
         sample_data_to_nmdc_biosample_ids = dict(
             zip(sample_data_by_id.keys(), nmdc_biosample_ids)

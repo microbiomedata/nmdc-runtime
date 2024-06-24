@@ -392,7 +392,9 @@ class NmdcPortalApiClient:
 
         headers = kwargs.get("headers", {})
         headers["Authorization"] = f"Bearer {self.access_token}"
-        return requests.request(method, f"{self.base_url}{endpoint}", **kwargs, headers=headers)
+        return requests.request(
+            method, f"{self.base_url}{endpoint}", **kwargs, headers=headers
+        )
 
     def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
         response = self._request("GET", f"/api/metadata_submission/{id}")
