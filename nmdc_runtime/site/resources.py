@@ -378,6 +378,10 @@ class NmdcPortalApiClient:
     access_token_expires_at: Optional[datetime] = None
 
     def _request(self, method: str, endpoint: str, **kwargs):
+        r"""
+        Submits a request to the specified API endpoint;
+        after refreshing the access token, if necessary.
+        """
         if self.access_token is None or datetime.now() > self.access_token_expires_at:
             refresh_response = requests.post(
                 f"{self.base_url}/auth/refresh",
