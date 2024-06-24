@@ -882,12 +882,12 @@ input:
       templates:
         - plant-associated
   omics_processing_mapping:
-    - __biosample_source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+    - __biosample_samp_name: G5R1_MAIN_09MAY2016
       processing_institution: JGI
       instrument_name: Some fancy expensive thing
       omics_type: Metagenome
   data_object_mapping:
-    - __biosample_source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+    - __biosample_samp_name: G5R1_MAIN_09MAY2016
       data_object_type: Metagenome Raw Reads
       url: http://example.com/data.fastq.gz
       name: Metagenome Raw Reads
