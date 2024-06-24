@@ -31,7 +31,7 @@ def test_metadata_submission(op_context):
     with requests_mock.mock() as mock:
         mock.post(f"{MOCK_BASE_URL}/auth/refresh", json={
             "access_token": "abcde",
-            "expires": 86400,
+            "expires_in": 86400,
         })
         mock.get(
             f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}",

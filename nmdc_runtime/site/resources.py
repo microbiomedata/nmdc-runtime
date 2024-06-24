@@ -386,7 +386,7 @@ class NmdcPortalApiClient:
             refresh_response.raise_for_status()
             refresh_body = refresh_response.json()
             self.access_token_expires_at = datetime.now() + timedelta(
-                seconds=refresh_body["expires"]
+                seconds=refresh_body["expires_in"]
             )
             self.access_token = refresh_body["access_token"]
 

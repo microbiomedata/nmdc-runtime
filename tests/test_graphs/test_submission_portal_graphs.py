@@ -141,7 +141,7 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
     with requests_mock.mock(real_http=True) as mock:
         mock.post(f"{MOCK_PORTAL_API_BASE}/auth/refresh", json={
             "access_token": "abcde",
-            "expires": 86400,
+            "expires_in": 86400,
         })
         mock.get(
             f"{MOCK_PORTAL_API_BASE}/api/metadata_submission/{MOCK_PORTAL_SUBMISSION_ID}",
