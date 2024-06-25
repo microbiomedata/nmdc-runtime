@@ -20,6 +20,7 @@ jupyter
 jupyterlab
 linkml
 linkml-runtime
+lxml
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin

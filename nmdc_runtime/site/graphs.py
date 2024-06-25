@@ -48,7 +48,14 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_inputs,
     get_df_from_url,
     site_code_mapping,
+    get_ncbi_export_pipeline_study,
+    get_data_objects_from_biosamples,
+    get_omics_processing_from_biosamples,
+    get_ncbi_export_pipeline_inputs,
+    ncbi_submission_xml_from_nmdc_study,
+    ncbi_submission_xml_asset,
 )
+from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
 
 @graph
@@ -369,3 +376,20 @@ def ingest_neon_surface_water_metadata():
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
+
+
+@graph
+def nmdc_study_to_ncbi_submission_export():
+    nmdc_study = get_ncbi_export_pipeline_study()
+    ncbi_submission_metadata = get_ncbi_export_pipeline_inputs()
+    biosamples = get_biosamples_by_study_id(nmdc_study)
+    omics_processing_records = get_omics_processing_from_biosamples(biosamples)
+    data_objects = get_data_objects_from_biosamples(biosamples)
+    xml_data = ncbi_submission_xml_from_nmdc_study(
+        nmdc_study,
+        ncbi_submission_metadata,
+        biosamples,
+        omics_processing_records,
+        data_objects,
+    )
+    ncbi_submission_xml_asset(xml_data)
