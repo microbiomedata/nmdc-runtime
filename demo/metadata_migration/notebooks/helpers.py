@@ -54,12 +54,25 @@ class Config:
         # Validate the binary paths.
         mongodump_path = notebook_config["PATH_TO_MONGODUMP_BINARY"]
         mongorestore_path = notebook_config["PATH_TO_MONGORESTORE_BINARY"]
+        mongosh_path = notebook_config["PATH_TO_MONGOSH_BINARY"]
         if not Path(mongodump_path).is_file():
             raise FileNotFoundError(f"mongodump binary not found at: {mongodump_path}")
         if not Path(mongorestore_path).is_file():
             raise FileNotFoundError(
                 f"mongorestore binary not found at: {mongorestore_path}"
             )
+        if not Path(mongosh_path).is_file():
+            raise FileNotFoundError(f"mongosh binary not found at: {mongosh_path}")
+
+        origin_mongo_host = notebook_config["ORIGIN_MONGO_HOST"]
+        origin_mongo_port = notebook_config["ORIGIN_MONGO_PORT"]
+        origin_mongo_username = notebook_config["ORIGIN_MONGO_USERNAME"]
+        origin_mongo_password = notebook_config["ORIGIN_MONGO_PASSWORD"]
+
+        transformer_mongo_host = notebook_config["TRANSFORMER_MONGO_HOST"]
+        transformer_mongo_port = notebook_config["TRANSFORMER_MONGO_PORT"]
+        transformer_mongo_username = notebook_config["TRANSFORMER_MONGO_USERNAME"]
+        transformer_mongo_password = notebook_config["TRANSFORMER_MONGO_PASSWORD"]
 
         return dict(
             origin_mongo_config_file_path=origin_mongo_config_file_path,
@@ -68,6 +81,15 @@ class Config:
             transformer_dump_folder_path=transformer_dump_folder_path,
             mongodump_path=mongodump_path,
             mongorestore_path=mongorestore_path,
+            mongosh_path=mongosh_path,
+            origin_mongo_host=origin_mongo_host,
+            origin_mongo_port=origin_mongo_port,
+            origin_mongo_username=origin_mongo_username,
+            origin_mongo_password=origin_mongo_password,
+            transformer_mongo_host=transformer_mongo_host,
+            transformer_mongo_port=transformer_mongo_port,
+            transformer_mongo_username=transformer_mongo_username,
+            transformer_mongo_password=transformer_mongo_password,
         )
 
     def parse_and_validate_mongo_config_file(
@@ -93,6 +115,7 @@ class Config:
         )
         self.mongodump_path = notebook_config["mongodump_path"]
         self.mongorestore_path = notebook_config["mongorestore_path"]
+        self.mongosh_path = notebook_config["mongosh_path"]
         self.origin_dump_folder_path = notebook_config["origin_dump_folder_path"]
         self.transformer_dump_folder_path = notebook_config[
             "transformer_dump_folder_path"
@@ -113,3 +136,13 @@ class Config:
         )
         self.origin_mongo_server_uri = origin_mongo_server_config["uri"]
         self.transformer_mongo_server_uri = transformer_mongo_server_config["uri"]
+
+        # Parse the Mongo connection parameters.
+        self.origin_mongo_host = notebook_config["origin_mongo_host"]
+        self.origin_mongo_port = notebook_config["origin_mongo_port"]
+        self.origin_mongo_username = notebook_config["origin_mongo_username"]
+        self.origin_mongo_password = notebook_config["origin_mongo_password"]
+        self.transformer_mongo_host = notebook_config["transformer_mongo_host"]
+        self.transformer_mongo_port = notebook_config["transformer_mongo_port"]
+        self.transformer_mongo_username = notebook_config["transformer_mongo_username"]
+        self.transformer_mongo_password = notebook_config["transformer_mongo_password"]
