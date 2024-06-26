@@ -35,6 +35,7 @@ python-jose[cryptography]
 python-multipart
 pyyaml
 requests
+scalar-fastapi
 semver
 setuptools-scm
 tenacity
