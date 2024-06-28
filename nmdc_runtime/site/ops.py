@@ -942,7 +942,7 @@ def site_code_mapping() -> dict:
 
 
 @op(required_resource_keys={"mongo"})
-def materialize_all_docs(context) -> int:
+def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
     collection_names = populated_schema_collection_names_with_id_field(mdb)
 
@@ -953,15 +953,13 @@ def materialize_all_docs(context) -> int:
 
     context.log.info(f"{collection_names=}")
 
-    # Drop any existing `alldocs` collection (e.g. from previous use of this notebook).
+    # Drop any existing `alldocs` collection (e.g. from previous use of this op).
     mdb.alldocs.drop()
 
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
     for collection in collection_names:
-
-        # For each collection, build an nmdcdc schema collection object
         # Calculate class_hierarchy_as_list once per collection, using the first document in list
         try:
             nmdcdb = NMDCDatabase(
@@ -980,7 +978,7 @@ def materialize_all_docs(context) -> int:
         # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
         # and insert the resulting document into the `alldocs` collection.
 
-        inserted_many_result = mdb.alldocs.insert_many(  # times out
+        inserted_many_result = mdb.alldocs.insert_many(
             [
                 assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
                 for doc in mdb[collection].find()

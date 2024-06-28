@@ -48,7 +48,7 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_inputs,
     get_df_from_url,
     site_code_mapping,
-    materialize_all_docs,
+    materialize_alldocs,
 )
 
 
@@ -93,8 +93,8 @@ def housekeeping():
 
 
 @graph
-def ensure_all_docs():
-    materialize_all_docs()
+def ensure_alldocs():
+    materialize_alldocs()
 
 
 @graph

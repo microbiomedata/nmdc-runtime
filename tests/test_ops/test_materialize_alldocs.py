@@ -6,7 +6,7 @@ from dagster import build_op_context
 
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.site.ops import (
-    materialize_all_docs,
+    materialize_alldocs,
 )
 from nmdc_runtime.util import populated_schema_collection_names_with_id_field
 
@@ -28,10 +28,10 @@ def op_context(client_config):
     )
 
 
-def test_materialize_all_docs(op_context):
+def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
     collection_names = populated_schema_collection_names_with_id_field(mdb)
     assert sum(
         mdb[collection_name].estimated_document_count()
         for collection_name in collection_names
-    ) == materialize_all_docs(op_context)
+    ) == materialize_alldocs(op_context)
