@@ -52,7 +52,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images:
+          images: |
             ghcr.io/microbiomedata/nmdc-runtime-${{ matrix.image }}
           flavor: |
             latest=false
