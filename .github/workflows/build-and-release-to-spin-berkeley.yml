@@ -1,6 +1,7 @@
 # Note: This GitHub Actions workflow was initialized by copy/pasting the contents of `build-and-release-to-spin.yml`.
 #       Changes made here since then include:
 #       - Changed the triggering branch to `berkeley` (was `main`)
+#       - Excluded Git tag creation from triggering criteria
 #       - Hard-coded the Spin namespace as `nmdc-berkeley` for deployment
 #       - Disabled pushing to Docker Hub (only push to GHCR)
 #       - Changed tagging rules to, effectively, "always tag as :berkeley"
@@ -11,8 +12,6 @@ on:
   push:
     branches:
       - berkeley  # the `berkeley` branch, not the `main` branch
-    tags:
-      - 'v*'
     paths:
       - '.github/workflows/build-and-release-to-spin-berkeley.yml'
       - 'Makefile'
