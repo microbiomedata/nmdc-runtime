@@ -1032,7 +1032,7 @@ def materialize_alldocs(context) -> int:
     )
     return mdb.alldocs.estimated_document_count()
 
-  
+
 @op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
 def get_ncbi_export_pipeline_study(context: OpExecutionContext) -> Any:
     nmdc_study = find_study_by_id(
