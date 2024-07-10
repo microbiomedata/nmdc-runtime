@@ -105,7 +105,7 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                     ],
                     "study_pi_image_url": "http://www.example.com/test.png",
                 }
-            }
+            },
         },
         "resources": {
             "mongo": {
@@ -139,10 +139,13 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
     }
 
     with requests_mock.mock(real_http=True) as mock:
-        mock.post(f"{MOCK_PORTAL_API_BASE}/auth/refresh", json={
-            "access_token": "abcde",
-            "expires_in": 86400,
-        })
+        mock.post(
+            f"{MOCK_PORTAL_API_BASE}/auth/refresh",
+            json={
+                "access_token": "abcde",
+                "expires_in": 86400,
+            },
+        )
         mock.get(
             f"{MOCK_PORTAL_API_BASE}/api/metadata_submission/{MOCK_PORTAL_SUBMISSION_ID}",
             json=MOCK_PORTAL_SUBMISSION,
