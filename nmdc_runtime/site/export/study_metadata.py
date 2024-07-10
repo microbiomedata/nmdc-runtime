@@ -5,7 +5,6 @@ Get NMDC study-associated metadata from search api
 import csv
 from io import StringIO
 
-import requests
 from dagster import (
     op,
     get_dagster_logger,
@@ -26,13 +25,27 @@ def get_all_docs(client, collection, filter_):
     per_page = 200
     url_base = f"/{collection}?filter={filter_}&per_page={per_page}"
     results = []
-    rv = client.request("GET", url_base).json()
+    response = client.request("GET", url_base)
+    if response.status_code != 200:
+        raise Exception(
+            f"Runtime API request failed with status {response.status_code}."
+            f" Check URL: {url_base}"
+        )
+    rv = response.json()
     results.extend(rv.get("results", []))
     page, count = rv["meta"]["page"], rv["meta"]["count"]
     assert count <= 10_000
     while page * per_page < count:
-        rv = requests.get(url_base + f"&page={page + 1}").json()
-        results.extend(rv["results"])
+        page += 1
+        url = f"{url_base}&page={page}"
+        response = client.request("GET", url)
+        if response.status_code != 200:
+            raise Exception(
+                f"Runtime API request failed with status {response.status_code}."
+                f" Check URL: {url}"
+            )
+        rv = response.json()
+        results.extend(rv.get("results", []))
     return results
 
 
@@ -115,3 +128,10 @@ def export_study_biosamples_as_csv(context: OpExecutionContext, study_export_inf
 def export_study_biosamples_metadata():
     outputs = export_study_biosamples_as_csv(get_study_biosamples_metadata())
     add_output_run_event(outputs)
+
+
+@op(required_resource_keys={"runtime_api_site_client"})
+def get_biosamples_by_study_id(context: OpExecutionContext, nmdc_study: dict):
+    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+    biosamples = get_all_docs(client, "biosamples", f"part_of:{nmdc_study['id']}")
+    return biosamples

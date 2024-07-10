@@ -43,6 +43,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
+    nmdc_study_to_ncbi_submission_export,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -515,8 +516,8 @@ def biosample_submission_ingest():
                         "nmdc_portal_api_client": {
                             "config": {
                                 "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                                "session_cookie": {
-                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                "refresh_token": {
+                                    "env": "NMDC_PORTAL_API_REFRESH_TOKEN"
                                 },
                             }
                         }
@@ -555,8 +556,8 @@ def biosample_submission_ingest():
                         "nmdc_portal_api_client": {
                             "config": {
                                 "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                                "session_cookie": {
-                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                "refresh_token": {
+                                    "env": "NMDC_PORTAL_API_REFRESH_TOKEN"
                                 },
                             }
                         }
@@ -844,6 +845,57 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                        }
+                    },
+                },
+            },
+        ),
+    ]
+
+
+@repository
+def biosample_export():
+    normal_resources = run_config_frozen__normal_env["resources"]
+    return [
+        nmdc_study_to_ncbi_submission_export.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "mongo": {
+                            "config": {
+                                "host": {"env": "MONGO_HOST"},
+                                "username": {"env": "MONGO_USERNAME"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "dbname": {"env": "MONGO_DBNAME"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_ncbi_export_pipeline_study": {
+                        "config": {
+                            "nmdc_study_id": "",
+                        }
+                    },
+                    "get_ncbi_export_pipeline_inputs": {
+                        "config": {
+                            "nmdc_ncbi_attribute_mapping_file_url": "",
+                            "ncbi_submission_metadata": {
+                                "organization": "",
+                            },
+                            "ncbi_biosample_metadata": {
+                                "organism_name": "",
+                            },
                         }
                     },
                 },

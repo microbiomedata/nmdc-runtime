@@ -59,6 +59,9 @@ def ensure_test_resources(mdb):
     mdb.jobs.replace_one(
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
+    mdb["minter.requesters"].replace_one(
+        {"id": site_id}, {"id": site_id}, upsert=True
+    )
     return {
         "site_client": {
             "site_id": site_id,
@@ -279,3 +282,39 @@ def test_submit_workflow_activities(api_site_client):
     if doc_to_restore:
         mdb[test_collection].insert_one(doc_to_restore)
     assert "id" in rv.json() and "input_read_count" not in rv.json()
+
+
+def test_get_class_name_and_collection_names_by_doc_id():
+    base_url = os.getenv("API_HOST")
+
+    # Seed the database.
+    mdb = get_mongo_db()
+    study_set_collection = mdb.get_collection(name="study_set")
+    study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
+
+    # Valid `id`, and the document exists in database.
+    id_ = "nmdc:sty-1-foobar"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["id"] == id_
+    assert body["collection_name"] == "study_set"
+
+    # Valid `id`, but the document does not exist in database.
+    id_ = "nmdc:sty-1-bazqux"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+    )
+    assert response.status_code == 404
+
+    # Invalid `id` (because "foo" is an invalid typecode).
+    id_ = "nmdc:foo-1-foobar"
+    response = requests.request(
+        "GET",
+        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+    )
+    assert response.status_code == 404

@@ -1,13 +1,19 @@
-name: Build Docker images and release to Spin
+# Note: This GitHub Actions workflow was initialized by copy/pasting the contents of `build-and-release-to-spin.yml`.
+#       Changes made here since then include:
+#       - Changed the triggering branch to `berkeley` (was `main`)
+#       - Excluded Git tag creation from triggering criteria
+#       - Hard-coded the Spin namespace as `nmdc-berkeley` for deployment
+#       - Disabled pushing to Docker Hub (only push to GHCR)
+#       - Changed tagging rules to, effectively, "always tag as :berkeley"
+
+name: Build Docker images and release to Spin (nmdc-berkeley)
 
 on:
   push:
     branches:
-      - main
-    tags:
-      - 'v*'
+      - berkeley  # the `berkeley` branch, not the `main` branch
     paths:
-      - '.github/workflows/build-and-release-to-spin.yml'
+      - '.github/workflows/build-and-release-to-spin-berkeley.yml'
       - 'Makefile'
       - '**.Dockerfile'
       - '**.py'
@@ -17,11 +23,8 @@ env:
   # We don't want to do certain steps if this is running in a fork
   IS_ORIGINAL_REPO: ${{ github.repository == 'microbiomedata/nmdc-runtime' }}
 
-  # Used to determine if we add the special `prod` Docker image tag
-  IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
-
   # Used when sending redeploy action requests to Rancher
-  RANCHER_NAMESPACE: ${{ startsWith(github.ref, 'refs/tags/v') && 'nmdc' || 'nmdc-dev' }}
+  RANCHER_NAMESPACE: 'nmdc-berkeley'
 
 jobs:
   build:
@@ -49,14 +52,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            microbiomedata/nmdc-runtime-${{ matrix.image }}
             ghcr.io/microbiomedata/nmdc-runtime-${{ matrix.image }}
           flavor: |
             latest=false
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=raw,value=prod,enable=${{ env.IS_PROD_RELEASE }}
+            type=raw,value=berkeley
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -84,7 +84,6 @@ jobs:
 
   release:
     needs: build
-
 
     runs-on: ubuntu-latest
 

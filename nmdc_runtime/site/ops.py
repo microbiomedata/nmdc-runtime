@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+
 import pandas as pd
 import requests
 
@@ -30,11 +31,14 @@ from dagster import (
     String,
     op,
     Optional,
+    Field,
+    Permissive,
+    Bool,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
-
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -44,6 +48,7 @@ from nmdc_runtime.api.core.metadata import (
 )
 from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.endpoints.find import find_study_by_id
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
@@ -57,6 +62,11 @@ from nmdc_runtime.api.models.run import (
     _add_run_complete_event,
 )
 from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
+from nmdc_runtime.site.export.ncbi_xml_utils import (
+    fetch_data_objects_from_biosamples,
+    fetch_omics_processing_from_biosamples,
+)
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
@@ -730,6 +740,33 @@ def export_json_to_drs(
     return ["/objects/" + drs_object["id"]]
 
 
+@op(
+    description="NCBI Submission XML file rendered in a Dagster Asset",
+    out=Out(description="XML content rendered through Dagit UI"),
+)
+def ncbi_submission_xml_asset(context: OpExecutionContext, data: str):
+    filename = "ncbi_submission.xml"
+    file_path = os.path.join(context.instance.storage_directory(), filename)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "w") as f:
+        f.write(data)
+
+    context.log_event(
+        AssetMaterialization(
+            asset_key="ncbi_submission_xml",
+            description="NCBI Submission XML Data",
+            metadata={
+                "file_path": MetadataValue.path(file_path),
+                "xml": MetadataValue.text(data),
+            },
+        )
+    )
+
+    return Output(data)
+
+
 def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
 
@@ -994,3 +1031,85 @@ def materialize_alldocs(context) -> int:
         f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
     )
     return mdb.alldocs.estimated_document_count()
+
+  
+@op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
+def get_ncbi_export_pipeline_study(context: OpExecutionContext) -> Any:
+    nmdc_study = find_study_by_id(
+        context.op_config["nmdc_study_id"], context.resources.mongo.db
+    )
+    return nmdc_study
+
+
+@op(
+    config_schema={
+        "nmdc_ncbi_attribute_mapping_file_url": str,
+        "ncbi_submission_metadata": Field(
+            Permissive(
+                {
+                    "organization": String,
+                }
+            ),
+            is_required=True,
+            description="General metadata about the NCBI submission.",
+        ),
+        "ncbi_biosample_metadata": Field(
+            Permissive(
+                {
+                    "organism_name": String,
+                }
+            ),
+            is_required=True,
+            description="Metadata for one or many NCBI BioSample in the Submission.",
+        ),
+    },
+    out=Out(Dict),
+)
+def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
+    nmdc_ncbi_attribute_mapping_file_url = context.op_config[
+        "nmdc_ncbi_attribute_mapping_file_url"
+    ]
+    ncbi_submission_metadata = context.op_config.get("ncbi_submission_metadata", {})
+    ncbi_biosample_metadata = context.op_config.get("ncbi_biosample_metadata", {})
+
+    return {
+        "nmdc_ncbi_attribute_mapping_file_url": nmdc_ncbi_attribute_mapping_file_url,
+        "ncbi_submission_metadata": ncbi_submission_metadata,
+        "ncbi_biosample_metadata": ncbi_biosample_metadata,
+    }
+
+
+@op(required_resource_keys={"mongo"})
+def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: list):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_data_objects = fetch_data_objects_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_data_objects
+
+
+@op(required_resource_keys={"mongo"})
+def get_omics_processing_from_biosamples(context: OpExecutionContext, biosamples: list):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_omics_processing = fetch_omics_processing_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_omics_processing
+
+
+@op
+def ncbi_submission_xml_from_nmdc_study(
+    context: OpExecutionContext,
+    nmdc_study: Any,
+    ncbi_exporter_metadata: dict,
+    biosamples: list,
+    omics_processing_records: list,
+    data_objects: list,
+) -> str:
+    ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
+    ncbi_xml = ncbi_exporter.get_submission_xml(
+        biosamples, omics_processing_records, data_objects
+    )
+    return ncbi_xml
