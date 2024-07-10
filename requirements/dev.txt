@@ -19,7 +19,7 @@ cattrs==23.2.3
     # via
     #   -c requirements/main.txt
     #   requests-cache
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   -c requirements/main.txt
     #   requests
@@ -83,7 +83,7 @@ more-itertools==10.3.0
     #   jaraco-functools
 mypy-extensions==1.0.0
     # via black
-nh3==0.2.17
+nh3==0.2.18
     # via readme-renderer
 packaging==24.1
     # via
@@ -131,7 +131,7 @@ pytest-asyncio==0.23.7
     # via -r requirements/dev.in
 pytest-cov==5.0.0
     # via -r requirements/dev.in
-readme-renderer==43.0
+readme-renderer==44.0
     # via twine
 requests==2.32.3
     # via
@@ -191,11 +191,11 @@ zipp==3.19.2
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==24.1.1
+pip==24.1.2
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==70.1.1
+setuptools==70.3.0
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
