@@ -376,7 +376,7 @@ collection_name_to_class_names: Dict[str, List[str]] = {
 }
 
 
-def class_hierarchy_as_list(obj) -> list[str]:
+def class_hierarchy_as_list(obj) -> List[str]:
     """
     get list of inherited classes for each concrete class
     """
