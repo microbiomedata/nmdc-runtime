@@ -48,6 +48,7 @@ from nmdc_runtime.site.ops import (
     get_neon_pipeline_inputs,
     get_df_from_url,
     site_code_mapping,
+    materialize_alldocs,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_omics_processing_from_biosamples,
@@ -96,6 +97,11 @@ def hello_mongo():
 @graph
 def housekeeping():
     delete_operations(list_operations(filter_ops_undone_expired()))
+
+
+@graph
+def ensure_alldocs():
+    materialize_alldocs()
 
 
 @graph

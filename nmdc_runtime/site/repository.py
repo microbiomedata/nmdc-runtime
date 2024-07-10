@@ -42,6 +42,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_soil_metadata,
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
+    ensure_alldocs,
     nmdc_study_to_ncbi_submission_export,
 )
 from nmdc_runtime.site.resources import (
@@ -450,6 +451,7 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
+        ensure_alldocs.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly]
     sensors = [
