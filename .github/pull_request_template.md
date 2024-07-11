@@ -24,7 +24,8 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 
 **Configuration Details**: none
 
-# Checklist:
+# Definition of Done (DoD) Checklist:
+A simple checklist of necessary activities that add verifiable/demonstrable value to the product by asserting the quality of a feature, not the functionality of that feature; the latter should be stated as acceptance criteria in the issue this PR closes. Not all activities in the PR template will be applicable to each feature since the definition of done is intended to be a comprehensive checklist. Consciously decide the applicability of value-added activities on a feature-by-feature basis.
 
 - [ ] My code follows the style guidelines of this project (have you run `black nmdc_runtime/`?)
 - [ ] I have performed a self-review of my code
