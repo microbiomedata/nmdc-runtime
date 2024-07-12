@@ -4,6 +4,8 @@ from functools import lru_cache
 from typing import Set, Dict, Any, Iterable
 from uuid import uuid4
 
+from linkml_runtime import SchemaView
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from pymongo.errors import OperationFailure, AutoReconnect
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pydantic import BaseModel, conint
@@ -54,15 +56,22 @@ def get_async_mongo_db() -> AsyncIOMotorDatabase:
 
 @lru_cache
 def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
-    names = set(mdb.list_collection_names()) & set(
-        get_nmdc_jsonschema_dict()["$defs"]["Database"]["properties"]
-    )
-    return names - {
-        "activity_set",
-        "nmdc_schema_version",
-        "date_created",
-        "etl_software_version",
-    }
+    """
+    Returns set of names of collections that exist in both the nmdc schema and MongoDB database
+    """
+    collection_names = set()
+    schema_view = SchemaView(get_nmdc_schema_definition())
+    for slot_name in schema_view.class_slots("Database"):
+        slot_definition = schema_view.induced_slot(slot_name, "Database")
+
+        # If this slot doesn't represent a Mongo collection, abort this iteration.
+        if not (slot_definition.multivalued and slot_definition.inlined_as_list):
+            continue
+
+        collection_names.add(slot_name)
+
+    # filter out collections that exist in schema but not in mongo database
+    return collection_names & set(mdb.list_collection_names())
 
 
 @lru_cache

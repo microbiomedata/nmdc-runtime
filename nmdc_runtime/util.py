@@ -295,18 +295,6 @@ def nmdc_schema_view():
 
 
 @lru_cache
-def nmdc_database_collection_instance_class_names():
-    names = []
-    view = nmdc_schema_view()
-    all_classes = set(view.all_classes())
-    for slot in view.class_slots("Database"):
-        rng = getattr(view.get_slot(slot), "range", None)
-        if rng in all_classes:
-            names.append(rng)
-    return names
-
-
-@lru_cache
 def nmdc_database_collection_names():
     names = []
     view = nmdc_schema_view()
