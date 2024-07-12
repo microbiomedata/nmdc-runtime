@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
-from typing import Dict
+from typing import Dict, Optional
+import logging
+from datetime import datetime
 
 from dotenv import dotenv_values
 import yaml
@@ -146,3 +148,32 @@ class Config:
         self.transformer_mongo_port = notebook_config["transformer_mongo_port"]
         self.transformer_mongo_username = notebook_config["transformer_mongo_username"]
         self.transformer_mongo_password = notebook_config["transformer_mongo_password"]
+
+
+def setup_logger(
+    log_file_path: Optional[str] = None,
+    logger_name: str = "migrator_logger",
+    log_level: int = logging.DEBUG,
+) -> logging.Logger:
+    r"""
+    Returns a logger that writes to a file at the specified log file path
+    (default: "./{YYYYMMDD_HHMM}_migration.log").
+    """
+
+    # If no log file path was specified, generate one.
+    if log_file_path is None:
+        yyyymmdd_hhmm: str = datetime.now().strftime("%Y%m%d_%H%M")  # YYYYMMDD_HHMM
+        log_file_path = f"./{yyyymmdd_hhmm}_migration.log"
+
+    logger = logging.getLogger(name=logger_name)
+    logger.setLevel(level=log_level)
+    file_handler = logging.FileHandler(log_file_path)
+    formatter = logging.Formatter(
+        fmt="[%(asctime)s %(name)s %(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(formatter)
+    if logger.hasHandlers():
+        logger.handlers.clear()  # avoids duplicate log entries
+    logger.addHandler(file_handler)
+    return logger
