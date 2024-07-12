@@ -1,4 +1,4 @@
 /.notebook.env
-/.mongo.*.yaml
 /mongodump.*.out
 /tmp.*
+/*_migration.log
