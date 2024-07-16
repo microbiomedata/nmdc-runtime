@@ -29,26 +29,33 @@ def op_context(client_config):
 
 def test_metadata_submission(op_context):
     with requests_mock.mock() as mock:
-        mock.post(f"{MOCK_BASE_URL}/auth/refresh", json={
-            "access_token": "abcde",
-            "expires_in": 86400,
-        })
+        mock.post(
+            f"{MOCK_BASE_URL}/auth/refresh",
+            json={
+                "access_token": "abcde",
+                "expires_in": 86400,
+            },
+        )
         mock.get(
             f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}",
             json={"id": MOCK_SUBMISSION_ID},
         )
 
         # The first request should initiate an access token refresh and then fetch the submission
-        fetch_nmdc_portal_submission_by_id(
-            op_context, MOCK_SUBMISSION_ID
-        )
+        fetch_nmdc_portal_submission_by_id(op_context, MOCK_SUBMISSION_ID)
         assert len(mock.request_history) == 2
         assert mock.request_history[0].url == f"{MOCK_BASE_URL}/auth/refresh"
-        assert mock.request_history[1].url == f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}"
+        assert (
+            mock.request_history[1].url
+            == f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}"
+        )
 
         # The second request should not need to refresh the access token
         fetch_nmdc_portal_submission_by_id(
             op_context, "353d751f-cff0-4558-9051-25a87ba00d3f"
         )
         assert len(mock.request_history) == 3
-        assert mock.request_history[2].url == f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}"
+        assert (
+            mock.request_history[2].url
+            == f"{MOCK_BASE_URL}/api/metadata_submission/{MOCK_SUBMISSION_ID}"
+        )

@@ -59,9 +59,7 @@ def ensure_test_resources(mdb):
     mdb.jobs.replace_one(
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
-    mdb["minter.requesters"].replace_one(
-        {"id": site_id}, {"id": site_id}, upsert=True
-    )
+    mdb["minter.requesters"].replace_one({"id": site_id}, {"id": site_id}, upsert=True)
     return {
         "site_client": {
             "site_id": site_id,
@@ -295,8 +293,7 @@ def test_get_class_name_and_collection_names_by_doc_id():
     # Valid `id`, and the document exists in database.
     id_ = "nmdc:sty-1-foobar"
     response = requests.request(
-        "GET",
-        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     body = response.json()
     assert response.status_code == 200
@@ -306,15 +303,13 @@ def test_get_class_name_and_collection_names_by_doc_id():
     # Valid `id`, but the document does not exist in database.
     id_ = "nmdc:sty-1-bazqux"
     response = requests.request(
-        "GET",
-        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     assert response.status_code == 404
 
     # Invalid `id` (because "foo" is an invalid typecode).
     id_ = "nmdc:foo-1-foobar"
     response = requests.request(
-        "GET",
-        f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     assert response.status_code == 404
