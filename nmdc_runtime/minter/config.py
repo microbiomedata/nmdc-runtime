@@ -46,10 +46,11 @@ def extract_typecode_from_pattern(pattern: str) -> str:
 
     return typecode
 
+
 @lru_cache()
 def typecodes() -> List[dict]:
     r"""
-    Returns a list of dictionaries containing typecodes and other information derived from the schema.
+    Returns a list of dictionaries containing typecodes and associated information derived from the schema.
 
     Preconditions about the schema:
     - The typecode portion of the pattern is between the pattern prefix and the first subsequent hyphen.
@@ -70,7 +71,8 @@ def typecodes() -> List[dict]:
             case {"id": {"pattern": p}} if p.startswith(id_pattern_prefix):
                 # Get the portion of the pattern following the prefix.
                 # e.g. "^(nmdc):foo-bar-baz" → "foo-bar-baz"
-                pattern_without_prefix: str = p[len(id_pattern_prefix):]
+                index_of_first_character_following_prefix = len(id_pattern_prefix)
+                pattern_without_prefix = p[index_of_first_character_following_prefix:]
 
                 rv.append(
                     {
