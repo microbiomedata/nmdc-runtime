@@ -1,6 +1,6 @@
 # Third-party packages:
 import pymongo
-from jsonschema import Draft201909Validator
+from jsonschema import Draft201909Validator, Draft7Validator
 from nmdc_schema.nmdc_data import get_nmdc_jsonschema_dict
 from nmdc_schema.migrators.adapters.mongo_adapter import MongoAdapter
 
@@ -11,7 +11,8 @@ MONGO_URL = "mongodb://shalsh:onion-car-bingo-84@localhost:27017/?authSource=adm
 mongo_client = pymongo.MongoClient(host=MONGO_URL, directConnection=True)
 
 nmdc_jsonschema: dict = get_nmdc_jsonschema_dict()
-nmdc_jsonschema_validator = Draft201909Validator(nmdc_jsonschema)
+nmdc_jsonschema_validator_new = Draft201909Validator(nmdc_jsonschema)
+nmdc_jsonschema_validator_old = Draft7Validator(nmdc_jsonschema)
 
 
 # all_collections = mongo_client["nmdc"].list_collection_names()
@@ -47,5 +48,6 @@ for c in all_collections:
     for document in collection.find():
         document_without_underscore_id_key = {key: value for key, value in document.items() if key != "_id"}
         root_to_validate = dict([(collection, [document_without_underscore_id_key])])
-        nmdc_jsonschema_validator.validate(root_to_validate)  # raises exception if invalid
+        nmdc_jsonschema_validator_old.validate(root_to_validate)  # raises exception if invalid
+        nmdc_jsonschema_validator_new.validate(root_to_validate)  # raises exception if invalid
         # print("validation completed")
