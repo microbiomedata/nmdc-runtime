@@ -42,12 +42,12 @@ all_collections = [
     "read_qc_analysis_activity_set",
     "study_set"
 ]
-for c in all_collections:
-    print(c)
-    collection = mongo_client["nmdc"][c]
+for collection_name in all_collections:
+    print(collection_name)
+    collection = mongo_client["nmdc"][collection_name]
     for document in collection.find():
         document_without_underscore_id_key = {key: value for key, value in document.items() if key != "_id"}
-        root_to_validate = dict([(collection, [document_without_underscore_id_key])])
+        root_to_validate = dict([(collection_name, [document_without_underscore_id_key])])
         nmdc_jsonschema_validator_old.validate(root_to_validate)  # raises exception if invalid
         nmdc_jsonschema_validator_new.validate(root_to_validate)  # raises exception if invalid
         # print("validation completed")
