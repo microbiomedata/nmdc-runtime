@@ -36,12 +36,12 @@ def extract_typecode_from_pattern(pattern: str) -> str:
         inner_pattern = typecode_sub_pattern[1:-1]
 
         # Finally, get everything before the first `|`, if any.
-        # e.g. "(apple|banana|carrot)" → "apple"
-        # e.g. "(apple)" → "apple"
+        # e.g. "apple|banana|carrot" → "apple"
+        # e.g. "apple" → "apple"
         typecode = inner_pattern.split("|", maxsplit=1)[0]
     else:
         # Note: This is the original behavior, before we added support for multi-typecode patterns.
-        # e.g. "foo" → "foo"
+        # e.g. "apple" → "apple"
         typecode = typecode_sub_pattern
 
     return typecode
