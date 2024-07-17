@@ -200,7 +200,7 @@ def test_submit_changesheet():
     sheet_in = ChangesheetIn(
         name="sheet",
         content_type="text/tab-separated-values",
-        text="id\taction\tattribute\tvalue\nnmdc:bsm-12-7mysck21\tupdate\tpart_of\tnmdc:sty-11-pzmd0x14\n",
+        text="id\taction\tattribute\tvalue\nnmdc:bsm-12-7mysck21\tupdate\tassociated_studies\tnmdc:sty-11-pzmd0x14\n",
     )
     mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
@@ -262,8 +262,7 @@ def test_submit_workflow_activities(api_site_client):
                     "nmdc:dobj-11-g6d71n77",
                     "nmdc:dobj-11-bds7qq03",
                 ],
-                "type": "nmdc:ReadQcAnalysisActivity",
-                "part_of": ["nmdc:omprc-11-9mvz7z22"],
+                "type": "nmdc:ReadQcAnalysis",
                 "version": "v1.0.8",
             }
         ]
