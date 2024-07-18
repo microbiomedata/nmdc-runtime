@@ -59,9 +59,9 @@ beautifulsoup4==4.12.3
     #   nbconvert
 bleach==6.1.0
     # via nbconvert
-boto3==1.34.141
+boto3==1.34.142
     # via -r requirements/main.in
-botocore==1.34.141
+botocore==1.34.142
     # via
     #   boto3
     #   s3transfer
@@ -109,7 +109,7 @@ croniter==2.0.5
     # via dagster
 cryptography==42.0.8
     # via python-jose
-curies==0.7.9
+curies==0.7.10
     # via
     #   linkml-runtime
     #   prefixmaps
@@ -905,7 +905,7 @@ yarl==1.9.4
     # via gql
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==70.2.0
+setuptools==70.3.0
     # via
     #   dagster
     #   jupyterlab

@@ -198,7 +198,7 @@ pip==24.1.2
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==70.2.0
+setuptools==70.3.0
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
