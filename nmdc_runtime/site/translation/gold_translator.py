@@ -490,7 +490,7 @@ class GoldStudyTranslator(Translator):
         nmdc_omics_processing_id: str,
         nmdc_biosample_id: str,
         nmdc_study_id: str,
-    ) -> nmdc.OmicsProcessing:
+    ):
         """Translate a GOLD project object into an `nmdc:OmicsProcessing` object.
 
         This method translates a GOLD project object into an equivalent `nmdc:OmicsProcessing`

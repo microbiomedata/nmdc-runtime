@@ -234,7 +234,7 @@ class NeonBenthicDataTranslator(Translator):
         processed_sample_id: str,
         raw_data_file_data: str,
         omics_processing_row: pd.DataFrame,
-    ) -> nmdc.OmicsProcessing:
+    ):
         """Create nmdc OmicsProcessing object. This class typically models the run of a
         Bioinformatics workflow on sequence data from a biosample. The input to an OmicsProcessing
         process is the output from a LibraryPreparation process, and the output of OmicsProcessing
