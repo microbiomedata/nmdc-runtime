@@ -278,13 +278,19 @@ class NCBISubmissionXML:
         bioproject_id: str,
         org: str,
         nmdc_omics_processing: list,
+        nmdc_biosamples: list,
     ):
+        bsm_id_name_dict = {
+            biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
+        }
+
         for entry in biosample_data_objects:
             fastq_files = []
             biosample_ids = []
             omics_processing_ids = {}
             instrument_name = ""
             omics_type = ""
+            library_name = ""
 
             for biosample_id, data_objects in entry.items():
                 biosample_ids.append(biosample_id)
@@ -307,6 +313,7 @@ class NCBISubmissionXML:
                                 .get("has_raw_value", "")
                                 .lower()
                             )
+                            library_name = bsm_id_name_dict.get(biosample_id, "")
 
             if fastq_files:
                 files_elements = [
@@ -426,6 +433,13 @@ class NCBISubmissionXML:
                         )
                     )
 
+                if library_name:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", library_name, {"name": "library_name"}
+                        )
+                    )
+
                 for biosample_id, omics_processing_id in omics_processing_ids.items():
                     identifier_element = self.set_element(
                         "Identifier",
@@ -498,6 +512,7 @@ class NCBISubmissionXML:
             bioproject_id=ncbi_project_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
             nmdc_omics_processing=biosample_omics_processing_list,
+            nmdc_biosamples=biosamples_list,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
