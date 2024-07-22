@@ -297,10 +297,7 @@ class NCBISubmissionXML:
                 for data_object in data_objects:
                     if "url" in data_object:
                         url = urlparse(data_object["url"])
-                        file_path = os.path.join(
-                            os.path.basename(os.path.dirname(url.path)),
-                            os.path.basename(url.path),
-                        )
+                        file_path = os.path.basename(url.path)
                         fastq_files.append(file_path)
 
                 for omprc_dict in nmdc_omics_processing:
