@@ -193,7 +193,10 @@ def get_site_object_link(
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
 def generate_credentials_for_site_client(
-    site_id: str = Path(..., description="The ID of a site for which you, the authenticated user, are an admin."),
+    site_id: str = Path(
+        ...,
+        description="The ID of a site for which you, the authenticated user, are an admin.",
+    ),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
