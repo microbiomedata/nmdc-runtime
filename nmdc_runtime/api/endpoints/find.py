@@ -1,8 +1,9 @@
 from operator import itemgetter
-from typing import List
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
+from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict, nmdc_activity_collection_names
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
@@ -110,51 +111,71 @@ def find_data_objects(
     return find_resources(req, mdb, "data_object_set")
 
 
+def get_classname_from_typecode(doc_id: str) -> str:
+    typecode = doc_id.split(":")[1].split("-")[0]
+    class_map_data = typecodes()
+    class_map = {
+        entry["name"]: entry["schema_class"].split(":")[1] for entry in class_map_data
+    }
+    return class_map.get(typecode)
+
+
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
 )
 def find_data_objects_for_study(
     study_id: str,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: Any = Depends(get_mongo_db),
 ):
-    rv = {"biosample_set": {}, "data_object_set": []}
-    data_object_ids = set()
+    """This API endpoint is used to retrieve data object ids associated with
+    all the biosamples that are part of a given study. This endpoint makes
+    use of the `alldocs` collection for its implmentation.
+
+    :param study_id: NMDC study id for which data objects are to be retrieved
+    :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
+    :return: List of dictionaries where each dictionary contains biosample id as key,
+        and list of data object ids as value
+    """
+    biosample_data_object_ids = []
     study = raise404_if_none(
         mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
     )
-    for biosample in mdb.biosample_set.find({"part_of": study["id"]}, ["id"]):
-        rv["biosample_set"][biosample["id"]] = {"omics_processing_set": {}}
-        for opa in mdb.omics_processing_set.find(
-            {"has_input": biosample["id"]}, ["id", "has_output"]
-        ):
-            rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]] = {
-                "has_output": {}
-            }
-            for do_id in opa.get("has_output", []):
-                data_object_ids.add(do_id)
-                rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]][
-                    "has_output"
-                ][do_id] = {}
-                for coll_name in nmdc_activity_collection_names():
-                    acts = list(
-                        mdb[coll_name].find({"has_input": do_id}, ["id", "has_output"])
-                    )
-                    if acts:
-                        data_object_ids |= {
-                            do for act in acts for do in act.get("has_output", [])
-                        }
-                        rv["biosample_set"][biosample["id"]]["omics_processing_set"][
-                            opa["id"]
-                        ]["has_output"][do_id][coll_name] = {
-                            act["id"]: act.get("has_output", []) for act in acts
-                        }
 
-    rv["data_object_set"] = [
-        strip_oid(d)
-        for d in mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
-    ]
-    return rv
+    biosamples = mdb.biosample_set.find({"part_of": study["id"]}, ["id"])
+    biosample_ids = [biosample["id"] for biosample in biosamples]
+
+    for biosample_id in biosample_ids:
+        current_ids = [biosample_id]
+        collected_data_object_ids = []
+
+        while current_ids:
+            new_current_ids = []
+            for current_id in current_ids:
+                query = {"has_input": current_id}
+                document = mdb.alldocs.find_one(query)
+
+                if not document:
+                    continue
+
+                has_output = document.get("has_output")
+                if not has_output:
+                    continue
+
+                for output_id in has_output:
+                    if get_classname_from_typecode(output_id) == "DataObject":
+                        data_object_doc = mdb.alldocs.find_one({"id": output_id})
+                        if data_object_doc:
+                            collected_data_object_ids.append(data_object_doc["id"])
+                    else:
+                        new_current_ids.append(output_id)
+
+            current_ids = new_current_ids
+
+        if collected_data_object_ids:
+            biosample_data_object_ids.append({biosample_id: collected_data_object_ids})
+
+    return biosample_data_object_ids
 
 
 @router.get(
