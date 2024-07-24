@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
 from io import BytesIO
+from itertools import chain
 from pathlib import Path
 from uuid import uuid4
 from typing import List, Optional, Set, Dict
@@ -369,7 +370,14 @@ def specialize_activity_set_docs(docs):
 
 # Define a mapping from collection name to a list of class names allowable for that collection's documents.
 collection_name_to_class_names: Dict[str, List[str]] = {
-    collection_name: get_class_names_from_collection_spec(spec)
+    collection_name: list(
+        set(
+            chain.from_iterable(
+                nmdc_schema_view().class_descendants(cls_name)
+                for cls_name in get_class_names_from_collection_spec(spec)
+            )
+        )
+    )
     for collection_name, spec in nmdc_jsonschema["$defs"]["Database"][
         "properties"
     ].items()
