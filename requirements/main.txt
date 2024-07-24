@@ -451,7 +451,7 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-nmdc-schema==10.6.0
+nmdc-schema==10.7.0
     # via -r requirements/main.in
 notebook==7.2.1
     # via jupyter
