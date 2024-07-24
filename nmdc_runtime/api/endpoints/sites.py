@@ -203,7 +203,7 @@ def generate_credentials_for_site_client(
     """
     Generate a client_id and client_secret for the given site.
 
-    You must be authenticated as a user who is registered as an admin for the given site.
+    You must be authenticated as a user who is registered as an admin of the given site.
     """
     raise404_if_none(
         mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
