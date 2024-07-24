@@ -35,6 +35,7 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
 
 @lru_cache
 def get_mongo_db(**extra_kwargs) -> MongoDatabase:
+    extra_kwargs = extra_kwargs or {}  # Ensure extra_kwargs is a dictionary
     _client = MongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
@@ -49,6 +50,7 @@ def get_mongo_db(**extra_kwargs) -> MongoDatabase:
 
 @lru_cache
 def get_async_mongo_db(**extra_kwargs) -> AsyncIOMotorDatabase:
+    extra_kwargs = extra_kwargs or {}  # Ensure extra_kwargs is a dictionary
     _client = AsyncIOMotorClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
