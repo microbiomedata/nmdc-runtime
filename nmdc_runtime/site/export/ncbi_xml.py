@@ -231,7 +231,9 @@ class NCBISubmissionXML:
                     ]
                     + [
                         self.set_element(
-                            "Attribute", "NMDC", {"attribute_name": "broker name"}
+                            "Attribute",
+                            "National Microbiome Data Collaborative",
+                            {"attribute_name": "broker name"},
                         )
                     ],
                 ),
