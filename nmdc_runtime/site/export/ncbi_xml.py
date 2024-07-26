@@ -66,7 +66,7 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
-    def set_description(self, email, user, first, last, org, date=None):
+    def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
             "Description",
@@ -74,7 +74,6 @@ class NCBISubmissionXML:
                 self.set_element(
                     "Comment", f"NMDC Submission for {self.nmdc_study_id}"
                 ),
-                self.set_element("Submitter", attrib={"user_name": user}),
                 self.set_element(
                     "Organization",
                     attrib={"role": "owner", "type": "center"},
@@ -205,7 +204,7 @@ class NCBISubmissionXML:
                     children=[
                         self.set_element(
                             "Title",
-                            f"NMDC Biosample {sample_id_value} from {organism_name} part of {self.nmdc_study_id} study",
+                            f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
                         ),
                     ],
                 ),
@@ -229,6 +228,11 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                    ]
+                    + [
+                        self.set_element(
+                            "Attribute", "NMDC", {"attribute_name": "broker name"}
+                        )
                     ],
                 ),
             ]
@@ -482,7 +486,6 @@ class NCBISubmissionXML:
 
         self.set_description(
             email=self.nmdc_pi_email,
-            user="National Microbiome Data Collaborative (NMDC)",
             first=self.first_name,
             last=self.last_name,
             org=self.ncbi_submission_metadata.get("organization", ""),
