@@ -4,4 +4,4 @@
 # $ ./util/mongorestore-nmdc.sh
 mongorestore -h $MONGO_HOST -u $MONGO_USERNAME -p $MONGO_PASSWORD --authenticationDatabase=admin \
      --gzip --drop \
-    $HOME/nmdcdb-mongodump/nmdcdb/2024-07-23T14/
+    $HOME/nmdcdb-mongodump/nmdcdb/2024-07-30T11/
