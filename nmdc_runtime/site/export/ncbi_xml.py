@@ -285,6 +285,7 @@ class NCBISubmissionXML:
         org: str,
         nmdc_omics_processing: list,
         nmdc_biosamples: list,
+        nmdc_library_preparation: list,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
@@ -294,6 +295,7 @@ class NCBISubmissionXML:
             fastq_files = []
             biosample_ids = []
             omics_processing_ids = {}
+            lib_prep_protocol_names = {}
             instrument_name = ""
             omics_type = ""
             library_name = ""
@@ -317,6 +319,12 @@ class NCBISubmissionXML:
                                 .lower()
                             )
                             library_name = bsm_id_name_dict.get(biosample_id, "")
+
+                for lib_prep_dict in nmdc_library_preparation:
+                    if biosample_id in lib_prep_dict:
+                        lib_prep_protocol_names[biosample_id] = lib_prep_dict.get(
+                            "protocol_link", {}
+                        ).get("name", "")
 
             if fastq_files:
                 files_elements = [
@@ -443,6 +451,15 @@ class NCBISubmissionXML:
                         )
                     )
 
+                for biosample_id, lib_prep_name in lib_prep_protocol_names.items():
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            lib_prep_name,
+                            {"name": "library_construction_protocol"},
+                        )
+                    )
+
                 for biosample_id, omics_processing_id in omics_processing_ids.items():
                     identifier_element = self.set_element(
                         "Identifier",
@@ -474,6 +491,7 @@ class NCBISubmissionXML:
         biosamples_list: list,
         biosample_omics_processing_list: list,
         biosample_data_objects_list: list,
+        biosample_library_preparation_list: list,
     ):
         data_type = None
         ncbi_project_id = None
@@ -515,6 +533,7 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
             nmdc_omics_processing=biosample_omics_processing_list,
             nmdc_biosamples=biosamples_list,
+            nmdc_library_preparation=biosample_library_preparation_list,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
