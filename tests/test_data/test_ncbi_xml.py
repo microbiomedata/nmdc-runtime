@@ -273,7 +273,6 @@ class TestNCBISubmissionXML:
             ],
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             nmdc_biosamples=nmdc_biosample,
-            nmdc_omics_processing=[],
         )
         biosample_xml = ET.tostring(
             ncbi_submission_client.root.find(".//BioSample"), "unicode"
@@ -282,15 +281,27 @@ class TestNCBISubmissionXML:
         assert "Test Org" in biosample_xml
         assert "PRJNA1029061" in biosample_xml
 
-    def test_set_fastq(self, ncbi_submission_client, data_objects_list, nmdc_biosample):
+    def test_set_fastq(
+        self,
+        ncbi_submission_client,
+        nmdc_biosample,
+        data_objects_list,
+        omics_processing_list,
+    ):
         biosample_data_objects = [
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
+        ]
+
+        biosample_omics_prcessing = [
+            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
         ]
 
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
+            nmdc_omics_processing=biosample_omics_prcessing,
+            nmdc_biosamples=nmdc_biosample,
         )
 
         action_elements = ncbi_submission_client.root.findall(".//Action")
@@ -307,7 +318,12 @@ class TestNCBISubmissionXML:
             assert "Test Org" in action_xml
 
     def test_get_submission_xml(
-        self, mocker, ncbi_submission_client, nmdc_biosample, data_objects_list
+        self,
+        mocker,
+        ncbi_submission_client,
+        nmdc_biosample,
+        data_objects_list,
+        omics_processing_list,
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -357,10 +373,16 @@ class TestNCBISubmissionXML:
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
 
+        biosample_omics_prcessing = [
+            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
+        ]
+
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
+            nmdc_omics_processing=biosample_omics_prcessing,
+            nmdc_biosamples=nmdc_biosample,
         )
 
         submission_xml = ncbi_submission_client.get_submission_xml(
