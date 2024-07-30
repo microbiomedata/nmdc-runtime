@@ -34,14 +34,12 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
 
 
 @lru_cache
-def get_mongo_db(**extra_kwargs) -> MongoDatabase:
-    extra_kwargs = extra_kwargs or {}  # Ensure extra_kwargs is a dictionary
+def get_mongo_db() -> MongoDatabase:
     _client = MongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
-        **extra_kwargs,
     )
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
@@ -49,14 +47,12 @@ def get_mongo_db(**extra_kwargs) -> MongoDatabase:
 
 
 @lru_cache
-def get_async_mongo_db(**extra_kwargs) -> AsyncIOMotorDatabase:
-    extra_kwargs = extra_kwargs or {}  # Ensure extra_kwargs is a dictionary
+def get_async_mongo_db() -> AsyncIOMotorDatabase:
     _client = AsyncIOMotorClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
-        **extra_kwargs,
     )
     return _client[os.getenv("MONGO_DBNAME")]
 
@@ -99,3 +95,14 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
         "functional_annotation_set",
         "genome_feature_set",
     }
+
+
+def mongodump_excluded_collections():
+    _mdb = get_mongo_db()
+    excluded_collections = " ".join(
+        f"--excludeCollection={c}"
+        for c in sorted(
+            set(_mdb.list_collection_names()) - set(get_collection_names_from_schema())
+        )
+    )
+    return excluded_collections
