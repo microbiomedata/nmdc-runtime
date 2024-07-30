@@ -1,3 +1,4 @@
+import builtins
 import inspect
 import json
 from collections import defaultdict, namedtuple
@@ -201,15 +202,13 @@ def load_changesheet(
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
-        # TODO make this way more robust,
-        #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
+        # Infer python builtin type for coercion via <https://w3id.org/linkml/base>.
         # TODO mongo BSON has a decimal type. Should use this for decimals!
-        if (
-            ranges.endswith("float")
-            or ranges.endswith("double")
-            or ranges.endswith("decimal degree")
-        ):
-            df.at[ix, "value"] = float(value)
+        try:
+            base_type = view.induced_type(ranges.rsplit("|", maxsplit=1)[-1]).base
+        except:
+            base_type = "str"
+        df.at[ix, "value"] = getattr(builtins, base_type)(value)
     return df
 
 

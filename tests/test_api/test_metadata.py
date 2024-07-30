@@ -51,6 +51,17 @@ def test_load_changesheet():
     assert isinstance(df, pd.DataFrame)
 
 
+def test_changesheet_update_slot_with_range_bytes():
+    mdb = get_mongo_db()
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath(
+            "tests", "files", "test_changesheet_update_bytes_ranged_slot.tsv"
+        ),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+
+
 @pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_01():
     mdb = get_mongo(run_config_frozen__normal_env).db
