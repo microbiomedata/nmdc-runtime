@@ -51,6 +51,27 @@ def test_load_changesheet():
     assert isinstance(df, pd.DataFrame)
 
 
+def test_changesheet_update_slot_with_range_bytes():
+    mdb = get_mongo_db()
+    dobj_local_id = "dobj-11-000n1286"
+    remove_tmp_doc = False
+    if mdb.data_object_set.find_one({"id": "nmdc:" + dobj_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{dobj_local_id}.json")
+        ) as f:
+            mdb.data_object_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath(
+            "tests", "files", "test_changesheet_update_bytes_ranged_slot.tsv"
+        ),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.data_object_set.delete_one({"id": "nmdc:" + dobj_local_id})
+
+
 @pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_01():
     mdb = get_mongo(run_config_frozen__normal_env).db
