@@ -130,12 +130,12 @@ def find_data_objects_for_study(
 ):
     """This API endpoint is used to retrieve data object ids associated with
     all the biosamples that are part of a given study. This endpoint makes
-    use of the `alldocs` collection for its implmentation.
+    use of the `alldocs` collection for its implementation.
 
     :param study_id: NMDC study id for which data objects are to be retrieved
     :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
     :return: List of dictionaries where each dictionary contains biosample id as key,
-        and list of data object ids as value
+        and another dictionary with key 'data_object_set' containing list of data object ids as value
     """
     biosample_data_object_ids = []
     study = raise404_if_none(
@@ -173,7 +173,9 @@ def find_data_objects_for_study(
             current_ids = new_current_ids
 
         if collected_data_object_ids:
-            biosample_data_object_ids.append({biosample_id: collected_data_object_ids})
+            biosample_data_object_ids.append(
+                {biosample_id: {"data_object_set": collected_data_object_ids}}
+            )
 
     return biosample_data_object_ids
 
