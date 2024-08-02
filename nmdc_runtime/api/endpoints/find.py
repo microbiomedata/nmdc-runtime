@@ -137,7 +137,7 @@ def find_data_objects_for_study(
     :return: List of dictionaries where each dictionary contains biosample id as key,
         and another dictionary with key 'data_object_set' containing list of data object ids as value
     """
-    biosample_data_object_ids = []
+    biosample_data_objects = []
     study = raise404_if_none(
         mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
     )
@@ -147,7 +147,7 @@ def find_data_objects_for_study(
 
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
-        collected_data_object_ids = []
+        collected_data_objects = []
 
         while current_ids:
             new_current_ids = []
@@ -166,18 +166,18 @@ def find_data_objects_for_study(
                     if get_classname_from_typecode(output_id) == "DataObject":
                         data_object_doc = mdb.alldocs.find_one({"id": output_id})
                         if data_object_doc:
-                            collected_data_object_ids.append(data_object_doc["id"])
+                            collected_data_objects.append(strip_oid(data_object_doc))
                     else:
                         new_current_ids.append(output_id)
 
             current_ids = new_current_ids
 
-        if collected_data_object_ids:
-            biosample_data_object_ids.append(
-                {biosample_id: {"data_object_set": collected_data_object_ids}}
+        if collected_data_objects:
+            biosample_data_objects.append(
+                {biosample_id: {"data_object_set": collected_data_objects}}
             )
 
-    return biosample_data_object_ids
+    return biosample_data_objects
 
 
 @router.get(
