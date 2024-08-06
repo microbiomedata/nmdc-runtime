@@ -322,9 +322,11 @@ class NCBISubmissionXML:
 
                 for lib_prep_dict in nmdc_library_preparation:
                     if biosample_id in lib_prep_dict:
-                        lib_prep_protocol_names[biosample_id] = lib_prep_dict.get(
-                            "protocol_link", {}
-                        ).get("name", "")
+                        lib_prep_protocol_names[biosample_id] = (
+                            lib_prep_dict[biosample_id]
+                            .get("protocol_link", {})
+                            .get("name", "")
+                        )
 
             if fastq_files:
                 files_elements = [
