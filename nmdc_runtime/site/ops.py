@@ -66,6 +66,7 @@ from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
     fetch_omics_processing_from_biosamples,
+    fetch_library_preparation_from_biosamples,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
@@ -1099,6 +1100,18 @@ def get_omics_processing_from_biosamples(context: OpExecutionContext, biosamples
     return biosample_omics_processing
 
 
+@op(required_resource_keys={"mongo"})
+def get_library_preparation_from_biosamples(
+    context: OpExecutionContext, biosamples: list
+):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_lib_prep = fetch_library_preparation_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_lib_prep
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
@@ -1106,10 +1119,14 @@ def ncbi_submission_xml_from_nmdc_study(
     ncbi_exporter_metadata: dict,
     biosamples: list,
     omics_processing_records: list,
-    data_objects: list,
+    data_object_records: list,
+    library_preparation_records: list,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(
-        biosamples, omics_processing_records, data_objects
+        biosamples,
+        omics_processing_records,
+        data_object_records,
+        library_preparation_records,
     )
     return ncbi_xml

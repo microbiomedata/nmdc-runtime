@@ -66,7 +66,7 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
-    def set_description(self, email, user, first, last, org, date=None):
+    def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
             "Description",
@@ -74,7 +74,6 @@ class NCBISubmissionXML:
                 self.set_element(
                     "Comment", f"NMDC Submission for {self.nmdc_study_id}"
                 ),
-                self.set_element("Submitter", attrib={"user_name": user}),
                 self.set_element(
                     "Organization",
                     attrib={"role": "owner", "type": "center"},
@@ -205,7 +204,7 @@ class NCBISubmissionXML:
                     children=[
                         self.set_element(
                             "Title",
-                            f"NMDC Biosample {sample_id_value} from {organism_name} part of {self.nmdc_study_id} study",
+                            f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
                         ),
                     ],
                 ),
@@ -229,6 +228,13 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                    ]
+                    + [
+                        self.set_element(
+                            "Attribute",
+                            "National Microbiome Data Collaborative",
+                            {"attribute_name": "broker name"},
+                        )
                     ],
                 ),
             ]
@@ -279,6 +285,7 @@ class NCBISubmissionXML:
         org: str,
         nmdc_omics_processing: list,
         nmdc_biosamples: list,
+        nmdc_library_preparation: list,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
@@ -288,6 +295,7 @@ class NCBISubmissionXML:
             fastq_files = []
             biosample_ids = []
             omics_processing_ids = {}
+            lib_prep_protocol_names = {}
             instrument_name = ""
             omics_type = ""
             library_name = ""
@@ -311,6 +319,14 @@ class NCBISubmissionXML:
                                 .lower()
                             )
                             library_name = bsm_id_name_dict.get(biosample_id, "")
+
+                for lib_prep_dict in nmdc_library_preparation:
+                    if biosample_id in lib_prep_dict:
+                        lib_prep_protocol_names[biosample_id] = (
+                            lib_prep_dict[biosample_id]
+                            .get("protocol_link", {})
+                            .get("name", "")
+                        )
 
             if fastq_files:
                 files_elements = [
@@ -437,6 +453,15 @@ class NCBISubmissionXML:
                         )
                     )
 
+                for biosample_id, lib_prep_name in lib_prep_protocol_names.items():
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            lib_prep_name,
+                            {"name": "library_construction_protocol"},
+                        )
+                    )
+
                 for biosample_id, omics_processing_id in omics_processing_ids.items():
                     identifier_element = self.set_element(
                         "Identifier",
@@ -468,6 +493,7 @@ class NCBISubmissionXML:
         biosamples_list: list,
         biosample_omics_processing_list: list,
         biosample_data_objects_list: list,
+        biosample_library_preparation_list: list,
     ):
         data_type = None
         ncbi_project_id = None
@@ -482,7 +508,6 @@ class NCBISubmissionXML:
 
         self.set_description(
             email=self.nmdc_pi_email,
-            user="National Microbiome Data Collaborative (NMDC)",
             first=self.first_name,
             last=self.last_name,
             org=self.ncbi_submission_metadata.get("organization", ""),
@@ -510,6 +535,7 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
             nmdc_omics_processing=biosample_omics_processing_list,
             nmdc_biosamples=biosamples_list,
+            nmdc_library_preparation=biosample_library_preparation_list,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
