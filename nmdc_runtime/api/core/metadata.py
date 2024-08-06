@@ -206,9 +206,9 @@ def load_changesheet(
         # TODO mongo BSON has a decimal type. Should use this for decimals!
         try:
             base_type = view.induced_type(ranges.rsplit("|", maxsplit=1)[-1]).base
+            df.at[ix, "value"] = getattr(builtins, base_type)(value)
         except:
-            base_type = "str"
-        df.at[ix, "value"] = getattr(builtins, base_type)(value)
+            continue
     return df
 
 
