@@ -72,6 +72,27 @@ def test_changesheet_update_slot_with_range_bytes():
         mdb.data_object_set.delete_one({"id": "nmdc:" + dobj_local_id})
 
 
+def test_changesheet_update_slot_with_range_uriorcurie():
+    mdb = get_mongo_db()
+    local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{local_id}.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath(
+            "tests", "files", "test_changesheet_insert_study_doi.tsv"
+        ),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
+
+
 @pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_01():
     mdb = get_mongo(run_config_frozen__normal_env).db
