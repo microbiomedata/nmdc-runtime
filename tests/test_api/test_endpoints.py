@@ -238,12 +238,13 @@ def test_submit_changesheet():
     assert True
 
 
+# THIS TEST IS SKIPPED - FOR NOW JUST UPDATE NAMING
 @pytest.mark.skip(
-    reason="Skipping because race condition causes  http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
+    reason="Skipping because race condition causes http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
 )
-def test_submit_workflow_activities(api_site_client):
+def test_submit_workflow_executions(api_site_client):
     test_collection, test_id = (
-        "read_qc_analysis_activity_set",
+        "read_qc_analysis_activity_set",  # does this exist in Berkeley schema?
         "nmdc:wfrqc-11-t0tvnp52.2",
     )
     test_payload = {
@@ -272,7 +273,7 @@ def test_submit_workflow_activities(api_site_client):
         mdb[test_collection].delete_one({"id": test_id})
     rv = api_site_client.request(
         "POST",
-        "/v1/workflows/activities",
+        "/workflows/workflow_executions",
         test_payload,
     )
     assert rv.json() == {"message": "jobs accepted"}
