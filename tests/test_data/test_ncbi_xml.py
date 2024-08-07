@@ -340,6 +340,7 @@ class TestNCBISubmissionXML:
             assert "paired" in action_xml
             assert "ARIK.20150721.AMC.EPIPSAMMON.3" in action_xml
             assert "BMI_metagenomicsSequencingSOP_v1" in action_xml
+            assert "sra-run-fastq" in action_xml
 
     def test_get_submission_xml(
         self,
