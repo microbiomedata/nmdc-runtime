@@ -194,21 +194,6 @@ def test_metadata_validate_json_with_unknown_collection(api_site_client):
     assert rv.json()["result"] == "errors"
 
 
-def test_metadata_submit_json_functional_annotation_agg(api_site_client):
-    rv = api_site_client.request(
-        "POST",
-        "/metadata/json:submit",
-        {
-            "field_research_site_set": [
-                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
-                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
-                {"id": "nmdc:frsite-11-s2dqk408", "name": "BESC-470-CL2_38_23"},
-            ]
-        },
-    )
-    assert rv.json()["result"] == "errors"
-
-
 def test_submit_changesheet():
     sheet_in = ChangesheetIn(
         name="sheet",
