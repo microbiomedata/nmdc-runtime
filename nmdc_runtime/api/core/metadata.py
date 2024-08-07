@@ -203,7 +203,7 @@ def load_changesheet(
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
         # Infer python builtin type for coercion via <https://w3id.org/linkml/base>.
-        # If base is member of builtins module, e.g. `int` or `float`, coercion will success.
+        # If base is member of builtins module, e.g. `int` or `float`, coercion will succeed.
         # Otherwise, keep value as is (as a `str`).
         # Note: Mongo BSON has a decimal type,
         # but e.g. <https://w3id.org/nmdc/DecimalDegree> has a specified `base` of `float`
