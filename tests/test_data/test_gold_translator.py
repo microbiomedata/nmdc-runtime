@@ -25,7 +25,7 @@ def test_get_pi():
                 {
                     "name": "Joan D. Berger",
                     "email": "jdb@example.com",
-                    "roles": ["PI"]},
+                    "roles": ["PI"],
                     "type": "nmdc:PersonValue",
                 {
                     "name": "Beth S. Hemphill",
