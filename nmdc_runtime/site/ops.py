@@ -87,7 +87,7 @@ from nmdc_runtime.site.translation.neon_surface_water_translator import (
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
+from nmdc_runtime.site.util import run_and_log, schema_collection_has_index_on_id
 from nmdc_runtime.util import (
     drs_object_in_for,
     pluralize,
@@ -527,16 +527,23 @@ def perform_mongo_updates(context, json_in):
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
 
-    coll_has_id_index = collection_indexed_on_id(mongo.db)
-    if all(coll_has_id_index[coll] for coll in docs.keys()):
+    coll_index_on_id_map = schema_collection_has_index_on_id(mongo.db)
+    if all(coll_index_on_id_map[coll] for coll in docs.keys()):
         replace = True
-    elif all(not coll_has_id_index[coll] for coll in docs.keys()):
+    elif all(not coll_index_on_id_map[coll] for coll in docs.keys()):
+        # XXX: This is a hack because e.g. <https://w3id.org/nmdc/FunctionalAnnotationAggMember>
+        # documents should be unique with compound key (metagenome_annotation_id, gene_function_id)
+        # and yet this is not explicit in the schema. One potential solution is to auto-generate an `id`
+        # as a deterministic hash of the compound key.
+        #
+        # For now, decision is to potentially re-insert "duplicate" documents, i.e. to interpret
+        # lack of `id` as lack of unique document identity for de-duplication.
         replace = False  # wasting time trying to upsert by `id`.
     else:
         colls_not_id_indexed = [
-            coll for coll in docs.keys() if not coll_has_id_index[coll]
+            coll for coll in docs.keys() if not coll_index_on_id_map[coll]
         ]
-        colls_id_indexed = [coll for coll in docs.keys() if coll_has_id_index[coll]]
+        colls_id_indexed = [coll for coll in docs.keys() if coll_index_on_id_map[coll]]
         raise Failure(
             "Simultaneous addition of non-`id`ed collections and `id`-ed collections"
             " is not supported at this time."

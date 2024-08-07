@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 
 from pymongo.database import Database as MongoDatabase
 
+from nmdc_runtime.api.db.mongo import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
 
 mode_test = {
@@ -34,13 +35,9 @@ def run_and_log(shell_cmd, context):
 
 
 @lru_cache
-def collection_indexed_on_id(mdb: MongoDatabase) -> dict:
-    set_collection_names = [
-        name for name in mdb.list_collection_names() if name.endswith("_set")
-    ]
-    return {
-        name: ("id_1" in mdb[name].index_information()) for name in set_collection_names
-    }
+def schema_collection_has_index_on_id(mdb: MongoDatabase) -> dict:
+    names = set(mdb.list_collection_names()) & set(get_collection_names_from_schema())
+    return {name: ("id_1" in mdb[name].index_information()) for name in names}
 
 
 def get_basename(filename: str) -> str:
