@@ -336,7 +336,8 @@ class NCBISubmissionXML:
                         {"file_path": f},
                         [
                             self.set_element(
-                                "DataType", "fastq" if ".fastq" in f else "generic-data"
+                                "DataType",
+                                "sra-run-fastq" if ".fastq" in f else "generic-data",
                             )
                         ],
                     )
