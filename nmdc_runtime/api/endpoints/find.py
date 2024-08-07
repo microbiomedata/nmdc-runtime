@@ -176,22 +176,23 @@ def find_data_object_by_id(
 
 
 @router.get(
-    "/activities",
+    "/workflow_executions",
     response_model=FindResponse,
     response_model_exclude_unset=True,
 )
-def find_activities(
+def find_workflow_executions(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    # TODO: Update description to be accurate wrt Berkeley schema
     """
-    The GET /activities endpoint is a general way to fetch metadata about various activities (e.g. metagenome assembly,
+    The GET /workflow_executions endpoint is a general way to fetch metadata about various workflow_executions (e.g. metagenome assembly,
     natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
-    [WorkflowExecutionActivity](https://microbiomedata.github.io/nmdc-schema/WorkflowExecutionActivity/)
+    [WorkflowExecution](https://microbiomedata.github.io/nmdc-schema/WorkflowExecution/)
     or [PlannedProcess](https://microbiomedata.github.io/nmdc-schema/PlannedProcess/) classes may be used in the filter
-    and sort parameters, including attributes of subclasses of *WorkflowExecutionActivity* and *PlannedProcess*.
+    and sort parameters, including attributes of subclasses of *WorkflowExecution* and *PlannedProcess*.
 
-    For example, attributes used in subclasses such as MetabolomicsAnalysisActivity (subclass of *WorkflowExecutionActivity*)
+    For example, attributes used in subclasses such as MetabolomicsAnalysis (subclass of *WorkflowExecution*)
     or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
@@ -199,21 +200,22 @@ def find_activities(
 
 
 @router.get(
-    "/activities/{activity_id}",
+    "/workflow_executions/{workflow_execution_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
 )
-def find_activity_by_id(
-    activity_id: str,
+def find_workflow_execution_by_id(
+    workflow_execution_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    If the activity identifier is known, the activity metadata can be retrieved using the GET /activities/activity_id endpoint.
-    \n Note that only one metadata record for an activity may be returned at a time using this method.
+    If the workflow_execution identifier is known, the workflow_execution metadata can be retrieved using the
+    GET /workflow_executions/workflow_execution_id endpoint.
+    \n Note that only one metadata record for an workflow_execution may be returned at a time using this method.
     """
     doc = None
     for name in activity_collection_names(mdb):
-        doc = mdb[name].find_one({"id": activity_id})
+        doc = mdb[name].find_one({"id": workflow_execution_id})
         if doc is not None:
             return strip_oid(doc)
 
