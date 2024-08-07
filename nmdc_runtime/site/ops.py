@@ -75,6 +75,7 @@ from nmdc_runtime.site.resources import (
     RuntimeApiSiteClient,
     RuntimeApiUserClient,
     NeonApiClient,
+    MongoDB as MongoDBResource,
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
@@ -527,6 +528,19 @@ def perform_mongo_updates(context, json_in):
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
 
+    add_docs_result = _add_schema_docs_with_or_without_replacement()
+    op_patch = UpdateOperationRequest(
+        done=True,
+        result=add_docs_result,
+        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+    )
+    op_doc = client.update_operation(op_id, op_patch).json()
+    return ["/operations/" + op_doc["id"]]
+
+
+def _add_schema_docs_with_or_without_replacement(
+    mongo: MongoDBResource, docs: Dict[str, list]
+):
     coll_index_on_id_map = schema_collection_has_index_on_id(mongo.db)
     if all(coll_index_on_id_map[coll] for coll in docs.keys()):
         replace = True
@@ -550,13 +564,7 @@ def perform_mongo_updates(context, json_in):
             f"{colls_not_id_indexed=} ; {colls_id_indexed=}"
         )
     op_result = mongo.add_docs(docs, validate=False, replace=replace)
-    op_patch = UpdateOperationRequest(
-        done=True,
-        result=mongo_add_docs_result_as_dict(op_result),
-        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
-    )
-    op_doc = client.update_operation(op_id, op_patch).json()
-    return ["/operations/" + op_doc["id"]]
+    return mongo_add_docs_result_as_dict(op_result)
 
 
 @op(required_resource_keys={"mongo"})
