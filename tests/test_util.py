@@ -141,6 +141,7 @@ def download_and_extract_tar(url, extract_to="."):
     response = requests.get(url, stream=True)
     if response.status_code == 200:
         tar_path = os.path.join(extract_to, "downloaded_file.tar")
+        os.makedirs(extract_to, exist_ok=True)
         with open(tar_path, "wb") as file:
             chunk_size = 8192
             print(f"Downloading tar file using stream {chunk_size=}")
