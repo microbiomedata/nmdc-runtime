@@ -62,6 +62,7 @@ def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
     return {name for name in names if mdb[name].estimated_document_count() > 0}
 
 
+@lru_cache
 def get_collection_names_from_schema() -> list[str]:
     """
     Returns the names of the slots of the `Database` class that describe database collections.

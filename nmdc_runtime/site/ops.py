@@ -66,6 +66,7 @@ from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
     fetch_omics_processing_from_biosamples,
+    fetch_library_preparation_from_biosamples,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
@@ -74,6 +75,7 @@ from nmdc_runtime.site.resources import (
     RuntimeApiSiteClient,
     RuntimeApiUserClient,
     NeonApiClient,
+    MongoDB as MongoDBResource,
 )
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
 from nmdc_runtime.site.translation.neon_soil_translator import NeonSoilDataTranslator
@@ -86,7 +88,7 @@ from nmdc_runtime.site.translation.neon_surface_water_translator import (
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_runtime.site.util import collection_indexed_on_id, run_and_log
+from nmdc_runtime.site.util import run_and_log, schema_collection_has_index_on_id
 from nmdc_runtime.util import (
     drs_object_in_for,
     pluralize,
@@ -526,29 +528,43 @@ def perform_mongo_updates(context, json_in):
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
 
-    coll_has_id_index = collection_indexed_on_id(mongo.db)
-    if all(coll_has_id_index[coll] for coll in docs.keys()):
+    add_docs_result = _add_schema_docs_with_or_without_replacement()
+    op_patch = UpdateOperationRequest(
+        done=True,
+        result=add_docs_result,
+        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+    )
+    op_doc = client.update_operation(op_id, op_patch).json()
+    return ["/operations/" + op_doc["id"]]
+
+
+def _add_schema_docs_with_or_without_replacement(
+    mongo: MongoDBResource, docs: Dict[str, list]
+):
+    coll_index_on_id_map = schema_collection_has_index_on_id(mongo.db)
+    if all(coll_index_on_id_map[coll] for coll in docs.keys()):
         replace = True
-    elif all(not coll_has_id_index[coll] for coll in docs.keys()):
+    elif all(not coll_index_on_id_map[coll] for coll in docs.keys()):
+        # FIXME: XXX: This is a hack because e.g. <https://w3id.org/nmdc/FunctionalAnnotationAggMember>
+        # documents should be unique with compound key (metagenome_annotation_id, gene_function_id)
+        # and yet this is not explicit in the schema. One potential solution is to auto-generate an `id`
+        # as a deterministic hash of the compound key.
+        #
+        # For now, decision is to potentially re-insert "duplicate" documents, i.e. to interpret
+        # lack of `id` as lack of unique document identity for de-duplication.
         replace = False  # wasting time trying to upsert by `id`.
     else:
         colls_not_id_indexed = [
-            coll for coll in docs.keys() if not coll_has_id_index[coll]
+            coll for coll in docs.keys() if not coll_index_on_id_map[coll]
         ]
-        colls_id_indexed = [coll for coll in docs.keys() if coll_has_id_index[coll]]
+        colls_id_indexed = [coll for coll in docs.keys() if coll_index_on_id_map[coll]]
         raise Failure(
             "Simultaneous addition of non-`id`ed collections and `id`-ed collections"
             " is not supported at this time."
             f"{colls_not_id_indexed=} ; {colls_id_indexed=}"
         )
     op_result = mongo.add_docs(docs, validate=False, replace=replace)
-    op_patch = UpdateOperationRequest(
-        done=True,
-        result=mongo_add_docs_result_as_dict(op_result),
-        metadata={"done_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
-    )
-    op_doc = client.update_operation(op_id, op_patch).json()
-    return ["/operations/" + op_doc["id"]]
+    return mongo_add_docs_result_as_dict(op_result)
 
 
 @op(required_resource_keys={"mongo"})
@@ -1097,6 +1113,18 @@ def get_omics_processing_from_biosamples(context: OpExecutionContext, biosamples
     return biosample_omics_processing
 
 
+@op(required_resource_keys={"mongo"})
+def get_library_preparation_from_biosamples(
+    context: OpExecutionContext, biosamples: list
+):
+    mdb = context.resources.mongo.db
+    alldocs_collection = mdb["alldocs"]
+    biosample_lib_prep = fetch_library_preparation_from_biosamples(
+        alldocs_collection, biosamples
+    )
+    return biosample_lib_prep
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
@@ -1104,10 +1132,14 @@ def ncbi_submission_xml_from_nmdc_study(
     ncbi_exporter_metadata: dict,
     biosamples: list,
     omics_processing_records: list,
-    data_objects: list,
+    data_object_records: list,
+    library_preparation_records: list,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(
-        biosamples, omics_processing_records, data_objects
+        biosamples,
+        omics_processing_records,
+        data_object_records,
+        library_preparation_records,
     )
     return ncbi_xml
