@@ -214,6 +214,7 @@ def test_ensure_data_object_type():
                 "description": "Protein FAA for gold:Gp0116326",
                 "url": "https://data.microbiomedata.org/data/nmdc:mga06z11/annotation/nmdc_mga06z11_proteins.faa",
                 "md5_checksum": "87733039aa2ef02667987b398b8df08c",
+                "type": "nmdc:DataObject",
                 "file_size_bytes": 1214244683,
                 "id": "nmdc:87733039aa2ef02667987b398b8df08c",
                 "name": "gold:Gp0116326_Protein FAA",
