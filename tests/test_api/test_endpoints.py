@@ -1,9 +1,13 @@
 import json
 import os
 import re
+import subprocess
+import sys
 
+import bson
 import pytest
 import requests
+from dagster import build_op_context
 from starlette import status
 from tenacity import wait_random_exponential, retry
 from toolz import get_in
@@ -11,15 +15,69 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db, mongorestore_from_dir
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
+from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
-from nmdc_runtime.util import REPO_ROOT_DIR
+from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+from tests.test_util import download_and_extract_tar
+from tests.test_ops.test_ops import op_context as test_op_context
+
+TEST_MONGODUMPS_DIR = REPO_ROOT_DIR.joinpath("tests", "nmdcdb")
+SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME = (
+    "nmdc-prod-schema-collections__2024-07-29_20-12-07"
+)
+SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL = (
+    "https://portal.nersc.gov/cfs/m3408/meta/mongodumps/"
+    f"{SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME}.tar"
+)  # 84MB. Should be < 100MB.
+
+
+def ensure_local_mongodump():
+    dump_dir = TEST_MONGODUMPS_DIR.joinpath(
+        SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME
+    )
+    if not os.path.exists(dump_dir):
+        download_and_extract_tar(
+            url=SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL, extract_to=TEST_MONGODUMPS_DIR
+        )
+    else:
+        print(f"local mongodump already exists at {TEST_MONGODUMPS_DIR}")
+    return dump_dir
+
+
+def ensure_schema_collections_and_alldocs():
+    # Return if `alldocs` collection has already been materialized.
+    mdb = get_mongo_db()
+    if mdb.alldocs.estimated_document_count() > 0:
+        print(
+            "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
+        )
+        return
+
+    dump_dir = ensure_local_mongodump()
+    mongorestore_from_dir(mdb, dump_dir, skip_collections=["functional_annotation_agg"])
+    ensure_unique_id_indexes(mdb)
+    print("materializing alldocs...")
+    materialize_alldocs(
+        build_op_context(
+            resources={
+                "mongo": mongo_resource.configured(
+                    {
+                        "dbname": os.getenv("MONGO_DBNAME"),
+                        "host": os.getenv("MONGO_HOST"),
+                        "password": os.getenv("MONGO_PASSWORD"),
+                        "username": os.getenv("MONGO_USERNAME"),
+                    }
+                )
+            }
+        )
+    )
 
 
 def ensure_test_resources(mdb):
@@ -60,6 +118,7 @@ def ensure_test_resources(mdb):
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
     mdb["minter.requesters"].replace_one({"id": site_id}, {"id": site_id}, upsert=True)
+    ensure_schema_collections_and_alldocs()
     return {
         "site_client": {
             "site_id": site_id,
@@ -313,3 +372,12 @@ def test_get_class_name_and_collection_names_by_doc_id():
         "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     assert response.status_code == 404
+
+
+def test_find_data_objects_for_study(api_site_client):
+    ensure_schema_collections_and_alldocs()
+    rv = api_site_client.request(
+        "GET",
+        "/data_objects/study/nmdc:sty-11-hdd4bf83",
+    )
+    assert len(rv.json()) >= 60
