@@ -545,7 +545,7 @@ def _add_schema_docs_with_or_without_replacement(
     if all(coll_index_on_id_map[coll] for coll in docs.keys()):
         replace = True
     elif all(not coll_index_on_id_map[coll] for coll in docs.keys()):
-        # XXX: This is a hack because e.g. <https://w3id.org/nmdc/FunctionalAnnotationAggMember>
+        # FIXME: XXX: This is a hack because e.g. <https://w3id.org/nmdc/FunctionalAnnotationAggMember>
         # documents should be unique with compound key (metagenome_annotation_id, gene_function_id)
         # and yet this is not explicit in the schema. One potential solution is to auto-generate an `id`
         # as a deterministic hash of the compound key.
