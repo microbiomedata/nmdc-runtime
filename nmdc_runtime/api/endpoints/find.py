@@ -164,7 +164,9 @@ def find_data_objects_for_study(
 
                 for output_id in has_output:
                     if get_classname_from_typecode(output_id) == "DataObject":
-                        data_object_doc = mdb.alldocs.find_one({"id": output_id})
+                        data_object_doc = mdb.data_object_set.find_one(
+                            {"id": output_id}
+                        )
                         if data_object_doc:
                             collected_data_objects.append(strip_oid(data_object_doc))
                     else:
