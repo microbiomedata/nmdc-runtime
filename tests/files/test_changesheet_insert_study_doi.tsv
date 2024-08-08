@@ -1,5 +1,4 @@
 id	action	attribute	value
-nmdc:sty-11-pzmd0x14	update	type	nmdc:Study
 nmdc:sty-11-pzmd0x14	insert	associated_dois	d1
 d1	update	type	nmdc:Doi
 d1	update	doi_value	doi:10.25345/C5CG8S
