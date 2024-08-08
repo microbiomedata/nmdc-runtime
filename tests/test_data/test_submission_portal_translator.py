@@ -304,7 +304,7 @@ def test_get_dataset(test_minter, monkeypatch):
                 id_minter=test_minter,
                 study_category="research_study",
                 study_doi_provider="jgi",
-                study_funding_sources=["Some award ABC", "Another award XYZ"]
+                study_funding_sources=None
             )
 
             expected = nmdc.Database(**test_data["output"])
