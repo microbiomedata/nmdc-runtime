@@ -99,10 +99,6 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                     "study_category": "research_study",
                     "study_doi_category": "dataset_doi",
                     "study_doi_provider": "jgi",
-                    "study_funding_sources": [
-                        "funder 1",
-                        "funder 2",
-                    ],
                     "study_pi_image_url": "http://www.example.com/test.png",
                 }
             },
