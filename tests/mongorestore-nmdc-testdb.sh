@@ -3,4 +3,4 @@
 # $  ./tests/mongorestore-nmdc-testdb.sh
 mongorestore -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase=admin \
     --gzip --drop \
-    /nmdc_dump/nmdcdb/2024-02-09T11/
+    /nmdc_dump/nmdcdb/2024-07-30T11/

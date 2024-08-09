@@ -4,6 +4,7 @@ import re
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
 
+from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import nmdc_database_collection_names
 from pymongo.database import Database as MongoDatabase
@@ -187,7 +188,6 @@ def get_collection_name_by_doc_id(
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
     collection_names = []
-    DATABASE_CLASS_NAME = "Database"
     schema_view = SchemaView(get_nmdc_schema_definition())
     for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
         slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)

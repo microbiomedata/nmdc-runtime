@@ -1,0 +1,1 @@
+DATABASE_CLASS_NAME = "Database"

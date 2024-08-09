@@ -96,6 +96,38 @@ def fetch_omics_processing_from_biosamples(all_docs_collection, biosamples_list)
     return biosample_data_objects
 
 
+def fetch_library_preparation_from_biosamples(all_docs_collection, biosamples_list):
+    biosample_lib_prep = []
+
+    for biosample in biosamples_list:
+        biosample_id = biosample["id"]
+
+        # Step 1: Find any document with biosample id as has_input
+        initial_query = {"has_input": biosample_id}
+        initial_document = all_docs_collection.find_one(initial_query)
+
+        if not initial_document:
+            continue
+
+        initial_output = initial_document.get("has_output")
+        if not initial_output:
+            continue
+
+        # Step 2: Use has_output to find the library preparation document
+        for output_id in initial_output:
+            lib_prep_query = {
+                "has_input": output_id,
+                "designated_class": "nmdc:LibraryPreparation",
+            }
+            lib_prep_doc = all_docs_collection.find_one(lib_prep_query)
+
+            if lib_prep_doc:
+                biosample_lib_prep.append({biosample_id: lib_prep_doc})
+                break  # Stop at the first document that meets the criteria
+
+    return biosample_lib_prep
+
+
 def handle_quantity_value(slot_value):
     if "has_numeric_value" in slot_value and "has_unit" in slot_value:
         return f"{slot_value['has_numeric_value']} {slot_value['has_unit']}"
