@@ -163,6 +163,19 @@ def data_objects_list():
     ]
 
 
+@pytest.fixture
+def library_preparation_dict():
+    return {
+        "end_date": "2018-06-20",
+        "has_input": ["nmdc:procsm-12-sb2v8f15"],
+        "has_output": ["nmdc:procsm-12-ehktny16"],
+        "id": "nmdc:libprp-12-5hhdd393",
+        "processing_institution": "Battelle",
+        "start_date": "2015-07-21T18:00Z",
+        "protocol_link": {"name": "BMI_metagenomicsSequencingSOP_v1"},
+    }
+
+
 class TestNCBISubmissionXML:
     def test_set_element(self, ncbi_submission_client):
         element = ncbi_submission_client.set_element("Test", "Hello", {"attr": "value"})
@@ -173,10 +186,9 @@ class TestNCBISubmissionXML:
     def test_set_description(self, ncbi_submission_client):
         ncbi_submission_client.set_description(
             ncbi_submission_client.nmdc_pi_email,
-            "testuser",
             "Kate",
             "Thibault",
-            "Test Org",
+            "NSF National Ecological Observatory Network",
         )
         description = ET.tostring(
             ncbi_submission_client.root.find("Description"), "unicode"
@@ -184,15 +196,13 @@ class TestNCBISubmissionXML:
 
         root = ET.fromstring(description)
         comment = root.find("Comment").text
-        submitter = root.find("Submitter").attrib["user_name"]
         org_name = root.find("Organization/Name").text
         contact_email = root.find("Organization/Contact").attrib["email"]
         contact_first = root.find("Organization/Contact/Name/First").text
         contact_last = root.find("Organization/Contact/Name/Last").text
 
         assert comment == f"NMDC Submission for {MOCK_NMDC_STUDY['id']}"
-        assert submitter == "testuser"
-        assert org_name == "Test Org"
+        assert org_name == "NSF National Ecological Observatory Network"
         assert contact_email == "kthibault@battelleecology.org"
         assert contact_first == "Kate"
         assert contact_last == "Thibault"
@@ -273,7 +283,6 @@ class TestNCBISubmissionXML:
             ],
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             nmdc_biosamples=nmdc_biosample,
-            nmdc_omics_processing=[],
         )
         biosample_xml = ET.tostring(
             ncbi_submission_client.root.find(".//BioSample"), "unicode"
@@ -282,19 +291,37 @@ class TestNCBISubmissionXML:
         assert "Test Org" in biosample_xml
         assert "PRJNA1029061" in biosample_xml
 
-    def test_set_fastq(self, ncbi_submission_client, data_objects_list, nmdc_biosample):
+    def test_set_fastq(
+        self,
+        ncbi_submission_client,
+        nmdc_biosample,
+        data_objects_list,
+        omics_processing_list,
+        library_preparation_dict,
+    ):
         biosample_data_objects = [
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
+        ]
+
+        biosample_omics_processing = [
+            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
+        ]
+
+        biosample_library_preparation = [
+            {biosample["id"]: library_preparation_dict} for biosample in nmdc_biosample
         ]
 
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
+            nmdc_omics_processing=biosample_omics_processing,
+            nmdc_biosamples=nmdc_biosample,
+            nmdc_library_preparation=biosample_library_preparation,
         )
 
         action_elements = ncbi_submission_client.root.findall(".//Action")
-        assert len(action_elements) == len(biosample_data_objects)
+        assert len(action_elements) == 1  # 1 SRA <Action> block
 
         for action_element in action_elements:
             action_xml = ET.tostring(action_element, "unicode")
@@ -305,9 +332,24 @@ class TestNCBISubmissionXML:
             assert "PRJNA1029061" in action_xml
             assert "nmdc:bsm-12-p9q5v236" in action_xml
             assert "Test Org" in action_xml
+            # library Attributes in SRA <Action> block
+            assert "ILLUMINA" in action_xml
+            assert "NextSeq 550" in action_xml
+            assert "METAGENOMIC" in action_xml
+            assert "RANDOM" in action_xml
+            assert "paired" in action_xml
+            assert "ARIK.20150721.AMC.EPIPSAMMON.3" in action_xml
+            assert "BMI_metagenomicsSequencingSOP_v1" in action_xml
+            assert "sra-run-fastq" in action_xml
 
     def test_get_submission_xml(
-        self, mocker, ncbi_submission_client, nmdc_biosample, data_objects_list
+        self,
+        mocker,
+        ncbi_submission_client,
+        nmdc_biosample,
+        data_objects_list,
+        omics_processing_list,
+        library_preparation_dict,
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -357,14 +399,25 @@ class TestNCBISubmissionXML:
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
 
+        biosample_omics_prcessing = [
+            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
+        ]
+
+        biosample_library_preparation = [
+            {biosample["id"]: library_preparation_dict} for biosample in nmdc_biosample
+        ]
+
         ncbi_submission_client.set_fastq(
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
+            nmdc_omics_processing=biosample_omics_prcessing,
+            nmdc_biosamples=nmdc_biosample,
+            nmdc_library_preparation=biosample_library_preparation,
         )
 
         submission_xml = ncbi_submission_client.get_submission_xml(
-            nmdc_biosample, [], biosample_data_objects
+            nmdc_biosample, [], biosample_data_objects, biosample_library_preparation
         )
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
@@ -372,7 +425,7 @@ class TestNCBISubmissionXML:
         assert "sediment" in submission_xml
         assert "USA: Colorado, Arikaree River" in submission_xml
         assert "2015-07-21T18:00Z" in submission_xml
-        assert "National Microbiome Data Collaborative (NMDC)" in submission_xml
+        assert "National Microbiome Data Collaborative" in submission_xml
         assert (
             "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
             in submission_xml

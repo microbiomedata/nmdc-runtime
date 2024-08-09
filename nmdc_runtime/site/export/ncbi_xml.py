@@ -66,7 +66,7 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
-    def set_description(self, email, user, first, last, org, date=None):
+    def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
             "Description",
@@ -74,7 +74,6 @@ class NCBISubmissionXML:
                 self.set_element(
                     "Comment", f"NMDC Submission for {self.nmdc_study_id}"
                 ),
-                self.set_element("Submitter", attrib={"user_name": user}),
                 self.set_element(
                     "Organization",
                     attrib={"role": "owner", "type": "center"},
@@ -159,7 +158,6 @@ class NCBISubmissionXML:
         org,
         bioproject_id,
         nmdc_biosamples,
-        nmdc_omics_processing,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
@@ -206,7 +204,7 @@ class NCBISubmissionXML:
                     children=[
                         self.set_element(
                             "Title",
-                            f"NMDC Biosample {sample_id_value} from {organism_name} part of {self.nmdc_study_id} study",
+                            f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
                         ),
                     ],
                 ),
@@ -230,6 +228,13 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                    ]
+                    + [
+                        self.set_element(
+                            "Attribute",
+                            "National Microbiome Data Collaborative",
+                            {"attribute_name": "broker name"},
+                        )
                     ],
                 ),
             ]
@@ -278,21 +283,50 @@ class NCBISubmissionXML:
         biosample_data_objects: list,
         bioproject_id: str,
         org: str,
+        nmdc_omics_processing: list,
+        nmdc_biosamples: list,
+        nmdc_library_preparation: list,
     ):
+        bsm_id_name_dict = {
+            biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
+        }
+
         for entry in biosample_data_objects:
             fastq_files = []
             biosample_ids = []
+            omics_processing_ids = {}
+            lib_prep_protocol_names = {}
+            instrument_name = ""
+            omics_type = ""
+            library_name = ""
 
             for biosample_id, data_objects in entry.items():
                 biosample_ids.append(biosample_id)
                 for data_object in data_objects:
                     if "url" in data_object:
                         url = urlparse(data_object["url"])
-                        file_path = os.path.join(
-                            os.path.basename(os.path.dirname(url.path)),
-                            os.path.basename(url.path),
-                        )
+                        file_path = os.path.basename(url.path)
                         fastq_files.append(file_path)
+
+                for omprc_dict in nmdc_omics_processing:
+                    if biosample_id in omprc_dict:
+                        for omprc in omprc_dict[biosample_id]:
+                            omics_processing_ids[biosample_id] = omprc.get("id", "")
+                            instrument_name = omprc.get("instrument_name", "")
+                            omics_type = (
+                                omprc.get("omics_type", {})
+                                .get("has_raw_value", "")
+                                .lower()
+                            )
+                            library_name = bsm_id_name_dict.get(biosample_id, "")
+
+                for lib_prep_dict in nmdc_library_preparation:
+                    if biosample_id in lib_prep_dict:
+                        lib_prep_protocol_names[biosample_id] = (
+                            lib_prep_dict[biosample_id]
+                            .get("protocol_link", {})
+                            .get("name", "")
+                        )
 
             if fastq_files:
                 files_elements = [
@@ -300,7 +334,12 @@ class NCBISubmissionXML:
                         "File",
                         "",
                         {"file_path": f},
-                        [self.set_element("DataType", "generic-data")],
+                        [
+                            self.set_element(
+                                "DataType",
+                                "sra-run-fastq" if ".fastq" in f else "generic-data",
+                            )
+                        ],
                     )
                     for f in fastq_files
                 ]
@@ -344,35 +383,122 @@ class NCBISubmissionXML:
                         )
                     )
 
-                identifier_element = self.set_element(
-                    "Identifier",
-                    children=[
-                        self.set_element(
-                            "SPUID", bioproject_id, {"spuid_namespace": org}
+                sra_attributes = []
+                if instrument_name.lower().startswith("illumina"):
+                    sra_attributes.append(
+                        self.set_element("Attribute", "ILLUMINA", {"name": "platform"})
+                    )
+                    if "nextseq550" in instrument_name.lower():
+                        sra_attributes.append(
+                            self.set_element(
+                                "Attribute", "NextSeq 550", {"name": "instrument_model"}
+                            )
                         )
-                    ],
-                )
 
-                action = self.set_element(
-                    "Action",
-                    children=[
+                if omics_type == "metagenome":
+                    sra_attributes.append(
                         self.set_element(
-                            "AddFiles",
-                            attrib={"target_db": "SRA"},
-                            children=files_elements
-                            + attribute_elements
-                            + [identifier_element],
-                        ),
-                    ],
+                            "Attribute", "WGS", {"name": "library_strategy"}
+                        )
+                    )
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "METAGENOMIC", {"name": "library_source"}
+                        )
+                    )
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "RANDOM", {"name": "library_selection"}
+                        )
+                    )
+
+                if omics_type == "metatranscriptome":
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            "METATRANSCRIPTOMIC",
+                            {"name": "library_source"},
+                        )
+                    )
+
+                has_paired_reads = any(
+                    data_object.get("data_object_type", "").lower()
+                    == "metagenome raw reads"
+                    for data_object in data_objects
+                ) or (
+                    any(
+                        data_object.get("data_object_type", "").lower()
+                        == "metagenome raw read 1"
+                        for data_object in data_objects
+                    )
+                    and any(
+                        data_object.get("data_object_type", "").lower()
+                        == "metagenome raw read 2"
+                        for data_object in data_objects
+                    )
                 )
 
-                self.root.append(action)
+                if has_paired_reads:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "paired", {"name": "library_layout"}
+                        )
+                    )
+                else:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "single", {"name": "library_layout"}
+                        )
+                    )
+
+                if library_name:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", library_name, {"name": "library_name"}
+                        )
+                    )
+
+                for biosample_id, lib_prep_name in lib_prep_protocol_names.items():
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            lib_prep_name,
+                            {"name": "library_construction_protocol"},
+                        )
+                    )
+
+                for biosample_id, omics_processing_id in omics_processing_ids.items():
+                    identifier_element = self.set_element(
+                        "Identifier",
+                        children=[
+                            self.set_element(
+                                "SPUID", omics_processing_id, {"spuid_namespace": org}
+                            )
+                        ],
+                    )
+
+                    action = self.set_element(
+                        "Action",
+                        children=[
+                            self.set_element(
+                                "AddFiles",
+                                attrib={"target_db": "SRA"},
+                                children=files_elements
+                                + attribute_elements
+                                + sra_attributes
+                                + [identifier_element],
+                            ),
+                        ],
+                    )
+
+                    self.root.append(action)
 
     def get_submission_xml(
         self,
         biosamples_list: list,
         biosample_omics_processing_list: list,
         biosample_data_objects_list: list,
+        biosample_library_preparation_list: list,
     ):
         data_type = None
         ncbi_project_id = None
@@ -387,7 +513,6 @@ class NCBISubmissionXML:
 
         self.set_description(
             email=self.nmdc_pi_email,
-            user="National Microbiome Data Collaborative (NMDC)",
             first=self.first_name,
             last=self.last_name,
             org=self.ncbi_submission_metadata.get("organization", ""),
@@ -407,13 +532,15 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
             bioproject_id=ncbi_project_id,
             nmdc_biosamples=biosamples_list,
-            nmdc_omics_processing=biosample_omics_processing_list,
         )
 
         self.set_fastq(
             biosample_data_objects=biosample_data_objects_list,
             bioproject_id=ncbi_project_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
+            nmdc_omics_processing=biosample_omics_processing_list,
+            nmdc_biosamples=biosamples_list,
+            nmdc_library_preparation=biosample_library_preparation_list,
         )
 
         rough_string = ET.tostring(self.root, "unicode")

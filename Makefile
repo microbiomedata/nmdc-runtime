@@ -69,7 +69,7 @@ down-dev:
 	docker compose down
 
 down-test:
-	docker compose --file docker-compose.test.yml down
+	docker compose --file docker-compose.test.yml down --volumes
 
 follow-fastapi:
 	docker compose logs fastapi -f
@@ -97,14 +97,14 @@ nersc-mongo-tunnels:
 		-o ServerAliveInterval=60 \
 		${NERSC_USERNAME}@dtn02.nersc.gov
 
-mongorestore-nmdc-dev:
-	wget https://portal.nersc.gov/cfs/m3408/meta/mongodumps/mdb-nmdc-dev.tar.gz
-	tar zxvf mdb-nmdc-dev.tar.gz
-	rm -rf nmdc/._* # Not sure why ._* files are extracted.
-	mongorestore -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
-		--drop --gzip -d nmdc nmdc
-	rm -rf nmdc/
-	rm mdb-nmdc-dev.tar.gz
+mongorestore-nmdc-db:
+	mkdir -p /tmp/remote-mongodump/nmdc
+	# SSH into the remote server, stream the dump directory as a gzipped tar archive, and extract it locally.
+	ssh -i ~/.ssh/nersc ${NERSC_USERNAME}@dtn01.nersc.gov \
+		'tar -czf - -C /global/cfs/projectdirs/m3408/nmdc-mongodumps/dump_nmdc-prod_2024-07-29_20-12-07/nmdc .' \
+		| tar -xzv -C /tmp/remote-mongodump/nmdc
+	mongorestore -v -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
+		--drop --nsInclude='nmdc.*' --dir /tmp/remote-mongodump
 
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
