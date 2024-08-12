@@ -528,7 +528,9 @@ def perform_mongo_updates(context, json_in):
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
 
-    add_docs_result = _add_schema_docs_with_or_without_replacement()
+    # TODO containing op `perform_mongo_updates` needs test coverage, as below line had trivial bug.
+    #   ref: https://github.com/microbiomedata/nmdc-runtime/issues/631
+    add_docs_result = _add_schema_docs_with_or_without_replacement(mongo, docs)
     op_patch = UpdateOperationRequest(
         done=True,
         result=add_docs_result,
