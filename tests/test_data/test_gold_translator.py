@@ -27,7 +27,7 @@ def test_get_pi():
                     "email": "jdb@example.com",
                     "roles": ["PI"],
                     "type": "nmdc:PersonValue",
-                },    
+                },
                 {
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
@@ -47,7 +47,6 @@ def test_get_pi():
     assert pi_person_value.name == "Joan D. Berger"
     assert pi_person_value.email == "jdb@example.com"
     assert pi_person_value.type == "nmdc:PersonValue"
-    
 
     # no PI in contacts, _get_pi should return None
     pi_person_value = translator._get_pi(
@@ -296,10 +295,17 @@ def test_get_controlled_term_value():
     assert value is None
     assert value.type == "nmdc:ControlledIdentifiedTermValue"
 
+
 def test_get_env_term_value():
     translator = GoldStudyTranslator()
 
-    entity = {"arbitraryField": {"id": "ENVO_00000446", "label": "terrestrial biome", "type":"nmdc:OntologyClass",}}
+    entity = {
+        "arbitraryField": {
+            "id": "ENVO_00000446",
+            "label": "terrestrial biome",
+            "type": "nmdc:OntologyClass",
+        }
+    }
     env_term = translator._get_env_term_value(entity, "arbitraryField")
     assert env_term is not None
     assert env_term.has_raw_value == "ENVO_00000446"
@@ -310,7 +316,7 @@ def test_get_env_term_value():
     entity = {
         "arbitraryField": {
             "id": "ENVO_00000446",
-            "type":"nmdc:OntologyClass",
+            "type": "nmdc:OntologyClass",
         }
     }
     env_term = translator._get_env_term_value(entity, "arbitraryField")
@@ -323,12 +329,10 @@ def test_get_env_term_value():
     entity = {"arbitraryField": {"label": "terrestrial biome"}}
     env_term = translator._get_env_term_value(entity, "arbitraryField")
     assert env_term is None
-  
 
     entity = {"arbitraryField": None}
     env_term = translator._get_env_term_value(entity, "arbitraryField")
     assert env_term is None
-
 
 
 def test_get_lat_lon():
