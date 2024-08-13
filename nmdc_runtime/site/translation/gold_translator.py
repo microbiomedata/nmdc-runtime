@@ -124,7 +124,9 @@ class GoldStudyTranslator(Translator):
         if ncbi_tax_name is None or ncbi_tax_id is None:
             return None
 
-        return nmdc.TextValue(f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]")
+        raw_value = f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]"
+
+        return nmdc.TextValue(has_raw_value=raw_value, type="nmdc:TextValue")
 
     def _get_samp_name(self, gold_biosample: JSON_OBJECT) -> Union[str, None]:
         """Get a sample name for a GOLD biosample object
