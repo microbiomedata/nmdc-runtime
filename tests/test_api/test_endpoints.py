@@ -202,22 +202,24 @@ def test_submit_changesheet():
     )
     mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
-    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
-        mdb.biosample_set.insert_one(
-            json.loads(
-                (
-                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
-                ).read_text()
-            )
-        )
-    if not mdb.study_set.find_one({"id": "nmdc:sty-11-pzmd0x14"}):
-        mdb.study_set.insert_one(
-            json.loads(
-                (
-                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_sty-11-pzmd0x14.json"
-                ).read_text()
-            )
-        )
+    mdb.biosample_set.replace_one(
+        {"id": "nmdc:bsm-12-7mysck21"},
+        json.loads(
+            (
+                REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+            ).read_text()
+        ),
+        upsert=True,
+    )
+    mdb.study_set.replace_one(
+        {"id": "nmdc:sty-11-pzmd0x14"},
+        json.loads(
+            (
+                REPO_ROOT_DIR / "tests" / "files" / "nmdc_sty-11-pzmd0x14.json"
+            ).read_text()
+        ),
+        upsert=True,
+    )
     df_change = df_from_sheet_in(sheet_in, mdb)
     _ = _validate_changesheet(df_change, mdb)
 
@@ -288,8 +290,7 @@ def test_get_class_name_and_collection_names_by_doc_id():
     mdb = get_mongo_db()
     study_set_collection = mdb.get_collection(name="study_set")
     fake_doc = dict(id="nmdc:sty-1-foobar")
-    if study_set_collection.find_one(fake_doc) is None:
-        study_set_collection.insert_one(fake_doc)
+    study_set_collection.replace_one(fake_doc, fake_doc, upsert=True)
 
     # Valid `id`, and the document exists in database.
     id_ = "nmdc:sty-1-foobar"
