@@ -127,6 +127,7 @@ class SubmissionPortalTranslator(Translator):
             email=study_form.get("piEmail"),
             orcid=study_form.get("piOrcid"),
             profile_image_url=self.study_pi_image_url,
+            type=nmdc.PersonValue.class_class_curie,
         )
 
     def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.Doi], None]:

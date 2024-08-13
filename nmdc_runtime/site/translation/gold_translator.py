@@ -69,6 +69,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=pi_dict.get("name"),
             name=pi_dict.get("name"),
             email=pi_dict.get("email"),
+            type=pi_dict.get("type"),
         )
 
     def _get_mod_date(self, gold_entity: JSON_OBJECT) -> Union[str, None]:
