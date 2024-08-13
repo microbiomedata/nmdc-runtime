@@ -186,7 +186,9 @@ class GoldStudyTranslator(Translator):
         date_collected = gold_biosample.get("dateCollected")
         if date_collected is None:
             return None
-        return nmdc.TimestampValue(has_raw_value=date_collected)
+        return nmdc.TimestampValue(
+            has_raw_value=date_collected, type="nmdc:TimestampValue"
+        )
 
     def _get_quantity_value(
         self,
