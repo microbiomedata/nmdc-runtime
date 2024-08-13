@@ -21,21 +21,39 @@ from starlette import status
 from starlette.requests import Request
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
+ORCID_PRODUCTION_BASE_URL = "https://orcid.org"
+
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ORCID_NMDC_CLIENT_ID = os.getenv("ORCID_NMDC_CLIENT_ID")
 ORCID_NMDC_CLIENT_SECRET = os.getenv("ORCID_NMDC_CLIENT_SECRET")
-ORCID_BASE_URL = os.getenv("ORCID_BASE_URL", default="https://orcid.org")
+ORCID_BASE_URL = os.getenv("ORCID_BASE_URL", default=ORCID_PRODUCTION_BASE_URL)
 
-# https://orcid.org/.well-known/openid-configuration
-# XXX do we want to live-load this?
-ORCID_JWK = {  # https://orcid.org/oauth/jwks
+# Define the JSON Web Key Set (JWKS) for ORCID.
+#
+# Note: The URL from which we got this dictionary is: https://orcid.org/oauth/jwks
+#       We got _that_ URL from the dictionary at: https://orcid.org/.well-known/openid-configuration
+#
+# TODO: Consider _live-loading_ this dictionary from the Internet.
+#
+ORCID_JWK = {
     "e": "AQAB",
     "kid": "production-orcid-org-7hdmdswarosg3gjujo8agwtazgkp1ojs",
     "kty": "RSA",
     "n": "jxTIntA7YvdfnYkLSN4wk__E2zf_wbb0SV_HLHFvh6a9ENVRD1_rHK0EijlBzikb-1rgDQihJETcgBLsMoZVQqGj8fDUUuxnVHsuGav_bf41PA7E_58HXKPrB2C0cON41f7K3o9TStKpVJOSXBrRWURmNQ64qnSSryn1nCxMzXpaw7VUo409ohybbvN6ngxVy4QR2NCC7Fr0QVdtapxD7zdlwx6lEwGemuqs_oG5oDtrRuRgeOHmRps2R6gG5oc-JqVMrVRv6F9h4ja3UgxCDBQjOVT1BFPWmMHnHCsVYLqbbXkZUfvP2sO1dJiYd_zrQhi-FtNth9qrLLv3gkgtwQ",
     "use": "sig",
 }
+# If the application is using a _non-production_ ORCID environment, overwrite
+# the "kid" and "n" values with those from the sandbox ORCID environment.
+#
+# Source: https://sandbox.orcid.org/oauth/jwks
+#
+if ORCID_BASE_URL != ORCID_PRODUCTION_BASE_URL:
+    ORCID_JWK["kid"] = "sandbox-orcid-org-3hpgosl3b6lapenh1ewsgdob3fawepoj"
+    ORCID_JWK["n"] = (
+        "pl-jp-kTAGf6BZUrWIYUJTvqqMVd4iAnoLS6vve-KNV0q8TxKvMre7oi9IulDcqTuJ1alHrZAIVlgrgFn88MKirZuTqHG6LCtEsr7qGD9XyVcz64oXrb9vx4FO9tLNQxvdnIWCIwyPAYWtPMHMSSD5oEVUtVL_5IaxfCJvU-FchdHiwfxvXMWmA-i3mcEEe9zggag2vUPPIqUwbPVUFNj2hE7UsZbasuIToEMFRZqSB6juc9zv6PEUueQ5hAJCEylTkzMwyBMibrt04TmtZk2w9DfKJR91555s2ZMstX4G_su1_FqQ6p9vgcuLQ6tCtrW77tta-Rw7McF_tyPmvnhQ"
+    )
+
 ORCID_JWS_VERITY_ALGORITHM = "RS256"
 
 
