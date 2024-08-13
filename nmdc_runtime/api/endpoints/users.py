@@ -20,6 +20,7 @@ from nmdc_runtime.api.core.auth import (
     ORCID_JWS_VERITY_ALGORITHM,
     credentials_exception,
     ORCID_NMDC_CLIENT_SECRET,
+    ORCID_BASE_URL,
 )
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
@@ -39,7 +40,7 @@ router = APIRouter()
 @router.get("/orcid_code", response_class=RedirectResponse, include_in_schema=False)
 async def receive_orcid_code(request: Request, code: str, state: str | None = None):
     rv = requests.post(
-        "https://orcid.org/oauth/token",
+        f"{ORCID_BASE_URL}/oauth/token",
         data=(
             f"client_id={ORCID_NMDC_CLIENT_ID}&client_secret={ORCID_NMDC_CLIENT_SECRET}&"
             f"grant_type=authorization_code&code={code}&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
@@ -98,7 +99,7 @@ async def login_for_access_token(
                 )
                 payload = json.loads(payload.decode())
                 issuer: str = payload.get("iss")
-                if issuer != "https://orcid.org":
+                if issuer != ORCID_BASE_URL:
                     raise credentials_exception
                 subject: str = payload.get("sub")
                 user = get_user(mdb, subject)

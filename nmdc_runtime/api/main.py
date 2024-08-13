@@ -22,7 +22,7 @@ from nmdc_runtime.util import (
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
-from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID
+from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID, ORCID_BASE_URL
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -426,7 +426,7 @@ app = FastAPI(
         f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
         '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
-        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
+        f'<a href="{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
         "&response_type=code&scope=openid&"
         f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
         " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
