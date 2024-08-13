@@ -22,7 +22,11 @@ from nmdc_runtime.util import (
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
-from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID, ORCID_BASE_URL
+from nmdc_runtime.api.core.auth import (
+    get_password_hash,
+    ORCID_NMDC_CLIENT_ID,
+    ORCID_BASE_URL,
+)
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
