@@ -2,9 +2,11 @@ import json
 import os
 
 import pytest
-from dagster import build_op_context
+from dagster import build_op_context, RunConfig
 
+from nmdc_runtime.api.endpoints.metadata import _ensure_job__metadata_in
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.site.repository import preset_normal
 from nmdc_runtime.site.resources import (
     mongo_resource,
     runtime_api_site_client_resource,
@@ -13,10 +15,7 @@ from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
 )
 
-from nmdc_runtime.site.ops import (
-    perform_mongo_updates,
-    _add_schema_docs_with_or_without_replacement,
-)
+from nmdc_runtime.site.graphs import apply_metadata_in
 
 
 @pytest.fixture
@@ -50,7 +49,7 @@ def op_context():
     )
 
 
-def test_perform_mongo_updates_functional_annotation_agg(op_context):
+def test_apply_metadata_in_functional_annotation_agg(op_context):
     mongo = op_context.resources.mongo
     docs = {
         "functional_annotation_agg": [
@@ -70,7 +69,18 @@ def test_perform_mongo_updates_functional_annotation_agg(op_context):
     for doc_spec in docs["functional_annotation_agg"]:
         mongo.db.functional_annotation_agg.delete_many(doc_spec)
 
-    _add_schema_docs_with_or_without_replacement(mongo, docs)
+    extra_run_config_data = _ensure_job__metadata_in(
+        docs,
+        op_context.resources.runtime_api_user_client.username,
+        mongo.db,
+        op_context.resources.runtime_api_site_client.client_id,
+        drs_object_exists_ok=True,  # If there exists a DRS object with a matching checksum, use it.
+    )
+
+    apply_metadata_in.to_job(**preset_normal).execute_in_process(
+        run_config=extra_run_config_data
+    )
+
     assert (
         mongo.db.functional_annotation_agg.count_documents(
             {"$or": docs["functional_annotation_agg"]}
