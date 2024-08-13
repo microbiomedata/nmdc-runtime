@@ -25,6 +25,7 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ORCID_NMDC_CLIENT_ID = os.getenv("ORCID_NMDC_CLIENT_ID")
 ORCID_NMDC_CLIENT_SECRET = os.getenv("ORCID_NMDC_CLIENT_SECRET")
+ORCID_BASE_URL = os.getenv("ORCID_BASE_URL", default="https://orcid.org")
 
 # https://orcid.org/.well-known/openid-configuration
 # XXX do we want to live-load this?
