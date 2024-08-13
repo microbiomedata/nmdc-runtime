@@ -23,7 +23,7 @@ To that end, we've instituted the following policy around merging the `main` bra
 
 1. Any Runtime maintainer can merge `main` into `berkeley` at any time, provided they address any merge conflicts that arise. We expect there to always be at least one merge conflict: the `nmdc-schema` version in the `main.in` file.
 2. Those merges can happen multiple times a day (no limit).
-3. When those merges happen, the person performing the merge will announce the merge in the `#nmdc-runtime` Slack channel. The announcement can be made either before or after merging. Although not all team members are on that Slack channel, we think enough _are_ that—should someone else report an issue shortly thereafter—news of the recent merge will make its way to them. The announcement can be a result message (`@`-mentioning people is optional).
+3. When those merges happen, the person performing the merge will announce the merge in the `#nmdc-runtime` Slack channel. The announcement can be made either before or after merging. Although not all team members are on that Slack channel, we think enough _are_ that—should someone else report an issue shortly thereafter—news of the recent merge will make its way to them. The announcement can be a normal message (i.e. tagging people in it is optional).
 
 ## Service Status
 
