@@ -148,6 +148,7 @@ class SubmissionPortalTranslator(Translator):
                 doi_value=dataset_doi,
                 doi_provider=self.study_doi_provider,
                 doi_category=self.study_doi_category,
+                type="nmdc:Doi",
             )
         ]
 
@@ -170,6 +171,7 @@ class SubmissionPortalTranslator(Translator):
                     orcid=contributor.get("orcid"),
                 ),
                 applied_roles=contributor.get("roles"),
+                type="nmdc:CreditAssociation",
             )
             for contributor in contributors
         ]
