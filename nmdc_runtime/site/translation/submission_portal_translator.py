@@ -218,7 +218,10 @@ class SubmissionPortalTranslator(Translator):
         if not match:
             return None
 
-        qv = nmdc.QuantityValue(has_raw_value=raw_value)
+        qv = nmdc.QuantityValue(
+            has_raw_value=raw_value,
+            type="nmdc:QuantityValue",
+        )
         if match.group(2):
             # having group 2 means the value is a range like "0 - 1". Either
             # group 1 or group 2 might be the minimum especially when handling

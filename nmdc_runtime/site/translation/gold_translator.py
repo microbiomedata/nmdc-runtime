@@ -220,12 +220,14 @@ class GoldStudyTranslator(Translator):
                     has_raw_value=minimum_numeric_value,
                     has_numeric_value=nmdc.Double(minimum_numeric_value),
                     has_unit=unit,
+                    type="nmdc:QuantityValue",
                 )
             else:
                 return nmdc.QuantityValue(
                     has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
                     has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
                     has_unit=unit,
+                    type="nmdc:QuantityValue",
                 )
 
         field_value = gold_entity.get(gold_field)
@@ -236,6 +238,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=field_value,
             has_numeric_value=nmdc.Double(field_value),
             has_unit=unit,
+            type="nmdc:QuantityValue",
         )
 
     def _get_text_value(
