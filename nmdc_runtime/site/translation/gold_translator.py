@@ -326,6 +326,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=f"{latitude} {longitude}",
             latitude=nmdc.DecimalDegree(latitude),
             longitude=nmdc.DecimalDegree(longitude),
+            type="nmdc:GeolocationValue",
         )
 
     def _get_instrument_name(self, gold_project: JSON_OBJECT) -> Union[str, None]:

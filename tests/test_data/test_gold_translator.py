@@ -352,7 +352,7 @@ def test_get_lat_lon():
     assert lat_lon.has_raw_value == "45.553 -122.392"
     assert lat_lon.latitude == 45.553
     assert lat_lon.longitude == -122.392
-    assert lat_lon.type == "GeolocationValue"
+    assert lat_lon.type == "nmdc:GeolocationValue"
 
     lat_lon = translator._get_lat_lon(
         {
