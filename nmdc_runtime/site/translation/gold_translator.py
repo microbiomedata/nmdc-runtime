@@ -257,7 +257,7 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.TextValue(has_raw_value=field_value)
+        return nmdc.TextValue(has_raw_value=field_value, type="nmdc:TextValue")
 
     def _get_controlled_term_value(
         self, gold_entity: JSON_OBJECT, gold_field: str
