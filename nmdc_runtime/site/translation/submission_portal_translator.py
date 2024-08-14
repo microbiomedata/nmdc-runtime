@@ -268,6 +268,7 @@ class SubmissionPortalTranslator(Translator):
         return nmdc.OntologyClass(
             name=match.group(1).strip(),
             id=match.group(2).strip(),
+            type="nmdc:OntologyClass",
         )
 
     def _get_controlled_identified_term_value(
@@ -289,7 +290,9 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return nmdc.ControlledIdentifiedTermValue(
-            has_raw_value=raw_value, term=ontology_class
+            has_raw_value=raw_value,
+            term=ontology_class,
+            type="nmdc:ControlledIdentifiedTermValue",
         )
 
     def _get_controlled_term_value(
@@ -306,7 +309,10 @@ class SubmissionPortalTranslator(Translator):
         if not raw_value:
             return None
 
-        value = nmdc.ControlledTermValue(has_raw_value=raw_value)
+        value = nmdc.ControlledTermValue(
+            has_raw_value=raw_value,
+            type="nmdc:ControlledTermValue",
+        )
         ontology_class = self._get_ontology_class(raw_value)
         if ontology_class is not None:
             value.term = ontology_class
@@ -336,7 +342,10 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return nmdc.GeolocationValue(
-            has_raw_value=raw_value, latitude=match.group(1), longitude=match.group(2)
+            has_raw_value=raw_value,
+            latitude=match.group(1),
+            longitude=match.group(2),
+            type="nmdc:GeolocationValue",
         )
 
     def _get_float(self, raw_value: Optional[str]) -> Union[float, None]:
