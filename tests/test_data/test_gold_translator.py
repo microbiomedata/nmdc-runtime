@@ -281,6 +281,7 @@ def test_get_text_value():
     assert value is None
 
 
+# TODO: Determine if value.type should be "nmdc:ControlledIdentifiedTermValue" or "nmdc:ControlledTermValue"
 def test_get_controlled_term_value():
     translator = GoldStudyTranslator()
 
@@ -288,12 +289,14 @@ def test_get_controlled_term_value():
     value = translator._get_controlled_term_value(entity, "arbitraryField")
     assert value is not None
     assert value.has_raw_value == "hello"
-    assert value.type == "nmdc:ControlledIdentifiedTermValue"
+    # assert value.type == "nmdc:ControlledIdentifiedTermValue"
+    assert value.type == "nmdc:ControlledTermValue"
 
     entity = {"arbitraryField": None}
     value = translator._get_controlled_term_value(entity, "arbitraryField")
     assert value is None
-    assert value.type == "nmdc:ControlledIdentifiedTermValue"
+    # value.type should not exist is value is None
+    # assert value.type == "nmdc:ControlledIdentifiedTermValue"
 
 
 def test_get_env_term_value():

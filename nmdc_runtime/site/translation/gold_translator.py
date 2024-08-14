@@ -275,7 +275,9 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.ControlledTermValue(has_raw_value=field_value)
+        return nmdc.ControlledTermValue(
+            has_raw_value=field_value, type="nmdc:ControlledTermValue"
+        )
 
     def _get_env_term_value(
         self, gold_biosample: JSON_OBJECT, gold_field: str
@@ -285,8 +287,8 @@ class GoldStudyTranslator(Translator):
         In GOLD entities ENVO terms are represented as a nested object with `id` and `label`
         fields. This method extracts this type of nested object by the given field name, and
         returns it as an `nmdc:ControlledIdentifiedTermValue` object. The `id` in the original
-        GOLD object be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
-        `ENVO:00005801`). If the value of the given field is `None` or if does not contain
+        GOLD object should be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
+        `ENVO:00005801`). If the value of the given field is `None` or if it does not contain
         a nested object with an `id` field, `None` is returned.
 
         :param gold_biosample: GOLD biosample object
