@@ -302,8 +302,10 @@ class GoldStudyTranslator(Translator):
             term=nmdc.OntologyClass(
                 id=env_field["id"].replace("_", ":"),
                 name=env_field.get("label"),
+                type="nmdc:OntologyClass",
             ),
             has_raw_value=env_field["id"],
+            type="nmdc:ControlledIdentifiedTermValue",
         )
 
     def _get_lat_lon(
