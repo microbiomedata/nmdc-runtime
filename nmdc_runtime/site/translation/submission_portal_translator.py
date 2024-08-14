@@ -169,6 +169,7 @@ class SubmissionPortalTranslator(Translator):
                 applies_to_person=nmdc.PersonValue(
                     name=contributor.get("name"),
                     orcid=contributor.get("orcid"),
+                    type="nmdc:PersonValue",
                 ),
                 applied_roles=contributor.get("roles"),
                 type="nmdc:CreditAssociation",
