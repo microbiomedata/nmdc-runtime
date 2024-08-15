@@ -289,17 +289,21 @@ input:
 output:
   biosample_set:
   - id: nmdc:bsm-00-4wn6isig
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -338,17 +342,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-q8jtgev4
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -387,17 +395,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-9gw1un94
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -436,17 +448,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-27qd9afz
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -485,17 +501,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-a5vpuemo
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -534,17 +554,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-pj82ffu6
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -583,17 +607,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-5gt9sh9v
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -632,17 +660,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-8n9s2fyu
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -681,17 +713,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-pslmlcq4
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -730,17 +766,21 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-efijcf8z
-    part_of:
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
@@ -896,17 +936,21 @@ output:
   biosample_set:
     - id: nmdc:bsm-00-4wn6isig
       name: G5R1_MAIN_09MAY2016
-      part_of:
+      associated_studies:
         - nmdc:sty-00-y0cq65zt
       env_broad_scale:
+        type: nmdc:ControlledIdentifiedTermValue
         has_raw_value: agricultural biome [ENVO:01001442]
         term:
           id: ENVO:01001442
+          type: nmdc:OntologyClass
           name: agricultural biome
       env_local_scale:
+        type: nmdc:ControlledIdentifiedTermValue
         has_raw_value: phyllosphere biome [ENVO:01001442]
         term:
           id: ENVO:01001442
+          type: nmdc:OntologyClass
           name: phyllosphere biome
       env_medium:
         has_raw_value: plant-associated biome [ENVO:01001001]
