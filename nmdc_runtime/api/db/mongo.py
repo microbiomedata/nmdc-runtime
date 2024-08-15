@@ -113,6 +113,10 @@ def mongodump_excluded_collections():
 
 
 def mongorestore_collection(mdb, collection_name, bson_file_path):
+    r"""
+    Replaces the specified collection with one that reflects the contents of the 
+    specified BSON file.
+    """
     with gzip.open(bson_file_path, "rb") as bson_file:
         data = bson.decode_all(bson_file.read())
         if data:
