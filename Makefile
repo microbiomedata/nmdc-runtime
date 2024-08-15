@@ -69,7 +69,7 @@ down-dev:
 	docker compose down
 
 down-test:
-	docker compose --file docker-compose.test.yml down
+	docker compose --file docker-compose.test.yml down --volumes
 
 follow-fastapi:
 	docker compose logs fastapi -f
