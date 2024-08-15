@@ -55,9 +55,10 @@ def test_get_doi():
     translator = SubmissionPortalTranslator()
     doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
-    assert doi == [
-        nmdc.Doi(doi_value="doi:1234", doi_category=nmdc.DoiCategoryEnum.dataset_doi)
-    ]
+    assert doi[0].doi_value == "doi:1234"
+    assert doi[0].doi_category == nmdc.DoiCategoryEnum(
+        nmdc.DoiCategoryEnum.dataset_doi.text
+    )
 
     doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
     assert doi is None
@@ -70,13 +71,11 @@ def test_get_doi():
     )
     doi = translator._get_doi({"contextForm": {"datasetDoi": "5678"}})
     assert doi is not None
-    assert doi == [
-        nmdc.Doi(
-            doi_value="doi:5678",
-            doi_provider=nmdc.DoiProviderEnum.kbase,
-            doi_category=nmdc.DoiCategoryEnum.award_doi,
-        )
-    ]
+    assert doi[0].doi_value == "doi:5678"
+    assert doi[0].doi_category == nmdc.DoiCategoryEnum(
+        nmdc.DoiCategoryEnum.award_doi.text
+    )
+    assert doi[0].doi_provider == nmdc.DoiProviderEnum(nmdc.DoiProviderEnum.kbase.text)
 
 
 def test_get_has_credit_associations():
