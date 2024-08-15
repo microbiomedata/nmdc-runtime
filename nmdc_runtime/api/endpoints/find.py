@@ -112,6 +112,12 @@ def find_data_objects(
 
 
 def get_classname_from_typecode(doc_id: str) -> str:
+    r"""
+    Returns the name of the schema class of which an instance could have the specified `id`.
+    
+    >>> get_classname_from_typecode("nmdc:sty-11-r2h77870")
+    'Study'
+    """
     typecode = doc_id.split(":")[1].split("-")[0]
     class_map_data = typecodes()
     class_map = {
