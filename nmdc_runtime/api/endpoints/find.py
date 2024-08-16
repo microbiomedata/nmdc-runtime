@@ -182,7 +182,10 @@ def find_data_objects_for_study(
 
         if collected_data_objects:
             biosample_data_objects.append(
-                {biosample_id: {"data_object_set": collected_data_objects}}
+                {
+                    "biosample_id": biosample_id,
+                    "data_object_set": collected_data_objects,
+                }
             )
 
     return biosample_data_objects
