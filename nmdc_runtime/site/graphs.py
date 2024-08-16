@@ -56,6 +56,7 @@ from nmdc_runtime.site.ops import (
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
+    materialize_rollup_collection,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -103,6 +104,11 @@ def housekeeping():
 @graph
 def ensure_alldocs():
     materialize_alldocs()
+
+
+@graph
+def ensure_rollup():
+    materialize_rollup_collection()
 
 
 @graph

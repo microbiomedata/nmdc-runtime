@@ -7,7 +7,6 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
-from typing import Tuple
 from zipfile import ZipFile
 
 import pandas as pd
@@ -19,9 +18,7 @@ from dagster import (
     Any,
     AssetKey,
     AssetMaterialization,
-    Dict,
     Failure,
-    List,
     MetadataValue,
     OpExecutionContext,
     Out,
@@ -33,12 +30,15 @@ from dagster import (
     Optional,
     Field,
     Permissive,
+    Dict,
+    List,
+    Tuple,
     Bool,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -46,7 +46,13 @@ from nmdc_runtime.api.core.metadata import (
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
+from nmdc_runtime.api.core.util import (
+    dotted_path_for,
+    hash_from_str,
+    json_clean,
+    now,
+    raise404_if_none,
+)
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.endpoints.find import find_study_by_id
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
@@ -62,6 +68,7 @@ from nmdc_runtime.api.models.run import (
     _add_run_complete_event,
 )
 from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
@@ -88,7 +95,11 @@ from nmdc_runtime.site.translation.neon_surface_water_translator import (
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_runtime.site.util import run_and_log, schema_collection_has_index_on_id
+from nmdc_runtime.site.util import (
+    get_collection_from_typecode,
+    run_and_log,
+    schema_collection_has_index_on_id,
+)
 from nmdc_runtime.util import (
     drs_object_in_for,
     pluralize,
@@ -1049,6 +1060,83 @@ def materialize_alldocs(context) -> int:
         f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
     )
     return mdb.alldocs.estimated_document_count()
+
+
+@op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
+def materialize_rollup_collection(context: OpExecutionContext) -> List:
+    mdb = context.resources.mongo.db
+    study_id = context.op_config["nmdc_study_id"]
+
+    biosample_associated_objects = []
+    study = raise404_if_none(
+        mdb.study_set.find_one({"id": study_id}, projection={"id": 1}),
+        detail="Study not found",
+    )
+    if not study:
+        return []
+
+    biosamples = mdb.biosample_set.find({"part_of": study["id"]}, projection={"id": 1})
+    biosample_ids = [biosample["id"] for biosample in biosamples]
+    if not biosample_ids:
+        return []
+
+    for biosample_id in biosample_ids:
+        current_ids = [biosample_id]
+        collected_ids_by_collection = {}
+
+        while current_ids:
+            documents = list(
+                mdb.alldocs.find(
+                    {"has_input": {"$in": current_ids}},
+                    projection={"id": 1, "has_input": 1, "has_output": 1},
+                )
+            )
+            if not documents:
+                break
+
+            new_current_ids = []
+            for document in documents:
+                document_id = document["id"]
+                collection_name = get_collection_from_typecode(document_id)
+                if collection_name:
+                    collected_ids_by_collection.setdefault(collection_name, []).append(
+                        document_id
+                    )
+
+                if "has_input" in document:
+                    for inp in document["has_input"]:
+                        inp_collection_name = get_collection_from_typecode(inp)
+                        if inp_collection_name:
+                            collected_ids_by_collection.setdefault(
+                                inp_collection_name, []
+                            ).append(inp)
+
+                if "has_output" in document:
+                    for out in document["has_output"]:
+                        out_collection_name = get_collection_from_typecode(out)
+                        if out_collection_name:
+                            collected_ids_by_collection.setdefault(
+                                out_collection_name, []
+                            ).append(out)
+                        new_current_ids.append(out)
+
+                        if mdb.alldocs.find_one(
+                            {"was_generated_by": out}, projection={"id": 1}
+                        ):
+                            collected_ids_by_collection.setdefault(
+                                out_collection_name, []
+                            ).append(out)
+
+            current_ids = new_current_ids
+
+        if collected_ids_by_collection:
+            formatted_document = {
+                "biosample_id": biosample_id,
+                "associated_ids_by_collection": collected_ids_by_collection,
+            }
+            biosample_associated_objects.append(formatted_document)
+
+    return biosample_associated_objects
 
 
 @op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
