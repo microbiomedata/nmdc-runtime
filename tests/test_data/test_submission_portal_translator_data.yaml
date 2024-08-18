@@ -932,6 +932,7 @@ output:
     - metagenomics
   study_set:
   - id: nmdc:sty-00-y0cq65zt
+    type: nmdc:Study
     name: Seasonal activities of the phyllosphere microbiome of perennial crops
     description: Understanding the interactions between plants and microorganisms can
       inform microbiome management to enhance crop productivity and resilience to stress.
@@ -952,6 +953,7 @@ output:
       orcid: 0000-0002-7189-3067
       email: shade.ashley@gmail.com
       name: Ashley Shade
+      type: nmdc:PersonValue
     associated_dois:
     - doi_value: doi:10.46936/10.25585/60000818
       doi_provider: jgi
@@ -1018,6 +1020,7 @@ input:
       studyForm:
         contributors:
           - name: Test Testerson
+            type: nmdc:PersonValue
             orcid: 0000-0000-0000-0000
             roles:
               - Principal Investigator
@@ -1130,6 +1133,7 @@ output:
       type: nmdc:OmicsProcessing
   study_set:
     - id: nmdc:sty-00-y0cq65zt
+      type: nmdc:Study
       name: A test submission
       description: This is a test submission
       associated_dois:
@@ -1143,6 +1147,7 @@ output:
         - applies_to_person:
             orcid: 0000-0000-0000-0000
             name: Test Testerson
+            type: nmdc:PersonValue
           applied_roles:
             - Principal Investigator
           type: nmdc:CreditAssociation
@@ -1150,6 +1155,7 @@ output:
         orcid: 0000-0000-0000-0000
         email: test.testerson@example.com
         name: Test Testerson
+        type: nmdc:PersonValue
       study_category: research_study
       title: A test submission
       websites:
