@@ -450,15 +450,24 @@ class SubmissionPortalTranslator(Translator):
     ):
         transformed_value = None
         if slot.range == "TextValue":
-            transformed_value = nmdc.TextValue(has_raw_value=value)
+            transformed_value = nmdc.TextValue(
+                has_raw_value=value,
+                type="nmdc:TextValue",
+            )
         elif slot.range == "QuantityValue":
-            transformed_value = self._get_quantity_value(value, unit=unit)
+            transformed_value = self._get_quantity_value(
+                value,
+                unit=unit,
+            )
         elif slot.range == "ControlledIdentifiedTermValue":
             transformed_value = self._get_controlled_identified_term_value(value)
         elif slot.range == "ControlledTermValue":
             transformed_value = self._get_controlled_term_value(value)
         elif slot.range == "TimestampValue":
-            transformed_value = nmdc.TimestampValue(has_raw_value=value)
+            transformed_value = nmdc.TimestampValue(
+                has_raw_value=value,
+                type="nmdc:TimestampValue",
+            )
         elif slot.range == "GeolocationValue":
             transformed_value = self._get_geolocation_value(value)
         elif slot.range == "float":
