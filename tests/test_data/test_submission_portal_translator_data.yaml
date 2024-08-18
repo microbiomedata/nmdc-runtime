@@ -59,6 +59,7 @@ input:
         notes: ''
         contributors:
         - name: Adina Howe
+          type: nmdc:PersonValue
           orcid: 0000-0002-7705-343X
           roles:
           - Writing review and editing
@@ -286,6 +287,7 @@ input:
       orcid: 0000-0002-7705-343X
       name: Adina Howe
       is_admin: false
+      type: nmdc:PersonValue
 output:
   biosample_set:
   - id: nmdc:bsm-00-4wn6isig
@@ -353,6 +355,7 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-q8jtgev4
+    type: nmdc:Biosample
     associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
@@ -378,7 +381,6 @@ output:
         name: plant-associated biome
     samp_name: G5R2_MAIN_09MAY2016
     name: G5R2_MAIN_09MAY2016
-    type: nmdc:Biosample
     collection_date:
       has_raw_value: '2016-05-09'
       type: nmdc:TimestampValue
@@ -737,7 +739,7 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-8n9s2fyu
-    type: Biosample
+    type: nmdc:Biosample
     associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
@@ -801,7 +803,7 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-pslmlcq4
-    type: Biosample
+    type: nmdc:Biosample
     associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
@@ -865,6 +867,7 @@ output:
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-efijcf8z
+    type: nmdc:Biosample
     associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
@@ -953,6 +956,7 @@ output:
     - doi_value: doi:10.46936/10.25585/60000818
       doi_provider: jgi
       doi_category: dataset_doi
+      type: nmdc:Doi
     funding_sources:
       - Some award ABC
       - Another award XYZ
@@ -964,6 +968,7 @@ output:
     - applies_to_person:
         orcid: 0000-0002-7705-343X
         name: Adina Howe
+        type: nmdc:PersonValue
       applied_roles:
       - Writing review and editing
       - Visualization
