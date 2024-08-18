@@ -439,6 +439,7 @@ class SubmissionPortalTranslator(Translator):
             principal_investigator=self._get_pi(metadata_submission),
             study_category=self.study_category,
             title=self._get_from(metadata_submission, ["studyForm", "studyName"]),
+            type="nmdc:Study",
             websites=self._get_from(
                 metadata_submission, ["studyForm", "linkOutWebpage"]
             ),
@@ -546,8 +547,11 @@ class SubmissionPortalTranslator(Translator):
         slots = {
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
+            "type": "nmdc:Biosample",
             "name": sample_data[0].get("samp_name", "").strip(),
-            "env_package": nmdc.TextValue(has_raw_value=default_env_package),
+            "env_package": nmdc.TextValue(
+                has_raw_value=default_env_package, type="nmdc:TextValue"
+            ),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
