@@ -985,6 +985,7 @@ output:
       - Software
       - Principal Investigator
       - Funding acquisition
+      type: nmdc:CreditAssociation
 ---
 input:
   metadata_submission:
@@ -1144,6 +1145,7 @@ output:
             name: Test Testerson
           applied_roles:
             - Principal Investigator
+          type: nmdc:CreditAssociation
       principal_investigator:
         orcid: 0000-0000-0000-0000
         email: test.testerson@example.com
