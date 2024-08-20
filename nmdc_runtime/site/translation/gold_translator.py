@@ -69,6 +69,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=pi_dict.get("name"),
             name=pi_dict.get("name"),
             email=pi_dict.get("email"),
+            type=pi_dict.get("type"),
         )
 
     def _get_mod_date(self, gold_entity: JSON_OBJECT) -> Union[str, None]:
@@ -123,7 +124,9 @@ class GoldStudyTranslator(Translator):
         if ncbi_tax_name is None or ncbi_tax_id is None:
             return None
 
-        return nmdc.TextValue(f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]")
+        raw_value = f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]"
+
+        return nmdc.TextValue(has_raw_value=raw_value, type="nmdc:TextValue")
 
     def _get_samp_name(self, gold_biosample: JSON_OBJECT) -> Union[str, None]:
         """Get a sample name for a GOLD biosample object
@@ -183,7 +186,9 @@ class GoldStudyTranslator(Translator):
         date_collected = gold_biosample.get("dateCollected")
         if date_collected is None:
             return None
-        return nmdc.TimestampValue(has_raw_value=date_collected)
+        return nmdc.TimestampValue(
+            has_raw_value=date_collected, type="nmdc:TimestampValue"
+        )
 
     def _get_quantity_value(
         self,
@@ -215,12 +220,14 @@ class GoldStudyTranslator(Translator):
                     has_raw_value=minimum_numeric_value,
                     has_numeric_value=nmdc.Double(minimum_numeric_value),
                     has_unit=unit,
+                    type="nmdc:QuantityValue",
                 )
             else:
                 return nmdc.QuantityValue(
                     has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
                     has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
                     has_unit=unit,
+                    type="nmdc:QuantityValue",
                 )
 
         field_value = gold_entity.get(gold_field)
@@ -231,6 +238,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=field_value,
             has_numeric_value=nmdc.Double(field_value),
             has_unit=unit,
+            type="nmdc:QuantityValue",
         )
 
     def _get_text_value(
@@ -249,7 +257,7 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.TextValue(has_raw_value=field_value)
+        return nmdc.TextValue(has_raw_value=field_value, type="nmdc:TextValue")
 
     def _get_controlled_term_value(
         self, gold_entity: JSON_OBJECT, gold_field: str
@@ -267,7 +275,9 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.ControlledTermValue(has_raw_value=field_value)
+        return nmdc.ControlledTermValue(
+            has_raw_value=field_value, type="nmdc:ControlledTermValue"
+        )
 
     def _get_env_term_value(
         self, gold_biosample: JSON_OBJECT, gold_field: str
@@ -277,8 +287,8 @@ class GoldStudyTranslator(Translator):
         In GOLD entities ENVO terms are represented as a nested object with `id` and `label`
         fields. This method extracts this type of nested object by the given field name, and
         returns it as an `nmdc:ControlledIdentifiedTermValue` object. The `id` in the original
-        GOLD object be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
-        `ENVO:00005801`). If the value of the given field is `None` or if does not contain
+        GOLD object should be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
+        `ENVO:00005801`). If the value of the given field is `None` or if it does not contain
         a nested object with an `id` field, `None` is returned.
 
         :param gold_biosample: GOLD biosample object
@@ -292,8 +302,10 @@ class GoldStudyTranslator(Translator):
             term=nmdc.OntologyClass(
                 id=env_field["id"].replace("_", ":"),
                 name=env_field.get("label"),
+                type="nmdc:OntologyClass",
             ),
             has_raw_value=env_field["id"],
+            type="nmdc:ControlledIdentifiedTermValue",
         )
 
     def _get_lat_lon(
@@ -316,6 +328,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=f"{latitude} {longitude}",
             latitude=nmdc.DecimalDegree(latitude),
             longitude=nmdc.DecimalDegree(longitude),
+            type="nmdc:GeolocationValue",
         )
 
     def _get_instrument_name(self, gold_project: JSON_OBJECT) -> Union[str, None]:

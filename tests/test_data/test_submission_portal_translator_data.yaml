@@ -59,6 +59,7 @@ input:
         notes: ''
         contributors:
         - name: Adina Howe
+          type: nmdc:PersonValue
           orcid: 0000-0002-7705-343X
           roles:
           - Writing review and editing
@@ -286,44 +287,58 @@ input:
       orcid: 0000-0002-7705-343X
       name: Adina Howe
       is_admin: false
+      type: nmdc:PersonValue
 output:
   biosample_set:
   - id: nmdc:bsm-00-4wn6isig
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R1_MAIN_09MAY2016
     name: G5R1_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -333,46 +348,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-q8jtgev4
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R2_MAIN_09MAY2016
     name: G5R2_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -382,46 +412,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:774bb4b9-5ebe-48d5-8236-1a60baa6af7a
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-9gw1un94
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R3_MAIN_09MAY2016
     name: G5R3_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -431,46 +476,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:c0bb595b-9992-4475-8019-775189b5250a
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-27qd9afz
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R4_MAIN_09MAY2016
     name: G5R4_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -480,46 +540,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:d74181a3-6fb9-406e-89f8-2d4861a4646c
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-a5vpuemo
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R1_NF_09MAY2016
     name: G5R1_NF_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -529,46 +604,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:edfd5080-ccc2-495b-b17a-190ad6649291
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-pj82ffu6
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R2_NF_09MAY2016
     name: G5R2_NF_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -578,46 +668,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:483921c0-7fa9-4a31-b281-e09565a0d6f9
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-5gt9sh9v
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R3_NF_09MAY2016
     name: G5R3_NF_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -627,46 +732,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:3b9aab19-0110-415b-8e29-849f0696de47
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-8n9s2fyu
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G5R4_NF_09MAY2016
     name: G5R4_NF_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -676,46 +796,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:579ec4b9-57c4-4431-8df9-432138233b0b
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-pslmlcq4
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G6R1_MAIN_09MAY2016
     name: G6R1_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -725,46 +860,61 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:69dd84ff-d777-4d1e-ac22-9cdac87074f5
     analysis_type:
     - metagenomics
   - id: nmdc:bsm-00-efijcf8z
-    part_of:
+    type: nmdc:Biosample
+    associated_studies:
     - nmdc:sty-00-y0cq65zt
     env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: agricultural biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: agricultural biome
     env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
       has_raw_value: phyllosphere biome [ENVO:01001442]
       term:
         id: ENVO:01001442
+        type: nmdc:OntologyClass
         name: phyllosphere biome
     env_medium:
       has_raw_value: plant-associated biome [ENVO:01001001]
+      type: nmdc:ControlledIdentifiedTermValue
       term:
         id: ENVO:01001001
+        type: nmdc:OntologyClass
         name: plant-associated biome
     samp_name: G6R2_MAIN_09MAY2016
     name: G6R2_MAIN_09MAY2016
     collection_date:
       has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      type: nmdc:QuantityValue
     elev: 286.0
     env_package:
       has_raw_value: plant-associated
+      type: nmdc:TextValue
     geo_loc_name:
       has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type:  nmdc:TextValue
     lat_lon:
       has_raw_value: 42.39 -85.37
+      type: nmdc:GeolocationValue
       latitude: 42.39
       longitude: -85.37
     samp_store_temp:
       has_raw_value: -80 Celsius
+      type: nmdc:QuantityValue
       has_unit: Celsius
       has_numeric_value: -80.0
     ecosystem: Environmental
@@ -774,12 +924,15 @@ output:
     specific_ecosystem: Phyllosphere
     growth_facil:
       has_raw_value: field
+      type: nmdc:ControlledTermValue
     source_mat_id:
+      type: nmdc:TextValue
       has_raw_value: UUID:c0c4a2b5-0382-450a-8728-a176fa438efe
     analysis_type:
     - metagenomics
   study_set:
   - id: nmdc:sty-00-y0cq65zt
+    type: nmdc:Study
     name: Seasonal activities of the phyllosphere microbiome of perennial crops
     description: Understanding the interactions between plants and microorganisms can
       inform microbiome management to enhance crop productivity and resilience to stress.
@@ -800,10 +953,12 @@ output:
       orcid: 0000-0002-7189-3067
       email: shade.ashley@gmail.com
       name: Ashley Shade
+      type: nmdc:PersonValue
     associated_dois:
     - doi_value: doi:10.46936/10.25585/60000818
       doi_provider: jgi
       doi_category: dataset_doi
+      type: nmdc:Doi
     funding_sources:
       - Some award ABC
       - Another award XYZ
@@ -815,6 +970,7 @@ output:
     - applies_to_person:
         orcid: 0000-0002-7705-343X
         name: Adina Howe
+        type: nmdc:PersonValue
       applied_roles:
       - Writing review and editing
       - Visualization
@@ -831,6 +987,7 @@ output:
       - Software
       - Principal Investigator
       - Funding acquisition
+      type: nmdc:CreditAssociation
 ---
 input:
   metadata_submission:
@@ -863,6 +1020,7 @@ input:
       studyForm:
         contributors:
           - name: Test Testerson
+            type: nmdc:PersonValue
             orcid: 0000-0000-0000-0000
             roles:
               - Principal Investigator
@@ -895,18 +1053,23 @@ input:
 output:
   biosample_set:
     - id: nmdc:bsm-00-4wn6isig
+      type: nmdc:Biosample
       name: G5R1_MAIN_09MAY2016
-      part_of:
+      associated_studies:
         - nmdc:sty-00-y0cq65zt
       env_broad_scale:
+        type: nmdc:ControlledIdentifiedTermValue
         has_raw_value: agricultural biome [ENVO:01001442]
         term:
           id: ENVO:01001442
+          type: nmdc:OntologyClass
           name: agricultural biome
       env_local_scale:
+        type: nmdc:ControlledIdentifiedTermValue
         has_raw_value: phyllosphere biome [ENVO:01001442]
         term:
           id: ENVO:01001442
+          type: nmdc:OntologyClass
           name: phyllosphere biome
       env_medium:
         has_raw_value: plant-associated biome [ENVO:01001001]
@@ -916,6 +1079,7 @@ output:
       samp_name: G5R1_MAIN_09MAY2016
       collection_date:
         has_raw_value: '2016-05-09'
+        type: nmdc:TimestampValue
       depth:
         has_raw_value: '0'
         has_numeric_value: 0.0
@@ -930,6 +1094,7 @@ output:
         has_raw_value: 'USA: Kellogg Biological Station, Michigan'
       growth_facil:
         has_raw_value: field
+        type: nmdc:ControlledTermValue
       lat_lon:
         has_raw_value: 42.39 -85.37
         latitude: 42.39
@@ -940,6 +1105,7 @@ output:
         has_numeric_value: -80.0
       source_mat_id:
         has_raw_value: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+        type: nmdc:TextValue
       specific_ecosystem: Phyllosphere
       analysis_type:
         - metagenomics
@@ -967,6 +1133,7 @@ output:
       type: nmdc:OmicsProcessing
   study_set:
     - id: nmdc:sty-00-y0cq65zt
+      type: nmdc:Study
       name: A test submission
       description: This is a test submission
       associated_dois:
@@ -980,12 +1147,15 @@ output:
         - applies_to_person:
             orcid: 0000-0000-0000-0000
             name: Test Testerson
+            type: nmdc:PersonValue
           applied_roles:
             - Principal Investigator
+          type: nmdc:CreditAssociation
       principal_investigator:
         orcid: 0000-0000-0000-0000
         email: test.testerson@example.com
         name: Test Testerson
+        type: nmdc:PersonValue
       study_category: research_study
       title: A test submission
       websites:
