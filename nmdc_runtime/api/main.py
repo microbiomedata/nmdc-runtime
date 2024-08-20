@@ -1,5 +1,5 @@
+import logging
 import os
-import re
 from contextlib import asynccontextmanager
 from importlib import import_module
 from importlib.metadata import version
@@ -8,7 +8,6 @@ from typing import Annotated
 import fastapi
 import requests
 import uvicorn
-from bs4 import BeautifulSoup
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -49,6 +48,7 @@ from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+from nmdc_runtime.site.repository import repo as runtime_dagster_code_location
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -388,11 +388,24 @@ def ensure_default_api_perms():
         db["_runtime.api.allow"].create_index("action")
 
 
+def ensure_alldocs_exists():
+    db = get_mongo_db()
+    alldocs_coll = db["alldocs"]
+    if alldocs_coll.estimated_document_count() > 0:
+        return
+
+    logging.info(
+        "ensure_alldocs_exists: executing `ensure_alldocs` dagster job in process"
+    )
+    runtime_dagster_code_location.get_job("ensure_alldocs").execute_in_process()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
+    ensure_alldocs_exists()
     yield
 
 
