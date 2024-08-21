@@ -53,8 +53,12 @@ def list_workflow_capabilities(
     return list(mdb.capabilities.find({"id": {"$in": doc.get("capability_ids", [])}}))
 
 
-@router.post("/workflows/activities", status_code=410)
-async def post_activity():
+@router.post("/workflows/activities", status_code=410, deprecated=True)
+async def post_activity(
+    activity_set: dict[str, Any],
+    site: Site = Depends(get_current_client_site),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
     """
     DEPRECATED: migrate all workflows from this endpoint to `/workflows/workflow_executions`.
     """
