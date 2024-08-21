@@ -72,7 +72,7 @@ async def post_workflow_execution(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Post activity set to database and claim job.
+    Post workflow execution set to database and claim job.
 
     Parameters
     -------
@@ -80,6 +80,9 @@ async def post_workflow_execution(
              Set of workflow executions for specific workflows, in the form of a nmdc:Database.
              Other collections (such as data_object_set) are allowed, as they may be associated
              with the workflow executions submitted.
+
+    site: Site
+    mdb: MongoDatabase
 
     Returns
     -------
