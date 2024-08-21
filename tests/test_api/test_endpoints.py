@@ -238,33 +238,45 @@ def test_submit_changesheet():
     assert True
 
 
-# THIS TEST IS SKIPPED - FOR NOW JUST UPDATE NAMING
-@pytest.mark.skip(
-    reason="Skipping because race condition causes http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
-)
 def test_submit_workflow_executions(api_site_client):
-    test_collection, test_id = (
-        "read_qc_analysis_activity_set",  # does this exist in Berkeley schema?
-        "nmdc:wfrqc-11-t0tvnp52.2",
-    )
+    test_collection, test_id = "workflow_execution_set", "nmdc:wfmag-11-00jn7876.1"
     test_payload = {
         test_collection: [
             {
                 "id": test_id,
-                "name": "Read QC Activity for nmdc:wfrqc-11-t0tvnp52.1",
-                "started_at_time": "2024-01-11T20:48:30.718133+00:00",
-                "ended_at_time": "2024-01-11T21:11:44.884260+00:00",
-                "was_informed_by": "nmdc:omprc-11-9mvz7z22",
+                "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.1",
+                "started_at_time": "2023-07-30T21:31:56.387227+00:00",
+                "ended_at_time": "2023-07-30T21:34:32.750008+00:00",
+                "was_informed_by": "nmdc:omprc-11-7yj0jg57",
                 "execution_resource": "NERSC-Perlmutter",
-                "git_url": "https://github.com/microbiomedata/ReadsQC",
-                "has_input": ["nmdc:dobj-11-gpthnj64"],
-                "has_output": [
-                    "nmdc:dobj-11-w5dak635",
-                    "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03",
+                "git_url": "https://github.com/microbiomedata/metaMAGs",
+                "has_input": [
+                    "nmdc:dobj-11-yjp1xw52",
+                    "nmdc:dobj-11-3av14y79",
+                    "nmdc:dobj-11-wa5pnq42",
+                    "nmdc:dobj-11-nexa9703",
+                    "nmdc:dobj-11-j13n8739",
+                    "nmdc:dobj-11-116fa706",
+                    "nmdc:dobj-11-60d0na51",
+                    "nmdc:dobj-11-2vbz7538",
+                    "nmdc:dobj-11-1t48mn65",
+                    "nmdc:dobj-11-1cvwk224",
+                    "nmdc:dobj-11-cdna6f90",
+                    "nmdc:dobj-11-4vb3ww76",
+                    "nmdc:dobj-11-xv4qd072",
+                    "nmdc:dobj-11-m7p3sb10",
+                    "nmdc:dobj-11-j0t1rv33",
                 ],
-                "type": "nmdc:ReadQcAnalysis",
-                "version": "v1.0.8",
+                "has_output": [
+                    "nmdc:dobj-11-k5ad4209",
+                    "nmdc:dobj-11-bw8nqt30",
+                    "nmdc:dobj-11-199t2777",
+                    "nmdc:dobj-11-2qfh8476",
+                    "nmdc:dobj-11-fcsvq172",
+                ],
+                "type": "nmdc:MagsAnalysis",
+                "version": "v1.0.6",
+                "mags_list": [],
             }
         ]
     }
@@ -277,11 +289,14 @@ def test_submit_workflow_executions(api_site_client):
         test_payload,
     )
     assert rv.json() == {"message": "jobs accepted"}
+
+    # check that the document was added to the database
+    # clean up database before `assert` to be sure that cleanup happens even if test fails.
     rv = api_site_client.request("GET", f"/nmdcschema/ids/{test_id}")
     mdb[test_collection].delete_one({"id": test_id})
     if doc_to_restore:
         mdb[test_collection].insert_one(doc_to_restore)
-    assert "id" in rv.json() and "input_read_count" not in rv.json()
+    assert "id" in rv.json() and rv.json()["id"] == test_id
 
 
 def test_get_class_name_and_collection_names_by_doc_id():
