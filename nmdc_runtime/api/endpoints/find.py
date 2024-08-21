@@ -184,19 +184,19 @@ def find_workflow_executions(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    # TODO: Update description to be accurate wrt Berkeley schema
+    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/WorkflowExecution>) when they resolve
+    #   to Berkeley schema definitions.
     """
     The GET /workflow_executions endpoint is a general way to fetch metadata about various workflow_executions (e.g. metagenome assembly,
     natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
-    [WorkflowExecution](https://microbiomedata.github.io/nmdc-schema/WorkflowExecution/)
-    or [PlannedProcess](https://microbiomedata.github.io/nmdc-schema/PlannedProcess/) classes may be used in the filter
+    `WorkflowExecution` or `PlannedProcess` classes may be used in the filter
     and sort parameters, including attributes of subclasses of *WorkflowExecution* and *PlannedProcess*.
 
     For example, attributes used in subclasses such as MetabolomicsAnalysis (subclass of *WorkflowExecution*)
-    or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of *PlannedProcess*),
+    or `Extraction` (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
-    return find_resources_spanning(req, mdb, activity_collection_names(mdb))
+    return find_resources(req, mdb, "workflow_execution_set")
 
 
 @router.get(
