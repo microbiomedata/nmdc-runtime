@@ -1,10 +1,10 @@
 from operator import itemgetter
-from typing import Any, List
+from typing import List
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, nmdc_activity_collection_names
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
