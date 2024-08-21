@@ -113,7 +113,7 @@ def mongodump_excluded_collections():
 
 
 def mongorestore_collection(mdb, collection_name, bson_file_path):
-    r"""
+    """
     Replaces the specified collection with one that reflects the contents of the
     specified BSON file.
     """
@@ -128,6 +128,10 @@ def mongorestore_collection(mdb, collection_name, bson_file_path):
 
 
 def mongorestore_from_dir(mdb, dump_directory, skip_collections=None):
+    """
+    Effectively runs a `mongorestore` command in pure Python.
+    Helpful in a container context that does not have the `mongorestore` command available.
+    """
     skip_collections = skip_collections or []
     for root, dirs, files in os.walk(dump_directory):
         for file in files:
