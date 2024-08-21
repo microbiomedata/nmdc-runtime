@@ -213,13 +213,11 @@ def find_workflow_execution_by_id(
     GET /workflow_executions/workflow_execution_id endpoint.
     \n Note that only one metadata record for an workflow_execution may be returned at a time using this method.
     """
-    doc = None
-    for name in activity_collection_names(mdb):
-        doc = mdb[name].find_one({"id": workflow_execution_id})
-        if doc is not None:
-            return strip_oid(doc)
-
-    return raise404_if_none(doc)
+    return strip_oid(
+        raise404_if_none(
+            mdb["workflow_execution_set"].find_one({"id": workflow_execution_id})
+        )
+    )
 
 
 jinja_env = Environment(
