@@ -132,7 +132,7 @@ def get_classname_from_typecode(doc_id: str) -> str:
 )
 def find_data_objects_for_study(
     study_id: str,
-    mdb: Any = Depends(get_mongo_db),
+    mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data object ids associated with
     all the biosamples that are part of a given study. This endpoint makes
