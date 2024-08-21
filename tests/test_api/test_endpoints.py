@@ -38,7 +38,7 @@ SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL = (
 )  # 84MB. Should be < 100MB.
 
 
-def ensure_local_mongodump():
+def ensure_local_mongodump_exists():
     dump_dir = TEST_MONGODUMPS_DIR.joinpath(
         SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME
     )
@@ -60,7 +60,7 @@ def ensure_schema_collections_and_alldocs():
         )
         return
 
-    dump_dir = ensure_local_mongodump()
+    dump_dir = ensure_local_mongodump_exists()
     mongorestore_from_dir(mdb, dump_dir, skip_collections=["functional_annotation_agg"])
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
