@@ -238,32 +238,45 @@ def test_submit_changesheet():
     assert True
 
 
-@pytest.mark.skip(
-    reason="Skipping because race condition causes  http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
-)
-def test_submit_workflow_activities(api_site_client):
-    test_collection, test_id = (
-        "read_qc_analysis_activity_set",
-        "nmdc:wfrqc-11-t0tvnp52.2",
-    )
+def test_submit_workflow_executions(api_site_client):
+    test_collection, test_id = "workflow_execution_set", "nmdc:wfmag-11-00jn7876.1"
     test_payload = {
         test_collection: [
             {
                 "id": test_id,
-                "name": "Read QC Activity for nmdc:wfrqc-11-t0tvnp52.1",
-                "started_at_time": "2024-01-11T20:48:30.718133+00:00",
-                "ended_at_time": "2024-01-11T21:11:44.884260+00:00",
-                "was_informed_by": "nmdc:omprc-11-9mvz7z22",
+                "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.1",
+                "started_at_time": "2023-07-30T21:31:56.387227+00:00",
+                "ended_at_time": "2023-07-30T21:34:32.750008+00:00",
+                "was_informed_by": "nmdc:omprc-11-7yj0jg57",
                 "execution_resource": "NERSC-Perlmutter",
-                "git_url": "https://github.com/microbiomedata/ReadsQC",
-                "has_input": ["nmdc:dobj-11-gpthnj64"],
-                "has_output": [
-                    "nmdc:dobj-11-w5dak635",
-                    "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03",
+                "git_url": "https://github.com/microbiomedata/metaMAGs",
+                "has_input": [
+                    "nmdc:dobj-11-yjp1xw52",
+                    "nmdc:dobj-11-3av14y79",
+                    "nmdc:dobj-11-wa5pnq42",
+                    "nmdc:dobj-11-nexa9703",
+                    "nmdc:dobj-11-j13n8739",
+                    "nmdc:dobj-11-116fa706",
+                    "nmdc:dobj-11-60d0na51",
+                    "nmdc:dobj-11-2vbz7538",
+                    "nmdc:dobj-11-1t48mn65",
+                    "nmdc:dobj-11-1cvwk224",
+                    "nmdc:dobj-11-cdna6f90",
+                    "nmdc:dobj-11-4vb3ww76",
+                    "nmdc:dobj-11-xv4qd072",
+                    "nmdc:dobj-11-m7p3sb10",
+                    "nmdc:dobj-11-j0t1rv33",
                 ],
-                "type": "nmdc:ReadQcAnalysis",
-                "version": "v1.0.8",
+                "has_output": [
+                    "nmdc:dobj-11-k5ad4209",
+                    "nmdc:dobj-11-bw8nqt30",
+                    "nmdc:dobj-11-199t2777",
+                    "nmdc:dobj-11-2qfh8476",
+                    "nmdc:dobj-11-fcsvq172",
+                ],
+                "type": "nmdc:MagsAnalysis",
+                "version": "v1.0.6",
+                "mags_list": [],
             }
         ]
     }
@@ -272,15 +285,18 @@ def test_submit_workflow_activities(api_site_client):
         mdb[test_collection].delete_one({"id": test_id})
     rv = api_site_client.request(
         "POST",
-        "/v1/workflows/activities",
+        "/workflows/workflow_executions",
         test_payload,
     )
     assert rv.json() == {"message": "jobs accepted"}
+
+    # check that the document was added to the database
+    # clean up database before `assert` to be sure that cleanup happens even if test fails.
     rv = api_site_client.request("GET", f"/nmdcschema/ids/{test_id}")
     mdb[test_collection].delete_one({"id": test_id})
     if doc_to_restore:
         mdb[test_collection].insert_one(doc_to_restore)
-    assert "id" in rv.json() and "input_read_count" not in rv.json()
+    assert "id" in rv.json() and rv.json()["id"] == test_id
 
 
 def test_get_class_name_and_collection_names_by_doc_id():
@@ -315,3 +331,61 @@ def test_get_class_name_and_collection_names_by_doc_id():
         "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     assert response.status_code == 404
+
+
+def test_find_workflow_executions(api_site_client):
+    test_collection, test_id = (
+        "workflow_execution_set",
+        "nmdc:wfmgan-11-ndgg7v31.1",
+    )
+    test_doc = {
+        "id": test_id,
+        "name": "Annotation Activity for nmdc:wfmgan-11-ndgg7v31.1",
+        "started_at_time": "2023-03-07T22:54:55.914797+00:00",
+        "ended_at_time": "2023-03-07T22:54:55.914832+00:00",
+        "was_informed_by": "nmdc:omprc-11-m0dd0851",
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/mg_annotation",
+        "has_input": ["nmdc:dobj-11-a2w9zz17"],
+        "has_output": [
+            "nmdc:dobj-11-ej6gdk68",
+            "nmdc:dobj-11-x50rg190",
+            "nmdc:dobj-11-dk50fw35",
+            "nmdc:dobj-11-x1b6f376",
+            "nmdc:dobj-11-rhw29h15",
+            "nmdc:dobj-11-kpgxx958",
+            "nmdc:dobj-11-zzp8vt52",
+            "nmdc:dobj-11-zvahqs54",
+            "nmdc:dobj-11-38xhmg17",
+            "nmdc:dobj-11-n8vqe154",
+            "nmdc:dobj-11-55021k46",
+            "nmdc:dobj-11-xxfaj025",
+            "nmdc:dobj-11-55gp7g13",
+            "nmdc:dobj-11-wmr56107",
+            "nmdc:dobj-11-esyjjz10",
+            "nmdc:dobj-11-xpbzyc98",
+            "nmdc:dobj-11-8zpavw69",
+            "nmdc:dobj-11-72df2803",
+            "nmdc:dobj-11-1j6f8010",
+            "nmdc:dobj-11-tkm6xd10",
+            "nmdc:dobj-11-khw2qa20",
+            "nmdc:dobj-11-mmy40b21",
+            "nmdc:dobj-11-kq3rt657",
+            "nmdc:dobj-11-5yekv009",
+        ],
+        "type": "nmdc:MetagenomeAnnotation",
+        "version": "v1.0.2-beta",
+        "gold_analysis_project_identifiers": [],
+    }
+
+    mdb = get_mongo_db()
+    mdb[test_collection].replace_one({"id": test_id}, test_doc, upsert=True)
+    rv = api_site_client.request(
+        "GET", "/workflow_executions", params_or_json_data={"filter": f"id:{test_id}"}
+    )
+    assert "meta" in rv.json() and rv.json()["meta"]["count"] == 1
+    rv = api_site_client.request(
+        "GET",
+        f"/workflow_executions/{test_id}",
+    )
+    assert "id" in rv.json() and rv.json()["id"] == test_id

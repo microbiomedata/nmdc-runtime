@@ -4,13 +4,12 @@ from typing import Any, List
 import pymongo
 
 from fastapi import APIRouter, Depends, HTTPException
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.site import Site, get_current_client_site
@@ -54,24 +53,36 @@ def list_workflow_capabilities(
     return list(mdb.capabilities.find({"id": {"$in": doc.get("capability_ids", [])}}))
 
 
-# TODO: Create activity.py in ../models
-@router.post("/workflows/activities")
+@router.post("/workflows/activities", status_code=410, deprecated=True)
 async def post_activity(
     activity_set: dict[str, Any],
     site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Please migrate all workflows from `v1/workflows/activities` to this endpoint.
-    -------
-    Post activity set to database and claim job.
+    DEPRECATED: migrate all workflows from this endpoint to `/workflows/workflow_executions`.
+    """
+    return f"DEPRECATED: POST your request to `/workflows/workflow_executions` instead."
+
+
+@router.post("/workflows/workflow_executions")
+async def post_workflow_execution(
+    workflow_execution_set: dict[str, Any],
+    site: Site = Depends(get_current_client_site),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """
+    Post workflow execution set to database and claim job.
 
     Parameters
     -------
-    activity_set: dict[str,Any]
-             Set of activities for specific workflows, in the form of a nmdc:Database.
+    workflow_execution_set: dict[str,Any]
+             Set of workflow executions for specific workflows, in the form of a nmdc:Database.
              Other collections (such as data_object_set) are allowed, as they may be associated
-             with the activities submitted.
+             with the workflow executions submitted.
+
+    site: Site
+    mdb: MongoDatabase
 
     Returns
     -------
@@ -81,7 +92,7 @@ async def post_activity(
     _ = site  # must be authenticated
     try:
         # validate request JSON
-        rv = validate_json(activity_set, mdb)
+        rv = validate_json(workflow_execution_set, mdb)
         if rv["result"] == "errors":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -94,7 +105,7 @@ async def post_activity(
             username=os.getenv("MONGO_USERNAME"),
             password=os.getenv("MONGO_PASSWORD"),
         )
-        mongo_resource.add_docs(activity_set, validate=False, replace=True)
+        mongo_resource.add_docs(workflow_execution_set, validate=False, replace=True)
         return {"message": "jobs accepted"}
     except BulkWriteError as e:
         raise HTTPException(status_code=409, detail=str(e))
