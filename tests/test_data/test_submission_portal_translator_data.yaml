@@ -57,7 +57,9 @@ input:
           annotated. Our findings support that leaf-associated bacterial populations are
           seasonally dynamic and responsive to host cues.
         notes: ''
-        fundingSource: Some award ABC
+        fundingSource: 
+          - Some award ABC
+          - Some award XYZ
         contributors:
         - name: Adina Howe
           orcid: 0000-0002-7705-343X
@@ -807,6 +809,7 @@ output:
       doi_category: dataset_doi
     funding_sources:
       - Some award ABC
+      - Some award XYZ
     study_category: research_study
     title: Seasonal activities of the phyllosphere microbiome of perennial crops
     websites:
@@ -867,7 +870,9 @@ input:
             roles:
               - Principal Investigator
         description: This is a test submission
-        fundingSource: Some award ABC
+        fundingSource: 
+          - Some award ABC
+          - Some award XYZ
         linkOutWebpage:
           - http://www.example.com/submission-test
         multiOmicsForm:
@@ -976,6 +981,7 @@ output:
           doi_category: dataset_doi
       funding_sources:
         - Some award ABC
+        - Some award XYZ
       has_credit_associations:
         - applies_to_person:
             orcid: 0000-0000-0000-0000

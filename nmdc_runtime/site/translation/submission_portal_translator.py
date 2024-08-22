@@ -405,7 +405,7 @@ class SubmissionPortalTranslator(Translator):
                 metadata_submission, ["studyForm", "description"]
             ),
             funding_sources=self._get_from(
-                metadata_submission, ["studyForm", "fundingSource"]
+                metadata_submission, ["studyForm", "fundingSources"]
             ),
             # emsl_proposal_identifier=self._get_from(
             #     metadata_submission, ["multiOmicsForm", "studyNumber"]
