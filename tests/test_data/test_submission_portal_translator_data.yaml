@@ -57,7 +57,7 @@ input:
           annotated. Our findings support that leaf-associated bacterial populations are
           seasonally dynamic and responsive to host cues.
         notes: ''
-        fundingSource: 
+        fundingSources: 
           - Some award ABC
           - Some award XYZ
         contributors:
@@ -870,7 +870,7 @@ input:
             roles:
               - Principal Investigator
         description: This is a test submission
-        fundingSource: 
+        fundingSources: 
           - Some award ABC
           - Some award XYZ
         linkOutWebpage:
