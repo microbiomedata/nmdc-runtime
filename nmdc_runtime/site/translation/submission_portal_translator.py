@@ -127,6 +127,7 @@ class SubmissionPortalTranslator(Translator):
             email=study_form.get("piEmail"),
             orcid=study_form.get("piOrcid"),
             profile_image_url=self.study_pi_image_url,
+            type=nmdc.PersonValue.class_class_curie,
         )
 
     def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.Doi], None]:
@@ -147,6 +148,7 @@ class SubmissionPortalTranslator(Translator):
                 doi_value=dataset_doi,
                 doi_provider=self.study_doi_provider,
                 doi_category=self.study_doi_category,
+                type="nmdc:Doi",
             )
         ]
 
@@ -167,8 +169,10 @@ class SubmissionPortalTranslator(Translator):
                 applies_to_person=nmdc.PersonValue(
                     name=contributor.get("name"),
                     orcid=contributor.get("orcid"),
+                    type="nmdc:PersonValue",
                 ),
                 applied_roles=contributor.get("roles"),
+                type="nmdc:CreditAssociation",
             )
             for contributor in contributors
         ]
@@ -217,7 +221,10 @@ class SubmissionPortalTranslator(Translator):
         if not match:
             return None
 
-        qv = nmdc.QuantityValue(has_raw_value=raw_value)
+        qv = nmdc.QuantityValue(
+            has_raw_value=raw_value,
+            type="nmdc:QuantityValue",
+        )
         if match.group(2):
             # having group 2 means the value is a range like "0 - 1". Either
             # group 1 or group 2 might be the minimum especially when handling
@@ -264,6 +271,7 @@ class SubmissionPortalTranslator(Translator):
         return nmdc.OntologyClass(
             name=match.group(1).strip(),
             id=match.group(2).strip(),
+            type="nmdc:OntologyClass",
         )
 
     def _get_controlled_identified_term_value(
@@ -285,7 +293,9 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return nmdc.ControlledIdentifiedTermValue(
-            has_raw_value=raw_value, term=ontology_class
+            has_raw_value=raw_value,
+            term=ontology_class,
+            type="nmdc:ControlledIdentifiedTermValue",
         )
 
     def _get_controlled_term_value(
@@ -302,7 +312,10 @@ class SubmissionPortalTranslator(Translator):
         if not raw_value:
             return None
 
-        value = nmdc.ControlledTermValue(has_raw_value=raw_value)
+        value = nmdc.ControlledTermValue(
+            has_raw_value=raw_value,
+            type="nmdc:ControlledTermValue",
+        )
         ontology_class = self._get_ontology_class(raw_value)
         if ontology_class is not None:
             value.term = ontology_class
@@ -332,7 +345,10 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return nmdc.GeolocationValue(
-            has_raw_value=raw_value, latitude=match.group(1), longitude=match.group(2)
+            has_raw_value=raw_value,
+            latitude=match.group(1),
+            longitude=match.group(2),
+            type="nmdc:GeolocationValue",
         )
 
     def _get_float(self, raw_value: Optional[str]) -> Union[float, None]:
@@ -425,6 +441,7 @@ class SubmissionPortalTranslator(Translator):
             principal_investigator=self._get_pi(metadata_submission),
             study_category=self.study_category,
             title=self._get_from(metadata_submission, ["studyForm", "studyName"]),
+            type="nmdc:Study",
             websites=self._get_from(
                 metadata_submission, ["studyForm", "linkOutWebpage"]
             ),
@@ -435,15 +452,24 @@ class SubmissionPortalTranslator(Translator):
     ):
         transformed_value = None
         if slot.range == "TextValue":
-            transformed_value = nmdc.TextValue(has_raw_value=value)
+            transformed_value = nmdc.TextValue(
+                has_raw_value=value,
+                type="nmdc:TextValue",
+            )
         elif slot.range == "QuantityValue":
-            transformed_value = self._get_quantity_value(value, unit=unit)
+            transformed_value = self._get_quantity_value(
+                value,
+                unit=unit,
+            )
         elif slot.range == "ControlledIdentifiedTermValue":
             transformed_value = self._get_controlled_identified_term_value(value)
         elif slot.range == "ControlledTermValue":
             transformed_value = self._get_controlled_term_value(value)
         elif slot.range == "TimestampValue":
-            transformed_value = nmdc.TimestampValue(has_raw_value=value)
+            transformed_value = nmdc.TimestampValue(
+                has_raw_value=value,
+                type="nmdc:TimestampValue",
+            )
         elif slot.range == "GeolocationValue":
             transformed_value = self._get_geolocation_value(value)
         elif slot.range == "float":
@@ -532,8 +558,11 @@ class SubmissionPortalTranslator(Translator):
         slots = {
             "id": nmdc_biosample_id,
             "part_of": nmdc_study_id,
+            "type": "nmdc:Biosample",
             "name": sample_data[0].get("samp_name", "").strip(),
-            "env_package": nmdc.TextValue(has_raw_value=default_env_package),
+            "env_package": nmdc.TextValue(
+                has_raw_value=default_env_package, type="nmdc:TextValue"
+            ),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")

@@ -50,7 +50,14 @@ def _create_controlled_identified_term_value(
     """
     if id is None or name is None:
         return None
-    return nmdc.ControlledIdentifiedTermValue(term=nmdc.OntologyClass(id=id, name=name))
+    return nmdc.ControlledIdentifiedTermValue(
+        term=nmdc.OntologyClass(
+            id=id,
+            name=name,
+            type="nmdc:OntologyClass",
+        ),
+        type="nmdc:ControlledIdentifiedTermValue",
+    )
 
 
 def _create_controlled_term_value(name: str = None) -> nmdc.ControlledTermValue:
@@ -64,7 +71,10 @@ def _create_controlled_term_value(name: str = None) -> nmdc.ControlledTermValue:
     """
     if name is None:
         return None
-    return nmdc.ControlledTermValue(has_raw_value=name)
+    return nmdc.ControlledTermValue(
+        has_raw_value=name,
+        type="nmdc:ControlledTermValue",
+    )
 
 
 def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
@@ -77,7 +87,7 @@ def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
     """
     if value is None:
         return None
-    return nmdc.TimestampValue(has_raw_value=value)
+    return nmdc.TimestampValue(has_raw_value=value, type="nmdc:TimestampValue")
 
 
 def _create_quantity_value(

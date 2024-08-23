@@ -1,5 +1,30 @@
 A runtime system for NMDC data management and orchestration.
 
+<!-- TODO: Remove this note once we've merged the `berkeley` branch into the `main` branch. -->
+> [!NOTE]  
+> You are on a Berkeley-related branch (i.e. a branch related to getting the Runtime to work with the Berkeley schema).
+
+<!-- TODO: Remove this section once we've merged the `berkeley` branch into the `main` branch. -->
+## Berkeley-related branches
+
+### Introduction
+
+The `nmdc-runtime` repository contains a branch named `main` and a branch named `berkeley` (among other branches).
+
+The `main` branch is a permanent branch. It is used the same way as in many Git repositories: it is the base branch of most PRs. Its contents get [built and] deployed to the production environment.
+
+The `berkeley` branch is a long-living (but not permanent) branch. It is the base branch of PRs that introduce changes that make the Runtime work with the Berkeley schema. Its contents get [built and] deployed to the "Berkeley environment."
+
+### Merging the `main` branch into the `berkeley` branch
+
+We want to avoid being in a situation where the `berkeley` branch is lacking features/fixes that have been introduced into the `main` branch; especially when the absence of those features/fixes is affecting NMDC team members working on the Berkeley Schema Roll Out.
+
+To that end, we've instituted the following policy around merging the `main` branch into the `berkeley` branch:
+
+1. Any Runtime maintainer can merge `main` into `berkeley` at any time, provided they address any merge conflicts that arise. We expect there to always be at least one merge conflict: the `nmdc-schema` version in the `main.in` file.
+2. Those merges can happen multiple times a day (no limit).
+3. When those merges happen, the person performing the merge will announce the merge in the `#nmdc-runtime` Slack channel. The announcement can be made either before or after merging. Although not all team members are on that Slack channel, we think enough _are_ that—should someone else report an issue shortly thereafter—news of the recent merge will make its way to them. The announcement can be a normal message (i.e. tagging people in it is optional).
+
 ## Service Status
 
 http://nmdcstatus.polyneme.xyz/
