@@ -1,9 +1,12 @@
+import gzip
+import json
 import os
 from contextlib import AbstractContextManager
 from functools import lru_cache
 from typing import Set, Dict, Any, Iterable
 from uuid import uuid4
 
+import bson
 from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
@@ -62,6 +65,7 @@ def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
     return {name for name in names if mdb[name].estimated_document_count() > 0}
 
 
+@lru_cache
 def get_collection_names_from_schema() -> list[str]:
     """
     Returns the names of the slots of the `Database` class that describe database collections.
@@ -106,3 +110,36 @@ def mongodump_excluded_collections():
         )
     )
     return excluded_collections
+
+
+def mongorestore_collection(mdb, collection_name, bson_file_path):
+    """
+    Replaces the specified collection with one that reflects the contents of the
+    specified BSON file.
+    """
+    with gzip.open(bson_file_path, "rb") as bson_file:
+        data = bson.decode_all(bson_file.read())
+        if data:
+            mdb.drop_collection(collection_name)
+            mdb[collection_name].insert_many(data)
+            print(
+                f"mongorestore_collection: {len(data)} documents into {collection_name} after drop"
+            )
+
+
+def mongorestore_from_dir(mdb, dump_directory, skip_collections=None):
+    """
+    Effectively runs a `mongorestore` command in pure Python.
+    Helpful in a container context that does not have the `mongorestore` command available.
+    """
+    skip_collections = skip_collections or []
+    for root, dirs, files in os.walk(dump_directory):
+        for file in files:
+            if file.endswith(".bson.gz"):
+                collection_name = file.replace(".bson.gz", "")
+                if collection_name in skip_collections:
+                    continue
+                bson_file_path = os.path.join(root, file)
+                mongorestore_collection(mdb, collection_name, bson_file_path)
+
+    print("mongorestore_from_dir completed successfully.")

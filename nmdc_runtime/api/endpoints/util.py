@@ -415,6 +415,7 @@ def persist_content_and_get_drs_object(
     filename=None,
     content_type="application/json",
     id_ns="json-metadata-in",
+    exists_ok=False,
 ):
     mdb = get_mongo_db()
     drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
@@ -453,12 +454,22 @@ def persist_content_and_get_drs_object(
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     return _create_object(
-        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+        mdb,
+        object_in,
+        mgr_site="nmdc-runtime",
+        drs_id=drs_id,
+        self_uri=self_uri,
+        exists_ok=exists_ok,
     )
 
 
 def _create_object(
-    mdb: MongoDatabase, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
+    mdb: MongoDatabase,
+    object_in: DrsObjectIn,
+    mgr_site,
+    drs_id,
+    self_uri,
+    exists_ok=False,
 ):
     drs_obj = DrsObject(
         **object_in.model_dump(exclude_unset=True),
@@ -471,10 +482,22 @@ def _create_object(
         mdb.objects.insert_one(doc)
     except DuplicateKeyError as e:
         if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"provided checksum matches existing object: {e.details['keyValue']}",
-            )
+            if exists_ok:
+                return mdb.objects.find_one(
+                    {
+                        "checksums": {
+                            "$elemMatch": {
+                                "type": e.details["keyValue"]["checksums.type"],
+                                "checksum": e.details["keyValue"]["checksums.checksum"],
+                            }
+                        }
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"provided checksum matches existing object: {e.details['keyValue']}",
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -250,13 +250,39 @@ async def submit_json_nmdcdb(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(rv),
         )
+
+    extra_run_config_data = _ensure_job__metadata_in(docs, user.username, mdb)
+
+    requested = _request_dagster_run(
+        nmdc_workflow_id="metadata-in-1.0.0",
+        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
+        extra_run_config_data=extra_run_config_data,
+        mdb=mdb,
+        user=user,
+    )
+    if requested["type"] == "success":
+        return requested
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                f"Runtime failed to start metadata-in-1.0.0 job. "
+                f'Detail: {requested["detail"]}'
+            ),
+        )
+
+
+def _ensure_job__metadata_in(
+    docs, username, mdb, client_id=API_SITE_CLIENT_ID, drs_object_exists_ok=False
+):
     drs_obj_doc = persist_content_and_get_drs_object(
         content=json.dumps(docs),
-        username=user.username,
+        username=username,
         filename=None,
         content_type="application/json",
         description="JSON metadata in",
         id_ns="json-metadata-in",
+        exists_ok=drs_object_exists_ok,
     )
     job_spec = {
         "workflow": {"id": "metadata-in-1.0.0"},
@@ -276,9 +302,9 @@ async def submit_json_nmdcdb(
             detail=f'failed to complete metadata-in-1.0.0/{drs_obj_doc["id"]} job',
         )
 
-    site = get_site(mdb, client_id=API_SITE_CLIENT_ID)
+    site = get_site(mdb, client_id=client_id)
     operation = _claim_job(job.id, mdb, site)
-    extra_run_config_data = {
+    return {
         "ops": {
             "get_json_in": {
                 "config": {
@@ -288,21 +314,3 @@ async def submit_json_nmdcdb(
             "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
         }
     }
-
-    requested = _request_dagster_run(
-        nmdc_workflow_id="metadata-in-1.0.0",
-        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
-        extra_run_config_data=extra_run_config_data,
-        mdb=mdb,
-        user=user,
-    )
-    if requested["type"] == "success":
-        return requested
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                f"Runtime failed to start metadata-in-1.0.0 job. "
-                f'Detail: {requested["detail"]}'
-            ),
-        )
