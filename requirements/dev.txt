@@ -4,14 +4,14 @@
 #
 #    pip-compile --allow-unsafe --output-file=requirements/dev.txt --strip-extras requirements/dev.in
 #
-attrs==23.2.0
+attrs==24.2.0
     # via
     #   -c requirements/main.txt
     #   cattrs
     #   requests-cache
 backports-tarfile==1.2.0
     # via jaraco-context
-black==24.4.2
+black==24.8.0
     # via -r requirements/dev.in
 build==1.2.1
     # via pip-tools
@@ -23,6 +23,10 @@ certifi==2024.7.4
     # via
     #   -c requirements/main.txt
     #   requests
+cffi==1.17.0
+    # via
+    #   -c requirements/main.txt
+    #   cryptography
 charset-normalizer==3.3.2
     # via
     #   -c requirements/main.txt
@@ -32,24 +36,28 @@ click==8.1.7
     #   -c requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.5.4
+coverage==7.6.1
     # via
     #   -r requirements/dev.in
     #   pytest-cov
+cryptography==43.0.0
+    # via
+    #   -c requirements/main.txt
+    #   secretstorage
 docutils==0.21.2
     # via readme-renderer
-exceptiongroup==1.2.1
+exceptiongroup==1.2.2
     # via
     #   -c requirements/main.txt
     #   cattrs
     #   pytest
-flake8==7.1.0
+flake8==7.1.1
     # via -r requirements/dev.in
-idna==3.7
+idna==3.8
     # via
     #   -c requirements/main.txt
     #   requests
-importlib-metadata==8.0.0
+importlib-metadata==8.4.0
     # via
     #   keyring
     #   twine
@@ -61,11 +69,15 @@ invoke==2.2.0
     # via -r requirements/dev.in
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==5.3.0
+jaraco-context==6.0.1
     # via keyring
-jaraco-functools==4.0.1
+jaraco-functools==4.0.2
     # via keyring
-keyring==25.2.1
+jeepney==0.8.0
+    # via
+    #   keyring
+    #   secretstorage
+keyring==25.3.0
     # via twine
 markdown-it-py==3.0.0
     # via
@@ -77,7 +89,7 @@ mdurl==0.1.2
     # via
     #   -c requirements/main.txt
     #   markdown-it-py
-more-itertools==10.3.0
+more-itertools==10.4.0
     # via
     #   jaraco-classes
     #   jaraco-functools
@@ -108,8 +120,12 @@ pluggy==1.5.0
     # via
     #   -c requirements/main.txt
     #   pytest
-pycodestyle==2.12.0
+pycodestyle==2.12.1
     # via flake8
+pycparser==2.22
+    # via
+    #   -c requirements/main.txt
+    #   cffi
 pyflakes==3.2.0
     # via flake8
 pygments==2.18.0
@@ -121,14 +137,14 @@ pyproject-hooks==1.1.0
     # via
     #   build
     #   pip-tools
-pytest==8.2.2
+pytest==8.3.2
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
-pytest-asyncio==0.23.7
+pytest-asyncio==0.24.0
     # via -r requirements/dev.in
 pytest-cov==5.0.0
     # via -r requirements/dev.in
@@ -159,6 +175,8 @@ rich==13.7.1
     # via
     #   -c requirements/main.txt
     #   twine
+secretstorage==3.3.3
+    # via keyring
 six==1.16.0
     # via
     #   -c requirements/main.txt
@@ -188,17 +206,17 @@ urllib3==2.2.2
     #   requests
     #   requests-cache
     #   twine
-wheel==0.43.0
+wheel==0.44.0
     # via pip-tools
-zipp==3.19.2
+zipp==3.20.0
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==24.1.2
+pip==24.2
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==70.3.0
+setuptools==73.0.1
     # via
     #   -c requirements/main.txt
     #   -r requirements/dev.in
