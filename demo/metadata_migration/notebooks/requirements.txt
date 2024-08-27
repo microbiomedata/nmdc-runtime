@@ -3,3 +3,4 @@ jsonschema==4.19.2
 pymongo==4.7.2
 python-dotenv==1.0.0
 PyYAML==6.0.1
+linkml-runtime==1.8.2

@@ -1,9 +1,13 @@
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import logging
 from datetime import datetime
 
 from dotenv import dotenv_values
+from linkml_runtime import SchemaView
+
+
+DATABASE_CLASS_NAME = "Database"
 
 
 class Config:
@@ -117,3 +121,26 @@ def setup_logger(
         logger.handlers.clear()  # avoids duplicate log entries
     logger.addHandler(file_handler)
     return logger
+
+
+def get_collection_names_from_schema(schema_view: SchemaView) -> List[str]:
+    """
+    Returns the names of the slots of the `Database` class that describe database collections.
+
+    :param schema_view: A `SchemaView` instance
+    """
+    collection_names = []
+
+    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
+        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
+
+        # Filter out any hypothetical (future) slots that don't correspond to a collection (e.g. `db_version`).
+        if slot_definition.multivalued and slot_definition.inlined_as_list:
+            collection_names.append(slot_name)
+
+        # Filter out duplicate names. This is to work around the following issues in the schema:
+        # - https://github.com/microbiomedata/nmdc-schema/issues/1954
+        # - https://github.com/microbiomedata/nmdc-schema/issues/1955
+        collection_names = list(set(collection_names))
+
+    return collection_names
