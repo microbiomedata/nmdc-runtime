@@ -677,7 +677,9 @@ class SubmissionPortalTranslator(Translator):
                         nucleotide_sequencing_row, "NucleotideSequencing"
                     )
                 )
-                nucleotide_sequencing = nmdc.NucleotideSequencing(**nucleotide_sequencing_slots)
+                nucleotide_sequencing = nmdc.NucleotideSequencing(
+                    **nucleotide_sequencing_slots
+                )
 
                 for data_object_row in data_objects_by_sample_data_id.get(
                     sample_data_id, []
