@@ -1078,9 +1078,11 @@ output:
           type: nmdc:OntologyClass
           name: phyllosphere biome
       env_medium:
+        type: nmdc:ControlledIdentifiedTermValue
         has_raw_value: plant-associated biome [ENVO:01001001]
         term:
           id: ENVO:01001001
+          type: nmdc:OntologyClass
           name: plant-associated biome
       samp_name: G5R1_MAIN_09MAY2016
       collection_date:
@@ -1089,6 +1091,7 @@ output:
       depth:
         has_raw_value: '0'
         has_numeric_value: 0.0
+        type: nmdc:QuantityValue
       ecosystem: Environmental
       ecosystem_category: Terrestrial
       ecosystem_subtype: Leaf
@@ -1096,8 +1099,10 @@ output:
       elev: 286.0
       env_package:
         has_raw_value: plant-associated
+        type: nmdc:TextValue
       geo_loc_name:
         has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+        type: nmdc:TextValue
       growth_facil:
         has_raw_value: field
         type: nmdc:ControlledTermValue
@@ -1105,10 +1110,12 @@ output:
         has_raw_value: 42.39 -85.37
         latitude: 42.39
         longitude: -85.37
+        type: nmdc:GeolocationValue
       samp_store_temp:
         has_raw_value: -80 Celsius
         has_unit: Celsius
         has_numeric_value: -80.0
+        type: nmdc:QuantityValue
       source_mat_id:
         has_raw_value: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
         type: nmdc:TextValue
@@ -1146,6 +1153,7 @@ output:
         - doi_value: doi:10.12345/10.12345/00000000
           doi_provider: jgi
           doi_category: dataset_doi
+          type: nmdc:Doi
       funding_sources:
         - Some award ABC
         - Some award XYZ
