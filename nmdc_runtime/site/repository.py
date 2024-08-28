@@ -541,7 +541,6 @@ def biosample_submission_ingest():
                             "study_category": None,
                             "study_doi_category": None,
                             "study_doi_provider": None,
-                            "study_funding_sources": None,
                             "study_pi_image_url": None,
                         }
                     },
@@ -580,7 +579,6 @@ def biosample_submission_ingest():
                             "study_category": None,
                             "study_doi_category": None,
                             "study_doi_provider": None,
-                            "study_funding_sources": None,
                             "study_pi_image_url": None,
                         }
                     },
