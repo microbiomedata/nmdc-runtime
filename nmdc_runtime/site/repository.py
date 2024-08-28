@@ -501,7 +501,9 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
-                    "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
+                    "get_gold_study_pipeline_inputs": {
+                        "config": {"study_id": "", "study_type": "research_study"}
+                    },
                     "export_json_to_drs": {"config": {"username": ""}},
                 },
             },

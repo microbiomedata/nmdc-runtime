@@ -10,6 +10,7 @@ class GoldStudyTranslator(Translator):
     def __init__(
         self,
         study: JSON_OBJECT = {},
+        study_type: str = "research_study",
         biosamples: List[JSON_OBJECT] = [],
         projects: List[JSON_OBJECT] = [],
         analysis_projects: List[JSON_OBJECT] = [],
@@ -19,6 +20,7 @@ class GoldStudyTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.study = study
+        self.study_type = nmdc.StudyCategoryEnum(study_type)
         self.biosamples = biosamples
         self.projects = projects
         self.analysis_projects = analysis_projects
@@ -69,7 +71,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=pi_dict.get("name"),
             name=pi_dict.get("name"),
             email=pi_dict.get("email"),
-            type=pi_dict.get("type"),
+            type="nmdc:PersonValue",
         )
 
     def _get_mod_date(self, gold_entity: JSON_OBJECT) -> Union[str, None]:
@@ -109,15 +111,16 @@ class GoldStudyTranslator(Translator):
 
     def _get_samp_taxon_id(
         self, gold_biosample: JSON_OBJECT
-    ) -> Union[nmdc.TextValue, None]:
-        """Get a TextValue representing the NCBI taxon for a GOLD biosample
+    ) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
+        """Get a ControlledIdentifiedTermValue representing the NCBI taxon
+        for a GOLD biosample
 
         This method gets the `ncbiTaxName` and `ncbiTaxId` from a GOLD biosample object.
-        If both are not `None`, it constructs a TextValue of the format
+        If both are not `None`, it constructs a ControlledIdentifiedTermValue of the format
         `{ncbiTaxName} [NCBITaxon:{ncbiTaxId}]`. Otherwise, it returns `None`
 
         :param gold_biosample: GOLD biosample object
-        :return: TextValue object
+        :return: ControlledIdentifiedTermValue object
         """
         ncbi_tax_name = gold_biosample.get("ncbiTaxName")
         ncbi_tax_id = gold_biosample.get("ncbiTaxId")
@@ -126,7 +129,40 @@ class GoldStudyTranslator(Translator):
 
         raw_value = f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]"
 
-        return nmdc.TextValue(has_raw_value=raw_value, type="nmdc:TextValue")
+        return nmdc.ControlledIdentifiedTermValue(
+            has_raw_value=raw_value,
+            term=nmdc.OntologyClass(
+                id=f"NCBITaxon:{ncbi_tax_id}",
+                name=ncbi_tax_name,
+                type="nmdc:OntologyClass",
+            ),
+            type="nmdc:ControlledIdentifiedTermValue",
+        )
+
+    def _get_host_taxid(
+        self, gold_biosample: JSON_OBJECT
+    ) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
+        """Get a ControlledIdentifiedTermValue representing the NCBI host taxon id
+        for a GOLD biosample
+
+        This method gets the `hostNcbiTaxid` from a GOLD biosample object.
+        It constructs a ControlledIdentifiedTermValue of the format
+        `[NCBITaxon:{hostNcbiTaxid}]`. Otherwise, it returns `None`
+
+        :param gold_biosample: GOLD biosample object
+        :return: ControlledIdentifiedTermValue object
+        """
+        host_taxid = gold_biosample.get("hostNcbiTaxid")
+        if host_taxid is None:
+            return None
+        return nmdc.ControlledIdentifiedTermValue(
+            has_raw_value=f"NCBITaxon:{host_taxid}",
+            term=nmdc.OntologyClass(
+                id=f"NCBITaxon:{host_taxid}",
+                type="nmdc:OntologyClass",
+            ),
+            type="nmdc:ControlledIdentifiedTermValue",
+        )
 
     def _get_samp_name(self, gold_biosample: JSON_OBJECT) -> Union[str, None]:
         """Get a sample name for a GOLD biosample object
@@ -420,6 +456,7 @@ class GoldStudyTranslator(Translator):
             principal_investigator=self._get_pi(gold_study),
             title=gold_study.get("studyName"),
             type="nmdc:Study",
+            study_category=self.study_type,
         )
 
     def _translate_biosample(
@@ -467,7 +504,7 @@ class GoldStudyTranslator(Translator):
             gold_biosample_identifiers=self._get_curie("gold", gold_biosample_id),
             habitat=gold_biosample.get("habitat"),
             host_name=gold_biosample.get("hostName"),
-            host_taxid=self._get_text_value(gold_biosample, "hostNcbiTaxid"),
+            host_taxid=self._get_host_taxid(gold_biosample),
             id=nmdc_biosample_id,
             img_identifiers=self._get_img_identifiers(gold_biosample_id),
             insdc_biosample_identifiers=self._get_insdc_biosample_identifiers(
@@ -479,7 +516,6 @@ class GoldStudyTranslator(Translator):
             name=gold_biosample.get("biosampleName"),
             ncbi_taxonomy_name=gold_biosample.get("ncbiTaxName"),
             nitrite=self._get_quantity_value(gold_biosample, "nitrateConcentration"),
-            part_of=nmdc_study_id,
             ph=gold_biosample.get("ph"),
             pressure=self._get_quantity_value(gold_biosample, "pressure"),
             samp_name=self._get_samp_name(gold_biosample),
@@ -495,37 +531,38 @@ class GoldStudyTranslator(Translator):
                 gold_biosample, "sampleCollectionTemperature"
             ),
             type="nmdc:Biosample",
+            associated_studies=[nmdc_study_id],
         )
 
-    def _translate_omics_processing(
+    def _translate_nucleotide_sequencing(
         self,
         gold_project: JSON_OBJECT,
-        nmdc_omics_processing_id: str,
+        nmdc_nucleotide_sequencing_id: str,
         nmdc_biosample_id: str,
         nmdc_study_id: str,
     ):
-        """Translate a GOLD project object into an `nmdc:OmicsProcessing` object.
+        """Translate a GOLD project object into an `nmdc:NucleotideSequencing` object.
 
-        This method translates a GOLD project object into an equivalent `nmdc:OmicsProcessing`
+        This method translates a GOLD project object into an equivalent `nmdc:NucleotideSequencing`
         object. Any minted NMDC IDs must be passed to this method. Internally, each
-        slot of the `nmdc:OmicsProcessing` is either directly pulled from the GOLD object or
+        slot of the `nmdc:NucleotideSequencing` is either directly pulled from the GOLD object or
         one of the `_get_*` methods is used.
 
         :param gold_project: GOLD project object
-        :param nmdc_omics_processing_id: Minted nmdc:OmicsProcessing identifier for the translated object
+        :param nmdc_omics_processing_id: Minted nmdc:NucleotideSequencing identifier for the translated object
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the related Biosample
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
-        :return: nmdc:OmicsProcessing object
+        :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
-        return nmdc.OmicsProcessing(
-            id=nmdc_omics_processing_id,
+        return nmdc.NucleotideSequencing(
+            id=nmdc_nucleotide_sequencing_id,
             name=gold_project.get("projectName"),
             gold_sequencing_project_identifiers=self._get_curie(
                 "gold", gold_project_id
             ),
             ncbi_project_name=gold_project.get("projectName"),
-            type="nmdc:OmicsProcessing",
+            type="nmdc:NucleotideSequencing",
             has_input=nmdc_biosample_id,
             part_of=nmdc_study_id,
             add_date=gold_project.get("addDate"),
@@ -536,6 +573,8 @@ class GoldStudyTranslator(Translator):
             ),
             instrument_name=self._get_instrument_name(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
+            analyte_category="metagenome",
+            associated_studies=[nmdc_study_id],
         )
 
     def get_database(self) -> nmdc.Database:
@@ -576,11 +615,11 @@ class GoldStudyTranslator(Translator):
         }
 
         gold_project_ids = [project["projectGoldId"] for project in self.projects]
-        nmdc_omics_processing_ids = self._id_minter(
-            "nmdc:OmicsProcessing", len(gold_project_ids)
+        nmdc_nucleotide_sequencing_ids = self._id_minter(
+            "nmdc:NucleotideSequencing", len(gold_project_ids)
         )
-        gold_project_to_nmdc_omics_processing_ids = dict(
-            zip(gold_project_ids, nmdc_omics_processing_ids)
+        gold_project_to_nmdc_nucleotide_sequencing_ids = dict(
+            zip(gold_project_ids, nmdc_nucleotide_sequencing_ids)
         )
 
         database.study_set = [self._translate_study(self.study, nmdc_study_id)]
@@ -598,13 +637,13 @@ class GoldStudyTranslator(Translator):
             for biosample in self.biosamples
         ]
         database.field_research_site_set = [
-            nmdc.FieldResearchSite(id=id, name=name)
+            nmdc.FieldResearchSite(id=id, name=name, type="nmdc:FieldResearchSite")
             for name, id in gold_name_to_nmdc_field_site_ids.items()
         ]
-        database.omics_processing_set = [
-            self._translate_omics_processing(
+        database.data_generation_set = [
+            self._translate_nucleotide_sequencing(
                 project,
-                nmdc_omics_processing_id=gold_project_to_nmdc_omics_processing_ids[
+                nmdc_omics_processing_id=gold_project_to_nmdc_nucleotide_sequencing_ids[
                     project["projectGoldId"]
                 ],
                 nmdc_biosample_id=gold_to_nmdc_biosample_ids[

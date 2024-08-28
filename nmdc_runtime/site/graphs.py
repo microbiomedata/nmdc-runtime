@@ -126,7 +126,7 @@ def apply_metadata_in():
 
 @graph
 def gold_study_to_database():
-    study_id = get_gold_study_pipeline_inputs()
+    study_id, study_type = get_gold_study_pipeline_inputs()
 
     projects = gold_projects_by_study(study_id)
     biosamples = gold_biosamples_by_study(study_id)
@@ -134,7 +134,7 @@ def gold_study_to_database():
     study = gold_study(study_id)
 
     database = nmdc_schema_database_from_gold_study(
-        study, projects, biosamples, analysis_projects
+        study, study_type, projects, biosamples, analysis_projects
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
