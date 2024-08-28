@@ -96,7 +96,7 @@ class SubmissionPortalTranslator(Translator):
             nmdc.DoiProviderEnum(study_doi_provider) if study_doi_provider else None
         )
         self.study_category = (
-            nmdc.StudyCategoryEnum(study_category) if study_category else None
+            nmdc.StudyCategoryEnum(study_category) if study_category else nmdc.StudyCategoryEnum.research_study
         )
         self.study_pi_image_url = study_pi_image_url
         self.study_funding_sources = study_funding_sources
@@ -557,12 +557,12 @@ class SubmissionPortalTranslator(Translator):
         biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
-            "part_of": nmdc_study_id,
             "type": "nmdc:Biosample",
             "name": sample_data[0].get("samp_name", "").strip(),
             "env_package": nmdc.TextValue(
                 has_raw_value=default_env_package, type="nmdc:TextValue"
             ),
+            "associated_studies": [nmdc_study_id],
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
@@ -630,7 +630,7 @@ class SubmissionPortalTranslator(Translator):
             # sample data there is an implicit 1:1 relationship between Biosample objects and
             # OmicsProcessing objects generated here.
             join_key = f"__biosample_{BIOSAMPLE_UNIQUE_KEY_SLOT}"
-            database.omics_processing_set = []
+            database.data_generation_set = []
             database.data_object_set = []
             data_objects_by_sample_data_id = {}
             today = datetime.now().strftime("%Y-%m-%d")
@@ -664,20 +664,21 @@ class SubmissionPortalTranslator(Translator):
                 # generate an instance. A few key slots do not come from the mapping file, but
                 # instead are defined here.
                 omics_processing_slots = {
-                    "id": self._id_minter("nmdc:OmicsProcessing", 1)[0],
+                    "id": self._id_minter("nmdc:NucleotideSequencing", 1)[0],
                     "has_input": [nmdc_biosample_id],
                     "has_output": [],
                     "part_of": nmdc_study_id,
                     "add_date": today,
                     "mod_date": today,
-                    "type": "nmdc:OmicsProcessing",
+                    "type": "nmdc:NucleotideSequencing",
+                    "associated_studies": [nmdc_study_id],
                 }
                 omics_processing_slots.update(
                     self._transform_dict_for_class(
-                        omics_processing_row, "OmicsProcessing"
+                        omics_processing_row, "NucleotideSequencing"
                     )
                 )
-                omics_processing = nmdc.OmicsProcessing(**omics_processing_slots)
+                omics_processing = nmdc.NucleotideSequencing(**omics_processing_slots)
 
                 for data_object_row in data_objects_by_sample_data_id.get(
                     sample_data_id, []
@@ -700,6 +701,6 @@ class SubmissionPortalTranslator(Translator):
 
                     database.data_object_set.append(data_object)
 
-                database.omics_processing_set.append(omics_processing)
+                database.data_generation_set.append(omics_processing)
 
         return database
