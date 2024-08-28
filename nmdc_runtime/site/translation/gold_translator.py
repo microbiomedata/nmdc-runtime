@@ -568,10 +568,6 @@ class GoldStudyTranslator(Translator):
             add_date=gold_project.get("addDate"),
             mod_date=self._get_mod_date(gold_project),
             principal_investigator=self._get_pi(gold_project),
-            omics_type=self._get_controlled_term_value(
-                gold_project, "sequencingStrategy"
-            ),
-            instrument_name=self._get_instrument_name(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             analyte_category="metagenome",
             associated_studies=[nmdc_study_id],
@@ -643,7 +639,7 @@ class GoldStudyTranslator(Translator):
         database.data_generation_set = [
             self._translate_nucleotide_sequencing(
                 project,
-                nmdc_omics_processing_id=gold_project_to_nmdc_nucleotide_sequencing_ids[
+                nmdc_nucleotide_sequencing_id=gold_project_to_nmdc_nucleotide_sequencing_ids[
                     project["projectGoldId"]
                 ],
                 nmdc_biosample_id=gold_to_nmdc_biosample_ids[
