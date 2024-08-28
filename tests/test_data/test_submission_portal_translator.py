@@ -2,7 +2,6 @@ import datetime
 from pathlib import Path
 import random
 
-import pytest
 import yaml
 from linkml_runtime.dumpers import json_dumper
 
@@ -273,7 +272,6 @@ def test_get_from():
     assert translator._get_from(metadata, ["one", "some_empty"]) == ["one", "three"]
 
 
-@pytest.mark.xfail(reason="ValueError from schema migration.")
 def test_get_dataset(test_minter, monkeypatch):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
     # current date. In order to compare with a static expected output we need to patch
