@@ -1045,11 +1045,11 @@ input:
         studyName: A test submission
       templates:
         - plant-associated
-  omics_processing_mapping:
+  nucleotide_sequencing_mapping:
     - __biosample_samp_name: G5R1_MAIN_09MAY2016
       processing_institution: JGI
-      instrument_name: Some fancy expensive thing
-      omics_type: Metagenome
+      instrument_used: nmdc:inst-00-00000000
+      analyte_category: metagenome
   data_object_mapping:
     - __biosample_samp_name: G5R1_MAIN_09MAY2016
       data_object_type: Metagenome Raw Reads
@@ -1129,21 +1129,20 @@ output:
       data_object_type: Metagenome Raw Reads
       url: http://example.com/data.fastq.gz
       type: nmdc:DataObject
-  omics_processing_set:
-    - id: nmdc:omprc-00-q8jtgev4
+  data_generation_set:
+    - id: nmdc:dgns-00-q8jtgev4
       has_input:
         - nmdc:bsm-00-4wn6isig
       add_date: '2023-10-17'
       has_output:
         - nmdc:dobj-00-9gw1un94
-      instrument_name: Some fancy expensive thing
+      instrument_used: nmdc:inst-00-00000000
       mod_date: '2023-10-17'
-      omics_type:
-        has_raw_value: Metagenome
-      part_of:
+      analyte_category: metagenome
+      associated_studies:
         - nmdc:sty-00-y0cq65zt
       processing_institution: JGI
-      type: nmdc:OmicsProcessing
+      type: nmdc:NucleotideSequencing
   study_set:
     - id: nmdc:sty-00-y0cq65zt
       type: nmdc:Study
