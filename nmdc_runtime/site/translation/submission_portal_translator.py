@@ -557,7 +557,7 @@ class SubmissionPortalTranslator(Translator):
         biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
-            "associated_studies": nmdc_study_id,
+            "associated_studies": [nmdc_study_id],
             "type": "nmdc:Biosample",
             "name": sample_data[0].get("samp_name", "").strip(),
             "env_package": nmdc.TextValue(
