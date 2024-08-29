@@ -185,8 +185,7 @@ class NeonBenthicDataTranslator(Translator):
             input_mass=_create_quantity_value(
                 _get_value_or_none(extraction_row, "sampleMass"), "g"
             ),
-            qc_status=_get_value_or_none(extraction_row, "qaqcStatus")
-            ),
+            qc_status=_get_value_or_none(extraction_row, "qaqcStatus"),
             processing_institution=processing_institution,
         )
 
