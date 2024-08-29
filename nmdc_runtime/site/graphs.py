@@ -147,14 +147,16 @@ def gold_study_to_database():
 def translate_metadata_submission_to_nmdc_schema_database():
     (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
-    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    nucleotide_sequencing_mapping = get_csv_rows_from_url(
+        nucleotide_sequencing_mapping_file_url
+    )
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
     biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
     biosample_extras_slot_mapping = get_csv_rows_from_url(
@@ -163,8 +165,8 @@ def translate_metadata_submission_to_nmdc_schema_database():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
@@ -181,14 +183,16 @@ def translate_metadata_submission_to_nmdc_schema_database():
 def ingest_metadata_submission():
     (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
-    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    nucleotide_sequencing_mapping = get_csv_rows_from_url(
+        nucleotide_sequencing_mapping_file_url
+    )
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
     biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
     biosample_extras_slot_mapping = get_csv_rows_from_url(
@@ -197,8 +201,8 @@ def ingest_metadata_submission():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )

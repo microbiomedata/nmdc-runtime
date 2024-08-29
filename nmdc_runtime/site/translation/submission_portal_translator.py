@@ -64,9 +64,9 @@ class SubmissionPortalTranslator(Translator):
     def __init__(
         self,
         metadata_submission: JSON_OBJECT = {},
+        *args,
         nucleotide_sequencing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
-        *args,
         # Additional study-level metadata not captured by the submission portal currently
         # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_doi_category: Optional[str] = None,

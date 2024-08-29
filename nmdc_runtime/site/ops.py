@@ -641,7 +641,7 @@ def nmdc_schema_database_from_gold_study(
 @op(
     out={
         "submission_id": Out(),
-        "omics_processing_mapping_file_url": Out(Optional[str]),
+        "nucleotide_sequencing_mapping_file_url": Out(Optional[str]),
         "data_object_mapping_file_url": Out(Optional[str]),
         "biosample_extras_file_url": Out(Optional[str]),
         "biosample_extras_slot_mapping_file_url": Out(Optional[str]),
@@ -649,14 +649,14 @@ def nmdc_schema_database_from_gold_study(
 )
 def get_submission_portal_pipeline_inputs(
     submission_id: str,
-    omics_processing_mapping_file_url: Optional[str],
+    nucleotide_sequencing_mapping_file_url: Optional[str],
     data_object_mapping_file_url: Optional[str],
     biosample_extras_file_url: Optional[str],
     biosample_extras_slot_mapping_file_url: Optional[str],
 ) -> Tuple[str, str | None, str | None, str | None, str | None]:
     return (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
@@ -677,7 +677,7 @@ def fetch_nmdc_portal_submission_by_id(
 def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any],
-    omics_processing_mapping: List,
+    nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
     study_category: Optional[str],
     study_doi_category: Optional[str],
@@ -694,8 +694,8 @@ def translate_portal_submission_to_nmdc_schema_database(
 
     translator = SubmissionPortalTranslator(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         id_minter=id_minter,
         study_category=study_category,
         study_doi_category=study_doi_category,
