@@ -64,9 +64,9 @@ class SubmissionPortalTranslator(Translator):
     def __init__(
         self,
         metadata_submission: JSON_OBJECT = {},
-        omics_processing_mapping: Optional[list] = None,
-        data_object_mapping: Optional[list] = None,
         *args,
+        nucleotide_sequencing_mapping: Optional[list] = None,
+        data_object_mapping: Optional[list] = None,
         # Additional study-level metadata not captured by the submission portal currently
         # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_doi_category: Optional[str] = None,
@@ -84,7 +84,7 @@ class SubmissionPortalTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.metadata_submission = metadata_submission
-        self.omics_processing_mapping = omics_processing_mapping
+        self.nucleotide_sequencing_mapping = nucleotide_sequencing_mapping
         self.data_object_mapping = data_object_mapping
 
         self.study_doi_category = (
@@ -557,7 +557,7 @@ class SubmissionPortalTranslator(Translator):
         biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
-            "part_of": nmdc_study_id,
+            "associated_studies": [nmdc_study_id],
             "type": "nmdc:Biosample",
             "name": sample_data[0].get("samp_name", "").strip(),
             "env_package": nmdc.TextValue(
@@ -619,18 +619,18 @@ class SubmissionPortalTranslator(Translator):
             if sample_data
         ]
 
-        if self.omics_processing_mapping:
-            # If there is data from an OmicsProcessing mapping file, process it now. This part
+        if self.nucleotide_sequencing_mapping:
+            # If there is data from an NucleotideSequencing mapping file, process it now. This part
             # assumes that there is a column in that file with the header __biosample_samp_name
             # that can be used to join with the sample data from the submission portal. The
             # biosample identified by that `samp_name` will be referenced in the `has_input`
-            # slot of the OmicsProcessing object. If a DataObject mapping file was also provided,
-            # those objects will also be generated and referenced in the `has_output` slot of the
-            # OmicsProcessing object. By keying off of the `samp_name` slot of the submission's
-            # sample data there is an implicit 1:1 relationship between Biosample objects and
-            # OmicsProcessing objects generated here.
+            # slot of the NucleotideSequencing object. If a DataObject mapping file was also
+            # provided, those objects will also be generated and referenced in the `has_output` slot
+            # of the NucleotideSequencing object. By keying off of the `samp_name` slot of the
+            # submission's sample data there is an implicit 1:1 relationship between Biosample
+            # objects and NucleotideSequencing objects generated here.
             join_key = f"__biosample_{BIOSAMPLE_UNIQUE_KEY_SLOT}"
-            database.omics_processing_set = []
+            database.data_generation_set = []
             database.data_object_set = []
             data_objects_by_sample_data_id = {}
             today = datetime.now().strftime("%Y-%m-%d")
@@ -646,10 +646,10 @@ class SubmissionPortalTranslator(Translator):
                     grouped,
                 )
 
-            for omics_processing_row in self.omics_processing_mapping:
-                # For each row in the OmicsProcessing mapping file, first grab the minted Biosample
-                # id that corresponds to the sample ID from the submission
-                sample_data_id = omics_processing_row.pop(join_key)
+            for nucleotide_sequencing_row in self.nucleotide_sequencing_mapping:
+                # For each row in the NucleotideSequencing mapping file, first grab the minted
+                # Biosample id that corresponds to the sample ID from the submission
+                sample_data_id = nucleotide_sequencing_row.pop(join_key)
                 if (
                     not sample_data_id
                     or sample_data_id not in sample_data_to_nmdc_biosample_ids
@@ -660,31 +660,33 @@ class SubmissionPortalTranslator(Translator):
                     continue
                 nmdc_biosample_id = sample_data_to_nmdc_biosample_ids[sample_data_id]
 
-                # Transform the raw row data according to the OmicsProcessing class's slots, and
-                # generate an instance. A few key slots do not come from the mapping file, but
+                # Transform the raw row data according to the NucleotideSequencing class's slots,
+                # and generate an instance. A few key slots do not come from the mapping file, but
                 # instead are defined here.
-                omics_processing_slots = {
-                    "id": self._id_minter("nmdc:OmicsProcessing", 1)[0],
+                nucleotide_sequencing_slots = {
+                    "id": self._id_minter("nmdc:NucleotideSequencing", 1)[0],
                     "has_input": [nmdc_biosample_id],
                     "has_output": [],
-                    "part_of": nmdc_study_id,
+                    "associated_studies": [nmdc_study_id],
                     "add_date": today,
                     "mod_date": today,
-                    "type": "nmdc:OmicsProcessing",
+                    "type": "nmdc:NucleotideSequencing",
                 }
-                omics_processing_slots.update(
+                nucleotide_sequencing_slots.update(
                     self._transform_dict_for_class(
-                        omics_processing_row, "OmicsProcessing"
+                        nucleotide_sequencing_row, "NucleotideSequencing"
                     )
                 )
-                omics_processing = nmdc.OmicsProcessing(**omics_processing_slots)
+                nucleotide_sequencing = nmdc.NucleotideSequencing(
+                    **nucleotide_sequencing_slots
+                )
 
                 for data_object_row in data_objects_by_sample_data_id.get(
                     sample_data_id, []
                 ):
                     # For each row in the DataObject mapping file that corresponds to the sample ID,
                     # transform the raw row data according to the DataObject class's slots, generate
-                    # an instance, and connect that instance's minted ID to the OmicsProcessing
+                    # an instance, and connect that instance's minted ID to the NucleotideSequencing
                     # instance
                     data_object_id = self._id_minter("nmdc:DataObject", 1)[0]
                     data_object_slots = {
@@ -696,10 +698,10 @@ class SubmissionPortalTranslator(Translator):
                     )
                     data_object = nmdc.DataObject(**data_object_slots)
 
-                    omics_processing.has_output.append(data_object_id)
+                    nucleotide_sequencing.has_output.append(data_object_id)
 
                     database.data_object_set.append(data_object)
 
-                database.omics_processing_set.append(omics_processing)
+                database.data_generation_set.append(nucleotide_sequencing)
 
         return database
