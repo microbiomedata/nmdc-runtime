@@ -860,7 +860,6 @@ class TestNeonDataTranslator:
         collect_date = _create_timestamp_value("2020-07-13T14:34Z")
         assert collect_date.has_raw_value == "2020-07-13T14:34Z"
 
-    @pytest.mark.xfail(reason="AttributeError: module 'nmdc_schema.nmdc' has no attribute 'QualityControlReport'")
     def test_get_database(self, translator):
         database = translator.get_database()
 
