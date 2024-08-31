@@ -5,6 +5,7 @@ import re
 import pytest
 import requests
 from dagster import build_op_context
+from fastapi import HTTPException
 from starlette import status
 from tenacity import wait_random_exponential, retry
 from toolz import get_in
@@ -349,9 +350,15 @@ def test_get_class_name_and_collection_names_by_doc_id():
     assert response.status_code == 404
 
 
-def test_find_data_objects_for_study(api_site_client):
-    response = api_site_client.request(
-        "GET",
-        "/data_objects/study/nmdc:sty-11-hdd4bf83",
-    )
-    assert response.status_code == 404
+def test_find_data_objects_for_nonexistent_study(api_site_client):
+    r"""
+    Confirms that the endpoint raises an `HTTPException` when the specified Study doesn't exist.
+    Reference: https://docs.pytest.org/en/stable/reference/reference.html#pytest.raises
+
+    TODO: Add tests focused on the situation where the Study _does_ exist.
+    """
+    with pytest.raises(HTTPException):
+        api_site_client.request(
+            "GET",
+            "/data_objects/study/nmdc:sty-11-hdd4bf83",
+        )
