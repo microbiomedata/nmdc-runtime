@@ -356,6 +356,7 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
 
     TODO: Add tests focused on the situation where the Study _does_ exist.
     """
+    ensure_schema_collections_and_alldocs()
     with pytest.raises(requests.HTTPError):
         api_site_client.request(
             "GET",
