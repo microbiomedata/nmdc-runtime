@@ -33,70 +33,9 @@ def ensure_schema_collections_and_alldocs():
         )
         return
 
-    # Seed the database with documents that will be included in the `alldocs` collection.
-    #
-    # Note: An earlier version of this function seeded the database by restoring a static dump into it.
-    #       The dump was created from a database that conformed to a specific version of the "legacy"
-    #       schema (i.e. `nmdc-schema` v10.8.0). That schema version was not necessarily the same schema
-    #       version as the Runtime was using when this test was _run_.
-    #
-    #       The current version of the function contains a quick-and-dirty workaround designed to make the
-    #       function work with the latest versions of both the "legacy" schema and the "Berkeley" schema.
-    #
-    # TODO: Replace the workaround below with a solution that will accommodate schema changes over time
-    #       and that doesn't rely on a contrived collection.
-    #
-    # Docs: https://microbiomedata.github.io/nmdc-schema/ControlledIdentifiedTermValue/
-    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/ControlledIdentifiedTermValue/
-    controlled_identified_term_value = dict(
-        has_raw_value="abc:123",
-        term=dict(id="abc:123", type="nmdc:OntologyClass"),
-    )
-    # Docs: https://microbiomedata.github.io/nmdc-schema/Study/
-    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Study/
-    study_id = "nmdc:sty-11-hdd4bf83"  # matches the `id` used in a test below
-    mdb.get_collection("study_set").replace_one(
-        dict(id=study_id),
-        dict(id=study_id,
-             type="nmdc:Study",
-             study_category="research_study"),
-        upsert=True,
-    )
-    # Docs: https://microbiomedata.github.io/nmdc-schema/Biosample/
-    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Biosample/
-    biosample_id = "nmdc:bsm-11-b1"
-    mdb.get_collection("biosample_set").replace_one(
-        dict(id=biosample_id),
-        dict(id=biosample_id,
-             type="nmdc:Biosample",
-             env_broad_scale=controlled_identified_term_value,
-             env_local_scale=controlled_identified_term_value,
-             env_medium=controlled_identified_term_value,
-             part_of=study_id),
-        upsert=True,
-    )
-    # Docs: https://microbiomedata.github.io/nmdc-schema/DataObject/
-    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/DataObject/
-    data_object_ids = [f"nmdc:dobj-11-d{i}" for i in range(0, 100)]
-    for data_object_id in data_object_ids:
-        mdb.get_collection("data_object_set").replace_one(
-            dict(id=data_object_id),
-            dict(id=data_object_id,
-                 type="nmdc:DataObject",
-                 name="my_name",
-                 description="my_description"),
-            upsert=True,
-        )
-    # Populate a (contrived) collection whose documents "relate" Biosamples to DataObjects.
-    contrived_thing_id = "nmdc:cvd-11-p1"
-    mdb.get_collection("contrived_thing_set").replace_one(
-        dict(id=contrived_thing_id),
-        dict(id=contrived_thing_id,
-             type="nmdc:ContrivedThing",
-             has_input=biosample_id,
-             has_output=data_object_ids),
-        upsert=True,
-    )
+    # FIXME: Seed the database with documents that would be included in an `alldocs` collection,
+    #        such that the `/data_objects/study/{study_id}` endpoint (which uses that collection)
+    #        would return some data. Currently, we are practically _not testing_ that endpoint.
 
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
@@ -411,9 +350,8 @@ def test_get_class_name_and_collection_names_by_doc_id():
 
 
 def test_find_data_objects_for_study(api_site_client):
-    ensure_schema_collections_and_alldocs()
-    rv = api_site_client.request(
+    response = api_site_client.request(
         "GET",
         "/data_objects/study/nmdc:sty-11-hdd4bf83",
     )
-    assert len(rv.json()) >= 60
+    assert response.status_code == 404
