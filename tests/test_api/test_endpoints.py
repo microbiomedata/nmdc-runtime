@@ -5,7 +5,6 @@ import re
 import pytest
 import requests
 from dagster import build_op_context
-from fastapi import HTTPException
 from starlette import status
 from tenacity import wait_random_exponential, retry
 from toolz import get_in
@@ -357,7 +356,7 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
 
     TODO: Add tests focused on the situation where the Study _does_ exist.
     """
-    with pytest.raises(HTTPException):
+    with pytest.raises(requests.HTTPError):
         api_site_client.request(
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
