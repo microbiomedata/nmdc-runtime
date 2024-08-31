@@ -351,13 +351,16 @@ def test_get_class_name_and_collection_names_by_doc_id():
 
 def test_find_data_objects_for_nonexistent_study(api_site_client):
     r"""
-    Confirms that the endpoint raises an `HTTPException` when the specified Study doesn't exist.
+    Confirms the endpoint returns an unsuccessful status code when no `Study` having the specified `id` exists.
     Reference: https://docs.pytest.org/en/stable/reference/reference.html#pytest.raises
 
-    TODO: Add tests focused on the situation where the Study _does_ exist.
+    Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
+          an unsuccessful status code.
+
+    TODO: Add tests focused on the situation where the `Study` _does_ exist.
     """
     ensure_schema_collections_and_alldocs()
-    with pytest.raises(requests.HTTPError):
+    with pytest.raises(requests.exceptions.HTTPError):
         api_site_client.request(
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
