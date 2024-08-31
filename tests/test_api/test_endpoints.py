@@ -55,39 +55,48 @@ def ensure_schema_collections_and_alldocs():
     # Docs: https://microbiomedata.github.io/nmdc-schema/Study/
     # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Study/
     study_id = "nmdc:sty-11-hdd4bf83"  # matches the `id` used in a test below
-    mdb.get_collection("study_set").insert_many([
+    mdb.get_collection("study_set").replace_one(
+        dict(id=study_id),
         dict(id=study_id,
              type="nmdc:Study",
              study_category="research_study"),
-    ])
+        upsert=True,
+    )
     # Docs: https://microbiomedata.github.io/nmdc-schema/Biosample/
     # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Biosample/
     biosample_id = "nmdc:bsm-11-b1"
-    mdb.get_collection("biosample_set").insert_many([
+    mdb.get_collection("biosample_set").replace_one(
+        dict(id=biosample_id),
         dict(id=biosample_id,
              type="nmdc:Biosample",
              env_broad_scale=controlled_identified_term_value,
              env_local_scale=controlled_identified_term_value,
              env_medium=controlled_identified_term_value,
              part_of=study_id),
-    ])
+        upsert=True,
+    )
     # Docs: https://microbiomedata.github.io/nmdc-schema/DataObject/
     # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/DataObject/
     data_object_ids = [f"nmdc:dobj-11-d{i}" for i in range(0, 100)]
-    mdb.get_collection("data_object_set").insert_many([
-        dict(id=data_object_id,
-             type="nmdc:DataObject",
-             name="my_name",
-             description="my_description")
-        for data_object_id in data_object_ids
-    ])
+    for data_object_id in data_object_ids:
+        mdb.get_collection("data_object_set").replace_one(
+            dict(id=data_object_id),
+            dict(id=data_object_id,
+                 type="nmdc:DataObject",
+                 name="my_name",
+                 description="my_description"),
+            upsert=True,
+        )
     # Populate a (contrived) collection whose documents "relate" Biosamples to DataObjects.
-    mdb.get_collection("contrived_thing_set").insert_many([
-        dict(id="nmdc:cvd-11-p1",
+    contrived_thing_id = "nmdc:cvd-11-p1"
+    mdb.get_collection("contrived_thing_set").replace_one(
+        dict(id=contrived_thing_id),
+        dict(id=contrived_thing_id,
              type="nmdc:ContrivedThing",
              has_input=biosample_id,
              has_output=data_object_ids),
-    ])
+        upsert=True,
+    )
 
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
