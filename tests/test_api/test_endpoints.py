@@ -1,10 +1,7 @@
 import json
 import os
 import re
-import subprocess
-import sys
 
-import bson
 import pytest
 import requests
 from dagster import build_op_context
@@ -15,7 +12,7 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db, mongorestore_from_dir
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -25,30 +22,6 @@ from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
-from tests.test_util import download_and_extract_tar
-from tests.test_ops.test_ops import op_context as test_op_context
-
-TEST_MONGODUMPS_DIR = REPO_ROOT_DIR.joinpath("tests", "nmdcdb")
-SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME = (
-    "nmdc-prod-schema-collections__2024-07-29_20-12-07"
-)
-SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL = (
-    "https://portal.nersc.gov/cfs/m3408/meta/mongodumps/"
-    f"{SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME}.tar"
-)  # 84MB. Should be < 100MB.
-
-
-def ensure_local_mongodump_exists():
-    dump_dir = TEST_MONGODUMPS_DIR.joinpath(
-        SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME
-    )
-    if not os.path.exists(dump_dir):
-        download_and_extract_tar(
-            url=SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL, extract_to=TEST_MONGODUMPS_DIR
-        )
-    else:
-        print(f"local mongodump already exists at {TEST_MONGODUMPS_DIR}")
-    return dump_dir
 
 
 def ensure_schema_collections_and_alldocs():
@@ -60,8 +33,62 @@ def ensure_schema_collections_and_alldocs():
         )
         return
 
-    dump_dir = ensure_local_mongodump_exists()
-    mongorestore_from_dir(mdb, dump_dir, skip_collections=["functional_annotation_agg"])
+    # Seed the database with documents that will be included in the `alldocs` collection.
+    #
+    # Note: An earlier version of this function seeded the database by restoring a static dump into it.
+    #       The dump was created from a database that conformed to a specific version of the "legacy"
+    #       schema (i.e. `nmdc-schema` v10.8.0). That schema version was not necessarily the same schema
+    #       version as the Runtime was using when this test was _run_.
+    #
+    #       The current version of the function contains a quick-and-dirty workaround designed to make the
+    #       function work with the latest versions of both the "legacy" schema and the "Berkeley" schema.
+    #
+    # TODO: Replace the workaround below with a solution that will accommodate schema changes over time
+    #       and that doesn't rely on a contrived collection.
+    #
+    # Docs: https://microbiomedata.github.io/nmdc-schema/ControlledIdentifiedTermValue/
+    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/ControlledIdentifiedTermValue/
+    controlled_identified_term_value = dict(
+        has_raw_value="abc:123",
+        term=dict(id="abc:123", type="nmdc:OntologyClass"),
+    )
+    # Docs: https://microbiomedata.github.io/nmdc-schema/Study/
+    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Study/
+    study_id = "nmdc:sty-11-hdd4bf83"  # matches the `id` used in a test below
+    mdb.get_collection("study_set").insert_many([
+        dict(id=study_id,
+             type="nmdc:Study",
+             study_category="research_study"),
+    ])
+    # Docs: https://microbiomedata.github.io/nmdc-schema/Biosample/
+    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/Biosample/
+    biosample_id = "nmdc:bsm-11-b1"
+    mdb.get_collection("biosample_set").insert_many([
+        dict(id=biosample_id,
+             type="nmdc:Biosample",
+             env_broad_scale=controlled_identified_term_value,
+             env_local_scale=controlled_identified_term_value,
+             env_medium=controlled_identified_term_value,
+             part_of=study_id),
+    ])
+    # Docs: https://microbiomedata.github.io/nmdc-schema/DataObject/
+    # Docs: https://microbiomedata.github.io/berkeley-schema-fy24/DataObject/
+    data_object_ids = [f"nmdc:dobj-11-d{i}" for i in range(0, 100)]
+    mdb.get_collection("data_object_set").insert_many([
+        dict(id=data_object_id,
+             type="nmdc:DataObject",
+             name="my_name",
+             description="my_description")
+        for data_object_id in data_object_ids
+    ])
+    # Populate a (contrived) collection whose documents "relate" Biosamples to DataObjects.
+    mdb.get_collection("contrived_thing_set").insert_many([
+        dict(id="nmdc:cvd-11-p1",
+             type="nmdc:ContrivedThing",
+             has_input=biosample_id,
+             has_output=data_object_ids),
+    ])
+
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
     materialize_alldocs(
