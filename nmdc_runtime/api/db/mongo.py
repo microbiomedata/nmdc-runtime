@@ -21,7 +21,8 @@ from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.util import (
     get_nmdc_jsonschema_dict,
     schema_collection_names_with_id_field,
-    nmdc_schema_view, collection_name_to_class_names,
+    nmdc_schema_view,
+    collection_name_to_class_names,
 )
 from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase

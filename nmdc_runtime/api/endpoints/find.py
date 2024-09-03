@@ -10,7 +10,11 @@ from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names, planned_process_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    activity_collection_names,
+    planned_process_collection_names,
+)
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
