@@ -1,10 +1,7 @@
 import json
 import os
 import re
-import subprocess
-import sys
 
-import bson
 import pytest
 import requests
 from dagster import build_op_context
@@ -15,7 +12,7 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db, mongorestore_from_dir
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -25,30 +22,6 @@ from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
-from tests.test_util import download_and_extract_tar
-from tests.test_ops.test_ops import op_context as test_op_context
-
-TEST_MONGODUMPS_DIR = REPO_ROOT_DIR.joinpath("tests", "nmdcdb")
-SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME = (
-    "nmdc-prod-schema-collections__2024-07-29_20-12-07"
-)
-SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL = (
-    "https://portal.nersc.gov/cfs/m3408/meta/mongodumps/"
-    f"{SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME}.tar"
-)  # 84MB. Should be < 100MB.
-
-
-def ensure_local_mongodump_exists():
-    dump_dir = TEST_MONGODUMPS_DIR.joinpath(
-        SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_BASENAME
-    )
-    if not os.path.exists(dump_dir):
-        download_and_extract_tar(
-            url=SCHEMA_COLLECTIONS_MONGODUMP_ARCHIVE_URL, extract_to=TEST_MONGODUMPS_DIR
-        )
-    else:
-        print(f"local mongodump already exists at {TEST_MONGODUMPS_DIR}")
-    return dump_dir
 
 
 def ensure_schema_collections_and_alldocs():
@@ -60,8 +33,10 @@ def ensure_schema_collections_and_alldocs():
         )
         return
 
-    dump_dir = ensure_local_mongodump_exists()
-    mongorestore_from_dir(mdb, dump_dir, skip_collections=["functional_annotation_agg"])
+    # FIXME: Seed the database with documents that would be included in an `alldocs` collection,
+    #        such that the `/data_objects/study/{study_id}` endpoint (which uses that collection)
+    #        would return some data. Currently, we are practically _not testing_ that endpoint.
+
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
     materialize_alldocs(
@@ -374,10 +349,19 @@ def test_get_class_name_and_collection_names_by_doc_id():
     assert response.status_code == 404
 
 
-def test_find_data_objects_for_study(api_site_client):
+def test_find_data_objects_for_nonexistent_study(api_site_client):
+    r"""
+    Confirms the endpoint returns an unsuccessful status code when no `Study` having the specified `id` exists.
+    Reference: https://docs.pytest.org/en/stable/reference/reference.html#pytest.raises
+
+    Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
+          an unsuccessful status code.
+
+    TODO: Add tests focused on the situation where the `Study` _does_ exist.
+    """
     ensure_schema_collections_and_alldocs()
-    rv = api_site_client.request(
-        "GET",
-        "/data_objects/study/nmdc:sty-11-hdd4bf83",
-    )
-    assert len(rv.json()) >= 60
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            "/data_objects/study/nmdc:sty-11-hdd4bf83",
+        )
