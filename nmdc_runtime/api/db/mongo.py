@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+from collections import defaultdict
 from contextlib import AbstractContextManager
 from functools import lru_cache
 from typing import Set, Dict, Any, Iterable
@@ -20,7 +21,7 @@ from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.util import (
     get_nmdc_jsonschema_dict,
     schema_collection_names_with_id_field,
-    nmdc_schema_view,
+    nmdc_schema_view, collection_name_to_class_names,
 )
 from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
@@ -99,6 +100,20 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
         "functional_annotation_set",
         "genome_feature_set",
     }
+
+
+@lru_cache
+def planned_process_collection_names(mdb: MongoDatabase) -> Set[str]:
+    schema_view = nmdc_schema_view()
+    collection_names = set()
+    class_name_to_collection_names = defaultdict(set)
+    for collection_name, class_names in collection_name_to_class_names.items():
+        for class_name in class_names:
+            class_name_to_collection_names[class_name].add(collection_name)
+    for descendant in schema_view.class_descendants("PlannedProcess"):
+        collection_names |= class_name_to_collection_names[descendant]
+
+    return nmdc_schema_collection_names(mdb) & collection_names
 
 
 def mongodump_excluded_collections():
