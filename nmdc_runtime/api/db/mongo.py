@@ -105,7 +105,7 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
 
 
 @lru_cache
-def planned_process_collection_names(mdb: MongoDatabase) -> Set[str]:
+def get_planned_process_collection_names() -> Set[str]:
     schema_view = nmdc_schema_view()
     collection_names = set()
     class_name_to_collection_names = defaultdict(set)
@@ -115,7 +115,7 @@ def planned_process_collection_names(mdb: MongoDatabase) -> Set[str]:
     for descendant in schema_view.class_descendants("PlannedProcess"):
         collection_names |= class_name_to_collection_names[descendant]
 
-    return get_nonempty_nmdc_schema_collection_names(mdb) & collection_names
+    return collection_names
 
 
 def mongodump_excluded_collections():

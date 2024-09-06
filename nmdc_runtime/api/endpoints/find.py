@@ -13,7 +13,8 @@ from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     activity_collection_names,
-    planned_process_collection_names,
+    get_planned_process_collection_names,
+    get_nonempty_nmdc_schema_collection_names,
 )
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
@@ -233,7 +234,12 @@ def find_planned_processes(
     For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
-    return find_resources_spanning(req, mdb, planned_process_collection_names(mdb))
+    return find_resources_spanning(
+        req,
+        mdb,
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb),
+    )
 
 
 @router.get(
@@ -251,7 +257,11 @@ def find_planned_process_by_id(
     \n Note that only one metadata record for an workflow_execution may be returned at a time using this method.
     """
     doc = None
-    for name in planned_process_collection_names(mdb):
+    collection_names = (
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb)
+    )
+    for name in collection_names:
         doc = mdb[name].find_one({"id": planned_process_id})
         if doc is not None:
             return strip_oid(doc)
