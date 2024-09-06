@@ -62,7 +62,8 @@ def get_async_mongo_db() -> AsyncIOMotorDatabase:
     return _client[os.getenv("MONGO_DBNAME")]
 
 
-def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
+def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
+    """Returns the names of schema collections in the database that have at least one document."""
     names = set(mdb.list_collection_names()) & set(get_collection_names_from_schema())
     return {name for name in names if mdb[name].estimated_document_count() > 0}
 
@@ -94,7 +95,7 @@ def get_collection_names_from_schema() -> list[str]:
 
 @lru_cache
 def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
-    return nmdc_schema_collection_names(mdb) - {
+    return get_nonempty_nmdc_schema_collection_names(mdb) - {
         "biosample_set",
         "study_set",
         "data_object_set",
@@ -114,7 +115,7 @@ def planned_process_collection_names(mdb: MongoDatabase) -> Set[str]:
     for descendant in schema_view.class_descendants("PlannedProcess"):
         collection_names |= class_name_to_collection_names[descendant]
 
-    return nmdc_schema_collection_names(mdb) & collection_names
+    return get_nonempty_nmdc_schema_collection_names(mdb) & collection_names
 
 
 def mongodump_excluded_collections():

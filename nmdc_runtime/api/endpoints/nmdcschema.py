@@ -15,7 +15,7 @@ from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import get_mongo_db, get_nonempty_nmdc_schema_collection_names
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
@@ -26,7 +26,7 @@ router = APIRouter()
 def verify_collection_name(
     collection_name: str, mdb: MongoDatabase = Depends(get_mongo_db)
 ):
-    names = nmdc_schema_collection_names(mdb)
+    names = get_nonempty_nmdc_schema_collection_names(mdb)
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

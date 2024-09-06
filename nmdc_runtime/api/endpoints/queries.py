@@ -7,7 +7,7 @@ from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import now, raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import get_mongo_db, get_nonempty_nmdc_schema_collection_names
 from nmdc_runtime.api.endpoints.util import permitted, users_allowed
 from nmdc_runtime.api.models.query import (
     Query,
@@ -130,7 +130,7 @@ def _run_query(query, mdb) -> CommandResponse:
     ran_at = now()
     if q_type is DeleteCommand:
         collection_name = query.cmd.delete
-        if collection_name not in nmdc_schema_collection_names(mdb):
+        if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
@@ -153,7 +153,7 @@ def _run_query(query, mdb) -> CommandResponse:
                 )
     elif q_type is UpdateCommand:
         collection_name = query.cmd.update
-        if collection_name not in nmdc_schema_collection_names(mdb):
+        if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
