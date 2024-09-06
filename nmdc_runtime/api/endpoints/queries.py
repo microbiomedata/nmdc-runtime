@@ -7,7 +7,10 @@ from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import now, raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, get_nonempty_nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_nonempty_nmdc_schema_collection_names,
+)
 from nmdc_runtime.api.endpoints.util import permitted, users_allowed
 from nmdc_runtime.api.models.query import (
     Query,

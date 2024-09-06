@@ -15,7 +15,10 @@ from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, get_nonempty_nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_nonempty_nmdc_schema_collection_names,
+)
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
