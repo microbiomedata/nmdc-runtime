@@ -1,5 +1,5 @@
 from operator import itemgetter
-from typing import List
+from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, Form
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -21,6 +21,7 @@ from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
+    FindApiRequest,
     entity_attributes_to_index,
     PipelineFindRequest,
     PipelineFindResponse,
@@ -36,7 +37,7 @@ router = APIRouter()
     response_model_exclude_unset=True,
 )
 def find_studies(
-    req: FindRequest = Depends(),
+    req: Annotated[FindApiRequest, Depends(FindApiRequest)],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
