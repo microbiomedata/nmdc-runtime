@@ -230,7 +230,7 @@ def find_planned_processes(
     `PlannedProcess` may be used in the filter
     and sort parameters, including attributes of subclasses of *PlannedProcess*.
 
-    For example, attributes used in subclasses such `Extraction` (subclass of *PlannedProcess*),
+    For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
     return find_resources_spanning(req, mdb, planned_process_collection_names(mdb))
