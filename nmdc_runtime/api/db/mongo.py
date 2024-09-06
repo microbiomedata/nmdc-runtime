@@ -106,14 +106,17 @@ def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
 
 @lru_cache
 def get_planned_process_collection_names() -> Set[str]:
+    """Return the names of the collections that may contain PlannedProcess instances.
+
+    TODO: Explain more.
+    """
     schema_view = nmdc_schema_view()
     collection_names = set()
-    class_name_to_collection_names = defaultdict(set)
+    planned_process_descendants = set(schema_view.class_descendants("PlannedProcess"))
     for collection_name, class_names in collection_name_to_class_names.items():
         for class_name in class_names:
-            class_name_to_collection_names[class_name].add(collection_name)
-    for descendant in schema_view.class_descendants("PlannedProcess"):
-        collection_names |= class_name_to_collection_names[descendant]
+            if class_name in planned_process_descendants:
+                collection_names.add(collection_name)
 
     return collection_names
 

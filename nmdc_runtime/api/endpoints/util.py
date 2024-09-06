@@ -343,6 +343,19 @@ def find_resources_spanning(
             detail="This resource only supports page-based pagination",
         )
 
+    if len(collection_names) == 0:
+        return {
+            "meta": {
+                "mongo_filter_dict": get_mongo_filter(req.filter),
+                "count": 0,
+                "db_response_time_ms": 0,
+                "page": req.page,
+                "per_page": req.per_page,
+            },
+            "results": [],
+            "group_by": [],
+        }
+
     responses = {name: find_resources(req, mdb, name) for name in collection_names}
     rv = {
         "meta": {

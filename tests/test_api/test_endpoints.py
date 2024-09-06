@@ -365,3 +365,19 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
         )
+
+
+def test_find_planned_processes(api_site_client):
+    mdb = get_mongo_db()
+    test_nmdc_database = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "planned_processes.json").read_text()
+    )
+    for collection_name, docs in test_nmdc_database.items():
+        for doc in docs:
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    rv = api_site_client.request(
+        "GET",
+        "/planned_processes",
+    )
+    assert rv.json()["meta"]["count"] >= 9
