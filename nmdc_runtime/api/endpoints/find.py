@@ -1,7 +1,7 @@
 from operator import itemgetter
-from typing import List
+from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
@@ -248,24 +248,34 @@ def find_planned_processes(
     response_model_exclude_unset=True,
 )
 def find_planned_process_by_id(
-    planned_process_id: str,
+    planned_process_id: Annotated[str, Path(
+        title="PlannedProcess ID",
+        description="The `id` of the document that represents an instance of "
+                    "the `PlannedProcess` class or any of its subclasses",
+        example=r"nmdc:wfmag-11-00jn7876.1",
+    )],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    If the workflow_execution identifier is known, the workflow_execution metadata can be retrieved using the
-    GET /workflow_executions/workflow_execution_id endpoint.
-    \n Note that only one metadata record for an workflow_execution may be returned at a time using this method.
+    r"""
+    Returns the document that has the specified `id` and represents an instance of the `PlannedProcess` class
+    or any of its subclasses. If no such document exists, returns an HTTP 404 response.
     """
     doc = None
+
+    # Note: We exclude empty collections as a performance optimization
+    #       (we already know they don't contain the document).
     collection_names = (
         get_planned_process_collection_names()
         & get_nonempty_nmdc_schema_collection_names(mdb)
     )
+
+    # For each collection, search it for a document having the specified `id`.
     for name in collection_names:
         doc = mdb[name].find_one({"id": planned_process_id})
         if doc is not None:
             return strip_oid(doc)
 
+    # Note: If execution gets to this point, it means we didn't find the document.
     return raise404_if_none(doc)
 
 
