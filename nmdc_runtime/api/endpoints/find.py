@@ -1,7 +1,7 @@
 from operator import itemgetter
-from typing import List
+from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
@@ -10,7 +10,12 @@ from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    activity_collection_names,
+    get_planned_process_collection_names,
+    get_nonempty_nmdc_schema_collection_names,
+)
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
@@ -210,48 +215,71 @@ def find_data_object_by_id(
 
 
 @router.get(
-    "/workflow_executions",
+    "/planned_processes",
     response_model=FindResponse,
     response_model_exclude_unset=True,
 )
-def find_workflow_executions(
+def find_planned_processes(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/WorkflowExecution>) when they resolve
+    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/PlannedProcess>) when they resolve
     #   to Berkeley schema definitions.
     """
-    The GET /workflow_executions endpoint is a general way to fetch metadata about various workflow_executions (e.g. metagenome assembly,
-    natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
-    `WorkflowExecution` or `PlannedProcess` classes may be used in the filter
-    and sort parameters, including attributes of subclasses of *WorkflowExecution* and *PlannedProcess*.
+    The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
+    workflow execution, material processing, etc.). Any "slot" (a.k.a. attribute) for
+    `PlannedProcess` may be used in the filter
+    and sort parameters, including attributes of subclasses of *PlannedProcess*.
 
-    For example, attributes used in subclasses such as MetabolomicsAnalysis (subclass of *WorkflowExecution*)
-    or `Extraction` (subclass of *PlannedProcess*),
+    For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
-    return find_resources(req, mdb, "workflow_execution_set")
+    return find_resources_spanning(
+        req,
+        mdb,
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb),
+    )
 
 
 @router.get(
-    "/workflow_executions/{workflow_execution_id}",
+    "/planned_processes/{planned_process_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
 )
-def find_workflow_execution_by_id(
-    workflow_execution_id: str,
+def find_planned_process_by_id(
+    planned_process_id: Annotated[
+        str,
+        Path(
+            title="PlannedProcess ID",
+            description="The `id` of the document that represents an instance of "
+            "the `PlannedProcess` class or any of its subclasses",
+            example=r"nmdc:wfmag-11-00jn7876.1",
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    Returns the document that has the specified `id` and represents an instance of the `PlannedProcess` class
+    or any of its subclasses. If no such document exists, returns an HTTP 404 response.
     """
-    If the workflow_execution identifier is known, the workflow_execution metadata can be retrieved using the
-    GET /workflow_executions/workflow_execution_id endpoint.
-    \n Note that only one metadata record for an workflow_execution may be returned at a time using this method.
-    """
-    return strip_oid(
-        raise404_if_none(
-            mdb["workflow_execution_set"].find_one({"id": workflow_execution_id})
-        )
+    doc = None
+
+    # Note: We exclude empty collections as a performance optimization
+    #       (we already know they don't contain the document).
+    collection_names = (
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb)
     )
+
+    # For each collection, search it for a document having the specified `id`.
+    for name in collection_names:
+        doc = mdb[name].find_one({"id": planned_process_id})
+        if doc is not None:
+            return strip_oid(doc)
+
+    # Note: If execution gets to this point, it means we didn't find the document.
+    return raise404_if_none(doc)
 
 
 jinja_env = Environment(

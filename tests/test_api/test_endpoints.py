@@ -365,3 +365,58 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
         )
+
+
+def test_find_planned_processes(api_site_client):
+    mdb = get_mongo_db()
+    database_dict = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "planned_processes.json").read_text()
+    )
+    for collection_name, docs in database_dict.items():
+        for doc in docs:
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    rv = api_site_client.request(
+        "GET",
+        "/planned_processes",
+    )
+    assert rv.json()["meta"]["count"] >= 9
+
+def test_find_planned_process_by_id(api_site_client):
+    # Seed the database with documents that represent instances of the `PlannedProcess` class or any of its subclasses.
+    mdb = get_mongo_db()
+    database_dict = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "planned_processes.json").read_text()
+    )
+    for collection_name, docs in database_dict.items():
+        for doc in docs:
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    # Also, include a document that represents a `Study` (which is not a subclass of `PlannedProcess`),
+    # so we can check whether the endpoint-under-test only searches collections that we expect it to.
+    mdb.get_collection(name="study_set").insert_one(dict(id="nmdc:sty-11-00000001"))
+
+    # Test case: The `id` belongs to a document that represents an instance of
+    #            the `PlannedProcess` class or one of its subclasses.
+    rv = api_site_client.request(
+        "GET",
+        f"/planned_processes/nmdc:wfmag-11-00jn7876.1",
+    )
+    planned_process = rv.json()
+    assert "_id" not in planned_process
+    assert planned_process["id"] == "nmdc:wfmag-11-00jn7876.1"
+
+    # Test case: The `id` does not belong to a document.
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            f"/planned_processes/nmdc:wfmag-11-00jn7876.99",
+        )
+
+    # Test case: The `id` belongs to a document, but that document does not represent
+    #            an instance of the `PlannedProcess` class or any of its subclasses.
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            f"/planned_processes/nmdc:sty-11-00000001",
+        )
