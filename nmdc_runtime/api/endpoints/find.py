@@ -248,12 +248,15 @@ def find_planned_processes(
     response_model_exclude_unset=True,
 )
 def find_planned_process_by_id(
-    planned_process_id: Annotated[str, Path(
-        title="PlannedProcess ID",
-        description="The `id` of the document that represents an instance of "
-                    "the `PlannedProcess` class or any of its subclasses",
-        example=r"nmdc:wfmag-11-00jn7876.1",
-    )],
+    planned_process_id: Annotated[
+        str,
+        Path(
+            title="PlannedProcess ID",
+            description="The `id` of the document that represents an instance of "
+            "the `PlannedProcess` class or any of its subclasses",
+            example=r"nmdc:wfmag-11-00jn7876.1",
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
