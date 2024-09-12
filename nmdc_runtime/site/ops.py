@@ -1043,6 +1043,10 @@ def materialize_alldocs(context) -> int:
 
     # Re-idx for `alldocs` collection
     mdb.alldocs.create_index("id", unique=True)
+    # The indexes were added to improve the performance of the
+    # /data_objects/study/{study_id} endpoint
+    mdb.alldocs.create_index("has_input")
+    mdb.alldocs.create_index("has_output")
     context.log.info(
         f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
     )
