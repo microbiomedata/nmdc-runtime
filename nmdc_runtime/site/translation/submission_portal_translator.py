@@ -96,9 +96,7 @@ class SubmissionPortalTranslator(Translator):
             nmdc.DoiProviderEnum(study_doi_provider) if study_doi_provider else None
         )
         self.study_category = (
-            nmdc.StudyCategoryEnum(study_category)
-            if study_category
-            else nmdc.StudyCategoryEnum.research_study
+            nmdc.StudyCategoryEnum(study_category) if study_category else None
         )
         self.study_pi_image_url = study_pi_image_url
         self.study_funding_sources = study_funding_sources
