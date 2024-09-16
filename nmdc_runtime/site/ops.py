@@ -582,7 +582,10 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")
 
 
-@op(config_schema={"study_id": str, "study_type": str})
+@op(
+    config_schema={"study_id": str, "study_type": str},
+    out={"study_id": Out(str), "study_type": Out(str)},
+)
 def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str]:
     return (context.op_config["study_id"], context.op_config["study_type"])
 
