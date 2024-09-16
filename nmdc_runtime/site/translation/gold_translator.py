@@ -1,7 +1,9 @@
 import collections
+import csv
 import re
 from typing import List, Tuple, Union
 from nmdc_schema import nmdc
+import pandas as pd
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
@@ -24,6 +26,7 @@ class GoldStudyTranslator(Translator):
         self.biosamples = biosamples
         self.projects = projects
         self.analysis_projects = analysis_projects
+        self.gold_instrument_set_mapping_file_path = "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv"
 
         self._projects_by_id = self._index_by_id(self.projects, "projectGoldId")
         self._analysis_projects_by_id = self._index_by_id(
@@ -367,20 +370,39 @@ class GoldStudyTranslator(Translator):
             type="nmdc:GeolocationValue",
         )
 
-    def _get_instrument_name(self, gold_project: JSON_OBJECT) -> Union[str, None]:
-        """Get instrument name used in a GOLD project
+    def _get_instrument(
+        self, gold_project: JSON_OBJECT
+    ) -> Union[nmdc.Instrument, None]:
+        """Get instrument id referenced in instrument_set collection in Mongo.
+        Note: The instrument id is not retrieved by making a call to the database,
+        but rather parsed out from a TSV file in the nmdc-schema repo stored at
+        self.gold_instrument_set_mapping_file_path.
 
-        This method gets the `seqMethod` field from a GOLD project object. If
-        that value is not `None` it should be a list and the first element of that
-        list is returned. If the value of the field is `None`, `None` is returned.
+        This method gets the seqMethod field from a GOLD project object. If
+        that value is not None and is in the self.gold_instrument_set_mapping_file_path
+        file's GOLD SeqMethod column, the corresponding instrument id from
+        NMDC instrument_set id column is returned. If the value of the field
+        is None, None is returned.
 
         :param gold_project: GOLD project object
-        :return: Instrument name
+        :return: nmdc.Instrument
         """
         seq_method = gold_project.get("seqMethod")
         if not seq_method:
             return None
-        return seq_method[0]
+
+        seq_method = seq_method[0].strip()
+        df = pd.read_csv(self.gold_instrument_set_mapping_file_path, delimiter="\t")
+
+        matching_row = df[df["GOLD SeqMethod"] == seq_method]
+
+        if not matching_row.empty:
+            instrument_id = matching_row["NMDC instrument_set id"].values[0]
+            return instrument_id
+
+        raise ValueError(
+            f"seqMethod '{seq_method}' could not be found in the TSV file."
+        )
 
     def _get_processing_institution(
         self, gold_project: JSON_OBJECT
@@ -569,6 +591,7 @@ class GoldStudyTranslator(Translator):
             mod_date=self._get_mod_date(gold_project),
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
+            instrument_used=self._get_instrument(gold_project),
             analyte_category="metagenome",
             associated_studies=[nmdc_study_id],
         )
