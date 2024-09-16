@@ -373,25 +373,25 @@ def test_get_lat_lon():
     assert lat_lon is None
 
 
-def test_get_instrument_name():
+def test_get_instrument():
     translator = GoldStudyTranslator()
 
-    instrument_name = translator._get_instrument_name(
+    instrument = translator._get_instrument(
         {
             "seqMethod": ["Illumina NextSeq 550", "Illumina NextSeq 3000"],
         }
     )
-    assert instrument_name == "Illumina NextSeq 550"
+    assert instrument.id == "nmdc:inst-14-xz5tb342"
 
-    instrument_name = translator._get_instrument_name(
+    instrument = translator._get_instrument(
         {
             "seqMethod": [],
         }
     )
-    assert instrument_name is None
+    assert instrument is None
 
-    instrument_name = translator._get_instrument_name({"seqMethod": None})
-    assert instrument_name is None
+    instrument = translator._get_instrument({"seqMethod": None})
+    assert instrument is None
 
 
 def test_get_processing_institution():
