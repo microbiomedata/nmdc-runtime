@@ -16,6 +16,7 @@ class GoldStudyTranslator(Translator):
         biosamples: List[JSON_OBJECT] = [],
         projects: List[JSON_OBJECT] = [],
         analysis_projects: List[JSON_OBJECT] = [],
+        gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         *args,
         **kwargs,
     ) -> None:
@@ -26,7 +27,7 @@ class GoldStudyTranslator(Translator):
         self.biosamples = biosamples
         self.projects = projects
         self.analysis_projects = analysis_projects
-        self.gold_instrument_set_mapping_file_path = "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv"
+        self.gold_nmdc_instrument_map_df = gold_nmdc_instrument_map_df
 
         self._projects_by_id = self._index_by_id(self.projects, "projectGoldId")
         self._analysis_projects_by_id = self._index_by_id(
@@ -392,7 +393,7 @@ class GoldStudyTranslator(Translator):
             return None
 
         seq_method = seq_method[0].strip()
-        df = pd.read_csv(self.gold_instrument_set_mapping_file_path, delimiter="\t")
+        df = self.gold_nmdc_instrument_map_df
 
         matching_row = df[df["GOLD SeqMethod"] == seq_method]
 
@@ -401,7 +402,7 @@ class GoldStudyTranslator(Translator):
             return instrument_id
 
         raise ValueError(
-            f"seqMethod '{seq_method}' could not be found in the TSV file."
+            f"seqMethod '{seq_method}' could not be found in the GOLD-NMDC instrument mapping TSV file."
         )
 
     def _get_processing_institution(

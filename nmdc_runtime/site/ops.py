@@ -583,11 +583,23 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
 
 
 @op(
-    config_schema={"study_id": str, "study_type": str},
-    out={"study_id": Out(str), "study_type": Out(str)},
+    config_schema={
+        "study_id": str,
+        "study_type": str,
+        "gold_nmdc_instrument_mapping_file_url": str,
+    },
+    out={
+        "study_id": Out(str),
+        "study_type": Out(str),
+        "gold_nmdc_instrument_mapping_file_url": Out(str),
+    },
 )
-def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str]:
-    return (context.op_config["study_id"], context.op_config["study_type"])
+def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str, str]:
+    return (
+        context.op_config["study_id"],
+        context.op_config["study_type"],
+        context.op_config["gold_nmdc_instrument_mapping_file_url"],
+    )
 
 
 @op(required_resource_keys={"gold_api_client"})
@@ -628,6 +640,7 @@ def nmdc_schema_database_from_gold_study(
     projects: List[Dict[str, Any]],
     biosamples: List[Dict[str, Any]],
     analysis_projects: List[Dict[str, Any]],
+    gold_nmdc_instrument_map_df: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -636,7 +649,13 @@ def nmdc_schema_database_from_gold_study(
         return response.json()
 
     translator = GoldStudyTranslator(
-        study, study_type, biosamples, projects, analysis_projects, id_minter=id_minter
+        study,
+        study_type,
+        biosamples,
+        projects,
+        analysis_projects,
+        gold_nmdc_instrument_map_df,
+        id_minter=id_minter,
     )
     database = translator.get_database()
     return database
