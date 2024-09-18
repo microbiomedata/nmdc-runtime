@@ -418,7 +418,7 @@ app = FastAPI(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
         "supports validation and submission of metadata, as well as "
-        "orchestration of workflow execution activities."
+        "orchestration of workflow executions."
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
