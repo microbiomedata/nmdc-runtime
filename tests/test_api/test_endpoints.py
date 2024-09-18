@@ -281,7 +281,7 @@ def test_submit_workflow_activities(api_site_client):
     test_payload = {
         test_collection: [
             {
-                "id": nmdc:wfrqc-11-abcdef,
+                "id": "nmdc:wfrqc-11-abcdef",
                 "name": "Read QC Activity for nmdc:wfrqc-11-t0tvnp52.1",
                 "started_at_time": "2024-01-11T20:48:30.718133+00:00",
                 "ended_at_time": "2024-01-11T21:11:44.884260+00:00",
