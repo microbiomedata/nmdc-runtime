@@ -222,11 +222,16 @@ issue an update query).
     {
         "name": "metadata",
         "description": """
-The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from collection set types (including studies, biosamples, planned processes, and data objects as discussed in the __find__ section).
+The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from collection set types (including 
+[studies](https://w3id.org/nmdc/Study/), 
+[biosamples](https://w3id.org/nmdc/Biosample/), 
+[planned processes](https://w3id.org/nmdc/PlannedProcess/), and 
+[data objects](https://w3id.org/nmdc/DataObject/) 
+as discussed in the __find__ section).
 <br/>
  
 The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various GET endpoints 
-that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__  endpoints, 
+that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__ endpoints, 
 parameters for the __metadata__ endpoints that do not have a red ___* required___ next to them are optional. <br/>
 
 Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of the metadata endpoints 
@@ -235,10 +240,10 @@ The applicable parameters of the __metadata__ endpoints, with acceptable syntax 
 
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: | 
-| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/) of the NMDC Schema | String | `biosample_set` |
+| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://w3id.org/nmdc/Database/) of the NMDC Schema | String | `biosample_set` |
 | filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | [MongoDB-like query language](https://www.mongodb.com/docs/manual/tutorial/query-documents/). All strings should be in double quotation marks. | `{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}` | 
 | max_page_size | Specifies the maximum number of documents returned at a time | Integer | `25`
-| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. ![next_page_token](../_static/images/howto_guides/api_gui/metadata_page_token_param.png) | String | `nmdc:sys0ae1sh583`
+| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. | String | `nmdc:sys0ae1sh583`
 | projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
 | doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
 <br/>
@@ -413,7 +418,7 @@ app = FastAPI(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
         "supports validation and submission of metadata, as well as "
-        "orchestration of workflow execution activities."
+        "orchestration of workflow executions."
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
