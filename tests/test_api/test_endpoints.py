@@ -304,7 +304,7 @@ def test_submit_workflow_activities(api_site_client):
         mdb[test_collection].delete_one({"id": test_id})
     rv = api_site_client.request(
         "POST",
-        "/v1/workflows/activities",
+        "/workflows/workflow_executions",
         test_payload,
     )
     assert rv.json() == {"message": "jobs accepted"}
