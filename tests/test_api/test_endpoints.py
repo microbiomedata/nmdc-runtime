@@ -270,9 +270,6 @@ def test_submit_changesheet():
     assert True
 
 
-#@pytest.mark.skip(
-#    reason="Skipping because race condition causes  http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
-#)
 def test_submit_workflow_activities(api_site_client):
     test_collection, test_id = (
         "workflow_execution_set",
