@@ -281,7 +281,7 @@ def test_submit_workflow_activities(api_site_client):
     test_payload = {
         test_collection: [
             {
-                "id": "nmdc:wfrqc-11-abcdef",
+                "id": test_id,
                 "name": "Read QC Activity for nmdc:wfrqc-11-t0tvnp52.1",
                 "started_at_time": "2024-01-11T20:48:30.718133+00:00",
                 "ended_at_time": "2024-01-11T21:11:44.884260+00:00",
@@ -292,10 +292,10 @@ def test_submit_workflow_activities(api_site_client):
                 "has_output": [
                     "nmdc:dobj-11-w5dak635",
                     "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03",
+                    "nmdc:dobj-11-bds7qq03"
                 ],
                 "type": "nmdc:ReadQcAnalysis",
-                "version": "v1.0.8",
+                "version": "v1.0.8"
             }
         ]
     }
