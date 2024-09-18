@@ -222,11 +222,8 @@ issue an update query).
     {
         "name": "metadata",
         "description": """
-The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from 
-collection set types (including [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html)).<br/>
+The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from collection set types (including studies, biosamples, planned processes, and data objects as discussed in the __find__ section).
+<br/>
  
 The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various GET endpoints 
 that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__  endpoints, 
@@ -235,9 +232,6 @@ parameters for the __metadata__ endpoints that do not have a red ___* required__
 Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of the metadata endpoints 
 uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/). 
 The applicable parameters of the __metadata__ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details>
-<summary>More Details</summary>
 
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: | 
@@ -248,24 +242,19 @@ The applicable parameters of the __metadata__ endpoints, with acceptable syntax 
 | projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
 | doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
 <br/>
-</details>        
+
         """,
     },
     {
         "name": "find",
         "description": """
-The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with 
-NMDC metadata entities already specified - where metadata about [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html) can be retrieved using GET requests. 
+The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with NMDC metadata entities already specified - where metadata about [studies](https://w3id.org/nmdc/Study), [biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/), and [planned processes](https://w3id.org/nmdc/PlannedProcess/) can be retrieved using GET requests. 
+<br/>
 
 Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query in a meaningful way. 
 Please note that endpoints with parameters that do not have a red ___* required___ label next to them are optional.<br/>
 
 The applicable parameters of the ___find___ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details><summary>More Details</summary>
 
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: |
@@ -280,9 +269,9 @@ The applicable parameters of the ___find___ endpoints, with acceptable syntax an
 | study_id | The unique identifier of a study | Curie e.g. `prefix:identifier` | `nmdc:sty-11-34xj1150` |
 | sample_id | The unique identifier of a biosample | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-w43vsm21` |
 | data_object_id | The unique identifier of a data object | Curie e.g. `prefix:identifier` | `nmdc:dobj-11-7c6np651` |
-| activity_id | The unique identifier for an NMDC workflow execution activity | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|<br/>
+| planned_process_id | The unique identifier for an NMDC planned process | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|
+
 <br/>
-</details>
 
 """,
     },
