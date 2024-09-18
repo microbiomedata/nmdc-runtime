@@ -233,9 +233,6 @@ Unlike the compact syntax used in the __find__  endpoints, the syntax for the fi
 uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/). 
 The applicable parameters of the __metadata__ endpoints, with acceptable syntax and examples, are in the table below.
 
-<details>
-<summary>More Details</summary>
-
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: | 
 | collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/) of the NMDC Schema | String | `biosample_set` |
@@ -245,7 +242,7 @@ The applicable parameters of the __metadata__ endpoints, with acceptable syntax 
 | projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
 | doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
 <br/>
-</details>        
+
         """,
     },
     {
@@ -258,8 +255,6 @@ Each endpoint is unique and requires the applicable attribute names to be known 
 Please note that endpoints with parameters that do not have a red ___* required___ label next to them are optional.<br/>
 
 The applicable parameters of the ___find___ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details><summary>More Details</summary>
 
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: |
@@ -277,7 +272,6 @@ The applicable parameters of the ___find___ endpoints, with acceptable syntax an
 | planned_process_id | The unique identifier for an NMDC planned process | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|
 
 <br/>
-</details>
 
 """,
     },
