@@ -371,9 +371,7 @@ class GoldStudyTranslator(Translator):
             type="nmdc:GeolocationValue",
         )
 
-    def _get_instrument(
-        self, gold_project: JSON_OBJECT
-    ) -> Union[nmdc.Instrument, None]:
+    def _get_instrument(self, gold_project: JSON_OBJECT) -> Union[str, None]:
         """Get instrument id referenced in instrument_set collection in Mongo.
         Note: The instrument id is not retrieved by making a call to the database,
         but rather parsed out from a TSV file in the nmdc-schema repo stored at
@@ -386,7 +384,7 @@ class GoldStudyTranslator(Translator):
         is None, None is returned.
 
         :param gold_project: GOLD project object
-        :return: nmdc.Instrument
+        :return: id corresponding to an Instrument from instrument_set collection
         """
         seq_method = gold_project.get("seqMethod")
         if not seq_method:

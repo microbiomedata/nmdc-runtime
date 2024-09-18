@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 import random
@@ -7,6 +8,35 @@ import yaml
 from nmdc_schema import nmdc
 
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
+
+mock_gold_nmdc_instrument_map_df = pd.DataFrame(
+    {
+        "GOLD SeqMethod": [
+            "Illumina HiSeq",
+            "Illumina HiSeq 2500",
+            "Illumina HiSeq 2500-1TB",
+            "Illumina HiSeq 2500-Rapid",
+            "Illumina NextSeq 550",
+            "Illumina NovaSeq",
+            "Illumina NovaSeq 6000",
+            "Illumina NovaSeq S2",
+            "Illumina NovaSeq S4",
+            "Illumina NovaSeq SP",
+        ],
+        "NMDC instrument_set id": [
+            "nmdc:inst-14-79zxap02",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-xz5tb342",
+            "nmdc:inst-14-xx07be40",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+        ],
+    }
+)
 
 
 def test_get_pi():
@@ -374,24 +404,26 @@ def test_get_lat_lon():
 
 
 def test_get_instrument():
-    translator = GoldStudyTranslator()
+    translator = GoldStudyTranslator(
+        gold_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df
+    )
 
-    instrument = translator._get_instrument(
+    instrument_id = translator._get_instrument(
         {
-            "seqMethod": ["Illumina NextSeq 550", "Illumina NextSeq 3000"],
+            "seqMethod": ["Illumina NextSeq 550"],
         }
     )
-    assert instrument.id == "nmdc:inst-14-xz5tb342"
+    assert instrument_id == "nmdc:inst-14-xz5tb342"
 
-    instrument = translator._get_instrument(
+    instrument_id = translator._get_instrument(
         {
             "seqMethod": [],
         }
     )
-    assert instrument is None
+    assert instrument_id is None
 
-    instrument = translator._get_instrument({"seqMethod": None})
-    assert instrument is None
+    instrument_id = translator._get_instrument({"seqMethod": None})
+    assert instrument_id is None
 
 
 def test_get_processing_institution():
