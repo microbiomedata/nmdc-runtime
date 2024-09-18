@@ -3,7 +3,6 @@ import pytest
 
 import random
 from pathlib import Path
-from unittest.mock import patch
 
 import yaml
 from nmdc_schema import nmdc
@@ -405,27 +404,26 @@ def test_get_lat_lon():
 
 
 def test_get_instrument():
-    translator = GoldStudyTranslator()
+    translator = GoldStudyTranslator(
+        gold_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df
+    )
 
-    with patch.object(
-        translator, "gold_nmdc_instrument_map_df", new=mock_gold_nmdc_instrument_map_df
-    ):
-        instrument_id = translator._get_instrument(
-            {
-                "seqMethod": ["Illumina NextSeq 550"],
-            }
-        )
-        assert instrument_id == "nmdc:inst-14-xz5tb342"
+    instrument_id = translator._get_instrument(
+        {
+            "seqMethod": ["Illumina NextSeq 550"],
+        }
+    )
+    assert instrument_id == "nmdc:inst-14-xz5tb342"
 
-        instrument_id = translator._get_instrument(
-            {
-                "seqMethod": [],
-            }
-        )
-        assert instrument_id is None
+    instrument_id = translator._get_instrument(
+        {
+            "seqMethod": [],
+        }
+    )
+    assert instrument_id is None
 
-        instrument_id = translator._get_instrument({"seqMethod": None})
-        assert instrument_id is None
+    instrument_id = translator._get_instrument({"seqMethod": None})
+    assert instrument_id is None
 
 
 def test_get_processing_institution():
