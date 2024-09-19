@@ -28,7 +28,11 @@ def op_context(client_config):
         resources={
             "gold_api_client": gold_api_client_resource.configured(client_config)
         },
-        op_config={"study_id": "Gs0149396"},
+        op_config={
+            "study_id": "Gs0149396",
+            "study_type": "research_study",
+            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+        },
     )
 
 
@@ -39,8 +43,8 @@ def test_gold_biosamples_by_study(client_config, op_context):
             json=[{"biosampleGoldId": "Gb123456789"}],
         )
 
-        inputs = get_gold_study_pipeline_inputs(op_context)
-        gold_biosamples_by_study(op_context, inputs)
+        (study_id, _, _) = get_gold_study_pipeline_inputs(op_context)
+        gold_biosamples_by_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
         assert mock.last_request.qs["studygoldid"] == ["gs0149396"]
@@ -54,8 +58,8 @@ def test_gold_projects_by_study(client_config, op_context):
             json=[{"projectGoldId": "Gp123456789"}],
         )
 
-        inputs = get_gold_study_pipeline_inputs(op_context)
-        gold_projects_by_study(op_context, inputs)
+        (study_id, _, _) = get_gold_study_pipeline_inputs(op_context)
+        gold_projects_by_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
         assert mock.last_request.qs["studygoldid"] == ["gs0149396"]
@@ -69,8 +73,8 @@ def test_gold_analysis_projects_by_study(client_config, op_context):
             json=[{"apGoldId": "Ga0499994"}],
         )
 
-        inputs = get_gold_study_pipeline_inputs(op_context)
-        gold_analysis_projects_by_study(op_context, inputs)
+        (study_id, _, _) = get_gold_study_pipeline_inputs(op_context)
+        gold_analysis_projects_by_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
         assert mock.last_request.qs["studygoldid"] == ["gs0149396"]
@@ -83,8 +87,8 @@ def test_gold_study(client_config, op_context):
             f'{client_config["base_url"]}/studies', json=[{"studyGoldId": "Gs0149396"}]
         )
 
-        inputs = get_gold_study_pipeline_inputs(op_context)
-        gold_study(op_context, inputs)
+        (study_id, _, _) = get_gold_study_pipeline_inputs(op_context)
+        gold_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
         assert mock.last_request.qs["studygoldid"] == ["gs0149396"]
