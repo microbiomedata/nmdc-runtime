@@ -1022,46 +1022,59 @@ def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
     collection_names = populated_schema_collection_names_with_id_field(mdb)
 
-    for name in collection_names:
-        assert (
-            len(collection_name_to_class_names[name]) == 1
-        ), f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
+    # Insert a no-op as an anchor point for this comment.
+    #
+    # Note: There used to be code here that `assert`-ed that each collection could only contain documents of a single
+    #       type. With the legacy schema, that assertion was true. With the Berkeley schema, it is false. That code was
+    #       in place because subsequent code (further below) used a single document in a collection as the source of the
+    #       class ancestry information of _all_ documents in that collection; an optimization that spared us from
+    #       having to do the same for every single document in that collection. With the Berkeley schema, we have
+    #       eliminated that optimization (since it is inadequate; it would produce some incorrect class ancestries
+    #       for descendants of `PlannedProcess`, for example).
+    #
+    pass
 
     context.log.info(f"{collection_names=}")
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this op).
+    #
+    # FIXME: This "nuke and pave" approach introduces a race condition.
+    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
+    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
+    #
     mdb.alldocs.drop()
 
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
-    for collection in collection_names:
-        # Calculate class_hierarchy_as_list once per collection, using the first document in list
-        try:
-            nmdcdb = NMDCDatabase(
-                **{collection: [dissoc(mdb[collection].find_one(), "_id")]}
-            )
-            exemplar = getattr(nmdcdb, collection)[0]
-            newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
-        except ValueError as e:
-            context.log.info(f"Collection {collection} does not exist.")
-            raise e
-
+    for collection_name in collection_names:
         context.log.info(
-            f"Found {mdb[collection].estimated_document_count()} estimated documents for {collection=}."
+            f"Found {mdb[collection_name].estimated_document_count()} estimated documents for {collection_name=}."
         )
+
         # For each document in this collection, replace the value of the `type` field with
         # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
         # and insert the resulting document into the `alldocs` collection.
+        num_docs_inserted_for_collection = 0
+        for doc in mdb[collection_name].find():
+            # Instantiate the Python class represented by the document.
+            db_dict = {collection_name: [dissoc(doc, "_id")]}
+            nmdc_db = NMDCDatabase(**db_dict)
+            doc_as_instance = getattr(nmdc_db, collection_name)[0]
 
-        inserted_many_result = mdb.alldocs.insert_many(
-            [
-                assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
-                for doc in mdb[collection].find()
-            ]
-        )
+            # Get the ancestry of that instance, as a list of class names (including its own class name).
+            ancestor_class_names = class_hierarchy_as_list(doc_as_instance)
+
+            # Make a document whose `type` field contains that list of class names.
+            # Note: This clobbers the existing contents of the `type` field.
+            new_doc = assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
+
+            # Store this document in the `alldocs` collection.
+            mdb.alldocs.insert_one(new_doc)
+            num_docs_inserted_for_collection += 1
+
         context.log.info(
-            f"Inserted {len(inserted_many_result.inserted_ids)} documents for {collection=}."
+            f"Inserted {num_docs_inserted_for_collection} documents for {collection_name=}."
         )
 
     # Re-idx for `alldocs` collection
