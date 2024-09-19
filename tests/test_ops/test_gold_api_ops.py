@@ -32,11 +32,6 @@ def op_context(client_config):
     )
 
 
-# FIXME: Update the API endpoint to work with the Berkeley schema, then un-skip this test.
-#        Reference: https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-test-functions
-@pytest.mark.skip(
-    reason="API endpoint has not been updated to work with the Berkeley schema yet"
-)
 def test_gold_biosamples_by_study(client_config, op_context):
     with requests_mock.mock() as mock:
         mock.get(
@@ -52,11 +47,6 @@ def test_gold_biosamples_by_study(client_config, op_context):
         assert mock.last_request.headers["Authorization"].startswith("Basic ")
 
 
-# FIXME: Update the API endpoint to work with the Berkeley schema, then un-skip this test.
-#        Reference: https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-test-functions
-@pytest.mark.skip(
-    reason="API endpoint has not been updated to work with the Berkeley schema yet"
-)
 def test_gold_projects_by_study(client_config, op_context):
     with requests_mock.mock() as mock:
         mock.get(
@@ -72,11 +62,6 @@ def test_gold_projects_by_study(client_config, op_context):
         assert mock.last_request.headers["Authorization"].startswith("Basic ")
 
 
-# FIXME: Update the API endpoint to work with the Berkeley schema, then un-skip this test.
-#        Reference: https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-test-functions
-@pytest.mark.skip(
-    reason="API endpoint has not been updated to work with the Berkeley schema yet"
-)
 def test_gold_analysis_projects_by_study(client_config, op_context):
     with requests_mock.mock() as mock:
         mock.get(
@@ -92,11 +77,6 @@ def test_gold_analysis_projects_by_study(client_config, op_context):
         assert mock.last_request.headers["Authorization"].startswith("Basic ")
 
 
-# FIXME: Update the API endpoint to work with the Berkeley schema, then un-skip this test.
-#        Reference: https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-test-functions
-@pytest.mark.skip(
-    reason="API endpoint has not been updated to work with the Berkeley schema yet"
-)
 def test_gold_study(client_config, op_context):
     with requests_mock.mock() as mock:
         mock.get(
