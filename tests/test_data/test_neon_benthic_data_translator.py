@@ -5,12 +5,6 @@ from nmdc_runtime.site.translation.neon_benthic_translator import (
 )
 import pandas as pd
 
-# FIXME: Update the NEON Benthic Data Translator to work with the Berkeley schema, then un-skip this module's tests.
-#        Reference: https://docs.pytest.org/en/stable/how-to/skipping.html#skipping-test-functions
-pytest.skip(
-    "Skipping tests targeting NEON Benthic Data Translator because it has not been updated to work with the Berkeley schema yet", 
-    allow_module_level=True,
-)
 
 # Mock data for testing
 benthic_data = {
