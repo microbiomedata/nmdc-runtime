@@ -1071,7 +1071,7 @@ def materialize_alldocs(context) -> int:
             num_docs_having_type = mdb[collection_name].count_documents(filter=filter_)
             docs_having_type = mdb[collection_name].find(filter=filter_)
             context.log.info(
-                f"Found {len(num_docs_having_type)} documents having {type_value=} in {collection_name=}."
+                f"Found {num_docs_having_type} documents having {type_value=} in {collection_name=}."
             )
 
             # Get a "representative" document from the result.
@@ -1084,8 +1084,9 @@ def materialize_alldocs(context) -> int:
 
             # Instantiate the Python class represented by the "representative" document.
             db_dict = {
+                # Shed the `_id` attribute, since the constructor doesn't allow it.
                 collection_name: [dissoc(representative_doc, "_id")]
-            }  # omits key incompatible with constructor
+            }
             nmdc_db = NMDCDatabase(**db_dict)
             representative_instance = getattr(nmdc_db, collection_name)[0]
 
