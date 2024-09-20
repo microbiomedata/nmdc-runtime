@@ -1083,7 +1083,9 @@ def materialize_alldocs(context) -> int:
             representative_doc = next(docs_having_type, default=None)
 
             # Instantiate the Python class represented by the "representative" document.
-            db_dict = {collection_name: [dissoc(representative_doc, "_id")]}  # omits key incompatible with constructor
+            db_dict = {
+                collection_name: [dissoc(representative_doc, "_id")]
+            }  # omits key incompatible with constructor
             nmdc_db = NMDCDatabase(**db_dict)
             representative_instance = getattr(nmdc_db, collection_name)[0]
 
