@@ -1080,7 +1080,7 @@ def materialize_alldocs(context) -> int:
             #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
             #       (later) attributing that class ancestry to all of them.
             #
-            representative_doc = next(docs_having_type, default=None)
+            representative_doc = next(docs_having_type)
 
             # Instantiate the Python class represented by the "representative" document.
             db_dict = {
