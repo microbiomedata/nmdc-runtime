@@ -1047,35 +1047,64 @@ def materialize_alldocs(context) -> int:
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
+    # For each collection, group its documents by their `type` value, transform them, and load them into `alldocs`.
     for collection_name in collection_names:
         context.log.info(
             f"Found {mdb[collection_name].estimated_document_count()} estimated documents for {collection_name=}."
         )
 
-        # For each document in this collection, replace the value of the `type` field with
-        # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
-        # and insert the resulting document into the `alldocs` collection.
-        num_docs_inserted_for_collection = 0
-        for doc in mdb[collection_name].find():
-            # Instantiate the Python class represented by the document.
-            db_dict = {collection_name: [dissoc(doc, "_id")]}
+        # Process all the distinct `type` values (i.e. value in the `type` field) of the documents in this collection.
+        #
+        # References:
+        # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.distinct
+        #
+        distinct_type_values = mdb[collection_name].distinct(key="type")
+        for type_value in distinct_type_values:
+
+            # Process all the documents in this collection that have this value in their `type` field.
+            #
+            # References:
+            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.count_documents
+            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.find
+            #
+            filter_ = {"type": type_value}
+            num_docs_having_type = mdb[collection_name].count_documents(filter=filter_)
+            docs_having_type = mdb[collection_name].find(filter=filter_)
+            context.log.info(
+                f"Found {len(num_docs_having_type)} documents having {type_value=} in {collection_name=}."
+            )
+
+            # Get a "representative" document from the result.
+            #
+            # Note: Since all of the documents in this batch have the same class ancestry, we will save time by
+            #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
+            #       (later) attributing that class ancestry to all of them.
+            #
+            representative_doc = next(docs_having_type, default=None)
+
+            # Instantiate the Python class represented by the "representative" document.
+            db_dict = {collection_name: [dissoc(representative_doc, "_id")]}  # omits key incompatible with constructor
             nmdc_db = NMDCDatabase(**db_dict)
-            doc_as_instance = getattr(nmdc_db, collection_name)[0]
+            representative_instance = getattr(nmdc_db, collection_name)[0]
 
-            # Get the ancestry of that instance, as a list of class names (including its own class name).
-            ancestor_class_names = class_hierarchy_as_list(doc_as_instance)
+            # Get the class ancestry of that instance, as a list of class names (including its own class name).
+            ancestor_class_names = class_hierarchy_as_list(representative_instance)
 
-            # Make a document whose `type` field contains that list of class names.
-            # Note: This clobbers the existing contents of the `type` field.
-            new_doc = assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
-
-            # Store this document in the `alldocs` collection.
-            mdb.alldocs.insert_one(new_doc)
-            num_docs_inserted_for_collection += 1
-
-        context.log.info(
-            f"Inserted {num_docs_inserted_for_collection} documents for {collection_name=}."
-        )
+            # Store the documents belonging to this group, in the `alldocs` collection, setting their `type` field
+            # to the list of class names obtained from the "representative" document above.
+            #
+            # TODO: Document why clobbering the existing contents of the `type` field is OK.
+            #
+            inserted_many_result = mdb.alldocs.insert_many(
+                [
+                    assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
+                    for doc in docs_having_type
+                ]
+            )
+            context.log.info(
+                f"Inserted {len(inserted_many_result.inserted_ids)} documents originally having {type_value=} "
+                f"in {collection_name=}."
+            )
 
     # Re-idx for `alldocs` collection
     mdb.alldocs.create_index("id", unique=True)
