@@ -139,21 +139,25 @@ def find_data_objects_for_study(
     study_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """This API endpoint is used to retrieve data object ids associated with
-    all the biosamples that are part of a given study. This endpoint makes
+    """This API endpoint is used to retrieve data objects associated with
+    all the biosamples associated with a given study. This endpoint makes
     use of the `alldocs` collection for its implementation.
 
     :param study_id: NMDC study id for which data objects are to be retrieved
     :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
-    :return: List of dictionaries where each dictionary contains biosample id as key,
-        and another dictionary with key 'data_object_set' containing list of data object ids as value
+    :return: List of dictionaries, each of which has a `biosample_id` entry
+        and a `data_object_set` entry. The value of the `biosample_id` entry
+        is the `Biosample`'s `id`. The value of the `data_object_set` entry
+        is a list of the `DataObject`s associated with that `Biosample`.
     """
     biosample_data_objects = []
     study = raise404_if_none(
         mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
     )
 
-    biosamples = mdb.biosample_set.find({"part_of": study["id"]}, ["id"])
+    # Note: With nmdc-schema v10 (legacy schema), we used the field named `part_of` here.
+    #       With nmdc-schema v11 (Berkeley schema), we use the field named `associated_studies` here.
+    biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
     biosample_ids = [biosample["id"] for biosample in biosamples]
 
     for biosample_id in biosample_ids:
