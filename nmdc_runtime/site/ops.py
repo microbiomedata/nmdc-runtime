@@ -1105,8 +1105,8 @@ def materialize_alldocs(context) -> int:
                 ]
             )
             context.log.info(
-                f"Inserted {len(inserted_many_result.inserted_ids)} documents originally having {type_value=} "
-                f"in {collection_name=}."
+                f"Inserted {len(inserted_many_result.inserted_ids)} documents from {collection_name=} "
+                f"originally having {type_value=}."
             )
 
     # Re-idx for `alldocs` collection
