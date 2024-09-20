@@ -1059,6 +1059,9 @@ def materialize_alldocs(context) -> int:
         # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.distinct
         #
         distinct_type_values = mdb[collection_name].distinct(key="type")
+        context.log.info(
+            f"Found {len(distinct_type_values)} distinct `type` values in {collection_name=}: {distinct_type_values=}"
+        )
         for type_value in distinct_type_values:
 
             # Process all the documents in this collection that have this value in their `type` field.
