@@ -320,7 +320,7 @@ def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
-        neon_nmdc_instrument_mapping_file
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -359,7 +359,7 @@ def ingest_neon_benthic_metadata():
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
-        neon_nmdc_instrument_mapping_file
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
