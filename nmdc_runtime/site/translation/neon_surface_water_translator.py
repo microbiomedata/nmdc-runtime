@@ -58,6 +58,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
         site_code_mapping: dict,
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
+        neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         *args,
         **kwargs,
     ) -> None:
