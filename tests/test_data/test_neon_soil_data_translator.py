@@ -779,6 +779,7 @@ sls_data = {
     ),
 }
 
+
 def neon_envo_mappings_file():
     tsv_data = """neon_nlcd_value\tmrlc_edomvd_before_hyphen\tmrlc_edomv\tenvo_alt_id\tenvo_id\tenvo_label\tenv_local_scale\tsubCLassOf and part of path to biome\tother justification\tbiome_label\tbiome_id\tenv_broad_scale
 deciduousForest\tDeciduous Forest\t41\tNLCD:41\tENVO:01000816\tarea of deciduous forest\tarea of deciduous forest [ENVO:01000816]\t --subCLassOf-->terretrial environmental zone--part of-->\t\tterrestrial biome\tENVO:00000448\tterrestrial biome [ENVO:00000448]"""
@@ -794,27 +795,55 @@ BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661
     return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
 
 
+mock_gold_nmdc_instrument_map_df = pd.DataFrame(
+    {
+        "NEON sequencingMethod": [
+            "NextSeq550",
+            "Illumina HiSeq",
+        ],
+        "NMDC instrument_set id": [
+            "nmdc:inst-14-xz5tb342",
+            "nmdc:inst-14-79zxap02",
+        ],
+    }
+)
+
+
 class TestNeonDataTranslator:
     @pytest.fixture
     def translator(self, test_minter):
-        return NeonSoilDataTranslator(mms_data=mms_data, 
-                                      sls_data=sls_data, 
-                                      neon_envo_mappings_file=neon_envo_mappings_file(), 
-                                      neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(), 
-                                      id_minter=test_minter
-                                    )
+        return NeonSoilDataTranslator(
+            mms_data=mms_data,
+            sls_data=sls_data,
+            neon_envo_mappings_file=neon_envo_mappings_file(),
+            neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
+            neon_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df,
+            id_minter=test_minter,
+        )
 
     def test_missing_mms_table(self, test_minter):
         # Test behavior when mms data is missing a table
         with pytest.raises(
             ValueError, match="missing one of the metagenomic microbe soil tables"
         ):
-            NeonSoilDataTranslator({}, sls_data, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
+            NeonSoilDataTranslator(
+                {},
+                sls_data,
+                neon_envo_mappings_file(),
+                neon_raw_data_file_mappings_file(),
+                id_minter=test_minter,
+            )
 
     def test_missing_sls_table(self, test_minter):
         # Test behavior when sls data is missing a table
         with pytest.raises(ValueError, match="missing one of the soil periodic tables"):
-            NeonSoilDataTranslator(mms_data, {}, neon_envo_mappings_file(), neon_raw_data_file_mappings_file(), id_minter=test_minter)
+            NeonSoilDataTranslator(
+                mms_data,
+                {},
+                neon_envo_mappings_file(),
+                neon_raw_data_file_mappings_file(),
+                id_minter=test_minter,
+            )
 
     def test_get_value_or_none(self):
         # use one biosample record to test this method
@@ -866,10 +895,7 @@ class TestNeonDataTranslator:
 
         # verify lengths of all collections in database
         assert len(database.biosample_set) == 3
-        assert len(database.pooling_set) == 1
-        assert len(database.extraction_set) == 1
-        assert len(database.library_preparation_set) == 1
-        assert len(database.omics_processing_set) == 1
+        assert len(database.data_generation_set) == 1
         assert len(database.processed_sample_set) == 3
 
         # verify contents of biosample_set
@@ -883,23 +909,32 @@ class TestNeonDataTranslator:
             actual_biosample_name = biosample["name"]
             assert actual_biosample_name in expected_biosample_names
 
-        # verify contents of omics_processing_set
-        omics_processing_list = database.omics_processing_set
-        expected_omics_processing = [
+        # verify contents of data_generation_set
+        data_generation_list = database.data_generation_set
+        expected_nucleotide_sequencing = [
             "Terrestrial soil microbial communities - BLAN_005-M-20200713-COMP-DNA1"
         ]
-        for omics_processing in omics_processing_list:
-            actual_omics_processing = omics_processing["name"]
+        for nucleotide_sequencing in data_generation_list:
+            actual_nucleotide_sequencing = nucleotide_sequencing["name"]
 
-            assert actual_omics_processing in expected_omics_processing
+            assert actual_nucleotide_sequencing in expected_nucleotide_sequencing
 
-        # input to a Pooling is a Biosample
-        pooling_process_list = database.pooling_set
-        extraction_list = database.extraction_set
-        library_preparation_list = database.library_preparation_set
-        omics_processing_list = database.omics_processing_set
+        pooling_process_list = []
+        extraction_list = []
+        library_preparation_list = []
+        nucleotide_sequencing_list = []
+        for data_generation_obj in database.data_generation_set:
+            if data_generation_obj["type"] == "nmdc:Pooling":
+                pooling_process_list.append(data_generation_obj)
+            elif data_generation_obj["type"] == "nmdc:Extraction":
+                extraction_list.append(data_generation_obj)
+            elif data_generation_obj["type"] == "nmdc:LibraryPreparation":
+                library_preparation_list.append(data_generation_obj)
+            elif data_generation_obj["type"] == "nmdc:NucleotideSequencing":
+                nucleotide_sequencing_list.append(data_generation_obj)
 
         expected_input = [bsm["id"] for bsm in biosample_list]
+        # input to a Pooling is a Biosample
         for pooling_process in pooling_process_list:
             pooling_output = pooling_process.has_output
             pooling_input = pooling_process.has_input
@@ -918,6 +953,6 @@ class TestNeonDataTranslator:
                     assert lib_prep_input == extraction_output
 
                     # output of Library Preparation is input to OmicsProcessing
-                    for omics_processing in omics_processing_list:
+                    for omics_processing in nucleotide_sequencing_list:
                         omics_processing_input = omics_processing.has_input
                         assert omics_processing_input == lib_prep_output
