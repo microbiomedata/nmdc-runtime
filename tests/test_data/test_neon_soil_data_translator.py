@@ -914,10 +914,10 @@ class TestNeonDataTranslator:
         expected_nucleotide_sequencing = [
             "Terrestrial soil microbial communities - BLAN_005-M-20200713-COMP-DNA1"
         ]
-        for nucleotide_sequencing in data_generation_list:
-            actual_nucleotide_sequencing = nucleotide_sequencing["name"]
-
-            assert actual_nucleotide_sequencing in expected_nucleotide_sequencing
+        for data_generation in data_generation_list:
+            if data_generation["type"] == "nmdc:NucleotideSequencing":
+                actual_nucleotide_sequencing = data_generation["name"]
+                assert actual_nucleotide_sequencing in expected_nucleotide_sequencing
 
         pooling_process_list = []
         extraction_list = []
@@ -946,13 +946,13 @@ class TestNeonDataTranslator:
                 extraction_output = extraction.has_output
                 assert extraction_input == pooling_output
 
-                # output of Extraction is input to Library Preparation
+                # output of Extraction is input to LibraryPreparation
                 for lib_prep in library_preparation_list:
                     lib_prep_input = lib_prep.has_input
                     lib_prep_output = lib_prep.has_output
                     assert lib_prep_input == extraction_output
 
-                    # output of Library Preparation is input to OmicsProcessing
-                    for omics_processing in nucleotide_sequencing_list:
-                        omics_processing_input = omics_processing.has_input
-                        assert omics_processing_input == lib_prep_output
+                    # output of LibraryPreparation is input to NuceloideSequencing
+                    for nucleotide_sequencing in nucleotide_sequencing_list:
+                        nucleotide_sequencing_input = nucleotide_sequencing.has_input
+                        assert nucleotide_sequencing_input == lib_prep_output
