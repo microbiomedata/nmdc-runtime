@@ -196,7 +196,7 @@ class TestNeonBenthicDataTranslator:
         # verify contents of data_generation_set
         data_generation_list = database.data_generation_set
         expected_nucleotide_sequencing = [
-            "Terrestrial soil microbial communities - WLOU.20180726.AMC.EPILITHON.1-DNA1"
+            "Benthic microbial communities - WLOU.20180726.AMC.EPILITHON.1-DNA1"
         ]
         for data_generation in data_generation_list:
             if data_generation["type"] == "nmdc:NucleotideSequencing":
