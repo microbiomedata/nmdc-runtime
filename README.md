@@ -1,7 +1,7 @@
 A runtime system for NMDC data management and orchestration.
 
 <!-- TODO: Remove this note once we've merged the `berkeley` branch into the `main` branch. -->
-> [!NOTE]  
+> [!NOTE]
 > You are on a Berkeley-related branch (i.e. a branch related to getting the Runtime to work with the Berkeley schema).
 
 <!-- TODO: Remove this section once we've merged the `berkeley` branch into the `main` branch. -->
