@@ -315,7 +315,7 @@ class NeonBenthicDataTranslator(Translator):
     def _translate_data_object(
         self, do_id: str, url: str, do_type: str, checksum: str
     ) -> nmdc.DataObject:
-        """Create nmdc DataObject which is the output of a DataGeneration process. This
+        """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
         the result of running a Bioinformatics workflow on a certain ProcessedSample, which
         is the result of a LibraryPreparation process.
