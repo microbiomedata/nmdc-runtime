@@ -318,29 +318,29 @@ def test_get_class_name_and_collection_names_by_doc_id():
     # Seed the database.
     mdb = get_mongo_db()
     study_set_collection = mdb.get_collection(name="study_set")
-    study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
+    study_id = "nmdc:sty-1-foobar"
+    study_set_collection.replace_one({"id": study_id}, {"id": study_id}, upsert=True)
 
     # Valid `id`, and the document exists in database.
-    id_ = "nmdc:sty-1-foobar"
     response = requests.request(
-        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{study_id}/collection-name"
     )
     body = response.json()
     assert response.status_code == 200
-    assert body["id"] == id_
+    assert body["id"] == study_id
     assert body["collection_name"] == "study_set"
 
     # Valid `id`, but the document does not exist in database.
-    id_ = "nmdc:sty-1-bazqux"
+    study_id_nonexistent = "nmdc:sty-1-bazqux"
     response = requests.request(
-        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{study_id_nonexistent}/collection-name"
     )
     assert response.status_code == 404
 
     # Invalid `id` (because "foo" is an invalid typecode).
-    id_ = "nmdc:foo-1-foobar"
+    study_id_invalid = "nmdc:foo-1-foobar"
     response = requests.request(
-        "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
+        "GET", f"{base_url}/nmdcschema/ids/{study_id_invalid}/collection-name"
     )
     assert response.status_code == 404
 
@@ -390,7 +390,8 @@ def test_find_planned_process_by_id(api_site_client):
 
     # Also, include a document that represents a `Study` (which is not a subclass of `PlannedProcess`),
     # so we can check whether the endpoint-under-test only searches collections that we expect it to.
-    mdb.get_collection(name="study_set").insert_one(dict(id="nmdc:sty-11-00000001"))
+    study_id = "nmdc:sty-11-00000001"
+    mdb.get_collection(name="study_set").replace_one({"id": study_id}, {"id": study_id}, upsert=True)
 
     # Test case: The `id` belongs to a document that represents an instance of
     #            the `PlannedProcess` class or one of its subclasses.
@@ -414,5 +415,5 @@ def test_find_planned_process_by_id(api_site_client):
     with pytest.raises(requests.exceptions.HTTPError):
         api_site_client.request(
             "GET",
-            f"/planned_processes/nmdc:sty-11-00000001",
+            f"/planned_processes/{study_id}",
         )
