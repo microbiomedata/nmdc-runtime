@@ -1089,7 +1089,9 @@ def materialize_alldocs(context) -> int:
 
             # Make a copy of the iterator so we can call `next` on one and still be able to process the full data set.
             # Reference: https://docs.python.org/3/library/itertools.html#itertools.tee
-            (docs_having_type__iterator_1, docs_having_type__iterator_2) = tee(docs_having_type, 2)
+            (docs_having_type__iterator_1, docs_having_type__iterator_2) = tee(
+                docs_having_type, 2
+            )
 
             # Get a "representative" document from the result.
             #
