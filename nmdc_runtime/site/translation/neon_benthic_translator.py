@@ -288,7 +288,7 @@ class NeonBenthicDataTranslator(Translator):
             instrument_used=self._get_instrument_id(
                 _get_value_or_none(nucleotide_sequencing_row, "instrument_model")
             ),
-            name=f"Terrestrial soil microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
+            name=f"Benthic microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
             type="nmdc:NucleotideSequencing",
             associated_studies=["nmdc:sty-11-pzmd0x14"],
             analyte_category="metagenome",
