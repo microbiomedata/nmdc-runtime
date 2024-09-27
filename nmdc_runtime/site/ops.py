@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+from itertools import tee
 
 import pandas as pd
 import requests
@@ -1086,13 +1087,17 @@ def materialize_alldocs(context) -> int:
                 f"Found {num_docs_having_type} documents having {type_value=} in {collection_name=}."
             )
 
+            # Make a copy of the iterator so we can call `next` on one and still be able to process the full data set.
+            # Reference: https://docs.python.org/3/library/itertools.html#itertools.tee
+            (docs_having_type__iterator_1, docs_having_type__iterator_2) = tee(docs_having_type, 2)
+
             # Get a "representative" document from the result.
             #
             # Note: Since all of the documents in this batch have the same class ancestry, we will save time by
             #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
             #       (later) attributing that class ancestry to all of them.
             #
-            representative_doc = next(docs_having_type)
+            representative_doc = next(docs_having_type__iterator_1)
 
             # Instantiate the Python class represented by the "representative" document.
             db_dict = {
@@ -1113,7 +1118,7 @@ def materialize_alldocs(context) -> int:
             inserted_many_result = mdb.alldocs.insert_many(
                 [
                     assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
-                    for doc in docs_having_type
+                    for doc in docs_having_type__iterator_2
                 ]
             )
             context.log.info(
