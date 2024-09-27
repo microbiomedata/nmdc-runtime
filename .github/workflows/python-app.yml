@@ -19,6 +19,9 @@ on:
       - '**.Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
+  # Allow developers to trigger this workflow manually via the "Actions" page on GitHub.
+  # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
+  workflow_dispatch: { }
 
 
 jobs:
