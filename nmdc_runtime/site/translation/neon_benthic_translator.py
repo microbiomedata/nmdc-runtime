@@ -151,7 +151,7 @@ class NeonBenthicDataTranslator(Translator):
                 has_unit="m",
                 type="nmdc:QuantityValue",
             ),
-            associated_studies=["nmdc:sty-11-pzmd0x14"]
+            associated_studies=["nmdc:sty-11-pzmd0x14"],
         )
 
     def _translate_extraction_process(
@@ -231,7 +231,7 @@ class NeonBenthicDataTranslator(Translator):
             processing_institution=processing_institution,
             type="nmdc:LibraryPreparation",
         )
-    
+
     def _get_instrument_id(self, instrument_model: Union[str | None]) -> str:
         if not instrument_model:
             raise ValueError(
@@ -282,14 +282,16 @@ class NeonBenthicDataTranslator(Translator):
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(nucleotide_sequencing_row, "ncbiProjectID"),
+            ncbi_project_name=_get_value_or_none(
+                nucleotide_sequencing_row, "ncbiProjectID"
+            ),
             instrument_used=self._get_instrument_id(
                 _get_value_or_none(nucleotide_sequencing_row, "instrument_model")
             ),
             name=f"Terrestrial soil microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
             type="nmdc:NucleotideSequencing",
             associated_studies=["nmdc:sty-11-pzmd0x14"],
-            analyte_category="metagenome"
+            analyte_category="metagenome",
         )
 
     def _translate_processed_sample(
@@ -306,7 +308,9 @@ class NeonBenthicDataTranslator(Translator):
         :param sample_id: Value from `genomicsSampleID` or `dnaSampleID` column.
         :return: ProcessedSample objects to be stored in `processed_sample_set`.
         """
-        return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id, type="nmdc:ProcessedSample")
+        return nmdc.ProcessedSample(
+            id=processed_sample_id, name=sample_id, type="nmdc:ProcessedSample"
+        )
 
     def _translate_data_object(
         self, do_id: str, url: str, do_type: str, checksum: str
@@ -438,7 +442,9 @@ class NeonBenthicDataTranslator(Translator):
         )
 
         neon_omprc_ids = benthic_samples["sampleID"]
-        nmdc_omprc_ids = self._id_minter("nmdc:NucleotideSequencing", len(neon_omprc_ids))
+        nmdc_omprc_ids = self._id_minter(
+            "nmdc:NucleotideSequencing", len(neon_omprc_ids)
+        )
         neon_to_nmdc_omprc_ids = dict(zip(neon_omprc_ids, nmdc_omprc_ids))
 
         neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
