@@ -318,10 +318,10 @@ def test_get_class_name_and_collection_names_by_doc_id():
     # Seed the database.
     mdb = get_mongo_db()
     study_set_collection = mdb.get_collection(name="study_set")
-    study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
+    id_ = "nmdc:sty-1-foobar"
+    study_set_collection.replace_one({"id": id_}, {"id": id_}, upsert=True)
 
     # Valid `id`, and the document exists in database.
-    id_ = "nmdc:sty-1-foobar"
     response = requests.request(
         "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
@@ -390,7 +390,8 @@ def test_find_planned_process_by_id(api_site_client):
 
     # Also, include a document that represents a `Study` (which is not a subclass of `PlannedProcess`),
     # so we can check whether the endpoint-under-test only searches collections that we expect it to.
-    mdb.get_collection(name="study_set").insert_one(dict(id="nmdc:sty-11-00000001"))
+    id_ = "nmdc:sty-1-foobar"
+    mdb.get_collection(name="study_set").replace_one({"id": id_}, {"id": id_}, upsert=True)
 
     # Test case: The `id` belongs to a document that represents an instance of
     #            the `PlannedProcess` class or one of its subclasses.
