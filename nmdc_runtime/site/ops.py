@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+from itertools import chain
 
 import pandas as pd
 import requests
@@ -1101,10 +1102,16 @@ def materialize_alldocs(context) -> int:
             #
             # TODO: Document why clobbering the existing contents of the `type` field is OK.
             #
+            # Note: The reason we `chain()` our "representative" document (in an iterable) with the `docs_having_type`
+            #       iterator here is that, when we called `next(docs_having_type)` above, we "consumed" our
+            #       "representative" document from that iterator. We use `chain()` here so that it gets processed
+            #       along with its cousins (i.e. the other documents accessible via `docs_having_type`).
+            #       Reference: https://docs.python.org/3/library/itertools.html#itertools.chain
+            #
             inserted_many_result = mdb.alldocs.insert_many(
                 [
                     assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
-                    for doc in docs_having_type
+                    for doc in chain([representative_doc], docs_having_type)
                 ]
             )
             context.log.info(
