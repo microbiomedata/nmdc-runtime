@@ -1104,8 +1104,8 @@ def materialize_alldocs(context) -> int:
             #
             # Note: The reason we `chain()` our "representative" document (in an iterable) with the `docs_having_type`
             #       iterator here is that, when we called `next(docs_having_type)` above, we "consumed" our
-            #       "representative" document from that iterator. We use `chain()` here so that it gets processed
-            #       along with its cousins (i.e. the documents still accessible via `docs_having_type`).
+            #       "representative" document from that iterator. We use `chain()` here so that that document gets
+            #       inserted alongside its cousins (i.e. the documents _still_ accessible via `docs_having_type`).
             #       Reference: https://docs.python.org/3/library/itertools.html#itertools.chain
             #
             inserted_many_result = mdb.alldocs.insert_many(
