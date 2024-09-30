@@ -29,7 +29,6 @@ SURFACE_WATER_BROAD_SCALE_MAPPINGS = {
 SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
     "lake": {
         "buoy.c0": {"term_id": "ENVO:01001191", "term_name": "water surface"},
-        "buoy.b.c0": {"term_id": "ENVO:01001191", "term_name": "water surface"},
         "buoy.c1": {"term_id": "ENVO:00002131", "term_name": "epilimnion"},
         "buoy.c2": {"term_id": "ENVO:00002269", "term_name": "thermocline"},
         "buoy.c3": {"term_id": "ENVO:00002130", "term_name": "hypolimnion"},
@@ -37,9 +36,8 @@ SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
             "term_id": "ENVO:01000409",
             "term_name": "freshwater littoral zone",
         },
-        "S2": {"term_id": "ENVO:00002132", "term_name": "metalimnion"},
         "reach": {"term_id": "ENVO:01001191", "term_name": "water surface"},
-        "inflow": {"term_id": "ENVO:01001191", "term_name": "water surface"},
+        "inflow": {"term_id": "ENVO:00000476", "term_name": "lake inlet"},
     },
     "river": {"term_id": "ENVO:01000297", "term_name": "freshwater river"},
     "stream": {"term_id": "ENVO:03605007", "term_name": "freshwater stream"},
