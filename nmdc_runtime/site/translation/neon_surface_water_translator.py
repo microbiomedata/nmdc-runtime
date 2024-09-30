@@ -36,7 +36,6 @@ SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
             "term_id": "ENVO:01000409",
             "term_name": "freshwater littoral zone",
         },
-        "reach": {"term_id": "ENVO:01001191", "term_name": "water surface"},
         "inflow": {"term_id": "ENVO:00000476", "term_name": "lake inlet"},
     },
     "river": {"term_id": "ENVO:01000297", "term_name": "freshwater river"},
