@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import List
+from typing import List, Union
 
 import pandas as pd
 
@@ -26,6 +26,7 @@ class NeonSoilDataTranslator(Translator):
         sls_data: dict,
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
+        neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         *args,
         **kwargs,
     ) -> None:
@@ -99,6 +100,23 @@ class NeonSoilDataTranslator(Translator):
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
 
+        self.neon_nmdc_instrument_map_df = neon_nmdc_instrument_map_df
+
+    def _get_instrument_id(self, instrument_model: Union[str | None]) -> str:
+        if not instrument_model:
+            raise ValueError(
+                f"instrument_model '{instrument_model}' could not be found in the NEON-NMDC instrument mapping TSV file."
+            )
+
+        df = self.neon_nmdc_instrument_map_df
+        matching_row = df[
+            df["NEON sequencingMethod"].str.contains(instrument_model, case=False)
+        ]
+
+        if not matching_row.empty:
+            nmdc_instrument_id = matching_row["NMDC instrument_set id"].values[0]
+            return nmdc_instrument_id
+
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
     ) -> nmdc.Biosample:
@@ -116,7 +134,6 @@ class NeonSoilDataTranslator(Translator):
         """
         return nmdc.Biosample(
             id=nmdc_id,
-            part_of="nmdc:sty-11-34xj1150",
             env_broad_scale=_create_controlled_identified_term_value(
                 "ENVO:00000446", "terrestrial biome"
             ),
@@ -145,6 +162,7 @@ class NeonSoilDataTranslator(Translator):
                     biosample_row, "sampleBottomDepth"
                 ),
                 has_unit="m",
+                type="nmdc:QuantityValue",
             ),
             samp_collec_device=_get_value_or_none(biosample_row, "soilSamplingDevice"),
             soil_horizon=_get_value_or_none(biosample_row, "horizon"),
@@ -172,6 +190,7 @@ class NeonSoilDataTranslator(Translator):
                 biosample_row["kclNitrateNitriteNConc"].values[0], "mg/L"
             ),
             type="nmdc:Biosample",
+            associated_studies=["nmdc:sty-11-34xj1150"],
         )
 
     def _translate_pooling_process(
@@ -198,6 +217,7 @@ class NeonSoilDataTranslator(Translator):
             has_input=bsm_input_values_list,
             start_date=_get_value_or_none(pooling_row, "startDate"),
             end_date=_get_value_or_none(pooling_row, "collectDate"),
+            type="nmdc:Pooling",
         )
 
     def _translate_processed_sample(
@@ -214,12 +234,14 @@ class NeonSoilDataTranslator(Translator):
         :param sample_id: Value from `genomicsSampleID` or `dnaSampleID` column.
         :return: ProcessedSample objects to be stored in `processed_sample_set`.
         """
-        return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
+        return nmdc.ProcessedSample(
+            id=processed_sample_id, name=sample_id, type="nmdc:ProcessedSample"
+        )
 
     def _translate_data_object(
         self, do_id: str, url: str, do_type: str, checksum: str
     ) -> nmdc.DataObject:
-        """Create nmdc DataObject which is the output of an OmicsProcessing process. This
+        """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
         the result of running a Bioinformatics workflow on a certain ProcessedSample, which
         is the result of a LibraryPreparation process.
@@ -282,6 +304,7 @@ class NeonSoilDataTranslator(Translator):
             ),
             qc_status=_get_value_or_none(extraction_row, "qaqcStatus"),
             processing_institution=processing_institution,
+            type="nmdc:Extraction",
         )
 
     def _translate_library_preparation(
@@ -294,13 +317,13 @@ class NeonSoilDataTranslator(Translator):
         """
         Create LibraryPreparation process object. The input to LibraryPreparation process
         is the output ProcessedSample from an Extraction process. The output of LibraryPreparation
-        process is fed as input to an OmicsProcessing object.
+        process is fed as input to an NucleotideSequencing object.
 
         :param library_preparation_id: Minted id for LibraryPreparation process.
         :param library_preparation_input: Input to LibraryPreparation process is output from
         Extraction process.
         :param processed_sample_id: Minted ProcessedSample id which is output of LibraryPreparation
-        is also input to OmicsProcessing.
+        is also input to NucleotideSequencing.
         :param library_preparation_row: Metadata required to populate LibraryPreparation.
         :return: Object that using LibraryPreparation process model.
         """
@@ -319,31 +342,32 @@ class NeonSoilDataTranslator(Translator):
             start_date=_get_value_or_none(library_preparation_row, "collectDate"),
             end_date=_get_value_or_none(library_preparation_row, "processedDate"),
             processing_institution=processing_institution,
+            type="nmdc:LibraryPreparation",
         )
 
-    def _translate_omics_processing(
+    def _translate_nucleotide_sequencing(
         self,
-        omics_processing_id: str,
+        nucleotide_sequencing_id: str,
         processed_sample_id: str,
         raw_data_file_data: str,
-        omics_processing_row: pd.DataFrame,
+        nucleotide_sequencing_row: pd.DataFrame,
     ):
-        """Create nmdc OmicsProcessing object. This class typically models the run of a
-        Bioinformatics workflow on sequence data from a biosample. The input to an OmicsProcessing
-        process is the output from a LibraryPreparation process, and the output of OmicsProcessing
+        """Create nmdc NucleotideSequencing object. This class typically models the run of a
+        Bioinformatics workflow on sequence data from a biosample. The input to an NucleotideSequencing
+        process is the output from a LibraryPreparation process, and the output of NucleotideSequencing
         is a DataObject which has the FASTQ sequence file URLs embedded in them.
 
-        :param omics_processing_id: Minted id for an OmicsProcessing process.
+        :param nucleotide_sequencing_id: Minted id for an NucleotideSequencing process.
         :param processed_sample_id: ProcessedSample that is the output of LibraryPreparation.
         :param raw_data_file_data: R1/R2 DataObjects which have links to workflow processed output
         files embedded in them.
-        :param omics_processing_row: DataFrame with metadata for an OmicsProcessing workflow
+        :param nucleotide_sequencing_row: DataFrame with metadata for an NucleotideSequencing workflow
         process/run.
-        :return: OmicsProcessing object that models a Bioinformatics workflow process/run.
+        :return: NucleotideSequencing object that models a Bioinformatics workflow process/run.
         """
         processing_institution = None
         sequencing_facility = _get_value_or_none(
-            omics_processing_row, "sequencingFacilityID"
+            nucleotide_sequencing_row, "sequencingFacilityID"
         )
         if sequencing_facility is not None:
             if re.search("Battelle", sequencing_facility, re.IGNORECASE):
@@ -351,19 +375,21 @@ class NeonSoilDataTranslator(Translator):
             elif re.search("Argonne", sequencing_facility, re.IGNORECASE):
                 processing_institution = "ANL"
 
-        return nmdc.OmicsProcessing(
-            id=omics_processing_id,
+        return nmdc.NucleotideSequencing(
+            id=nucleotide_sequencing_id,
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(omics_processing_row, "ncbiProjectID"),
-            omics_type=_create_controlled_term_value(
-                omics_processing_row["investigation_type"].values[0]
+            ncbi_project_name=_get_value_or_none(
+                nucleotide_sequencing_row, "ncbiProjectID"
             ),
-            instrument_name=f"{_get_value_or_none(omics_processing_row, 'sequencingMethod')} {_get_value_or_none(omics_processing_row, 'instrument_model')}",
-            part_of="nmdc:sty-11-34xj1150",
-            name=f"Terrestrial soil microbial communities - {_get_value_or_none(omics_processing_row, 'dnaSampleID')}",
-            type="nmdc:OmicsProcessing",
+            instrument_used=self._get_instrument_id(
+                _get_value_or_none(nucleotide_sequencing_row, "instrument_model")
+            ),
+            name=f"Terrestrial soil microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
+            type="nmdc:NucleotideSequencing",
+            associated_studies=["nmdc:sty-11-34xj1150"],
+            analyte_category="metagenome",
         )
 
     def get_database(self) -> nmdc.Database:
@@ -371,10 +397,9 @@ class NeonSoilDataTranslator(Translator):
         nmdc object creation methods as well as the nmdc type (QuantityValue, GeolocationValue, etc.)
         creation methods, to make an nmdc Database object. It populates multiple sets in the Mongo database -
             * `biosample_set`: uses `_translate_biosample()`
-            * `pooling_set`: uses `_translate_pooling_process()`
-            * `extraction_set`: uses `_translate_extraction_process()`
-            * `library_preparation_set`: uses `_translate_library_preparation()`
-            * `omics_processing_set`: uses `_translate_omics_processing()`
+            * `material_processing_set`: uses `_translate_pooling_process()`, `_translate_extraction_process()`,
+            `_translate_library_preparation()`
+            * `data_generation_set`: uses `_translate_nucleotide_sequencing()`
             * `processed_sample_set`: uses `_translate_processed_sample()`
             * `data_object_set`: uses `_translate_data_object()`
         The core Biosample information is in the `sls_soilCoreCollection` table. However, we
@@ -605,14 +630,13 @@ class NeonSoilDataTranslator(Translator):
                 mms_metagenomeDnaExtraction.processedDate,
                 mms_metagenomeSequencing.sequencingFacilityID,
                 mms_metagenomeSequencing.ncbiProjectID,
-                mms_metagenomeSequencing.investigation_type,
                 mms_metagenomeSequencing.sequencingMethod,
                 mms_metagenomeSequencing.instrument_model
             FROM mms_metagenomeSequencing 
             LEFT JOIN mms_metagenomeDnaExtraction ON mms_metagenomeDnaExtraction.dnaSampleID = mms_metagenomeSequencing.dnaSampleID
         """
         library_preparation_table = pd.read_sql_query(query, self.conn)
-        omics_processing_table = pd.read_sql_query(query, self.conn)
+        nucleotide_sequencing_table = pd.read_sql_query(query, self.conn)
 
         nmdc_pooling_ids = self._id_minter("nmdc:Pooling", len(pooling_ids_dict))
         neon_to_nmdc_pooling_ids = dict(
@@ -651,12 +675,12 @@ class NeonSoilDataTranslator(Translator):
             zip(library_prepration_ids, nmdc_library_preparation_processed_sample_ids)
         )
 
-        omics_processing_ids = omics_processing_table["dnaSampleID"]
-        nmdc_omics_processing_ids = self._id_minter(
-            "nmdc:OmicsProcessing", len(omics_processing_ids)
+        nucleotide_sequencing_ids = nucleotide_sequencing_table["dnaSampleID"]
+        nmdc_nucleotide_sequencing_ids = self._id_minter(
+            "nmdc:NucleotideSequencing", len(nucleotide_sequencing_ids)
         )
-        neon_to_nmdc_omics_processing_ids = dict(
-            zip(omics_processing_ids, nmdc_omics_processing_ids)
+        neon_to_nmdc_nucleotide_sequencing_ids = dict(
+            zip(nucleotide_sequencing_ids, nmdc_nucleotide_sequencing_ids)
         )
 
         neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
@@ -699,7 +723,7 @@ class NeonSoilDataTranslator(Translator):
             # if the number of biosamples that are input to a pooling process
             # is one or less, then ignore it and go straight to extraction
             if len(bsm_values_list) > 1:
-                database.pooling_set.append(
+                database.material_processing_set.append(
                     self._translate_pooling_process(
                         pooling_process_id,
                         processed_sample_id,
@@ -732,7 +756,7 @@ class NeonSoilDataTranslator(Translator):
             # handler for creating extraction process records
             # for both pooled and non-pooled samples
             if "|" in genomics_pooled_id_list:
-                database.extraction_set.append(
+                database.material_processing_set.append(
                     self._translate_extraction_process(
                         extraction_id,
                         extraction_input,
@@ -753,7 +777,7 @@ class NeonSoilDataTranslator(Translator):
 
                 extraction_input = neon_to_nmdc_biosample_ids[neon_biosample_id]
 
-                database.extraction_set.append(
+                database.material_processing_set.append(
                     self._translate_extraction_process(
                         extraction_id,
                         extraction_input,
@@ -770,7 +794,9 @@ class NeonSoilDataTranslator(Translator):
                 dna_sample_id
             ]
 
-            omics_processing_id = neon_to_nmdc_omics_processing_ids[dna_sample_id]
+            nucleotide_sequencing_id = neon_to_nmdc_nucleotide_sequencing_ids[
+                dna_sample_id
+            ]
 
             genomics_sample_id = library_preparation_table[
                 library_preparation_table["dnaSampleID"] == dna_sample_id
@@ -785,7 +811,7 @@ class NeonSoilDataTranslator(Translator):
                     library_preparation_table["dnaSampleID"] == dna_sample_id
                 ]
 
-                database.library_preparation_set.append(
+                database.material_processing_set.append(
                     self._translate_library_preparation(
                         library_preparation_id,
                         library_preparation_input,
@@ -807,9 +833,9 @@ class NeonSoilDataTranslator(Translator):
                         if item in neon_to_nmdc_data_object_ids:
                             has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
 
-                    database.omics_processing_set.append(
-                        self._translate_omics_processing(
-                            omics_processing_id,
+                    database.data_generation_set.append(
+                        self._translate_nucleotide_sequencing(
+                            nucleotide_sequencing_id,
                             processed_sample_id,
                             has_output_do_ids,
                             library_preparation_row,

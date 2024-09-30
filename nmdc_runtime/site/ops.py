@@ -864,6 +864,7 @@ def nmdc_schema_database_from_neon_soil_data(
     sls_data: Dict[str, pd.DataFrame],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -876,6 +877,7 @@ def nmdc_schema_database_from_neon_soil_data(
         sls_data,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -890,6 +892,7 @@ def nmdc_schema_database_from_neon_benthic_data(
     site_code_mapping: Dict[str, str],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -902,6 +905,7 @@ def nmdc_schema_database_from_neon_benthic_data(
         site_code_mapping,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -916,6 +920,7 @@ def nmdc_schema_database_from_neon_surface_water_data(
     site_code_mapping: Dict[str, str],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -928,6 +933,7 @@ def nmdc_schema_database_from_neon_surface_water_data(
         site_code_mapping,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -939,15 +945,18 @@ def nmdc_schema_database_from_neon_surface_water_data(
     out={
         "neon_envo_mappings_file_url": Out(),
         "neon_raw_data_file_mappings_file_url": Out(),
+        "neon_nmdc_instrument_mapping_file_url": Out(),
     }
 )
 def get_neon_pipeline_inputs(
     neon_envo_mappings_file_url: str,
     neon_raw_data_file_mappings_file_url: str,
-) -> Tuple[str, str]:
+    neon_nmdc_instrument_mapping_file_url: str,
+) -> Tuple[str, str, str]:
     return (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     )
 
 

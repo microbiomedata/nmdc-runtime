@@ -229,6 +229,7 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -237,8 +238,16 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_soil_data(
-        mms_data, sls_data, neon_envo_mappings_file, neon_raw_data_file_mappings_file
+        mms_data,
+        sls_data,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -259,6 +268,7 @@ def ingest_neon_soil_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -267,8 +277,16 @@ def ingest_neon_soil_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_soil_data(
-        mms_data, sls_data, neon_envo_mappings_file, neon_raw_data_file_mappings_file
+        mms_data,
+        sls_data,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
@@ -279,6 +297,7 @@ def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     mms_benthic_data_product = get_neon_pipeline_benthic_data_product()
@@ -292,11 +311,16 @@ def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_benthic,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -317,6 +341,7 @@ def ingest_neon_benthic_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -325,11 +350,16 @@ def ingest_neon_benthic_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_benthic,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
@@ -346,6 +376,7 @@ def translate_neon_api_surface_water_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -354,11 +385,16 @@ def translate_neon_api_surface_water_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_surface_water_data(
         mms_surface_water,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -379,6 +415,7 @@ def ingest_neon_surface_water_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -387,11 +424,16 @@ def ingest_neon_surface_water_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_surface_water,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
