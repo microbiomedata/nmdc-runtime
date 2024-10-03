@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from toolz import assoc, dissoc
 
 from dagster import build_op_context
 
@@ -30,7 +31,34 @@ def op_context(client_config):
 
 def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
+
+    # Insert some documents into some upstream collections.
+    #
+    # Note: This will allow us to look for _specific_ documents in the resulting `alldocs` collection.
+    #
+    # Note: This collection was chosen mostly arbitrarily. I chose it because I saw that other tests were
+    #       not (currently) leaving "residual documents" in it (note: at the time of this writing, the
+    #       test database is _not_ being rolled back to a pristine state in between tests).
+    #
+    # Reference: https://microbiomedata.github.io/berkeley-schema-fy24/FieldResearchSite/#direct
+    #
+    field_research_site_class_ancestry_chain = ["FieldResearchSite", "Site", "MaterialEntity", "NamedThing"]
+    field_research_site_documents = [
+        {"id": "frsite-99-00000001", "type": "nmdc:FieldResearchSite", "name": "Site A"},
+        {"id": "frsite-99-00000002", "type": "nmdc:FieldResearchSite", "name": "Site B"},
+        {"id": "frsite-99-00000003", "type": "nmdc:FieldResearchSite", "name": "Site C"},
+    ]
+    field_research_site_set_collection = mdb.get_collection("field_research_site_set")
+    for document in field_research_site_documents:
+        field_research_site_set_collection.replace_one(document, document, upsert=True)
+
+    # Get a list of non-empty collections in which at least document has an `id` field.
+    #
+    # Note: That is the same criteria the function-under-test uses to identify the upstream collections
+    #       from which it will read documents in order to populate the `alldocs` collection.
+    #
     collection_names = populated_schema_collection_names_with_id_field(mdb)
+    assert "field_research_site_set" in collection_names
 
     # Invoke the function-under-test.
     #
@@ -41,8 +69,8 @@ def test_materialize_alldocs(op_context):
     assert isinstance(estimated_number_of_docs_in_alldocs, int)
 
     # Get a reference to the newly-materialized `alldocs` collection.
-    alldocs = mdb.get_collection("alldocs")
-    num_alldocs_docs = alldocs.count_documents({})  # here, we get an _exact_ count
+    alldocs_collection = mdb.get_collection("alldocs")
+    num_alldocs_docs = alldocs_collection.count_documents({})  # here, we get an _exact_ count
 
     # Verify each upstream document's `id` value appears in exactly one document in the `alldocs` collection.
     #
@@ -55,12 +83,23 @@ def test_materialize_alldocs(op_context):
         for document in collection.find({}):
             num_upstream_docs += 1
             document_id = document["id"]
-            assert alldocs.count_documents({"id": document_id}) == 1
+            assert alldocs_collection.count_documents({"id": document_id}) == 1
+
+    # Verify each of the documents we created above appears in the `alldocs` collection once,
+    # and that its `type` value has been replaced with its class ancestry chain.
+    for document in field_research_site_documents:
+        alldocs_document = assoc(dissoc(document, "type"), "type", field_research_site_class_ancestry_chain)
+        assert alldocs_collection.count_documents(alldocs_document) == 1
 
     # Verify the value in the `type` field of each document in the `alldocs` collection is of type "array".
     # Reference: https://www.mongodb.com/docs/manual/reference/operator/query/type/#arrays
-    assert alldocs.count_documents({"type": {"$type": "array"}}) == num_alldocs_docs
+    assert alldocs_collection.count_documents({"type": {"$type": "array"}}) == num_alldocs_docs
 
     # Verify the total number of documents in all the upstream collections, combined,
     # equals the number of documents in the `alldocs` collection.
     assert num_upstream_docs == num_alldocs_docs
+
+    # Clean up: Delete the documents we created within this test, from the database.
+    for document in field_research_site_documents:
+        field_research_site_set_collection.delete_one(document)
+    alldocs_collection.delete_many({})
