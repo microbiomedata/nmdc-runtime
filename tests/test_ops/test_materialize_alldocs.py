@@ -52,10 +52,10 @@ def test_materialize_alldocs(op_context):
     for document in field_research_site_documents:
         field_research_site_set_collection.replace_one(document, document, upsert=True)
 
-    # Get a list of non-empty collections in which at least document has an `id` field.
+    # Get a list of non-empty collections in which at least one document has an `id` field.
     #
-    # Note: That is the same criteria the function-under-test uses to identify the upstream collections
-    #       from which it will read documents in order to populate the `alldocs` collection.
+    # Note: That is the same criteria the function-under-test uses to identify which upstream collections
+    #       it will source (i.e. copy) documents from in order to populate the `alldocs` collection.
     #
     collection_names = populated_schema_collection_names_with_id_field(mdb)
     assert "field_research_site_set" in collection_names
