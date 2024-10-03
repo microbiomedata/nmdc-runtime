@@ -72,28 +72,29 @@ def test_materialize_alldocs(op_context):
     alldocs_collection = mdb.get_collection("alldocs")
     num_alldocs_docs = alldocs_collection.count_documents({})  # here, we get an _exact_ count
 
-    # Verify each upstream document's `id` value appears in exactly one document in the `alldocs` collection.
+    # Verify each upstream document is represented correctly—and only once—in the `alldocs` collection.
     #
-    # Note: While we iterate through the upstream collections, we also count the number
-    #       of documents in those collections. We'll use that number in a future assertion.
+    # Note: We do not check the `type` value here (beyond its data type), due to the current tedium of determining
+    #       the class ancestry chain from a dictionary (as opposed to a Python instance). We do check it for some
+    #       documents later, but only for documents we inserted above, since we know what to "expect" for those
+    #       documents. Here, we just verify that each document's `type` value is of type `array`.
+    #
+    # Note: We also keep a tally of the number of upstream documents that exist, which we'll reference later.
     #
     num_upstream_docs = 0
     for collection_name in collection_names:
         collection = mdb.get_collection(collection_name)
         for document in collection.find({}):
             num_upstream_docs += 1
-            document_id = document["id"]
-            assert alldocs_collection.count_documents({"id": document_id}) == 1
+            document_lacking_type = dissoc(document, "_id", "type")
+            document_having_generic_type = assoc(document_lacking_type, "type", {"$type": "array"})
+            assert alldocs_collection.count_documents(document_having_generic_type) == 1
 
-    # Verify each of the documents we created above appears in the `alldocs` collection once,
+    # Verify each of the specific documents we created above appears in the `alldocs` collection once,
     # and that its `type` value has been replaced with its class ancestry chain.
     for document in field_research_site_documents:
         alldocs_document = assoc(dissoc(document, "type"), "type", field_research_site_class_ancestry_chain)
         assert alldocs_collection.count_documents(alldocs_document) == 1
-
-    # Verify the value in the `type` field of each document in the `alldocs` collection is of type "array".
-    # Reference: https://www.mongodb.com/docs/manual/reference/operator/query/type/#arrays
-    assert alldocs_collection.count_documents({"type": {"$type": "array"}}) == num_alldocs_docs
 
     # Verify the total number of documents in all the upstream collections, combined,
     # equals the number of documents in the `alldocs` collection.
