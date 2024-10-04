@@ -146,7 +146,7 @@ def test_changesheet_array_item_nested_attributes():
     local_id = "sty-11-r2h77870"
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
-            REPO_ROOT_DIR.joinpath("tests", "files", f"no_credit_associations.json")
+            REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
         ) as f:
             mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
