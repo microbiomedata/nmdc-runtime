@@ -25,7 +25,7 @@ nmdc:sty-11-r2h77870	update	name	NEW STUDY NAME 2
 	update	ecosystem_subtype	NEW ECOSYSTEM_SUBTYPE 2
 	update	associated_dois	v1
 v1	update	doi_value	https://doi.org/10.46936/10.25585/60000017
-v1	update	doi_category award_doi
+v1	update	doi_category	award_doi
 v1	update	doi_provider	jgi
 	update	principal_investigator	v2
 v2		name	NEW PI NAME 2
