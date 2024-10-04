@@ -47,7 +47,7 @@ def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
     sty_local_id = "sty-11-pzmd0x14"
     remove_tmp_doc = False
-    if mdb.data_object_set.find_one({"id": "nmdc:" + sty-11-pzmd0x14}) is None:
+    if mdb.data_object_set.find_one({"id": "nmdc:" + sty_local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
         ) as f:
