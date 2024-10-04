@@ -45,6 +45,14 @@ def get_study_by_id(id_: str) -> Optional[dict]:
 #@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    sty_local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.data_object_set.find_one({"id": "nmdc:" + sty-11-pzmd0x14}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
+        ) as f:
+            mdb.data_object_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
     )
