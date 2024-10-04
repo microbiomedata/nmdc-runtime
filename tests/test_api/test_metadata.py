@@ -139,9 +139,17 @@ def test_update_01():
     assert first_result["validation_errors"] == []
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
+#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{local_id}.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-array-item-nested-attributes.tsv"), mdb
     )
@@ -169,9 +177,17 @@ def test_changesheet_array_item_nested_attributes():
     assert credit_info in first_doc_after.get("has_credit_associations", [])
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
+#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{local_id}.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-update-pi-websites.tsv"), mdb
     )
