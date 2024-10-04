@@ -6,7 +6,7 @@ nmdc:sty-11-aygzgv51	update	name	NEW STUDY NAME 1
 	update	associated_dois	v1
 v1	update	doi_value	doi:10.25345/C5Q23RB6B
 v1	upate	doi_provider	massive
-v1	update	doi_category dataset_doi
+v1	update	doi_category	dataset_doi
 	update	principal_investigator	v2
 v2		name	NEW PI NAME 1
 v2		has_raw_value	NEW RAW NAME 1
