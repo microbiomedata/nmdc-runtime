@@ -42,7 +42,7 @@ def get_study_by_id(id_: str) -> Optional[dict]:
     return load_studies().get(id_.strip())
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
+#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
     df = load_changesheet(
