@@ -143,11 +143,10 @@ def test_update_01():
 #@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
-    local_id = "sty-11-pzmd0x14"
-    remove_tmp_doc = False
+    local_id = "sty-11-r2h77870"
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
-            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{local_id}.json")
+            REPO_ROOT_DIR.joinpath("tests", "files", f"no_credit_associations.json")
         ) as f:
             mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
