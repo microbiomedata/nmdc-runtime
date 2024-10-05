@@ -174,7 +174,7 @@ def test_changesheet_array_item_nested_attributes():
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_doc_after = results[0]["doc_after"]
     assert "has_credit_associations" in first_doc_after
-    assert credit_info["applied_roles"] == first_doc_after.get(["has_credit_associations"][0]["applied_roles"])
+    assert credit_info in first_doc_after.get("has_credit_associations", [])
     if remove_tmp_doc:
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
