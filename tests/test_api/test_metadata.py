@@ -157,7 +157,7 @@ def test_changesheet_array_item_nested_attributes():
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
 
     credit_info = {
-        "applied_roles": "Conceptualization",
+        "applied_roles": ["Conceptualization"],
         "applies_to_person": {
             "name": "CREDIT NAME 1",
             "email": "CREDIT_NAME_1@foo.edu",
