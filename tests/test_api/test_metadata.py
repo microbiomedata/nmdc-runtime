@@ -42,7 +42,6 @@ def get_study_by_id(id_: str) -> Optional[dict]:
     return load_studies().get(id_.strip())
 
 
-#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
     sty_local_id = "sty-11-pzmd0x14"
@@ -140,7 +139,6 @@ def test_update_01():
     assert first_result["validation_errors"] == []
 
 
-#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
@@ -179,11 +177,9 @@ def test_changesheet_array_item_nested_attributes():
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-#@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
-   # remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
