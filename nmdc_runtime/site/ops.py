@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from typing import Tuple
 from zipfile import ZipFile
+from itertools import chain
 
 import pandas as pd
 import requests
@@ -582,9 +583,24 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")
 
 
-@op(config_schema={"study_id": str})
-def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> str:
-    return context.op_config["study_id"]
+@op(
+    config_schema={
+        "study_id": str,
+        "study_type": str,
+        "gold_nmdc_instrument_mapping_file_url": str,
+    },
+    out={
+        "study_id": Out(str),
+        "study_type": Out(str),
+        "gold_nmdc_instrument_mapping_file_url": Out(str),
+    },
+)
+def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str, str]:
+    return (
+        context.op_config["study_id"],
+        context.op_config["study_type"],
+        context.op_config["gold_nmdc_instrument_mapping_file_url"],
+    )
 
 
 @op(required_resource_keys={"gold_api_client"})
@@ -621,9 +637,11 @@ def gold_study(context: OpExecutionContext, study_id: str) -> Dict[str, Any]:
 def nmdc_schema_database_from_gold_study(
     context: OpExecutionContext,
     study: Dict[str, Any],
+    study_type: str,
     projects: List[Dict[str, Any]],
     biosamples: List[Dict[str, Any]],
     analysis_projects: List[Dict[str, Any]],
+    gold_nmdc_instrument_map_df: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -632,7 +650,13 @@ def nmdc_schema_database_from_gold_study(
         return response.json()
 
     translator = GoldStudyTranslator(
-        study, biosamples, projects, analysis_projects, id_minter=id_minter
+        study,
+        study_type,
+        biosamples,
+        projects,
+        analysis_projects,
+        gold_nmdc_instrument_map_df,
+        id_minter=id_minter,
     )
     database = translator.get_database()
     return database
@@ -641,7 +665,7 @@ def nmdc_schema_database_from_gold_study(
 @op(
     out={
         "submission_id": Out(),
-        "omics_processing_mapping_file_url": Out(Optional[str]),
+        "nucleotide_sequencing_mapping_file_url": Out(Optional[str]),
         "data_object_mapping_file_url": Out(Optional[str]),
         "biosample_extras_file_url": Out(Optional[str]),
         "biosample_extras_slot_mapping_file_url": Out(Optional[str]),
@@ -649,14 +673,14 @@ def nmdc_schema_database_from_gold_study(
 )
 def get_submission_portal_pipeline_inputs(
     submission_id: str,
-    omics_processing_mapping_file_url: Optional[str],
+    nucleotide_sequencing_mapping_file_url: Optional[str],
     data_object_mapping_file_url: Optional[str],
     biosample_extras_file_url: Optional[str],
     biosample_extras_slot_mapping_file_url: Optional[str],
 ) -> Tuple[str, str | None, str | None, str | None, str | None]:
     return (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
@@ -677,7 +701,7 @@ def fetch_nmdc_portal_submission_by_id(
 def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any],
-    omics_processing_mapping: List,
+    nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
     study_category: Optional[str],
     study_doi_category: Optional[str],
@@ -694,8 +718,8 @@ def translate_portal_submission_to_nmdc_schema_database(
 
     translator = SubmissionPortalTranslator(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         id_minter=id_minter,
         study_category=study_category,
         study_doi_category=study_doi_category,
@@ -840,6 +864,7 @@ def nmdc_schema_database_from_neon_soil_data(
     sls_data: Dict[str, pd.DataFrame],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -852,6 +877,7 @@ def nmdc_schema_database_from_neon_soil_data(
         sls_data,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -866,6 +892,7 @@ def nmdc_schema_database_from_neon_benthic_data(
     site_code_mapping: Dict[str, str],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -878,6 +905,7 @@ def nmdc_schema_database_from_neon_benthic_data(
         site_code_mapping,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -892,6 +920,7 @@ def nmdc_schema_database_from_neon_surface_water_data(
     site_code_mapping: Dict[str, str],
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
+    neon_nmdc_instrument_mapping_file: pd.DataFrame,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -904,6 +933,7 @@ def nmdc_schema_database_from_neon_surface_water_data(
         site_code_mapping,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
         id_minter=id_minter,
     )
 
@@ -915,15 +945,18 @@ def nmdc_schema_database_from_neon_surface_water_data(
     out={
         "neon_envo_mappings_file_url": Out(),
         "neon_raw_data_file_mappings_file_url": Out(),
+        "neon_nmdc_instrument_mapping_file_url": Out(),
     }
 )
 def get_neon_pipeline_inputs(
     neon_envo_mappings_file_url: str,
     neon_raw_data_file_mappings_file_url: str,
-) -> Tuple[str, str]:
+    neon_nmdc_instrument_mapping_file_url: str,
+) -> Tuple[str, str, str]:
     return (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     )
 
 
@@ -999,47 +1032,101 @@ def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
     collection_names = populated_schema_collection_names_with_id_field(mdb)
 
-    for name in collection_names:
-        assert (
-            len(collection_name_to_class_names[name]) == 1
-        ), f"{name} collection has class name of {collection_name_to_class_names[name]} and len {len(collection_name_to_class_names[name])}"
+    # Insert a no-op as an anchor point for this comment.
+    #
+    # Note: There used to be code here that `assert`-ed that each collection could only contain documents of a single
+    #       type. With the legacy schema, that assertion was true. With the Berkeley schema, it is false. That code was
+    #       in place because subsequent code (further below) used a single document in a collection as the source of the
+    #       class ancestry information of _all_ documents in that collection; an optimization that spared us from
+    #       having to do the same for every single document in that collection. With the Berkeley schema, we have
+    #       eliminated that optimization (since it is inadequate; it would produce some incorrect class ancestries
+    #       for descendants of `PlannedProcess`, for example).
+    #
+    pass
 
     context.log.info(f"{collection_names=}")
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this op).
+    #
+    # FIXME: This "nuke and pave" approach introduces a race condition.
+    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
+    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
+    #
     mdb.alldocs.drop()
 
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
-    for collection in collection_names:
-        # Calculate class_hierarchy_as_list once per collection, using the first document in list
-        try:
-            nmdcdb = NMDCDatabase(
-                **{collection: [dissoc(mdb[collection].find_one(), "_id")]}
+    # For each collection, group its documents by their `type` value, transform them, and load them into `alldocs`.
+    for collection_name in collection_names:
+        context.log.info(
+            f"Found {mdb[collection_name].estimated_document_count()} estimated documents for {collection_name=}."
+        )
+
+        # Process all the distinct `type` values (i.e. value in the `type` field) of the documents in this collection.
+        #
+        # References:
+        # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.distinct
+        #
+        distinct_type_values = mdb[collection_name].distinct(key="type")
+        context.log.info(
+            f"Found {len(distinct_type_values)} distinct `type` values in {collection_name=}: {distinct_type_values=}"
+        )
+        for type_value in distinct_type_values:
+
+            # Process all the documents in this collection that have this value in their `type` field.
+            #
+            # References:
+            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.count_documents
+            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.find
+            #
+            filter_ = {"type": type_value}
+            num_docs_having_type = mdb[collection_name].count_documents(filter=filter_)
+            docs_having_type = mdb[collection_name].find(filter=filter_)
+            context.log.info(
+                f"Found {num_docs_having_type} documents having {type_value=} in {collection_name=}."
             )
-            exemplar = getattr(nmdcdb, collection)[0]
-            newdoc_type: list[str] = class_hierarchy_as_list(exemplar)
-        except ValueError as e:
-            context.log.info(f"Collection {collection} does not exist.")
-            raise e
 
-        context.log.info(
-            f"Found {mdb[collection].estimated_document_count()} estimated documents for {collection=}."
-        )
-        # For each document in this collection, replace the value of the `type` field with
-        # a _list_ of the document's own class and ancestor classes, remove the `_id` field,
-        # and insert the resulting document into the `alldocs` collection.
+            # Get a "representative" document from the result.
+            #
+            # Note: Since all of the documents in this batch have the same class ancestry, we will save time by
+            #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
+            #       (later) attributing that class ancestry to all of them.
+            #
+            representative_doc = next(docs_having_type)
 
-        inserted_many_result = mdb.alldocs.insert_many(
-            [
-                assoc(dissoc(doc, "type", "_id"), "type", newdoc_type)
-                for doc in mdb[collection].find()
-            ]
-        )
-        context.log.info(
-            f"Inserted {len(inserted_many_result.inserted_ids)} documents for {collection=}."
-        )
+            # Instantiate the Python class represented by the "representative" document.
+            db_dict = {
+                # Shed the `_id` attribute, since the constructor doesn't allow it.
+                collection_name: [dissoc(representative_doc, "_id")]
+            }
+            nmdc_db = NMDCDatabase(**db_dict)
+            representative_instance = getattr(nmdc_db, collection_name)[0]
+
+            # Get the class ancestry of that instance, as a list of class names (including its own class name).
+            ancestor_class_names = class_hierarchy_as_list(representative_instance)
+
+            # Store the documents belonging to this group, in the `alldocs` collection, setting their `type` field
+            # to the list of class names obtained from the "representative" document above.
+            #
+            # TODO: Document why clobbering the existing contents of the `type` field is OK.
+            #
+            # Note: The reason we `chain()` our "representative" document (in an iterable) with the `docs_having_type`
+            #       iterator here is that, when we called `next(docs_having_type)` above, we "consumed" our
+            #       "representative" document from that iterator. We use `chain()` here so that that document gets
+            #       inserted alongside its cousins (i.e. the documents _still_ accessible via `docs_having_type`).
+            #       Reference: https://docs.python.org/3/library/itertools.html#itertools.chain
+            #
+            inserted_many_result = mdb.alldocs.insert_many(
+                [
+                    assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
+                    for doc in chain([representative_doc], docs_having_type)
+                ]
+            )
+            context.log.info(
+                f"Inserted {len(inserted_many_result.inserted_ids)} documents from {collection_name=} "
+                f"originally having {type_value=}."
+            )
 
     # Re-idx for `alldocs` collection
     mdb.alldocs.create_index("id", unique=True)

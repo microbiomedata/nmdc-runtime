@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+from collections import defaultdict
 from contextlib import AbstractContextManager
 from functools import lru_cache
 from typing import Set, Dict, Any, Iterable
@@ -21,6 +22,7 @@ from nmdc_runtime.util import (
     get_nmdc_jsonschema_dict,
     schema_collection_names_with_id_field,
     nmdc_schema_view,
+    collection_name_to_class_names,
 )
 from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
@@ -60,7 +62,8 @@ def get_async_mongo_db() -> AsyncIOMotorDatabase:
     return _client[os.getenv("MONGO_DBNAME")]
 
 
-def nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
+def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
+    """Returns the names of schema collections in the database that have at least one document."""
     names = set(mdb.list_collection_names()) & set(get_collection_names_from_schema())
     return {name for name in names if mdb[name].estimated_document_count() > 0}
 
@@ -92,13 +95,33 @@ def get_collection_names_from_schema() -> list[str]:
 
 @lru_cache
 def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
-    return nmdc_schema_collection_names(mdb) - {
+    return get_nonempty_nmdc_schema_collection_names(mdb) - {
         "biosample_set",
         "study_set",
         "data_object_set",
         "functional_annotation_set",
         "genome_feature_set",
     }
+
+
+@lru_cache
+def get_planned_process_collection_names() -> Set[str]:
+    r"""
+    Returns the names of all collections that the schema says can contain documents
+    that represent instances of the `PlannedProcess` class or any of its subclasses.
+    """
+    schema_view = nmdc_schema_view()
+    collection_names = set()
+    planned_process_descendants = set(schema_view.class_descendants("PlannedProcess"))
+
+    for collection_name, class_names in collection_name_to_class_names.items():
+        for class_name in class_names:
+            # If the name of this class is the name of the `PlannedProcess` class
+            # or any of its subclasses, add it to the result set.
+            if class_name in planned_process_descendants:
+                collection_names.add(collection_name)
+
+    return collection_names
 
 
 def mongodump_excluded_collections():

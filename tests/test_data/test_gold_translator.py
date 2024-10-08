@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 import random
@@ -7,6 +8,35 @@ import yaml
 from nmdc_schema import nmdc
 
 from nmdc_runtime.site.translation.gold_translator import GoldStudyTranslator
+
+mock_gold_nmdc_instrument_map_df = pd.DataFrame(
+    {
+        "GOLD SeqMethod": [
+            "Illumina HiSeq",
+            "Illumina HiSeq 2500",
+            "Illumina HiSeq 2500-1TB",
+            "Illumina HiSeq 2500-Rapid",
+            "Illumina NextSeq 550",
+            "Illumina NovaSeq",
+            "Illumina NovaSeq 6000",
+            "Illumina NovaSeq S2",
+            "Illumina NovaSeq S4",
+            "Illumina NovaSeq SP",
+        ],
+        "NMDC instrument_set id": [
+            "nmdc:inst-14-79zxap02",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-nn4b6k72",
+            "nmdc:inst-14-xz5tb342",
+            "nmdc:inst-14-xx07be40",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+            "nmdc:inst-14-mr4r2w09",
+        ],
+    }
+)
 
 
 def test_get_pi():
@@ -20,17 +50,25 @@ def test_get_pi():
                     "name": "Clifton P. Parker",
                     "email": "CliftonPParker@example.com",
                     "roles": ["co-PI"],
+                    "type": "nmdc:PersonValue",
                 },
-                {"name": "Joan D. Berger", "email": "jdb@example.com", "roles": ["PI"]},
+                {
+                    "name": "Joan D. Berger",
+                    "email": "jdb@example.com",
+                    "roles": ["PI"],
+                    "type": "nmdc:PersonValue",
+                },
                 {
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
                     "roles": ["submitter", "co-PI"],
+                    "type": "nmdc:PersonValue",
                 },
                 {
                     "name": "Randy T. Woolf",
                     "email": "RandyWoolf@example.com",
                     "roles": ["PI"],
+                    "type": "nmdc:PersonValue",
                 },
             ]
         }
@@ -38,6 +76,7 @@ def test_get_pi():
     assert pi_person_value is not None
     assert pi_person_value.name == "Joan D. Berger"
     assert pi_person_value.email == "jdb@example.com"
+    assert pi_person_value.type == "nmdc:PersonValue"
 
     # no PI in contacts, _get_pi should return None
     pi_person_value = translator._get_pi(
@@ -47,6 +86,7 @@ def test_get_pi():
                     "name": "Beth S. Hemphill",
                     "email": "bhemphill@example.com",
                     "roles": ["submitter", "co-PI"],
+                    "type": "nmdc:PersonValue",
                 },
             ]
         }
@@ -223,6 +263,7 @@ def test_get_quantity_value():
     assert value.has_raw_value == "7"
     assert value.has_numeric_value == 7.0
     assert value.has_unit is None
+    assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": 0}
     value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
@@ -230,6 +271,7 @@ def test_get_quantity_value():
     assert value.has_raw_value == "0"
     assert value.has_numeric_value == 0.0
     assert value.has_unit == "meters"
+    assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": 8}
     value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
@@ -237,6 +279,7 @@ def test_get_quantity_value():
     assert value.has_raw_value == "8"
     assert value.has_numeric_value == 8.0
     assert value.has_unit == "meters"
+    assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": None}
     value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
@@ -252,6 +295,7 @@ def test_get_quantity_value():
     assert value.has_raw_value is None
     assert value.has_numeric_value is None
     assert value.has_unit == "meters"
+    assert value.type == "nmdc:QuantityValue"
 
 
 def test_get_text_value():
@@ -267,6 +311,7 @@ def test_get_text_value():
     assert value is None
 
 
+# TODO: Determine if value.type should be "nmdc:ControlledIdentifiedTermValue" or "nmdc:ControlledTermValue"
 def test_get_controlled_term_value():
     translator = GoldStudyTranslator()
 
@@ -274,25 +319,37 @@ def test_get_controlled_term_value():
     value = translator._get_controlled_term_value(entity, "arbitraryField")
     assert value is not None
     assert value.has_raw_value == "hello"
+    # assert value.type == "nmdc:ControlledIdentifiedTermValue"
+    assert value.type == "nmdc:ControlledTermValue"
 
     entity = {"arbitraryField": None}
     value = translator._get_controlled_term_value(entity, "arbitraryField")
     assert value is None
+    # value.type should not exist is value is None
+    # assert value.type == "nmdc:ControlledIdentifiedTermValue"
 
 
 def test_get_env_term_value():
     translator = GoldStudyTranslator()
 
-    entity = {"arbitraryField": {"id": "ENVO_00000446", "label": "terrestrial biome"}}
+    entity = {
+        "arbitraryField": {
+            "id": "ENVO_00000446",
+            "label": "terrestrial biome",
+            "type": "nmdc:OntologyClass",
+        }
+    }
     env_term = translator._get_env_term_value(entity, "arbitraryField")
     assert env_term is not None
     assert env_term.has_raw_value == "ENVO_00000446"
     assert env_term.term.id == "ENVO:00000446"
     assert env_term.term.name == "terrestrial biome"
+    assert env_term.term.type == "nmdc:OntologyClass"
 
     entity = {
         "arbitraryField": {
             "id": "ENVO_00000446",
+            "type": "nmdc:OntologyClass",
         }
     }
     env_term = translator._get_env_term_value(entity, "arbitraryField")
@@ -300,6 +357,7 @@ def test_get_env_term_value():
     assert env_term.has_raw_value == "ENVO_00000446"
     assert env_term.term.id == "ENVO:00000446"
     assert env_term.term.name is None
+    assert env_term.term.type == "nmdc:OntologyClass"
 
     entity = {"arbitraryField": {"label": "terrestrial biome"}}
     env_term = translator._get_env_term_value(entity, "arbitraryField")
@@ -317,17 +375,20 @@ def test_get_lat_lon():
         {
             "latitude": 45.553,
             "longitude": -122.392,
+            "type": "nmdc:GeolocationValue",
         }
     )
     assert lat_lon is not None
     assert lat_lon.has_raw_value == "45.553 -122.392"
     assert lat_lon.latitude == 45.553
     assert lat_lon.longitude == -122.392
+    assert lat_lon.type == "nmdc:GeolocationValue"
 
     lat_lon = translator._get_lat_lon(
         {
             "latitude": None,
             "longitude": -122.392,
+            "type": "nmdc:GeolocationValue",
         }
     )
     assert lat_lon is None
@@ -336,30 +397,33 @@ def test_get_lat_lon():
         {
             "latitude": 45.553,
             "longitude": None,
+            "type": "nmdc:GeolocationValue",
         }
     )
     assert lat_lon is None
 
 
-def test_get_instrument_name():
-    translator = GoldStudyTranslator()
+def test_get_instrument():
+    translator = GoldStudyTranslator(
+        gold_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df
+    )
 
-    instrument_name = translator._get_instrument_name(
+    instrument_id = translator._get_instrument(
         {
-            "seqMethod": ["Illumina NextSeq 550", "Illumina NextSeq 3000"],
+            "seqMethod": ["Illumina NextSeq 550"],
         }
     )
-    assert instrument_name == "Illumina NextSeq 550"
+    assert instrument_id == "nmdc:inst-14-xz5tb342"
 
-    instrument_name = translator._get_instrument_name(
+    instrument_id = translator._get_instrument(
         {
             "seqMethod": [],
         }
     )
-    assert instrument_name is None
+    assert instrument_id is None
 
-    instrument_name = translator._get_instrument_name({"seqMethod": None})
-    assert instrument_name is None
+    instrument_id = translator._get_instrument({"seqMethod": None})
+    assert instrument_id is None
 
 
 def test_get_processing_institution():
