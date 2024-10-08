@@ -108,7 +108,7 @@ croniter==3.0.3
     # via dagster
 cryptography==43.0.1
     # via python-jose
-curies==0.7.10
+curies==0.8.0
     # via
     #   linkml-runtime
     #   prefixmaps
@@ -298,7 +298,7 @@ jsonschema==4.23.0
     #   linkml
     #   linkml-runtime
     #   nbformat
-jsonschema-specifications==2023.12.1
+jsonschema-specifications==2024.10.1
     # via jsonschema
 jupyter==1.1.1
     # via -r requirements/main.in
@@ -376,7 +376,7 @@ markdown-it-py==3.0.0
     #   jupytext
     #   mdit-py-plugins
     #   rich
-markupsafe==3.0.0
+markupsafe==3.0.1
     # via
     #   jinja2
     #   mako
@@ -441,7 +441,7 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-nmdc-schema==11.0.0
+nmdc-schema==11.0.1
     # via -r requirements/main.in
 notebook==7.2.2
     # via jupyter
@@ -508,6 +508,8 @@ prompt-toolkit==3.0.48
     # via
     #   ipython
     #   jupyter-console
+propcache==0.2.0
+    # via yarl
 protobuf==4.25.5
     # via
     #   dagster
@@ -861,7 +863,7 @@ xlrd==2.0.1
     # via -r requirements/main.in
 xlsxwriter==3.2.0
     # via -r requirements/main.in
-yarl==1.13.1
+yarl==1.14.0
     # via gql
 
 # The following packages are considered to be unsafe in a requirements file:
