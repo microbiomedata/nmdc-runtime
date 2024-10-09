@@ -133,5 +133,7 @@ def export_study_biosamples_metadata():
 @op(required_resource_keys={"runtime_api_site_client"})
 def get_biosamples_by_study_id(context: OpExecutionContext, nmdc_study: dict):
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
-    biosamples = get_all_docs(client, "biosamples", f"part_of:{nmdc_study['id']}")
+    biosamples = get_all_docs(
+        client, "biosamples", f"associated_studies:{nmdc_study['id']}"
+    )
     return biosamples
