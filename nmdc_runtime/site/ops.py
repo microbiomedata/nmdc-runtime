@@ -66,7 +66,7 @@ from nmdc_runtime.api.models.util import ResultT
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
-    fetch_omics_processing_from_biosamples,
+    fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
@@ -1197,10 +1197,12 @@ def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: li
 
 
 @op(required_resource_keys={"mongo"})
-def get_omics_processing_from_biosamples(context: OpExecutionContext, biosamples: list):
+def get_nucleotide_sequencing_from_biosamples(
+    context: OpExecutionContext, biosamples: list
+):
     mdb = context.resources.mongo.db
     alldocs_collection = mdb["alldocs"]
-    biosample_omics_processing = fetch_omics_processing_from_biosamples(
+    biosample_omics_processing = fetch_nucleotide_sequencing_from_biosamples(
         alldocs_collection, biosamples
     )
     return biosample_omics_processing
