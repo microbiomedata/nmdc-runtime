@@ -547,13 +547,22 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_dbupdate(in_docs: dict, mdb: MongoDatabase):
-    docs = deepcopy(in_docs)
+def validate_dbupdate(in_json_nmdcdb: dict, mdb: MongoDatabase):
+    json_nmdcdb = deepcopy(in_json_nmdcdb)
 
-    # TODO: Should we be passing validation errors, or halting at FIRST validation error?
-    validation_errors = validate_json(docs)
-    validation_errors = validate_collection_upsert(docs, mdb, validation_errors)
-    validation_errors = validate_db_upsert(docs, mdb, validation_errors)
+    # Pass 1
+    validation_errors = validate_json(json_nmdcdb)
+    # if the above results in validation errors
+    if not all(len(v) == 0 for v in validation_errors.values()):
+        return {"result": "errors", "detail": validation_errors}
+
+    # Pass 2
+    validation_errors = validate_linkml_nmdcdb(json_nmdcdb)
+    if not all(len(v) == 0 for v in validation_errors.values()):
+        return {"result": "errors", "detail": validation_errors}
+
+    # Pass 3
+    validation_errors = validate_transaction(json_nmdcdb, mdb)
 
     # TODO: This **should** handle ALL validation_errors from ALL helper functs
     if all(len(v) == 0 for v in validation_errors.values()):
@@ -563,13 +572,13 @@ def validate_dbupdate(in_docs: dict, mdb: MongoDatabase):
         return {"result": "errors", "detail": validation_errors}
 
 
-def validate_json(docs: dict):
+def validate_json(json_nmdcdb: dict):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     validation_errors = {}
 
     # confirm all docs in in_docs refer to ao known mdb collection
     known_coll_names = set(nmdc_database_collection_names())
-    for coll_name, coll_docs in docs.items():
+    for coll_name, coll_docs in json_nmdcdb.items():
         if coll_name not in known_coll_names:
             if coll_name == "@type" and coll_docs in ("Database", "nmdc:Database"):
                 continue
@@ -577,48 +586,49 @@ def validate_json(docs: dict):
                 validation_errors[coll_name] = [
                     f"'{coll_name}' is not a known schema collection name"
                 ]
-                continue
-
-        # init dict to store validation errors
-        errors = list(validator.iter_errors({coll_name: coll_docs}))
-        validation_errors[coll_name] = [e.message for e in errors]
-
-
-def validate_collection_upsert(docs: dict):
-    # TODO: Should we be passing validation_errors between helper functions?
-    validation_errors = {}
-
-    for coll_name, coll_docs in docs.items():
-
-        # validate coll_docs is List(Dict) for each coll_docs in in_docs
-        if coll_docs:
-            if not isinstance(coll_docs, list):
-                validation_errors[coll_name].append("value must be a list")
-            elif not all(isinstance(d, dict) for d in coll_docs):
-                validation_errors[coll_name].append(
-                    "all elements of list must be dicts"
-                )
-
-            # if no validation_errors for this collection,
-            # try to upsert coll_docs to coll_name in (tmp) OverlayDB
-            if not validation_errors[coll_name]:
-                try:
-                    with OverlayDB(mdb) as odb:
-                        odb.replace_or_insert_many(coll_name, coll_docs)
-
-                # log any errors from upsert in validation_errors
-                except OverlayDBError as e:
-                    validation_errors[coll_name].append(str(e))
+        else:
+            # use Draft7Validator to validate json in collection
+            errors = list(validator.iter_errors({coll_name: coll_docs}))
+            validation_errors[coll_name] = [e.message for e in errors]
+    return validation_errors
 
 
-# Second pass over all in_docs
-def validate_db_upsert(docs):
+def validate_linkml_nmdcdb(json_nmdcdb):
     validation_errors = {}
     if all(len(v) == 0 for v in validation_errors.values()):
-        docs.pop("@type", None)
+        json_nmdcdb.pop("@type", None)
         try:
             # Try instantiating linkml-sourced database with *all* changes
             # this checks for ref integ & validation issues *between* collections
-            NMDCDatabase(**docs)
+            NMDCDatabase(**json_nmdcdb)
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
+
+
+# Second pass over all in_docs
+def validate_transaction(json_nmdcdb: dict, mdb: MongoDatabase):
+    validation_errors = {}
+    with OverlayDB(mdb) as odb:
+
+        # prepare_overlay_db
+        for coll_name, coll_docs in json_nmdcdb.items():
+            try:
+                odb.replace_or_insert_many(coll_name, coll_docs)
+            # log any errors from upsert in validation_errors
+            except OverlayDBError as e:
+                validation_errors[coll_name].append(str(e))
+
+        if not all(len(v) == 0 for v in validation_errors.values()):
+            return validation_errors
+
+        # TODO: flesh this out
+
+        # validate_referential_integrity(odb)
+
+        # generate alldocs for json_nmdcdb
+        # call a function that returns an iterator of dicts for json_nmdcdb
+        # eg alldocs_for_json_nmdcdb = my_function()
+        # odb.replace_or_insert_many(alldocs, alldocs_for_json_nmdcdb)
+
+        # do ref integ check on odb
+        # see: doc assertions in ref integ notebook
