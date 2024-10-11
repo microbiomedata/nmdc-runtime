@@ -547,13 +547,24 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_dbupdate():
-    validate_json()
-
-
-def validate_json(in_docs: dict, mdb: MongoDatabase):
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
+def validate_dbupdate(in_docs: dict, mdb: MongoDatabase):
     docs = deepcopy(in_docs)
+
+    # TODO: Should we be passing validation errors, or halting at FIRST validation error?
+    validation_errors = validate_json(docs)
+    validation_errors = validate_collection_upsert(docs, mdb, validation_errors)
+    validation_errors = validate_db_upsert(docs, mdb, validation_errors)
+
+    # TODO: This **should** handle ALL validation_errors from ALL helper functs
+    if all(len(v) == 0 for v in validation_errors.values()):
+        return {"result": "All Okay!"}
+
+    else:
+        return {"result": "errors", "detail": validation_errors}
+
+
+def validate_json(docs: dict):
+    validator = Draft7Validator(get_nmdc_jsonschema_dict())
     validation_errors = {}
 
     # confirm all docs in in_docs refer to ao known mdb collection
@@ -571,6 +582,13 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
         # init dict to store validation errors
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
+
+
+def validate_collection_upsert(docs: dict):
+    # TODO: Should we be passing validation_errors between helper functions?
+    validation_errors = {}
+
+    for coll_name, coll_docs in docs.items():
 
         # validate coll_docs is List(Dict) for each coll_docs in in_docs
         if coll_docs:
@@ -592,16 +610,15 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                 except OverlayDBError as e:
                     validation_errors[coll_name].append(str(e))
 
-    # Second pass over all in_docs
+
+# Second pass over all in_docs
+def validate_db_upsert(docs):
+    validation_errors = {}
     if all(len(v) == 0 for v in validation_errors.values()):
-        in_docs.pop("@type", None)
+        docs.pop("@type", None)
         try:
             # Try instantiating linkml-sourced database with *all* changes
             # this checks for ref integ & validation issues *between* collections
-            NMDCDatabase(**in_docs)
+            NMDCDatabase(**docs)
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
-
-        return {"result": "All Okay!"}
-    else:
-        return {"result": "errors", "detail": validation_errors}
