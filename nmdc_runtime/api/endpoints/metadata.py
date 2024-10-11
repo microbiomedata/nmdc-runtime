@@ -30,7 +30,7 @@ from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
 from nmdc_runtime.util import (
     unfreeze,
     validate_json,
-    specialize_activity_set_docs,
+    specialize_activity_set_docs, validate_dbupdate,
 )
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
@@ -218,14 +218,14 @@ async def validate_json_urls_file(urls_file: UploadFile = File(...)):
 
 
 @router.post("/metadata/json:validate", name="Validate JSON")
-async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
+async def validate_json_nmdcdb(json_nmdcdb: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
     """
 
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
     """
 
-    return validate_json(docs, mdb)
+    return validate_dbupdate(json_nmdcdb, mdb)
 
 
 @router.post("/metadata/json:submit", name="Submit JSON")
