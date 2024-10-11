@@ -556,6 +556,7 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
     docs = deepcopy(in_docs)
     validation_errors = {}
 
+    # confirm all docs in in_docs refer to ao known mdb collection
     known_coll_names = set(nmdc_database_collection_names())
     for coll_name, coll_docs in docs.items():
         if coll_name not in known_coll_names:
@@ -567,8 +568,11 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                 ]
                 continue
 
+        # init dict to store validation errors
         errors = list(validator.iter_errors({coll_name: coll_docs}))
         validation_errors[coll_name] = [e.message for e in errors]
+
+        # validate coll_docs is List(Dict) for each coll_docs in in_docs
         if coll_docs:
             if not isinstance(coll_docs, list):
                 validation_errors[coll_name].append("value must be a list")
@@ -576,17 +580,24 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                 validation_errors[coll_name].append(
                     "all elements of list must be dicts"
                 )
+
+            # if no validation_errors for this collection,
+            # try to upsert coll_docs to coll_name in (tmp) OverlayDB
             if not validation_errors[coll_name]:
                 try:
                     with OverlayDB(mdb) as odb:
                         odb.replace_or_insert_many(coll_name, coll_docs)
+
+                # log any errors from upsert in validation_errors
                 except OverlayDBError as e:
                     validation_errors[coll_name].append(str(e))
 
+    # Second pass over all in_docs
     if all(len(v) == 0 for v in validation_errors.values()):
-        # Second pass. Try instantiating linkml-sourced dataclass
         in_docs.pop("@type", None)
         try:
+            # Try instantiating linkml-sourced database with *all* changes
+            # this checks for ref integ & validation issues *between* collections
             NMDCDatabase(**in_docs)
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
