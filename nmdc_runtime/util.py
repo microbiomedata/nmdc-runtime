@@ -547,6 +547,10 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
+def validate_dbupdate():
+    validate_json()
+
+
 def validate_json(in_docs: dict, mdb: MongoDatabase):
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs = deepcopy(in_docs)
