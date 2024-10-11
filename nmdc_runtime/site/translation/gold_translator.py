@@ -585,7 +585,6 @@ class GoldStudyTranslator(Translator):
             ncbi_project_name=gold_project.get("projectName"),
             type="nmdc:NucleotideSequencing",
             has_input=nmdc_biosample_id,
-            part_of=nmdc_study_id,
             add_date=gold_project.get("addDate"),
             mod_date=self._get_mod_date(gold_project),
             principal_investigator=self._get_pi(gold_project),
