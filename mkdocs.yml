@@ -11,6 +11,8 @@ nav:
     - tutorials/auth.md
     - tutorials/json.md
     - tutorials/metadata-in.md
+    - tutorials/translators.md
+    - tutorials/exporters.md
   - How-to guides:
     - howto-guides/author-changesheets.md
     - howto-guides/create-triggers.md
