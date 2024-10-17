@@ -63,7 +63,7 @@ def run_query(
 
     {
       "find": "biosample_set",
-      "filter": {"part_of": "gold:Gs0114663"}
+      "filter": {"associated_studies": "gold:Gs0114663"}
     }
 
     {
@@ -78,7 +78,7 @@ def run_query(
 
     {
         "aggregate": "biosample_set",
-        "pipeline": [{"$sortByCount": "$part_of"}],
+        "pipeline": [{"$sortByCount": "$associated_studies"}],
         "cursor": {"batchSize": 25}
     }
     ```
