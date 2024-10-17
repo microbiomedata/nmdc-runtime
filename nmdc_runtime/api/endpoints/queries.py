@@ -63,7 +63,7 @@ def run_query(
 
     {
       "find": "biosample_set",
-      "filter": {"associated_studies": "gold:Gs0114663"}
+      "filter": {"associated_studies": "nmdc:sty-11-34xj1150"}
     }
 
     {
