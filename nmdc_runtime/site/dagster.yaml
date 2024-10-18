@@ -5,6 +5,13 @@ scheduler:
 run_coordinator:
   module: dagster.core.run_coordinator
   class: QueuedRunCoordinator
+  config:
+    tag_concurrency_limits:
+      - key: "do-not-overlap-runs"
+        value:
+          applyLimitPerUniqueValue: true
+        limit: 1
+
 
 run_launcher:
   module: dagster.core.launcher
