@@ -160,10 +160,18 @@ def find_data_objects_for_study(
     biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
     biosample_ids = [biosample["id"] for biosample in biosamples]
 
+    biosample_data_objects = []
+
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
         collected_data_objects = []
 
+        # Iterate over records in the `alldocs` collection. Look for
+        # records that have the given biosample_id as value on the
+        # `has_input` key/slot. The retrieved document might also have a
+        # `has_output` key/slot associated with it. Get the value of the
+        # `has_output` key and check if it's type is `nmdc:DataObject`. If
+        # it's not, repeat the process till it is.
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
@@ -178,6 +186,7 @@ def find_data_objects_for_study(
                     continue
 
                 for output_id in has_output:
+                    # Check if the type of the id on `has_output` is `nmdc:DataObject`
                     if get_classname_from_typecode(output_id) == "DataObject":
                         data_object_doc = mdb.data_object_set.find_one(
                             {"id": output_id}
@@ -189,13 +198,36 @@ def find_data_objects_for_study(
 
             current_ids = new_current_ids
 
-        if collected_data_objects:
-            biosample_data_objects.append(
-                {
-                    "biosample_id": biosample_id,
-                    "data_object_set": collected_data_objects,
-                }
+        # Another way in which DataObjects can be related to Biosamples is through the
+        # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
+        # collection that are "informed" by the same DataGeneration records that created
+        # the outputs above. Then we need to get additional DataObject records that are
+        # created by this linkage.
+        if document:
+            document_id = document["id"]
+            informed_by_query = {"was_informed_by": document_id}
+            informed_by_document = mdb.workflow_execution_set.find_one(
+                informed_by_query
             )
+
+            if informed_by_document:
+                additional_has_output = informed_by_document.get("has_output", [])
+                for output_id in additional_has_output:
+                    if get_classname_from_typecode(output_id) == "DataObject":
+                        additional_data_object_doc = mdb.data_object_set.find_one(
+                            {"id": output_id}
+                        )
+                        if additional_data_object_doc:
+                            collected_data_objects.append(
+                                strip_oid(additional_data_object_doc)
+                            )
+
+        if collected_data_objects:
+            result = {
+                "biosample_id": biosample_id,
+                "data_objects": collected_data_objects,
+            }
+            biosample_data_objects.append(result)
 
     return biosample_data_objects
 
