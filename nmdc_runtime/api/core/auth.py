@@ -68,7 +68,7 @@ class TokenExpires(BaseModel):
     minutes: Optional[int] = 0
 
 
-ACCESS_TOKEN_EXPIRES = TokenExpires(days=0, hours=0, minutes=30)
+ACCESS_TOKEN_EXPIRES = TokenExpires(days=1, hours=0, minutes=0)
 
 
 class Token(BaseModel):
