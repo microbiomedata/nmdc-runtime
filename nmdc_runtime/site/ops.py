@@ -1134,6 +1134,7 @@ def materialize_alldocs(context) -> int:
     # /data_objects/study/{study_id} endpoint
     mdb.alldocs.create_index("has_input")
     mdb.alldocs.create_index("has_output")
+    mdb.alldocs.create_index("was_informed_by")
     context.log.info(
         f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
     )
