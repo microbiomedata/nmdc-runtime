@@ -168,59 +168,73 @@ def find_data_objects_for_study(
 
         # Iterate over records in the `alldocs` collection. Look for
         # records that have the given biosample_id as value on the
-        # `has_input` key/slot. The retrieved document might also have a
-        # `has_output` key/slot associated with it. Get the value of the
+        # `has_input` key/slot. The retrieved documents might also have a
+        # `has_output` key/slot associated with them. Get the value of the
         # `has_output` key and check if it's type is `nmdc:DataObject`. If
         # it's not, repeat the process till it is.
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
+                # Query to find all documents with current_id as input
                 query = {"has_input": current_id}
-                document = mdb.alldocs.find_one(query)
+                documents = mdb.alldocs.find(query)
 
-                if not document:
+                if not documents:
                     continue
 
-                has_output = document.get("has_output")
-                if not has_output:
-                    continue
+                # There may be multiple documents which satisfy the
+                # above `has_input` "matching" criteria
+                for document in documents:
+                    # retrieve `has_output` value for each of the documents
+                    has_output = document.get("has_output")
 
-                for output_id in has_output:
-                    # Check if the type of the id on `has_output` is `nmdc:DataObject`
-                    if get_classname_from_typecode(output_id) == "DataObject":
-                        data_object_doc = mdb.data_object_set.find_one(
-                            {"id": output_id}
-                        )
-                        if data_object_doc:
-                            collected_data_objects.append(strip_oid(data_object_doc))
-                    else:
-                        new_current_ids.append(output_id)
+                    # Another way in which DataObjects can be related to Biosamples is through the
+                    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
+                    # collection that are "informed" by the same DataGeneration records that created
+                    # the outputs above. Then we need to get additional DataObject records that are
+                    # created by this linkage.
+
+                    # If no has_output, check the document type
+                    if not has_output:
+                        # Check if the document is of type "NucleotideSequencing"
+                        if "NucleotideSequencing" in document.get("type"):
+                            # Find documents where this document's id exists in "was_informed_by"
+                            was_informed_by_query = {"was_informed_by": document["id"]}
+                            informed_by_docs = mdb.workflow_execution_set.find(was_informed_by_query)
+
+                            # Collect DataObjects from the "has_output" of these documents
+                            for informed_by_doc in informed_by_docs:
+                                informed_by_has_output = informed_by_doc.get(
+                                    "has_output", []
+                                )
+                                for output_id in informed_by_has_output:
+                                    if (
+                                        get_classname_from_typecode(output_id)
+                                        == "DataObject"
+                                    ):
+                                        data_object_doc = mdb.data_object_set.find_one(
+                                            {"id": output_id}
+                                        )
+                                        if data_object_doc:
+                                            collected_data_objects.append(
+                                                strip_oid(data_object_doc)
+                                            )
+                        continue
+
+                    # Collect DataObjects if they exist and add to new_current_ids for further exploration
+                    for output_id in has_output:
+                        if get_classname_from_typecode(output_id) == "DataObject":
+                            data_object_doc = mdb.data_object_set.find_one(
+                                {"id": output_id}
+                            )
+                            if data_object_doc:
+                                collected_data_objects.append(
+                                    strip_oid(data_object_doc)
+                                )
+                        else:
+                            new_current_ids.append(output_id)
 
             current_ids = new_current_ids
-
-        # Another way in which DataObjects can be related to Biosamples is through the
-        # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
-        # collection that are "informed" by the same DataGeneration records that created
-        # the outputs above. Then we need to get additional DataObject records that are
-        # created by this linkage.
-        if document:
-            document_id = document["id"]
-            informed_by_query = {"was_informed_by": document_id}
-            informed_by_document = mdb.workflow_execution_set.find_one(
-                informed_by_query
-            )
-
-            if informed_by_document:
-                additional_has_output = informed_by_document.get("has_output", [])
-                for output_id in additional_has_output:
-                    if get_classname_from_typecode(output_id) == "DataObject":
-                        additional_data_object_doc = mdb.data_object_set.find_one(
-                            {"id": output_id}
-                        )
-                        if additional_data_object_doc:
-                            collected_data_objects.append(
-                                strip_oid(additional_data_object_doc)
-                            )
 
         if collected_data_objects:
             result = {
