@@ -200,7 +200,9 @@ def find_data_objects_for_study(
                         if "NucleotideSequencing" in document.get("type"):
                             # Find documents where this document's id exists in "was_informed_by"
                             was_informed_by_query = {"was_informed_by": document["id"]}
-                            informed_by_docs = mdb.workflow_execution_set.find(was_informed_by_query)
+                            informed_by_docs = mdb.workflow_execution_set.find(
+                                was_informed_by_query
+                            )
 
                             # Collect DataObjects from the "has_output" of these documents
                             for informed_by_doc in informed_by_docs:
