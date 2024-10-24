@@ -132,6 +132,53 @@ def get_classname_from_typecode(doc_id: str) -> str:
 
 
 @router.get(
+    "/biosamples/data_objects/{dobj_ids}",
+    response_model_exclude_unset=True,
+)
+def find_biosamples_for_list_of_data_objects(
+    dobj_id_str: str,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    dobj_ids = dobj_id_str.split(",")
+
+    data_object_biosamples = []
+
+    for dobj_id in dobj_ids:
+
+        # check id exists in alldocs
+        dobj_id = raise404_if_none(
+            mdb.alldocs.find_one({"id": dobj_id}, ["id"]), detail="Biosample not found"
+        )
+
+        # create default mapper
+        dobj_dict = {"data_object_id": dobj_id, "biosample_id": None}
+
+        # recursively search
+        while seek_list := [dobj_id]:
+            # get first element of seek list
+            current_id = seek_list.pop(0)
+
+            # get the id of the planned process that produced it
+            pp_id = mdb.alldocs.find_one({"has_output": current_id}, ["id"])
+
+            # grab the "has_input" value
+            input_id = pp_id.get("has_input")
+            if not input_id:
+                continue
+
+            # keep traversing until a doc has id of type "bsm:"
+            if get_classname_from_typecode(input_id) == "Biosample":
+                bsmid = mdb.biosample_set.find_one({"id": input_id}, ["id"])
+                dobj_dict["biosample_id"] = bsmid
+            else:
+                seek_list.append(input_id)  # add to seek list
+
+        data_object_biosamples.append(dobj_dict)
+
+    return data_object_biosamples
+
+
+@router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
 )
