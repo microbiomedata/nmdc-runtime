@@ -163,7 +163,7 @@ def find_data_objects_for_study(
 
     biosample_data_objects = []
 
-    #
+    # SchemaView interface to NMDC Schema
     nmdc_view = ViewGetter()
     nmdc_sv = nmdc_view.get_view()
     dg_descendants = nmdc_sv.class_descendants("DataGeneration")
@@ -202,7 +202,7 @@ def find_data_objects_for_study(
 
                     # If no has_output, check the document type
                     if not has_output:
-                        # Check if the document is of type "NucleotideSequencing"
+                        # Check if descendants of "DataGeneration" class are in type
                         if any(t in dg_descendants for t in document.get("type", [])):
                             # Find documents where this document's id exists in "was_informed_by"
                             was_informed_by_query = {"was_informed_by": document["id"]}
