@@ -9,6 +9,7 @@ from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
 
+from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
@@ -162,6 +163,11 @@ def find_data_objects_for_study(
 
     biosample_data_objects = []
 
+    #
+    nmdc_view = ViewGetter()
+    nmdc_sv = nmdc_view.get_view()
+    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
         collected_data_objects = []
@@ -197,7 +203,7 @@ def find_data_objects_for_study(
                     # If no has_output, check the document type
                     if not has_output:
                         # Check if the document is of type "NucleotideSequencing"
-                        if "NucleotideSequencing" in document.get("type"):
+                        if any(t in dg_descendants for t in document.get("type", [])):
                             # Find documents where this document's id exists in "was_informed_by"
                             was_informed_by_query = {"was_informed_by": document["id"]}
                             informed_by_docs = mdb.workflow_execution_set.find(
