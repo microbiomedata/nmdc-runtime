@@ -161,12 +161,34 @@ def find_data_objects_for_study(
     biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
     biosample_ids = [biosample["id"] for biosample in biosamples]
 
-    biosample_data_objects = []
-
     # SchemaView interface to NMDC Schema
     nmdc_view = ViewGetter()
     nmdc_sv = nmdc_view.get_view()
     dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+
+    def collect_data_objects(doc_ids, collected_objects):
+        """Helper function to collect data objects from `has_input` and `has_output` references."""
+        for doc_id in doc_ids:
+            if get_classname_from_typecode(doc_id) == "DataObject":
+                data_obj = mdb.data_object_set.find_one({"id": doc_id})
+                if data_obj:
+                    collected_objects.append(strip_oid(data_obj))
+
+    # Another way in which DataObjects can be related to Biosamples is through the
+    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
+    # collection that are "informed" by the same DataGeneration records that created
+    # the outputs above. Then we need to get additional DataObject records that are
+    # created by this linkage.
+    def process_informed_by_docs(doc, collected_objects):
+        """Process documents linked by `was_informed_by` and collect relevant data objects."""
+        informed_by_docs = mdb.workflow_execution_set.find(
+            {"was_informed_by": doc["id"]}
+        )
+        for informed_doc in informed_by_docs:
+            collect_data_objects(informed_doc.get("has_input", []), collected_objects)
+            collect_data_objects(informed_doc.get("has_output", []), collected_objects)
+
+    biosample_data_objects = []
 
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
@@ -181,66 +203,27 @@ def find_data_objects_for_study(
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
-                # Query to find all documents with current_id as input
-                query = {"has_input": current_id}
-                documents = mdb.alldocs.find(query)
+                # Query to find all documents with current_id as the value on
+                # `has_input` slot
+                for doc in mdb.alldocs.find({"has_input": current_id}):
+                    has_output = doc.get("has_output", [])
 
-                if not documents:
-                    continue
-
-                # There may be multiple documents which satisfy the
-                # above `has_input` "matching" criteria
-                for document in documents:
-                    # retrieve `has_output` value for each of the documents
-                    has_output = document.get("has_output")
-
-                    # Another way in which DataObjects can be related to Biosamples is through the
-                    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
-                    # collection that are "informed" by the same DataGeneration records that created
-                    # the outputs above. Then we need to get additional DataObject records that are
-                    # created by this linkage.
-
-                    # If no has_output, check the document type
-                    if not has_output:
-                        # Check if descendants of "DataGeneration" class are in type
-                        if any(t in dg_descendants for t in document.get("type", [])):
-                            # Find documents where this document's id exists in "was_informed_by"
-                            was_informed_by_query = {"was_informed_by": document["id"]}
-                            informed_by_docs = mdb.workflow_execution_set.find(
-                                was_informed_by_query
-                            )
-
-                            # Collect DataObjects from the "has_output" of these documents
-                            for informed_by_doc in informed_by_docs:
-                                informed_by_has_output = informed_by_doc.get(
-                                    "has_output", []
-                                )
-                                for output_id in informed_by_has_output:
-                                    if (
-                                        get_classname_from_typecode(output_id)
-                                        == "DataObject"
-                                    ):
-                                        data_object_doc = mdb.data_object_set.find_one(
-                                            {"id": output_id}
-                                        )
-                                        if data_object_doc:
-                                            collected_data_objects.append(
-                                                strip_oid(data_object_doc)
-                                            )
+                    # Process `DataGeneration` type documents linked by `was_informed_by`
+                    if not has_output and any(
+                        t in dg_descendants for t in doc.get("type", [])
+                    ):
+                        process_informed_by_docs(doc, collected_data_objects)
                         continue
 
-                    # Collect DataObjects if they exist and add to new_current_ids for further exploration
-                    for output_id in has_output:
-                        if get_classname_from_typecode(output_id) == "DataObject":
-                            data_object_doc = mdb.data_object_set.find_one(
-                                {"id": output_id}
-                            )
-                            if data_object_doc:
-                                collected_data_objects.append(
-                                    strip_oid(data_object_doc)
-                                )
-                        else:
-                            new_current_ids.append(output_id)
+                    collect_data_objects(has_output, collected_data_objects)
+                    new_current_ids.extend(
+                        op
+                        for op in has_output
+                        if get_classname_from_typecode(op) != "DataObject"
+                    )
+
+                    if any(t in dg_descendants for t in doc.get("type", [])):
+                        process_informed_by_docs(doc, collected_data_objects)
 
             current_ids = new_current_ids
 
