@@ -166,33 +166,42 @@ def find_data_objects_for_study(
     nmdc_sv = nmdc_view.get_view()
     dg_descendants = nmdc_sv.class_descendants("DataGeneration")
 
-    def collect_data_objects(doc_ids, collected_objects):
+    def collect_data_objects(doc_ids, collected_objects, unique_ids):
         """Helper function to collect data objects from `has_input` and `has_output` references."""
         for doc_id in doc_ids:
-            if get_classname_from_typecode(doc_id) == "DataObject":
+            if (
+                get_classname_from_typecode(doc_id) == "DataObject"
+                and doc_id not in unique_ids
+            ):
                 data_obj = mdb.data_object_set.find_one({"id": doc_id})
                 if data_obj:
                     collected_objects.append(strip_oid(data_obj))
+                    unique_ids.add(doc_id)
 
     # Another way in which DataObjects can be related to Biosamples is through the
     # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
     # collection that are "informed" by the same DataGeneration records that created
     # the outputs above. Then we need to get additional DataObject records that are
     # created by this linkage.
-    def process_informed_by_docs(doc, collected_objects):
+    def process_informed_by_docs(doc, collected_objects, unique_ids):
         """Process documents linked by `was_informed_by` and collect relevant data objects."""
         informed_by_docs = mdb.workflow_execution_set.find(
             {"was_informed_by": doc["id"]}
         )
         for informed_doc in informed_by_docs:
-            collect_data_objects(informed_doc.get("has_input", []), collected_objects)
-            collect_data_objects(informed_doc.get("has_output", []), collected_objects)
+            collect_data_objects(
+                informed_doc.get("has_input", []), collected_objects, unique_ids
+            )
+            collect_data_objects(
+                informed_doc.get("has_output", []), collected_objects, unique_ids
+            )
 
     biosample_data_objects = []
 
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
         collected_data_objects = []
+        unique_ids = set()
 
         # Iterate over records in the `alldocs` collection. Look for
         # records that have the given biosample_id as value on the
@@ -212,10 +221,12 @@ def find_data_objects_for_study(
                     if not has_output and any(
                         t in dg_descendants for t in doc.get("type", [])
                     ):
-                        process_informed_by_docs(doc, collected_data_objects)
+                        process_informed_by_docs(
+                            doc, collected_data_objects, unique_ids
+                        )
                         continue
 
-                    collect_data_objects(has_output, collected_data_objects)
+                    collect_data_objects(has_output, collected_data_objects, unique_ids)
                     new_current_ids.extend(
                         op
                         for op in has_output
@@ -223,7 +234,9 @@ def find_data_objects_for_study(
                     )
 
                     if any(t in dg_descendants for t in doc.get("type", [])):
-                        process_informed_by_docs(doc, collected_data_objects)
+                        process_informed_by_docs(
+                            doc, collected_data_objects, unique_ids
+                        )
 
             current_ids = new_current_ids
 
