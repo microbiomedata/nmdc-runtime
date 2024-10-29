@@ -1,6 +1,7 @@
 import logging
 import re
 from datetime import datetime
+from enum import Enum
 from functools import lru_cache
 from importlib import resources
 from typing import Any, List, Optional, Union
@@ -8,12 +9,34 @@ from typing import Any, List, Optional, Union
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema import nmdc
-from toolz import get_in, groupby, concat, valmap, dissoc
+from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
-
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
+
+
+class EnvironmentType(Enum):
+    r"""
+    Enumeration of all possible environment types.
+
+    >>> EnvironmentType.AIR.value
+    'air'
+    >>> EnvironmentType.SEDIMENT.value
+    'sediment'
+    """
+
+    AIR = "air"
+    BIOFILM = "microbial mat_biofilm"
+    BUILT_ENV = "built environment"
+    HCR_CORES = "hydrocardbon resources-cores"
+    HRC_FLUID_SWABS = "hydrocarbon resources-fluids_swabs"
+    HOST_ASSOCIATED = "host-associated"
+    MISC_ENVS = "miscellaneous natural or artificial environment"
+    PLANT_ASSOCIATED = "plant-associated"
+    SEDIMENT = "sediment"
+    SOIL = "soil"
+    WATER = "water"
 
 
 @lru_cache
@@ -599,25 +622,33 @@ class SubmissionPortalTranslator(Translator):
         ]
 
         sample_data = metadata_submission_data.get("sampleData", {})
-        package_name = metadata_submission_data["packageName"]
-        sample_data_by_id = groupby(
-            BIOSAMPLE_UNIQUE_KEY_SLOT, concat(sample_data.values())
-        )
-        nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
-        sample_data_to_nmdc_biosample_ids = dict(
-            zip(sample_data_by_id.keys(), nmdc_biosample_ids)
-        )
-
-        database.biosample_set = [
-            self._translate_biosample(
-                sample_data,
-                nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
-                nmdc_study_id=nmdc_study_id,
-                default_env_package=package_name,
+        for key in sample_data.keys():
+            env = key.rsplit("_", 1)[0].upper()
+            package_name = EnvironmentType[env].value
+            sample_data_by_id = groupby(
+                lambda sample: (
+                    sample.get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip(),
+                    package_name
+                ),
+                concat(sample_data.values()),
             )
-            for sample_data_id, sample_data in sample_data_by_id.items()
-            if sample_data
-        ]
+            nmdc_biosample_ids = self._id_minter(
+                "nmdc:Biosample", len(sample_data_by_id)
+            )
+            sample_data_to_nmdc_biosample_ids = dict(
+                zip(sample_data_by_id.keys(), nmdc_biosample_ids)
+            )
+
+            database.biosample_set = [
+                self._translate_biosample(
+                    sample_data,
+                    nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
+                    nmdc_study_id=nmdc_study_id,
+                    default_env_package=package_name,
+                )
+                for sample_data_id, sample_data in sample_data_by_id.items()
+                if sample_data
+            ]
 
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part

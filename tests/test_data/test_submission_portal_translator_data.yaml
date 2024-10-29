@@ -2,7 +2,7 @@
 input:
   metadata_submission:
     metadata_submission:
-      packageName: plant-associated
+      packageName: ['plant-associated', 'air']
       contextForm:
         datasetDoi: doi:10.46936/10.25585/60000818
         dataGenerated: true
@@ -57,7 +57,7 @@ input:
           annotated. Our findings support that leaf-associated bacterial populations are
           seasonally dynamic and responsive to host cues.
         notes: ''
-        fundingSources: 
+        fundingSources:
           - Some award ABC
           - Some award XYZ
         contributors:
@@ -281,6 +281,14 @@ input:
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
+        air_data:
+          - samp_name: "4"
+            analysis_type: metagenomics_long_read
+          - samp_name: "5"
+          - samp_name: "6"
+        jgi_mg_lr_data:
+          - samp_name: "4"
+          - analysis_type: metagenomics_long_read
     status: in-progress
     id: d32b5eb6-71e8-4c98-8a57-3e64d05718b4
     author_orcid: 0000-0002-7705-343X
@@ -1028,7 +1036,7 @@ input:
             roles:
               - Principal Investigator
         description: This is a test submission
-        fundingSources: 
+        fundingSources:
           - Some award ABC
           - Some award XYZ
         linkOutWebpage:
