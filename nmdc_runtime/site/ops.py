@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from zipfile import ZipFile
 from itertools import chain
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import requests
@@ -31,10 +32,6 @@ from dagster import (
     Optional,
     Field,
     Permissive,
-    Dict,
-    List,
-    Tuple,
-    Bool,
 )
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
@@ -55,7 +52,10 @@ from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
-from nmdc_runtime.api.endpoints.find import find_study_by_id
+from nmdc_runtime.api.endpoints.find import (
+    find_study_by_id,
+    get_classname_from_typecode,
+)
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.operation import (
@@ -113,6 +113,7 @@ from nmdc_runtime.util import (
 )
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
+from nmdc_schema.get_nmdc_view import ViewGetter
 from pydantic import BaseModel
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -1152,81 +1153,114 @@ def materialize_alldocs(context) -> int:
     return mdb.alldocs.estimated_document_count()
 
 
-@op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
-def materialize_rollup_collection(context: OpExecutionContext) -> List:
-    mdb = context.resources.mongo.db
-    study_id = context.op_config["nmdc_study_id"]
+@op
+def biosample_rollup_filename() -> str:
+    return "biosample_rollup.json"
 
-    biosample_associated_objects = []
+
+@op(
+    config_schema={"nmdc_study_id": str},
+    out={"nmdc_study_id": Out(str)},
+)
+def get_biosample_rollup_pipeline_input(context: OpExecutionContext) -> str:
+    return context.op_config["nmdc_study_id"]
+
+
+@op(required_resource_keys={"mongo"})
+def materialize_biosample_rollup(
+    context: OpExecutionContext, nmdc_study_id: str
+) -> Dict:
+    mdb = context.resources.mongo.db
+
     study = raise404_if_none(
-        mdb.study_set.find_one({"id": study_id}, projection={"id": 1}),
+        mdb.study_set.find_one({"id": nmdc_study_id}, projection={"id": 1}),
         detail="Study not found",
     )
     if not study:
         return []
 
-    biosamples = mdb.biosample_set.find({"part_of": study["id"]}, projection={"id": 1})
+    # Note: With nmdc-schema v10 (legacy schema), we used the field named `part_of` here.
+    #       With nmdc-schema v11 (Berkeley schema), we use the field named `associated_studies` here.
+    biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
     biosample_ids = [biosample["id"] for biosample in biosamples]
     if not biosample_ids:
         return []
 
+    biosample_associated_ids = []
+
+    # SchemaView interface to NMDC Schema
+    nmdc_view = ViewGetter()
+    nmdc_sv = nmdc_view.get_view()
+    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+
     for biosample_id in biosample_ids:
         current_ids = [biosample_id]
-        collected_ids_by_collection = {}
+
+        # List to capture all document IDs that are related to a Biosample ID
+        all_collected_ids = []
 
         while current_ids:
-            documents = list(
-                mdb.alldocs.find(
-                    {"has_input": {"$in": current_ids}},
-                    projection={"id": 1, "has_input": 1, "has_output": 1},
-                )
-            )
-            if not documents:
-                break
-
             new_current_ids = []
-            for document in documents:
-                document_id = document["id"]
-                collection_name = get_collection_from_typecode(document_id)
-                if collection_name:
-                    collected_ids_by_collection.setdefault(collection_name, []).append(
-                        document_id
+            for current_id in current_ids:
+                query = {"has_input": current_id}
+                documents = mdb.alldocs.find(query)
+
+                if not documents:
+                    continue
+
+                for document in documents:
+                    doc_id = document.get("id")
+                    all_collected_ids.append(doc_id)
+                    has_output = document.get("has_output", [])
+
+                    if not has_output and any(
+                        doc_type in dg_descendants
+                        for doc_type in document.get("type", [])
+                    ):
+                        was_informed_by_query = {"was_informed_by": doc_id}
+                        informed_by_docs = mdb.alldocs.find(was_informed_by_query)
+
+                        for informed_by_doc in informed_by_docs:
+                            all_collected_ids.append(informed_by_doc.get("id"))
+                            all_collected_ids.extend(
+                                informed_by_doc.get("has_input", [])
+                            )
+                            all_collected_ids.extend(
+                                informed_by_doc.get("has_output", [])
+                            )
+                        continue
+
+                    new_current_ids.extend(
+                        op
+                        for op in has_output
+                        if get_classname_from_typecode(op) != "DataObject"
                     )
+                    all_collected_ids.extend(has_output)
 
-                if "has_input" in document:
-                    for inp in document["has_input"]:
-                        inp_collection_name = get_collection_from_typecode(inp)
-                        if inp_collection_name:
-                            collected_ids_by_collection.setdefault(
-                                inp_collection_name, []
-                            ).append(inp)
-
-                if "has_output" in document:
-                    for out in document["has_output"]:
-                        out_collection_name = get_collection_from_typecode(out)
-                        if out_collection_name:
-                            collected_ids_by_collection.setdefault(
-                                out_collection_name, []
-                            ).append(out)
-                        new_current_ids.append(out)
-
-                        if mdb.alldocs.find_one(
-                            {"was_generated_by": out}, projection={"id": 1}
-                        ):
-                            collected_ids_by_collection.setdefault(
-                                out_collection_name, []
-                            ).append(out)
+                    if any(
+                        doc_type in dg_descendants
+                        for doc_type in document.get("type", [])
+                    ):
+                        was_informed_by_query = {"was_informed_by": doc_id}
+                        informed_by_docs = mdb.alldocs.find(was_informed_by_query)
+                        for informed_by_doc in informed_by_docs:
+                            all_collected_ids.append(informed_by_doc.get("id"))
+                            all_collected_ids.extend(
+                                informed_by_doc.get("has_input", [])
+                            )
+                            all_collected_ids.extend(
+                                informed_by_doc.get("has_output", [])
+                            )
 
             current_ids = new_current_ids
 
-        if collected_ids_by_collection:
-            formatted_document = {
-                "biosample_id": biosample_id,
-                "associated_ids_by_collection": collected_ids_by_collection,
-            }
-            biosample_associated_objects.append(formatted_document)
+        result = {
+            "biosample_id": biosample_id,
+            "associated_ids": all_collected_ids,
+        }
+        biosample_associated_ids.append(result)
 
-    return biosample_associated_objects
+    return {"biosample_rollup": biosample_associated_ids}
 
 
 @op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
