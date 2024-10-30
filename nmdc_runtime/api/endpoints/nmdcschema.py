@@ -15,7 +15,11 @@ from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_nonempty_nmdc_schema_collection_names,
+    get_collection_names_from_schema,
+)
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
@@ -23,10 +27,8 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse
 router = APIRouter()
 
 
-def verify_collection_name(
-    collection_name: str, mdb: MongoDatabase = Depends(get_mongo_db)
-):
-    names = nmdc_schema_collection_names(mdb)
+def ensure_collection_name_is_known_to_schema(collection_name: str):
+    names = get_collection_names_from_schema()
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -96,7 +98,7 @@ def get_nmdc_database_collection_stats(
     "/nmdcschema/{collection_name}",
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
-    dependencies=[Depends(verify_collection_name)],
+    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def list_from_collection(
     collection_name: str,
@@ -235,7 +237,7 @@ def get_collection_name_by_doc_id(
     "/nmdcschema/{collection_name}/{doc_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
-    dependencies=[Depends(verify_collection_name)],
+    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def get_from_collection_by_id(
     collection_name: str,

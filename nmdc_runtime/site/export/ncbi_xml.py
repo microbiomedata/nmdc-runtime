@@ -283,7 +283,7 @@ class NCBISubmissionXML:
         biosample_data_objects: list,
         bioproject_id: str,
         org: str,
-        nmdc_omics_processing: list,
+        nmdc_nucleotide_sequencing: list,
         nmdc_biosamples: list,
         nmdc_library_preparation: list,
     ):
@@ -294,10 +294,10 @@ class NCBISubmissionXML:
         for entry in biosample_data_objects:
             fastq_files = []
             biosample_ids = []
-            omics_processing_ids = {}
+            nucleotide_sequencing_ids = {}
             lib_prep_protocol_names = {}
             instrument_name = ""
-            omics_type = ""
+            analyte_category = ""
             library_name = ""
 
             for biosample_id, data_objects in entry.items():
@@ -308,16 +308,16 @@ class NCBISubmissionXML:
                         file_path = os.path.basename(url.path)
                         fastq_files.append(file_path)
 
-                for omprc_dict in nmdc_omics_processing:
-                    if biosample_id in omprc_dict:
-                        for omprc in omprc_dict[biosample_id]:
-                            omics_processing_ids[biosample_id] = omprc.get("id", "")
-                            instrument_name = omprc.get("instrument_name", "")
-                            omics_type = (
-                                omprc.get("omics_type", {})
-                                .get("has_raw_value", "")
-                                .lower()
+                for ntseq_dict in nmdc_nucleotide_sequencing:
+                    if biosample_id in ntseq_dict:
+                        for ntseq in ntseq_dict[biosample_id]:
+                            nucleotide_sequencing_ids[biosample_id] = ntseq.get(
+                                "id", ""
                             )
+                            # Currently, we are making the assumption that only one instrument
+                            # is used to sequence a Biosample
+                            instrument_name = ntseq.get("instrument_used", "")[0]
+                            analyte_category = ntseq.get("analyte_category", "")
                             library_name = bsm_id_name_dict.get(biosample_id, "")
 
                 for lib_prep_dict in nmdc_library_preparation:
@@ -395,7 +395,7 @@ class NCBISubmissionXML:
                             )
                         )
 
-                if omics_type == "metagenome":
+                if analyte_category == "metagenome":
                     sra_attributes.append(
                         self.set_element(
                             "Attribute", "WGS", {"name": "library_strategy"}
@@ -411,8 +411,7 @@ class NCBISubmissionXML:
                             "Attribute", "RANDOM", {"name": "library_selection"}
                         )
                     )
-
-                if omics_type == "metatranscriptome":
+                elif analyte_category == "metatranscriptome":
                     sra_attributes.append(
                         self.set_element(
                             "Attribute",
@@ -467,7 +466,10 @@ class NCBISubmissionXML:
                         )
                     )
 
-                for biosample_id, omics_processing_id in omics_processing_ids.items():
+                for (
+                    biosample_id,
+                    omics_processing_id,
+                ) in nucleotide_sequencing_ids.items():
                     identifier_element = self.set_element(
                         "Identifier",
                         children=[
@@ -496,20 +498,22 @@ class NCBISubmissionXML:
     def get_submission_xml(
         self,
         biosamples_list: list,
-        biosample_omics_processing_list: list,
+        biosample_nucleotide_sequencing_list: list,
         biosample_data_objects_list: list,
         biosample_library_preparation_list: list,
     ):
         data_type = None
         ncbi_project_id = None
-        for bsm_omprc in biosample_omics_processing_list:
-            for _, omprc_list in bsm_omprc.items():
-                for omprc in omprc_list:
-                    if "omics_type" in omprc:
-                        data_type = handle_text_value(omprc["omics_type"]).capitalize()
+        for bsm_ntseq in biosample_nucleotide_sequencing_list:
+            for _, ntseq_list in bsm_ntseq.items():
+                for ntseq in ntseq_list:
+                    if "analyte_category" in ntseq:
+                        data_type = handle_string_value(
+                            ntseq["analyte_category"]
+                        ).capitalize()
 
-                    if "ncbi_project_name" in omprc:
-                        ncbi_project_id = omprc["ncbi_project_name"]
+                    if "ncbi_project_name" in ntseq:
+                        ncbi_project_id = ntseq["ncbi_project_name"]
 
         self.set_description(
             email=self.nmdc_pi_email,
@@ -538,7 +542,7 @@ class NCBISubmissionXML:
             biosample_data_objects=biosample_data_objects_list,
             bioproject_id=ncbi_project_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
-            nmdc_omics_processing=biosample_omics_processing_list,
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing_list,
             nmdc_biosamples=biosamples_list,
             nmdc_library_preparation=biosample_library_preparation_list,
         )

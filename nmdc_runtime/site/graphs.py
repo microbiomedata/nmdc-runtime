@@ -51,7 +51,7 @@ from nmdc_runtime.site.ops import (
     materialize_alldocs,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
-    get_omics_processing_from_biosamples,
+    get_nucleotide_sequencing_from_biosamples,
     get_library_preparation_from_biosamples,
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
@@ -132,15 +132,23 @@ def apply_metadata_in():
 
 @graph
 def gold_study_to_database():
-    study_id = get_gold_study_pipeline_inputs()
+    (study_id, study_type, gold_nmdc_instrument_mapping_file_url) = (
+        get_gold_study_pipeline_inputs()
+    )
 
     projects = gold_projects_by_study(study_id)
     biosamples = gold_biosamples_by_study(study_id)
     analysis_projects = gold_analysis_projects_by_study(study_id)
     study = gold_study(study_id)
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
 
     database = nmdc_schema_database_from_gold_study(
-        study, projects, biosamples, analysis_projects
+        study,
+        study_type,
+        projects,
+        biosamples,
+        analysis_projects,
+        gold_nmdc_instrument_map_df,
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
@@ -153,14 +161,16 @@ def gold_study_to_database():
 def translate_metadata_submission_to_nmdc_schema_database():
     (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
-    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    nucleotide_sequencing_mapping = get_csv_rows_from_url(
+        nucleotide_sequencing_mapping_file_url
+    )
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
     biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
     biosample_extras_slot_mapping = get_csv_rows_from_url(
@@ -169,8 +179,8 @@ def translate_metadata_submission_to_nmdc_schema_database():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
@@ -187,14 +197,16 @@ def translate_metadata_submission_to_nmdc_schema_database():
 def ingest_metadata_submission():
     (
         submission_id,
-        omics_processing_mapping_file_url,
+        nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
-    omics_processing_mapping = get_csv_rows_from_url(omics_processing_mapping_file_url)
+    nucleotide_sequencing_mapping = get_csv_rows_from_url(
+        nucleotide_sequencing_mapping_file_url
+    )
     data_object_mapping = get_csv_rows_from_url(data_object_mapping_file_url)
     biosample_extras = get_csv_rows_from_url(biosample_extras_file_url)
     biosample_extras_slot_mapping = get_csv_rows_from_url(
@@ -203,8 +215,8 @@ def ingest_metadata_submission():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
-        omics_processing_mapping,
-        data_object_mapping,
+        nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
+        data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
     )
@@ -223,6 +235,7 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -231,8 +244,16 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_soil_data(
-        mms_data, sls_data, neon_envo_mappings_file, neon_raw_data_file_mappings_file
+        mms_data,
+        sls_data,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -253,6 +274,7 @@ def ingest_neon_soil_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -261,8 +283,16 @@ def ingest_neon_soil_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_soil_data(
-        mms_data, sls_data, neon_envo_mappings_file, neon_raw_data_file_mappings_file
+        mms_data,
+        sls_data,
+        neon_envo_mappings_file,
+        neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
@@ -273,6 +303,7 @@ def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     mms_benthic_data_product = get_neon_pipeline_benthic_data_product()
@@ -286,11 +317,16 @@ def translate_neon_api_benthic_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_benthic,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -311,6 +347,7 @@ def ingest_neon_benthic_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -319,11 +356,16 @@ def ingest_neon_benthic_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_benthic,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
@@ -340,6 +382,7 @@ def translate_neon_api_surface_water_metadata_to_nmdc_schema_database():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -348,11 +391,16 @@ def translate_neon_api_surface_water_metadata_to_nmdc_schema_database():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_surface_water_data(
         mms_surface_water,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -373,6 +421,7 @@ def ingest_neon_surface_water_metadata():
     (
         neon_envo_mappings_file_url,
         neon_raw_data_file_mappings_file_url,
+        neon_nmdc_instrument_mapping_file_url,
     ) = get_neon_pipeline_inputs()
 
     neon_envo_mappings_file = get_df_from_url(neon_envo_mappings_file_url)
@@ -381,11 +430,16 @@ def ingest_neon_surface_water_metadata():
         neon_raw_data_file_mappings_file_url
     )
 
+    neon_nmdc_instrument_mapping_file = get_df_from_url(
+        neon_nmdc_instrument_mapping_file_url
+    )
+
     database = nmdc_schema_database_from_neon_benthic_data(
         mms_surface_water,
         sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
+        neon_nmdc_instrument_mapping_file,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
@@ -396,14 +450,16 @@ def nmdc_study_to_ncbi_submission_export():
     nmdc_study = get_ncbi_export_pipeline_study()
     ncbi_submission_metadata = get_ncbi_export_pipeline_inputs()
     biosamples = get_biosamples_by_study_id(nmdc_study)
-    omics_processing_records = get_omics_processing_from_biosamples(biosamples)
+    nucleotide_sequencing_records = get_nucleotide_sequencing_from_biosamples(
+        biosamples
+    )
     data_object_records = get_data_objects_from_biosamples(biosamples)
     library_preparation_records = get_library_preparation_from_biosamples(biosamples)
     xml_data = ncbi_submission_xml_from_nmdc_study(
         nmdc_study,
         ncbi_submission_metadata,
         biosamples,
-        omics_processing_records,
+        nucleotide_sequencing_records,
         data_object_records,
         library_preparation_records,
     )

@@ -50,7 +50,14 @@ def _create_controlled_identified_term_value(
     """
     if id is None or name is None:
         return None
-    return nmdc.ControlledIdentifiedTermValue(term=nmdc.OntologyClass(id=id, name=name))
+    return nmdc.ControlledIdentifiedTermValue(
+        term=nmdc.OntologyClass(
+            id=id,
+            name=name,
+            type="nmdc:OntologyClass",
+        ),
+        type="nmdc:ControlledIdentifiedTermValue",
+    )
 
 
 def _create_controlled_term_value(name: str = None) -> nmdc.ControlledTermValue:
@@ -64,7 +71,10 @@ def _create_controlled_term_value(name: str = None) -> nmdc.ControlledTermValue:
     """
     if name is None:
         return None
-    return nmdc.ControlledTermValue(has_raw_value=name)
+    return nmdc.ControlledTermValue(
+        has_raw_value=name,
+        type="nmdc:ControlledTermValue",
+    )
 
 
 def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
@@ -77,7 +87,7 @@ def _create_timestamp_value(value: str = None) -> nmdc.TimestampValue:
     """
     if value is None:
         return None
-    return nmdc.TimestampValue(has_raw_value=value)
+    return nmdc.TimestampValue(has_raw_value=value, type="nmdc:TimestampValue")
 
 
 def _create_quantity_value(
@@ -94,7 +104,9 @@ def _create_quantity_value(
     """
     if numeric_value is None or math.isnan(numeric_value):
         return None
-    return nmdc.QuantityValue(has_numeric_value=float(numeric_value), has_unit=unit)
+    return nmdc.QuantityValue(
+        has_numeric_value=float(numeric_value), has_unit=unit, type="nmdc:QuantityValue"
+    )
 
 
 def _create_text_value(value: str = None) -> nmdc.TextValue:
@@ -106,7 +118,7 @@ def _create_text_value(value: str = None) -> nmdc.TextValue:
     """
     if value is None:
         return None
-    return nmdc.TextValue(has_raw_value=value)
+    return nmdc.TextValue(has_raw_value=value, type="nmdc:TextValue")
 
 
 def _create_double_value(value: str = None) -> nmdc.Double:
@@ -119,7 +131,7 @@ def _create_double_value(value: str = None) -> nmdc.Double:
     """
     if value is None or math.isnan(value):
         return None
-    return nmdc.Double(value)
+    return nmdc.Double(value, type="nmdc:Double")
 
 
 def _create_geolocation_value(
@@ -147,4 +159,5 @@ def _create_geolocation_value(
     return nmdc.GeolocationValue(
         latitude=nmdc.DecimalDegree(latitude),
         longitude=nmdc.DecimalDegree(longitude),
+        type="nmdc:GeolocationValue",
     )

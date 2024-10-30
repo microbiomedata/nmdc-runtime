@@ -42,14 +42,22 @@ def get_study_by_id(id_: str) -> Optional[dict]:
     return load_studies().get(id_.strip())
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    sty_local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + sty_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
+        ) as f:
+            mdb.study_set_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
     )
     assert isinstance(df, pd.DataFrame)
-
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + sty_local_id})
 
 def test_changesheet_update_slot_with_range_bytes():
     mdb = get_mongo_db()
@@ -131,9 +139,15 @@ def test_update_01():
     assert first_result["validation_errors"] == []
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-r2h77870"
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-array-item-nested-attributes.tsv"), mdb
     )
@@ -141,7 +155,7 @@ def test_changesheet_array_item_nested_attributes():
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
 
     credit_info = {
-        "applied_role": "Conceptualization",
+        "applied_roles": ["Conceptualization"],
         "applies_to_person": {
             "name": "CREDIT NAME 1",
             "email": "CREDIT_NAME_1@foo.edu",
@@ -159,11 +173,19 @@ def test_changesheet_array_item_nested_attributes():
     first_doc_after = results[0]["doc_after"]
     assert "has_credit_associations" in first_doc_after
     assert credit_info in first_doc_after.get("has_credit_associations", [])
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-r2h77870"
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-update-pi-websites.tsv"), mdb
     )
@@ -188,6 +210,8 @@ def test_update_pi_websites():
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
     assert first_result["doc_after"]["principal_investigator"] == pi_info
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
 def test_update_biosample_ph():
@@ -214,6 +238,7 @@ def test_ensure_data_object_type():
                 "description": "Protein FAA for gold:Gp0116326",
                 "url": "https://data.microbiomedata.org/data/nmdc:mga06z11/annotation/nmdc_mga06z11_proteins.faa",
                 "md5_checksum": "87733039aa2ef02667987b398b8df08c",
+                "type": "nmdc:DataObject",
                 "file_size_bytes": 1214244683,
                 "id": "nmdc:87733039aa2ef02667987b398b8df08c",
                 "name": "gold:Gp0116326_Protein FAA",

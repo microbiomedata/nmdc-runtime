@@ -503,7 +503,13 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
-                    "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
+                    "get_gold_study_pipeline_inputs": {
+                        "config": {
+                            "study_id": "",
+                            "study_type": "research_study",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                        },
+                    },
                     "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
@@ -530,7 +536,7 @@ def biosample_submission_ingest():
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": None,
+                            "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
@@ -538,10 +544,9 @@ def biosample_submission_ingest():
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
-                            "study_category": None,
+                            "study_category": "research_study",
                             "study_doi_category": None,
                             "study_doi_provider": None,
-                            "study_funding_sources": None,
                             "study_pi_image_url": None,
                         }
                     },
@@ -569,7 +574,7 @@ def biosample_submission_ingest():
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": None,
+                            "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
@@ -580,7 +585,6 @@ def biosample_submission_ingest():
                             "study_category": None,
                             "study_doi_category": None,
                             "study_doi_provider": None,
-                            "study_funding_sources": None,
                             "study_pi_image_url": None,
                         }
                     },
@@ -640,6 +644,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -681,6 +686,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -723,6 +729,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                     "get_neon_pipeline_benthic_data_product": {
@@ -764,6 +771,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -806,6 +814,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                     "get_neon_pipeline_surface_water_data_product": {
@@ -847,6 +856,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },

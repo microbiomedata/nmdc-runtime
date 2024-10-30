@@ -22,7 +22,11 @@ from nmdc_runtime.util import (
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
-from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID
+from nmdc_runtime.api.core.auth import (
+    get_password_hash,
+    ORCID_NMDC_CLIENT_ID,
+    ORCID_BASE_URL,
+)
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -218,50 +222,44 @@ issue an update query).
     {
         "name": "metadata",
         "description": """
-The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from 
-collection set types (including [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html)).<br/>
+The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from collection set types (including 
+[studies](https://w3id.org/nmdc/Study/), 
+[biosamples](https://w3id.org/nmdc/Biosample/), 
+[planned processes](https://w3id.org/nmdc/PlannedProcess/), and 
+[data objects](https://w3id.org/nmdc/DataObject/) 
+as discussed in the __find__ section).
+<br/>
  
 The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various GET endpoints 
-that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__  endpoints, 
+that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__ endpoints, 
 parameters for the __metadata__ endpoints that do not have a red ___* required___ next to them are optional. <br/>
 
 Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of the metadata endpoints 
 uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/). 
 The applicable parameters of the __metadata__ endpoints, with acceptable syntax and examples, are in the table below.
 
-<details>
-<summary>More Details</summary>
-
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: | 
-| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/) of the NMDC Schema | String | `biosample_set` |
+| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://w3id.org/nmdc/Database/) of the NMDC Schema | String | `biosample_set` |
 | filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | [MongoDB-like query language](https://www.mongodb.com/docs/manual/tutorial/query-documents/). All strings should be in double quotation marks. | `{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}` | 
 | max_page_size | Specifies the maximum number of documents returned at a time | Integer | `25`
-| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. ![next_page_token](../_static/images/howto_guides/api_gui/metadata_page_token_param.png) | String | `nmdc:sys0ae1sh583`
+| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. | String | `nmdc:sys0ae1sh583`
 | projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
 | doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
 <br/>
-</details>        
+
         """,
     },
     {
         "name": "find",
         "description": """
-The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with 
-NMDC metadata entities already specified - where metadata about [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html) can be retrieved using GET requests. 
+The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with NMDC metadata entities already specified - where metadata about [studies](https://w3id.org/nmdc/Study), [biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/), and [planned processes](https://w3id.org/nmdc/PlannedProcess/) can be retrieved using GET requests. 
+<br/>
 
 Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query in a meaningful way. 
 Please note that endpoints with parameters that do not have a red ___* required___ label next to them are optional.<br/>
 
 The applicable parameters of the ___find___ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details><summary>More Details</summary>
 
 | Parameter | Description | Syntax | Example |
 | :---: | :-----------: | :-------: | :---: |
@@ -276,9 +274,9 @@ The applicable parameters of the ___find___ endpoints, with acceptable syntax an
 | study_id | The unique identifier of a study | Curie e.g. `prefix:identifier` | `nmdc:sty-11-34xj1150` |
 | sample_id | The unique identifier of a biosample | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-w43vsm21` |
 | data_object_id | The unique identifier of a data object | Curie e.g. `prefix:identifier` | `nmdc:dobj-11-7c6np651` |
-| activity_id | The unique identifier for an NMDC workflow execution activity | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|<br/>
+| planned_process_id | The unique identifier for an NMDC planned process | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|
+
 <br/>
-</details>
 
 """,
     },
@@ -420,13 +418,13 @@ app = FastAPI(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
         "supports validation and submission of metadata, as well as "
-        "orchestration of workflow execution activities."
+        "orchestration of workflow executions."
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
         '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
-        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
+        f'<a href="{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
         "&response_type=code&scope=openid&"
         f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
         " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"

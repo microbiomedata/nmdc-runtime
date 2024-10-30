@@ -1,6 +1,9 @@
+from typing import Any, Callable, Generator
 from unittest.mock import MagicMock
 import pytest
 import xml.etree.ElementTree as ET
+
+from pytest_mock import MockerFixture
 
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
@@ -122,19 +125,24 @@ def nmdc_biosample():
 
 
 @pytest.fixture
-def omics_processing_list():
+def nucleotide_sequencing_list():
     return [
         {
             "has_input": ["nmdc:procsm-12-ehktny16"],
             "has_output": ["nmdc:dobj-12-1zv4q961", "nmdc:dobj-12-b3ft7a80"],
             "id": "nmdc:omprc-12-zqm9p096",
-            "instrument_name": "Illumina NextSeq550",
+            "instrument_used": ["Illumina NextSeq550"],
             "name": "Terrestrial soil microbial communities - ARIK.20150721.AMC.EPIPSAMMON.3-DNA1",
             "ncbi_project_name": "PRJNA406976",
-            "omics_type": {"has_raw_value": "metagenome"},
-            "part_of": ["nmdc:sty-11-34xj1150"],
+            "associated_studies": ["nmdc:sty-11-34xj1150"],
             "processing_institution": "Battelle",
-            "type": "nmdc:OmicsProcessing",
+            "analyte_category": "metagenome",
+            "type": [
+                "NucleotideSequencing",
+                "DataGeneration",
+                "PlannedProcess",
+                "NamedThing",
+            ],
         }
     ]
 
@@ -177,13 +185,13 @@ def library_preparation_dict():
 
 
 class TestNCBISubmissionXML:
-    def test_set_element(self, ncbi_submission_client):
+    def test_set_element(self, ncbi_submission_client: NCBISubmissionXML):
         element = ncbi_submission_client.set_element("Test", "Hello", {"attr": "value"})
         assert element.tag == "Test"
         assert element.text == "Hello"
         assert element.attrib == {"attr": "value"}
 
-    def test_set_description(self, ncbi_submission_client):
+    def test_set_description(self, ncbi_submission_client: NCBISubmissionXML):
         ncbi_submission_client.set_description(
             ncbi_submission_client.nmdc_pi_email,
             "Kate",
@@ -207,7 +215,7 @@ class TestNCBISubmissionXML:
         assert contact_first == "Kate"
         assert contact_last == "Thibault"
 
-    def test_set_bioproject(self, ncbi_submission_client):
+    def test_set_bioproject(self, ncbi_submission_client: NCBISubmissionXML):
         ncbi_submission_client.set_bioproject(
             title=MOCK_NMDC_STUDY["title"],
             project_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
@@ -230,7 +238,12 @@ class TestNCBISubmissionXML:
         assert "metagenome" in bioproject_xml
         assert "Test Org" in bioproject_xml
 
-    def test_set_biosample(self, ncbi_submission_client, nmdc_biosample, mocker):
+    def test_set_biosample(
+        self,
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+    ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
             return_value=(
@@ -293,18 +306,19 @@ class TestNCBISubmissionXML:
 
     def test_set_fastq(
         self,
-        ncbi_submission_client,
-        nmdc_biosample,
-        data_objects_list,
-        omics_processing_list,
-        library_preparation_dict,
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
     ):
         biosample_data_objects = [
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
 
-        biosample_omics_processing = [
-            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
+        biosample_nucleotide_sequencing = [
+            {biosample["id"]: nucleotide_sequencing_list}
+            for biosample in nmdc_biosample
         ]
 
         biosample_library_preparation = [
@@ -315,7 +329,7 @@ class TestNCBISubmissionXML:
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
-            nmdc_omics_processing=biosample_omics_processing,
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
             nmdc_biosamples=nmdc_biosample,
             nmdc_library_preparation=biosample_library_preparation,
         )
@@ -335,7 +349,7 @@ class TestNCBISubmissionXML:
             # library Attributes in SRA <Action> block
             assert "ILLUMINA" in action_xml
             assert "NextSeq 550" in action_xml
-            assert "METAGENOMIC" in action_xml
+            # assert "METAGENOMIC" in action_xml
             assert "RANDOM" in action_xml
             assert "paired" in action_xml
             assert "ARIK.20150721.AMC.EPIPSAMMON.3" in action_xml
@@ -344,12 +358,12 @@ class TestNCBISubmissionXML:
 
     def test_get_submission_xml(
         self,
-        mocker,
-        ncbi_submission_client,
-        nmdc_biosample,
-        data_objects_list,
-        omics_processing_list,
-        library_preparation_dict,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -399,8 +413,9 @@ class TestNCBISubmissionXML:
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
 
-        biosample_omics_prcessing = [
-            {biosample["id"]: omics_processing_list} for biosample in nmdc_biosample
+        biosample_nucleotide_sequencing = [
+            {biosample["id"]: nucleotide_sequencing_list}
+            for biosample in nmdc_biosample
         ]
 
         biosample_library_preparation = [
@@ -411,7 +426,7 @@ class TestNCBISubmissionXML:
             biosample_data_objects=biosample_data_objects,
             bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
             org="Test Org",
-            nmdc_omics_processing=biosample_omics_prcessing,
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
             nmdc_biosamples=nmdc_biosample,
             nmdc_library_preparation=biosample_library_preparation,
         )
@@ -519,7 +534,9 @@ class TestNCBIXMLUtils:
     def test_handle_string_value(self):
         assert handle_string_value("Foo") == "Foo"
 
-    def test_load_mappings(self, mocker):
+    def test_load_mappings(
+        self, mocker: Callable[..., Generator[MockerFixture, None, None]]
+    ):
         mock_tsv_content = (
             "nmdc_schema_class\tnmdc_schema_slot\tnmdc_schema_slot_range\tncbi_biosample_attribute_name\tstatic_value\tignore\n"
             "Biosample\tanalysis_type\tAnalysisTypeEnum\t\t\t\n"

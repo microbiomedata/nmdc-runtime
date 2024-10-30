@@ -58,7 +58,7 @@ def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
     return biosample_data_objects
 
 
-def fetch_omics_processing_from_biosamples(all_docs_collection, biosamples_list):
+def fetch_nucleotide_sequencing_from_biosamples(all_docs_collection, biosamples_list):
     biosample_data_objects = []
 
     for biosample in biosamples_list:
@@ -80,11 +80,11 @@ def fetch_omics_processing_from_biosamples(all_docs_collection, biosamples_list)
 
                 for output_id in has_output:
                     if get_classname_from_typecode(output_id) == "DataObject":
-                        omics_processing_doc = all_docs_collection.find_one(
+                        nucleotide_sequencing_doc = all_docs_collection.find_one(
                             {"id": document["id"]}
                         )
-                        if omics_processing_doc:
-                            collected_data_objects.append(omics_processing_doc)
+                        if nucleotide_sequencing_doc:
+                            collected_data_objects.append(nucleotide_sequencing_doc)
                     else:
                         new_current_ids.append(output_id)
 
@@ -117,7 +117,7 @@ def fetch_library_preparation_from_biosamples(all_docs_collection, biosamples_li
         for output_id in initial_output:
             lib_prep_query = {
                 "has_input": output_id,
-                "designated_class": "nmdc:LibraryPreparation",
+                "type": {"$in": ["LibraryPreparation"]},
             }
             lib_prep_doc = all_docs_collection.find_one(lib_prep_query)
 

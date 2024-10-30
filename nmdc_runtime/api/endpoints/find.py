@@ -1,15 +1,22 @@
 from operator import itemgetter
-from typing import List
+from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Path
 from jinja2 import Environment, PackageLoader, select_autoescape
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, nmdc_activity_collection_names
+from nmdc_runtime.minter.config import typecodes
+from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
 from toolz import merge, assoc_in
 
+from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db, activity_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    activity_collection_names,
+    get_planned_process_collection_names,
+    get_nonempty_nmdc_schema_collection_names,
+)
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
@@ -110,6 +117,21 @@ def find_data_objects(
     return find_resources(req, mdb, "data_object_set")
 
 
+def get_classname_from_typecode(doc_id: str) -> str:
+    r"""
+    Returns the name of the schema class of which an instance could have the specified `id`.
+
+    >>> get_classname_from_typecode("nmdc:sty-11-r2h77870")
+    'Study'
+    """
+    typecode = doc_id.split(":")[1].split("-")[0]
+    class_map_data = typecodes()
+    class_map = {
+        entry["name"]: entry["schema_class"].split(":")[1] for entry in class_map_data
+    }
+    return class_map.get(typecode)
+
+
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
@@ -118,43 +140,114 @@ def find_data_objects_for_study(
     study_id: str,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    rv = {"biosample_set": {}, "data_object_set": []}
-    data_object_ids = set()
+    """This API endpoint is used to retrieve data objects associated with
+    all the biosamples associated with a given study. This endpoint makes
+    use of the `alldocs` collection for its implementation.
+
+    :param study_id: NMDC study id for which data objects are to be retrieved
+    :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
+    :return: List of dictionaries, each of which has a `biosample_id` entry
+        and a `data_object_set` entry. The value of the `biosample_id` entry
+        is the `Biosample`'s `id`. The value of the `data_object_set` entry
+        is a list of the `DataObject`s associated with that `Biosample`.
+    """
+    biosample_data_objects = []
     study = raise404_if_none(
         mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
     )
-    for biosample in mdb.biosample_set.find({"part_of": study["id"]}, ["id"]):
-        rv["biosample_set"][biosample["id"]] = {"omics_processing_set": {}}
-        for opa in mdb.omics_processing_set.find(
-            {"has_input": biosample["id"]}, ["id", "has_output"]
-        ):
-            rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]] = {
-                "has_output": {}
-            }
-            for do_id in opa.get("has_output", []):
-                data_object_ids.add(do_id)
-                rv["biosample_set"][biosample["id"]]["omics_processing_set"][opa["id"]][
-                    "has_output"
-                ][do_id] = {}
-                for coll_name in nmdc_activity_collection_names():
-                    acts = list(
-                        mdb[coll_name].find({"has_input": do_id}, ["id", "has_output"])
-                    )
-                    if acts:
-                        data_object_ids |= {
-                            do for act in acts for do in act.get("has_output", [])
-                        }
-                        rv["biosample_set"][biosample["id"]]["omics_processing_set"][
-                            opa["id"]
-                        ]["has_output"][do_id][coll_name] = {
-                            act["id"]: act.get("has_output", []) for act in acts
-                        }
 
-    rv["data_object_set"] = [
-        strip_oid(d)
-        for d in mdb.data_object_set.find({"id": {"$in": list(data_object_ids)}})
-    ]
-    return rv
+    # Note: With nmdc-schema v10 (legacy schema), we used the field named `part_of` here.
+    #       With nmdc-schema v11 (Berkeley schema), we use the field named `associated_studies` here.
+    biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
+    biosample_ids = [biosample["id"] for biosample in biosamples]
+
+    # SchemaView interface to NMDC Schema
+    nmdc_view = ViewGetter()
+    nmdc_sv = nmdc_view.get_view()
+    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+
+    def collect_data_objects(doc_ids, collected_objects, unique_ids):
+        """Helper function to collect data objects from `has_input` and `has_output` references."""
+        for doc_id in doc_ids:
+            if (
+                get_classname_from_typecode(doc_id) == "DataObject"
+                and doc_id not in unique_ids
+            ):
+                data_obj = mdb.data_object_set.find_one({"id": doc_id})
+                if data_obj:
+                    collected_objects.append(strip_oid(data_obj))
+                    unique_ids.add(doc_id)
+
+    # Another way in which DataObjects can be related to Biosamples is through the
+    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
+    # collection that are "informed" by the same DataGeneration records that created
+    # the outputs above. Then we need to get additional DataObject records that are
+    # created by this linkage.
+    def process_informed_by_docs(doc, collected_objects, unique_ids):
+        """Process documents linked by `was_informed_by` and collect relevant data objects."""
+        informed_by_docs = mdb.workflow_execution_set.find(
+            {"was_informed_by": doc["id"]}
+        )
+        for informed_doc in informed_by_docs:
+            collect_data_objects(
+                informed_doc.get("has_input", []), collected_objects, unique_ids
+            )
+            collect_data_objects(
+                informed_doc.get("has_output", []), collected_objects, unique_ids
+            )
+
+    biosample_data_objects = []
+
+    for biosample_id in biosample_ids:
+        current_ids = [biosample_id]
+        collected_data_objects = []
+        unique_ids = set()
+
+        # Iterate over records in the `alldocs` collection. Look for
+        # records that have the given biosample_id as value on the
+        # `has_input` key/slot. The retrieved documents might also have a
+        # `has_output` key/slot associated with them. Get the value of the
+        # `has_output` key and check if it's type is `nmdc:DataObject`. If
+        # it's not, repeat the process till it is.
+        while current_ids:
+            new_current_ids = []
+            for current_id in current_ids:
+                # Query to find all documents with current_id as the value on
+                # `has_input` slot
+                for doc in mdb.alldocs.find({"has_input": current_id}):
+                    has_output = doc.get("has_output", [])
+
+                    # Process `DataGeneration` type documents linked by `was_informed_by`
+                    if not has_output and any(
+                        t in dg_descendants for t in doc.get("type", [])
+                    ):
+                        process_informed_by_docs(
+                            doc, collected_data_objects, unique_ids
+                        )
+                        continue
+
+                    collect_data_objects(has_output, collected_data_objects, unique_ids)
+                    new_current_ids.extend(
+                        op
+                        for op in has_output
+                        if get_classname_from_typecode(op) != "DataObject"
+                    )
+
+                    if any(t in dg_descendants for t in doc.get("type", [])):
+                        process_informed_by_docs(
+                            doc, collected_data_objects, unique_ids
+                        )
+
+            current_ids = new_current_ids
+
+        if collected_data_objects:
+            result = {
+                "biosample_id": biosample_id,
+                "data_objects": collected_data_objects,
+            }
+            biosample_data_objects.append(result)
+
+    return biosample_data_objects
 
 
 @router.get(
@@ -176,47 +269,70 @@ def find_data_object_by_id(
 
 
 @router.get(
-    "/activities",
+    "/planned_processes",
     response_model=FindResponse,
     response_model_exclude_unset=True,
 )
-def find_activities(
+def find_planned_processes(
     req: FindRequest = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/PlannedProcess>) when they resolve
+    #   to Berkeley schema definitions.
     """
-    The GET /activities endpoint is a general way to fetch metadata about various activities (e.g. metagenome assembly,
-    natural organic matter analysis, library preparation, etc.). Any "slot" (a.k.a. attribute) for
-    [WorkflowExecutionActivity](https://microbiomedata.github.io/nmdc-schema/WorkflowExecutionActivity/)
-    or [PlannedProcess](https://microbiomedata.github.io/nmdc-schema/PlannedProcess/) classes may be used in the filter
-    and sort parameters, including attributes of subclasses of *WorkflowExecutionActivity* and *PlannedProcess*.
+    The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
+    workflow execution, material processing, etc.). Any "slot" (a.k.a. attribute) for
+    `PlannedProcess` may be used in the filter
+    and sort parameters, including attributes of subclasses of *PlannedProcess*.
 
-    For example, attributes used in subclasses such as MetabolomicsAnalysisActivity (subclass of *WorkflowExecutionActivity*)
-    or [Extraction](https://microbiomedata.github.io/nmdc-schema/Extraction/) (subclass of *PlannedProcess*),
+    For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
     can be used as input criteria for the filter and sort parameters of this endpoint.
     """
-    return find_resources_spanning(req, mdb, activity_collection_names(mdb))
+    return find_resources_spanning(
+        req,
+        mdb,
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb),
+    )
 
 
 @router.get(
-    "/activities/{activity_id}",
+    "/planned_processes/{planned_process_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
 )
-def find_activity_by_id(
-    activity_id: str,
+def find_planned_process_by_id(
+    planned_process_id: Annotated[
+        str,
+        Path(
+            title="PlannedProcess ID",
+            description="The `id` of the document that represents an instance of "
+            "the `PlannedProcess` class or any of its subclasses",
+            example=r"nmdc:wfmag-11-00jn7876.1",
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    If the activity identifier is known, the activity metadata can be retrieved using the GET /activities/activity_id endpoint.
-    \n Note that only one metadata record for an activity may be returned at a time using this method.
+    r"""
+    Returns the document that has the specified `id` and represents an instance of the `PlannedProcess` class
+    or any of its subclasses. If no such document exists, returns an HTTP 404 response.
     """
     doc = None
-    for name in activity_collection_names(mdb):
-        doc = mdb[name].find_one({"id": activity_id})
+
+    # Note: We exclude empty collections as a performance optimization
+    #       (we already know they don't contain the document).
+    collection_names = (
+        get_planned_process_collection_names()
+        & get_nonempty_nmdc_schema_collection_names(mdb)
+    )
+
+    # For each collection, search it for a document having the specified `id`.
+    for name in collection_names:
+        doc = mdb[name].find_one({"id": planned_process_id})
         if doc is not None:
             return strip_oid(doc)
 
+    # Note: If execution gets to this point, it means we didn't find the document.
     return raise404_if_none(doc)
 
 

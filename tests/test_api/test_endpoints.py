@@ -4,6 +4,7 @@ import re
 
 import pytest
 import requests
+from dagster import build_op_context
 from starlette import status
 from tenacity import wait_random_exponential, retry
 from toolz import get_in
@@ -17,9 +18,41 @@ from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
+from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient
-from nmdc_runtime.util import REPO_ROOT_DIR
+from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+
+
+def ensure_schema_collections_and_alldocs():
+    # Return if `alldocs` collection has already been materialized.
+    mdb = get_mongo_db()
+    if mdb.alldocs.estimated_document_count() > 0:
+        print(
+            "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
+        )
+        return
+
+    # FIXME: Seed the database with documents that would be included in an `alldocs` collection,
+    #        such that the `/data_objects/study/{study_id}` endpoint (which uses that collection)
+    #        would return some data. Currently, we are practically _not testing_ that endpoint.
+
+    ensure_unique_id_indexes(mdb)
+    print("materializing alldocs...")
+    materialize_alldocs(
+        build_op_context(
+            resources={
+                "mongo": mongo_resource.configured(
+                    {
+                        "dbname": os.getenv("MONGO_DBNAME"),
+                        "host": os.getenv("MONGO_HOST"),
+                        "password": os.getenv("MONGO_PASSWORD"),
+                        "username": os.getenv("MONGO_USERNAME"),
+                    }
+                )
+            }
+        )
+    )
 
 
 def ensure_test_resources(mdb):
@@ -60,6 +93,7 @@ def ensure_test_resources(mdb):
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
     mdb["minter.requesters"].replace_one({"id": site_id}, {"id": site_id}, upsert=True)
+    ensure_schema_collections_and_alldocs()
     return {
         "site_client": {
             "site_id": site_id,
@@ -198,7 +232,7 @@ def test_submit_changesheet():
     sheet_in = ChangesheetIn(
         name="sheet",
         content_type="text/tab-separated-values",
-        text="id\taction\tattribute\tvalue\nnmdc:bsm-12-7mysck21\tupdate\tpart_of\tnmdc:sty-11-pzmd0x14\n",
+        text="id\taction\tattribute\tvalue\nnmdc:bsm-12-7mysck21\tupdate\tassociated_studies\tnmdc:sty-11-pzmd0x14\n",
     )
     mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
@@ -236,12 +270,9 @@ def test_submit_changesheet():
     assert True
 
 
-@pytest.mark.skip(
-    reason="Skipping because race condition causes  http://fastapi:8000/nmdcschema/ids/nmdc:wfrqc-11-t0tvnp52.2 to 404?"
-)
 def test_submit_workflow_activities(api_site_client):
     test_collection, test_id = (
-        "read_qc_analysis_activity_set",
+        "workflow_execution_set",
         "nmdc:wfrqc-11-t0tvnp52.2",
     )
     test_payload = {
@@ -258,11 +289,10 @@ def test_submit_workflow_activities(api_site_client):
                 "has_output": [
                     "nmdc:dobj-11-w5dak635",
                     "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03",
+                    "nmdc:dobj-11-bds7qq03"
                 ],
-                "type": "nmdc:ReadQcAnalysisActivity",
-                "part_of": ["nmdc:omprc-11-9mvz7z22"],
-                "version": "v1.0.8",
+                "type": "nmdc:ReadQcAnalysis",
+                "version": "v1.0.8"
             }
         ]
     }
@@ -271,7 +301,7 @@ def test_submit_workflow_activities(api_site_client):
         mdb[test_collection].delete_one({"id": test_id})
     rv = api_site_client.request(
         "POST",
-        "/v1/workflows/activities",
+        "/workflows/workflow_executions",
         test_payload,
     )
     assert rv.json() == {"message": "jobs accepted"}
@@ -288,10 +318,11 @@ def test_get_class_name_and_collection_names_by_doc_id():
     # Seed the database.
     mdb = get_mongo_db()
     study_set_collection = mdb.get_collection(name="study_set")
-    study_set_collection.insert_one(dict(id="nmdc:sty-1-foobar"))
+    my_study = {"id": "nmdc:sty-1-foobar", "type": "nmdc:Study"}
+    study_set_collection.replace_one(my_study, my_study, upsert=True)
 
     # Valid `id`, and the document exists in database.
-    id_ = "nmdc:sty-1-foobar"
+    id_ = my_study["id"]
     response = requests.request(
         "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
@@ -313,3 +344,77 @@ def test_get_class_name_and_collection_names_by_doc_id():
         "GET", f"{base_url}/nmdcschema/ids/{id_}/collection-name"
     )
     assert response.status_code == 404
+
+
+def test_find_data_objects_for_nonexistent_study(api_site_client):
+    r"""
+    Confirms the endpoint returns an unsuccessful status code when no `Study` having the specified `id` exists.
+    Reference: https://docs.pytest.org/en/stable/reference/reference.html#pytest.raises
+
+    Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
+          an unsuccessful status code.
+
+    TODO: Add tests focused on the situation where the `Study` _does_ exist.
+    """
+    ensure_schema_collections_and_alldocs()
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            "/data_objects/study/nmdc:sty-11-hdd4bf83",
+        )
+
+
+def test_find_planned_processes(api_site_client):
+    mdb = get_mongo_db()
+    database_dict = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "planned_processes.json").read_text()
+    )
+    for collection_name, docs in database_dict.items():
+        for doc in docs:
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    rv = api_site_client.request(
+        "GET",
+        "/planned_processes",
+    )
+    assert rv.json()["meta"]["count"] >= 9
+
+def test_find_planned_process_by_id(api_site_client):
+    # Seed the database with documents that represent instances of the `PlannedProcess` class or any of its subclasses.
+    mdb = get_mongo_db()
+    database_dict = json.loads(
+        (REPO_ROOT_DIR / "tests" / "files" / "planned_processes.json").read_text()
+    )
+    for collection_name, docs in database_dict.items():
+        for doc in docs:
+            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+
+    # Also, include a document that represents a `Study` (which is not a subclass of `PlannedProcess`),
+    # so we can check whether the endpoint-under-test only searches collections that we expect it to.
+    my_study = {"id": "nmdc:sty-1-foobar", "type": "nmdc:Study"}
+    mdb.get_collection(name="study_set").replace_one(my_study, my_study, upsert=True)
+
+    # Test case: The `id` belongs to a document that represents an instance of
+    #            the `PlannedProcess` class or one of its subclasses.
+    rv = api_site_client.request(
+        "GET",
+        f"/planned_processes/nmdc:wfmag-11-00jn7876.1",
+    )
+    planned_process = rv.json()
+    assert "_id" not in planned_process
+    assert planned_process["id"] == "nmdc:wfmag-11-00jn7876.1"
+
+    # Test case: The `id` does not belong to a document.
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            f"/planned_processes/nmdc:wfmag-11-00jn7876.99",
+        )
+
+    # Test case: The `id` belongs to a document, but that document does not represent
+    #            an instance of the `PlannedProcess` class or any of its subclasses.
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            f"/planned_processes/nmdc:sty-11-00000001",
+        )
