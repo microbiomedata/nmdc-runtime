@@ -18,6 +18,40 @@ class TestConfig(unittest.TestCase):
     Reference: https://docs.python.org/3/library/unittest.html#basic-example
     """
 
+    def test_make_mongo_cli_base_options(self):
+        # Case 1: Input includes username.
+        s = Config.make_mongo_cli_base_options(
+            mongo_host="thehost",
+            mongo_port="12345",
+            mongo_username="alice",
+            mongo_password="shhh",
+        )
+        assert s == f"""
+            --host='thehost' --port='12345' --username='alice' --password='shhh' --authenticationDatabase='admin'
+        """.strip()
+
+        # Case 2: Input username is empty string.
+        s = Config.make_mongo_cli_base_options(
+            mongo_host="thehost",
+            mongo_port="12345",
+            mongo_username="",
+            mongo_password="shhh",
+        )
+        assert s == f"""
+            --host='thehost' --port='12345'
+        """.strip()
+
+        # Case 2: Input username is `None`.
+        s = Config.make_mongo_cli_base_options(
+            mongo_host="thehost",
+            mongo_port="12345",
+            mongo_username=None,
+            mongo_password="shhh",
+        )
+        assert s == f"""
+            --host='thehost' --port='12345'
+        """.strip()
+
     def test_init_method(self):
         with (TempFile() as notebook_config_file, 
               TempFile() as origin_mongo_config_file, 

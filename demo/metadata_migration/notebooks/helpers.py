@@ -13,6 +13,32 @@ DATABASE_CLASS_NAME = "Database"
 class Config:
     """Wrapper class for configuration values related to database migration."""
 
+    @staticmethod
+    def make_mongo_cli_base_options(
+        mongo_host: str,
+        mongo_port: str,
+        mongo_username: Optional[str],
+        mongo_password: Optional[str],
+    ) -> str:
+        r"""Compile common Mongo CLI options into a reusable string."""
+
+        # Always include the CLI options that specify the server host and port.
+        base_options: List[str] = [
+            f"--host='{mongo_host}'",
+            f"--port='{mongo_port}'",
+        ]
+
+        # If the server uses authentication, include authentication-related CLI options.
+        server_uses_authentication: bool = mongo_username not in ["", None]
+        if server_uses_authentication:
+            base_options.extend([
+                f"--username='{mongo_username}'",
+                f"--password='{mongo_password}'",
+                f"--authenticationDatabase='admin'",
+            ])
+
+        return " ".join(base_options)
+
     def parse_and_validate_notebook_config_file(
         self, notebook_config_file_path: str
     ) -> Dict[str, str]:
