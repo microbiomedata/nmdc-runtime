@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, Optional, List
 import logging
 from datetime import datetime
+from functools import cache
 
 from dotenv import dotenv_values
 from linkml_runtime import SchemaView
@@ -174,6 +175,9 @@ def get_collection_names_from_schema(schema_view: SchemaView) -> List[str]:
     Returns the names of the slots of the `Database` class that describe database collections.
 
     :param schema_view: A `SchemaView` instance
+
+    Source: This function was copied from https://github.com/microbiomedata/refscan/blob/main/refscan/lib/helpers.py
+            with permission from its author.
     """
     collection_names = []
 
@@ -190,3 +194,44 @@ def get_collection_names_from_schema(schema_view: SchemaView) -> List[str]:
         collection_names = list(set(collection_names))
 
     return collection_names
+
+
+@cache  # memoizes the decorated function
+def translate_class_uri_into_schema_class_name(schema_view: SchemaView, class_uri: str) -> Optional[str]:
+    r"""
+    Returns the name of the schema class that has the specified value as its `class_uri`.
+
+    Example: "nmdc:Biosample" (a `class_uri` value) -> "Biosample" (a class name)
+
+    References:
+    - https://linkml.io/linkml/developers/schemaview.html#linkml_runtime.utils.schemaview.SchemaView.all_classes
+    - https://linkml.io/linkml/code/metamodel.html#linkml_runtime.linkml_model.meta.ClassDefinition.class_uri
+
+    Source: This function was copied from https://github.com/microbiomedata/refscan/blob/main/refscan/lib/helpers.py
+            with permission from its author.
+    """
+    schema_class_name = None
+    all_class_definitions_in_schema = schema_view.all_classes()
+    for class_name, class_definition in all_class_definitions_in_schema.items():
+        if class_definition.class_uri == class_uri:
+            schema_class_name = class_definition.name
+            break
+    return schema_class_name
+
+
+def derive_schema_class_name_from_document(schema_view: SchemaView, document: dict) -> Optional[str]:
+    r"""
+    Returns the name of the schema class, if any, of which the specified document claims to represent an instance.
+
+    This function is written under the assumption that the document has a `type` field whose value is the `class_uri`
+    belonging to the schema class of which the document represents an instance. Slot definition for such a field:
+    https://github.com/microbiomedata/berkeley-schema-fy24/blob/fc2d9600/src/schema/basic_slots.yaml#L420-L436
+
+    Source: This function was copied from https://github.com/microbiomedata/refscan/blob/main/refscan/lib/helpers.py
+            with permission from its author.
+    """
+    schema_class_name = None
+    if "type" in document and isinstance(document["type"], str):
+        class_uri = document["type"]
+        schema_class_name = translate_class_uri_into_schema_class_name(schema_view, class_uri)
+    return schema_class_name
