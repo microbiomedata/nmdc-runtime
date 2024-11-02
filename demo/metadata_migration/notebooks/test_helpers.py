@@ -53,43 +53,33 @@ class TestConfig(unittest.TestCase):
         """.strip()
 
     def test_init_method(self):
-        with (TempFile() as notebook_config_file, 
-              TempFile() as origin_mongo_config_file, 
-              TempFile() as transformer_mongo_config_file, 
-              TempFile() as mongodump_binary, 
-              TempFile() as mongorestore_binary, 
+        with (TempFile() as notebook_config_file,
+              TempFile() as mongodump_binary,
+              TempFile() as mongorestore_binary,
               TempFile() as mongosh_binary):
 
             # Create named temporary directories and get their paths.
             origin_dump_folder_path = mkdtemp()
             transformer_dump_folder_path = mkdtemp()
 
-            # Populate the Mongo config files, then reset their file pointers.
-            origin_mongo_server_uri = f"mongodb://u:p@origin:12345"
-            transformer_mongo_server_uri = f"mongodb://u:p@transformer:12345"
+            # Define Mongo server connection parameters.
             origin_mongo_host = "origin"
             origin_mongo_port = "11111"
             origin_mongo_username = "origin_username"
             origin_mongo_password = "origin_password"
-            origin_mongo_database_name = "origin_database_name"
             transformer_mongo_host = "transformer"
             transformer_mongo_port = "22222"
             transformer_mongo_username = "transformer_username"
             transformer_mongo_password = "transformer_password"
+
+            # Define Mongo database selection parameters.
+            origin_mongo_database_name = "origin_database_name"
             transformer_mongo_database_name = "transformer_database_name"
-            origin_mongo_yaml = f"uri: {origin_mongo_server_uri}\n"
-            transformer_mongo_yaml = f"uri: {transformer_mongo_server_uri}\n"
-            origin_mongo_config_file.write(origin_mongo_yaml.encode("utf-8"))
-            transformer_mongo_config_file.write(transformer_mongo_yaml.encode("utf-8"))
-            origin_mongo_config_file.seek(0)
-            transformer_mongo_config_file.seek(0)
 
             # Use familiar aliases in an attempt to facilitate writing the `assert` section below.
             mongodump_path = mongodump_binary.name
             mongorestore_path = mongorestore_binary.name
             mongosh_path = mongosh_binary.name
-            origin_mongo_config_file_path = origin_mongo_config_file.name
-            transformer_mongo_config_file_path = transformer_mongo_config_file.name
 
             # Populate the notebook config file, then reset its file pointer.
             notebook_config_values = dict(
