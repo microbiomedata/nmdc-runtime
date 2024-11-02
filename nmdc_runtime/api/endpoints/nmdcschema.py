@@ -59,7 +59,7 @@ def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
     Each object has three properties:
     - `id`: a string that consists of "nmdc:" + the class name + "_typecode"
     - `schema_class`: a string that consists of "nmdc:" + the class name
-    - `name` the typecode the minter would use when minting an ID for an instance of that class
+    - `name`: the typecode the minter would use when minting an ID for an instance of that class
     """
     return typecodes()
 
