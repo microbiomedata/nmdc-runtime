@@ -78,11 +78,27 @@ class Config:
         origin_mongo_port = notebook_config["ORIGIN_MONGO_PORT"]
         origin_mongo_username = notebook_config["ORIGIN_MONGO_USERNAME"]
         origin_mongo_password = notebook_config["ORIGIN_MONGO_PASSWORD"]
+        origin_mongo_database_name = notebook_config["ORIGIN_MONGO_DATABASE_NAME"]
 
         transformer_mongo_host = notebook_config["TRANSFORMER_MONGO_HOST"]
         transformer_mongo_port = notebook_config["TRANSFORMER_MONGO_PORT"]
         transformer_mongo_username = notebook_config["TRANSFORMER_MONGO_USERNAME"]
         transformer_mongo_password = notebook_config["TRANSFORMER_MONGO_PASSWORD"]
+        transformer_mongo_database_name = notebook_config["TRANSFORMER_MONGO_DATABASE_NAME"]
+
+        # Validate the database names.
+        if origin_mongo_database_name.strip() == "":
+            raise ValueError(f"Origin database name cannot be empty")
+        if transformer_mongo_database_name.strip() == "":
+            raise ValueError(f"Transformer database name cannot be empty")
+        if all([
+            origin_mongo_host == transformer_mongo_host,
+            origin_mongo_port == transformer_mongo_port,
+            origin_mongo_database_name == transformer_mongo_database_name,
+        ]):
+            # Note: We don't allow the use of the origin database as the transformer,
+            #       because that would prevent us from easily aborting the migration.
+            raise ValueError(f"The origin and transformer cannot both be the same database")
 
         return dict(
             origin_dump_folder_path=origin_dump_folder_path,
@@ -94,10 +110,12 @@ class Config:
             origin_mongo_port=origin_mongo_port,
             origin_mongo_username=origin_mongo_username,
             origin_mongo_password=origin_mongo_password,
+            origin_mongo_database_name=origin_mongo_database_name,
             transformer_mongo_host=transformer_mongo_host,
             transformer_mongo_port=transformer_mongo_port,
             transformer_mongo_username=transformer_mongo_username,
             transformer_mongo_password=transformer_mongo_password,
+            transformer_mongo_database_name=transformer_mongo_database_name,
         )
 
     def __init__(self, notebook_config_file_path: str = "./.notebook.env") -> None:
@@ -114,10 +132,12 @@ class Config:
         self.origin_mongo_port = notebook_config["origin_mongo_port"]
         self.origin_mongo_username = notebook_config["origin_mongo_username"]
         self.origin_mongo_password = notebook_config["origin_mongo_password"]
+        self.origin_mongo_database_name = notebook_config["origin_mongo_database_name"]
         self.transformer_mongo_host = notebook_config["transformer_mongo_host"]
         self.transformer_mongo_port = notebook_config["transformer_mongo_port"]
         self.transformer_mongo_username = notebook_config["transformer_mongo_username"]
         self.transformer_mongo_password = notebook_config["transformer_mongo_password"]
+        self.transformer_mongo_database_name = notebook_config["transformer_mongo_database_name"]
 
 
 def setup_logger(

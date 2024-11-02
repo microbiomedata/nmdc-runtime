@@ -71,10 +71,12 @@ class TestConfig(unittest.TestCase):
             origin_mongo_port = "11111"
             origin_mongo_username = "origin_username"
             origin_mongo_password = "origin_password"
+            origin_mongo_database_name = "origin_database_name"
             transformer_mongo_host = "transformer"
             transformer_mongo_port = "22222"
             transformer_mongo_username = "transformer_username"
-            transformer_mongo_password = "transformer_password"            
+            transformer_mongo_password = "transformer_password"
+            transformer_mongo_database_name = "transformer_database_name"
             origin_mongo_yaml = f"uri: {origin_mongo_server_uri}\n"
             transformer_mongo_yaml = f"uri: {transformer_mongo_server_uri}\n"
             origin_mongo_config_file.write(origin_mongo_yaml.encode("utf-8"))
@@ -100,10 +102,12 @@ class TestConfig(unittest.TestCase):
                 ORIGIN_MONGO_PORT=origin_mongo_port,
                 ORIGIN_MONGO_USERNAME=origin_mongo_username,
                 ORIGIN_MONGO_PASSWORD=origin_mongo_password,
+                ORIGIN_MONGO_DATABASE_NAME=origin_mongo_database_name,
                 TRANSFORMER_MONGO_HOST=transformer_mongo_host,
                 TRANSFORMER_MONGO_PORT=transformer_mongo_port,
                 TRANSFORMER_MONGO_USERNAME=transformer_mongo_username,
                 TRANSFORMER_MONGO_PASSWORD=transformer_mongo_password,
+                TRANSFORMER_MONGO_DATABASE_NAME=transformer_mongo_database_name,
             )
             for key, value in notebook_config_values.items():
                 notebook_config_file.write(f"{key} = {value}\n".encode("utf-8"))
@@ -121,10 +125,12 @@ class TestConfig(unittest.TestCase):
             assert cfg.origin_mongo_port == origin_mongo_port
             assert cfg.origin_mongo_username == origin_mongo_username
             assert cfg.origin_mongo_password == origin_mongo_password
+            assert cfg.origin_mongo_database_name == origin_mongo_database_name
             assert cfg.transformer_mongo_host == transformer_mongo_host
             assert cfg.transformer_mongo_port == transformer_mongo_port
             assert cfg.transformer_mongo_username == transformer_mongo_username
             assert cfg.transformer_mongo_password == transformer_mongo_password
+            assert cfg.transformer_mongo_database_name == transformer_mongo_database_name
 
             # Delete the temporary directories (i.e. clean up).
             shutil.rmtree(origin_dump_folder_path)
