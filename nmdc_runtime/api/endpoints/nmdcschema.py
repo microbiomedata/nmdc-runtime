@@ -1,5 +1,6 @@
 from importlib.metadata import version
 import re
+from typing import List, Dict
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException
@@ -50,7 +51,16 @@ def get_nmdc_schema_version():
 
 
 @router.get("/nmdcschema/typecodes")
-def get_nmdc_schema_typecodes():
+def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
+    r"""
+    Returns a list of objects, each of which indicates (a) a schema class, and (b) the typecode
+    that the minter would use when generating a new ID for an instance of that schema class.
+
+    Each object has three properties:
+    - `id`: a string that consists of "nmdc:" + the class name + "_typecode"
+    - `schema_class`: a string that consists of "nmdc:" + the class name
+    - `name`: the typecode the minter would use when minting an ID for an instance of that class
+    """
     return typecodes()
 
 
