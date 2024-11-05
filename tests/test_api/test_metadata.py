@@ -162,6 +162,7 @@ def test_update_01():
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
+    remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath(
@@ -202,6 +203,7 @@ def test_changesheet_array_item_nested_attributes():
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
+    remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath(

@@ -211,12 +211,11 @@ def load_changesheet(
         # by e.g. overriding `base` when `uri` is a "known" type (`xsd:decimal` in the case of DecimalDegree).
         try:
             base_type = view.induced_type(ranges.rsplit("|", maxsplit=1)[-1]).base
-            df.at[ix, "value"] = getattr(builtins, base_type)(value)
-        except AttributeError as e:
             if base_type == "Decimal":
                 # Note: Use of bson.decimal128.Decimal128 here would require changing JSON encoding/decoding.
                 # Choosing to use `float` to preserve existing (expected) behavior.
                 df.at[ix, "value"] = float(value)
+            df.at[ix, "value"] = getattr(builtins, base_type)(value)
         except:
             continue
     return df
