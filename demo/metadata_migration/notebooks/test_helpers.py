@@ -26,9 +26,12 @@ class TestConfig(unittest.TestCase):
             mongo_username="alice",
             mongo_password="shhh",
         )
-        assert s == f"""
+        assert (
+            s
+            == f"""
             --host='thehost' --port='12345' --username='alice' --password='shhh' --authenticationDatabase='admin'
         """.strip()
+        )
 
         # Case 2: Input username is empty string.
         s = Config.make_mongo_cli_base_options(
@@ -37,9 +40,12 @@ class TestConfig(unittest.TestCase):
             mongo_username="",
             mongo_password="shhh",
         )
-        assert s == f"""
+        assert (
+            s
+            == f"""
             --host='thehost' --port='12345'
         """.strip()
+        )
 
         # Case 2: Input username is `None`.
         s = Config.make_mongo_cli_base_options(
@@ -48,15 +54,20 @@ class TestConfig(unittest.TestCase):
             mongo_username=None,
             mongo_password="shhh",
         )
-        assert s == f"""
+        assert (
+            s
+            == f"""
             --host='thehost' --port='12345'
         """.strip()
+        )
 
     def test_init_method(self):
-        with (TempFile() as notebook_config_file,
-              TempFile() as mongodump_binary,
-              TempFile() as mongorestore_binary,
-              TempFile() as mongosh_binary):
+        with (
+            TempFile() as notebook_config_file,
+            TempFile() as mongodump_binary,
+            TempFile() as mongorestore_binary,
+            TempFile() as mongosh_binary,
+        ):
 
             # Create named temporary directories and get their paths.
             origin_dump_folder_path = mkdtemp()
@@ -120,7 +131,9 @@ class TestConfig(unittest.TestCase):
             assert cfg.transformer_mongo_port == transformer_mongo_port
             assert cfg.transformer_mongo_username == transformer_mongo_username
             assert cfg.transformer_mongo_password == transformer_mongo_password
-            assert cfg.transformer_mongo_database_name == transformer_mongo_database_name
+            assert (
+                cfg.transformer_mongo_database_name == transformer_mongo_database_name
+            )
 
             # Delete the temporary directories (i.e. clean up).
             shutil.rmtree(origin_dump_folder_path)
