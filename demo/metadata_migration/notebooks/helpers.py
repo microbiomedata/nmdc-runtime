@@ -32,11 +32,13 @@ class Config:
         # If the server uses authentication, include authentication-related CLI options.
         server_uses_authentication: bool = mongo_username not in ["", None]
         if server_uses_authentication:
-            base_options.extend([
-                f"--username='{mongo_username}'",
-                f"--password='{mongo_password}'",
-                f"--authenticationDatabase='admin'",
-            ])
+            base_options.extend(
+                [
+                    f"--username='{mongo_username}'",
+                    f"--password='{mongo_password}'",
+                    f"--authenticationDatabase='admin'",
+                ]
+            )
 
         return " ".join(base_options)
 
@@ -54,7 +56,9 @@ class Config:
 
         # Validate the dump folder paths.
         origin_dump_folder_path = notebook_config["PATH_TO_ORIGIN_MONGO_DUMP_FOLDER"]
-        transformer_dump_folder_path = notebook_config["PATH_TO_TRANSFORMER_MONGO_DUMP_FOLDER"]
+        transformer_dump_folder_path = notebook_config[
+            "PATH_TO_TRANSFORMER_MONGO_DUMP_FOLDER"
+        ]
         if not Path(origin_dump_folder_path).parent.is_dir():
             raise FileNotFoundError(
                 f"Parent folder of {origin_dump_folder_path} (origin Mongo dump folder path) not found."
@@ -71,7 +75,9 @@ class Config:
         if not Path(mongodump_path).is_file():
             raise FileNotFoundError(f"mongodump binary not found at: {mongodump_path}")
         if not Path(mongorestore_path).is_file():
-            raise FileNotFoundError(f"mongorestore binary not found at: {mongorestore_path}")
+            raise FileNotFoundError(
+                f"mongorestore binary not found at: {mongorestore_path}"
+            )
         if not Path(mongosh_path).is_file():
             raise FileNotFoundError(f"mongosh binary not found at: {mongosh_path}")
 
@@ -85,21 +91,27 @@ class Config:
         transformer_mongo_port = notebook_config["TRANSFORMER_MONGO_PORT"]
         transformer_mongo_username = notebook_config["TRANSFORMER_MONGO_USERNAME"]
         transformer_mongo_password = notebook_config["TRANSFORMER_MONGO_PASSWORD"]
-        transformer_mongo_database_name = notebook_config["TRANSFORMER_MONGO_DATABASE_NAME"]
+        transformer_mongo_database_name = notebook_config[
+            "TRANSFORMER_MONGO_DATABASE_NAME"
+        ]
 
         # Validate the database names.
         if origin_mongo_database_name.strip() == "":
             raise ValueError(f"Origin database name cannot be empty")
         if transformer_mongo_database_name.strip() == "":
             raise ValueError(f"Transformer database name cannot be empty")
-        if all([
-            origin_mongo_host == transformer_mongo_host,
-            origin_mongo_port == transformer_mongo_port,
-            origin_mongo_database_name == transformer_mongo_database_name,
-        ]):
+        if all(
+            [
+                origin_mongo_host == transformer_mongo_host,
+                origin_mongo_port == transformer_mongo_port,
+                origin_mongo_database_name == transformer_mongo_database_name,
+            ]
+        ):
             # Note: We don't allow the use of the origin database as the transformer,
             #       because that would prevent us from easily aborting the migration.
-            raise ValueError(f"The origin and transformer cannot both be the same database")
+            raise ValueError(
+                f"The origin and transformer cannot both be the same database"
+            )
 
         return dict(
             origin_dump_folder_path=origin_dump_folder_path,
@@ -121,12 +133,16 @@ class Config:
 
     def __init__(self, notebook_config_file_path: str = "./.notebook.env") -> None:
         # Parse and validate the notebook config file.
-        notebook_config = self.parse_and_validate_notebook_config_file(notebook_config_file_path)
+        notebook_config = self.parse_and_validate_notebook_config_file(
+            notebook_config_file_path
+        )
         self.mongodump_path = notebook_config["mongodump_path"]
         self.mongorestore_path = notebook_config["mongorestore_path"]
         self.mongosh_path = notebook_config["mongosh_path"]
         self.origin_dump_folder_path = notebook_config["origin_dump_folder_path"]
-        self.transformer_dump_folder_path = notebook_config["transformer_dump_folder_path"]
+        self.transformer_dump_folder_path = notebook_config[
+            "transformer_dump_folder_path"
+        ]
 
         # Parse the Mongo connection parameters.
         self.origin_mongo_host = notebook_config["origin_mongo_host"]
@@ -138,7 +154,9 @@ class Config:
         self.transformer_mongo_port = notebook_config["transformer_mongo_port"]
         self.transformer_mongo_username = notebook_config["transformer_mongo_username"]
         self.transformer_mongo_password = notebook_config["transformer_mongo_password"]
-        self.transformer_mongo_database_name = notebook_config["transformer_mongo_database_name"]
+        self.transformer_mongo_database_name = notebook_config[
+            "transformer_mongo_database_name"
+        ]
 
 
 def setup_logger(
@@ -197,7 +215,9 @@ def get_collection_names_from_schema(schema_view: SchemaView) -> List[str]:
 
 
 @cache  # memoizes the decorated function
-def translate_class_uri_into_schema_class_name(schema_view: SchemaView, class_uri: str) -> Optional[str]:
+def translate_class_uri_into_schema_class_name(
+    schema_view: SchemaView, class_uri: str
+) -> Optional[str]:
     r"""
     Returns the name of the schema class that has the specified value as its `class_uri`.
 
@@ -219,7 +239,9 @@ def translate_class_uri_into_schema_class_name(schema_view: SchemaView, class_ur
     return schema_class_name
 
 
-def derive_schema_class_name_from_document(schema_view: SchemaView, document: dict) -> Optional[str]:
+def derive_schema_class_name_from_document(
+    schema_view: SchemaView, document: dict
+) -> Optional[str]:
     r"""
     Returns the name of the schema class, if any, of which the specified document claims to represent an instance.
 
@@ -233,5 +255,7 @@ def derive_schema_class_name_from_document(schema_view: SchemaView, document: di
     schema_class_name = None
     if "type" in document and isinstance(document["type"], str):
         class_uri = document["type"]
-        schema_class_name = translate_class_uri_into_schema_class_name(schema_view, class_uri)
+        schema_class_name = translate_class_uri_into_schema_class_name(
+            schema_view, class_uri
+        )
     return schema_class_name

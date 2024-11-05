@@ -59,6 +59,26 @@ def test_load_changesheet():
     if remove_tmp_doc:
         mdb.study_set.delete_one({"id": "nmdc:" + sty_local_id})
 
+
+def test_changesheet_update_slot_with_range_decimal():
+    mdb = get_mongo_db()
+    bsm_local_id = "bsm-11-0pyv7738"
+    remove_tmp_doc = False
+    if mdb.data_object_set.find_one({"id": "nmdc:" + bsm_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{bsm_local_id}.json")
+        ) as f:
+            mdb.biosample_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath("tests", "files", "test_changesheet_decimal_value.tsv"),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.biosample_set.delete_one({"id": "nmdc:" + bsm_local_id})
+
+
 def test_changesheet_update_slot_with_range_bytes():
     mdb = get_mongo_db()
     dobj_local_id = "dobj-11-000n1286"
@@ -142,9 +162,12 @@ def test_update_01():
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
+    remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
-            REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
+            REPO_ROOT_DIR.joinpath(
+                "tests", "files", f"study_no_credit_associations.json"
+            )
         ) as f:
             mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
@@ -180,9 +203,12 @@ def test_changesheet_array_item_nested_attributes():
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
+    remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
-            REPO_ROOT_DIR.joinpath("tests", "files", f"study_no_credit_associations.json")
+            REPO_ROOT_DIR.joinpath(
+                "tests", "files", f"study_no_credit_associations.json"
+            )
         ) as f:
             mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
