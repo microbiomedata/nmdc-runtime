@@ -1,0 +1,5 @@
+comment	action	id	attribute	value
+add metadata to EMSL studies 50718 and 50267	update	nmdc:bsm-11-0pyv7738	depth.has_numeric_value	0.38
+add metadata to EMSL studies 50718 and 50267	update	nmdc:bsm-11-0pyv7738	depth.has_raw_value	0.38 m
+add metadata to EMSL studies 50718 and 50267	update	nmdc:bsm-11-0pyv7738	elev	719
+add metadata to EMSL studies 50718 and 50267	update	nmdc:bsm-11-0pyv7738	depth.type	nmdc:QuantityValue
