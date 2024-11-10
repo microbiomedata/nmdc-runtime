@@ -105,3 +105,4 @@ I tested these changes by...
 - [ ] Every Python function parameter I introduced includes a type hint (e.g. `study_id: str`)
 - [ ] All "to do" or "fix me" Python comments I added begin with either `# TODO` or `# FIXME`
 - [ ] I used `black` to format all the Python files I created/modified
+- [ ] The PR title is in the imperative mood (e.g. "Do X") and not the declarative mood (e.g. "Does X" or "Did X")
