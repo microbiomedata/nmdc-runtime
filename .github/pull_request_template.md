@@ -101,4 +101,4 @@ I tested these changes by...
 - [ ] Every new function I defined includes a docstring _(test functions are exempt from this)_
 - [ ] Every Python function parameter I introduced includes a type hint (e.g. `study_id: str`)
 - [ ] All "to do" or "fix me" Python comments I added begin with either `# TODO` or `# FIXME`
-- [ ] I used `black` to format all the files I added/modified
+- [ ] I used `black` to format all the Python files I created/modified
