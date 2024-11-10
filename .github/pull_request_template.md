@@ -54,7 +54,7 @@ In this branch, I...
 - [ ] Minter
 - [ ] Dagster
 - [ ] Project documentation (in the `docs` directory)
-- [ ] Mongo migrations
+- [ ] MongoDB migrations
 - [ ] Other
 
 ### Testing
