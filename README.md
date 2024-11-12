@@ -100,7 +100,9 @@ cp .env.example .env
 Create environment variables in your shell session, based upon the contents of the `.env` file.
 
 ```shell
-export $(grep -v '^#' .env | xargs)
+set -a # automatically export all variables
+source .env
+set +a
 ```
 
 If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
