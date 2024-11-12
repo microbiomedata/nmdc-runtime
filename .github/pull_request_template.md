@@ -74,7 +74,7 @@ In this branch, I...
     └─────────────────────────────────────────────────────────────────────────┘-->
 
 - [ ] I tested these changes (explain below)
-- [ ] I have not tested these changes yet
+- [ ] I did not test these changes
 
 I tested these changes by...
 
