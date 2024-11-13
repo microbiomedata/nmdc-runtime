@@ -54,13 +54,13 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     docs = {
         "functional_annotation_agg": [
             {
-                "metagenome_annotation_id": "nmdc:wfmtan-13-hemh0a82.1",
+                "was_generated_by": "nmdc:wfmtan-13-hemh0a82.1",
                 "gene_function_id": "KEGG.ORTHOLOGY:K00005",
                 "count": 10,
                 "type": "nmdc:FunctionalAnnotationAggMember",
             },
             {
-                "metagenome_annotation_id": "nmdc:wfmtan-13-hemh0a82.1",
+                "was_generated_by": "nmdc:wfmtan-13-hemh0a82.1",
                 "gene_function_id": "KEGG.ORTHOLOGY:K01426",
                 "count": 5,
                 "type": "nmdc:FunctionalAnnotationAggMember",
