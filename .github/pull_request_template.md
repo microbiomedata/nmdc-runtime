@@ -1,37 +1,108 @@
-# Description
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 1. Summary (required)                                                   │
+    │                                                                         │
+    │ Summarize the changes you made on this branch. This is typically a more │
+    │ detailed restatement of the PR title.                                   │
+    │                                                                         │
+    │ Example: "In this branch, I updated the `/studies/{study_id}` endpoint  │
+    │           so it returns an HTTP 404 response when the specified study   │
+    │           does not exist."                                              │
+    └─────────────────────────────────────────────────────────────────────────┘-->
 
-Please include a summary of the changes and the related issue. Please also include relevant motivation and context. List any dependencies that are required for this change.
+In this branch, I...
 
-Replace `# (issue)` below with a reference to the issue that this PR addresses, of the form `#\d+`. If merging this PR should close the issue, use `Fixes` or `Closes`. Then delete this paragraph.
+### Details
 
-Fixes # (issue)
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 2. Details (optional)                                                   │
+    │                                                                         │
+    │ Provide additional information you think readers will find useful.      │
+    │ Readers include PR reviewers, release note authors, app debuggers, and  │
+    │ your future self. Additional information might include motivation,      │
+    │ rationale, and a description of how things used to be.                  │
+    │                                                                         │
+    │ Example: "It previously returned an HTTP 404 response and an empty      │
+    │           JSON object."                                                 │
+    └─────────────────────────────────────────────────────────────────────────┘-->
 
-## Type of change
+...
 
-Please delete options that are not relevant.
+### Related issue(s)
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 3. Related issue(s) (optional)                                          │
+    │                                                                         │
+    │ Link to any GitHub issue(s) this branch was designed to resolve.        │
+    │                                                                         │
+    │ Example: "Fixes #12345"                                                 │
+    └─────────────────────────────────────────────────────────────────────────┘-->
 
-# How Has This Been Tested?
+...
 
-Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration, if it is not simply `make up-test && make test-run`.
+### Related subsystem(s)
 
-- [ ] Test A
-- [ ] Test B
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 4. Related subsystem(s) (required)                                      │
+    │                                                                         │
+    │ Mark the checkbox next to each subsystem related to the changes in this │
+    │ branch. This information might influence who you request reviews from.  │
+    │                                                                         │
+    │ Example: If you modified the `/studies/{study_id}` API endpoint,        │
+    │          mark the checkbox next to "Runtime API (except the Minter)".   │
+    └─────────────────────────────────────────────────────────────────────────┘-->
 
-**Configuration Details**: none
+- [ ] Runtime API (except the Minter)
+- [ ] Minter
+- [ ] Dagster
+- [ ] Project documentation (in the `docs` directory)
+- [ ] MongoDB migrations
+- [ ] Other
 
-# Definition of Done (DoD) Checklist:
-A simple checklist of necessary activities that add verifiable/demonstrable value to the product by asserting the quality of a feature, not the functionality of that feature; the latter should be stated as acceptance criteria in the issue this PR closes. Not all activities in the PR template will be applicable to each feature since the definition of done is intended to be a comprehensive checklist. Consciously decide the applicability of value-added activities on a feature-by-feature basis.
+### Testing
 
-- [ ] My code follows the style guidelines of this project (have you run `black nmdc_runtime/`?)
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation (in `docs/` and in <https://github.com/microbiomedata/NMDC_documentation/>?)
-- [ ] I have added tests that prove my fix is effective or that my feature works, incl. considering downstream usage (e.g. <https://github.com/microbiomedata/notebook_hackathons>) if applicable.
-- [ ] New and existing unit and functional tests pass locally with my changes (`make up-test && make test-run`)
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 5. Testing (required)                                                   │
+    │                                                                         │
+    │ Indicate whether you have already tested the changes this branch        │
+    │ contains; and, if so, how someone other than you can test them. That    │
+    │ may involve attaching example files or ad hoc test instructions.        │
+    │                                                                         │
+    │ Example: "I tested these changes by adding a pytest test that ensures   │
+    │           the database does not contain a Study whose ID is `foo`,      │
+    │           then submits an HTTP request to `/studies/foo` and confirms   │
+    │           the response status is 404."                                  │
+    └─────────────────────────────────────────────────────────────────────────┘-->
 
+- [ ] I tested these changes (explain below)
+- [ ] I did not test these changes
 
+I tested these changes by...
+
+### Documentation
+
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 6. Documentation (required)                                             │
+    │                                                                         │
+    │ Indicate whether, in this branch, you have updated all documentation    │
+    │ that would otherwise become inaccurate if this branch were to be        │
+    │ merged in.                                                              │
+    └─────────────────────────────────────────────────────────────────────────┘-->
+
+- [ ] I **have not checked** for relevant documentation yet (e.g. in the `docs` directory)
+- [ ] I have **updated** all relevant documentation so it will remain accurate
+- [ ] Other (explain below)
+
+### Maintainability
+
+<!--┌─────────────────────────────────────────────────────────────────────────┐
+    │ 7. Maintainability (required)                                           │
+    │                                                                         │
+    │ Indicate whether you have done each of these things that can make code  │
+    │ easier to maintain, whether by your teammates or by your future self.   │
+    └─────────────────────────────────────────────────────────────────────────┘-->
+
+- [ ] Every Python function I defined includes a docstring _(test functions are exempt from this)_
+- [ ] Every Python function parameter I introduced includes a type hint (e.g. `study_id: str`)
+- [ ] All "to do" or "fix me" Python comments I added begin with either `# TODO` or `# FIXME`
+- [ ] I used `black` to format all the Python files I created/modified
+- [ ] The PR title is in the imperative mood (e.g. "Do X") and not the declarative mood (e.g. "Does X" or "Did X")
