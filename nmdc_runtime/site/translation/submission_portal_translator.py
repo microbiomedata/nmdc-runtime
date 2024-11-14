@@ -189,7 +189,7 @@ class SubmissionPortalTranslator(Translator):
         if not gold_study_id:
             return None
 
-        return [self._get_curie("GOLD", gold_study_id)]
+        return [self._ensure_curie(gold_study_id, default_prefix="gold")]
 
     def _get_quantity_value(
         self, raw_value: Optional[str], unit: Optional[str] = None

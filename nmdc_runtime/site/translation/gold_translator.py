@@ -108,7 +108,9 @@ class GoldStudyTranslator(Translator):
             for id in self._project_ids_by_biosample_id[gold_biosample_id]
         )
         return [
-            self._get_curie("biosample", project["ncbiBioSampleAccession"])
+            self._ensure_curie(
+                project["ncbiBioSampleAccession"], default_prefix="biosample"
+            )
             for project in biosample_projects
             if project["ncbiBioSampleAccession"]
         ]
@@ -471,7 +473,9 @@ class GoldStudyTranslator(Translator):
         """
         return nmdc.Study(
             description=gold_study.get("description"),
-            gold_study_identifiers=self._get_curie("gold", gold_study["studyGoldId"]),
+            gold_study_identifiers=self._ensure_curie(
+                gold_study["studyGoldId"], default_prefix="gold"
+            ),
             id=nmdc_study_id,
             name=gold_study.get("studyName"),
             principal_investigator=self._get_pi(gold_study),
@@ -522,7 +526,9 @@ class GoldStudyTranslator(Translator):
             env_local_scale=self._get_env_term_value(gold_biosample, "envoLocalScale"),
             env_medium=self._get_env_term_value(gold_biosample, "envoMedium"),
             geo_loc_name=self._get_text_value(gold_biosample, "geoLocation"),
-            gold_biosample_identifiers=self._get_curie("gold", gold_biosample_id),
+            gold_biosample_identifiers=self._ensure_curie(
+                gold_biosample_id, default_prefix="gold"
+            ),
             habitat=gold_biosample.get("habitat"),
             host_name=gold_biosample.get("hostName"),
             host_taxid=self._get_host_taxid(gold_biosample),
@@ -579,8 +585,8 @@ class GoldStudyTranslator(Translator):
         return nmdc.NucleotideSequencing(
             id=nmdc_nucleotide_sequencing_id,
             name=gold_project.get("projectName"),
-            gold_sequencing_project_identifiers=self._get_curie(
-                "gold", gold_project_id
+            gold_sequencing_project_identifiers=self._ensure_curie(
+                gold_project_id, default_prefix="gold"
             ),
             ncbi_project_name=gold_project.get("projectName"),
             type="nmdc:NucleotideSequencing",
