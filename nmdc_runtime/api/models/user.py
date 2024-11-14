@@ -60,7 +60,7 @@ async def get_current_user(
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
-        if not subject.startswith("user:") or not subject.startswith("client:"):
+        if not subject.startswith("user:") and not subject.startswith("client:"):
             raise credentials_exception
         
         # subject is in the form "user:foo" or "client:bar" 
