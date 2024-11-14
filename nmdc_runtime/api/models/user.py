@@ -60,9 +60,11 @@ async def get_current_user(
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
-        if not subject.startswith("user:"):
+        if not subject.startswith("user:") or not subject.startswith("client:"):
             raise credentials_exception
-        username = subject.split("user:", 1)[1]
+        
+        # subject is in the form "user:foo" or "client:bar" 
+        username = subject.split(":", 1)[1]
         token_data = TokenData(subject=username)
     except (JWTError, AttributeError) as e:
         print(f"jwt error: {e}")
