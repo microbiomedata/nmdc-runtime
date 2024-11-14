@@ -1,0 +1,75 @@
+[tool.poetry]
+name = "nmdc-runtime"
+version = "2.0.1"
+description = "NMDC Runtime"
+authors = ["Your Name <you@example.com>"]
+license = "BSD 3-Clause"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+base32-lib = "*"
+beautifulsoup4 = "*"
+beanie = ">=1.16.0"
+boto3 = "*"
+click = "*"
+dagit = "*"
+dagster = "*"
+dagster-graphql = "*"
+dagster-postgres = "*"
+dependency-injector = "*"
+dotted-dict = "*"
+fastapi = ">=0.104.1"
+fastjsonschema = "*"
+fnc = "*"
+frozendict = "*"
+git-root = "*"
+jq = "*"
+jsonasobj2 = "*"
+jupyter = "*"
+jupyterlab = "*"
+linkml = "*"
+linkml-runtime = "*"
+lxml = "*"
+mkdocs-jupyter = "*"
+mkdocs-material = "*"
+mkdocs-mermaid2-plugin = "*"
+motor = "*"
+nmdc-schema = "11.0.3"
+openpyxl = "*"
+pandas = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
+pymongo = "*"
+pydantic = {extras = ["email"], version = ">=1.10.0"}
+python-dotenv = "*"
+python-jose = {extras = ["cryptography"], version = "*"}
+python-multipart = "*"
+pyyaml = "*"
+requests = "*"
+semver = "*"
+setuptools-scm = "*"
+tenacity = "*"
+toolz = "*"
+tqdm = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+xlrd = "*"
+xlsxwriter = "*"
+requests-cache = "*"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+coverage = "*"
+flake8 = "*"
+invoke = "*"
+pytest = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+requests-mock = "*"
+setuptools = "*"
+twine = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
