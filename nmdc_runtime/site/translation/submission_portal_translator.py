@@ -189,7 +189,21 @@ class SubmissionPortalTranslator(Translator):
         if not gold_study_id:
             return None
 
-        return [self._get_curie("GOLD", gold_study_id)]
+        return [self._ensure_curie(gold_study_id, default_prefix="gold")]
+
+    def _get_jgi_study_identifiers(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[str], None]:
+        """Construct a JGI proposal CURIE from the multiomics from data
+
+        :param metadata_submission: submission portal entry
+        :return: JGI proposal CURIE
+        """
+        jgi_study_id = get_in(["multiOmicsForm", "JGIStudyId"], metadata_submission)
+        if not jgi_study_id:
+            return None
+
+        return [self._ensure_curie(jgi_study_id, default_prefix="jgi.proposal")]
 
     def _get_quantity_value(
         self, raw_value: Optional[str], unit: Optional[str] = None
@@ -410,9 +424,6 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc:Study object
         """
         return nmdc.Study(
-            alternative_identifiers=self._get_from(
-                metadata_submission, ["multiOmicsForm", "JGIStudyId"]
-            ),
             alternative_names=self._get_from(
                 metadata_submission, ["multiOmicsForm", "alternativeNames"]
             ),
@@ -435,6 +446,9 @@ class SubmissionPortalTranslator(Translator):
             id=nmdc_study_id,
             insdc_bioproject_identifiers=self._get_from(
                 metadata_submission, ["multiOmicsForm", "NCBIBioProjectId"]
+            ),
+            jgi_portal_study_identifiers=self._get_jgi_study_identifiers(
+                metadata_submission
             ),
             name=self._get_from(metadata_submission, ["studyForm", "studyName"]),
             notes=self._get_from(metadata_submission, ["studyForm", "notes"]),

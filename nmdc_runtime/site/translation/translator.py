@@ -14,8 +14,15 @@ class Translator(ABC):
     def _index_by_id(self, collection, id):
         return {item[id]: item for item in collection}
 
-    def _get_curie(self, prefix: str, local: str) -> str:
-        return f"{prefix}:{local}"
+    @staticmethod
+    def _ensure_curie(identifier: str, *, default_prefix: str) -> str:
+        identifier_parts = identifier.split(":", 1)
+
+        # Don't add prefix if identifier is already a CURIE
+        if len(identifier_parts) == 2:
+            return identifier
+
+        return f"{default_prefix}:{identifier_parts[0]}"
 
     @abstractmethod
     def get_database(self) -> nmdc.Database:
