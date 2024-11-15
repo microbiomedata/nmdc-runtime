@@ -14,6 +14,9 @@ from nmdc_runtime.api.core.auth import (
     TokenData,
     bearer_scheme,
 )
+
+from nmdc_runtime.api.models.site import get_site
+
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
 
@@ -69,7 +72,20 @@ async def get_current_user(
     except (JWTError, AttributeError) as e:
         print(f"jwt error: {e}")
         raise credentials_exception
-    user = get_user(mdb, username=token_data.subject)
+
+    # Hacky workaround to show how we can coerce a client into a user
+    if subject.startswith("user:"):
+        user = get_user(mdb, username=token_data.subject)
+    elif subject.startswith("client:"):
+        # construct a user from the client_id
+        site = get_site(mdb, client_id=token_data.subject)
+        if site is None:
+            raise credentials_exception
+        user = UserInDB(username=token_data.subject, hashed_password="")
+    else: 
+        raise credentials_exception
+
+
     if user is None:
         raise credentials_exception
     return user
