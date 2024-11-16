@@ -185,7 +185,7 @@ def create_user(
             response_model=User, 
             name="Update User",
             description="Update information for given username (Admin Only)")
-def upddate_user(
+def update_user(
     user_in: UserIn,
     requester: User = Depends(get_current_active_user),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
