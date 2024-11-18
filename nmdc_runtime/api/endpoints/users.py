@@ -143,11 +143,13 @@ async def login_for_access_token(
     }
 
 
-@router.get("/users/me", 
-            response_model=User, 
-            response_model_exclude_unset=True,
-            name="Get User Information",
-            description="Get information for current user")
+@router.get(
+    "/users/me",
+    response_model=User,
+    response_model_exclude_unset=True,
+    name="Get User Information",
+    description="Get information for current user",
+)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
@@ -160,11 +162,13 @@ def check_can_create_user(requester: User):
         )
 
 
-@router.post("/users", 
-             status_code=status.HTTP_201_CREATED, 
-             response_model=User, 
-             name="Create User",
-             description="Create new user (Admin Only)")
+@router.post(
+    "/users",
+    status_code=status.HTTP_201_CREATED,
+    response_model=User,
+    name="Create User",
+    description="Create new user (Admin Only)",
+)
 def create_user(
     user_in: UserIn,
     requester: User = Depends(get_current_active_user),
@@ -180,11 +184,13 @@ def create_user(
     return mdb.users.find_one({"username": user_in.username})
 
 
-@router.put("/users", 
-            status_code=status.HTTP_200_OK, 
-            response_model=User, 
-            name="Update User",
-            description="Update information for given username (Admin Only)")
+@router.put(
+    "/users",
+    status_code=status.HTTP_200_OK,
+    response_model=User,
+    name="Update User",
+    description="Update information for given username (Admin Only)",
+)
 def update_user(
     user_in: UserIn,
     requester: User = Depends(get_current_active_user),
@@ -203,8 +209,5 @@ def update_user(
             **user_in.model_dump(),
         ).model_dump(exclude_unset=True)
 
-    mdb.users.update_one(
-        {'username': username}, 
-        {'$set': user_dict }
-    )
+    mdb.users.update_one({"username": username}, {"$set": user_dict})
     return mdb.users.find_one({"username": user_in.username})
