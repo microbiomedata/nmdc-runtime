@@ -167,7 +167,10 @@ def _run_query(query, mdb) -> CommandResponse:
             for up_statement in query.cmd.updates
         ]
         with OverlayDB(mdb) as odb:
-            odb.apply_updates(collection_name, query.cmd.updates)
+            odb.apply_updates(
+                collection_name,
+                [u.model_dump(mode="json", exclude="hint") for u in query.cmd.updates],
+            )
             _ids_to_check = set()
             for spec in update_specs:
                 for doc in mdb[collection_name].find(
@@ -179,7 +182,7 @@ def _run_query(query, mdb) -> CommandResponse:
                 ):
                     _ids_to_check.add(doc["_id"])
             docs_to_check = odb._top_db[collection_name].find(
-                {"_id": {"$in": _ids_to_check}}
+                {"_id": {"$in": list(_ids_to_check)}}
             )
             rv = validate_json(
                 {collection_name: [strip_oid(d) for d in docs_to_check]}, mdb
