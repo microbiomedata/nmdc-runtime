@@ -78,16 +78,24 @@ async def get_current_user(
         user = get_user(mdb, username=token_data.subject)
     elif subject.startswith("client:"):
         # construct a user from the client_id
-        site = get_site(mdb, client_id=token_data.subject)
-        if site is None:
-            raise credentials_exception
-        user = UserInDB(username=token_data.subject, hashed_password="")
-    else: 
-        raise credentials_exception
-
-
+        user = get_client_user(mdb, client_id=token_data.subject)
+    else:
+        raise credentials_exception        
     if user is None:
         raise credentials_exception
+    return user
+
+def get_client_user(mdb, client_id: str) -> UserInDB:
+    site = get_site(mdb, client_id)
+    if site is None:
+        raise credentials_exception
+    client = next(
+            client for client in site.clients if client.id == client_id
+        )
+    if client is None:
+        raise credentials_exception
+    # Coerce the client into a user
+    user = UserInDB(username=client.id, hashed_password=client.hashed_secret)    
     return user
 
 
