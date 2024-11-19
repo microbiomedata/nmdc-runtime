@@ -11,7 +11,7 @@ from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.util import permitted, users_allowed
+from nmdc_runtime.api.endpoints.util import permitted, users_allowed, strip_oid
 from nmdc_runtime.api.models.query import (
     Query,
     QueryResponseOptions,
@@ -23,6 +23,7 @@ from nmdc_runtime.api.models.query import (
     UpdateCommand,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
+from nmdc_runtime.util import OverlayDB, validate_json
 
 router = APIRouter()
 
@@ -165,6 +166,29 @@ def _run_query(query, mdb) -> CommandResponse:
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in query.cmd.updates
         ]
+        with OverlayDB(mdb) as odb:
+            odb.apply_updates(collection_name, query.cmd.updates)
+            _ids_to_check = set()
+            for spec in update_specs:
+                for doc in mdb[collection_name].find(
+                    filter=spec["filter"],
+                    limit=spec["limit"],
+                    projection={
+                        "_id": 1
+                    },  # unique `id` not guaranteed (see e.g. `functional_annotation_agg`)
+                ):
+                    _ids_to_check.add(doc["_id"])
+            docs_to_check = odb._top_db[collection_name].find(
+                {"_id": {"$in": _ids_to_check}}
+            )
+            rv = validate_json(
+                {collection_name: [strip_oid(d) for d in docs_to_check]}, mdb
+            )
+            if rv["result"] == "errors":
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
+                )
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
