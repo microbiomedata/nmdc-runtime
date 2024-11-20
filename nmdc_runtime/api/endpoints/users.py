@@ -148,7 +148,7 @@ async def login_for_access_token(
     response_model=User,
     response_model_exclude_unset=True,
     name="Get User Information",
-    description="Get information for current user",
+    description="Get information about the logged-in user",
 )
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
@@ -189,7 +189,7 @@ def create_user(
     status_code=status.HTTP_200_OK,
     response_model=User,
     name="Update User",
-    description="Update information for given username (Admin Only)",
+    description="Update information about the user having the specified username (Admin Only)",
 )
 def update_user(
     user_in: UserIn,
@@ -202,7 +202,7 @@ def update_user(
     if user_in.password:
         user_dict = UserInDB(
             **user_in.model_dump(),
-            hashed_password=get_password_hash(user_in.password),
+            hashed_password=get_password_hash(user_in.password), # Store the password hash 
         ).model_dump(exclude_unset=True)
     else:
         user_dict = UserIn(

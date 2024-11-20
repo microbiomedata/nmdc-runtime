@@ -182,6 +182,7 @@ def test_update_user():
     @retry(wait=wait_random_exponential(multiplier=1, max=60))
     def get_token():
         """
+        Fetch an auth token from the Runtime API, retrying until successful.
 
         Randomly wait up to 2^x * 1 seconds between each retry until the range reaches 60
         seconds, then randomly up to 60 seconds afterwards
