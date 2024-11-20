@@ -20,7 +20,7 @@ from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
+from nmdc_runtime.site.resources import RuntimeApiUserClient, get_mongo, RuntimeApiSiteClient, mongo_resource
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
@@ -57,7 +57,8 @@ def ensure_schema_collections_and_alldocs():
 
 def ensure_test_resources(mdb):
     username = "testuser"
-    password = generate_secret()
+    # password = generate_secret()
+    password = "testpassword"
     site_id = "testsite"
     mdb.users.replace_one(
         {"username": username},
@@ -70,7 +71,8 @@ def ensure_test_resources(mdb):
     )
 
     client_id = "testsite-testclient"
-    client_secret = generate_secret()
+    # client_secret = generate_secret()
+    client_secret = "testclientsecret"
     mdb.sites.replace_one(
         {"id": site_id},
         SiteInDB(
@@ -178,6 +180,12 @@ def api_site_client():
     mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
     return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+@pytest.fixture
+def api_user_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 def test_metadata_validate_json_0(api_site_client):
@@ -418,3 +426,123 @@ def test_find_planned_process_by_id(api_site_client):
             "GET",
             f"/planned_processes/nmdc:sty-11-00000001",
         )
+
+
+
+def test_run_query_find(api_user_client, api_site_client):
+
+    mdb = get_mongo_db()
+    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
+        mdb.biosample_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+                ).read_text()
+            )
+        )
+
+    # Make sure user client works
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "biosample_set",
+            "filter": {"id": "nmdc:bsm-12-7mysck21"}
+        }
+    )
+
+    # Make sure site client works
+    response = api_site_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "biosample_set",
+            "filter": {"id": "nmdc:bsm-12-7mysck21"}
+        }
+    )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+
+
+def test_run_query_delete(api_user_client):
+    mdb = get_mongo_db()
+    biosample_id = "nmdc:bsm-12-deleteme"
+    
+    if not mdb.biosample_set.find_one({"id": biosample_id}):
+        mdb.biosample_set.insert_one({"id": biosample_id})
+
+    # Make sure user client works
+    
+    try:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
+            }
+        )
+        # Something went wrong if we get here
+        assert False, "Should have raised a 403 error"
+    except requests.exceptions.HTTPError as e:
+        assert e.response.status_code == 403
+
+
+    mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username, 
+                                         "action": "/queries:run(query_cmd:DeleteCommand)"})
+    try:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
+            }
+        )
+        assert response.status_code == 200
+        print(response.json())
+        assert response.json()["n"] == 1
+    finally:
+        mdb["_runtime"].api.allow.delete_one({"username": api_user_client.username})
+
+
+def test_run_query_delete_site(api_site_client):
+    mdb = get_mongo_db()
+    biosample_id = "nmdc:bsm-12-deleteme"
+    
+    if not mdb.biosample_set.find_one({"id": biosample_id}):
+        mdb.biosample_set.insert_one({"id": biosample_id})
+
+    # Make sure user client works
+    
+    try:
+        response = api_site_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
+            }
+        )
+        # Something went wrong if we get here
+        assert False, "Should have raised a 403 error"
+    except requests.exceptions.HTTPError as e:
+        assert e.response.status_code == 403
+
+
+    mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id, 
+                                         "action": "/queries:run(query_cmd:DeleteCommand)"})
+    try:
+        response = api_site_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
+            }
+        )
+        assert response.status_code == 200
+        print(response.json())
+        assert response.json()["n"] == 1
+    finally:
+        mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
