@@ -485,8 +485,7 @@ def test_run_query_delete(api_user_client):
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
-    # Make sure user client works
-
+    # Access should not work without permissions 
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_user_client.request(
             "POST",
@@ -498,6 +497,7 @@ def test_run_query_delete(api_user_client):
         )
     assert excinfo.value.response.status_code == 403
 
+    # Add persmissions to DB
     mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
     try:
@@ -522,8 +522,7 @@ def test_run_query_delete_site(api_site_client):
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
-    # Make sure user client works
-
+    # Access should not work without permissions 
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_site_client.request(
             "POST",
@@ -535,6 +534,7 @@ def test_run_query_delete_site(api_site_client):
         )
     assert excinfo.value.response.status_code == 403
 
+    # Add persmissions to DB
     mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
     try:
