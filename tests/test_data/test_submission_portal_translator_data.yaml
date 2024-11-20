@@ -83,8 +83,8 @@ input:
       multiOmicsForm:
         alternativeNames: []
         studyNumber: ''
-        GOLDStudyId: ''
-        JGIStudyId: ''
+        GOLDStudyId: 'Gs0123456'
+        JGIStudyId: '123456'
         NCBIBioProjectId: ''
         omicsProcessingTypes:
         - mg
@@ -991,6 +991,10 @@ output:
       - Principal Investigator
       - Funding acquisition
       type: nmdc:CreditAssociation
+    gold_study_identifiers:
+    - gold:Gs0123456
+    jgi_portal_study_identifiers:
+    - jgi.proposal:123456
 ---
 input:
   metadata_submission:
