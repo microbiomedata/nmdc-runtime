@@ -20,7 +20,7 @@ from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, mongo_resource, RuntimeApiSiteClient, RuntimeApiUserClient 
+from nmdc_runtime.site.resources import get_mongo, mongo_resource, RuntimeApiSiteClient, RuntimeApiUserClient
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
@@ -57,8 +57,8 @@ def ensure_schema_collections_and_alldocs():
 
 def ensure_test_resources(mdb):
     username = "testuser"
-    # password = generate_secret()
-    password = "testpassword"
+    password = generate_secret()
+    # password = "testpassword"
     site_id = "testsite"
     mdb.users.replace_one(
         {"username": username},
@@ -71,8 +71,8 @@ def ensure_test_resources(mdb):
     )
 
     client_id = "testsite-testclient"
-    # client_secret = generate_secret()
-    client_secret = "testclientsecret"
+    client_secret = generate_secret()
+    # client_secret = "testclientsecret"
     mdb.sites.replace_one(
         {"id": site_id},
         SiteInDB(
@@ -105,6 +105,20 @@ def ensure_test_resources(mdb):
         "user": {"username": username, "password": password},
         "job": job.model_dump(exclude_unset=True),
     }
+
+
+@pytest.fixture
+def api_site_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+
+@pytest.fixture
+def api_user_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 @pytest.mark.skip(reason="Skipping because test causes suite to hang")
@@ -173,19 +187,6 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-
-@pytest.fixture
-def api_user_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 def test_metadata_validate_json_0(api_site_client):
@@ -387,6 +388,7 @@ def test_find_planned_processes(api_site_client):
     )
     assert rv.json()["meta"]["count"] >= 9
 
+
 def test_find_planned_process_by_id(api_site_client):
     # Seed the database with documents that represent instances of the `PlannedProcess` class or any of its subclasses.
     mdb = get_mongo_db()
@@ -428,9 +430,7 @@ def test_find_planned_process_by_id(api_site_client):
         )
 
 
-
-def test_run_query_find(api_user_client, api_site_client):
-
+def test_run_query_find_user(api_user_client):
     mdb = get_mongo_db()
     if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
         mdb.biosample_set.insert_one(
@@ -450,6 +450,20 @@ def test_run_query_find(api_user_client, api_site_client):
             "filter": {"id": "nmdc:bsm-12-7mysck21"}
         }
     )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+
+
+def test_run_query_find_site(api_site_client):
+    mdb = get_mongo_db()
+    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
+        mdb.biosample_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+                ).read_text()
+            )
+        )
 
     # Make sure site client works
     response = api_site_client.request(
@@ -467,12 +481,12 @@ def test_run_query_find(api_user_client, api_site_client):
 def test_run_query_delete(api_user_client):
     mdb = get_mongo_db()
     biosample_id = "nmdc:bsm-12-deleteme"
-    
+
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
     # Make sure user client works
-    
+
     try:
         response = api_user_client.request(
             "POST",
@@ -487,8 +501,7 @@ def test_run_query_delete(api_user_client):
     except requests.exceptions.HTTPError as e:
         assert e.response.status_code == 403
 
-
-    mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username, 
+    mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
     try:
         response = api_user_client.request(
@@ -508,12 +521,12 @@ def test_run_query_delete(api_user_client):
 def test_run_query_delete_site(api_site_client):
     mdb = get_mongo_db()
     biosample_id = "nmdc:bsm-12-deleteme"
-    
+
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
     # Make sure user client works
-    
+
     try:
         response = api_site_client.request(
             "POST",
@@ -528,8 +541,7 @@ def test_run_query_delete_site(api_site_client):
     except requests.exceptions.HTTPError as e:
         assert e.response.status_code == 403
 
-
-    mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id, 
+    mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
     try:
         response = api_site_client.request(
