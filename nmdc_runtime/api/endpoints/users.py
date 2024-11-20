@@ -202,7 +202,9 @@ def update_user(
     if user_in.password:
         user_dict = UserInDB(
             **user_in.model_dump(),
-            hashed_password=get_password_hash(user_in.password), # Store the password hash 
+            hashed_password=get_password_hash(
+                user_in.password
+            ),  # Store the password hash
         ).model_dump(exclude_unset=True)
     else:
         user_dict = UserIn(
