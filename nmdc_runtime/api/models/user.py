@@ -65,8 +65,8 @@ async def get_current_user(
             raise credentials_exception
         if not subject.startswith("user:") and not subject.startswith("client:"):
             raise credentials_exception
-        
-        # subject is in the form "user:foo" or "client:bar" 
+
+        # subject is in the form "user:foo" or "client:bar"
         username = subject.split(":", 1)[1]
         token_data = TokenData(subject=username)
     except (JWTError, AttributeError) as e:
@@ -80,22 +80,21 @@ async def get_current_user(
         # construct a user from the client_id
         user = get_client_user(mdb, client_id=token_data.subject)
     else:
-        raise credentials_exception        
+        raise credentials_exception
     if user is None:
         raise credentials_exception
     return user
+
 
 def get_client_user(mdb, client_id: str) -> UserInDB:
     site = get_site(mdb, client_id)
     if site is None:
         raise credentials_exception
-    client = next(
-            client for client in site.clients if client.id == client_id
-        )
+    client = next(client for client in site.clients if client.id == client_id)
     if client is None:
         raise credentials_exception
     # Coerce the client into a user
-    user = UserInDB(username=client.id, hashed_password=client.hashed_secret)    
+    user = UserInDB(username=client.id, hashed_password=client.hashed_secret)
     return user
 
 
