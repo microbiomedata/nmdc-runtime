@@ -20,7 +20,7 @@ from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import RuntimeApiUserClient, get_mongo, RuntimeApiSiteClient, mongo_resource
+from nmdc_runtime.site.resources import get_mongo, mongo_resource, RuntimeApiSiteClient, RuntimeApiUserClient 
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
@@ -500,7 +500,6 @@ def test_run_query_delete(api_user_client):
             }
         )
         assert response.status_code == 200
-        print(response.json())
         assert response.json()["n"] == 1
     finally:
         mdb["_runtime"].api.allow.delete_one({"username": api_user_client.username})
@@ -542,7 +541,6 @@ def test_run_query_delete_site(api_site_client):
             }
         )
         assert response.status_code == 200
-        print(response.json())
         assert response.json()["n"] == 1
     finally:
         mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
