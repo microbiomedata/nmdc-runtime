@@ -487,7 +487,7 @@ def test_run_query_delete(api_user_client):
 
     # Make sure user client works
 
-    try:
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_user_client.request(
             "POST",
             "/queries:run",
@@ -496,10 +496,7 @@ def test_run_query_delete(api_user_client):
                 "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
             }
         )
-        # Something went wrong if we get here
-        assert False, "Should have raised a 403 error"
-    except requests.exceptions.HTTPError as e:
-        assert e.response.status_code == 403
+    assert excinfo.value.response.status_code == 403
 
     mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
@@ -527,7 +524,7 @@ def test_run_query_delete_site(api_site_client):
 
     # Make sure user client works
 
-    try:
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_site_client.request(
             "POST",
             "/queries:run",
@@ -536,10 +533,7 @@ def test_run_query_delete_site(api_site_client):
                 "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
             }
         )
-        # Something went wrong if we get here
-        assert False, "Should have raised a 403 error"
-    except requests.exceptions.HTTPError as e:
-        assert e.response.status_code == 403
+    assert excinfo.value.response.status_code == 403
 
     mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id,
                                          "action": "/queries:run(query_cmd:DeleteCommand)"})
