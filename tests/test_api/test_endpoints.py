@@ -63,7 +63,6 @@ def ensure_schema_collections_and_alldocs():
 def ensure_test_resources(mdb):
     username = "testuser"
     password = generate_secret()
-    # password = "testpassword"
     site_id = "testsite"
     mdb.users.replace_one(
         {"username": username},
@@ -77,7 +76,6 @@ def ensure_test_resources(mdb):
 
     client_id = "testsite-testclient"
     client_secret = generate_secret()
-    # client_secret = "testclientsecret"
     mdb.sites.replace_one(
         {"id": site_id},
         SiteInDB(
@@ -192,20 +190,6 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-
-
-@pytest.fixture
-def api_user_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 def test_metadata_validate_json_0(api_site_client):
@@ -573,7 +557,7 @@ def test_run_query_delete_site(api_site_client):
         mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
 
 
-def test_queries_run_update(api_user_client):
+def test_run_query_update(api_user_client):
     """Submit a request to store data that does not comply with the schema."""
     mdb = get_mongo_db()
     allow_spec = {

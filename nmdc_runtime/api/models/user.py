@@ -73,7 +73,8 @@ async def get_current_user(
         print(f"jwt error: {e}")
         raise credentials_exception
 
-    # Hacky workaround to show how we can coerce a client into a user
+    # Coerce a "client" into a "user"
+    # TODO: consolidate the client/user distinction.
     if subject.startswith("user:"):
         user = get_user(mdb, username=token_data.subject)
     elif subject.startswith("client:"):
@@ -99,7 +100,7 @@ def get_client_user(mdb, client_id: str) -> UserInDB:
 
 
 async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+    current_user: UserInDB = Depends(get_current_user),
 ) -> UserInDB:
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
