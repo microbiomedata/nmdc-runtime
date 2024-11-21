@@ -101,7 +101,7 @@ mongorestore-nmdc-db:
 	mkdir -p /tmp/remote-mongodump/nmdc
 	# SSH into the remote server, stream the dump directory as a gzipped tar archive, and extract it locally.
 	ssh -i ~/.ssh/nersc ${NERSC_USERNAME}@dtn01.nersc.gov \
-		'tar -czf - -C /global/cfs/projectdirs/m3408/nmdc-mongodumps/dump_nmdc-prod_2024-11-18_20-12-08/nmdc .' \
+		'tar -czf - -C /global/cfs/projectdirs/m3408/nmdc-mongodumps/dump_nmdc-prod_2024-11-19_21-48-31/nmdc .' \
 		| tar -xzv -C /tmp/remote-mongodump/nmdc
 	mongorestore -v -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
 		--drop --nsInclude='nmdc.*' --dir /tmp/remote-mongodump
