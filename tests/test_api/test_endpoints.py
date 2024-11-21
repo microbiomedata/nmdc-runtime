@@ -464,10 +464,7 @@ def test_run_query_find_user(api_user_client):
     response = api_user_client.request(
         "POST",
         "/queries:run",
-        {
-            "find": "biosample_set",
-            "filter": {"id": "nmdc:bsm-12-7mysck21"}
-        }
+        {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
     )
     assert response.status_code == 200
     assert "cursor" in response.json()
@@ -488,10 +485,7 @@ def test_run_query_find_site(api_site_client):
     response = api_site_client.request(
         "POST",
         "/queries:run",
-        {
-            "find": "biosample_set",
-            "filter": {"id": "nmdc:bsm-12-7mysck21"}
-        }
+        {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
     )
     assert response.status_code == 200
     assert "cursor" in response.json()
@@ -504,29 +498,33 @@ def test_run_query_delete(api_user_client):
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
-    # Access should not work without permissions 
+    # Access should not work without permissions
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_user_client.request(
             "POST",
             "/queries:run",
             {
                 "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
-            }
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
         )
     assert excinfo.value.response.status_code == 403
 
     # Add persmissions to DB
-    mdb["_runtime"].api.allow.insert_one({"username": api_user_client.username,
-                                         "action": "/queries:run(query_cmd:DeleteCommand)"})
+    mdb["_runtime"].api.allow.insert_one(
+        {
+            "username": api_user_client.username,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
     try:
         response = api_user_client.request(
             "POST",
             "/queries:run",
             {
                 "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
-            }
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
         )
         assert response.status_code == 200
         assert response.json()["n"] == 1
@@ -541,29 +539,33 @@ def test_run_query_delete_site(api_site_client):
     if not mdb.biosample_set.find_one({"id": biosample_id}):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
-    # Access should not work without permissions 
+    # Access should not work without permissions
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_site_client.request(
             "POST",
             "/queries:run",
             {
                 "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
-            }
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
         )
     assert excinfo.value.response.status_code == 403
 
     # Add persmissions to DB
-    mdb["_runtime"].api.allow.insert_one({"username": api_site_client.client_id,
-                                         "action": "/queries:run(query_cmd:DeleteCommand)"})
+    mdb["_runtime"].api.allow.insert_one(
+        {
+            "username": api_site_client.client_id,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
     try:
         response = api_site_client.request(
             "POST",
             "/queries:run",
             {
                 "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}]
-            }
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
         )
         assert response.status_code == 200
         assert response.json()["n"] == 1
