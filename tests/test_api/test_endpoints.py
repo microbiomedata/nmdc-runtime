@@ -483,6 +483,12 @@ def test_run_query_delete(api_user_client):
         mdb.biosample_set.insert_one({"id": biosample_id})
 
     # Access should not work without permissions
+    mdb["_runtime"].api.allow.delete_many(
+        {
+            "username": api_user_client.username,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
         response = api_user_client.request(
             "POST",
