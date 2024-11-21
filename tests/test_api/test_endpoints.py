@@ -441,6 +441,7 @@ def test_queries_run_update(api_user_client):
     }
     mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     with pytest.raises(requests.HTTPError):
+        # Submit a request to store data that does not comply with the schema.
         api_user_client.request(
             "POST",
             "/queries:run",
