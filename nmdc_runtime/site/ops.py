@@ -39,7 +39,10 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.dumpers import json_dumper
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db, get_nonempty_nmdc_schema_collection_names
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_nonempty_nmdc_schema_collection_names,
+)
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -1030,10 +1033,14 @@ def site_code_mapping() -> dict:
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
-    # Note: The two utils below each return a different list of collection names. 
+    # Note: The two utils below each return a different list of collection names.
     # The first includes "functional_annotation_agg", while the second does not.
-    collection_names_incl_functionalannotationagg = list(get_nonempty_nmdc_schema_collection_names(mdb))
-    collection_names_excl_functionalannotationagg = list(populated_schema_collection_names_with_id_field(mdb))
+    collection_names_incl_functionalannotationagg = list(
+        get_nonempty_nmdc_schema_collection_names(mdb)
+    )
+    collection_names_excl_functionalannotationagg = list(
+        populated_schema_collection_names_with_id_field(mdb)
+    )
     # Use the below line to select the needed set of collection names
     collection_names = collection_names_incl_functionalannotationagg
 
