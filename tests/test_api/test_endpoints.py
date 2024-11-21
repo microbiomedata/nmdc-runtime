@@ -20,7 +20,12 @@ from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, mongo_resource, RuntimeApiSiteClient, RuntimeApiUserClient
+from nmdc_runtime.site.resources import (
+    get_mongo,
+    RuntimeApiSiteClient,
+    mongo_resource,
+    RuntimeApiUserClient,
+)
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
@@ -189,6 +194,20 @@ def test_create_user():
         )
 
 
+@pytest.fixture
+def api_site_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+
+@pytest.fixture
+def api_user_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
+
+
 def test_metadata_validate_json_0(api_site_client):
     rv = api_site_client.request(
         "POST",
@@ -298,10 +317,10 @@ def test_submit_workflow_activities(api_site_client):
                 "has_output": [
                     "nmdc:dobj-11-w5dak635",
                     "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03"
+                    "nmdc:dobj-11-bds7qq03",
                 ],
                 "type": "nmdc:ReadQcAnalysis",
-                "version": "v1.0.8"
+                "version": "v1.0.8",
             }
         ]
     }
@@ -550,3 +569,27 @@ def test_run_query_delete_site(api_site_client):
         assert response.json()["n"] == 1
     finally:
         mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
+
+
+def test_queries_run_update(api_user_client):
+    """Submit a request to store data that does not comply with the schema."""
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+    with pytest.raises(requests.HTTPError):
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "biosample_set",
+                "updates": [
+                    {
+                        "q": {"id": "nmdc:bsm-13-amrnys72"},
+                        "u": {"$set": {"associated_studies.0": 42}},
+                    }
+                ],
+            },
+        )
