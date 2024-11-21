@@ -434,6 +434,7 @@ def test_find_planned_process_by_id(api_site_client):
 
 
 def test_queries_run_update(api_user_client):
+    """Submit a request to store data that does not comply with the schema."""
     mdb = get_mongo_db()
     allow_spec = {
         "username": api_user_client.username,
@@ -441,7 +442,6 @@ def test_queries_run_update(api_user_client):
     }
     mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     with pytest.raises(requests.HTTPError):
-        # Submit a request to store data that does not comply with the schema.
         api_user_client.request(
             "POST",
             "/queries:run",
