@@ -166,6 +166,16 @@ def _run_query(query, mdb) -> CommandResponse:
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in query.cmd.updates
         ]
+        # Execute this "update" command on a temporary "overlay" database so we can
+        # validate its outcome before executing it on the real database. If its outcome
+        # is invalid, we will abort and raise an "HTTP 422" exception.
+        # 
+        # TODO: Consider wrapping this entire "preview-then-apply" sequence within a
+        #       MongoDB transaction so as to avoid race conditions where the overlay 
+        #       database at "preview" time does not reflect the state of the database
+        #       at "apply" time. This will be necessary once the "preview" step
+        #       accounts for referential integrity.
+        #
         with OverlayDB(mdb) as odb:
             odb.apply_updates(
                 collection_name,
