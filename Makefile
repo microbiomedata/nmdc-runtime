@@ -1,31 +1,6 @@
-# TODO: Document this target.
+# Use Poetry to install Python dependencies.
 init:
-	pip install -r requirements/main.txt
-	pip install -r requirements/dev.txt
-	pip install --editable .[dev]
-
-# Updates Python dependencies based upon the contents of the `requirements/main.in` and `requirements/dev.in` files.
-#
-# To omit the `--upgrade` option (included by default) when running `pip-compile`:
-# ```
-# $ make update-deps UPDATE_DEPS_MAIN_UPGRADE_OPT='' UPDATE_DEPS_DEV_UPGRADE_OPT=''
-# ```
-UPDATE_DEPS_MAIN_UPGRADE_OPT ?= --upgrade
-UPDATE_DEPS_DEV_UPGRADE_OPT ?= --upgrade
-update-deps:
-    # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile $(UPDATE_DEPS_MAIN_UPGRADE_OPT) --build-isolation \
-		--allow-unsafe --resolver=backtracking --strip-extras \
-		--output-file requirements/main.txt \
-		requirements/main.in
-	pip-compile --allow-unsafe $(UPDATE_DEPS_DEV_UPGRADE_OPT) --build-isolation \
-		--allow-unsafe --resolver=backtracking --strip-extras \
-		--output-file requirements/dev.txt \
-		requirements/dev.in
-
-# TODO: Document this target.
-update: update-deps init
+	poetry install
 
 # TODO: Document this target.
 up-dev:
@@ -132,5 +107,5 @@ mongorestore-nmdc-db:
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
-.PHONY: init update-deps update up-dev down-dev follow-fastapi \
+.PHONY: init up-dev down-dev follow-fastapi \
 	publish docs

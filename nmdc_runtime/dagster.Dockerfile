@@ -16,15 +16,18 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 
+# Install Poetry.
+RUN pip install poetry
 
-# Install requirements
 WORKDIR /opt/dagster/lib
-COPY requirements/main.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Use Poetry to install production Python dependencies.
+COPY ./pyproject.toml /opt/dagster/lib/pyproject.toml
+COPY ./poetry.lock /opt/dagster/lib/poetry.lock
+RUN poetry install --without dev
 
 # Add repository code
 COPY . .
-RUN pip install --no-cache-dir --editable .
 
 # Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/
