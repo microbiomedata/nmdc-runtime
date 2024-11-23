@@ -23,4 +23,10 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec dagit -h 0.0.0.0 -p 3000 -w workspace.yaml
+# Note: We specify a directory to Poetry so it knows where to find our `pyproject.toml` file.
+#       Reference: https://python-poetry.org/docs/cli/#global-options
+#
+# TODO: The `dagit` CLI command is deprecated. Use `dagster-webserver` instead.
+#
+exec poetry run --directory /opt/dagster/lib \
+  dagit -h 0.0.0.0 -p 3000 -w workspace.yaml
