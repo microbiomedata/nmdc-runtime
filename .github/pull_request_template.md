@@ -55,6 +55,7 @@ In this branch, I...
 - [ ] Minter
 - [ ] Dagster
 - [ ] Project documentation (in the `docs` directory)
+- [ ] Translators (metadata ingest pipelines)
 - [ ] MongoDB migrations
 - [ ] Other
 
