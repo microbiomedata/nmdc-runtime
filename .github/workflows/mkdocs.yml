@@ -18,6 +18,8 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install git+https://${GH_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
+      # TODO: Note that the versions of these packages that `pip` installs may differ
+      #       from the versions listed in `poetry.lock`. Was that intentional?
       - run: pip install mkdocs-mermaid2-plugin
       - run: pip install mkdocs-jupyter
       - run: mkdocs gh-deploy --force
