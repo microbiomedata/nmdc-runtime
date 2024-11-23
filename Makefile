@@ -50,8 +50,8 @@ POETRY_LOCKED_BLACK_VERSION  := $(shell grep -A 1 'name = "black"'  poetry.lock 
 
 # Install lint and black via pip, without installing other dependencies.
 init-lint-and-black:
-	pip install $(POETRY_LOCKED_FLAKE8_VERSION)
-	pip install $(POETRY_LOCKED_BLACK_VERSION)
+	pip install flake8==$(POETRY_LOCKED_FLAKE8_VERSION)
+	pip install black==$(POETRY_LOCKED_BLACK_VERSION)
 
 # TODO: Document this target.
 down-dev:
