@@ -161,7 +161,7 @@ pytest-asyncio = "^0.24.0"
 pytest-cov = "^6.0.0"
 # TODO: Document why this is a dependency (what we use it for).
 requests-mock = "^1.12.1"
-# TODO: Is `twine` still required, now that we are using Poetry as our dependency management tool?
+# TODO: Is `setuptools` still required, now that we are using Poetry as our dependency management tool?
 setuptools = "^75.6.0"
 # TODO: Is `twine` still required, now that we are using Poetry as our dependency management tool?
 twine = "^5.1.1"
