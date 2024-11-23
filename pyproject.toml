@@ -1,0 +1,175 @@
+[tool.poetry]
+name = "nmdc-runtime"
+version = "2.1.0"
+description = "A runtime system for NMDC data management and orchestration"
+authors = [
+    "Donny Winston <donny@polyneme.xyz>",
+]
+# Note: The Python Packaging User Guide [1] says we can say `license = {file = "LICENSE"}`,
+#       but it shows that happening in a `[project]` block, not a `[tool.poetry]` block.
+#       So, I erred on the side of caution and used `license = "Proprietary"`,
+#       as shown in the Poetry docs [2].
+#
+#       References:
+#       - [1] https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license
+#       - [2] https://python-poetry.org/docs/pyproject/#license
+#
+license = "Proprietary"
+readme = "README.md"
+
+# Production dependencies.
+#
+# Note: This section was initialized by manually entering each package name shown in `requirements/main.in` into the
+#       prompts shown by `$ poetry init`, and specifying either the latest available version (if no version constraints
+#       were specified in that file) or specifying the same version constraints as were specified in that file.
+[tool.poetry.dependencies]
+# Note: This version requirement of "^3.10" was copied from the `setup.py` file used by the application's original
+#       build system. However, when running `$ poetry install`, Poetry reported a version range conflict between this
+#       and the `dagster-postgres` package, which was only compatible with Python versions up to `<3.13`. In order to
+#       accommodate that package, we constrained the maximum Python version here to be `<3.13`.
+python = ">=3.10, <3.13"
+# TODO: Document why this is a dependency (what we use it for).
+base32-lib = "^1.0.2"
+# TODO: Document why this is a dependency (what we use it for).
+beautifulsoup4 = "^4.12.3"
+# TODO: Document why this is a dependency (what we use it for).
+beanie = ">=1.16.0"
+# TODO: Document why this is a dependency (what we use it for).
+boto3 = "^1.35.68"
+# TODO: Document why this is a dependency (what we use it for).
+click = "^8.1.7"
+# TODO: Document why this is a dependency (what we use it for).
+dagit = "^1.9.3"
+# TODO: Document why this is a dependency (what we use it for).
+dagster = "^1.9.3"
+# TODO: Document why this is a dependency (what we use it for).
+dagster-graphql = "^1.9.3"
+# TODO: Document why this is a dependency (what we use it for).
+dagster-postgres = "^0.25.3"
+# TODO: Document why this is a dependency (what we use it for).
+dependency-injector = "^4.43.0"
+# TODO: Document why this is a dependency (what we use it for).
+dotted-dict = "^1.1.3"
+# We use this as our web application framework.
+# Docs: https://fastapi.tiangolo.com/
+fastapi = ">=0.104.1"
+# TODO: Document why this is a dependency (what we use it for).
+fastjsonschema = "^2.20.0"
+# TODO: Document why this is a dependency (what we use it for).
+fnc = "^0.5.3"
+# TODO: Document why this is a dependency (what we use it for).
+frozendict = "^2.4.6"
+# TODO: Document why this is a dependency (what we use it for).
+git-root = "^0.1"
+# TODO: Document why this is a dependency (what we use it for).
+jq = "^1.8.0"
+# TODO: Document why this is a dependency (what we use it for).
+jsonasobj2 = "^1.0.4"
+# TODO: Why is this a production dependency instead of a development dependency?
+jupyter = "^1.1.1"
+# TODO: Why is this a production dependency instead of a development dependency?
+jupyterlab = "^4.3.1"
+# TODO: Document why this is a dependency (what we use it for).
+linkml = "^1.8.5"
+# TODO: Document why this is a dependency (what we use it for).
+linkml-runtime = "^1.8.3"
+# TODO: Document why this is a dependency (what we use it for).
+lxml = "^5.3.0"
+# TODO: Document why this is a dependency (what we use it for).
+mkdocs-jupyter = "^0.25.1"
+# TODO: Document why this is a dependency (what we use it for).
+mkdocs-material = "^9.5.45"
+# TODO: Document why this is a dependency (what we use it for).
+# Note: The specification for the latest version of this package is (currently) `^1.2.1`. The reason we
+#       are specifying an older version is that we also depend on `nmdc-schema==11.1.0`, which specifies
+#       that older version as one of its production dependencies.
+# TODO: Inquire with `nmdc-schema` maintainers about addressing their dependence upon the old version of
+#       this package and about converting it into a development dependency instead.
+mkdocs-mermaid2-plugin = ">=0.6.0, <0.7.0"
+# We use `motor` as our MongoDB client. It's an asynchronous alternative to `pymongo`.
+# Docs: https://motor.readthedocs.io
+motor = "^3.6.0"
+# We use `nmdc-schema` to interpret the data residing in the MongoDB database.
+# Docs: https://microbiomedata.github.io/nmdc-schema/
+nmdc-schema = "==11.1.0"
+# TODO: Document why this is a dependency (what we use it for).
+openpyxl = "^3.1.5"
+# TODO: Document why this is a dependency (what we use it for).
+pandas = "^2.2.3"
+# TODO: Document why this is a dependency (what we use it for).
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+# TODO: I think the Runtime uses motor instead, and pymongo is only used by experiments within this repo. The database
+#       migration notebooks do use pymongo, but their dependencies are managed separately from the Runtime's/this.
+pymongo = "^4.9.0"
+# TODO: Document why this is a dependency (what we use it for).
+pydantic = {extras = ["email"], version = ">=1.10.0"}
+# TODO: Document why this is a dependency (what we use it for).
+python-dotenv = "^1.0.1"
+# TODO: Document why this is a dependency (what we use it for).
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+# TODO: Document why this is a dependency (what we use it for).
+python-multipart = "^0.0.17"
+# TODO: Document why this is a dependency (what we use it for).
+PyYAML = "^6.0.2"
+# TODO: Document why this is a dependency (what we use it for).
+requests = "^2.32.3"
+# TODO: Document why this is a dependency (what we use it for).
+semver = "^3.0.2"
+# TODO: Document why this is a dependency (what we use it for).
+setuptools-scm = "^8.1.0"
+# TODO: Document why this is a dependency (what we use it for).
+tenacity = "^9.0.0"
+# TODO: Document why this is a dependency (what we use it for).
+toolz = "^1.0.0"
+# TODO: Document why this is a dependency (what we use it for).
+tqdm = "^4.67.0"
+# TODO: Document why this is a dependency (what we use it for).
+uvicorn = {extras = ["standard"], version = "^0.32.1"}
+# TODO: Document why this is a dependency (what we use it for).
+xlrd = "^2.0.1"
+# TODO: Document why this is a dependency (what we use it for).
+XlsxWriter = "^3.2.0"
+# TODO: Document why this is a dependency (what we use it for).
+requests-cache = "^1.2.1"
+
+# Development dependencies.
+#
+# Note: This section was initialized by manually entering each package name shown in `requirements/dev.in` into the
+#       prompts shown by `$ poetry init`, and specifying either the latest available version (if no version constraints
+#       were specified in that file) or specifying the same version constraints as were specified in that file.
+[tool.poetry.group.dev.dependencies]
+# We use Black to format source code.
+# Docs: https://black.readthedocs.io/
+black = "^24.10.0"
+# We use coverage to measure how much of our application code our test code exercises.
+# Docs: https://coverage.readthedocs.io
+coverage = "^7.6.7"
+# TODO: Document why this is a dependency (what we use it for).
+flake8 = "^7.1.1"
+# TODO: Document why this is a dependency (what we use it for).
+invoke = "^2.2.0"
+# TODO: Is `pip-tools` still required, now that we are using Poetry as our dependency management tool?
+pip-tools = "^7.4.1"
+# TODO: Is `pip` still required, now that we are using Poetry as our dependency management tool?
+pip = "^24.3.1"
+# We use pytest as our automated test framework.
+# Docs: https://docs.pytest.org/
+pytest = "^8.3.3"
+# TODO: Document why this is a dependency (what we use it for).
+pytest-asyncio = "^0.24.0"
+# TODO: Document why this is a dependency (what we use it for).
+pytest-cov = "^6.0.0"
+# TODO: Document why this is a dependency (what we use it for).
+requests-mock = "^1.12.1"
+# TODO: Is `twine` still required, now that we are using Poetry as our dependency management tool?
+setuptools = "^75.6.0"
+# TODO: Is `twine` still required, now that we are using Poetry as our dependency management tool?
+twine = "^5.1.1"
+# TODO: Document why this is a dependency (what we use it for).
+requests-cache = "^1.2.1"
+# TODO: Document why this is a dependency (what we use it for).
+pytest-mock = "^3.14.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
