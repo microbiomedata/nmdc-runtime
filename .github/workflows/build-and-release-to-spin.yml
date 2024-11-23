@@ -11,7 +11,7 @@ on:
       - 'Makefile'
       - '**.Dockerfile'
       - '**.py'
-      - 'requirements/main.txt'
+      - 'poetry.lock'
 
 env:
   # We don't want to do certain steps if this is running in a fork

@@ -44,13 +44,14 @@ lint:
 	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
-PIP_PINNED_FLAKE8 := $(shell grep 'flake8==' requirements/dev.txt)
-PIP_PINNED_BLACK := $(shell grep 'black==' requirements/dev.txt)
+# Define variables containing Python package version numbers read from the Poetry lock file.
+POETRY_LOCKED_FLAKE8_VERSION := $(shell grep -A 1 'name = "flake8"' poetry.lock | sed -ne 's/^version = "\(.*\)"/\1/p')
+POETRY_LOCKED_BLACK_VERSION  := $(shell grep -A 1 'name = "black"'  poetry.lock | sed -ne 's/^version = "\(.*\)"/\1/p')
 
-# TODO: Document this target.
+# Install lint and black via pip, without installing other dependencies.
 init-lint-and-black:
-	pip install $(PIP_PINNED_FLAKE8)
-	pip install $(PIP_PINNED_BLACK)
+	pip install $(POETRY_LOCKED_FLAKE8_VERSION)
+	pip install $(POETRY_LOCKED_BLACK_VERSION)
 
 # TODO: Document this target.
 down-dev:
