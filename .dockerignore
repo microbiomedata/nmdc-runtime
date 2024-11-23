@@ -1,3 +1,4 @@
+# Tell Docker to _exclude_ these directories from the build context.
 .env*
 !.env.example
 !.env.test
@@ -7,3 +8,6 @@ deployment
 .pytest_cache
 build
 dist
+/.venv
+/.git
+/demo/metadata_migration/notebooks
