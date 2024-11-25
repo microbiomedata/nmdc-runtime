@@ -1,6 +1,6 @@
 from typing import Optional
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pymongo import MongoClient
 from nmdc_schema.migrators.migrator_base import MigratorBase
@@ -47,7 +47,7 @@ class Bookkeeper:
     @staticmethod
     def get_current_timestamp() -> str:
         r"""Returns an ISO 8601 timestamp (string) representing the current time in UTC."""
-        utc_now = datetime.utcnow()
+        utc_now = datetime.now(timezone.utc)
         iso_utc_now = utc_now.isoformat()
         return iso_utc_now  # e.g. "2024-02-21T04:31:03.115107"
 
