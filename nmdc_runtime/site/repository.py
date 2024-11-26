@@ -451,7 +451,9 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
-        ensure_alldocs.to_job(**preset_normal),
+        ensure_alldocs.to_job(
+            tags={"do-not-overlap-runs": "ensure_alldocs"}, **preset_normal
+        ),
     ]
     schedules = [housekeeping_weekly]
     sensors = [
