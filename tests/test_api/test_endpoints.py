@@ -6,7 +6,7 @@ import pytest
 import requests
 from dagster import build_op_context
 from starlette import status
-from tenacity import wait_random_exponential, retry
+from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -140,14 +140,12 @@ def test_update_operation():
     )
 
 
-# @pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
-    # TODO: Check on dropping retry
-    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
     def get_token():
         """
 
@@ -198,7 +196,7 @@ def test_update_user():
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
     def get_token():
         """
         Fetch an auth token from the Runtime API, retrying until successful.
