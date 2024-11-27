@@ -78,10 +78,18 @@ def check_filter(filter_: str):
 
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
+    id_field = "id"
+    if "id_1" not in mdb[collection_name].index_information():
+        logging.warning(
+            f"list_resources: no index set on 'id' for collection {collection_name}"
+        )
+        id_field = (
+            "_id"  # currently expected for `functional_annotation_agg` collection
+        )
     limit = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
-        list(set(comma_separated_values(req.projection)) | {"id"})
+        list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
         else None
     )
@@ -96,10 +104,10 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     else:
         last_id = None
     if last_id is not None:
-        if "id" in filter_:
-            filter_["id"] = merge(filter_["id"], {"$gt": last_id})
+        if id_field in filter_:
+            filter_[id_field] = merge(filter_[id_field], {"$gt": last_id})
         else:
-            filter_ = merge(filter_, {"id": {"$gt": last_id}})
+            filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
     # If limit is 0, the response will include all results (bypassing pagination altogether).
     if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
@@ -110,13 +118,6 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         }
         return rv
     else:
-        # the below block committed in anger. nmdc schema collections should have an 'id' field.
-        id_field = "id"
-        if "id_1" not in mdb[collection_name].index_information():
-            logging.warning(
-                f"list_resources: no index set on 'id' for collection {collection_name}"
-            )
-            id_field = "_id"  # expected atm for functional_annotation_agg
         resources = list(
             mdb[collection_name].find(
                 filter=filter_,
