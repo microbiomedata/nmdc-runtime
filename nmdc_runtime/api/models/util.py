@@ -115,4 +115,5 @@ entity_attributes_to_index = {
         "instrument_name",
         "alternative_identifiers",
     },
+    "functional_annotation_agg": {"was_generated_by"},
 }
