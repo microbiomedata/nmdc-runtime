@@ -116,10 +116,18 @@ def list_from_collection(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
-    collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
-    that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
+    Returns resources that match the specified filter criteria, residing in the specified database collection.
+
+    The names of all the slots of the [`Database` class](https://microbiomedata.github.io/nmdc-schema/Database/)
+    in the NMDC Schema are valid collection names.
     """
+    # TODO: The note about collection names above is currently accurate, but will not necessarily be accurate, since the
+    #       `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`, which are
+    #       things our teammate says must be true about a `Database` slot for it to represent a MongoDB collection.
+    #
+    # TODO: Implement an API endpoint that returns all valid collection names (can get them via a `SchemaView`),
+    #       Then replace the note above with a suggestion that the user access that API endpoint.
+
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
