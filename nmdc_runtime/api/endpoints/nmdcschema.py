@@ -130,9 +130,10 @@ def list_from_collection(
        the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
        That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
     """
-    # TODO: The note about collection names above is currently accurate, but will not necessarily be accurate, since the
-    #       `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`, which are
-    #       things our teammate says must be true about a `Database` slot for it to represent a MongoDB collection.
+    # TODO: The note about collection names above is currently accurate, but will not necessarily always be accurate,
+    #       since the `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`,
+    #       which are things NMDC Schema maintainers say a `Database` slot must be in order for it to represent
+    #       a MongoDB collection.
     #
     # TODO: Implement an API endpoint that returns all valid collection names (can get them via a `SchemaView`),
     #       Then replace the note above with a suggestion that the user access that API endpoint.
