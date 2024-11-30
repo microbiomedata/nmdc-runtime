@@ -5,6 +5,11 @@ from fastapi import Query
 from pydantic import model_validator, Field, BaseModel
 from typing_extensions import Annotated
 
+# TODO: Document rationale for importing `Annotated` from one package versus the other, and remove the obsolete import.
+#       As of Python 3.9, I think there is no difference. That's because the `typing_extensions` documentation says the
+#       following about its `Annotated` thing: "See typing.Annotated and PEP 593. In typing since 3.9."
+#       Reference: https://typing-extensions.readthedocs.io/en/stable/#typing_extensions.Annotated
+
 ResultT = TypeVar("ResultT")
 
 
