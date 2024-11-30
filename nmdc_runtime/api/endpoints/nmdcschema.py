@@ -118,7 +118,7 @@ def list_from_collection(
     """
     Returns resources that match the specified filter criteria and reside in the specified collection.
 
-    You can get all the valid collection names from the [`Database` class](https://microbiomedata.github.io/nmdc-schema/Database/)
+    You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
     page of the NMDC Schema documentation.
 
     Note: If the specified maximum page size is a non-zero number and the specified collection contains _more than that
