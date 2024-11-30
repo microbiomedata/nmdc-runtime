@@ -116,19 +116,18 @@ def list_from_collection(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Returns resources that match the specified filter criteria, residing in the specified database collection.
+    Returns resources that match the specified filter criteria and reside in the specified collection.
 
-    The names of all the slots of the [`Database` class](https://microbiomedata.github.io/nmdc-schema/Database/)
-    in the NMDC Schema are valid collection names.
+    You can get all the valid collection names from the [`Database` class](https://microbiomedata.github.io/nmdc-schema/Database/)
+    page of the NMDC Schema documentation.
 
-    Note: If the maximum page size is set to a non-zero number and _more than that number_ of resources match the filter
-          criteria, this endpoint will paginate the resources. When the specified collection contains many documents,
-          the pagination process can take a long time—even longer than if no maximum page size were specified at all.
+    Note: If the specified maximum page size is a non-zero number and the specified collection contains _more than that
+          number_ of resources that match the filter criteria, this endpoint will paginate the resources. Pagination
+          can take a long time—especially for collections having many documents.
 
     **Tips:**
-    1. When the filter includes a regex you are using to match strings that have a given prefix,
-       use a regex that is a so-called "[prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use)."
-       All "prefix expressions" begin with either a caret (`^`) or a left anchor (`\A`).
+    1. When the filter includes a regex and you are using that regex to match the beginning of a string, try to use a
+       regex that is a "[prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use)."
     """
     # TODO: The note about collection names above is currently accurate, but will not necessarily be accurate, since the
     #       `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`, which are
