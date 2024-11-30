@@ -120,6 +120,15 @@ def list_from_collection(
 
     The names of all the slots of the [`Database` class](https://microbiomedata.github.io/nmdc-schema/Database/)
     in the NMDC Schema are valid collection names.
+
+    Note: If the maximum page size is set to a non-zero number and _more than that number_ of resources match the filter
+          criteria, this endpoint will paginate the resources. When the specified collection contains many documents,
+          the pagination process can take a long time—even longer than if no maximum page size were specified at all.
+
+    **Tips:**
+    1. When the filter includes a regex you are using to match strings that have a given prefix,
+       use a regex that is a so-called "[prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use)."
+       All "prefix expressions" begin with either a caret (`^`) or a left anchor (`\A`).
     """
     # TODO: The note about collection names above is currently accurate, but will not necessarily be accurate, since the
     #       `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`, which are
