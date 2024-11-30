@@ -128,7 +128,7 @@ def list_from_collection(
     **Tips:**
     1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
        the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
-       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint be faster.
+       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
     """
     # TODO: The note about collection names above is currently accurate, but will not necessarily be accurate, since the
     #       `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`, which are
