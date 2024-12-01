@@ -65,6 +65,7 @@ class FindRequest(BaseModel):
       > "The `Field` function is used to customize and add metadata to fields of models."
       References: https://docs.pydantic.dev/latest/concepts/fields/
     """
+
     filter: Optional[str] = Field(
         default=None,
         title="Filter",
@@ -118,7 +119,7 @@ class FindRequest(BaseModel):
         examples=[
             "*",
             "nmdc:sys0zr0fbt71",
-        ]
+        ],
     )
     group_by: Optional[str] = Field(
         default=None,
