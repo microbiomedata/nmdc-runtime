@@ -150,6 +150,9 @@ class FindRequest(BaseModel):
 
 
 class PipelineFindRequest(BaseModel):
+    """
+    TODO: Document this class and its attributes.
+    """
     pipeline_spec: str
     description: str
 
