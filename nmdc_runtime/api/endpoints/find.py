@@ -58,7 +58,11 @@ def find_studies(
     response_model_exclude_unset=True,
 )
 def find_study_by_id(
-    study_id: str,
+    study_id: Annotated[str, Path(
+        title="Study ID",
+        description="The `id` of the `Study` you want to find.\n\n_Example_: `nmdc:sty-11-abc123`",
+        examples=["nmdc:sty-11-abc123"]
+    )],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
