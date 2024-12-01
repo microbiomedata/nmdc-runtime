@@ -1,7 +1,7 @@
 from operator import itemgetter
 from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form, Path
+from fastapi import APIRouter, Depends, Form, Path, Query
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
@@ -42,7 +42,7 @@ router = APIRouter()
     response_model_exclude_unset=True,
 )
 def find_studies(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -74,7 +74,7 @@ def find_study_by_id(
     response_model_exclude_unset=True,
 )
 def find_biosamples(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -106,7 +106,7 @@ def find_biosample_by_id(
     response_model_exclude_unset=True,
 )
 def find_data_objects(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -274,7 +274,7 @@ def find_data_object_by_id(
     response_model_exclude_unset=True,
 )
 def find_planned_processes(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/PlannedProcess>) when they resolve
