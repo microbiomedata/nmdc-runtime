@@ -398,6 +398,7 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
     return doc_links
 
 
+# TODO: Exclude this endpoint from Swagger UI by including the `include_in_schema=False` kwarg in the router decorator.
 @router.get("/search", response_class=HTMLResponse)
 def search_page(
     mdb: MongoDatabase = Depends(get_mongo_db),
