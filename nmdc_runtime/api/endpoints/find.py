@@ -283,7 +283,14 @@ def find_data_objects_for_study(
     response_model_exclude_unset=True,
 )
 def find_data_object_by_id(
-    data_object_id: str,
+    data_object_id: Annotated[
+        str,
+        Path(
+            title="DataObject ID",
+            description="The `id` of the `DataObject` you want to find.\n\n_Example_: `nmdc:dobj-11-abc123`",
+            examples=["nmdc:dobj-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
