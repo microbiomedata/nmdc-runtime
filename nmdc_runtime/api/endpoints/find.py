@@ -151,7 +151,15 @@ def get_classname_from_typecode(doc_id: str) -> str:
     response_model_exclude_unset=True,
 )
 def find_data_objects_for_study(
-    study_id: str,
+    study_id: Annotated[
+        str,
+        Path(
+            title="Study ID",
+            description="""The `id` of the `Study` having `Biosample`s with which you want to find
+                        associated `DataObject`s.\n\n_Example_: `nmdc:sty-11-abc123`""",
+            examples=["nmdc:sty-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data objects associated with
