@@ -149,6 +149,11 @@ def get_classname_from_typecode(doc_id: str) -> str:
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
+    # Note: We include a description here so that FastAPI does not use the function's docstring as the API endpoint's
+    #       description. The docstring currently contains non-user-facing information, such as mentioning the
+    #       implementation detail of using the `alldocs` collection under the hood, and mentioning function parameters
+    #       that are not API request parameters.
+    description="Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
 )
 def find_data_objects_for_study(
     study_id: Annotated[
