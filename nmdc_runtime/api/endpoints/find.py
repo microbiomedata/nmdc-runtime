@@ -153,7 +153,7 @@ def get_classname_from_typecode(doc_id: str) -> str:
     #       description. The docstring currently contains non-user-facing information, such as mentioning the
     #       implementation detail of using the `alldocs` collection under the hood, and mentioning function parameters
     #       that are not API request parameters.
-    description="Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
+    description="Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`.",
 )
 def find_data_objects_for_study(
     study_id: Annotated[
