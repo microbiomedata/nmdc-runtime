@@ -61,6 +61,9 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def check_filter(filter_: str):
+    r"""
+    TODO: Document this function.
+    """
     filter_ = filter_.strip()
     if not filter_.startswith("{") or not filter_.endswith("}"):
         raise HTTPException(
@@ -78,6 +81,9 @@ def check_filter(filter_: str):
 
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
+    r"""
+    TODO: Document this function.
+    """
     id_field = "id"
     if "id_1" not in mdb[collection_name].index_information():
         logging.warning(
@@ -136,6 +142,12 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
 
 
 def maybe_unstring(val):
+    r"""
+    Converts the specified value into a floating-point number if possible;
+    raising a `ValueError` if not possible.
+
+    TODO: Rename this function to be more self-documenting/less ambiguous.
+    """
     try:
         return float(val)
     except ValueError:
@@ -143,10 +155,24 @@ def maybe_unstring(val):
 
 
 def comma_separated_values(s: str):
+    r"""
+    Returns a list of the comma-delimited substrings of the specified string. Discards any whitespace
+    surrounding each substring.
+
+    Reference: https://docs.python.org/3/library/re.html#re.split
+
+    TODO: Document why `return [v.strip() for v in s.split(',')]` was not used instead.
+
+    >>> comma_separated_values("apple, banana, cherry")
+    ['apple', 'banana', 'cherry']
+    """
     return [v.strip() for v in re.split(r"\s*,\s*", s)]
 
 
 def get_mongo_filter(filter_str):
+    r"""
+    TODO: Document this function.
+    """
     filter_ = {}
     if not filter_str:
         return filter_
@@ -205,7 +231,10 @@ def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
     return sort_
 
 
-def strip_oid(doc):
+def strip_oid(doc: dict) -> dict:
+    r"""
+    Returns a copy of the specified dictionary, that has no `_id` key.
+    """
     return dissoc(doc, "_id")
 
 
@@ -218,6 +247,9 @@ def timeit(cursor):
 
 
 def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+    r"""
+    TODO: Document this function.
+    """
     if req.group_by:
         raise HTTPException(
             status_code=status.HTTP_418_IM_A_TEAPOT,
@@ -343,6 +375,9 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 def find_resources_spanning(
     req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
 ):
+    r"""
+    TODO: Document this function.
+    """
     if req.cursor or not req.page:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -382,10 +417,16 @@ def find_resources_spanning(
 
 
 def exists(collection: MongoCollection, filter_: dict):
+    r"""
+    TODO: Document this function.
+    """
     return collection.count_documents(filter_) > 0
 
 
 def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
+    r"""
+    TODO: Document this function.
+    """
     if resource == "biosamples":
         return find_resources(req, mdb, "biosample_set")
     elif resource == "studies":
@@ -405,6 +446,9 @@ def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
 
 
 def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
+    r"""
+    TODO: Document this function.
+    """
     description = req.description
     components = [c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)]
     print(components)
@@ -436,6 +480,9 @@ def persist_content_and_get_drs_object(
     id_ns="json-metadata-in",
     exists_ok=False,
 ):
+    r"""
+    TODO: Document this function.
+    """
     mdb = get_mongo_db()
     drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
     filename = filename or drs_id
@@ -490,6 +537,9 @@ def _create_object(
     self_uri,
     exists_ok=False,
 ):
+    r"""
+    TODO: Document this function.
+    """
     drs_obj = DrsObject(
         **object_in.model_dump(exclude_unset=True),
         id=drs_id,
@@ -526,6 +576,9 @@ def _create_object(
 
 
 def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
+    r"""
+    TODO: Document this function.
+    """
     job_doc = raise404_if_none(mdb.jobs.find_one({"id": job_id}))
     job = Job(**job_doc)
     # check that site satisfies the job's workflow's required capabilities.
@@ -582,6 +635,9 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
 
 @lru_cache
 def nmdc_workflow_id_to_dagster_job_name_map():
+    r"""
+    TODO: Document this function and change its name to a verb.
+    """
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
@@ -596,6 +652,9 @@ def ensure_run_config_data(
     mdb: MongoDatabase,
     user: User,
 ):
+    r"""
+    TODO: Document this function and say what it "ensures" about the "run config data".
+    """
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
         run_config_data = assoc_in(
             run_config_data,
@@ -625,6 +684,9 @@ def ensure_run_config_data(
 
 
 def inputs_for(nmdc_workflow_id, run_config_data):
+    r"""
+    TODO: Document this function.
+    """
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
             "/objects/"
@@ -657,6 +719,9 @@ def _request_dagster_run(
     repository_location_name=None,
     repository_name=None,
 ):
+    r"""
+    TODO: Document this function.
+    """
     dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
 
     extra_run_config_data = ensure_run_config_data(
@@ -703,6 +768,9 @@ def _request_dagster_run(
 
 
 def _get_dagster_run_status(run_id: str):
+    r"""
+    TODO: Document this function.
+    """
     dagster_client = get_dagster_graphql_client()
     try:
         run_status: DagsterRunStatus = dagster_client.get_run_status(run_id)
@@ -712,6 +780,9 @@ def _get_dagster_run_status(run_id: str):
 
 
 def permitted(username: str, action: str):
+    r"""
+    TODO: Document this function and change its name to a verb.
+    """
     db: MongoDatabase = get_mongo_db()
     filter_ = {"username": username, "action": action}
     denied = db["_runtime.api.deny"].find_one(filter_) is not None
@@ -720,5 +791,8 @@ def permitted(username: str, action: str):
 
 
 def users_allowed(action: str):
+    r"""
+    TODO: Document this function and change its name to a verb.
+    """
     db: MongoDatabase = get_mongo_db()
     return db["_runtime.api.allow"].distinct("username", {"action": action})
