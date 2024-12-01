@@ -173,6 +173,11 @@ def get_mongo_filter(filter_str):
 
 
 def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
+    r"""
+    TODO: Document this function.
+
+    Note: This function treats both `""` and `"asc"` as ascending.
+    """
     sort_ = []
     if not sort_str:
         return None
