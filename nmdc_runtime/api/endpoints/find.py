@@ -97,7 +97,14 @@ def find_biosamples(
     response_model_exclude_unset=True,
 )
 def find_biosample_by_id(
-    sample_id: str,
+    sample_id: Annotated[
+        str,
+        Path(
+            title="Biosample ID",
+            description="The `id` of the `Biosample` you want to find.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
