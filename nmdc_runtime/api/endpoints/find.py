@@ -133,6 +133,68 @@ def get_classname_from_typecode(doc_id: str) -> str:
 
 
 @router.get(
+    "/biosamples/data_objects/{dobj_ids}",
+    response_model_exclude_unset=True,
+)
+def find_biosamples_for_list_of_data_objects(
+    dobj_ids: str,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    dobj_id_list = dobj_ids.split(",")
+
+    data_object_biosamples = []
+
+    for dobj_id in dobj_id_list:
+
+        # check id exists in alldocs
+        _ = raise404_if_none(
+            mdb.alldocs.find_one({"id": dobj_id}, ["id"]), detail="Biosample not found"
+        )
+
+        # create default mapper
+        dobj_dict = {"data_object_id": dobj_id, "biosample_id": None}
+
+        # recursively search
+        seek_list = [dobj_id]
+        while len(seek_list) > 0:
+            print(f"seek_list: {seek_list}")
+            # get first element of seek list
+            current_output_id = seek_list.pop(0)
+            print(f"current_id: {current_output_id}")
+            # get the id of the planned process that produced it
+            query = {"has_output": current_output_id}
+            pp = mdb.alldocs.find_one(query)
+
+            # pp = mdb.alldocs.find_one({"has_output": "nmdc:dobj-11-00dewm52"})
+            print(f"planned process doc == {pp}")
+
+            if not pp:
+                print("planned process doc not found")
+                break
+            # grab the "has_input" value
+            input_id_list = pp.get("has_input")
+            print(f"input_id_list: {input_id_list}")
+            if not input_id_list or len(input_id_list) == 0:
+                print("input id value not found")
+                break
+            else:
+                input_id = input_id_list[0]
+                print(f"first input_id in list: {input_id}")
+
+            # keep traversing until a doc has id of type "bsm:"
+            # if get_classname_from_typecode(input_id) == "Biosample":
+            if input_id.startswith("nmdc:bsm"):
+                bsmid = input_id
+                dobj_dict["biosample_id"] = bsmid
+            else:
+                seek_list.append(input_id)  # add to seek list
+
+        data_object_biosamples.append(dobj_dict)
+
+    return data_object_biosamples
+
+
+@router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
 )
