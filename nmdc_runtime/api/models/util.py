@@ -154,8 +154,17 @@ class PipelineFindRequest(BaseModel):
     TODO: Document this class and its attributes.
     """
 
-    pipeline_spec: str
-    description: str
+    # TODO: Add real descriptions and examples to these parameter definitions.
+    pipeline_spec: str = Field(
+        title="Pipeline specification",
+        description="",
+        examples=[],
+    )
+    description: str = Field(
+        title="Pipeline description",
+        description="",
+        examples=[],
+    )
 
 
 class FindResponse(BaseModel):

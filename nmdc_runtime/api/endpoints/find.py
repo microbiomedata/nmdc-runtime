@@ -460,18 +460,20 @@ def search_page(
     return HTMLResponse(content=html_content, status_code=200)
 
 
+# TODO: Confirm with endpoint's author whether they meant for it to receive data via query params, not the request body.
 @router.post(
     "/pipeline_search",
     response_model=PipelineFindResponse,
     response_model_exclude_unset=True,
 )
 def pipeline_search(
-    req: PipelineFindRequest = Depends(),
+    req: Annotated[PipelineFindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     return pipeline_find_resources(req, mdb)
 
 
+# TODO: Exclude this endpoint from Swagger UI by including the `include_in_schema=False` kwarg in the router decorator.
 @router.post(
     "/pipeline_search_form",
     response_model=PipelineFindResponse,
@@ -486,6 +488,7 @@ def pipeline_search(
     return pipeline_find_resources(req, mdb)
 
 
+# TODO: Exclude this endpoint from Swagger UI by including the `include_in_schema=False` kwarg in the router decorator.
 @router.get("/pipeline_search", response_class=HTMLResponse)
 def pipeline_search(
     mdb: MongoDatabase = Depends(get_mongo_db),
