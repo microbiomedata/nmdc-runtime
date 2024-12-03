@@ -1,8 +1,8 @@
 import json
-from typing import Optional
+from typing import Optional, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
@@ -25,7 +25,7 @@ router = APIRouter()
     "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
 )
 def list_jobs(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):

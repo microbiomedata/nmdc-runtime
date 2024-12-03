@@ -1,7 +1,5 @@
 from typing import TypeVar, List, Optional, Generic, Annotated
 
-from fastapi import Query
-
 from pydantic import model_validator, Field, BaseModel
 from typing_extensions import Annotated
 
@@ -19,26 +17,51 @@ class ListResponse(BaseModel, Generic[ResultT]):
 
 
 class ListRequest(BaseModel):
-    filter: Annotated[
-        Optional[str],
-        Query(
-            description='MongoDB-style JSON filter document. Example: `{"ecosystem_type": "Freshwater"}`'
-        ),
-    ] = None
-    max_page_size: Optional[int] = 20
-    page_token: Optional[str] = None
-    projection: Annotated[
-        Optional[str],
-        Query(
-            description=(
-                "for MongoDB-like "
-                "[projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): "
-                "comma-separated list of fields you want the objects in the response to include. "
-                "Note: `id` will always be included. "
-                "Example: `ecosystem_type,name`"
-            )
-        ),
-    ] = None
+    r"""
+    An encapsulation of a set of parameters accepted by API endpoints related to listing things.
+
+    Note: This class was documented after the `FindRequest` class was documented. You can refer to the documentation of
+          the latter class for additional context about the usage of Pydantic's `Field` constructor in this class.
+    """
+    filter: Optional[str] = Field(
+        default=None,
+        title="Filter",
+        description="""The criteria by which you want to filter the resources, in the same format as the [`query`
+                    parameter](https://www.mongodb.com/docs/manual/reference/method/db.collection.find/#std-label-method-find-query)
+                    of MongoDB's `db.collection.find()` method.\n\n_Example:_ `{"ecosystem_type": "Freshwater"}`""",
+        examples=[
+            r'{"ecosystem_type": "Freshwater"}',
+        ],
+    )
+    # TODO: Document why the optional type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter).
+    max_page_size: Optional[int] = Field(
+        default=20,
+        title="Resources per page",
+        description="How many resources you want _each page_ to contain, formatted as a positive integer.",
+        examples=[20],
+    )
+    page_token: Optional[str] = Field(
+        default=None,
+        title="Next page token",
+        description="""A bookmark you can use to fetch the _next_ page of resources. You can get this from the
+                    `next_page_token` field in a previous response from this endpoint.\n\n_Example_: 
+                    `nmdc:sys0zr0fbt71`""",
+        examples=[
+            "nmdc:sys0zr0fbt71",
+        ],
+    )
+    # TODO: Document the endpoint's behavior when a projection includes a _nested_ field identifier (i.e. `foo.bar`),
+    #       and ensure the endpoint doesn't break when the projection includes field descriptors that contain commas.
+    projection: Optional[str] = Field(
+        default=None,
+        title="Projection",
+        description="""Comma-delimited list of the names of the fields you want the resources in the response to
+                    include. Note: In addition to those fields, the response will also include the `id`
+                    field.\n\n_Example_: `ecosystem_type,name`""",
+        examples=[
+            "ecosystem_type,name",
+        ],
+    )
 
 
 PerPageRange = Annotated[int, Field(gt=0, le=2_000)]
@@ -115,7 +138,7 @@ class FindRequest(BaseModel):
         description="""A bookmark you can use to fetch the _next_ page of resources, when using cursor-based pagination.
                     To use cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
                     include a `next_cursor` field, whose value can be used as the `cursor` parameter in a subsequent
-                    request.""",
+                    request.\n\n_Example_: `nmdc:sys0zr0fbt71`""",
         examples=[
             "*",
             "nmdc:sys0zr0fbt71",
