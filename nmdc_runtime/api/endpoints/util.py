@@ -161,7 +161,7 @@ def comma_separated_values(s: str):
 
     Reference: https://docs.python.org/3/library/re.html#re.split
 
-    TODO: Document why `return [v.strip() for v in s.split(',')]` was not used instead.
+    TODO: Document why `return [v.strip() for v in s.split(',')]` was not used instead; e.g. is it due to "greedy-ness"?
 
     >>> comma_separated_values("apple, banana, cherry")
     ['apple', 'banana', 'cherry']
