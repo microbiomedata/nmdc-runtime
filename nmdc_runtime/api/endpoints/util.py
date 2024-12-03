@@ -94,6 +94,8 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         )
     limit = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
+    # TODO: Document why `req.projection` is parsed via `comma_separated_values()` here, but via a
+    #       plain 'ol `str.split(",")` within the `nmdcschema.py::get_from_collection_by_id` function.
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection

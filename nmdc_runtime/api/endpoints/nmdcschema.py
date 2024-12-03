@@ -145,12 +145,18 @@ def list_from_collection(
     response_model_exclude_unset=True,
 )
 def get_by_id(
-    doc_id: str,
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document you want to retrieve.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    If the identifier of the record is known, the GET /nmdcshema/ids/{doc_id} can be used to retrieve the specified record.
-    \n Note that only one identifier may be used at a time, and therefore, only one record may be retrieved at a time using this method.
+    r"""
+    Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
     """
     id_dict = map_id_to_collection(mdb)
     collection_name = get_collection_for_id(doc_id, id_dict)
@@ -163,7 +169,14 @@ def get_by_id(
 
 @router.get("/nmdcschema/ids/{doc_id}/collection-name")
 def get_collection_name_by_doc_id(
-    doc_id: str,
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
@@ -271,21 +284,37 @@ def get_from_collection_by_id(
             examples=["biosample_set"],
         ),
     ],
-    doc_id: str,
-    projection: str | None = None,
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document you want to retrieve.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
+    projection: Annotated[str | None,
+        Query(
+            title="Projection",
+            description="""Comma-delimited list of the names of the fields you want the document in the response to
+                include. Notice the absence of whitespace in this example.\n\n_Example_: `id,name,ecosystem_type`""",
+            examples=[
+                "id,name,ecosystem_type",
+            ],
+        ),
+    ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    If both the identifier and the collection name of the desired record is known, the
-    GET /nmdcschema/{collection_name}/{doc_id} can be used to retrieve the record. The projection parameter is optionally
-    available for this endpoint to retrieve only desired attributes from a record. Please note that only one record can
-    be retrieved at one time using this method.
-
-    for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
+    r"""
+    Retrieves the document having the specified `id`, from the specified collection; optionally, including only the
+    fields specified via the `projection` parameter.
     """
     # Note: This helper function will raise an exception if the collection name is invalid.
     ensure_collection_name_is_known_to_schema(collection_name)
 
+    # TODO: Document why `projection` is parsed via a plain 'ol `str.split(",")` here, but via a call
+    #       to `comma_separated_values()` within the `endpoints/util.py::list_resources` function.
+    # TODO: Document why the author opted to allow for spaces surrounding the commas in when parsing via
+    #       `comma_separated_values()`, but not when parsing in this way. Maybe the decision was arbitrary.
     projection = projection.split(",") if projection else None
     try:
         return strip_oid(
