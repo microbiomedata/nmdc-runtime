@@ -23,6 +23,7 @@ class ListRequest(BaseModel):
     Note: This class was documented after the `FindRequest` class was documented. You can refer to the documentation of
           the latter class for additional context about the usage of Pydantic's `Field` constructor in this class.
     """
+
     filter: Optional[str] = Field(
         default=None,
         title="Filter",
