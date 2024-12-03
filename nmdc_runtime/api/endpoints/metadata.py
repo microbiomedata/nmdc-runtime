@@ -6,10 +6,11 @@ import tempfile
 from collections import defaultdict
 from copy import deepcopy
 from io import StringIO
+from typing import Annotated
 
 import requests
 from dagster import ExecuteInProcessResult
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Path
 from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
@@ -122,9 +123,26 @@ async def submit_changesheet(
 
 @router.get("/metadata/stored_files/{object_id}")
 async def get_stored_metadata_object(
-    object_id: str,
+    object_id: Annotated[
+        str,
+        Path(
+            title="Metadata file ObjectId",
+            description="The ObjectId (`_id`) of the metadata file you want to get.\n\n_Example_: `507f1f77bcf86cd799439011`",
+            examples=["507f1f77bcf86cd799439011"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    Undocumented
+    """
+    # TODO: Document this endpoint.
+    # TODO: Where would a user have obtained a GridFS File's ObjectId from, and did the Runtime refer to it as a GridFS
+    #       thing (i.e. leaking that term from the abstraction over MongoDB)?
+
+    # References:
+    # - https://pymongo.readthedocs.io/en/stable/examples/gridfs.html
+    # - https://www.mongodb.com/docs/manual/core/gridfs/#use-gridfs
     mdb_fs = GridFS(mdb)
     try:
         grid_out = mdb_fs.get(object_id)
