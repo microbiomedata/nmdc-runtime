@@ -1,9 +1,9 @@
 from importlib.metadata import version
 import re
-from typing import List, Dict
+from typing import List, Dict, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
@@ -29,6 +29,9 @@ router = APIRouter()
 
 
 def ensure_collection_name_is_known_to_schema(collection_name: str):
+    r"""
+    Raises an exception if the specified string is _not_ the name of a collection described by the NMDC Schema.
+    """
     names = get_collection_names_from_schema()
     if collection_name not in names:
         raise HTTPException(
@@ -39,9 +42,11 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
 
 @router.get("/nmdcschema/version")
 def get_nmdc_schema_version():
-    """
-    To view the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version the database is currently using,
-    try executing the GET /nmdcschema/version endpoint
+    r"""
+    Returns a string indicating which version of the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/)
+    the Runtime is using.
+
+    **Note:** The same information—and more—is also available via the `/version` endpoint.
     """
     return version("nmdc_schema")
 
@@ -104,18 +109,31 @@ def get_nmdc_database_collection_stats(
     "/nmdcschema/{collection_name}",
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
-    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def list_from_collection(
-    collection_name: str,
-    req: ListRequest = Depends(),
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
+    req: Annotated[ListRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    Retrieves data residing in the specified collection.
+
+    Searches the specified collection for documents matching the specified `filter` criteria.
+    If the `projection` parameter is used, each document in the response will only include
+    the fields specified by that parameter (plus the `id` field).
+
+    Here's a list of valid [collection names](https://microbiomedata.github.io/nmdc-schema/Database/).
     """
-    The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
-    collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
-    that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
-    """
+    # Note: This helper function will raise an exception if the collection name is invalid.
+    ensure_collection_name_is_known_to_schema(collection_name)
+
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
@@ -243,10 +261,16 @@ def get_collection_name_by_doc_id(
     "/nmdcschema/{collection_name}/{doc_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
-    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def get_from_collection_by_id(
-    collection_name: str,
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
     doc_id: str,
     projection: str | None = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -259,6 +283,9 @@ def get_from_collection_by_id(
 
     for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
     """
+    # Note: This helper function will raise an exception if the collection name is invalid.
+    ensure_collection_name_is_known_to_schema(collection_name)
+
     projection = projection.split(",") if projection else None
     try:
         return strip_oid(
