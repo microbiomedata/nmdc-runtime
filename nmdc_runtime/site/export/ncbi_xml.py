@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -170,7 +171,39 @@ class NCBISubmissionXML:
 
             for json_key, value in biosample.items():
                 if isinstance(value, list):
-                    continue  # Skip processing for list values
+                    for item in value:
+                        if json_key not in attribute_mappings:
+                            continue
+
+                        xml_key = attribute_mappings[json_key]
+                        value_type = slot_range_mappings.get(json_key, "string")
+                        handler = self.type_handlers.get(
+                            value_type, handle_string_value
+                        )
+
+                        # Special handling for "elev" key
+                        if json_key == "elev":
+                            value = f"{float(value)} m"  # Convert to float if possible
+                            attributes[xml_key] = value
+                            continue  # Skip applying the handler to this key
+
+                        # Special handling for "host_taxid"
+                        if json_key == "host_taxid" and isinstance(value, dict):
+                            if "term" in value and "id" in value["term"]:
+                                value = re.findall(
+                                    r"\d+", value["term"]["id"].split(":")[1]
+                                )[0]
+                            attributes[xml_key] = value
+                            continue  # Skip applying the handler to this key
+
+                        formatted_value = handler(item)
+
+                        # Combine multiple values with a separator for list elements
+                        if xml_key in attributes:
+                            attributes[xml_key] += f"| {formatted_value}"
+                        else:
+                            attributes[xml_key] = formatted_value
+                    continue
 
                 if json_key == "env_package":
                     env_package = f"MIMS.me.{handle_text_value(value)}.6.0"
@@ -187,6 +220,20 @@ class NCBISubmissionXML:
                 value_type = slot_range_mappings.get(json_key, "string")
                 handler = self.type_handlers.get(value_type, handle_string_value)
 
+                # Special handling for "elev" key
+                if json_key == "elev":
+                    value = f"{float(value)} m"  # Convert to float if possible
+                    attributes[xml_key] = value
+                    continue  # Skip applying the handler to this key
+
+                # Special handling for "host_taxid"
+                if json_key == "host_taxid" and isinstance(value, dict):
+                    if "term" in value and "id" in value["term"]:
+                        value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
+                    attributes[xml_key] = value
+                    continue  # Skip applying the handler to this key
+
+                # Default processing for other keys
                 formatted_value = handler(value)
                 attributes[xml_key] = formatted_value
 
@@ -353,9 +400,9 @@ class NCBISubmissionXML:
                                 "RefId",
                                 children=[
                                     self.set_element(
-                                        "SPUID",
+                                        "PrimaryId",
                                         bioproject_id,
-                                        {"spuid_namespace": org},
+                                        {"db": "BioProject"},
                                     )
                                 ],
                             )
