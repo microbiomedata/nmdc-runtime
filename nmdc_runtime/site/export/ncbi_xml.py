@@ -7,6 +7,7 @@ import xml.dom.minidom
 from typing import Any
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
+    get_instruments,
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
     handle_geolocation_value,
@@ -333,6 +334,7 @@ class NCBISubmissionXML:
         nmdc_nucleotide_sequencing: list,
         nmdc_biosamples: list,
         nmdc_library_preparation: list,
+        all_instruments: dict,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
@@ -343,9 +345,10 @@ class NCBISubmissionXML:
             biosample_ids = []
             nucleotide_sequencing_ids = {}
             lib_prep_protocol_names = {}
-            instrument_name = ""
             analyte_category = ""
             library_name = ""
+            instrument_vendor = ""
+            instrument_model = ""
 
             for biosample_id, data_objects in entry.items():
                 biosample_ids.append(biosample_id)
@@ -363,7 +366,11 @@ class NCBISubmissionXML:
                             )
                             # Currently, we are making the assumption that only one instrument
                             # is used to sequence a Biosample
-                            instrument_name = ntseq.get("instrument_used", "")[0]
+                            instrument_id = ntseq.get("instrument_used", "")[0]
+                            instrument = all_instruments.get(instrument_id, {})
+                            instrument_vendor = instrument.get("vendor", "")
+                            instrument_model = instrument.get("model", "")
+
                             analyte_category = ntseq.get("analyte_category", "")
                             library_name = bsm_id_name_dict.get(biosample_id, "")
 
@@ -431,11 +438,11 @@ class NCBISubmissionXML:
                     )
 
                 sra_attributes = []
-                if instrument_name.lower().startswith("illumina"):
+                if instrument_vendor == "illumina":
                     sra_attributes.append(
                         self.set_element("Attribute", "ILLUMINA", {"name": "platform"})
                     )
-                    if "nextseq550" in instrument_name.lower():
+                    if instrument_model == "nextseq_550":
                         sra_attributes.append(
                             self.set_element(
                                 "Attribute", "NextSeq 550", {"name": "instrument_model"}
@@ -548,6 +555,7 @@ class NCBISubmissionXML:
         biosample_nucleotide_sequencing_list: list,
         biosample_data_objects_list: list,
         biosample_library_preparation_list: list,
+        instruments_dict: dict,
     ):
         data_type = None
         ncbi_project_id = None
@@ -592,6 +600,7 @@ class NCBISubmissionXML:
             nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing_list,
             nmdc_biosamples=biosamples_list,
             nmdc_library_preparation=biosample_library_preparation_list,
+            all_instruments=instruments_dict,
         )
 
         rough_string = ET.tostring(self.root, "unicode")

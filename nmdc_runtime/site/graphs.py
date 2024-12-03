@@ -53,6 +53,7 @@ from nmdc_runtime.site.ops import (
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
     get_library_preparation_from_biosamples,
+    get_all_instruments,
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
@@ -449,6 +450,7 @@ def nmdc_study_to_ncbi_submission_export():
     )
     data_object_records = get_data_objects_from_biosamples(biosamples)
     library_preparation_records = get_library_preparation_from_biosamples(biosamples)
+    all_instruments = get_all_instruments()
     xml_data = ncbi_submission_xml_from_nmdc_study(
         nmdc_study,
         ncbi_submission_metadata,
@@ -456,5 +458,6 @@ def nmdc_study_to_ncbi_submission_export():
         nucleotide_sequencing_records,
         data_object_records,
         library_preparation_records,
+        all_instruments,
     )
     ncbi_submission_xml_asset(xml_data)
