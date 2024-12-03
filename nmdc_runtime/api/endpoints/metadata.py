@@ -167,16 +167,25 @@ url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")
 
 
 def url_to_name(url):
+    r"""
+    TODO: Document this function.
+    """
     m = url_pattern.match(url)
     return f"{'.'.join(reversed(m.group('domain').split('.')))}__{m.group('path').replace('/', '.')}"
 
 
 def result_for_url_to_json_file(data, url, save_dir):
+    r"""
+    TODO: Document this function.
+    """
     with open(os.path.join(save_dir, url_to_name(url)), "w") as f:
         json.dump(data.json(), f)
 
 
 def fetch_downloaded_json(url, save_dir):
+    r"""
+    TODO: Document this function.
+    """
     with open(os.path.join(save_dir, url_to_name(url))) as f:
         return json.load(f)
 
