@@ -43,6 +43,9 @@ router = APIRouter()
 
 
 async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
+    r"""
+    TODO: Document this function.
+    """
     content_type = uploaded_file.content_type
     name = uploaded_file.filename
     if name.endswith(".csv"):
@@ -56,14 +59,12 @@ async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
 
 @router.post("/metadata/changesheets:validate")
 async def validate_changesheet(
-    uploaded_file: UploadFile = File(...),
+    uploaded_file: UploadFile = File(..., description="The changesheet you want the server to validate"),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-
-    Example changesheet
-    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
+    r"""
+    Validates a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    that is in either CSV or TSV format.
     """
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
     df_change = df_from_sheet_in(sheet_in, mdb)
@@ -72,16 +73,20 @@ async def validate_changesheet(
 
 @router.post("/metadata/changesheets:submit", response_model=DrsObjectWithTypes)
 async def submit_changesheet(
-    uploaded_file: UploadFile = File(...),
+    uploaded_file: UploadFile = File(..., description="The changesheet you want the server to apply"),
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
-    """
+    r"""
+    Applies a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    that is in either CSV or TSV format.
 
-    Example changesheet
-    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
+    **Note:** This endpoint is only accessible to users that have been granted access by a Runtime administrator.
     """
+    # TODO: Allow users to determine whether they have that access (i.e. whether they are allowed to perform the
+    #       `/metadata/changesheets:submit` action), themselves, so that they don't have to contact an admin
+    #       or submit an example changesheet in order to find that out.
+
     if not permitted(user.username, "/metadata/changesheets:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
