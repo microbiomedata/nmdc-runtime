@@ -292,7 +292,8 @@ def get_from_collection_by_id(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ],
-    projection: Annotated[str | None,
+    projection: Annotated[
+        str | None,
         Query(
             title="Projection",
             description="""Comma-delimited list of the names of the fields you want the document in the response to
