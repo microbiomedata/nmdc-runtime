@@ -29,9 +29,11 @@ class ListRequest(BaseModel):
         title="Filter",
         description="""The criteria by which you want to filter the resources, in the same format as the [`query`
                     parameter](https://www.mongodb.com/docs/manual/reference/method/db.collection.find/#std-label-method-find-query)
-                    of MongoDB's `db.collection.find()` method.\n\n_Example:_ `{"ecosystem_type": "Freshwater"}`""",
+                    of MongoDB's `db.collection.find()` method.\n\n_Example:_
+                    `{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}`""",
         examples=[
             r'{"ecosystem_type": "Freshwater"}',
+            r'{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}',
         ],
     )
     # TODO: Document why the optional type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter).
@@ -58,9 +60,9 @@ class ListRequest(BaseModel):
         title="Projection",
         description="""Comma-delimited list of the names of the fields you want the resources in the response to
                     include. Note: In addition to those fields, the response will also include the `id`
-                    field.\n\n_Example_: `ecosystem_type,name`""",
+                    field.\n\n_Example_: `name, ecosystem_type`""",
         examples=[
-            "ecosystem_type,name",
+            "name, ecosystem_type",
         ],
     )
 
