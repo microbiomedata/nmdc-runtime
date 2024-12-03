@@ -21,7 +21,7 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
     get_collection_names_from_schema,
 )
-from nmdc_runtime.api.endpoints.util import list_resources
+from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
@@ -35,10 +35,6 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Collection name must be one of {names}",
         )
-
-
-def strip_oid(doc):
-    return dissoc(doc, "_id")
 
 
 @router.get("/nmdcschema/version")
