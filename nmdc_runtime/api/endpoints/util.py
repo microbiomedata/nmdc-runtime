@@ -82,8 +82,14 @@ def check_filter(filter_: str):
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     r"""
-    TODO: Document this function.
+    Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
+
+    Note: If the specified `ListRequest` has a non-zero `max_page_size` number and the number of documents matching the
+          filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
+          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
+          when the collection involved contains many documents.
     """
+
     id_field = "id"
     if "id_1" not in mdb[collection_name].index_information():
         logging.warning(
