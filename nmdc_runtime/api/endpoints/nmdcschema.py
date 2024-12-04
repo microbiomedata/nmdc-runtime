@@ -131,11 +131,11 @@ def list_from_collection(
 
     You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
     page of the NMDC Schema documentation.
-    
+
     Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
           in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
           a long time—especially for collections that contain a lot of documents (e.g. millions).
-    
+
     **Tips:**
     1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
        the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
