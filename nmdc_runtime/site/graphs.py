@@ -125,6 +125,7 @@ def apply_metadata_in():
     add_output_run_event(outputs)
     materialize_alldocs()
 
+
 @graph
 def gold_study_to_database():
     (study_id, study_type, gold_nmdc_instrument_mapping_file_url) = (
