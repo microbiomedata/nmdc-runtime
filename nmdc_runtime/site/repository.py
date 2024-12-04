@@ -113,6 +113,13 @@ housekeeping_weekly = ScheduleDefinition(
     job=housekeeping.to_job(**preset_normal),
 )
 
+materialize_alldocs_daily = ScheduleDefinition(
+    name="daily materialize alldocs",
+    cron_schedule="0 3 * * *",
+    execution_timezone="America/New_York",
+    job=ensure_alldocs.to_job(**preset_normal)
+    )
+
 
 def asset_materialization_metadata(asset_event, key):
     """Get metadata from an asset materialization event.
@@ -453,7 +460,7 @@ def repo():
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly]
+    schedules = [housekeeping_weekly, materialize_alldocs_daily]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
