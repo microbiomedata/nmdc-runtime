@@ -117,8 +117,8 @@ materialize_alldocs_daily = ScheduleDefinition(
     name="daily materialize alldocs",
     cron_schedule="0 3 * * *",
     execution_timezone="America/New_York",
-    job=ensure_alldocs.to_job(**preset_normal)
-    )
+    job=ensure_alldocs.to_job(**preset_normal),
+)
 
 
 def asset_materialization_metadata(asset_event, key):
