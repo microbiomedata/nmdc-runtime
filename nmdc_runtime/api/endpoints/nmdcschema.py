@@ -116,10 +116,28 @@ def list_from_collection(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
-    collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
-    that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
+    Returns resources that match the specified filter criteria and reside in the specified collection.
+
+    You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
+    page of the NMDC Schema documentation.
+
+    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
+          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
+          a long time—especially for collections that contain a lot of documents (e.g. millions).
+
+    **Tips:**
+    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
+       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
+       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
     """
+    # TODO: The note about collection names above is currently accurate, but will not necessarily always be accurate,
+    #       since the `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`,
+    #       which are things NMDC Schema maintainers say a `Database` slot must be in order for it to represent
+    #       a MongoDB collection.
+    #
+    # TODO: Implement an API endpoint that returns all valid collection names (can get them via a `SchemaView`),
+    #       Then replace the note above with a suggestion that the user access that API endpoint.
+
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
