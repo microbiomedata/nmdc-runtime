@@ -31,8 +31,7 @@ input:
         biosafetyLevel: ''
         irbOrHipaa:
         comments: ''
-      templates:
-      - plant-associated
+      templates: ['plant-associated', 'air']
       studyForm:
         studyName: Seasonal activities of the phyllosphere microbiome of perennial crops
         piName: Ashley Shade
@@ -282,13 +281,17 @@ input:
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
         air_data:
-          - samp_name: "4"
-            analysis_type: metagenomics_long_read
-          - samp_name: "5"
-          - samp_name: "6"
-        jgi_mg_lr_data:
-          - samp_name: "4"
-          - analysis_type: metagenomics_long_read
+        - elev: 225
+          lat_lon: 50.586825 6.408977
+          samp_name: "wedw"
+          env_medium: abcd [ENVO:00001998]
+          geo_loc_name: "USA: Maryland, Bethesda"
+          analysis_type:
+          - metaproteomics
+          collection_date: 2021
+          env_broad_scale: ewdwed [ENVO:123]
+          env_local_scale: asdxasd [ENV:234]
+          samp_store_temp: "-80 Celsius"
     status: in-progress
     id: d32b5eb6-71e8-4c98-8a57-3e64d05718b4
     author_orcid: 0000-0002-7705-343X
@@ -941,6 +944,55 @@ output:
       has_raw_value: UUID:c0c4a2b5-0382-450a-8728-a176fa438efe
     analysis_type:
     - metagenomics
+  - id: nmdc:bsm-00-7r7pn0r2
+    type: 'nmdc:Biosample'
+    name: 'wedw'
+    associated_studies:
+      - 'nmdc:sty-00-y0cq65zt'
+    env_broad_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'ewdwed [ENVO:123]'
+      term:
+        id: 'ENVO:123'
+        type: 'nmdc:OntologyClass'
+        name: 'ewdwed'
+    env_local_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'asdxasd [ENV:234]'
+      term:
+        id: 'ENV:234'
+        type: 'nmdc:OntologyClass'
+        name: 'asdxasd'
+    env_medium:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'abcd [ENVO:00001998]'
+      term:
+        id: 'ENVO:00001998'
+        type: 'nmdc:OntologyClass'
+        name: 'abcd'
+    samp_name: 'wedw'
+    collection_date:
+      type: 'nmdc:TimestampValue'
+      has_raw_value: '2021'
+    elev: 225.0
+    env_package:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'air'
+    geo_loc_name:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'USA: Maryland, Bethesda'
+    lat_lon:
+      type: 'nmdc:GeolocationValue'
+      has_raw_value: '50.586825 6.408977'
+      latitude: 50.586825
+      longitude: 6.408977
+    samp_store_temp:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '-80 Celsius'
+      has_unit: 'Celsius'
+      has_numeric_value: -80.0
+    analysis_type:
+    - metaproteomics
   study_set:
   - id: nmdc:sty-00-y0cq65zt
     type: nmdc:Study
