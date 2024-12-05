@@ -121,7 +121,7 @@ async def submit_changesheet(
     return doc_after
 
 
-@router.get("/metadata/stored_files/{object_id}")
+@router.get("/metadata/stored_files/{object_id}", include_in_schema=False)
 async def get_stored_metadata_object(
     object_id: Annotated[
         str,
@@ -134,15 +134,17 @@ async def get_stored_metadata_object(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
-    Undocumented
-    """
-    # TODO: Document this endpoint.
-    # TODO: Where would a user have obtained a GridFS File's ObjectId from, and did the Runtime refer to it as a GridFS
-    #       thing (i.e. leaking that term from the abstraction over MongoDB)?
+    This endpoint is subservient to our Data Repository Service (DRS) implementation, i.e. the `/objects/*` endpoints.
+    In particular, URLs resolving to this route are generated
+    by the DRS `/objects/{object_id}/access/{access_id}` endpoint if we store the raw object in our MongoDB via GridFS.
+    We currently do this for request bodies for `/metadata/json:submit` and `/metadata/changesheets:submit`.
+    A typical API user would not call this endpoint directly. Rather, it merely forms part of the API surface.
+    Therefore, we do not include it in the OpenAPI schema.
 
-    # References:
-    # - https://pymongo.readthedocs.io/en/stable/examples/gridfs.html
-    # - https://www.mongodb.com/docs/manual/core/gridfs/#use-gridfs
+    References:
+    - https://pymongo.readthedocs.io/en/stable/examples/gridfs.html
+    - https://www.mongodb.com/docs/manual/core/gridfs/#use-gridfs
+    """
     mdb_fs = GridFS(mdb)
     try:
         grid_out = mdb_fs.get(object_id)
