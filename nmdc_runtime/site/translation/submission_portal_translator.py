@@ -559,7 +559,6 @@ class SubmissionPortalTranslator(Translator):
         sample_data: List[JSON_OBJECT],
         nmdc_biosample_id: str,
         nmdc_study_id: str,
-        default_env_package: str,
     ) -> nmdc.Biosample:
         """Translate sample data from portal submission into an `nmdc:Biosample` object.
 
@@ -577,17 +576,17 @@ class SubmissionPortalTranslator(Translator):
         :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
-        biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
-        slots = {
-            "id": nmdc_biosample_id,
-            "associated_studies": [nmdc_study_id],
-            "type": "nmdc:Biosample",
-            "name": sample_data[0].get("samp_name", "").strip(),
-            "env_package": nmdc.TextValue(
-                has_raw_value=default_env_package, type="nmdc:TextValue"
-            ),
-        }
         for tab in sample_data:
+            biosample_key = tab.get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
+            slots = {
+                "id": nmdc_biosample_id,
+                "associated_studies": [nmdc_study_id],
+                "type": "nmdc:Biosample",
+                "name": tab.get("samp_name", "").strip(),
+                "env_package": nmdc.TextValue(
+                    has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
+                ),
+            }
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
             slots.update(transformed_tab)
 
@@ -625,30 +624,29 @@ class SubmissionPortalTranslator(Translator):
         for key in sample_data.keys():
             env = key.rsplit("_", 1)[0].upper()
             package_name = EnvironmentType[env].value
-            sample_data_by_id = groupby(
-                lambda sample: (
-                    sample.get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip(),
-                    package_name
-                ),
-                concat(sample_data.values()),
-            )
-            nmdc_biosample_ids = self._id_minter(
-                "nmdc:Biosample", len(sample_data_by_id)
-            )
-            sample_data_to_nmdc_biosample_ids = dict(
-                zip(sample_data_by_id.keys(), nmdc_biosample_ids)
-            )
 
-            database.biosample_set = [
-                self._translate_biosample(
-                    sample_data,
-                    nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
-                    nmdc_study_id=nmdc_study_id,
-                    default_env_package=package_name,
-                )
-                for sample_data_id, sample_data in sample_data_by_id.items()
-                if sample_data
-            ]
+            sample_data_by_id = groupby(
+               BIOSAMPLE_UNIQUE_KEY_SLOT,
+               concat(sample_data.values()),
+            )
+            for sample in sample_data[key]:
+                sample['env_package'] = package_name
+        nmdc_biosample_ids = self._id_minter(
+            "nmdc:Biosample", len(sample_data_by_id)
+        )
+        sample_data_to_nmdc_biosample_ids = dict(
+            zip(sample_data_by_id.keys(), nmdc_biosample_ids)
+        )
+
+        database.biosample_set = [
+            self._translate_biosample(
+                sample_data,
+                nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
+                nmdc_study_id=nmdc_study_id,
+            )
+            for sample_data_id, sample_data in sample_data_by_id.items()
+            if sample_data
+        ]
 
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part
