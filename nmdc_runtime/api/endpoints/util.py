@@ -143,12 +143,10 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         return {"resources": resources, "next_page_token": token}
 
 
-def maybe_unstring(val):
+def coerce_to_float_if_possible(val):
     r"""
     Converts the specified value into a floating-point number if possible;
     raising a `ValueError` if not possible.
-
-    TODO: Rename this function to be more self-documenting/less ambiguous.
     """
     try:
         return float(val)
@@ -191,7 +189,7 @@ def get_mongo_filter(filter_str):
         else:
             for op, key in {("<", "$lt"), ("<=", "$lte"), (">", "$gt"), (">=", "$gte")}:
                 if spec.startswith(op):
-                    filter_[attr] = {key: maybe_unstring(spec[len(op) :])}
+                    filter_[attr] = {key: coerce_to_float_if_possible(spec[len(op) :])}
                     break
             else:
                 filter_[attr] = spec
