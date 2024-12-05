@@ -59,9 +59,7 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def check_filter(filter_: str):
-    r"""
-    TODO: Document this function.
-    """
+    """A pass-through function that checks if `filter_` is parsable as a JSON object. Raises otherwise."""
     filter_ = filter_.strip()
     if not filter_.startswith("{") or not filter_.endswith("}"):
         raise HTTPException(
