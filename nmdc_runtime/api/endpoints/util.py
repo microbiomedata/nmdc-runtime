@@ -169,7 +169,11 @@ def comma_separated_values(s: str):
 
 def get_mongo_filter(filter_str):
     r"""
-    TODO: Document this function.
+    Convert a str in the domain-specific language (DSL) solicited by `nmdc_runtime.api.models.util.FindRequest.filter`
+    -- i.e., a comma-separated list of `attribute:value` pairs, where the `value` can include a comparison operator
+    (e.g. `>=`) and where if the attribute is of type _string_ and has the suffix `.search` appended to its name
+    then the server should perform a full-text search
+    -- to a corresponding MongoDB filter representation for e.g. passing to a collection `find` call.
     """
     filter_ = {}
     if not filter_str:
