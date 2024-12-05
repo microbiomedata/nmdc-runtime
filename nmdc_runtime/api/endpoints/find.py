@@ -375,13 +375,17 @@ def attr_index_sort_key(attr):
 
 
 def documentation_links(jsonschema_dict, collection_names) -> dict:
-    """TODO: Add a docstring saying what this function does at a high level."""
+    """This function constructs a hierarchical catalog of (links to) schema classes and their slots.
 
-    # TODO: Document the purpose of this initial key.
-    doc_links = {"Activity": []}
+    The returned dictionary `doc_links` is used as input to the Jinja template `nmdc_runtime/templates/search.html`
+    in order to support user experience for `GET /search`.
+    """
 
     # Note: All documentation URLs generated within this function will begin with this.
-    base_url = r"https://microbiomedata.github.io/nmdc-schema"
+    base_url = r"https://w3id.org/nmdc"
+
+    # Initialize dictionary in which to associate key/value pairs via the following for loop.
+    doc_links = {}
 
     for collection_name in collection_names:
         # Since a given collection can be associated with multiple classes, the `doc_links` dictionary
