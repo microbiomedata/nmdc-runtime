@@ -485,10 +485,33 @@ def custom_swagger_ui_html(
     swagger_ui_parameters = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>); """
+        onComplete += f"""\
+            ui.preauthorizeApiKey(\
+                <double-quote>bearerAuth</double-quote>,\
+                <double-quote>{access_token}</double-quote>\
+            );\
+            token_info = document.createElement(<double-quote>section</double-quote>);\
+            token_info.classList.add(<double-quote>nmdc-info</double-quote>);\
+            token_info.classList.add(<double-quote>nmdc-info-token</double-quote>);\
+            token_info.classList.add(<double-quote>block</double-quote>);\
+            token_info.classList.add(<double-quote>col-12</double-quote>);\
+            token_info.innerHTML = <double-quote>\
+            <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>\
+                <p><code>Authorization: Bearer {access_token}</code></p>\
+            </double-quote>;\
+            document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);\
+        """
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
-        onComplete += f"""banner = document.createElement(<double-quote>section</double-quote>); banner.classList.add(<double-quote>nmdc-info-banner</double-quote>); banner.classList.add(<double-quote>block</double-quote>); banner.classList.add(<double-quote>col-12</double-quote>); banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`; document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner); """
+        onComplete += f"""\
+            banner = document.createElement(<double-quote>section</double-quote>);\
+            banner.classList.add(<double-quote>nmdc-info</double-quote>);\
+            banner.classList.add(<double-quote>nmdc-info-banner</double-quote>);\
+            banner.classList.add(<double-quote>block</double-quote>);\
+            banner.classList.add(<double-quote>col-12</double-quote>);\
+            banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;\
+            document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);\
+        """
     if onComplete:
         swagger_ui_parameters.update(
             {
@@ -512,7 +535,17 @@ def custom_swagger_ui_html(
         .replace("</double-quote>", '"')
         .replace(
             "</head>",
-            "<style>.nmdc-info-banner { padding: 1em; background-color: #448aff1a; border: .075rem solid #448aff; }</style></head>",
+            f"""<style>\
+                    .nmdc-info {{\
+                        padding: 1em;\
+                        background-color: #448aff1a;\
+                        border: .075rem solid #448aff;\
+                    }}\
+                    .nmdc-info-token code {{\
+                        font-size: x-small;\
+                    }}\
+                </style>\
+            </head>""",
         )
     )
     return HTMLResponse(content=content)
