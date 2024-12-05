@@ -16,14 +16,17 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 
+# Install Poetry.
+RUN pip install poetry
+
 WORKDIR /code
 
-COPY ./requirements/main.txt /code/requirements.txt
-
-RUN pip install --no-cache-dir -r /code/requirements.txt
+# Use Poetry to install production Python dependencies.
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./poetry.lock /code/poetry.lock
+RUN poetry install --without dev
 
 # Add repository code
 COPY . /code
-RUN pip install --no-cache-dir --editable .
 
-CMD ["uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "poetry", "run", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]

@@ -22,6 +22,7 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
+        # TODO: This says "Apache", but the `LICENSE` file in the repository doesn't say "Apache" anywhere in it.
         "License :: OSI Approved :: Apache Software License",
     ],
     python_requires=">=3.10",

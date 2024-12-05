@@ -16,18 +16,20 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 
-# Install requirements, incl. for tests
-WORKDIR /code
-COPY ./requirements/dev.txt /code/requirements.dev.txt
-RUN pip install --no-cache-dir -r /code/requirements.dev.txt
-COPY ./requirements/main.txt /code/requirements.txt
-RUN pip install --no-cache-dir -r /code/requirements.txt
+# Install Poetry.
+RUN pip install poetry
 
+WORKDIR /code
+
+# Use Poetry to install Python dependencies, including development ones.
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./poetry.lock /code/poetry.lock
+RUN poetry install --with dev
 
 # Add repository code
 COPY . /code
-RUN pip install --no-cache-dir --editable .
 
+# TODO: Add a claim to the sentence below. Example: "Ensure wait-for-it... is executable"
 ## Ensure wait-for-it
 RUN chmod +x wait-for-it.sh
 
@@ -36,8 +38,8 @@ ENV PYTHONFAULTHANDLER=1
 
 
 # uncomment line below to run all tests
-# ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest"]
+# ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "poetry", "run", "pytest"]
 
 # uncomment line below to stop after first test failure:
 # https://docs.pytest.org/en/6.2.x/usage.html#stopping-after-the-first-or-n-failures
-ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest"]
+ENTRYPOINT [ "./wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "poetry", "run", "pytest"]

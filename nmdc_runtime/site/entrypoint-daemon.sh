@@ -23,4 +23,8 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec dagster-daemon run
+# Note: We specify a directory to Poetry so it knows where to find our `pyproject.toml` file.
+#       Reference: https://python-poetry.org/docs/cli/#global-options
+#
+exec poetry run --directory /opt/dagster/lib \
+  dagster-daemon run

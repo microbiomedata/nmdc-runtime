@@ -96,6 +96,6 @@ If you need to delete objects copy it to `nmdc_deleted` database under the corre
 
 ## nmdc-schema update
 
-1. Set the desired version of `nmdc-schema` in `requirements/main.in`.
-2. `make update-deps`.
+1. Set the desired version of `nmdc-schema` in `pyproject.toml`.
+2. Run `$ poetry install`.
 3. commit and push, start PR and seek approval + merge to `main`, which will trigger GH actions to deploy.
