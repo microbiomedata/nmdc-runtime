@@ -201,10 +201,10 @@ def get_mongo_filter(filter_str):
 
 
 def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
-    r"""
-    TODO: Document this function.
-
-    Note: This function treats both `""` and `"asc"` as ascending.
+    """
+    Parse `sort_str` and a str of the form "attribute:spec[,attribute:spec]*",
+    where spec is `asc` (ascending -- the default if no spec) or `desc` (descending),
+    and return a value suitable to pass as a `sort` kwarg to a mongo collection `find` call.
     """
     sort_ = []
     if not sort_str:
