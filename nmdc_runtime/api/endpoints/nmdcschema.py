@@ -21,7 +21,11 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
     get_collection_names_from_schema,
 )
-from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
+from nmdc_runtime.api.endpoints.util import (
+    list_resources,
+    strip_oid,
+    comma_separated_values,
+)
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
@@ -312,7 +316,7 @@ def get_from_collection_by_id(
         Query(
             title="Projection",
             description="""Comma-delimited list of the names of the fields you want the document in the response to
-                include. Notice the absence of whitespace in this example.\n\n_Example_: `id,name,ecosystem_type`""",
+                include.\n\n_Example_: `id,name,ecosystem_type`""",
             examples=[
                 "id,name,ecosystem_type",
             ],
@@ -327,11 +331,7 @@ def get_from_collection_by_id(
     # Note: This helper function will raise an exception if the collection name is invalid.
     ensure_collection_name_is_known_to_schema(collection_name)
 
-    # TODO: Document why `projection` is parsed via a plain 'ol `str.split(",")` here, but via a call
-    #       to `comma_separated_values()` within the `endpoints/util.py::list_resources` function.
-    # TODO: Document why the author opted to allow for spaces surrounding the commas in when parsing via
-    #       `comma_separated_values()`, but not when parsing in this way. Maybe the decision was arbitrary.
-    projection = projection.split(",") if projection else None
+    projection = comma_separated_values(projection) if projection else None
     try:
         return strip_oid(
             raise404_if_none(

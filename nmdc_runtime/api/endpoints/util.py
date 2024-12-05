@@ -98,8 +98,6 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         )
     limit = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
-    # TODO: Document why `req.projection` is parsed via `comma_separated_values()` here, but via a
-    #       plain 'ol `str.split(",")` within the `nmdcschema.py::get_from_collection_by_id` function.
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
@@ -167,12 +165,10 @@ def comma_separated_values(s: str):
 
     Reference: https://docs.python.org/3/library/re.html#re.split
 
-    TODO: Document why `return [v.strip() for v in s.split(',')]` was not used instead; e.g. is it due to "greedy-ness"?
-
     >>> comma_separated_values("apple, banana, cherry")
     ['apple', 'banana', 'cherry']
     """
-    return [v.strip() for v in re.split(r"\s*,\s*", s)]
+    return [v.strip() for v in s.split(",")]
 
 
 def get_mongo_filter(filter_str):
