@@ -21,15 +21,12 @@ from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
     find_resources_spanning,
-    pipeline_find_resources,
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
     entity_attributes_to_index,
-    PipelineFindRequest,
-    PipelineFindResponse,
 )
 from nmdc_runtime.util import get_class_names_from_collection_spec
 
@@ -457,42 +454,4 @@ def search_page(
         indexed_entity_attributes=indexed_entity_attributes,
         doc_links=doc_links,
     )
-    return HTMLResponse(content=html_content, status_code=200)
-
-
-# TODO: Confirm with endpoint's author whether they meant for it to receive data via query params, not the request body.
-@router.post(
-    "/pipeline_search",
-    response_model=PipelineFindResponse,
-    response_model_exclude_unset=True,
-)
-def pipeline_search(
-    req: Annotated[PipelineFindRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    return pipeline_find_resources(req, mdb)
-
-
-# TODO: Exclude this endpoint from Swagger UI by including the `include_in_schema=False` kwarg in the router decorator.
-@router.post(
-    "/pipeline_search_form",
-    response_model=PipelineFindResponse,
-    response_model_exclude_unset=True,
-)
-def pipeline_search(
-    pipeline_spec: str = Form(...),
-    description: str = Form(...),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    req = PipelineFindRequest(pipeline_spec=pipeline_spec, description=description)
-    return pipeline_find_resources(req, mdb)
-
-
-# TODO: Exclude this endpoint from Swagger UI by including the `include_in_schema=False` kwarg in the router decorator.
-@router.get("/pipeline_search", response_class=HTMLResponse)
-def pipeline_search(
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    template = jinja_env.get_template("pipeline_search.html")
-    html_content = template.render()
     return HTMLResponse(content=html_content, status_code=200)

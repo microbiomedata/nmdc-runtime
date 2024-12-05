@@ -44,8 +44,6 @@ from nmdc_runtime.api.models.util import (
     FindRequest,
     FindResponse,
     ListRequest,
-    PipelineFindRequest,
-    PipelineFindResponse,
     ResultT,
 )
 from nmdc_runtime.util import drs_metadata_for
@@ -451,32 +449,6 @@ def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
                 f"Known resources: {{activities, biosamples, data_objects, studies}}."
             ),
         )
-
-
-def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
-    r"""
-    TODO: Document this function.
-    """
-    description = req.description
-    components = [c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)]
-    print(components)
-    for c in components:
-        if c.startswith("/"):
-            parse_result = urlparse(c)
-            resource = parse_result.path[1:]
-            request_params_dict = {
-                p: v[0] for p, v in parse_qs(parse_result.query).items()
-            }
-            req = FindRequest(**request_params_dict)
-            resp = FindResponse(**find_for(resource, req, mdb))
-            break
-    components = [
-        "NOTE: This method is yet to be implemented! Only the first stage is run!"
-    ] + components
-    return PipelineFindResponse(
-        meta=merge(resp.meta, {"description": description, "components": components}),
-        results=resp.results,
-    )
 
 
 def persist_content_and_get_drs_object(
