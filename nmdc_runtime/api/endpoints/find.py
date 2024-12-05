@@ -308,16 +308,14 @@ def find_planned_processes(
     req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/PlannedProcess>) when they resolve
-    #   to Berkeley schema definitions.
     """
     The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
     workflow execution, material processing, etc.). Any "slot" (a.k.a. attribute) for
-    `PlannedProcess` may be used in the filter
+    [`PlannedProcess`](https://w3id.org/nmdc/PlannedProcess) may be used in the filter
     and sort parameters, including attributes of subclasses of *PlannedProcess*.
 
-    For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
-    can be used as input criteria for the filter and sort parameters of this endpoint.
+    For example, attributes used in subclasses such as [`Extraction`](https://w3id.org/nmdc/Extraction)
+    (subclass of *PlannedProcess*), can be used as input criteria for the filter and sort parameters of this endpoint.
     """
     return find_resources_spanning(
         req,
