@@ -68,6 +68,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
     fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
+    get_instruments,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
@@ -1221,6 +1222,14 @@ def get_library_preparation_from_biosamples(
     return biosample_lib_prep
 
 
+@op(required_resource_keys={"mongo"})
+def get_all_instruments(context: OpExecutionContext):
+    mdb = context.resources.mongo.db
+    instrument_set_collection = mdb["instrument_set"]
+    all_instruments = get_instruments(instrument_set_collection)
+    return all_instruments
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
@@ -1230,6 +1239,7 @@ def ncbi_submission_xml_from_nmdc_study(
     omics_processing_records: list,
     data_object_records: list,
     library_preparation_records: list,
+    all_instruments: dict,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(
@@ -1237,5 +1247,6 @@ def ncbi_submission_xml_from_nmdc_study(
         omics_processing_records,
         data_object_records,
         library_preparation_records,
+        all_instruments,
     )
     return ncbi_xml

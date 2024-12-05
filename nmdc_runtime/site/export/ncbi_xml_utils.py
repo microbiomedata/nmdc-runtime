@@ -20,6 +20,31 @@ def get_classname_from_typecode(doc_id):
     return class_map.get(typecode)
 
 
+def get_instruments(instrument_set_collection):
+    # dictionary to capture a list of all instruments
+    # Structure of dict:
+    # {"instrument_id": {"vendor": "vendor_name", "model": "model_name"}}
+    all_instruments = {}
+
+    try:
+        query = {"type": "nmdc:Instrument"}
+        cursor = instrument_set_collection.find(query)
+
+        for document in cursor:
+            instrument_id = document.get("id")
+            vendor = document.get("vendor")
+            model = document.get("model")
+
+            if not instrument_id or not vendor or not model:
+                continue
+
+            all_instruments[instrument_id] = {"vendor": vendor, "model": model}
+
+        return all_instruments
+    except Exception as e:
+        raise RuntimeError(f"An error occurred while fetching instrument data: {e}")
+
+
 def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
     biosample_data_objects = []
 
