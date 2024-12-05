@@ -44,8 +44,9 @@ router = APIRouter()
 
 
 async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
-    r"""
-    TODO: Document this function.
+    """
+    Extract utf8-encoded text from fastapi.UploadFile object, and
+    construct ChangesheetIn object for subsequent processing.
     """
     content_type = uploaded_file.content_type
     name = uploaded_file.filename
