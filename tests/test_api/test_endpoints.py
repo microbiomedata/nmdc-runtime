@@ -196,14 +196,11 @@ def test_update_user():
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
+    # Try up to three times, waiting for up to 60 seconds between each attempt.
     @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
     def get_token():
         """
-        Fetch an auth token from the Runtime API, retrying until successful.
-
-        Randomly wait up to 2^x * 1 seconds between each retry until the range reaches 60
-        seconds, then randomly up to 60 seconds afterwards
-
+        Fetch an auth token from the Runtime API.
         """
 
         _rv = requests.post(
