@@ -556,6 +556,12 @@ def custom_swagger_ui_html(
                     .nmdc-info-token code {{
                         font-size: x-small;
                     }}
+                    .nmdc-success {{
+                        color: green;
+                    }}
+                    .nmdc-error {{
+                        color: red;
+                    }}
                 </style>
             </head>""",
         )
@@ -595,10 +601,10 @@ def custom_swagger_ui_html(
                             tokenCopierMessageEl.innerHTML = "";
                             try {{                            
                                 await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
-                                tokenCopierMessageEl.innerHTML = "<span style='color: green;'>Copied to clipboard</span>";
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
                             }} catch (error) {{
                                 console.error(error.message);
-                                tokenCopierMessageEl.innerHTML = "<span style='color: red;'>Copying failed</span>";
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
                             }}
                         }})
                     }});
