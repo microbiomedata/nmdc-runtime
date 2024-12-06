@@ -594,8 +594,7 @@ def custom_swagger_ui_html(
                         console.debug("Setting up token copier");
                         tokenCopierEl.addEventListener("click", async (event) => {{
                             tokenCopierMessageEl.innerHTML = "";
-                            try {{
-                                const tokenEl = document.getElementById("token");                            
+                            try {{                            
                                 await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
                                 tokenCopierMessageEl.innerHTML = "<span style='color: green;'>Copied to clipboard</span>";
                             }} catch (error) {{
