@@ -606,7 +606,7 @@ def custom_swagger_ui_html(
                     }});
                 </script>
             </body>
-            """
+            """,
         )
     )
     return HTMLResponse(content=content)
