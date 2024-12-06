@@ -486,15 +486,12 @@ def custom_swagger_ui_html(
     onComplete = ""
     if access_token is not None:
         onComplete += f"""
-            ui.preauthorizeApiKey(
-                <double-quote>bearerAuth</double-quote>,
-                <double-quote>{access_token}</double-quote>
-            );
-            token_info = document.createElement(<double-quote>section</double-quote>);
-            token_info.classList.add(<double-quote>nmdc-info</double-quote>);
-            token_info.classList.add(<double-quote>nmdc-info-token</double-quote>);
-            token_info.classList.add(<double-quote>block</double-quote>);
-            token_info.classList.add(<double-quote>col-12</double-quote>);
+            ui.preauthorizeApiKey('bearerAuth', '{access_token}');
+            token_info = document.createElement('section');
+            token_info.classList.add('nmdc-info');
+            token_info.classList.add('nmdc-info-token');
+            token_info.classList.add('block');
+            token_info.classList.add('col-12');
             token_info.innerHTML = <double-quote>
                 <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
                 <p>
@@ -509,20 +506,20 @@ def custom_swagger_ui_html(
                     <span id='token-copier-message'></span>
                 </p>
             </double-quote>;
-            document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);
+            document.querySelector('.information-container').append(token_info);
         """.replace(
             "\n", " "
         )
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
-            banner = document.createElement(<double-quote>section</double-quote>);
-            banner.classList.add(<double-quote>nmdc-info</double-quote>);
-            banner.classList.add(<double-quote>nmdc-info-banner</double-quote>);
-            banner.classList.add(<double-quote>block</double-quote>);
-            banner.classList.add(<double-quote>col-12</double-quote>);
+            banner = document.createElement('section');
+            banner.classList.add('nmdc-info');
+            banner.classList.add('nmdc-info-banner');
+            banner.classList.add('block');
+            banner.classList.add('col-12');
             banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
-            document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);
+            document.querySelector('.information-container').prepend(banner);
         """.replace(
             "\n", " "
         )
