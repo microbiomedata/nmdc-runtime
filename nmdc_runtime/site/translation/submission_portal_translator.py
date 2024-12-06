@@ -580,17 +580,17 @@ class SubmissionPortalTranslator(Translator):
         :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
+        biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
+        slots = {
+            "id": nmdc_biosample_id,
+            "associated_studies": [nmdc_study_id],
+            "type": "nmdc:Biosample",
+            "name": sample_data[0].get("samp_name", "").strip(),
+        }
         for tab in sample_data:
-            biosample_key = tab.get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
-            slots = {
-                "id": nmdc_biosample_id,
-                "associated_studies": [nmdc_study_id],
-                "type": "nmdc:Biosample",
-                "name": tab.get("samp_name", "").strip(),
-                "env_package": nmdc.TextValue(
-                    has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
-                ),
-            }
+            slots["env_package"] = nmdc.TextValue(
+                has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
+            ),
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
             slots.update(transformed_tab)
 
