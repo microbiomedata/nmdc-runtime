@@ -560,7 +560,7 @@ def custom_swagger_ui_html(
                 </style>\
             </head>""",
         )
-        # Inject a JavaScript script before the closing `<body>` tag.
+        # Inject a JavaScript script immediately before the closing `</body>` tag.
         .replace(
             "</body>",
             f"""
