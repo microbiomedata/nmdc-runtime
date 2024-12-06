@@ -571,7 +571,7 @@ def custom_swagger_ui_html(
             "</body>",
             f"""
                 <script>
-                    console.debug('Listening for event: nmdcInit');
+                    console.debug("Listening for event: nmdcInit");
                     window.addEventListener("nmdcInit", (event) => {{
                         // Get the DOM elements we'll be referencing below. 
                         const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
