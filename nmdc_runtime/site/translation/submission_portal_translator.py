@@ -588,9 +588,11 @@ class SubmissionPortalTranslator(Translator):
             "name": sample_data[0].get("samp_name", "").strip(),
         }
         for tab in sample_data:
-            slots["env_package"] = nmdc.TextValue(
-                has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
-            ),
+            slots["env_package"] = (
+                nmdc.TextValue(
+                    has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
+                ),
+            )
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
             slots.update(transformed_tab)
 
@@ -629,15 +631,13 @@ class SubmissionPortalTranslator(Translator):
             env = key.removesuffix("_data").upper()
             package_name = EnvironmentType[env].value
             for sample in sample_data[key]:
-                sample['env_package'] = package_name
+                sample["env_package"] = package_name
 
         sample_data_by_id = groupby(
-               BIOSAMPLE_UNIQUE_KEY_SLOT,
-               concat(sample_data.values()),
-            )
-        nmdc_biosample_ids = self._id_minter(
-            "nmdc:Biosample", len(sample_data_by_id)
+            BIOSAMPLE_UNIQUE_KEY_SLOT,
+            concat(sample_data.values()),
         )
+        nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
         sample_data_to_nmdc_biosample_ids = dict(
             zip(sample_data_by_id.keys(), nmdc_biosample_ids)
         )
