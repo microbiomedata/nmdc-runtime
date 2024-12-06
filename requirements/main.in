@@ -9,7 +9,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi>=0.104.1 # Pins Swagger UI version to 5.9.0 temporarily to handle a bug crashing it in 5.9.1
+fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
 fnc
 frozendict
