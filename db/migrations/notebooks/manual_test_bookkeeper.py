@@ -12,7 +12,7 @@ from pymongo import MongoClient, timeout
 from pymongo.database import Database
 from nmdc_schema.migrators.migrator_base import MigratorBase
 
-from demo.metadata_migration.notebooks.bookkeeper import Bookkeeper, MigrationEvent
+from db.migrations.notebooks.bookkeeper import Bookkeeper, MigrationEvent
 
 # Consume environment variables.
 MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
@@ -36,7 +36,7 @@ class TestBookkeeper(unittest.TestCase):
     Tests targeting the `Bookkeeper` class.
 
     You can format this file like this:
-    $ python -m black demo/metadata_migration/notebooks/manual_test_bookkeeper.py
+    $ python -m black db/migrations/notebooks/manual_test_bookkeeper.py
 
     You can start up a containerized MongoDB server like this:
     $ docker run --rm --detach --name mongo-test-migration-bookkeeper -p 27017:27017 mongo
@@ -45,7 +45,7 @@ class TestBookkeeper(unittest.TestCase):
     - host.docker.internal:27017
 
     You can run these tests like this:
-    $ python -m unittest -v demo/metadata_migration/notebooks/manual_test_bookkeeper.py
+    $ python -m unittest -v db/migrations/notebooks/manual_test_bookkeeper.py
 
     Reference: https://docs.python.org/3/library/unittest.html#basic-example
     """
