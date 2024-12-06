@@ -1036,22 +1036,13 @@ def site_code_mapping() -> dict:
 def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
     schema_view = nmdc_schema_view()
-    collection_names = populated_schema_collection_names_with_id_field(mdb)
+
+    # batch size for writing documents to alldocs
     BULK_WRITE_BATCH_SIZE = 2000
-
-    # Insert a no-op as an anchor point for this comment.
-    #
-    # Note: There used to be code here that `assert`-ed that each collection could only contain documents of a single
-    #       type. With the legacy schema, that assertion was true. With the Berkeley schema, it is false. That code was
-    #       in place because subsequent code (further below) used a single document in a collection as the source of the
-    #       class ancestry information of _all_ documents in that collection; an optimization that spared us from
-    #       having to do the same for every single document in that collection. With the Berkeley schema, we have
-    #       eliminated that optimization (since it is inadequate; it would produce some incorrect class ancestries
-    #       for descendants of `PlannedProcess`, for example).
-    #
-    pass
-
+    
+    collection_names = populated_schema_collection_names_with_id_field(mdb)
     context.log.info(f"{collection_names=}")
+    
 
     # Drop any existing `alldocs` collection (e.g. from previous use of this op).
     #
