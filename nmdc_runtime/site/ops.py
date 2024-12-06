@@ -7,6 +7,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
+from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
 from itertools import chain
@@ -47,7 +48,7 @@ from nmdc_runtime.api.core.metadata import (
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now, pick
+from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.endpoints.find import find_study_by_id
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
@@ -1088,7 +1089,7 @@ def materialize_alldocs(context) -> int:
         for doc in mdb[coll_name].find():
             doc_type = doc['type'][5:] # lop off "nmdc:" prefix
             slots_to_include = ["id", "type"] + document_reference_ranged_slots[doc_type]
-            new_doc = pick(slots_to_include, doc)
+            new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
             requests.append(InsertOne(new_doc))
             if len(requests) == BULK_WRITE_BATCH_SIZE: 
