@@ -47,7 +47,7 @@ from nmdc_runtime.api.core.metadata import (
     get_collection_for_id,
     map_id_to_collection,
 )
-from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now
+from nmdc_runtime.api.core.util import dotted_path_for, hash_from_str, json_clean, now, pick
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.endpoints.find import find_study_by_id
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
@@ -93,17 +93,20 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
 from nmdc_runtime.site.util import run_and_log, schema_collection_has_index_on_id
 from nmdc_runtime.util import (
     drs_object_in_for,
+    get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
     validate_json,
     specialize_activity_set_docs,
     collection_name_to_class_names,
     class_hierarchy_as_list,
+    nmdc_schema_view,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pydantic import BaseModel
+from pymongo import InsertOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import assoc, dissoc, get_in, valfilter, identity
@@ -1031,7 +1034,9 @@ def site_code_mapping() -> dict:
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     mdb = context.resources.mongo.db
+    schema_view = nmdc_schema_view()
     collection_names = populated_schema_collection_names_with_id_field(mdb)
+    BULK_WRITE_BATCH_SIZE = 2000
 
     # Insert a no-op as an anchor point for this comment.
     #
@@ -1058,86 +1063,57 @@ def materialize_alldocs(context) -> int:
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
-    # For each collection, group its documents by their `type` value, transform them, and load them into `alldocs`.
-    for collection_name in collection_names:
+    document_class_names = set(chain.from_iterable(collection_name_to_class_names.values()))
+
+    # Any ancestor of a document class is a document-referenceable range, i.e., a valid range of a document-reference-ranged slot.
+    document_referenceable_ranges = set(chain.from_iterable(schema_view.class_ancestors(cls_name) for cls_name in document_class_names))
+
+    cls_slot_map = {
+    cls_name : {slot.name: slot
+                for slot in schema_view.class_induced_slots(cls_name)
+               }
+    for cls_name in document_class_names
+    }
+
+    document_reference_ranged_slots = defaultdict(list)
+    for cls_name, slot_map in cls_slot_map.items():
+        for slot_name, slot in slot_map.items():
+            if set(get_names_of_classes_in_effective_range_of_slot(schema_view, slot)) & document_referenceable_ranges:
+                document_reference_ranged_slots[cls_name].append(slot_name)
+
+    for coll_name in collection_names:
+        context.log.info(f"{coll_name=}")
+        requests = []
+        documents_processed_counter = 0
+        for doc in mdb[coll_name].find():
+            doc_type = doc['type'][5:] # lop off "nmdc:" prefix
+            slots_to_include = ["id", "type"] + document_reference_ranged_slots[doc_type]
+            new_doc = pick(slots_to_include, doc)
+            new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            requests.append(InsertOne(new_doc))
+            if len(requests) == BULK_WRITE_BATCH_SIZE: 
+                result = mdb.alldocs.bulk_write(requests, ordered=False)
+                requests.clear()
+                documents_processed_counter += BULK_WRITE_BATCH_SIZE
+        if len(requests) > 0:
+            result = mdb.alldocs.bulk_write(requests, ordered=False)
+            documents_processed_counter += len(requests)
         context.log.info(
-            f"Found {mdb[collection_name].estimated_document_count()} estimated documents for {collection_name=}."
-        )
+                f"Inserted {documents_processed_counter} documents from {coll_name=} ")
 
-        # Process all the distinct `type` values (i.e. value in the `type` field) of the documents in this collection.
-        #
-        # References:
-        # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.distinct
-        #
-        distinct_type_values = mdb[collection_name].distinct(key="type")
-        context.log.info(
-            f"Found {len(distinct_type_values)} distinct `type` values in {collection_name=}: {distinct_type_values=}"
-        )
-        for type_value in distinct_type_values:
-
-            # Process all the documents in this collection that have this value in their `type` field.
-            #
-            # References:
-            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.count_documents
-            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.find
-            #
-            filter_ = {"type": type_value}
-            num_docs_having_type = mdb[collection_name].count_documents(filter=filter_)
-            docs_having_type = mdb[collection_name].find(filter=filter_)
-            context.log.info(
-                f"Found {num_docs_having_type} documents having {type_value=} in {collection_name=}."
-            )
-
-            # Get a "representative" document from the result.
-            #
-            # Note: Since all of the documents in this batch have the same class ancestry, we will save time by
-            #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
-            #       (later) attributing that class ancestry to all of them.
-            #
-            representative_doc = next(docs_having_type)
-
-            # Instantiate the Python class represented by the "representative" document.
-            db_dict = {
-                # Shed the `_id` attribute, since the constructor doesn't allow it.
-                collection_name: [dissoc(representative_doc, "_id")]
-            }
-            nmdc_db = NMDCDatabase(**db_dict)
-            representative_instance = getattr(nmdc_db, collection_name)[0]
-
-            # Get the class ancestry of that instance, as a list of class names (including its own class name).
-            ancestor_class_names = class_hierarchy_as_list(representative_instance)
-
-            # Store the documents belonging to this group, in the `alldocs` collection, setting their `type` field
-            # to the list of class names obtained from the "representative" document above.
-            #
-            # TODO: Document why clobbering the existing contents of the `type` field is OK.
-            #
-            # Note: The reason we `chain()` our "representative" document (in an iterable) with the `docs_having_type`
-            #       iterator here is that, when we called `next(docs_having_type)` above, we "consumed" our
-            #       "representative" document from that iterator. We use `chain()` here so that that document gets
-            #       inserted alongside its cousins (i.e. the documents _still_ accessible via `docs_having_type`).
-            #       Reference: https://docs.python.org/3/library/itertools.html#itertools.chain
-            #
-            inserted_many_result = mdb.alldocs.insert_many(
-                [
-                    assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
-                    for doc in chain([representative_doc], docs_having_type)
-                ]
-            )
-            context.log.info(
-                f"Inserted {len(inserted_many_result.inserted_ids)} documents from {collection_name=} "
-                f"originally having {type_value=}."
+    context.log.info(
+        f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
             )
 
     # Re-idx for `alldocs` collection
     mdb.alldocs.create_index("id", unique=True)
     # The indexes were added to improve the performance of the
     # /data_objects/study/{study_id} endpoint
-    mdb.alldocs.create_index("has_input")
-    mdb.alldocs.create_index("has_output")
-    mdb.alldocs.create_index("was_informed_by")
+    slots_to_index = ["has_input", "has_output", "was_informed_by"]
+    [mdb.alldocs.create_index(slot) for slot in slots_to_index]
+
     context.log.info(
-        f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
+        f"created indexes on id, {slots_to_index}."
     )
     return mdb.alldocs.estimated_document_count()
 
