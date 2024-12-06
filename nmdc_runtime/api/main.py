@@ -545,19 +545,18 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # TODO: Remove unnecessary trailing backslashes.
         .replace(
             "</head>",
-            f"""<style>\
-                    .nmdc-info {{\
-                        padding: 1em;\
-                        background-color: #448aff1a;\
-                        border: .075rem solid #448aff;\
-                    }}\
-                    .nmdc-info-token code {{\
-                        font-size: x-small;\
-                    }}\
-                </style>\
+            f"""<style>
+                    .nmdc-info {{
+                        padding: 1em;
+                        background-color: #448aff1a;
+                        border: .075rem solid #448aff;
+                    }}
+                    .nmdc-info-token code {{
+                        font-size: x-small;
+                    }}
+                </style>
             </head>""",
         )
         # Inject a JavaScript script immediately before the closing `</body>` tag.
