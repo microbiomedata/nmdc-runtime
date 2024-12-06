@@ -488,10 +488,7 @@ def custom_swagger_ui_html(
         onComplete += f"""
             ui.preauthorizeApiKey('bearerAuth', '{access_token}');
             token_info = document.createElement('section');
-            token_info.classList.add('nmdc-info');
-            token_info.classList.add('nmdc-info-token');
-            token_info.classList.add('block');
-            token_info.classList.add('col-12');
+            token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
             token_info.innerHTML = <double-quote>
                 <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
                 <p>
@@ -514,10 +511,7 @@ def custom_swagger_ui_html(
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
             banner = document.createElement('section');
-            banner.classList.add('nmdc-info');
-            banner.classList.add('nmdc-info-banner');
-            banner.classList.add('block');
-            banner.classList.add('col-12');
+            banner.classList.add('nmdc-info', 'nmdc-info-banner', 'block', 'col-12');
             banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
             document.querySelector('.information-container').prepend(banner);
         """.replace(
