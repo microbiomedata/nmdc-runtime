@@ -540,9 +540,11 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Inject a style element immediately before the closing `</head>` tag.
         .replace(
             "</head>",
-            f"""<style>
+            f"""
+                <style>
                     .nmdc-info {{
                         padding: 1em;
                         background-color: #448aff1a;
