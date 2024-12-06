@@ -16,26 +16,22 @@ from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
 
 
-class EnvironmentType(Enum):
+class EnvironmentPackage(Enum):
     r"""
-    Enumeration of all possible environment types.
+    Enumeration of all possible environmental packages.
 
-    >>> EnvironmentType.AIR.value
+    >>> EnvironmentPackage.AIR.value
     'air'
-    >>> EnvironmentType.SEDIMENT.value
+    >>> EnvironmentPackage.SEDIMENT.value
     'sediment'
     """
 
     AIR = "air"
     BIOFILM = "microbial mat_biofilm"
     BUILT_ENV = "built environment"
-    EMSL = "emsl"
     HCR_CORES = "hydrocarbon resources-cores"
     HRC_FLUID_SWABS = "hydrocarbon resources-fluids_swabs"
     HOST_ASSOCIATED = "host-associated"
-    JGI_MG = "jgi_mg"
-    JGI_MG_LR = "jgi_mg_lr"
-    JGI_MT = "jgi_mt"
     MISC_ENVS = "miscellaneous natural or artificial environment"
     PLANT_ASSOCIATED = "plant-associated"
     SEDIMENT = "sediment"
@@ -577,22 +573,25 @@ class SubmissionPortalTranslator(Translator):
                             from each applicable submission portal tab
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
-        :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
-        biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
+        env_idx = next(
+            (
+                i
+                for i, tab in enumerate(sample_data)
+                if tab.get("env_package") is not None
+            ),
+            0,
+        )
+        biosample_key = sample_data[env_idx].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
             "associated_studies": [nmdc_study_id],
             "type": "nmdc:Biosample",
-            "name": sample_data[0].get("samp_name", "").strip(),
+            "name": sample_data[env_idx].get("samp_name", "").strip(),
+            "env_package": sample_data[env_idx].get("env_package"),
         }
         for tab in sample_data:
-            slots["env_package"] = (
-                nmdc.TextValue(
-                    has_raw_value=tab.get("env_package"), type="nmdc:TextValue"
-                ),
-            )
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
             slots.update(transformed_tab)
 
@@ -629,9 +628,12 @@ class SubmissionPortalTranslator(Translator):
         sample_data = metadata_submission_data.get("sampleData", {})
         for key in sample_data.keys():
             env = key.removesuffix("_data").upper()
-            package_name = EnvironmentType[env].value
-            for sample in sample_data[key]:
-                sample["env_package"] = package_name
+            try:
+                package_name = EnvironmentPackage[env].value
+                for sample in sample_data[key]:
+                    sample["env_package"] = package_name
+            except KeyError:
+                pass
 
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
