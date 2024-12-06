@@ -496,7 +496,7 @@ def custom_swagger_ui_html(
             token_info.classList.add(<double-quote>block</double-quote>);\
             token_info.classList.add(<double-quote>col-12</double-quote>);\
             token_info.innerHTML = <double-quote>\
-            <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>\
+                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>\
                 <p>\
                     <code>\
                         <span>Authorization: Bearer </span>\
