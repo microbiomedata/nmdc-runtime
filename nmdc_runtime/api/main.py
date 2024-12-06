@@ -485,43 +485,43 @@ def custom_swagger_ui_html(
     swagger_ui_parameters = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""\
-            ui.preauthorizeApiKey(\
-                <double-quote>bearerAuth</double-quote>,\
-                <double-quote>{access_token}</double-quote>\
-            );\
-            token_info = document.createElement(<double-quote>section</double-quote>);\
-            token_info.classList.add(<double-quote>nmdc-info</double-quote>);\
-            token_info.classList.add(<double-quote>nmdc-info-token</double-quote>);\
-            token_info.classList.add(<double-quote>block</double-quote>);\
-            token_info.classList.add(<double-quote>col-12</double-quote>);\
-            token_info.innerHTML = <double-quote>\
-                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>\
-                <p>\
-                    <code>\
-                        <span>Authorization: Bearer </span>\
-                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>\
-                    </code>\
-                </p>\
-                <p>\
-                    <button id='token-mask-toggler'>Show token</button>\
-                    <button id='token-copier'>Copy token</button>\
-                    <span id='token-copier-message'></span>\
-                </p>\
-            </double-quote>;\
-            document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);\
-        """
+        onComplete += f"""
+            ui.preauthorizeApiKey(
+                <double-quote>bearerAuth</double-quote>,
+                <double-quote>{access_token}</double-quote>
+            );
+            token_info = document.createElement(<double-quote>section</double-quote>);
+            token_info.classList.add(<double-quote>nmdc-info</double-quote>);
+            token_info.classList.add(<double-quote>nmdc-info-token</double-quote>);
+            token_info.classList.add(<double-quote>block</double-quote>);
+            token_info.classList.add(<double-quote>col-12</double-quote>);
+            token_info.innerHTML = <double-quote>
+                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
+                <p>
+                    <code>
+                        <span>Authorization: Bearer </span>
+                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>
+                    </code>
+                </p>
+                <p>
+                    <button id='token-mask-toggler'>Show token</button>
+                    <button id='token-copier'>Copy token</button>
+                    <span id='token-copier-message'></span>
+                </p>
+            </double-quote>;
+            document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);
+        """.replace("\n", " ")
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
-        onComplete += f"""\
-            banner = document.createElement(<double-quote>section</double-quote>);\
-            banner.classList.add(<double-quote>nmdc-info</double-quote>);\
-            banner.classList.add(<double-quote>nmdc-info-banner</double-quote>);\
-            banner.classList.add(<double-quote>block</double-quote>);\
-            banner.classList.add(<double-quote>col-12</double-quote>);\
-            banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;\
-            document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);\
-        """
+        onComplete += f"""
+            banner = document.createElement(<double-quote>section</double-quote>);
+            banner.classList.add(<double-quote>nmdc-info</double-quote>);
+            banner.classList.add(<double-quote>nmdc-info-banner</double-quote>);
+            banner.classList.add(<double-quote>block</double-quote>);
+            banner.classList.add(<double-quote>col-12</double-quote>);
+            banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
+            document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);
+        """.replace("\n", " ")
     if onComplete:
         # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
         #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
