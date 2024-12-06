@@ -31,7 +31,7 @@ input:
         biosafetyLevel: ''
         irbOrHipaa:
         comments: ''
-      templates: ['plant-associated', 'air']
+      templates: ['plant-associated', 'air', 'jgi_mg']
       studyForm:
         studyName: Seasonal activities of the phyllosphere microbiome of perennial crops
         piName: Ashley Shade
@@ -292,6 +292,24 @@ input:
           env_broad_scale: ewdwed [ENVO:123]
           env_local_scale: asdxasd [ENV:234]
           samp_store_temp: "-80 Celsius"
+        jgi_mg_data:
+        - samp_name: "G6R2_MAIN_09MAY2016"
+          analysis_type:
+            - metagenomics
+          dna_concentration: 0.1
+          dna_cont_type: tube
+          dna_container_id: 00001
+          dna_dnase: "no"
+          dna_isolate_meth: phenol/chloroform extraction
+          dna_project_contact: Jane Doe
+          dna_samp_id: 00001
+          dna_sample_format: Ethanol
+          dna_sample_name: 00001
+          dna_seq_project: 00001
+          dna_seq_project_name: 00001
+          dna_seq_project_pi: Jane Doe
+          dna_volume: 10
+          proposal_dna: 00001
     status: in-progress
     id: d32b5eb6-71e8-4c98-8a57-3e64d05718b4
     author_orcid: 0000-0002-7705-343X
@@ -944,6 +962,20 @@ output:
       has_raw_value: UUID:c0c4a2b5-0382-450a-8728-a176fa438efe
     analysis_type:
     - metagenomics
+    dna_concentration: 0.1
+    dna_cont_type: tube
+    dna_container_id: 00001
+    dna_dnase: "no"
+    dna_isolate_meth: phenol/chloroform extraction
+    dna_project_contact: Jane Doe
+    dna_samp_id: 00001
+    dna_sample_format: Ethanol
+    dna_sample_name: 00001
+    dna_seq_project: 00001
+    dna_seq_project_name: 00001
+    dna_seq_project_pi: Jane Doe
+    dna_volume: 10
+    proposal_dna: 00001
   - id: nmdc:bsm-00-7r7pn0r2
     type: 'nmdc:Biosample'
     name: 'wedw'
