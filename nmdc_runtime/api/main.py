@@ -510,7 +510,9 @@ def custom_swagger_ui_html(
                 </p>
             </double-quote>;
             document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);
-        """.replace("\n", " ")
+        """.replace(
+            "\n", " "
+        )
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
@@ -521,7 +523,9 @@ def custom_swagger_ui_html(
             banner.classList.add(<double-quote>col-12</double-quote>);
             banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
             document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);
-        """.replace("\n", " ")
+        """.replace(
+            "\n", " "
+        )
     if onComplete:
         # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
         #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
