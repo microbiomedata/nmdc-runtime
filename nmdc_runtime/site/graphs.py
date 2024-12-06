@@ -57,6 +57,9 @@ from nmdc_runtime.site.ops import (
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
+    get_biosample_rollup_pipeline_input,
+    materialize_biosample_rollup,
+    biosample_rollup_filename,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -104,6 +107,16 @@ def housekeeping():
 @graph
 def ensure_alldocs():
     materialize_alldocs()
+
+
+@graph
+def biosample_rollup_export():
+    nmdc_study_id = get_biosample_rollup_pipeline_input()
+    biosample_rollup = materialize_biosample_rollup(nmdc_study_id)
+
+    filename = biosample_rollup_filename()
+    outputs = export_json_to_drs(biosample_rollup, filename)
+    add_output_run_event(outputs)
 
 
 @graph
