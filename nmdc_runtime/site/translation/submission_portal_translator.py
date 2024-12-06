@@ -29,9 +29,13 @@ class EnvironmentType(Enum):
     AIR = "air"
     BIOFILM = "microbial mat_biofilm"
     BUILT_ENV = "built environment"
-    HCR_CORES = "hydrocardbon resources-cores"
+    EMSL = "emsl"
+    HCR_CORES = "hydrocarbon resources-cores"
     HRC_FLUID_SWABS = "hydrocarbon resources-fluids_swabs"
     HOST_ASSOCIATED = "host-associated"
+    JGI_MG = "jgi_mg"
+    JGI_MG_LR = "jgi_mg_lr"
+    JGI_MT = "jgi_mt"
     MISC_ENVS = "miscellaneous natural or artificial environment"
     PLANT_ASSOCIATED = "plant-associated"
     SEDIMENT = "sediment"
@@ -622,15 +626,15 @@ class SubmissionPortalTranslator(Translator):
 
         sample_data = metadata_submission_data.get("sampleData", {})
         for key in sample_data.keys():
-            env = key.rsplit("_", 1)[0].upper()
+            env = key.removesuffix("_data").upper()
             package_name = EnvironmentType[env].value
+            for sample in sample_data[key]:
+                sample['env_package'] = package_name
 
-            sample_data_by_id = groupby(
+        sample_data_by_id = groupby(
                BIOSAMPLE_UNIQUE_KEY_SLOT,
                concat(sample_data.values()),
             )
-            for sample in sample_data[key]:
-                sample['env_package'] = package_name
         nmdc_biosample_ids = self._id_minter(
             "nmdc:Biosample", len(sample_data_by_id)
         )
