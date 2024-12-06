@@ -497,7 +497,17 @@ def custom_swagger_ui_html(
             token_info.classList.add(<double-quote>col-12</double-quote>);\
             token_info.innerHTML = <double-quote>\
             <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>\
-                <p><code>Authorization: Bearer {access_token}</code></p>\
+                <p>\
+                    <code>\
+                        <span>Authorization: Bearer </span>\
+                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>\
+                    </code>\
+                </p>\
+                <p>\
+                    <button id='token-mask-toggler'>Show token</button>\
+                    <button id='token-copier'>Copy token</button>\
+                    <span id='token-copier-message'></span>\
+                </p>\
             </double-quote>;\
             document.querySelector(<double-quote>.information-container</double-quote>).append(token_info);\
         """
@@ -513,9 +523,11 @@ def custom_swagger_ui_html(
             document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner);\
         """
     if onComplete:
+        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
         swagger_ui_parameters.update(
             {
-                "onComplete": f"""<unquote-safe>() => {{ {onComplete} }}</unquote-safe>""",
+                "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
             }
         )
     response = get_swagger_ui_html(
@@ -533,6 +545,7 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # TODO: Remove unnecessary trailing backslashes.
         .replace(
             "</head>",
             f"""<style>\
@@ -546,6 +559,54 @@ def custom_swagger_ui_html(
                     }}\
                 </style>\
             </head>""",
+        )
+        # Inject a JavaScript script before the closing `<body>` tag.
+        .replace(
+            "</body>",
+            f"""
+                <script>
+                    console.debug('Listening for event: nmdcInit');
+                    window.addEventListener("nmdcInit", (event) => {{
+                        // Get the DOM elements we'll be referencing below. 
+                        const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
+                        const tokenEl = document.getElementById("token");
+                        const tokenCopierEl = document.getElementById("token-copier");
+                        const tokenCopierMessageEl = document.getElementById("token-copier-message");
+                        
+                        // Set up the token visibility toggler.
+                        console.debug("Setting up token visibility toggler");
+                        tokenMaskTogglerEl.addEventListener("click", (event) => {{
+                            if (tokenEl.dataset.state == "masked") {{
+                                console.debug("Unmasking token");
+                                tokenEl.dataset.state = "unmasked";
+                                tokenEl.innerHTML = tokenEl.dataset.tokenValue;
+                                event.target.innerHTML = "Hide token";
+                            }} else {{
+                                console.debug("Masking token");
+                                tokenEl.dataset.state = "masked";
+                                tokenEl.innerHTML = "***";
+                                event.target.innerHTML = "Show token";
+                            }}
+                        }});
+
+                        // Set up the token copier.
+                        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
+                        console.debug("Setting up token copier");
+                        tokenCopierEl.addEventListener("click", async (event) => {{
+                            tokenCopierMessageEl.innerHTML = "";
+                            try {{
+                                const tokenEl = document.getElementById("token");                            
+                                await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
+                                tokenCopierMessageEl.innerHTML = "<span style='color: green;'>Copied to clipboard</span>";
+                            }} catch (error) {{
+                                console.error(error.message);
+                                tokenCopierMessageEl.innerHTML = "<span style='color: red;'>Copying failed</span>";
+                            }}
+                        }})
+                    }});
+                </script>
+            </body>
+            """
         )
     )
     return HTMLResponse(content=content)
