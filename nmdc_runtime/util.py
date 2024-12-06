@@ -30,6 +30,7 @@ from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 from typing_extensions import Annotated
 
+
 def get_names_of_classes_in_effective_range_of_slot(
     schema_view: SchemaView, slot_definition: linkml_model.SlotDefinition
 ) -> List[str]:
@@ -53,13 +54,17 @@ def get_names_of_classes_in_effective_range_of_slot(
             # Use the slot expression's `range` to get the specified eligible class name
             # and the names of all classes that inherit from that eligible class.
             if slot_expression.range in schema_view.all_classes():
-                own_and_descendant_class_names = schema_view.class_descendants(slot_expression.range)
+                own_and_descendant_class_names = schema_view.class_descendants(
+                    slot_expression.range
+                )
                 names_of_eligible_target_classes.extend(own_and_descendant_class_names)
     else:
         # Use the slot's `range` to get the specified eligible class name
         # and the names of all classes that inherit from that eligible class.
         if slot_definition.range in schema_view.all_classes():
-            own_and_descendant_class_names = schema_view.class_descendants(slot_definition.range)
+            own_and_descendant_class_names = schema_view.class_descendants(
+                slot_definition.range
+            )
             names_of_eligible_target_classes.extend(own_and_descendant_class_names)
 
     # Remove duplicate class names.
