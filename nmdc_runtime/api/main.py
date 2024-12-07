@@ -456,7 +456,6 @@ def custom_swagger_ui_html(
         onComplete += f"""
             ui.preauthorizeApiKey('bearerAuth', '{access_token}');
             
-            // Build an HTML element tree representing a banner containing the user's token.
             token_info = document.createElement('section');
             token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
             token_info.innerHTML = <double-quote>
