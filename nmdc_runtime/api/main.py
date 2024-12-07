@@ -453,14 +453,46 @@ def custom_swagger_ui_html(
     swagger_ui_parameters = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>); """
+        onComplete += f"""
+            ui.preauthorizeApiKey('bearerAuth', '{access_token}');
+            
+            // Build an HTML element tree representing a banner containing the user's token.
+            token_info = document.createElement('section');
+            token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
+            token_info.innerHTML = <double-quote>
+                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
+                <p>
+                    <code>
+                        <span>Authorization: Bearer </span>
+                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>
+                    </code>
+                </p>
+                <p>
+                    <button id='token-mask-toggler'>Show token</button>
+                    <button id='token-copier'>Copy token</button>
+                    <span id='token-copier-message'></span>
+                </p>
+            </double-quote>;
+            document.querySelector('.information-container').append(token_info);
+        """.replace(
+            "\n", " "
+        )
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
-        onComplete += f"""banner = document.createElement(<double-quote>section</double-quote>); banner.classList.add(<double-quote>nmdc-info-banner</double-quote>); banner.classList.add(<double-quote>block</double-quote>); banner.classList.add(<double-quote>col-12</double-quote>); banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`; document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner); """
+        onComplete += f"""
+            banner = document.createElement('section');
+            banner.classList.add('nmdc-info', 'nmdc-info-banner', 'block', 'col-12');
+            banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
+            document.querySelector('.information-container').prepend(banner);
+        """.replace(
+            "\n", " "
+        )
     if onComplete:
+        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
         swagger_ui_parameters.update(
             {
-                "onComplete": f"""<unquote-safe>() => {{ {onComplete} }}</unquote-safe>""",
+                "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
             }
         )
     response = get_swagger_ui_html(
@@ -478,9 +510,74 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Inject a style element immediately before the closing `</head>` tag.
         .replace(
             "</head>",
-            "<style>.nmdc-info-banner { padding: 1em; background-color: #448aff1a; border: .075rem solid #448aff; }</style></head>",
+            f"""
+                <style>
+                    .nmdc-info {{
+                        padding: 1em;
+                        background-color: #448aff1a;
+                        border: .075rem solid #448aff;
+                    }}
+                    .nmdc-info-token code {{
+                        font-size: x-small;
+                    }}
+                    .nmdc-success {{
+                        color: green;
+                    }}
+                    .nmdc-error {{
+                        color: red;
+                    }}
+                </style>
+            </head>""",
+        )
+        # Inject a JavaScript script immediately before the closing `</body>` tag.
+        .replace(
+            "</body>",
+            f"""
+                <script>
+                    console.debug("Listening for event: nmdcInit");
+                    window.addEventListener("nmdcInit", (event) => {{
+                        // Get the DOM elements we'll be referencing below. 
+                        const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
+                        const tokenEl = document.getElementById("token");
+                        const tokenCopierEl = document.getElementById("token-copier");
+                        const tokenCopierMessageEl = document.getElementById("token-copier-message");
+                        
+                        // Set up the token visibility toggler.
+                        console.debug("Setting up token visibility toggler");
+                        tokenMaskTogglerEl.addEventListener("click", (event) => {{
+                            if (tokenEl.dataset.state == "masked") {{
+                                console.debug("Unmasking token");
+                                tokenEl.dataset.state = "unmasked";
+                                tokenEl.innerHTML = tokenEl.dataset.tokenValue;
+                                event.target.innerHTML = "Hide token";
+                            }} else {{
+                                console.debug("Masking token");
+                                tokenEl.dataset.state = "masked";
+                                tokenEl.innerHTML = "***";
+                                event.target.innerHTML = "Show token";
+                            }}
+                        }});
+
+                        // Set up the token copier.
+                        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
+                        console.debug("Setting up token copier");
+                        tokenCopierEl.addEventListener("click", async (event) => {{
+                            tokenCopierMessageEl.innerHTML = "";
+                            try {{                            
+                                await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
+                            }} catch (error) {{
+                                console.error(error.message);
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
+                            }}
+                        }})
+                    }});
+                </script>
+            </body>
+            """,
         )
     )
     return HTMLResponse(content=content)
