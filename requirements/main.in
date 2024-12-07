@@ -33,7 +33,9 @@ pymongo
 pydantic[email]>=1.10.0
 python-dotenv
 python-jose[cryptography]
-python-multipart
+# Note: python-multipart version `0.0.18` introduced a patch for a security issue (CVE-2024-53981).
+#       Reference: https://github.com/microbiomedata/nmdc-runtime/security/dependabot/8
+python-multipart>=0.0.18
 pyyaml
 requests
 semver

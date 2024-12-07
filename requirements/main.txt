@@ -10,10 +10,11 @@ annotated-types==0.7.0
     # via pydantic
 antlr4-python3-runtime==4.9.3
     # via
+    #   dagster
     #   linkml
     #   pyjsg
     #   pyshexc
-anyio==4.6.2.post1
+anyio==4.7.0
     # via
     #   gql
     #   httpx
@@ -26,7 +27,7 @@ argon2-cffi-bindings==21.2.0
     # via argon2-cffi
 arrow==1.3.0
     # via isoduration
-asttokens==2.4.1
+asttokens==3.0.0
     # via stack-data
 async-lru==2.0.4
     # via jupyterlab
@@ -44,7 +45,7 @@ backoff==2.2.1
     # via gql
 base32-lib==1.0.2
     # via -r requirements/main.in
-bcrypt==4.2.0
+bcrypt==4.2.1
     # via passlib
 beanie==1.27.0
     # via -r requirements/main.in
@@ -55,9 +56,9 @@ beautifulsoup4==4.12.3
     #   nbconvert
 bleach==6.2.0
     # via nbconvert
-boto3==1.35.60
+boto3==1.35.76
     # via -r requirements/main.in
-botocore==1.35.60
+botocore==1.35.76
     # via
     #   boto3
     #   s3transfer
@@ -102,31 +103,31 @@ comm==0.2.2
     #   ipywidgets
 croniter==3.0.4
     # via dagster
-cryptography==43.0.3
+cryptography==44.0.0
     # via python-jose
 curies==0.9.0
     # via
     #   linkml-runtime
     #   prefixmaps
-dagit==1.9.1
+dagit==1.9.3
     # via -r requirements/main.in
-dagster==1.9.1
+dagster==1.9.3
     # via
     #   -r requirements/main.in
     #   dagster-graphql
     #   dagster-postgres
     #   dagster-webserver
-dagster-graphql==1.9.1
+dagster-graphql==1.9.3
     # via
     #   -r requirements/main.in
     #   dagster-webserver
-dagster-pipes==1.9.1
+dagster-pipes==1.9.3
     # via dagster
-dagster-postgres==0.25.1
+dagster-postgres==0.25.3
     # via -r requirements/main.in
-dagster-webserver==1.9.1
+dagster-webserver==1.9.3
     # via dagit
-debugpy==1.8.8
+debugpy==1.8.9
     # via ipykernel
 decorator==5.1.1
     # via ipython
@@ -134,7 +135,7 @@ defusedxml==0.7.1
     # via nbconvert
 dependency-injector==4.43.0
     # via -r requirements/main.in
-deprecated==1.2.14
+deprecated==1.2.15
     # via linkml-runtime
 dnspython==2.7.0
     # via
@@ -160,9 +161,9 @@ exceptiongroup==1.2.2
     #   pytest
 executing==2.1.0
     # via stack-data
-fastapi==0.115.5
+fastapi==0.115.6
     # via -r requirements/main.in
-fastjsonschema==2.20.0
+fastjsonschema==2.21.1
     # via
     #   -r requirements/main.in
     #   nbformat
@@ -195,7 +196,7 @@ graphviz==0.20.3
     # via linkml
 greenlet==3.1.1
     # via sqlalchemy
-grpcio==1.67.1
+grpcio==1.68.1
     # via
     #   dagster
     #   grpcio-health-checking
@@ -210,11 +211,11 @@ hbreader==0.9.1
     #   jsonasobj2
     #   linkml
     #   linkml-runtime
-httpcore==1.0.6
+httpcore==1.0.7
     # via httpx
 httptools==0.6.4
     # via uvicorn
-httpx==0.27.2
+httpx==0.28.0
     # via jupyterlab
 humanfriendly==10.0
     # via coloredlogs
@@ -234,7 +235,7 @@ ipykernel==6.29.5
     #   jupyter-console
     #   jupyterlab
     #   mkdocs-jupyter
-ipython==8.29.0
+ipython==8.30.0
     # via
     #   ipykernel
     #   ipywidgets
@@ -270,7 +271,7 @@ jsbeautifier==1.15.1
     # via mkdocs-mermaid2-plugin
 json-flattener==0.1.9
     # via linkml-runtime
-json5==0.9.28
+json5==0.10.0
     # via jupyterlab-server
 jsonasobj==1.3.1
     # via
@@ -331,7 +332,7 @@ jupyter-server==2.14.2
     #   notebook-shim
 jupyter-server-terminals==0.5.3
     # via jupyter-server
-jupyterlab==4.2.5
+jupyterlab==4.3.2
     # via
     #   -r requirements/main.in
     #   jupyter
@@ -362,7 +363,7 @@ linkml-runtime==1.8.3
     #   nmdc-schema
 lxml==5.3.0
     # via -r requirements/main.in
-mako==1.3.6
+mako==1.3.7
     # via alembic
 markdown==3.7
     # via
@@ -405,7 +406,7 @@ mkdocs-get-deps==0.2.0
     # via mkdocs
 mkdocs-jupyter==0.25.1
     # via -r requirements/main.in
-mkdocs-material==9.5.44
+mkdocs-material==9.5.47
     # via
     #   -r requirements/main.in
     #   mkdocs-jupyter
@@ -424,7 +425,7 @@ motor==3.6.0
     #   beanie
 multidict==6.1.0
     # via yarl
-nbclient==0.10.0
+nbclient==0.10.1
     # via nbconvert
 nbconvert==7.16.4
     # via
@@ -441,7 +442,7 @@ nest-asyncio==1.6.0
     # via ipykernel
 nmdc-schema==11.1.0
     # via -r requirements/main.in
-notebook==7.2.2
+notebook==7.3.1
     # via jupyter
 notebook-shim==0.2.4
     # via
@@ -500,13 +501,13 @@ prefixmaps==0.2.6
     # via
     #   linkml
     #   linkml-runtime
-prometheus-client==0.21.0
+prometheus-client==0.21.1
     # via jupyter-server
 prompt-toolkit==3.0.48
     # via
     #   ipython
     #   jupyter-console
-propcache==0.2.0
+propcache==0.2.1
     # via yarl
 protobuf==4.25.5
     # via
@@ -570,7 +571,7 @@ pyshexc==0.9.1
     # via
     #   linkml
     #   pyshex
-pytest==8.3.3
+pytest==8.3.4
     # via pytest-logging
 pytest-logging==2015.11.4
     # via prefixcommons
@@ -593,7 +594,7 @@ python-jose==3.3.0
     # via -r requirements/main.in
 python-json-logger==2.0.7
     # via jupyter-events
-python-multipart==0.0.17
+python-multipart==0.0.19
     # via -r requirements/main.in
 pytrie==0.4.0
     # via curies
@@ -681,7 +682,7 @@ rfc3987==1.3.8
     # via jsonschema
 rich==13.9.4
     # via dagster
-rpds-py==0.21.0
+rpds-py==0.22.3
     # via
     #   jsonschema
     #   referencing
@@ -693,7 +694,7 @@ ruamel-yaml==0.18.6
     #   nmdc-schema
 ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
-s3transfer==0.10.3
+s3transfer==0.10.4
     # via boto3
 semver==3.0.2
     # via -r requirements/main.in
@@ -707,7 +708,6 @@ shexjsg==0.8.2
     #   pyshexc
 six==1.16.0
     # via
-    #   asttokens
     #   base32-lib
     #   dependency-injector
     #   ecdsa
@@ -716,9 +716,7 @@ six==1.16.0
     #   rfc3339-validator
     #   url-normalize
 sniffio==1.3.1
-    # via
-    #   anyio
-    #   httpx
+    # via anyio
 sortedcontainers==2.4.0
     # via pytrie
 soupsieve==2.6
@@ -736,7 +734,7 @@ sqlalchemy==2.0.36
     #   linkml
 stack-data==0.6.3
     # via ipython
-starlette==0.41.2
+starlette==0.41.3
     # via
     #   dagster-graphql
     #   dagster-webserver
@@ -755,7 +753,7 @@ tinycss2==1.4.0
     # via nbconvert
 toml==0.10.2
     # via beanie
-tomli==2.1.0
+tomli==2.2.1
     # via
     #   dagster
     #   jupyterlab
@@ -766,7 +764,7 @@ toolz==1.0.0
     # via -r requirements/main.in
 toposort==1.10
     # via dagster
-tornado==6.4.1
+tornado==6.4.2
     # via
     #   ipykernel
     #   jupyter-client
@@ -774,7 +772,7 @@ tornado==6.4.1
     #   jupyterlab
     #   notebook
     #   terminado
-tqdm==4.67.0
+tqdm==4.67.1
     # via
     #   -r requirements/main.in
     #   dagster
@@ -794,7 +792,7 @@ traitlets==5.14.3
     #   nbclient
     #   nbconvert
     #   nbformat
-types-python-dateutil==2.9.0.20241003
+types-python-dateutil==2.9.0.20241206
     # via arrow
 typing-extensions==4.12.2
     # via
@@ -827,7 +825,7 @@ urllib3==2.2.3
     #   pyshex
     #   requests
     #   requests-cache
-uvicorn==0.32.0
+uvicorn==0.32.1
     # via
     #   -r requirements/main.in
     #   dagster-webserver
@@ -838,7 +836,7 @@ watchdog==5.0.3
     #   dagster
     #   linkml
     #   mkdocs
-watchfiles==0.24.0
+watchfiles==1.0.0
     # via uvicorn
 wcwidth==0.2.13
     # via prompt-toolkit
@@ -854,17 +852,17 @@ websockets==14.1
     # via uvicorn
 widgetsnbextension==4.0.13
     # via ipywidgets
-wrapt==1.16.0
+wrapt==1.17.0
     # via deprecated
 xlrd==2.0.1
     # via -r requirements/main.in
 xlsxwriter==3.2.0
     # via -r requirements/main.in
-yarl==1.17.1
+yarl==1.18.3
     # via gql
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==75.5.0
+setuptools==75.6.0
     # via
     #   dagster
     #   jupyterlab
