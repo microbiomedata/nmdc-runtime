@@ -3,8 +3,7 @@
 The Runtime advertises jobs to be done, where a [Job](https://api.microbiomedata.org/docs#/jobs)
 is a [Workflow](https://api.microbiomedata.org/docs#/workflows) paired with a chosen input
 [Object](https://api.microbiomedata.org/docs#/objects). See [Guide - Create Workflow Triggers To
-Spawn Jobs](guide-create-triggers.md) to learn how to arrange for jobs of interest to be
-automatically available when relevant new workflow inputs are available.
+Spawn Jobs](create-triggers.md) to learn how to arrange for jobs of interest to be automatically available when relevant new workflow inputs are available.
 
 You can list open jobs via [`GET /jobs`](https://api.microbiomedata.org/docs#/jobs/list_jobs_jobs_get). To
 claim a job, [`POST` to
@@ -26,7 +25,7 @@ and run jobs are available in the codebase in
   submit metadata as Objects and associate them with the `metadata-in` Object Type. This in turn
   triggers the creation of Jobs (for the `metadata-in-1.0.0` Workflow) to validate and ingest the
   metadata. Because these jobs are not too intensive wrt data or compute, the Runtime itself hosts a
-  [Site](https://api.microbiomedata.org/docs#/sites) that claims and runs these jobs. *
+  [Site](https://api.microbiomedata.org/docs#/sites) that claims and runs these jobs.
 
 * `claim_and_run_apply_changesheet_jobs` senses new jobs to apply changesheets, that is, to apply
   surgical updates to existing metadata. Users submit changesheets via [`POST
@@ -45,7 +44,7 @@ and run jobs are available in the codebase in
 If your workflow is neither data- nor resource-intensive, you may opt to implement it as a Dagster
 [Graph](https://docs.dagster.io/concepts/ops-jobs-graphs/jobs-graphs) of [Ops
 (Operations)](https://docs.dagster.io/concepts/ops-jobs-graphs/ops) within a Runtime Site
-[Repository](https://docs.dagster.io/concepts/repositories-workspaces/repositories), e.g. to include
+[Repository](https://docs.dagster.io/concepts/repositories-workspaces/repositories), e.g., to include
 it in the
 [`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
 module with the above examples. Otherwise, NMDC workflow jobs are generally run at Sites that have
