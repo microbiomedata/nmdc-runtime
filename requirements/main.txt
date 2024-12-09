@@ -21,6 +21,8 @@ anyio==4.7.0
     #   jupyter-server
     #   starlette
     #   watchfiles
+appnope==0.1.4
+    # via ipykernel
 argon2-cffi==23.1.0
     # via jupyter-server
 argon2-cffi-bindings==21.2.0
@@ -194,8 +196,6 @@ graphql-relay==3.2.0
     # via graphene
 graphviz==0.20.3
     # via linkml
-greenlet==3.1.1
-    # via sqlalchemy
 grpcio==1.68.1
     # via
     #   dagster
@@ -440,7 +440,7 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-nmdc-schema==11.1.0
+nmdc-schema==11.2.1
     # via -r requirements/main.in
 notebook==7.3.1
     # via jupyter
