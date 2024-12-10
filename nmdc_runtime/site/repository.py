@@ -43,6 +43,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
+    biosample_rollup_export,
     nmdc_study_to_ncbi_submission_export,
 )
 from nmdc_runtime.site.resources import (
@@ -908,6 +909,32 @@ def biosample_export():
                             },
                         }
                     },
+                },
+            },
+        ),
+        biosample_rollup_export.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "mongo": {
+                            "config": {
+                                "host": {"env": "MONGO_HOST"},
+                                "username": {"env": "MONGO_USERNAME"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "dbname": {"env": "MONGO_DBNAME"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_biosample_rollup_pipeline_input": {
+                        "config": {
+                            "nmdc_study_id": "",
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
         ),
