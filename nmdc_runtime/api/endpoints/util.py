@@ -420,14 +420,15 @@ def find_resources_spanning(
 
 def exists(collection: MongoCollection, filter_: dict):
     r"""
-    TODO: Document this function.
+    Returns True if there are any documents in the collection that meet the filter requirements.
     """
     return collection.count_documents(filter_) > 0
 
 
 def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
     r"""
-    TODO: Document this function.
+    For a known collection name, returns the associated resources.
+    Raises an exception for an unknown collection name.
     """
     if resource == "biosamples":
         return find_resources(req, mdb, "biosample_set")
@@ -612,7 +613,8 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
 @lru_cache
 def nmdc_workflow_id_to_dagster_job_name_map():
     r"""
-    TODO: Document this function and change its name to a verb.
+    TODO: change name to a verb. Proposed: map_nmdc_workflow_id_to_dagster_job_name
+    Returns a dictionary mapping nmdc_workflow_id to dagster_job_name.
     """
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
@@ -630,6 +632,8 @@ def ensure_run_config_data(
 ):
     r"""
     TODO: Document this function and say what it "ensures" about the "run config data".
+    Ensures that run_config_data has entries for certain nmdc_workflow_ids.
+    Returns return_config_data.
     """
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
         run_config_data = assoc_in(
@@ -662,6 +666,7 @@ def ensure_run_config_data(
 def inputs_for(nmdc_workflow_id, run_config_data):
     r"""
     TODO: Document this function.
+    Returns a path for certain nmdc_workflow_ids.
     """
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
@@ -697,6 +702,8 @@ def _request_dagster_run(
 ):
     r"""
     TODO: Document this function.
+    Requests a Dagster run using the specified parameters. 
+    Returns a json dictionary indicating the job's success or failure.
     """
     dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
 
@@ -745,7 +752,7 @@ def _request_dagster_run(
 
 def _get_dagster_run_status(run_id: str):
     r"""
-    TODO: Document this function.
+    Returns the status (either "success" or "error") of a requested Dagster run.
     """
     dagster_client = get_dagster_graphql_client()
     try:
@@ -757,7 +764,8 @@ def _get_dagster_run_status(run_id: str):
 
 def permitted(username: str, action: str):
     r"""
-    TODO: Document this function and change its name to a verb.
+    TODO: Change this function's name to a verb. Proposed: check_action_permitted
+    Returns True if a Mongo database action is "allowed" and "not denied".
     """
     db: MongoDatabase = get_mongo_db()
     filter_ = {"username": username, "action": action}
@@ -768,7 +776,8 @@ def permitted(username: str, action: str):
 
 def users_allowed(action: str):
     r"""
-    TODO: Document this function and change its name to a verb.
+    TODO: Change this function's name to a verb. Proposed: check_users_allowed
+    Returns True if the specified user is able to perform the requested action.
     """
     db: MongoDatabase = get_mongo_db()
     return db["_runtime.api.allow"].distinct("username", {"action": action})
