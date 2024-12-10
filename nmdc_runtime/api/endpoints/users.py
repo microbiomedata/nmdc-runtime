@@ -75,10 +75,12 @@ async def login_for_access_token(
     form_data: OAuth2PasswordOrClientCredentialsRequestForm = Depends(),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
-    
+
     if form_data.expires:
         expires = int(form_data.expires)
-        if timedelta(**ACCESS_TOKEN_EXPIRES.model_dump()) - timedelta(seconds=expires) < timedelta(seconds=0):
+        if timedelta(**ACCESS_TOKEN_EXPIRES.model_dump()) - timedelta(
+            seconds=expires
+        ) < timedelta(seconds=0):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="expires must be less than 86400",
