@@ -8,6 +8,7 @@ from dagster import build_op_context
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
+from datetime import datetime, timezone
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
@@ -27,6 +28,7 @@ from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
 )
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+from jose import jwt
 
 
 def ensure_schema_collections_and_alldocs():
@@ -139,6 +141,59 @@ def test_update_operation():
         JobOperationMetadata
     )
 
+def test_token():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    base_url = os.getenv("API_HOST")
+
+    @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
+    def get_token_response(expires=None):
+        """
+        Fetch an auth token from the Runtime API.
+        """
+        data={
+                "grant_type": "password",
+                "username": rs["user"]["username"],
+                "password": rs["user"]["password"],
+            }
+        if expires:
+            data["expires"] = expires
+        _rv = requests.post(
+            base_url + "/token",
+            data=data,
+        )
+        return _rv 
+
+    # Test default expiration
+    token = get_token_response().json()
+    assert token["token_type"] == "bearer"
+    assert "access_token" in token
+    assert "expires" in token
+    assert token["expires"] == {
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0
+    }
+
+    # Test custom expiration
+    token = get_token_response(7382) .json()
+    assert token["expires"] == {
+        "days": 0,
+        "hours": 2,
+        "minutes": 3,
+        "seconds": 2
+    }   
+    access_token = token["access_token"]
+    # Decode the JWT access token
+    decoded_token = jwt.get_unverified_claims(access_token)
+    delta = (datetime.fromtimestamp(decoded_token['exp'], timezone.utc) - datetime.now(timezone.utc)).total_seconds()
+    # give it margin for error since the operation could take a few seconds
+    assert delta > 7200 and delta <= 7382
+
+    # Test expiration over 24 hours
+    response = get_token_response(86401) 
+    assert response.status_code == 401
 
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
