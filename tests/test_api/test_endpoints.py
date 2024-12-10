@@ -162,10 +162,10 @@ def test_token():
             base_url + "/token",
             data=data,
         )
-        token_response = _rv.json()
-        return token_response
+        return _rv 
 
-    token = get_token_response()
+    # Test default expiration
+    token = get_token_response().json()
     assert token["token_type"] == "bearer"
     assert "access_token" in token
     assert "expires" in token
@@ -175,7 +175,9 @@ def test_token():
         "minutes": 0,
         "seconds": 0
     }
-    token = get_token_response(7382) 
+
+    # Test custom expiration
+    token = get_token_response(7382) .json()
     assert token["expires"] == {
         "days": 0,
         "hours": 2,
@@ -189,6 +191,9 @@ def test_token():
     # give it margin for error since the operation could take a few seconds
     assert delta > 7200 and delta <= 7382
 
+    # Test expiration over 24 hours
+    response = get_token_response(86401) 
+    assert response.status_code == 401
 
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
