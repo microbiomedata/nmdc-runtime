@@ -13,6 +13,7 @@ from starlette.responses import HTMLResponse, RedirectResponse, PlainTextRespons
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
     Token,
+    TokenExpires,
     ACCESS_TOKEN_EXPIRES,
     create_access_token,
     ORCID_NMDC_CLIENT_ID,
@@ -74,6 +75,19 @@ async def login_for_access_token(
     form_data: OAuth2PasswordOrClientCredentialsRequestForm = Depends(),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    
+    if form_data.expires:
+        expires = int(form_data.expires)
+        if timedelta(**ACCESS_TOKEN_EXPIRES.model_dump()) - timedelta(seconds=expires) < timedelta(seconds=0):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(seconds=expires)
+    else:
+        access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
+
     if form_data.grant_type == "password":
         user = authenticate_user(mdb, form_data.username, form_data.password)
         if not user:
@@ -82,7 +96,6 @@ async def login_for_access_token(
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
         access_token = create_access_token(
             data={"sub": f"user:{user.username}"}, expires_delta=access_token_expires
         )
@@ -112,7 +125,6 @@ async def login_for_access_token(
                     )
                     user = get_user(mdb, subject)
                 assert user is not None, "failed to create orcid user"
-                access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
                 access_token = create_access_token(
                     data={"sub": f"user:{user.username}"},
                     expires_delta=access_token_expires,
@@ -131,15 +143,23 @@ async def login_for_access_token(
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             # TODO make below an absolute time
-            access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
             access_token = create_access_token(
                 data={"sub": f"client:{form_data.client_id}"},
                 expires_delta=access_token_expires,
             )
+    days, remainder = divmod(access_token_expires.total_seconds(), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    token_expires = TokenExpires(
+        days=int(days),
+        hours=int(hours),
+        minutes=int(minutes),
+        seconds=int(seconds),
+    )
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires": ACCESS_TOKEN_EXPIRES.model_dump(),
+        "expires": token_expires.model_dump(),
     }
 
 

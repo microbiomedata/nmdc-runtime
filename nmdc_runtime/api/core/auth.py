@@ -66,9 +66,10 @@ class TokenExpires(BaseModel):
     days: Optional[int] = 1
     hours: Optional[int] = 0
     minutes: Optional[int] = 0
+    seconds: Optional[int] = 0
 
 
-ACCESS_TOKEN_EXPIRES = TokenExpires(days=1, hours=0, minutes=0)
+ACCESS_TOKEN_EXPIRES = TokenExpires(days=1, hours=0, minutes=0, seconds=0)
 
 
 class Token(BaseModel):
@@ -174,14 +175,19 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
         bearer_creds: Optional[HTTPAuthorizationCredentials] = Depends(
             bearer_credentials
         ),
-        grant_type: str = Form(None, pattern="^password$|^client_credentials$"),
-        username: Optional[str] = Form(None),
-        password: Optional[str] = Form(None),
+        grant_type: str = Form(None, 
+                               pattern="^password$|^client_credentials$", 
+                               description="Select type of login credentials - either `password` or `client_credentials`"),
+        username: Optional[str] = Form(None, description="Username for grant_type `password`"),
+        password: Optional[str] = Form(None, description="Password for grant_type `password`"),
         scope: str = Form(""),
-        client_id: Optional[str] = Form(None),
-        client_secret: Optional[str] = Form(None),
+        client_id: Optional[str] = Form(None, description="Client ID for grant_type `client_credentials`"),
+        client_secret: Optional[str] = Form(None, description="Client secret for grant_type `client_credentials`"),
+        expires: Optional[str] = Form(None, description="Seconds until token expires (Default 1 day)"),
     ):
-        if bearer_creds:
+        if bearer_creds:    
+            # TODO: This is never being used since it gets overwritten later on. 
+            #       Should we remove this?
             self.grant_type = "client_credentials"
             self.username, self.password = None, None
             self.scopes = scope.split()
@@ -207,3 +213,5 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
         self.scopes = scope.split()
         self.client_id = client_id
         self.client_secret = client_secret
+        self.expires = expires
+
