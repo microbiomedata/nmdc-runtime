@@ -81,7 +81,7 @@ async def login_for_access_token(
         if timedelta(**ACCESS_TOKEN_EXPIRES.model_dump()) - timedelta(seconds=expires) < timedelta(seconds=0):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
+                detail="expires must be less than 86400",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         access_token_expires = timedelta(seconds=expires)

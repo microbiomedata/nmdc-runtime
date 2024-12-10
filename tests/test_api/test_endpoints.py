@@ -185,7 +185,7 @@ def test_token():
     access_token = token["access_token"]
     # Decode the JWT access token
     decoded_token = jwt.get_unverified_claims(access_token)
-    delta = decoded_token['exp']-datetime.now(timezone.utc).total_seconds()
+    delta = (datetime.fromtimestamp(decoded_token['exp'], timezone.utc) - datetime.now(timezone.utc)).total_seconds()
     # give it margin for error since the operation could take a few seconds
     assert delta > 7200 and delta <= 7382
 
