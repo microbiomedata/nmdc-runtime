@@ -7,6 +7,10 @@ import pandas as pd
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
+# Dictionary of sequencing strategies from GOLD that we are filtering on
+# based on the kind of samples that are required for NMDC
+SEQUENCING_STRATEGIES = {"Metagenome", "Metatranscriptome"}
+
 
 class GoldStudyTranslator(Translator):
     def __init__(
@@ -30,7 +34,7 @@ class GoldStudyTranslator(Translator):
             biosample
             for biosample in biosamples
             if any(
-                project.get("sequencingStrategy") in {"Metagenome", "Metatranscriptome"}
+                project.get("sequencingStrategy") in SEQUENCING_STRATEGIES
                 for project in biosample.get("projects", [])
             )
         ]
