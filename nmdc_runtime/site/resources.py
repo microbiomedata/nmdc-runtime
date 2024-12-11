@@ -331,9 +331,26 @@ class GoldApiClient(BasicAuthClient):
         """
         return id.replace("gold:", "")
 
-    def fetch_biosamples_by_study(self, study_id: str) -> List[Dict[str, Any]]:
+    def fetch_biosamples_by_study(
+        self, study_id: str, include_project=True
+    ) -> List[Dict[str, Any]]:
         id = self._normalize_id(study_id)
         results = self.request("/biosamples", params={"studyGoldId": id})
+        if include_project:
+            projects = self.fetch_projects_by_study(id)
+            biosamples_by_id = {
+                biosample["biosampleGoldId"]: biosample for biosample in results
+            }
+            for project in projects:
+                sample_id = project.get("biosampleGoldId")
+                if not sample_id:
+                    continue
+                if sample_id not in biosamples_by_id:
+                    continue
+                biosample = biosamples_by_id[sample_id]
+                if "projects" not in biosample:
+                    biosample["projects"] = []
+                biosample["projects"].append(project)
         return results
 
     def fetch_projects_by_study(self, study_id: str) -> List[Dict[str, Any]]:
