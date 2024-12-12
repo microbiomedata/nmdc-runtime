@@ -648,14 +648,12 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                             references.get_reference_field_names_by_source_class_name()
                         )
                         for document in coll_docs:
-
                             # Get the document's schema class name so that we can interpret its fields accordingly.
                             source_class_name = derive_schema_class_name_from_document(
                                 schema_view=nmdc_schema_view(),
                                 document=document,
                             )
 
-                            # Get the names of that class's fields that can contain references.
                             # Get the names of that class's fields that can contain references.
                             names_of_reference_fields = (
                                 reference_field_names_by_source_class_name.get(
@@ -666,7 +664,6 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                             # Check each field that both (a) exists in the document and (b) can contain a reference.
                             for field_name in names_of_reference_fields:
                                 if field_name in document:
-
                                     # Determine which collections can contain the referenced document, based upon
                                     # the schema class of which this source document is an instance.
                                     target_collection_names = (
@@ -703,7 +700,7 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                                                 ),
                                                 source_document_id=document.get("id"),
                                                 target_id=target_id,
-                                                name_of_collection_containing_target=None,
+                                                name_of_collection_containing_target=name_of_collection_containing_target_document,
                                             )
                                             violation_as_str = (
                                                 f"Document '{violation.source_document_id}' "
