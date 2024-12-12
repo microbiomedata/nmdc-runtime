@@ -14,16 +14,14 @@ from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from refscan.lib.helpers import identify_references, ReferenceList
 from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
-    collection_name_to_class_names,
+    get_allowed_references,
     ensure_unique_id_indexes,
-    nmdc_schema_view,
     REPO_ROOT_DIR,
 )
 from nmdc_runtime.api.core.auth import (
@@ -356,23 +354,6 @@ def ensure_default_api_perms():
         db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
         db["_runtime.api.allow"].create_index("username")
         db["_runtime.api.allow"].create_index("action")
-
-
-@cache  # memoizes the decorated function
-def get_allowed_references() -> ReferenceList:
-    r"""
-    Returns a `ReferenceList` of all the inter-document references that
-    the NMDC Schema allows a schema-compliant MongoDB database to contain.
-    """
-
-    # Identify the inter-document references that the schema allows a database to contain.
-    print("Identifying schema-allowed references.")
-    references = identify_references(
-        schema_view=nmdc_schema_view(),
-        collection_name_to_class_names=collection_name_to_class_names
-    )
-
-    return references
 
 
 @asynccontextmanager
