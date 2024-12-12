@@ -1,6 +1,7 @@
 import os
 import re
 from contextlib import asynccontextmanager
+from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -13,12 +14,16 @@ from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
+from linkml_runtime.utils.schemaview import SchemaView
+from nmdc_schema.nmdc_data import get_nmdc_schema_definition
+from refscan.lib.helpers import identify_references, ReferenceList
 from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
+    collection_name_to_class_names,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
@@ -354,11 +359,42 @@ def ensure_default_api_perms():
         db["_runtime.api.allow"].create_index("action")
 
 
+@cache  # memoizes the decorated function
+def get_allowed_references() -> ReferenceList:
+    r"""
+    Returns a `ReferenceList` of all the inter-document references that
+    the NMDC Schema allows a schema-compliant MongoDB database to contain.
+    """
+
+    # Instantiate a LinkML `SchemaView` bound to the NMDC Schema.
+    schema_view = SchemaView(get_nmdc_schema_definition())
+
+    # Identify the inter-document references that the schema allows a database to contain.
+    print("Identifying schema-allowed references.")
+    references = identify_references(
+        schema_view=schema_view,
+        collection_name_to_class_names=collection_name_to_class_names
+    )
+
+    return references
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    r"""
+    Prepares the application to receive requests.
+
+    From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
+    > You can define logic (code) that should be executed before the application starts up. This means that
+    > this code will be executed once, before the application starts receiving requests.
+
+    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
+          but not before that (i.e. not when the application is idle before any requests start coming in).
+    """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
+    _ = get_allowed_references()  # note: future invocations will benefit from the function's memoized-ness
     yield
 
 
