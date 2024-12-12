@@ -371,7 +371,9 @@ async def lifespan(app: FastAPI):
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
-    _ = get_allowed_references()  # note: future invocations will benefit from the function's memoized-ness
+    _ = (
+        get_allowed_references()
+    )  # note: future invocations will benefit from the function's memoized-ness
     yield
 
 

@@ -94,7 +94,7 @@ def get_allowed_references() -> ReferenceList:
     print("Identifying schema-allowed references.")
     references = identify_references(
         schema_view=nmdc_schema_view(),
-        collection_name_to_class_names=collection_name_to_class_names
+        collection_name_to_class_names=collection_name_to_class_names,
     )
 
     return references
@@ -638,9 +638,15 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                         #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
                         #
                         source_collection_name = coll_name  # creates an alias to accommodate the copy/pasted code
-                        finder = Finder(database=odb)  # uses a generic name to accommodate the copy/pasted code
-                        references = get_allowed_references()  # uses a generic name to accommodate the copy/pasted code
-                        reference_field_names_by_source_class_name = references.get_reference_field_names_by_source_class_name()
+                        finder = Finder(
+                            database=odb
+                        )  # uses a generic name to accommodate the copy/pasted code
+                        references = (
+                            get_allowed_references()
+                        )  # uses a generic name to accommodate the copy/pasted code
+                        reference_field_names_by_source_class_name = (
+                            references.get_reference_field_names_by_source_class_name()
+                        )
                         for document in coll_docs:
 
                             # Get the document's schema class name so that we can interpret its fields accordingly.
@@ -651,7 +657,11 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
 
                             # Get the names of that class's fields that can contain references.
                             # Get the names of that class's fields that can contain references.
-                            names_of_reference_fields = reference_field_names_by_source_class_name.get(source_class_name, [])
+                            names_of_reference_fields = (
+                                reference_field_names_by_source_class_name.get(
+                                    source_class_name, []
+                                )
+                            )
 
                             # Check each field that both (a) exists in the document and (b) can contain a reference.
                             for field_name in names_of_reference_fields:
@@ -659,9 +669,11 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
 
                                     # Determine which collections can contain the referenced document, based upon
                                     # the schema class of which this source document is an instance.
-                                    target_collection_names = references.get_target_collection_names(
-                                        source_class_name=source_class_name,
-                                        source_field_name=field_name,
+                                    target_collection_names = (
+                                        references.get_target_collection_names(
+                                            source_class_name=source_class_name,
+                                            source_field_name=field_name,
+                                        )
                                     )
 
                                     # Handle both the multi-value (array) and the single-value (scalar) case,
@@ -670,30 +682,38 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                                         target_ids = document[field_name]
                                     else:
                                         target_id = document[field_name]
-                                        target_ids = [target_id]  # makes a one-item list
+                                        target_ids = [
+                                            target_id
+                                        ]  # makes a one-item list
 
                                     for target_id in target_ids:
-                                        name_of_collection_containing_target_document = (
-                                            finder.check_whether_document_having_id_exists_among_collections(
-                                                collection_names=target_collection_names, document_id=target_id
-                                            )
+                                        name_of_collection_containing_target_document = finder.check_whether_document_having_id_exists_among_collections(
+                                            collection_names=target_collection_names,
+                                            document_id=target_id,
                                         )
-                                        if name_of_collection_containing_target_document is None:
+                                        if (
+                                            name_of_collection_containing_target_document
+                                            is None
+                                        ):
                                             violation = Violation(
                                                 source_collection_name=source_collection_name,
                                                 source_field_name=field_name,
-                                                source_document_object_id=document.get("_id"),
+                                                source_document_object_id=document.get(
+                                                    "_id"
+                                                ),
                                                 source_document_id=document.get("id"),
                                                 target_id=target_id,
                                                 name_of_collection_containing_target=None,
                                             )
-                                            violation_as_str = (f"Document '{violation.source_document_id}' "
-                                                                f"in collection '{violation.source_collection_name}' "
-                                                                f"has a field '{violation.source_field_name}' that "
-                                                                f"references a document having id "
-                                                                f"'{violation.target_id}', but the latter document "
-                                                                f"does not exist in any of the collections the "
-                                                                f"NMDC Schema says it can exist in.")
+                                            violation_as_str = (
+                                                f"Document '{violation.source_document_id}' "
+                                                f"in collection '{violation.source_collection_name}' "
+                                                f"has a field '{violation.source_field_name}' that "
+                                                f"references a document having id "
+                                                f"'{violation.target_id}', but the latter document "
+                                                f"does not exist in any of the collections the "
+                                                f"NMDC Schema says it can exist in."
+                                            )
                                             raise OverlayDBError(violation_as_str)
 
                 except OverlayDBError as e:
