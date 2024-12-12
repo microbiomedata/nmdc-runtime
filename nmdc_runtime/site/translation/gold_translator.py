@@ -631,7 +631,11 @@ class GoldStudyTranslator(Translator):
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             instrument_used=self._get_instrument(gold_project),
-            analyte_category="metagenome",
+            analyte_category=(
+                gold_project.get("sequencingStrategy").lower()
+                if gold_project.get("sequencingStrategy")
+                else None
+            ),
             associated_studies=[nmdc_study_id],
         )
 
