@@ -14,8 +14,6 @@ from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from linkml_runtime.utils.schemaview import SchemaView
-from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 from refscan.lib.helpers import identify_references, ReferenceList
 from setuptools_scm import get_version
 from starlette import status
@@ -25,6 +23,7 @@ from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
     collection_name_to_class_names,
     ensure_unique_id_indexes,
+    nmdc_schema_view,
     REPO_ROOT_DIR,
 )
 from nmdc_runtime.api.core.auth import (
@@ -366,13 +365,10 @@ def get_allowed_references() -> ReferenceList:
     the NMDC Schema allows a schema-compliant MongoDB database to contain.
     """
 
-    # Instantiate a LinkML `SchemaView` bound to the NMDC Schema.
-    schema_view = SchemaView(get_nmdc_schema_definition())
-
     # Identify the inter-document references that the schema allows a database to contain.
     print("Identifying schema-allowed references.")
     references = identify_references(
-        schema_view=schema_view,
+        schema_view=nmdc_schema_view(),
         collection_name_to_class_names=collection_name_to_class_names
     )
 
