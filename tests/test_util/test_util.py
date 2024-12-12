@@ -27,6 +27,13 @@ def test_validate_json():
     result = validate_json(in_docs=database_dict, mdb=mdb)
     assert result == ok_result
 
+    # Test: The function reports an error for a schema-defiant collection name.
+    database_dict = {"OTHER_set": []}
+    result = validate_json(in_docs=database_dict, mdb=mdb)
+    assert result["result"] == "errors"
+    assert "OTHER_set" in result["detail"]
+    assert len(result["detail"]["OTHER_set"]) == 1
+
     # Test: Two empty collections is valid.
     database_dict = {"biosample_set": [], "study_set": []}
     result = validate_json(in_docs=database_dict, mdb=mdb)
