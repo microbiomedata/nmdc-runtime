@@ -4,7 +4,7 @@ from nmdc_runtime.util import validate_json
 # Tip: At the time of this writing, you can run the tests in this file without running other tests in this repo,
 #      by issuing the following command from the root directory of the repository:
 #      ```
-#      $ pytest tests/test_util/test_util.py
+#      $ pytest tests/test_the_util/test_the_util.py
 #      ```
 
 
