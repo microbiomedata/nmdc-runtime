@@ -114,7 +114,7 @@ housekeeping_weekly = ScheduleDefinition(
 )
 
 materialize_alldocs_daily = ScheduleDefinition(
-    name="daily materialize alldocs",
+    name="daily_materialize_alldocs",
     cron_schedule="0 3 * * *",
     execution_timezone="America/New_York",
     job=ensure_alldocs.to_job(**preset_normal),
