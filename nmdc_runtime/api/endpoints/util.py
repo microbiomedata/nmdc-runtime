@@ -671,9 +671,9 @@ def _request_dagster_run(
     repository_name=None,
 ):
     r"""
-    TODO: Document this function.
     Requests a Dagster run using the specified parameters.
     Returns a json dictionary indicating the job's success or failure.
+    This is a generic wrapper.
     """
     dagster_job_name = map_nmdc_workflow_id_to_dagster_job_name()[nmdc_workflow_id]
 
