@@ -588,11 +588,8 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
 
 
 @lru_cache
-def nmdc_workflow_id_to_dagster_job_name_map():
-    r"""
-    TODO: change name to a verb. Proposed: map_nmdc_workflow_id_to_dagster_job_name
-    Returns a dictionary mapping nmdc_workflow_id to dagster_job_name.
-    """
+def map_nmdc_workflow_id_to_dagster_job_name():
+    """Returns a dictionary mapping nmdc_workflow_id to dagster_job_name."""
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
@@ -682,7 +679,7 @@ def _request_dagster_run(
     Requests a Dagster run using the specified parameters.
     Returns a json dictionary indicating the job's success or failure.
     """
-    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
+    dagster_job_name = map_nmdc_workflow_id_to_dagster_job_name()[nmdc_workflow_id]
 
     extra_run_config_data = ensure_run_config_data(
         nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
