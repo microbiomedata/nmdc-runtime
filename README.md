@@ -131,8 +131,6 @@ http://127.0.0.1:8000/redoc/.
 
 Tests can be found in `tests` and are run with the following commands:
 
-On an M1 Mac? May need to `export DOCKER_DEFAULT_PLATFORM=linux/amd64`. (Update 2024/12/12 - DO NOT USE this env var with newer Docker Desktop)
-
 ```bash
 make up-test
 make test
