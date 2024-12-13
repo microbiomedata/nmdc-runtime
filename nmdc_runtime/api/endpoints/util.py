@@ -605,8 +605,7 @@ def ensure_run_config_data(
     user: User,
 ):
     r"""
-    TODO: Document this function and say what it "ensures" about the "run config data".
-    Ensures that run_config_data has entries for certain nmdc_workflow_ids.
+    Ensures that run_config_data has entries for certain nmdc workflow ids.
     Returns return_config_data.
     """
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
