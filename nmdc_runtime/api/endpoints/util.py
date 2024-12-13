@@ -732,7 +732,7 @@ def _get_dagster_run_status(run_id: str):
         return {"type": "error", "detail": str(exc)}
 
 
-def permitted(username: str, action: str):
+def check_action_permitted(username: str, action: str):
     r"""
     TODO: Change this function's name to a verb. Proposed: check_action_permitted
     Returns True if a Mongo database action is "allowed" and "not denied".
