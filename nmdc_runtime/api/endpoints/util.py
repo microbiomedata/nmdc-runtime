@@ -425,29 +425,6 @@ def exists(collection: MongoCollection, filter_: dict):
     return collection.count_documents(filter_) > 0
 
 
-def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
-    r"""
-    For a known collection name, returns the associated resources.
-    Raises an exception for an unknown collection name.
-    """
-    if resource == "biosamples":
-        return find_resources(req, mdb, "biosample_set")
-    elif resource == "studies":
-        return find_resources(req, mdb, "study_set")
-    elif resource == "data_objects":
-        return find_resources(req, mdb, "data_object_set")
-    elif resource == "activities":
-        return find_resources_spanning(req, mdb, activity_collection_names(mdb))
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Unknown API resource '{resource}'. "
-                f"Known resources: {{activities, biosamples, data_objects, studies}}."
-            ),
-        )
-
-
 def persist_content_and_get_drs_object(
     content: str,
     description: str,
