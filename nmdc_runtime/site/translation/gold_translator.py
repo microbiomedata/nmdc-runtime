@@ -21,6 +21,7 @@ class GoldStudyTranslator(Translator):
         projects: List[JSON_OBJECT] = [],
         analysis_projects: List[JSON_OBJECT] = [],
         gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
+        include_field_site_info: bool = False,
         *args,
         **kwargs,
     ) -> None:
@@ -28,6 +29,7 @@ class GoldStudyTranslator(Translator):
 
         self.study = study
         self.study_type = nmdc.StudyCategoryEnum(study_type)
+        self.include_field_site_info = include_field_site_info
         # Filter biosamples to only those with `sequencingStrategy` of
         # "Metagenome" or "Metatranscriptome"
         self.biosamples = [
@@ -629,7 +631,11 @@ class GoldStudyTranslator(Translator):
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             instrument_used=self._get_instrument(gold_project),
-            analyte_category="metagenome",
+            analyte_category=(
+                gold_project.get("sequencingStrategy").lower()
+                if gold_project.get("sequencingStrategy")
+                else None
+            ),
             associated_studies=[nmdc_study_id],
         )
 
@@ -654,21 +660,24 @@ class GoldStudyTranslator(Translator):
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(self.biosamples))
         gold_to_nmdc_biosample_ids = dict(zip(gold_biosample_ids, nmdc_biosample_ids))
 
-        gold_field_site_names = sorted(
-            {self._get_field_site_name(biosample) for biosample in self.biosamples}
-        )
-        nmdc_field_site_ids = self._id_minter(
-            "nmdc:FieldResearchSite", len(gold_field_site_names)
-        )
-        gold_name_to_nmdc_field_site_ids = dict(
-            zip(gold_field_site_names, nmdc_field_site_ids)
-        )
-        gold_biosample_to_nmdc_field_site_ids = {
-            biosample["biosampleGoldId"]: gold_name_to_nmdc_field_site_ids[
-                self._get_field_site_name(biosample)
-            ]
-            for biosample in self.biosamples
-        }
+        if self.include_field_site_info:
+            gold_field_site_names = sorted(
+                {self._get_field_site_name(biosample) for biosample in self.biosamples}
+            )
+            nmdc_field_site_ids = self._id_minter(
+                "nmdc:FieldResearchSite", len(gold_field_site_names)
+            )
+            gold_name_to_nmdc_field_site_ids = dict(
+                zip(gold_field_site_names, nmdc_field_site_ids)
+            )
+            gold_biosample_to_nmdc_field_site_ids = {
+                biosample["biosampleGoldId"]: gold_name_to_nmdc_field_site_ids[
+                    self._get_field_site_name(biosample)
+                ]
+                for biosample in self.biosamples
+            }
+        else:
+            gold_biosample_to_nmdc_field_site_ids = {}
 
         gold_project_ids = [project["projectGoldId"] for project in self.projects]
         nmdc_nucleotide_sequencing_ids = self._id_minter(
@@ -686,16 +695,17 @@ class GoldStudyTranslator(Translator):
                     biosample["biosampleGoldId"]
                 ],
                 nmdc_study_id=nmdc_study_id,
-                nmdc_field_site_id=gold_biosample_to_nmdc_field_site_ids[
-                    biosample["biosampleGoldId"]
-                ],
+                nmdc_field_site_id=gold_biosample_to_nmdc_field_site_ids.get(
+                    biosample["biosampleGoldId"], None
+                ),
             )
             for biosample in self.biosamples
         ]
-        database.field_research_site_set = [
-            nmdc.FieldResearchSite(id=id, name=name, type="nmdc:FieldResearchSite")
-            for name, id in gold_name_to_nmdc_field_site_ids.items()
-        ]
+        if self.include_field_site_info:
+            database.field_research_site_set = [
+                nmdc.FieldResearchSite(id=id, name=name, type="nmdc:FieldResearchSite")
+                for name, id in gold_name_to_nmdc_field_site_ids.items()
+            ]
         database.data_generation_set = [
             self._translate_nucleotide_sequencing(
                 project,

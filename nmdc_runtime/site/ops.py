@@ -589,18 +589,23 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         "study_id": str,
         "study_type": str,
         "gold_nmdc_instrument_mapping_file_url": str,
+        "include_field_site_info": bool,
     },
     out={
         "study_id": Out(str),
         "study_type": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
+        "include_field_site_info": Out(bool),
     },
 )
-def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str, str]:
+def get_gold_study_pipeline_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, str, bool]:
     return (
         context.op_config["study_id"],
         context.op_config["study_type"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
+        context.op_config["include_field_site_info"],
     )
 
 
@@ -643,6 +648,7 @@ def nmdc_schema_database_from_gold_study(
     biosamples: List[Dict[str, Any]],
     analysis_projects: List[Dict[str, Any]],
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -657,6 +663,7 @@ def nmdc_schema_database_from_gold_study(
         projects,
         analysis_projects,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
         id_minter=id_minter,
     )
     database = translator.get_database()

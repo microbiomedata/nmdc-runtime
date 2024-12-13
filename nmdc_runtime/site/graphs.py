@@ -127,9 +127,12 @@ def apply_metadata_in():
 
 @graph
 def gold_study_to_database():
-    (study_id, study_type, gold_nmdc_instrument_mapping_file_url) = (
-        get_gold_study_pipeline_inputs()
-    )
+    (
+        study_id,
+        study_type,
+        gold_nmdc_instrument_mapping_file_url,
+        include_field_site_info,
+    ) = get_gold_study_pipeline_inputs()
 
     projects = gold_projects_by_study(study_id)
     biosamples = gold_biosamples_by_study(study_id)
@@ -144,6 +147,7 @@ def gold_study_to_database():
         biosamples,
         analysis_projects,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
