@@ -733,10 +733,7 @@ def _get_dagster_run_status(run_id: str):
 
 
 def check_action_permitted(username: str, action: str):
-    r"""
-    TODO: Change this function's name to a verb. Proposed: check_action_permitted
-    Returns True if a Mongo database action is "allowed" and "not denied".
-    """
+    """Returns True if a Mongo database action is "allowed" and "not denied"."""
     db: MongoDatabase = get_mongo_db()
     filter_ = {"username": username, "action": action}
     denied = db["_runtime.api.deny"].find_one(filter_) is not None
