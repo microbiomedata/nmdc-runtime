@@ -249,8 +249,9 @@ def timeit(cursor):
 
 
 def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
-    r"""
-    TODO: Document this function.
+    """Find nmdc schema collection entities that match the FindRequest.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
     """
     if req.group_by:
         raise HTTPException(
@@ -377,8 +378,11 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 def find_resources_spanning(
     req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
 ):
-    r"""
-    TODO: Document this function.
+    """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
+
+    This is useful for collections that house documents that are subclasses of a common ancestor class.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
     """
     if req.cursor or not req.page:
         raise HTTPException(
