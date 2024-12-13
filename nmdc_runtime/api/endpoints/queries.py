@@ -13,7 +13,6 @@ from nmdc_runtime.api.db.mongo import (
 )
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
-    users_allowed,
     strip_oid,
 )
 from nmdc_runtime.api.models.query import (

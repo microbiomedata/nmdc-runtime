@@ -739,12 +739,3 @@ def check_action_permitted(username: str, action: str):
     denied = db["_runtime.api.deny"].find_one(filter_) is not None
     allowed = db["_runtime.api.allow"].find_one(filter_) is not None
     return (not denied) and allowed
-
-
-def users_allowed(action: str):
-    r"""
-    TODO: Change this function's name to a verb. Proposed: check_users_allowed
-    Returns True if the specified user is able to perform the requested action.
-    """
-    db: MongoDatabase = get_mongo_db()
-    return db["_runtime.api.allow"].distinct("username", {"action": action})
