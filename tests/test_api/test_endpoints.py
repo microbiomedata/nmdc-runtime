@@ -145,7 +145,9 @@ def test_create_user():
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
     def get_token():
         """
 
@@ -197,7 +199,9 @@ def test_update_user():
     base_url = os.getenv("API_HOST")
 
     # Try up to three times, waiting for up to 60 seconds between each attempt.
-    @retry(wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
     def get_token():
         """
         Fetch an auth token from the Runtime API.
@@ -228,7 +232,7 @@ def test_update_user():
         headers=headers,
         json=user_in1.model_dump(exclude_unset=True),
     )
-    
+
     u1 = mdb.users.find_one({"username": user_in1.username})
 
     user_in2 = UserIn(username="foo", password="newpass")
@@ -240,12 +244,11 @@ def test_update_user():
         json=user_in2.model_dump(exclude_unset=True),
     )
 
-
     u2 = mdb.users.find_one({"username": user_in2.username})
     try:
         assert rv_create.status_code == status.HTTP_201_CREATED
         assert rv_update.status_code == status.HTTP_200_OK
-        assert u1['hashed_password'] != u2['hashed_password']
+        assert u1["hashed_password"] != u2["hashed_password"]
 
     finally:
         mdb.users.delete_one({"username": user_in1.username})
@@ -253,6 +256,7 @@ def test_update_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
+
 
 @pytest.fixture
 def api_site_client():
