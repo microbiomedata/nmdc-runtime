@@ -702,7 +702,7 @@ def _request_dagster_run(
 ):
     r"""
     TODO: Document this function.
-    Requests a Dagster run using the specified parameters. 
+    Requests a Dagster run using the specified parameters.
     Returns a json dictionary indicating the job's success or failure.
     """
     dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]

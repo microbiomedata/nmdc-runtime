@@ -117,3 +117,4 @@ quick-blade:
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	publish docs
+uhh
