@@ -6,7 +6,7 @@ import pytest
 import requests
 from dagster import build_op_context
 from starlette import status
-from tenacity import wait_random_exponential, retry
+from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -140,13 +140,14 @@ def test_update_operation():
     )
 
 
-@pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
     def get_token():
         """
 
@@ -190,6 +191,78 @@ def test_create_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
+
+
+def test_update_user():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    base_url = os.getenv("API_HOST")
+
+    # Try up to three times, waiting for up to 60 seconds between each attempt.
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
+    def get_token():
+        """
+        Fetch an auth token from the Runtime API.
+        """
+
+        _rv = requests.post(
+            base_url + "/token",
+            data={
+                "grant_type": "password",
+                "username": rs["user"]["username"],
+                "password": rs["user"]["password"],
+            },
+        )
+        token_response = _rv.json()
+        return token_response["access_token"]
+
+    headers = {"Authorization": f"Bearer {get_token()}"}
+
+    user_in1 = UserIn(username="foo", password="oldpass")
+    mdb.users.delete_one({"username": user_in1.username})
+    mdb.users.update_one(
+        {"username": rs["user"]["username"]},
+        {"$addToSet": {"site_admin": "nmdc-runtime-useradmin"}},
+    )
+    rv_create = requests.request(
+        "POST",
+        url=(base_url + "/users"),
+        headers=headers,
+        json=user_in1.model_dump(exclude_unset=True),
+    )
+
+    u1 = mdb.users.find_one({"username": user_in1.username})
+
+    user_in2 = UserIn(username="foo", password="newpass")
+
+    rv_update = requests.request(
+        "PUT",
+        url=(base_url + "/users"),
+        headers=headers,
+        json=user_in2.model_dump(exclude_unset=True),
+    )
+
+    u2 = mdb.users.find_one({"username": user_in2.username})
+    try:
+        assert rv_create.status_code == status.HTTP_201_CREATED
+        assert rv_update.status_code == status.HTTP_200_OK
+        assert u1["hashed_password"] != u2["hashed_password"]
+
+    finally:
+        mdb.users.delete_one({"username": user_in1.username})
+        mdb.users.update_one(
+            {"username": rs["user"]["username"]},
+            {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
+        )
+
+
+@pytest.fixture
+def api_site_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 
 
 def test_metadata_validate_json_0(api_site_client):

@@ -11,7 +11,10 @@ from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.util import permitted, users_allowed, strip_oid
+from nmdc_runtime.api.endpoints.util import (
+    check_action_permitted,
+    strip_oid,
+)
 from nmdc_runtime.api.models.query import (
     Query,
     QueryResponseOptions,
@@ -35,7 +38,9 @@ def unmongo(d: dict) -> dict:
 
 def check_can_update_and_delete(user: User):
     # update and delete queries require same level of permissions
-    if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
+    if not check_action_permitted(
+        user.username, "/queries:run(query_cmd:DeleteCommand)"
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue update and delete commands.",

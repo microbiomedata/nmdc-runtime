@@ -7,6 +7,10 @@ import pandas as pd
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
+# Dictionary of sequencing strategies from GOLD that we are filtering on
+# based on the kind of samples that are required for NMDC
+SEQUENCING_STRATEGIES = {"Metagenome", "Metatranscriptome"}
+
 
 class GoldStudyTranslator(Translator):
     def __init__(
@@ -24,9 +28,38 @@ class GoldStudyTranslator(Translator):
 
         self.study = study
         self.study_type = nmdc.StudyCategoryEnum(study_type)
-        self.biosamples = biosamples
-        self.projects = projects
-        self.analysis_projects = analysis_projects
+        # Filter biosamples to only those with `sequencingStrategy` of
+        # "Metagenome" or "Metatranscriptome"
+        self.biosamples = [
+            biosample
+            for biosample in biosamples
+            if any(
+                project.get("sequencingStrategy") in SEQUENCING_STRATEGIES
+                for project in biosample.get("projects", [])
+            )
+        ]
+        # Fetch the valid projectGoldIds that are associated with filtered
+        # biosamples on their `projects` field
+        valid_project_ids = {
+            project.get("projectGoldId")
+            for biosample in self.biosamples
+            for project in biosample.get("projects", [])
+        }
+        # Filter projects to only those with `projectGoldId` in valid_project_ids
+        self.projects = [
+            project
+            for project in projects
+            if project.get("projectGoldId") in valid_project_ids
+        ]
+        # Filter analysis_projects to only those with all `projects` in valid_project_ids
+        self.analysis_projects = [
+            analysis_project
+            for analysis_project in analysis_projects
+            if all(
+                project_id in valid_project_ids
+                for project_id in analysis_project.get("projects", [])
+            )
+        ]
         self.gold_nmdc_instrument_map_df = gold_nmdc_instrument_map_df
 
         self._projects_by_id = self._index_by_id(self.projects, "projectGoldId")

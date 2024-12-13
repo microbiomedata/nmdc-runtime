@@ -174,7 +174,7 @@ class OAuth2PasswordOrClientCredentialsRequestForm:
         bearer_creds: Optional[HTTPAuthorizationCredentials] = Depends(
             bearer_credentials
         ),
-        grant_type: str = Form(None, regex="^password$|^client_credentials$"),
+        grant_type: str = Form(None, pattern="^password$|^client_credentials$"),
         username: Optional[str] = Form(None),
         password: Optional[str] = Form(None),
         scope: str = Form(""),

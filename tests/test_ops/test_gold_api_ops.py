@@ -43,10 +43,24 @@ def test_gold_biosamples_by_study(client_config, op_context):
             json=[{"biosampleGoldId": "Gb123456789"}],
         )
 
+        # mock the /projects endpoint
+        mock.get(
+            f'{client_config["base_url"]}/projects',
+            json=[
+                {
+                    "biosampleGoldId": "Gb123456789",
+                    "projectGoldId": "Gp123456789",
+                    "sequencingStrategy": "Metagenome",
+                }
+            ],
+        )
+
         (study_id, _, _) = get_gold_study_pipeline_inputs(op_context)
         gold_biosamples_by_study(op_context, study_id)
 
-        assert len(mock.request_history) == 1
+        assert (
+            len(mock.request_history) == 2
+        )  # one for /biosamples and one for /projects
         assert mock.last_request.qs["studygoldid"] == ["gs0149396"]
         assert mock.last_request.headers["Authorization"].startswith("Basic ")
 
