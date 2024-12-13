@@ -637,10 +637,7 @@ def ensure_run_config_data(
 
 
 def inputs_for(nmdc_workflow_id, run_config_data):
-    r"""
-    TODO: Document this function.
-    Returns a path for certain nmdc_workflow_ids.
-    """
+    """Returns a URI path for given nmdc_workflow_id, constructed from run_config_data."""
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
             "/objects/"
