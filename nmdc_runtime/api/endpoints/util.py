@@ -438,8 +438,13 @@ def persist_content_and_get_drs_object(
     id_ns="json-metadata-in",
     exists_ok=False,
 ):
-    r"""
-    TODO: Document this function.
+    """Persist a Data Repository Service (DRS) object.
+
+    An object may be a blob, analogous to a file, or a bundle, analogous to a folder. Sites register objects,
+    and sites must ensure that these objects are accessible to the NMDC data broker.
+    An object may be associated with one or more object types, useful for triggering workflows.
+
+    Reference: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes
     """
     mdb = get_mongo_db()
     drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
@@ -495,9 +500,7 @@ def _create_object(
     self_uri,
     exists_ok=False,
 ):
-    r"""
-    TODO: Document this function.
-    """
+    """Helper function for creating a Data Repository Service (DRS) object."""
     drs_obj = DrsObject(
         **object_in.model_dump(exclude_unset=True),
         id=drs_id,
