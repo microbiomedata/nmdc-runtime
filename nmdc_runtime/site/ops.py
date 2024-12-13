@@ -1044,29 +1044,16 @@ def materialize_alldocs(context) -> int:
     # batch size for writing documents to alldocs
     BULK_WRITE_BATCH_SIZE = 2000
 
+    # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
+    #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
     collection_names = populated_schema_collection_names_with_id_field(mdb)
     context.log.info(f"{collection_names=}")
-
-    # Drop any existing `alldocs` collection (e.g. from previous use of this op).
-    #
-    # FIXME: This "nuke and pave" approach introduces a race condition.
-    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
-    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
-    #
-    mdb.alldocs.drop()
 
     # Build alldocs
     context.log.info("constructing `alldocs` collection")
 
     document_class_names = set(
         chain.from_iterable(collection_name_to_class_names.values())
-    )
-
-    # Any ancestor of a document class is a document-referenceable range, i.e., a valid range of a document-reference-ranged slot.
-    document_referenceable_ranges = set(
-        chain.from_iterable(
-            schema_view.class_ancestors(cls_name) for cls_name in document_class_names
-        )
     )
 
     cls_slot_map = {
@@ -1076,6 +1063,13 @@ def materialize_alldocs(context) -> int:
         for cls_name in document_class_names
     }
 
+    # Any ancestor of a document class is a document-referenceable range, i.e., a valid range of a document-reference-ranged slot.
+    document_referenceable_ranges = set(
+        chain.from_iterable(
+            schema_view.class_ancestors(cls_name) for cls_name in document_class_names
+        )
+    )
+
     document_reference_ranged_slots = defaultdict(list)
     for cls_name, slot_map in cls_slot_map.items():
         for slot_name, slot in slot_map.items():
@@ -1084,6 +1078,14 @@ def materialize_alldocs(context) -> int:
                 & document_referenceable_ranges
             ):
                 document_reference_ranged_slots[cls_name].append(slot_name)
+
+    # Drop any existing `alldocs` collection (e.g. from previous use of this op).
+    #
+    # FIXME: This "nuke and pave" approach introduces a race condition.
+    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
+    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
+    #
+    mdb.alldocs.drop()
 
     for coll_name in collection_names:
         context.log.info(f"{coll_name=}")
@@ -1098,11 +1100,11 @@ def materialize_alldocs(context) -> int:
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
             requests.append(InsertOne(new_doc))
             if len(requests) == BULK_WRITE_BATCH_SIZE:
-                result = mdb.alldocs.bulk_write(requests, ordered=False)
+                _ = mdb.alldocs.bulk_write(requests, ordered=False)
                 requests.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(requests) > 0:
-            result = mdb.alldocs.bulk_write(requests, ordered=False)
+            _ = mdb.alldocs.bulk_write(requests, ordered=False)
             documents_processed_counter += len(requests)
         context.log.info(
             f"Inserted {documents_processed_counter} documents from {coll_name=} "
