@@ -1,7 +1,7 @@
 from operator import itemgetter
 from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form, Path
+from fastapi import APIRouter, Depends, Form, Path, Query
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
@@ -21,15 +21,12 @@ from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
     find_resources_spanning,
-    pipeline_find_resources,
 )
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
     entity_attributes_to_index,
-    PipelineFindRequest,
-    PipelineFindResponse,
 )
 from nmdc_runtime.util import get_class_names_from_collection_spec
 
@@ -42,7 +39,7 @@ router = APIRouter()
     response_model_exclude_unset=True,
 )
 def find_studies(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -58,7 +55,14 @@ def find_studies(
     response_model_exclude_unset=True,
 )
 def find_study_by_id(
-    study_id: str,
+    study_id: Annotated[
+        str,
+        Path(
+            title="Study ID",
+            description="The `id` of the `Study` you want to find.\n\n_Example_: `nmdc:sty-11-abc123`",
+            examples=["nmdc:sty-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -74,7 +78,7 @@ def find_study_by_id(
     response_model_exclude_unset=True,
 )
 def find_biosamples(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -90,7 +94,14 @@ def find_biosamples(
     response_model_exclude_unset=True,
 )
 def find_biosample_by_id(
-    sample_id: str,
+    sample_id: Annotated[
+        str,
+        Path(
+            title="Biosample ID",
+            description="The `id` of the `Biosample` you want to find.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -106,7 +117,7 @@ def find_biosample_by_id(
     response_model_exclude_unset=True,
 )
 def find_data_objects(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -135,9 +146,22 @@ def get_classname_from_typecode(doc_id: str) -> str:
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
+    # Note: We include a description here so that FastAPI does not use the function's docstring as the API endpoint's
+    #       description. The docstring currently contains non-user-facing information, such as mentioning the
+    #       implementation detail of using the `alldocs` collection under the hood, and mentioning function parameters
+    #       that are not API request parameters.
+    description="Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`.",
 )
 def find_data_objects_for_study(
-    study_id: str,
+    study_id: Annotated[
+        str,
+        Path(
+            title="Study ID",
+            description="""The `id` of the `Study` having `Biosample`s with which you want to find
+                        associated `DataObject`s.\n\n_Example_: `nmdc:sty-11-abc123`""",
+            examples=["nmdc:sty-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data objects associated with
@@ -256,7 +280,14 @@ def find_data_objects_for_study(
     response_model_exclude_unset=True,
 )
 def find_data_object_by_id(
-    data_object_id: str,
+    data_object_id: Annotated[
+        str,
+        Path(
+            title="DataObject ID",
+            description="The `id` of the `DataObject` you want to find.\n\n_Example_: `nmdc:dobj-11-abc123`",
+            examples=["nmdc:dobj-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -274,19 +305,17 @@ def find_data_object_by_id(
     response_model_exclude_unset=True,
 )
 def find_planned_processes(
-    req: FindRequest = Depends(),
+    req: Annotated[FindRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    # TODO: Add w3id URL links for classes (e.g. <https://w3id.org/nmdc/PlannedProcess>) when they resolve
-    #   to Berkeley schema definitions.
     """
     The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
     workflow execution, material processing, etc.). Any "slot" (a.k.a. attribute) for
-    `PlannedProcess` may be used in the filter
+    [`PlannedProcess`](https://w3id.org/nmdc/PlannedProcess) may be used in the filter
     and sort parameters, including attributes of subclasses of *PlannedProcess*.
 
-    For example, attributes used in subclasses such as `Extraction` (subclass of *PlannedProcess*),
-    can be used as input criteria for the filter and sort parameters of this endpoint.
+    For example, attributes used in subclasses such as [`Extraction`](https://w3id.org/nmdc/Extraction)
+    (subclass of *PlannedProcess*), can be used as input criteria for the filter and sort parameters of this endpoint.
     """
     return find_resources_spanning(
         req,
@@ -346,13 +375,17 @@ def attr_index_sort_key(attr):
 
 
 def documentation_links(jsonschema_dict, collection_names) -> dict:
-    """TODO: Add a docstring saying what this function does at a high level."""
+    """This function constructs a hierarchical catalog of (links to) schema classes and their slots.
 
-    # TODO: Document the purpose of this initial key.
-    doc_links = {"Activity": []}
+    The returned dictionary `doc_links` is used as input to the Jinja template `nmdc_runtime/templates/search.html`
+    in order to support user experience for `GET /search`.
+    """
 
     # Note: All documentation URLs generated within this function will begin with this.
-    base_url = r"https://microbiomedata.github.io/nmdc-schema"
+    base_url = r"https://w3id.org/nmdc"
+
+    # Initialize dictionary in which to associate key/value pairs via the following for loop.
+    doc_links = {}
 
     for collection_name in collection_names:
         # Since a given collection can be associated with multiple classes, the `doc_links` dictionary
@@ -398,7 +431,7 @@ def documentation_links(jsonschema_dict, collection_names) -> dict:
     return doc_links
 
 
-@router.get("/search", response_class=HTMLResponse)
+@router.get("/search", response_class=HTMLResponse, include_in_schema=False)
 def search_page(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
@@ -422,39 +455,4 @@ def search_page(
         indexed_entity_attributes=indexed_entity_attributes,
         doc_links=doc_links,
     )
-    return HTMLResponse(content=html_content, status_code=200)
-
-
-@router.post(
-    "/pipeline_search",
-    response_model=PipelineFindResponse,
-    response_model_exclude_unset=True,
-)
-def pipeline_search(
-    req: PipelineFindRequest = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    return pipeline_find_resources(req, mdb)
-
-
-@router.post(
-    "/pipeline_search_form",
-    response_model=PipelineFindResponse,
-    response_model_exclude_unset=True,
-)
-def pipeline_search(
-    pipeline_spec: str = Form(...),
-    description: str = Form(...),
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    req = PipelineFindRequest(pipeline_spec=pipeline_spec, description=description)
-    return pipeline_find_resources(req, mdb)
-
-
-@router.get("/pipeline_search", response_class=HTMLResponse)
-def pipeline_search(
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    template = jinja_env.get_template("pipeline_search.html")
-    html_content = template.render()
     return HTMLResponse(content=html_content, status_code=200)

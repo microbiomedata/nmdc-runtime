@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Annotated
 
 import botocore
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException, Query
 from gridfs import GridFS
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
@@ -91,7 +91,7 @@ def create_object(
 
 @router.get("/objects", response_model=ListResponse[DrsObject])
 def list_objects(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "objects")

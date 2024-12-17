@@ -1,6 +1,7 @@
 import logging
 import re
 from datetime import datetime
+from enum import Enum
 from functools import lru_cache
 from importlib import resources
 from typing import Any, List, Optional, Union
@@ -8,12 +9,34 @@ from typing import Any, List, Optional, Union
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema import nmdc
-from toolz import get_in, groupby, concat, valmap, dissoc
+from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
-
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
+
+
+class EnvironmentPackage(Enum):
+    r"""
+    Enumeration of all possible environmental packages.
+
+    >>> EnvironmentPackage.AIR.value
+    'air'
+    >>> EnvironmentPackage.SEDIMENT.value
+    'sediment'
+    """
+
+    AIR = "air"
+    BIOFILM = "microbial mat_biofilm"
+    BUILT_ENV = "built environment"
+    HCR_CORES = "hydrocarbon resources-cores"
+    HRC_FLUID_SWABS = "hydrocarbon resources-fluids_swabs"
+    HOST_ASSOCIATED = "host-associated"
+    MISC_ENVS = "miscellaneous natural or artificial environment"
+    PLANT_ASSOCIATED = "plant-associated"
+    SEDIMENT = "sediment"
+    SOIL = "soil"
+    WATER = "water"
 
 
 @lru_cache
@@ -550,7 +573,6 @@ class SubmissionPortalTranslator(Translator):
         sample_data: List[JSON_OBJECT],
         nmdc_biosample_id: str,
         nmdc_study_id: str,
-        default_env_package: str,
     ) -> nmdc.Biosample:
         """Translate sample data from portal submission into an `nmdc:Biosample` object.
 
@@ -565,18 +587,23 @@ class SubmissionPortalTranslator(Translator):
                             from each applicable submission portal tab
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
-        :param default_env_package: Default value for `env_package` slot
         :return: nmdc:Biosample
         """
-        biosample_key = sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
+        env_idx = next(
+            (
+                i
+                for i, tab in enumerate(sample_data)
+                if tab.get("env_package") is not None
+            ),
+            0,
+        )
+        biosample_key = sample_data[env_idx].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip()
         slots = {
             "id": nmdc_biosample_id,
             "associated_studies": [nmdc_study_id],
             "type": "nmdc:Biosample",
-            "name": sample_data[0].get("samp_name", "").strip(),
-            "env_package": nmdc.TextValue(
-                has_raw_value=default_env_package, type="nmdc:TextValue"
-            ),
+            "name": sample_data[env_idx].get("samp_name", "").strip(),
+            "env_package": sample_data[env_idx].get("env_package"),
         }
         for tab in sample_data:
             transformed_tab = self._transform_dict_for_class(tab, "Biosample")
@@ -613,9 +640,18 @@ class SubmissionPortalTranslator(Translator):
         ]
 
         sample_data = metadata_submission_data.get("sampleData", {})
-        package_name = metadata_submission_data["packageName"]
+        for key in sample_data.keys():
+            env = key.removesuffix("_data").upper()
+            try:
+                package_name = EnvironmentPackage[env].value
+                for sample in sample_data[key]:
+                    sample["env_package"] = package_name
+            except KeyError:
+                pass
+
         sample_data_by_id = groupby(
-            BIOSAMPLE_UNIQUE_KEY_SLOT, concat(sample_data.values())
+            BIOSAMPLE_UNIQUE_KEY_SLOT,
+            concat(sample_data.values()),
         )
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
         sample_data_to_nmdc_biosample_ids = dict(
@@ -627,7 +663,6 @@ class SubmissionPortalTranslator(Translator):
                 sample_data,
                 nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
                 nmdc_study_id=nmdc_study_id,
-                default_env_package=package_name,
             )
             for sample_data_id, sample_data in sample_data_by_id.items()
             if sample_data

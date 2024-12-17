@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Annotated
 
 import botocore
 import pymongo.database
-from fastapi import APIRouter, Depends, status, HTTPException, Path
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
@@ -74,7 +74,7 @@ def create_site(
     "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
 )
 def list_sites(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "sites")

@@ -16,6 +16,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_geolocation_value,
     handle_float_value,
     handle_string_value,
+    get_instruments,
 )
 
 MOCK_NMDC_STUDY = {
@@ -102,24 +103,54 @@ def nmdc_biosample():
         {
             "analysis_type": ["metagenomics"],
             "biosample_categories": ["NEON"],
-            "collection_date": {"has_raw_value": "2015-07-21T18:00Z"},
+            "collection_date": {
+                "has_raw_value": "2015-07-21T18:00Z",
+                "type": "nmdc:TimestampValue",
+            },
             "depth": {
                 "has_maximum_numeric_value": 1,
                 "has_minimum_numeric_value": 0,
-                "has_unit": "meters",
+                "has_unit": "m",
+                "type": "nmdc:QuantityValue",
             },
             "elev": 1179.5,
             "env_broad_scale": {
-                "term": {"id": "ENVO:01000253", "name": "freshwater river biome"}
+                "term": {
+                    "id": "ENVO:01000253",
+                    "name": "freshwater river biome",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
             },
-            "env_local_scale": {"term": {"id": "ENVO:03600094", "name": "stream pool"}},
-            "env_medium": {"term": {"id": "ENVO:00002007", "name": "sediment"}},
-            "geo_loc_name": {"has_raw_value": "USA: Colorado, Arikaree River"},
+            "env_local_scale": {
+                "term": {
+                    "id": "ENVO:03600094",
+                    "name": "stream pool",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_medium": {
+                "term": {
+                    "id": "ENVO:03605004",
+                    "name": "epipsammon",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "geo_loc_name": {
+                "has_raw_value": "USA: Colorado, Arikaree River",
+                "type": "nmdc:TextValue",
+            },
             "id": "nmdc:bsm-12-p9q5v236",
-            "lat_lon": {"latitude": 39.758206, "longitude": -102.447148},
+            "lat_lon": {
+                "latitude": 39.758206,
+                "longitude": -102.447148,
+                "type": "nmdc:GeolocationValue",
+            },
             "name": "ARIK.20150721.AMC.EPIPSAMMON.3",
-            "part_of": ["nmdc:sty-11-34xj1150"],
             "type": "nmdc:Biosample",
+            "associated_studies": ["nmdc:sty-11-pzmd0x14"],
         }
     ]
 
@@ -128,21 +159,16 @@ def nmdc_biosample():
 def nucleotide_sequencing_list():
     return [
         {
+            "id": "nmdc:dgns-11-e01w1f21",
+            "type": "nmdc:NucleotideSequencing",
+            "name": "Benthic microbial communities - ARIK.20150721.AMC.EPIPSAMMON.3-DNA1",
             "has_input": ["nmdc:procsm-12-ehktny16"],
-            "has_output": ["nmdc:dobj-12-1zv4q961", "nmdc:dobj-12-b3ft7a80"],
-            "id": "nmdc:omprc-12-zqm9p096",
-            "instrument_used": ["Illumina NextSeq550"],
-            "name": "Terrestrial soil microbial communities - ARIK.20150721.AMC.EPIPSAMMON.3-DNA1",
-            "ncbi_project_name": "PRJNA406976",
-            "associated_studies": ["nmdc:sty-11-34xj1150"],
+            "has_output": ["nmdc:dobj-11-8wjdvj33", "nmdc:dobj-11-0y3amn94"],
             "processing_institution": "Battelle",
             "analyte_category": "metagenome",
-            "type": [
-                "NucleotideSequencing",
-                "DataGeneration",
-                "PlannedProcess",
-                "NamedThing",
-            ],
+            "associated_studies": ["nmdc:sty-11-pzmd0x14"],
+            "instrument_used": ["nmdc:inst-14-xz5tb342"],
+            "ncbi_project_name": "PRJNA406976",
         }
     ]
 
@@ -151,22 +177,22 @@ def nucleotide_sequencing_list():
 def data_objects_list():
     return [
         {
-            "data_object_type": "Metagenome Raw Read 1",
-            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_R1",
-            "id": "nmdc:dobj-12-b3ft7a80",
-            "md5_checksum": "cae0a9342d786e731ae71f6f37b76120",
-            "name": "BMI_HVKNKBGX5_Tube347_R1.fastq.gz",
+            "id": "nmdc:dobj-11-8wjdvj33",
             "type": "nmdc:DataObject",
-            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_mms_R1/BMI_HVKNKBGX5_Tube347_R1.fastq.gz",
+            "name": "BMI_HVKNKBGX5_Tube347_srt_R1.fastq.gz",
+            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_srt_R1",
+            "data_object_type": "Metagenome Raw Read 1",
+            "md5_checksum": "98017c587ef4e6a8a54f8daa0925e4e1",
+            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_srt_R1/BMI_HVKNKBGX5_Tube347_srt_R1.fastq.gz",
         },
         {
-            "data_object_type": "Metagenome Raw Read 2",
-            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_R2",
-            "id": "nmdc:dobj-12-1zv4q961",
-            "md5_checksum": "7340fe25644183a4f56d36ce52389d83",
-            "name": "BMI_HVKNKBGX5_Tube347_R2.fastq.gz",
+            "id": "nmdc:dobj-11-0y3amn94",
             "type": "nmdc:DataObject",
-            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_mms_R2/BMI_HVKNKBGX5_Tube347_R2.fastq.gz",
+            "name": "BMI_HVKNKBGX5_Tube347_srt_R2.fastq.gz",
+            "description": "sequencing results for BMI_HVKNKBGX5_Tube347_srt_R2",
+            "data_object_type": "Metagenome Raw Read 2",
+            "md5_checksum": "5358ce1da32bfad7c358c484cbf5075b",
+            "url": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HVKNKBGX5_srt_R2/BMI_HVKNKBGX5_Tube347_srt_R2.fastq.gz",
         },
     ]
 
@@ -182,6 +208,26 @@ def library_preparation_dict():
         "start_date": "2015-07-21T18:00Z",
         "protocol_link": {"name": "BMI_metagenomicsSequencingSOP_v1"},
     }
+
+
+@pytest.fixture
+def mocked_instruments():
+    return [
+        {
+            "id": "nmdc:inst-14-xz5tb342",
+            "model": "nextseq_550",
+            "name": "Illumina NextSeq 550",
+            "vendor": "illumina",
+            "type": "nmdc:Instrument",
+        },
+        {
+            "id": "nmdc:inst-14-79zxap02",
+            "model": "hiseq",
+            "name": "Illumina HiSeq",
+            "vendor": "illumina",
+            "type": "nmdc:Instrument",
+        },
+    ]
 
 
 class TestNCBISubmissionXML:
@@ -311,7 +357,16 @@ class TestNCBISubmissionXML:
         data_objects_list: list[dict[str, str]],
         nucleotide_sequencing_list: list[dict[str, Any]],
         library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
     ):
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
         biosample_data_objects = [
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
@@ -332,6 +387,7 @@ class TestNCBISubmissionXML:
             nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
             nmdc_biosamples=nmdc_biosample,
             nmdc_library_preparation=biosample_library_preparation,
+            all_instruments=all_instruments,
         )
 
         action_elements = ncbi_submission_client.root.findall(".//Action")
@@ -340,8 +396,8 @@ class TestNCBISubmissionXML:
         for action_element in action_elements:
             action_xml = ET.tostring(action_element, "unicode")
             assert (
-                "BMI_HVKNKBGX5_Tube347_R1.fastq.gz" in action_xml
-                or "BMI_HVKNKBGX5_Tube347_R2.fastq.gz" in action_xml
+                "BMI_HVKNKBGX5_Tube347_srt_R1.fastq.gz" in action_xml
+                or "BMI_HVKNKBGX5_Tube347_srt_R2.fastq.gz" in action_xml
             )
             assert "PRJNA1029061" in action_xml
             assert "nmdc:bsm-12-p9q5v236" in action_xml
@@ -364,6 +420,7 @@ class TestNCBISubmissionXML:
         data_objects_list: list[dict[str, str]],
         nucleotide_sequencing_list: list[dict[str, Any]],
         library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -409,6 +466,14 @@ class TestNCBISubmissionXML:
             ),
         )
 
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
         biosample_data_objects = [
             {biosample["id"]: data_objects_list} for biosample in nmdc_biosample
         ]
@@ -429,15 +494,19 @@ class TestNCBISubmissionXML:
             nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
             nmdc_biosamples=nmdc_biosample,
             nmdc_library_preparation=biosample_library_preparation,
+            all_instruments=all_instruments,
         )
 
         submission_xml = ncbi_submission_client.get_submission_xml(
-            nmdc_biosample, [], biosample_data_objects, biosample_library_preparation
+            nmdc_biosample,
+            [],
+            biosample_data_objects,
+            biosample_library_preparation,
+            all_instruments,
         )
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
         assert "E. coli" in submission_xml
-        assert "sediment" in submission_xml
         assert "USA: Colorado, Arikaree River" in submission_xml
         assert "2015-07-21T18:00Z" in submission_xml
         assert "National Microbiome Data Collaborative" in submission_xml
@@ -608,3 +677,20 @@ class TestNCBIXMLUtils:
 
         assert attribute_mappings == expected_attribute_mappings
         assert slot_range_mappings == expected_slot_range_mappings
+
+    def test_get_instruments(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        mock_instrument_set_collection = mocker.Mock()
+        mock_instrument_set_collection.find.return_value = iter(mocked_instruments)
+
+        actual_instruments = get_instruments(mock_instrument_set_collection)
+
+        expected_instruments = {
+            "nmdc:inst-14-xz5tb342": {"vendor": "illumina", "model": "nextseq_550"},
+            "nmdc:inst-14-79zxap02": {"vendor": "illumina", "model": "hiseq"},
+        }
+
+        assert actual_instruments == expected_instruments

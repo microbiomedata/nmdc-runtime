@@ -2,7 +2,7 @@
 input:
   metadata_submission:
     metadata_submission:
-      packageName: plant-associated
+      packageName: ['plant-associated', 'air']
       contextForm:
         datasetDoi: doi:10.46936/10.25585/60000818
         dataGenerated: true
@@ -31,8 +31,7 @@ input:
         biosafetyLevel: ''
         irbOrHipaa:
         comments: ''
-      templates:
-      - plant-associated
+      templates: ['plant-associated', 'air', 'jgi_mg']
       studyForm:
         studyName: Seasonal activities of the phyllosphere microbiome of perennial crops
         piName: Ashley Shade
@@ -57,7 +56,7 @@ input:
           annotated. Our findings support that leaf-associated bacterial populations are
           seasonally dynamic and responsive to host cues.
         notes: ''
-        fundingSources: 
+        fundingSources:
           - Some award ABC
           - Some award XYZ
         contributors:
@@ -281,6 +280,36 @@ input:
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
+        air_data:
+        - elev: 225
+          lat_lon: 50.586825 6.408977
+          samp_name: "wedw"
+          env_medium: abcd [ENVO:00001998]
+          geo_loc_name: "USA: Maryland, Bethesda"
+          analysis_type:
+          - metaproteomics
+          collection_date: 2021
+          env_broad_scale: ewdwed [ENVO:123]
+          env_local_scale: asdxasd [ENV:234]
+          samp_store_temp: "-80 Celsius"
+        jgi_mg_data:
+        - samp_name: "G6R2_MAIN_09MAY2016"
+          analysis_type:
+            - metagenomics
+          dna_concentration: 0.1
+          dna_cont_type: tube
+          dna_container_id: 00001
+          dna_dnase: "no"
+          dna_isolate_meth: phenol/chloroform extraction
+          dna_project_contact: Jane Doe
+          dna_samp_id: 00001
+          dna_sample_format: Ethanol
+          dna_sample_name: 00001
+          dna_seq_project: 00001
+          dna_seq_project_name: 00001
+          dna_seq_project_pi: Jane Doe
+          dna_volume: 10
+          proposal_dna: 00001
     status: in-progress
     id: d32b5eb6-71e8-4c98-8a57-3e64d05718b4
     author_orcid: 0000-0002-7705-343X
@@ -933,6 +962,69 @@ output:
       has_raw_value: UUID:c0c4a2b5-0382-450a-8728-a176fa438efe
     analysis_type:
     - metagenomics
+    dna_concentration: 0.1
+    dna_cont_type: tube
+    dna_container_id: 00001
+    dna_dnase: "no"
+    dna_isolate_meth: phenol/chloroform extraction
+    dna_project_contact: Jane Doe
+    dna_samp_id: 00001
+    dna_sample_format: Ethanol
+    dna_sample_name: 00001
+    dna_seq_project: 00001
+    dna_seq_project_name: 00001
+    dna_seq_project_pi: Jane Doe
+    dna_volume: 10
+    proposal_dna: 00001
+  - id: nmdc:bsm-00-7r7pn0r2
+    type: 'nmdc:Biosample'
+    name: 'wedw'
+    associated_studies:
+      - 'nmdc:sty-00-y0cq65zt'
+    env_broad_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'ewdwed [ENVO:123]'
+      term:
+        id: 'ENVO:123'
+        type: 'nmdc:OntologyClass'
+        name: 'ewdwed'
+    env_local_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'asdxasd [ENV:234]'
+      term:
+        id: 'ENV:234'
+        type: 'nmdc:OntologyClass'
+        name: 'asdxasd'
+    env_medium:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'abcd [ENVO:00001998]'
+      term:
+        id: 'ENVO:00001998'
+        type: 'nmdc:OntologyClass'
+        name: 'abcd'
+    samp_name: 'wedw'
+    collection_date:
+      type: 'nmdc:TimestampValue'
+      has_raw_value: '2021'
+    elev: 225.0
+    env_package:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'air'
+    geo_loc_name:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'USA: Maryland, Bethesda'
+    lat_lon:
+      type: 'nmdc:GeolocationValue'
+      has_raw_value: '50.586825 6.408977'
+      latitude: 50.586825
+      longitude: 6.408977
+    samp_store_temp:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '-80 Celsius'
+      has_unit: 'Celsius'
+      has_numeric_value: -80.0
+    analysis_type:
+    - metaproteomics
   study_set:
   - id: nmdc:sty-00-y0cq65zt
     type: nmdc:Study
@@ -1032,7 +1124,7 @@ input:
             roles:
               - Principal Investigator
         description: This is a test submission
-        fundingSources: 
+        fundingSources:
           - Some award ABC
           - Some award XYZ
         linkOutWebpage:

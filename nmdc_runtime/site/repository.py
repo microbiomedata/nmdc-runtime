@@ -513,6 +513,7 @@ def biosample_submission_ingest():
                             "study_id": "",
                             "study_type": "research_study",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
                         },
                     },
                     "export_json_to_drs": {"config": {"username": ""}},

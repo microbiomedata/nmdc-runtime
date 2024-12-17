@@ -36,11 +36,11 @@ click==8.1.7
     #   -c /code/requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.6.4
+coverage==7.6.8
     # via
     #   -r requirements/dev.in
     #   pytest-cov
-cryptography==43.0.3
+cryptography==44.0.0
     # via
     #   -c /code/requirements/main.txt
     #   secretstorage
@@ -58,9 +58,7 @@ idna==3.10
     #   -c /code/requirements/main.txt
     #   requests
 importlib-metadata==8.5.0
-    # via
-    #   keyring
-    #   twine
+    # via keyring
 iniconfig==2.0.0
     # via
     #   -c /code/requirements/main.txt
@@ -95,7 +93,7 @@ more-itertools==10.5.0
     #   jaraco-functools
 mypy-extensions==1.0.0
     # via black
-nh3==0.2.18
+nh3==0.2.19
     # via readme-renderer
 packaging==24.2
     # via
@@ -103,13 +101,14 @@ packaging==24.2
     #   black
     #   build
     #   pytest
+    #   twine
 pathspec==0.12.1
     # via
     #   -c /code/requirements/main.txt
     #   black
 pip-tools==7.4.1
     # via -r requirements/dev.in
-pkginfo==1.10.0
+pkginfo==1.12.0
     # via twine
 platformdirs==4.3.6
     # via
@@ -137,7 +136,7 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==8.3.3
+pytest==8.3.4
     # via
     #   -c /code/requirements/main.txt
     #   -r requirements/dev.in
@@ -181,7 +180,7 @@ six==1.16.0
     # via
     #   -c /code/requirements/main.txt
     #   url-normalize
-tomli==2.1.0
+tomli==2.2.1
     # via
     #   -c /code/requirements/main.txt
     #   black
@@ -189,7 +188,7 @@ tomli==2.1.0
     #   coverage
     #   pip-tools
     #   pytest
-twine==5.1.1
+twine==6.0.1
     # via -r requirements/dev.in
 typing-extensions==4.12.2
     # via
@@ -207,7 +206,7 @@ urllib3==2.2.3
     #   requests
     #   requests-cache
     #   twine
-wheel==0.45.0
+wheel==0.45.1
     # via pip-tools
 zipp==3.21.0
     # via importlib-metadata
@@ -217,7 +216,7 @@ pip==24.3.1
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==75.5.0
+setuptools==75.6.0
     # via
     #   -c /code/requirements/main.txt
     #   -r requirements/dev.in

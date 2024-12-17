@@ -1,8 +1,8 @@
 import json
-from typing import Optional
+from typing import Optional, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
@@ -25,7 +25,7 @@ router = APIRouter()
     "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
 )
 def list_jobs(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):
@@ -55,22 +55,3 @@ def claim_job(
     site: Site = Depends(get_current_client_site),
 ):
     return _claim_job(job_id, mdb, site)
-
-
-@router.get(
-    "/jobs/{job_id}/executions",
-    description=(
-        "A sub-resource of a job resource, the result of a successful run of that job. "
-        "An execution resource may be retrieved by any site; however, it may be created "
-        "and updated only by the site that ran its job."
-    ),
-)
-def list_job_executions():
-    # TODO
-    pass
-
-
-@router.get("/jobs/{job_id}/executions/{exec_id}")
-def get_job_execution():
-    # TODO
-    pass

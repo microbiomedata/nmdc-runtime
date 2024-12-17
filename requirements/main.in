@@ -9,7 +9,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi>=0.104.1 # Pins Swagger UI version to 5.9.0 temporarily to handle a bug crashing it in 5.9.1
+fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
 fnc
 frozendict
@@ -25,7 +25,7 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==11.1.0
+nmdc-schema==11.2.1
 openpyxl
 pandas
 passlib[bcrypt]
@@ -33,7 +33,9 @@ pymongo
 pydantic[email]>=1.10.0
 python-dotenv
 python-jose[cryptography]
-python-multipart
+# Note: python-multipart version `0.0.18` introduced a patch for a security issue (CVE-2024-53981).
+#       Reference: https://github.com/microbiomedata/nmdc-runtime/security/dependabot/8
+python-multipart>=0.0.18
 pyyaml
 requests
 semver
