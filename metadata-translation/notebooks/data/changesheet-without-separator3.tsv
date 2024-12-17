@@ -23,6 +23,5 @@ v3		applies_to_person.type	nmdc:PersonValue
 	insert	has_credit_associations	v4
 v4		applied_roles	Investigation
 v4		applies_to_person.name	NEW CURATOR NAME 1
-v4 		applies_to_person.type	nmdc:PersonValue
+v4		applies_to_person.type	nmdc:PersonValue
 v4		type	prov:Association
-
