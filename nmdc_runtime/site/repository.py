@@ -460,7 +460,7 @@ def repo():
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly, materialize_alldocs_daily]
+    schedules = [housekeeping_weekly, ensure_alldocs_daily]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
