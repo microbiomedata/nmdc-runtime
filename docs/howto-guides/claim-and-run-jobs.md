@@ -3,7 +3,7 @@
 The Runtime advertises jobs to be done, where a [Job](https://api.microbiomedata.org/docs#/jobs)
 is a [Workflow](https://api.microbiomedata.org/docs#/workflows) paired with a chosen input
 [Object](https://api.microbiomedata.org/docs#/objects). See [Guide - Create Workflow Triggers To
-Spawn Jobs](guide-create-triggers.md) to learn how to arrange for jobs of interest to be
+Spawn Jobs](create-triggers.md) to learn how to arrange for jobs of interest to be
 automatically available when relevant new workflow inputs are available.
 
 You can list open jobs via [`GET /jobs`](https://api.microbiomedata.org/docs#/jobs/list_jobs_jobs_get). To
