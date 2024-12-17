@@ -117,12 +117,14 @@ def apply_changesheet():
     sheet_in = get_changesheet_in()
     outputs = perform_changesheet_updates(sheet_in)
     add_output_run_event(outputs)
+    materialize_alldocs()
 
 
 @graph
 def apply_metadata_in():
     outputs = perform_mongo_updates(get_json_in())
     add_output_run_event(outputs)
+    materialize_alldocs()
 
 
 @graph

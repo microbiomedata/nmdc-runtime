@@ -1054,10 +1054,7 @@ def materialize_alldocs(context) -> int:
     # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
     #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
     collection_names = populated_schema_collection_names_with_id_field(mdb)
-    context.log.info(f"{collection_names=}")
-
-    # Build alldocs
-    context.log.info("constructing `alldocs` collection")
+    context.log.info(f"constructing `alldocs` collection using {collection_names=}")
 
     document_class_names = set(
         chain.from_iterable(collection_name_to_class_names.values())
@@ -1070,7 +1067,8 @@ def materialize_alldocs(context) -> int:
         for cls_name in document_class_names
     }
 
-    # Any ancestor of a document class is a document-referenceable range, i.e., a valid range of a document-reference-ranged slot.
+    # Any ancestor of a document class is a document-referencable range,
+    # i.e., a valid range of a document-reference-ranged slot.
     document_referenceable_ranges = set(
         chain.from_iterable(
             schema_view.class_ancestors(cls_name) for cls_name in document_class_names
@@ -1086,17 +1084,15 @@ def materialize_alldocs(context) -> int:
             ):
                 document_reference_ranged_slots[cls_name].append(slot_name)
 
-    # Drop any existing `alldocs` collection (e.g. from previous use of this op).
-    #
-    # FIXME: This "nuke and pave" approach introduces a race condition.
-    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
-    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
-    #
-    mdb.alldocs.drop()
+    # Build `alldocs` to a temporary collection for atomic replacement
+    # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
+    temp_alldocs_collection_name = f"tmp.alldocs.{ObjectId()}"
+    temp_alldocs_collection = mdb[temp_alldocs_collection_name]
+    context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
     for coll_name in collection_names:
         context.log.info(f"{coll_name=}")
-        requests = []
+        write_operations = []
         documents_processed_counter = 0
         for doc in mdb[coll_name].find():
             doc_type = doc["type"][5:]  # lop off "nmdc:" prefix
@@ -1105,30 +1101,35 @@ def materialize_alldocs(context) -> int:
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
-            requests.append(InsertOne(new_doc))
-            if len(requests) == BULK_WRITE_BATCH_SIZE:
-                _ = mdb.alldocs.bulk_write(requests, ordered=False)
-                requests.clear()
+            write_operations.append(InsertOne(new_doc))
+            if len(write_operations) == BULK_WRITE_BATCH_SIZE:
+                _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
+                write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
-        if len(requests) > 0:
-            _ = mdb.alldocs.bulk_write(requests, ordered=False)
-            documents_processed_counter += len(requests)
+        if len(write_operations) > 0:
+            _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
+            documents_processed_counter += len(write_operations)
         context.log.info(
             f"Inserted {documents_processed_counter} documents from {coll_name=} "
         )
 
     context.log.info(
-        f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
+        f"produced `{temp_alldocs_collection.name}` collection with"
+        f" {temp_alldocs_collection.estimated_document_count()} docs."
     )
 
-    # Re-idx for `alldocs` collection
-    mdb.alldocs.create_index("id", unique=True)
-    # The indexes were added to improve the performance of the
-    # /data_objects/study/{study_id} endpoint
+    context.log.info(f"creating indexes on `{temp_alldocs_collection.name}` ...")
+    # Ensure unique index on "id". Index creation here is blocking (i.e. background=False),
+    # so that `temp_alldocs_collection` will be "good to go" on renaming.
+    temp_alldocs_collection.create_index("id", unique=True)
+    # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
     slots_to_index = ["has_input", "has_output", "was_informed_by"]
-    [mdb.alldocs.create_index(slot) for slot in slots_to_index]
-
+    [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
+
+    context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
+    temp_alldocs_collection.rename("alldocs", dropTarget=True)
+
     return mdb.alldocs.estimated_document_count()
 
 
