@@ -42,7 +42,6 @@ def get_study_by_id(id_: str) -> Optional[dict]:
     return load_studies().get(id_.strip())
 
 
-@pytest.mark.skip("Needs fixed changesheet")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
     sty_local_id = "sty-11-pzmd0x14"
