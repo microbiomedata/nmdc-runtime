@@ -578,7 +578,7 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_json(in_docs: dict, mdb: MongoDatabase):
+def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = True):
     r"""
     Checks whether the specified dictionary represents a valid instance of the `Database` class
     defined in the NMDC Schema.
@@ -594,6 +594,13 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
             {"id": "nmdc:sty-00-000002", ...}
         ]
     }
+
+    :param dict in_docs: The dictionary you want to validate
+    :param MongoDatabase mdb: A reference to a MongoDB database
+    :param bool check_references: Whether you want this function to check whether every document that is referenced
+                                  by any of the documents passed in would, indeed, exist in the database, if the
+                                  documents passed in were to be inserted into the database. In other words, set this
+                                  to `True` if you want this function to perform referential integrity checks.
     """
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs = deepcopy(in_docs)
@@ -623,96 +630,6 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
                 try:
                     with OverlayDB(mdb) as odb:
                         odb.replace_or_insert_many(coll_name, coll_docs)
-
-                        # Check the referential integrity of the replaced or inserted documents.
-                        #
-                        # Note: If documents being inserted into the _current_ collection
-                        #       refer to documents being inserted into a _different_ collection
-                        #       as part of the same `in_docs` argument, this check will _not_
-                        #       find the latter documents.
-                        #
-                        # TODO: Enhance this referential integrity validation to account for the
-                        #       total of all operations; not just a single collection's operations.
-                        #
-                        # Note: Much of this code was copy/pasted from refscan, at:
-                        #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
-                        #
-                        source_collection_name = coll_name  # creates an alias to accommodate the copy/pasted code
-                        finder = Finder(
-                            database=odb
-                        )  # uses a generic name to accommodate the copy/pasted code
-                        references = (
-                            get_allowed_references()
-                        )  # uses a generic name to accommodate the copy/pasted code
-                        reference_field_names_by_source_class_name = (
-                            references.get_reference_field_names_by_source_class_name()
-                        )
-                        for document in coll_docs:
-                            # Get the document's schema class name so that we can interpret its fields accordingly.
-                            source_class_name = derive_schema_class_name_from_document(
-                                schema_view=nmdc_schema_view(),
-                                document=document,
-                            )
-
-                            # Get the names of that class's fields that can contain references.
-                            names_of_reference_fields = (
-                                reference_field_names_by_source_class_name.get(
-                                    source_class_name, []
-                                )
-                            )
-
-                            # Check each field that both (a) exists in the document and (b) can contain a reference.
-                            for field_name in names_of_reference_fields:
-                                if field_name in document:
-                                    # Determine which collections can contain the referenced document, based upon
-                                    # the schema class of which this source document is an instance.
-                                    target_collection_names = (
-                                        references.get_target_collection_names(
-                                            source_class_name=source_class_name,
-                                            source_field_name=field_name,
-                                        )
-                                    )
-
-                                    # Handle both the multi-value (array) and the single-value (scalar) case,
-                                    # normalizing the value or values into a list of values in either case.
-                                    if type(document[field_name]) is list:
-                                        target_ids = document[field_name]
-                                    else:
-                                        target_id = document[field_name]
-                                        target_ids = [
-                                            target_id
-                                        ]  # makes a one-item list
-
-                                    for target_id in target_ids:
-                                        name_of_collection_containing_target_document = finder.check_whether_document_having_id_exists_among_collections(
-                                            collection_names=target_collection_names,
-                                            document_id=target_id,
-                                        )
-                                        if (
-                                            name_of_collection_containing_target_document
-                                            is None
-                                        ):
-                                            violation = Violation(
-                                                source_collection_name=source_collection_name,
-                                                source_field_name=field_name,
-                                                source_document_object_id=document.get(
-                                                    "_id"
-                                                ),
-                                                source_document_id=document.get("id"),
-                                                target_id=target_id,
-                                                name_of_collection_containing_target=name_of_collection_containing_target_document,
-                                            )
-                                            violation_as_str = (
-                                                f"Document '{violation.source_document_id}' "
-                                                f"in collection '{violation.source_collection_name}' "
-                                                f"has a field '{violation.source_field_name}' that "
-                                                f"references a document having id "
-                                                f"'{violation.target_id}', but the latter document "
-                                                f"does not exist in any of the collections the "
-                                                f"NMDC Schema says it can exist in."
-                                            )
-                                            raise OverlayDBError(violation_as_str)
-
                 except OverlayDBError as e:
                     validation_errors[coll_name].append(str(e))
 
@@ -723,6 +640,106 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
             NMDCDatabase(**in_docs)
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
+
+        # Third pass (if enabled): Check inter-document references.
+        if check_references is True:
+            # Insert all documents specified for all collections specified, into the OverlayDB.
+            #
+            # Note: This will allow us to validate referential integrity in the database's _final_ state. If we were to,
+            #       instead, validate it after processing _each_ collection, we would get a false positive if a document
+            #       inserted into an earlier-processed collection happened to reference a document slated for insertion
+            #       into a later-processed collection. By waiting until all documents in all collections specified have
+            #       been inserted, we avoid that scenario.
+            #
+            with OverlayDB(mdb) as overlay_db:
+                print(f"Inserting documents into the OverlayDB.")
+                for collection_name, documents_to_insert in docs.items():
+                    try:
+                        overlay_db.replace_or_insert_many(collection_name, documents_to_insert)
+                    except OverlayDBError as error:
+                        validation_errors[collection_name].append(str(error))
+
+                # Now that the OverlayDB contains all the specified documents, we will check whether
+                # every document referenced by any of the inserted documents exists.
+                finder = Finder(database=overlay_db)
+                references = get_allowed_references()
+                reference_field_names_by_source_class_name = (
+                    references.get_reference_field_names_by_source_class_name()
+                )
+                for source_collection_name, documents_inserted in docs.items():
+                    # Check the referential integrity of the replaced or inserted documents.
+                    #
+                    # Note: Much of this code was copy/pasted from refscan, at:
+                    #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
+                    #
+                    print(f"Checking references emanating from documents inserted into '{source_collection_name}'.")
+                    for document in documents_inserted:
+                        # Get the document's schema class name so that we can interpret its fields accordingly.
+                        source_class_name = derive_schema_class_name_from_document(
+                            schema_view=nmdc_schema_view(),
+                            document=document,
+                        )
+
+                        # Get the names of that class's fields that can contain references.
+                        names_of_reference_fields = (
+                            reference_field_names_by_source_class_name.get(
+                                source_class_name, []
+                            )
+                        )
+
+                        # Check each field that both (a) exists in the document and (b) can contain a reference.
+                        for field_name in names_of_reference_fields:
+                            if field_name in document:
+                                # Determine which collections can contain the referenced document, based upon
+                                # the schema class of which this source document is an instance.
+                                target_collection_names = (
+                                    references.get_target_collection_names(
+                                        source_class_name=source_class_name,
+                                        source_field_name=field_name,
+                                    )
+                                )
+
+                                # Handle both the multi-value (array) and the single-value (scalar) case,
+                                # normalizing the value or values into a list of values in either case.
+                                if type(document[field_name]) is list:
+                                    target_ids = document[field_name]
+                                else:
+                                    target_id = document[field_name]
+                                    target_ids = [
+                                        target_id
+                                    ]  # makes a one-item list
+
+                                for target_id in target_ids:
+                                    name_of_collection_containing_target_document = finder.check_whether_document_having_id_exists_among_collections(
+                                        collection_names=target_collection_names,
+                                        document_id=target_id,
+                                    )
+                                    if (
+                                        name_of_collection_containing_target_document
+                                        is None
+                                    ):
+                                        violation = Violation(
+                                            source_collection_name=source_collection_name,
+                                            source_field_name=field_name,
+                                            source_document_object_id=document.get("_id"),
+                                            source_document_id=document.get("id"),
+                                            target_id=target_id,
+                                            name_of_collection_containing_target=name_of_collection_containing_target_document,
+                                        )
+                                        violation_as_str = (
+                                            f"Document '{violation.source_document_id}' "
+                                            f"in collection '{violation.source_collection_name}' "
+                                            f"has a field '{violation.source_field_name}' that "
+                                            f"references a document having id "
+                                            f"'{violation.target_id}', but the latter document "
+                                            f"does not exist in any of the collections the "
+                                            f"NMDC Schema says it can exist in."
+                                        )
+                                        validation_errors[source_collection_name].append(violation_as_str)
+
+            # If any collection's error list is not empty, return an error response.
+            if any(len(v) > 0 for v in validation_errors.values()):
+                return {"result": "errors", "detail": validation_errors}
 
         return {"result": "All Okay!"}
     else:
