@@ -539,7 +539,7 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
     ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
 
-    # Confirm the endpoint responds with no data objects.
+    # Confirm the endpoint responds with the data object we inserted above.
     response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
     assert response.status_code == 200
     data_objects_by_biosample = response.json()
