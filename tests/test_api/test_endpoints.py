@@ -478,6 +478,81 @@ def test_find_data_objects_for_study_having_none(api_site_client):
     mdb.get_collection(name="alldocs").delete_many({})
 
 
+def test_find_data_objects_for_study_having_one(api_site_client):
+    # Seed the test database with a study having one associated data object.
+    mdb = get_mongo_db()
+    study_id = "nmdc:sty-00-studio"
+    study_dict = {
+        "id": study_id,
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+    mdb.get_collection(name="study_set").replace_one(
+        {"id": study_id}, study_dict, upsert=True
+    )
+    biosample_id = "nmdc:bsm-00-campione"
+    biosample_dict = {
+            "id": biosample_id,
+            "type": "nmdc:Biosample",
+            "associated_studies": [study_id],
+            "env_broad_scale": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            },
+            "env_local_scale": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            },
+            "env_medium": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            }
+        }
+    mdb.get_collection(name="biosample_set").replace_one(
+        {"id": biosample_id}, biosample_dict, upsert=True
+    )
+    data_object_id = "nmdc:dobj-00-oggetto"
+    data_object_dict = {
+        "id": data_object_id,
+        "name": "Some name",
+        "description": "Some description",
+        "type": "nmdc:DataObject",
+    }
+    mdb.get_collection(name="data_object_set").replace_one(
+        {"id": data_object_id}, data_object_dict, upsert=True
+    )
+    # Note: The `MassSpectrometry` class inherits from the (abstract) `DataGeneration` class.
+    # Reference: https://microbiomedata.github.io/nmdc-schema/MassSpectrometry/
+    mass_spectrometry_id = "nmdc:dgms-00-spettro"
+    mass_spectrometry_dict = {
+        "id": mass_spectrometry_id,
+        "type": "nmdc:MassSpectrometry",
+        "analyte_category": "metaproteome",
+        "associated_studies": [study_id],
+        "has_input": [biosample_id],
+        "has_output": [data_object_id],
+    }
+    mdb.get_collection(name="data_generation_set").replace_one(
+        {"id": mass_spectrometry_id}, mass_spectrometry_dict, upsert=True
+    )
+
+    # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+
+    # Confirm the endpoint responds with no data objects.
+    response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
+    assert response.status_code == 200
+    data_objects_by_biosample = response.json()
+    assert len(data_objects_by_biosample) == 1
+
+    # Clean up: Delete the documents we created within this test, from the database.
+    mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
+    mdb.get_collection(name="data_generation_set").delete_one({"id": mass_spectrometry_id})
+    mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+    mdb.get_collection(name="alldocs").delete_many({})
+
+
 def test_find_planned_processes(api_site_client):
     mdb = get_mongo_db()
     database_dict = json.loads(
