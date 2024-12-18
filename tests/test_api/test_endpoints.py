@@ -544,6 +544,9 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     assert response.status_code == 200
     data_objects_by_biosample = response.json()
     assert len(data_objects_by_biosample) == 1
+    assert data_objects_by_biosample[0]["biosample_id"] == biosample_id
+    assert len(data_objects_by_biosample[0]["data_objects"]) == 1
+    assert data_objects_by_biosample[0]["data_objects"][0]["id"] == data_object_id
 
     # Clean up: Delete the documents we created within this test, from the database.
     mdb.get_collection(name="study_set").delete_one({"id": study_id})
