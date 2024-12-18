@@ -29,18 +29,22 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
-def ensure_schema_collections_and_alldocs():
-    # Return if `alldocs` collection has already been materialized.
+def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False):
+    r"""
+    This function can be used to ensure things (?) about schema-described collections and the "alldocs" collection.
+
+    :param bool force_refresh_of_alldocs: Whether you want to force a refresh of the "alldocs" collection,
+                                          regardless of whether it is empty of not. By default, this function
+                                          will only refresh the "alldocs" collection if it is empty.
+    """
+
+    # Return if `alldocs` collection has already been materialized, and caller does not want to force a refresh of it.
     mdb = get_mongo_db()
-    if mdb.alldocs.estimated_document_count() > 0:
+    if mdb.alldocs.estimated_document_count() > 0 and not force_refresh_of_alldocs:
         print(
             "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
         )
         return
-
-    # FIXME: Seed the database with documents that would be included in an `alldocs` collection,
-    #        such that the `/data_objects/study/{study_id}` endpoint (which uses that collection)
-    #        would return some data. Currently, we are practically _not testing_ that endpoint.
 
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
@@ -438,8 +442,6 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
 
     Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
           an unsuccessful status code.
-
-    TODO: Add tests focused on the situation where the `Study` _does_ exist.
     """
     ensure_schema_collections_and_alldocs()
     with pytest.raises(requests.exceptions.HTTPError):
@@ -447,6 +449,33 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
         )
+
+
+def test_find_data_objects_for_study_having_none(api_site_client):
+    # Seed the test database with a study having no associated data objects.
+    mdb = get_mongo_db()
+    study_id = "nmdc:sty-00-beeeeeef"
+    study_dict = {
+        "id": study_id,
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+    mdb.get_collection(name="study_set").replace_one(
+        {"id": study_id}, study_dict, upsert=True
+    )
+
+    # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+
+    # Confirm the endpoint responds with no data objects.
+    response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
+    assert response.status_code == 200
+    data_objects_by_biosample = response.json()
+    assert len(data_objects_by_biosample) == 0
+
+    # Clean up: Delete the documents we created within this test, from the database.
+    mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    mdb.get_collection(name="alldocs").delete_many({})
 
 
 def test_find_planned_processes(api_site_client):
