@@ -29,18 +29,22 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
-def ensure_schema_collections_and_alldocs():
-    # Return if `alldocs` collection has already been materialized.
+def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False):
+    r"""
+    This function can be used to ensure things (?) about schema-described collections and the "alldocs" collection.
+
+    :param bool force_refresh_of_alldocs: Whether you want to force a refresh of the "alldocs" collection,
+                                          regardless of whether it is empty of not. By default, this function
+                                          will only refresh the "alldocs" collection if it is empty.
+    """
+
+    # Return if `alldocs` collection has already been materialized, and caller does not want to force a refresh of it.
     mdb = get_mongo_db()
-    if mdb.alldocs.estimated_document_count() > 0:
+    if mdb.alldocs.estimated_document_count() > 0 and not force_refresh_of_alldocs:
         print(
             "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
         )
         return
-
-    # FIXME: Seed the database with documents that would be included in an `alldocs` collection,
-    #        such that the `/data_objects/study/{study_id}` endpoint (which uses that collection)
-    #        would return some data. Currently, we are practically _not testing_ that endpoint.
 
     ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
@@ -438,8 +442,6 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
 
     Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
           an unsuccessful status code.
-
-    TODO: Add tests focused on the situation where the `Study` _does_ exist.
     """
     ensure_schema_collections_and_alldocs()
     with pytest.raises(requests.exceptions.HTTPError):
@@ -447,6 +449,111 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
             "GET",
             "/data_objects/study/nmdc:sty-11-hdd4bf83",
         )
+
+
+def test_find_data_objects_for_study_having_none(api_site_client):
+    # Seed the test database with a study having no associated data objects.
+    mdb = get_mongo_db()
+    study_id = "nmdc:sty-00-beeeeeef"
+    study_dict = {
+        "id": study_id,
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+    mdb.get_collection(name="study_set").replace_one(
+        {"id": study_id}, study_dict, upsert=True
+    )
+
+    # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+
+    # Confirm the endpoint responds with no data objects.
+    response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
+    assert response.status_code == 200
+    data_objects_by_biosample = response.json()
+    assert len(data_objects_by_biosample) == 0
+
+    # Clean up: Delete the documents we created within this test, from the database.
+    mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    mdb.get_collection(name="alldocs").delete_many({})
+
+
+def test_find_data_objects_for_study_having_one(api_site_client):
+    # Seed the test database with a study having one associated data object.
+    mdb = get_mongo_db()
+    study_id = "nmdc:sty-00-studio"
+    study_dict = {
+        "id": study_id,
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+    mdb.get_collection(name="study_set").replace_one(
+        {"id": study_id}, study_dict, upsert=True
+    )
+    biosample_id = "nmdc:bsm-00-campione"
+    biosample_dict = {
+            "id": biosample_id,
+            "type": "nmdc:Biosample",
+            "associated_studies": [study_id],
+            "env_broad_scale": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            },
+            "env_local_scale": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            },
+            "env_medium": {
+                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                "type": "nmdc:ControlledIdentifiedTermValue"
+            }
+        }
+    mdb.get_collection(name="biosample_set").replace_one(
+        {"id": biosample_id}, biosample_dict, upsert=True
+    )
+    data_object_id = "nmdc:dobj-00-oggetto"
+    data_object_dict = {
+        "id": data_object_id,
+        "name": "Some name",
+        "description": "Some description",
+        "type": "nmdc:DataObject",
+    }
+    mdb.get_collection(name="data_object_set").replace_one(
+        {"id": data_object_id}, data_object_dict, upsert=True
+    )
+    # Note: The `MassSpectrometry` class inherits from the (abstract) `DataGeneration` class.
+    # Reference: https://microbiomedata.github.io/nmdc-schema/MassSpectrometry/
+    mass_spectrometry_id = "nmdc:dgms-00-spettro"
+    mass_spectrometry_dict = {
+        "id": mass_spectrometry_id,
+        "type": "nmdc:MassSpectrometry",
+        "analyte_category": "metaproteome",
+        "associated_studies": [study_id],
+        "has_input": [biosample_id],
+        "has_output": [data_object_id],
+    }
+    mdb.get_collection(name="data_generation_set").replace_one(
+        {"id": mass_spectrometry_id}, mass_spectrometry_dict, upsert=True
+    )
+
+    # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+
+    # Confirm the endpoint responds with the data object we inserted above.
+    response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
+    assert response.status_code == 200
+    data_objects_by_biosample = response.json()
+    assert len(data_objects_by_biosample) == 1
+    assert data_objects_by_biosample[0]["biosample_id"] == biosample_id
+    assert len(data_objects_by_biosample[0]["data_objects"]) == 1
+    assert data_objects_by_biosample[0]["data_objects"][0]["id"] == data_object_id
+
+    # Clean up: Delete the documents we created within this test, from the database.
+    mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
+    mdb.get_collection(name="data_generation_set").delete_one({"id": mass_spectrometry_id})
+    mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+    mdb.get_collection(name="alldocs").delete_many({})
 
 
 def test_find_planned_processes(api_site_client):
