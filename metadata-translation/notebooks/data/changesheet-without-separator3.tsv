@@ -25,3 +25,4 @@ v4		applied_roles	Investigation
 v4		applies_to_person.name	NEW CURATOR NAME 1
 v4		applies_to_person.type	nmdc:PersonValue
 v4		type	prov:Association
+nmdc:sty-11-pzmd0x14	insert	funding_sources	United States National Science Foundation Microbial Observatories program (MCB-0702395)|Long-Term Ecological Research Program (NTL–LTER DEB-1440297)|INSPIRE award (DEB-1344254)
