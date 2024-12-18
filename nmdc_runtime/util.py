@@ -578,7 +578,7 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = True):
+def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = False):
     r"""
     Checks whether the specified dictionary represents a valid instance of the `Database` class
     defined in the NMDC Schema.
