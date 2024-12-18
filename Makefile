@@ -43,6 +43,8 @@ test-dbinit:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
+# Tip: If you append a file path to this "recipe", pytest will run only the tests defined in that file.
+#      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
 test-run:
 	docker compose --file docker-compose.test.yml run test
 
