@@ -655,7 +655,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = Tr
                 print(f"Inserting documents into the OverlayDB.")
                 for collection_name, documents_to_insert in docs.items():
                     try:
-                        overlay_db.replace_or_insert_many(collection_name, documents_to_insert)
+                        overlay_db.replace_or_insert_many(
+                            collection_name, documents_to_insert
+                        )
                     except OverlayDBError as error:
                         validation_errors[collection_name].append(str(error))
 
@@ -672,7 +674,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = Tr
                     # Note: Much of this code was copy/pasted from refscan, at:
                     #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
                     #
-                    print(f"Checking references emanating from documents inserted into '{source_collection_name}'.")
+                    print(
+                        f"Checking references emanating from documents inserted into '{source_collection_name}'."
+                    )
                     for document in documents_inserted:
                         # Get the document's schema class name so that we can interpret its fields accordingly.
                         source_class_name = derive_schema_class_name_from_document(
@@ -705,9 +709,7 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = Tr
                                     target_ids = document[field_name]
                                 else:
                                     target_id = document[field_name]
-                                    target_ids = [
-                                        target_id
-                                    ]  # makes a one-item list
+                                    target_ids = [target_id]  # makes a one-item list
 
                                 for target_id in target_ids:
                                     name_of_collection_containing_target_document = finder.check_whether_document_having_id_exists_among_collections(
@@ -721,7 +723,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = Tr
                                         violation = Violation(
                                             source_collection_name=source_collection_name,
                                             source_field_name=field_name,
-                                            source_document_object_id=document.get("_id"),
+                                            source_document_object_id=document.get(
+                                                "_id"
+                                            ),
                                             source_document_id=document.get("id"),
                                             target_id=target_id,
                                             name_of_collection_containing_target=name_of_collection_containing_target_document,
@@ -735,7 +739,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_references: bool = Tr
                                             f"does not exist in any of the collections the "
                                             f"NMDC Schema says it can exist in."
                                         )
-                                        validation_errors[source_collection_name].append(violation_as_str)
+                                        validation_errors[
+                                            source_collection_name
+                                        ].append(violation_as_str)
 
             # If any collection's error list is not empty, return an error response.
             if any(len(v) > 0 for v in validation_errors.values()):
