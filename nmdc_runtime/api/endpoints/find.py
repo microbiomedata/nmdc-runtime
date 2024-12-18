@@ -257,7 +257,9 @@ def find_data_objects_for_study(
                         if get_classname_from_typecode(op) != "DataObject"
                     )
 
-                    if any(t in dg_descendants for t in doc.get("_type_and_ancestors", [])):
+                    if any(
+                        t in dg_descendants for t in doc.get("_type_and_ancestors", [])
+                    ):
                         process_informed_by_docs(
                             doc, collected_data_objects, unique_ids
                         )
