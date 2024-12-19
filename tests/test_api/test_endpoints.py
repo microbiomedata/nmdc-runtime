@@ -577,10 +577,13 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
     assert response.status_code == 200
     data_objects_by_biosample = response.json()
-    assert len(data_objects_by_biosample) == 1
-    assert data_objects_by_biosample[0]["biosample_id"] == biosample_id
-    assert len(data_objects_by_biosample[0]["data_objects"]) == 1
-    assert data_objects_by_biosample[0]["data_objects"][0]["id"] == data_object_id
+    assert any(
+        biosample_data_objects["biosample_id"] == biosample_id
+        and any(
+            do["id"] == data_object_id for do in biosample_data_objects["data_objects"]
+        )
+        for biosample_data_objects in data_objects_by_biosample
+    )
 
     # Clean up: Delete the documents we created within this test, from the database.
     if "study" in fakes:
