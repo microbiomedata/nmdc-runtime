@@ -34,7 +34,7 @@ def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False
     This function can be used to ensure properties of schema-described collections and the "alldocs" collection.
 
     :param bool force_refresh_of_alldocs: Whether you want to force a refresh of the "alldocs" collection,
-                                          regardless of whether it is empty of not. By default, this function
+                                          regardless of whether it is empty or not. By default, this function
                                           will only refresh the "alldocs" collection if it is empty.
     """
     mdb = get_mongo_db()
