@@ -26,7 +26,7 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
 
 
 def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False):
@@ -459,6 +459,8 @@ def test_find_data_objects_for_study_having_none(api_site_client):
         "type": "nmdc:Study",
         "study_category": "research_study",
     }
+    assert validate_json({"study_set": [study_dict]}, mdb)["result"] != "errors"
+
     mdb.get_collection(name="study_set").replace_one(
         {"id": study_id}, study_dict, upsert=True
     )
@@ -480,60 +482,93 @@ def test_find_data_objects_for_study_having_none(api_site_client):
 def test_find_data_objects_for_study_having_one(api_site_client):
     # Seed the test database with a study having one associated data object.
     mdb = get_mongo_db()
-    study_id = "nmdc:sty-00-studio"
+    study_id = "nmdc:sty-11-r2h77870"
     study_dict = {
         "id": study_id,
         "type": "nmdc:Study",
         "study_category": "research_study",
     }
-    mdb.get_collection(name="study_set").replace_one(
-        {"id": study_id}, study_dict, upsert=True
-    )
-    biosample_id = "nmdc:bsm-00-campione"
+    fakes = set()
+    assert validate_json({"study_set": [study_dict]}, mdb)["result"] != "errors"
+    if mdb.get_collection(name="study_set").find_one({"id": study_id}) is None:
+        mdb.get_collection(name="study_set").insert_one(study_dict)
+        fakes.add("study")
+    biosample_id = "nmdc:bsm-11-6zd5nb38"
     biosample_dict = {
         "id": biosample_id,
-        "type": "nmdc:Biosample",
-        "associated_studies": [study_id],
         "env_broad_scale": {
-            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "has_raw_value": "ENVO_00000446",
+            "term": {
+                "id": "ENVO:00000446",
+                "name": "terrestrial biome",
+                "type": "nmdc:OntologyClass",
+            },
             "type": "nmdc:ControlledIdentifiedTermValue",
         },
         "env_local_scale": {
-            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "has_raw_value": "ENVO_00005801",
+            "term": {
+                "id": "ENVO:00005801",
+                "name": "rhizosphere",
+                "type": "nmdc:OntologyClass",
+            },
             "type": "nmdc:ControlledIdentifiedTermValue",
         },
         "env_medium": {
-            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "has_raw_value": "ENVO_00001998",
+            "term": {
+                "id": "ENVO:00001998",
+                "name": "soil",
+                "type": "nmdc:OntologyClass",
+            },
             "type": "nmdc:ControlledIdentifiedTermValue",
         },
+        "type": "nmdc:Biosample",
+        "associated_studies": [study_id],
     }
-    mdb.get_collection(name="biosample_set").replace_one(
-        {"id": biosample_id}, biosample_dict, upsert=True
+    assert validate_json({"biosample_set": [biosample_dict]}, mdb)["result"] != "errors"
+    if mdb.get_collection(name="biosample_set").find_one({"id": biosample_id}) is None:
+        mdb.get_collection(name="biosample_set").insert_one(biosample_dict)
+        fakes.add("biosample")
+
+    data_generation_id = "nmdc:omprc-11-nmtj1g51"
+    data_generation_dict = {
+        "id": data_generation_id,
+        "has_input": [biosample_id],
+        "type": "nmdc:NucleotideSequencing",
+        "analyte_category": "metagenome",
+        "associated_studies": [study_id],
+    }
+    assert (
+        validate_json({"data_generation_set": [data_generation_dict]}, mdb)["result"]
+        != "errors"
     )
-    data_object_id = "nmdc:dobj-00-oggetto"
+    if (
+        mdb.get_collection(name="data_generation_set").find_one(
+            {"id": data_generation_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_generation_set").insert_one(data_generation_dict)
+        fakes.add("data_generation")
+
+    data_object_id = "nmdc:dobj-11-cpv4y420"
     data_object_dict = {
         "id": data_object_id,
-        "name": "Some name",
-        "description": "Some description",
+        "name": "Raw sequencer read data",
+        "description": "Metagenome Raw Reads for nmdc:omprc-11-nmtj1g51",
         "type": "nmdc:DataObject",
     }
-    mdb.get_collection(name="data_object_set").replace_one(
-        {"id": data_object_id}, data_object_dict, upsert=True
+    assert (
+        validate_json({"data_object_set": [data_object_dict]}, mdb)["result"]
+        != "errors"
     )
-    # Note: The `MassSpectrometry` class inherits from the (abstract) `DataGeneration` class.
-    # Reference: https://microbiomedata.github.io/nmdc-schema/MassSpectrometry/
-    mass_spectrometry_id = "nmdc:dgms-00-spettro"
-    mass_spectrometry_dict = {
-        "id": mass_spectrometry_id,
-        "type": "nmdc:MassSpectrometry",
-        "analyte_category": "metaproteome",
-        "associated_studies": [study_id],
-        "has_input": [biosample_id],
-        "has_output": [data_object_id],
-    }
-    mdb.get_collection(name="data_generation_set").replace_one(
-        {"id": mass_spectrometry_id}, mass_spectrometry_dict, upsert=True
-    )
+    if (
+        mdb.get_collection(name="data_object_set").find_one({"id": data_object_id})
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_dict)
+        fakes.add("data_object")
 
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
     ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
@@ -548,12 +583,17 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     assert data_objects_by_biosample[0]["data_objects"][0]["id"] == data_object_id
 
     # Clean up: Delete the documents we created within this test, from the database.
-    mdb.get_collection(name="study_set").delete_one({"id": study_id})
-    mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
-    mdb.get_collection(name="data_generation_set").delete_one(
-        {"id": mass_spectrometry_id}
-    )
-    mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+    if "study" in fakes:
+        mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    if "biosample" in fakes:
+        mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
+    if "data_generation":
+        mdb.get_collection(name="data_generation_set").delete_one(
+            {"id": data_generation_id}
+        )
+    if "data_object" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+
     mdb.get_collection(name="alldocs").delete_many({})
 
 
