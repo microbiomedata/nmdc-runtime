@@ -31,22 +31,21 @@ from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False):
     r"""
-    This function can be used to ensure things (?) about schema-described collections and the "alldocs" collection.
+    This function can be used to ensure properties of schema-described collections and the "alldocs" collection.
 
     :param bool force_refresh_of_alldocs: Whether you want to force a refresh of the "alldocs" collection,
                                           regardless of whether it is empty of not. By default, this function
                                           will only refresh the "alldocs" collection if it is empty.
     """
-
-    # Return if `alldocs` collection has already been materialized, and caller does not want to force a refresh of it.
     mdb = get_mongo_db()
+    ensure_unique_id_indexes(mdb)
+    # Return if `alldocs` collection has already been materialized, and caller does not want to force a refresh of it.
     if mdb.alldocs.estimated_document_count() > 0 and not force_refresh_of_alldocs:
         print(
             "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
         )
         return
 
-    ensure_unique_id_indexes(mdb)
     print("materializing alldocs...")
     materialize_alldocs(
         build_op_context(
