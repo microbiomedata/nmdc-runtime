@@ -570,6 +570,35 @@ def test_find_data_objects_for_study_having_one(api_site_client):
         mdb.get_collection(name="data_object_set").insert_one(data_object_dict)
         fakes.add("data_object")
 
+    workflow_execution_id = "nmdc:wfmsa-11-fqq66x60.1"
+    workflow_execution_dict = {
+        "id": workflow_execution_id,
+        "started_at_time": "2023-03-24T02:02:59.479107+00:00",
+        "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
+        "was_informed_by": data_generation_id,
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/RawSequencingData",
+        "has_input": [biosample_id],
+        "has_output": [data_object_id],
+        "type": "nmdc:MetagenomeSequencing",
+    }
+    assert (
+        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
+            "result"
+        ]
+        != "errors"
+    )
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict
+        )
+        fakes.add("workflow_execution")
+
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
     ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
 
@@ -596,6 +625,10 @@ def test_find_data_objects_for_study_having_one(api_site_client):
         )
     if "data_object" in fakes:
         mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+    if "workflow_execution" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id}
+        )
 
     mdb.get_collection(name="alldocs").delete_many({})
 
