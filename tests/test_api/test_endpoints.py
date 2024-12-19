@@ -492,22 +492,22 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     )
     biosample_id = "nmdc:bsm-00-campione"
     biosample_dict = {
-            "id": biosample_id,
-            "type": "nmdc:Biosample",
-            "associated_studies": [study_id],
-            "env_broad_scale": {
-                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
-                "type": "nmdc:ControlledIdentifiedTermValue"
-            },
-            "env_local_scale": {
-                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
-                "type": "nmdc:ControlledIdentifiedTermValue"
-            },
-            "env_medium": {
-                "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
-                "type": "nmdc:ControlledIdentifiedTermValue"
-            }
-        }
+        "id": biosample_id,
+        "type": "nmdc:Biosample",
+        "associated_studies": [study_id],
+        "env_broad_scale": {
+            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+        "env_local_scale": {
+            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+        "env_medium": {
+            "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+    }
     mdb.get_collection(name="biosample_set").replace_one(
         {"id": biosample_id}, biosample_dict, upsert=True
     )
@@ -551,7 +551,9 @@ def test_find_data_objects_for_study_having_one(api_site_client):
     # Clean up: Delete the documents we created within this test, from the database.
     mdb.get_collection(name="study_set").delete_one({"id": study_id})
     mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
-    mdb.get_collection(name="data_generation_set").delete_one({"id": mass_spectrometry_id})
+    mdb.get_collection(name="data_generation_set").delete_one(
+        {"id": mass_spectrometry_id}
+    )
     mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
     mdb.get_collection(name="alldocs").delete_many({})
 
