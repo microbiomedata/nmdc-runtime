@@ -37,6 +37,8 @@ class GoldStudyTranslator(Translator):
             for biosample in biosamples
             if any(
                 project.get("sequencingStrategy") in SEQUENCING_STRATEGIES
+                and project.get("projectStatus")
+                in ("Permanent Draft", "Complete and Published")
                 for project in biosample.get("projects", [])
             )
         ]
