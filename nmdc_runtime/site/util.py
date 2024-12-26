@@ -1,8 +1,9 @@
 import os
-from functools import lru_cache
-from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 
+from dagster import op
+from functools import lru_cache
 from pymongo.database import Database as MongoDatabase
+from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 
 from nmdc_runtime.api.db.mongo import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
@@ -47,3 +48,7 @@ def schema_collection_has_index_on_id(mdb: MongoDatabase) -> dict:
 
 def get_basename(filename: str) -> str:
     return os.path.basename(filename)
+
+
+def nmdc_study_id_to_filename(nmdc_study_id: str) -> str:
+    return nmdc_study_id.replace(":", "_").replace("-", "_")

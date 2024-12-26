@@ -57,6 +57,9 @@ from nmdc_runtime.site.ops import (
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
+    get_database_updater_inputs,
+    nmdc_study_id_filename,
+    missing_data_generation_repair,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -467,3 +470,14 @@ def nmdc_study_to_ncbi_submission_export():
         all_instruments,
     )
     ncbi_submission_xml_asset(xml_data)
+
+
+@graph
+def fill_missing_data_generation_data_object_records():
+    study_id = get_database_updater_inputs()
+    database = missing_data_generation_repair(study_id)
+
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_study_id_filename(study_id)
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)

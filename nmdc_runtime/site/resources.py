@@ -134,7 +134,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             f"/queries:run",
             {
                 "find": "biosample_set",
-                "filter": {"part_of": {"$elemMatch": {"$eq": study_id}}},
+                "filter": {"associated_studies": {"$elemMatch": {"$eq": study_id}}},
             },
         )
         response.raise_for_status()
