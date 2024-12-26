@@ -44,6 +44,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
     nmdc_study_to_ncbi_submission_export,
+    fill_missing_data_generation_data_object_records,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -916,6 +917,38 @@ def biosample_export():
                             },
                         }
                     },
+                },
+            },
+        ),
+    ]
+
+
+@repository
+def database_record_repair():
+    normal_resources = run_config_frozen__normal_env["resources"]
+    return [
+        fill_missing_data_generation_data_object_records.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_user_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "username": {"env": "API_ADMIN_USER"},
+                                "password": {"env": "API_ADMIN_PASS"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_database_updater_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
         ),
