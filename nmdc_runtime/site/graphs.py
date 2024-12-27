@@ -474,8 +474,10 @@ def nmdc_study_to_ncbi_submission_export():
 
 @graph
 def fill_missing_data_generation_data_object_records():
-    study_id = get_database_updater_inputs()
-    database = missing_data_generation_repair(study_id)
+    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
+
+    database = missing_data_generation_repair(study_id, gold_nmdc_instrument_map_df)
 
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_study_id_filename(study_id)

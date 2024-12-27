@@ -1255,19 +1255,49 @@ def nmdc_study_id_filename(nmdc_study_id: str) -> str:
 
 
 @op(
-    config_schema={"nmdc_study_id": str},
-    out={"nmdc_study_id": Out(str)},
+    config_schema={
+        "nmdc_study_id": str,
+        "gold_nmdc_instrument_mapping_file_url": str,
+    },
+    out={
+        "nmdc_study_id": Out(str),
+        "gold_nmdc_instrument_mapping_file_url": Out(str),
+    },
 )
-def get_database_updater_inputs(context: OpExecutionContext) -> str:
-    return context.op_config["nmdc_study_id"]
+def get_database_updater_inputs(context: OpExecutionContext) -> Tuple[str, str]:
+    return (
+        context.op_config["nmdc_study_id"],
+        context.op_config["gold_nmdc_instrument_mapping_file_url"],
+    )
 
 
-@op(required_resource_keys={"runtime_api_user_client"})
+@op(
+    required_resource_keys={
+        "runtime_api_user_client",
+        "runtime_api_site_client",
+        "gold_api_client",
+    }
+)
 def missing_data_generation_repair(
-    context: OpExecutionContext, nmdc_study_id: str
+    context: OpExecutionContext,
+    nmdc_study_id: str,
+    gold_nmdc_instrument_map_df: pd.DataFrame,
 ) -> nmdc.Database:
-    client: RuntimeApiUserClient = context.resources.runtime_api_user_client
-    database_updater = DatabaseUpdater(client, nmdc_study_id)
-    database = database_updater.get_database()
+    runtime_api_user_client: RuntimeApiUserClient = (
+        context.resources.runtime_api_user_client
+    )
+    runtime_api_site_client: RuntimeApiSiteClient = (
+        context.resources.runtime_api_site_client
+    )
+    gold_api_client: GoldApiClient = context.resources.gold_api_client
+
+    database_updater = DatabaseUpdater(
+        runtime_api_user_client,
+        runtime_api_site_client,
+        gold_api_client,
+        nmdc_study_id,
+        gold_nmdc_instrument_map_df,
+    )
+    database = database_updater.create_missing_dg_records()
 
     return database

@@ -940,12 +940,28 @@ def database_record_repair():
                                 "password": {"env": "API_ADMIN_PASS"},
                             },
                         },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
+                        },
                     },
                 ),
                 "ops": {
                     "get_database_updater_inputs": {
                         "config": {
                             "nmdc_study_id": "",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                     "export_json_to_drs": {"config": {"username": ""}},

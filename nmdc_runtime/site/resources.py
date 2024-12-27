@@ -370,6 +370,18 @@ class GoldApiClient(BasicAuthClient):
             return None
         return results[0]
 
+    def fetch_projects_by_biosample(self, biosample_id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(biosample_id)
+        results = self.request("/projects", params={"biosampleGoldId": id})
+        return results
+
+    def fetch_biosample_by_biosample_id(
+        self, biosample_id: str
+    ) -> List[Dict[str, Any]]:
+        id = self._normalize_id(biosample_id)
+        results = self.request("/biosamples", params={"biosampleGoldId": id})
+        return results
+
 
 @resource(
     config_schema={
