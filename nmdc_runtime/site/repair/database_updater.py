@@ -76,7 +76,6 @@ class DatabaseUpdater:
 
         database.data_generation_set = []
         for project in filtered_projects:
-            # Determine biosampleGoldId from filtered_biosamples
             biosample_gold_id = next(
                 (
                     biosample["biosampleGoldId"]
