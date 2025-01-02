@@ -18,6 +18,21 @@ class DatabaseUpdater:
         study_id: str,
         gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
     ):
+        """This class serves as an API for repairing connections in the database by
+        adding records that are essentially missing "links"/"connections". As we identify
+        common use cases for adding missing records to the database, we can
+        add helper methods to this class.
+
+        :param runtime_api_user_client: An object of RuntimeApiUserClient which can be
+        used to retrieve instance records from the NMDC database.
+        :param runtime_api_site_client: An object of RuntimeApiSiteClient which can be
+        used to mint new IDs for the repaired records that need to be added into the NMDC database.
+        :param gold_api_client: An object of GoldApiClient which can be used to retrieve
+        records from GOLD via the GOLD API.
+        :param study_id: NMDC study ID for which the missing records need to be added.
+        :param gold_nmdc_instrument_map_df: A dataframe originally stored as a TSV mapping file in the
+        NMDC schema repo, which maps GOLD instrument IDs to IDs of NMDC instrument_set records.
+        """
         self.runtime_api_user_client = runtime_api_user_client
         self.runtime_api_site_client = runtime_api_site_client
         self.gold_api_client = gold_api_client
@@ -26,6 +41,17 @@ class DatabaseUpdater:
 
     @lru_cache
     def create_missing_dg_records(self):
+        """This method creates missing data generation records for a given study in the NMDC database using
+        metadata from GOLD. The way the logic works is, it first fetches all the biosamples associated
+        with the study from the NMDC database. Then, it fetches all the biosample and project data data
+        associated with the individual biosamples from the GOLD API using the NMDC-GOLD biosample id
+        mappings on the "gold_biosample_identifiers" key/slot. We use the GoldStudyTranslator class
+        to mint the required number of `nmdc:DataGeneration` (`nmdc:NucleotideSequencing`) records based
+        on the number of GOLD sequencing projects, and then reimplement only the part of logic from that
+        class which is responsible for making data_generation_set records.
+
+        :return: An instance of `nmdc:Database` object which is JSON-ified and rendered on the frontend.
+        """
         database = nmdc.Database()
 
         biosample_set = self.runtime_api_user_client.get_biosamples_for_study(
@@ -54,6 +80,8 @@ class DatabaseUpdater:
             gold_nmdc_instrument_map_df=self.gold_nmdc_instrument_map_df,
         )
 
+        # The GoldStudyTranslator class has some pre-processing logic which filters out
+        # invalid biosamples and projects (based on `sequencingStrategy`, `projectStatus`, etc.)
         filtered_biosamples = gold_study_translator.biosamples
         filtered_projects = gold_study_translator.projects
 
@@ -75,7 +103,10 @@ class DatabaseUpdater:
         }
 
         database.data_generation_set = []
+        # Similar to the logic in GoldStudyTranslator, the number of nmdc:NucleotideSequencing records
+        # created is based on the number of GOLD sequencing projects
         for project in filtered_projects:
+            # map the projectGoldId to the NMDC biosample ID
             biosample_gold_id = next(
                 (
                     biosample["biosampleGoldId"]
