@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Any, Dict, List
 import pandas as pd
 from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
@@ -40,6 +41,24 @@ class DatabaseUpdater:
         self.gold_nmdc_instrument_map_df = gold_nmdc_instrument_map_df
 
     @lru_cache
+    def _fetch_gold_biosample(self, gold_biosample_id: str) -> List[Dict[str, Any]]:
+        """Fetch response from GOLD /biosamples API for a given biosample id.
+
+        :param gold_biosample_id: GOLD biosample ID.
+        :return: Dictionary containing the response from the GOLD /biosamples API.
+        """
+        return self.gold_api_client.fetch_biosample_by_biosample_id(gold_biosample_id)
+
+    @lru_cache
+    def _fetch_gold_projects(self, gold_biosample_id: str):
+        """Fetch response from GOLD /projects API for a given biosample id.
+
+        :param gold_biosample_id: GOLD biosample ID
+        :return: Dictionary containing the response from the GOLD /projects API.
+        """
+        return self.gold_api_client.fetch_projects_by_biosample(gold_biosample_id)
+
+    @lru_cache
     def create_missing_dg_records(self):
         """This method creates missing data generation records for a given study in the NMDC database using
         metadata from GOLD. The way the logic works is, it first fetches all the biosamples associated
@@ -64,12 +83,8 @@ class DatabaseUpdater:
             gold_biosample_identifiers = biosample.get("gold_biosample_identifiers")
             if gold_biosample_identifiers:
                 gold_biosample_id = gold_biosample_identifiers[0]
-                gold_biosample = self.gold_api_client.fetch_biosample_by_biosample_id(
-                    gold_biosample_id
-                )[0]
-                gold_projects = self.gold_api_client.fetch_projects_by_biosample(
-                    gold_biosample_id
-                )
+                gold_biosample = self._fetch_gold_biosample(gold_biosample_id)[0]
+                gold_projects = self._fetch_gold_projects(gold_biosample_id)
                 gold_biosample["projects"] = gold_projects
                 all_gold_biosamples.append(gold_biosample)
                 all_gold_projects.extend(gold_projects)
