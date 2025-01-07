@@ -82,12 +82,13 @@ class DatabaseUpdater:
         for biosample in biosample_set:
             gold_biosample_identifiers = biosample.get("gold_biosample_identifiers")
             if gold_biosample_identifiers:
-                gold_biosample_id = gold_biosample_identifiers[0]
-                gold_biosample = self._fetch_gold_biosample(gold_biosample_id)[0]
-                gold_projects = self._fetch_gold_projects(gold_biosample_id)
-                gold_biosample["projects"] = gold_projects
-                all_gold_biosamples.append(gold_biosample)
-                all_gold_projects.extend(gold_projects)
+                for gold_biosample_id in gold_biosample_identifiers:
+                    gold_biosample = self._fetch_gold_biosample(gold_biosample_id)[0]
+                    gold_projects = self._fetch_gold_projects(gold_biosample_id)
+                    gold_biosample["projects"] = gold_projects
+
+                    all_gold_biosamples.append(gold_biosample)
+                    all_gold_projects.extend(gold_projects)
 
         gold_study_translator = GoldStudyTranslator(
             biosamples=all_gold_biosamples,
@@ -108,14 +109,13 @@ class DatabaseUpdater:
             zip(gold_project_ids, nmdc_nucleotide_sequencing_ids)
         )
 
-        gold_to_nmdc_biosample_ids = {
-            biosample["gold_biosample_identifiers"][0].replace("gold:", ""): biosample[
-                "id"
-            ]
-            for biosample in biosample_set
-            if "gold_biosample_identifiers" in biosample
-            and biosample["gold_biosample_identifiers"]
-        }
+        gold_to_nmdc_biosample_ids = {}
+
+        for biosample in biosample_set:
+            gold_ids = biosample.get("gold_biosample_identifiers", [])
+            for gold_id in gold_ids:
+                gold_id_stripped = gold_id.replace("gold:", "")
+                gold_to_nmdc_biosample_ids[gold_id_stripped] = biosample["id"]
 
         database.data_generation_set = []
         # Similar to the logic in GoldStudyTranslator, the number of nmdc:NucleotideSequencing records

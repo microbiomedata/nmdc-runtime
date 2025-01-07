@@ -129,16 +129,23 @@ class RuntimeApiUserClient(RuntimeApiClient):
         return response.json()["cursor"]["firstBatch"]
 
     def get_biosamples_for_study(self, study_id: str):
+        # TODO: 10000 is an arbitrarily large number that has been chosen for the max_page_size param.
+        # The /nmdcschema/{collection-name} endpoint implements pagination via the page_token mechanism,
+        # but the tradeoff there is that we would need to make multiple requests to step through the
+        # each of the pages. By picking a large number for max_page_size, we can get all the results
+        # in a single request.
+        # This method previously used the /queries:run endpoint but the problem with that was that
+        # it used to truncate the number of results returned to 100.
         response = self.request(
-            "POST",
-            f"/queries:run",
+            "GET",
+            f"/nmdcschema/biosample_set",
             {
-                "find": "biosample_set",
-                "filter": {"associated_studies": {"$elemMatch": {"$eq": study_id}}},
+                "filter": json.dumps({"associated_studies": study_id}),
+                "max_page_size": 10000,
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["resources"]
 
     def get_omics_processing_by_name(self, name: str):
         response = self.request(
