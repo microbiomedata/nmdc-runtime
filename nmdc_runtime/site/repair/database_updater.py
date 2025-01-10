@@ -58,7 +58,6 @@ class DatabaseUpdater:
         """
         return self.gold_api_client.fetch_projects_by_biosample(gold_biosample_id)
 
-    @lru_cache
     def create_missing_dg_records(self):
         """This method creates missing data generation records for a given study in the NMDC database using
         metadata from GOLD. The way the logic works is, it first fetches all the biosamples associated
