@@ -174,7 +174,7 @@ async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mong
 
     """
 
-    return validate_json(docs, mdb)
+    return validate_json(docs, mdb, check_inter_document_references=True)
 
 
 @router.post("/metadata/json:submit", name="Submit JSON")

@@ -39,7 +39,7 @@ python-multipart>=0.0.18
 pyyaml
 # Note: We use `refscan` to get information about inter-document references from the schema and database.
 #       Reference: https://pypi.org/project/refscan/
-refscan==0.1.22
+refscan==0.2.0
 requests
 semver
 setuptools-scm
