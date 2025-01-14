@@ -7,6 +7,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
+from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
 from itertools import chain
@@ -90,20 +91,28 @@ from nmdc_runtime.site.translation.neon_surface_water_translator import (
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_runtime.site.util import run_and_log, schema_collection_has_index_on_id
+from nmdc_runtime.site.repair.database_updater import DatabaseUpdater
+from nmdc_runtime.site.util import (
+    run_and_log,
+    schema_collection_has_index_on_id,
+    nmdc_study_id_to_filename,
+)
 from nmdc_runtime.util import (
     drs_object_in_for,
+    get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
     validate_json,
     specialize_activity_set_docs,
     collection_name_to_class_names,
     class_hierarchy_as_list,
+    nmdc_schema_view,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pydantic import BaseModel
+from pymongo import InsertOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import assoc, dissoc, get_in, valfilter, identity
@@ -589,18 +598,23 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         "study_id": str,
         "study_type": str,
         "gold_nmdc_instrument_mapping_file_url": str,
+        "include_field_site_info": bool,
     },
     out={
         "study_id": Out(str),
         "study_type": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
+        "include_field_site_info": Out(bool),
     },
 )
-def get_gold_study_pipeline_inputs(context: OpExecutionContext) -> Tuple[str, str, str]:
+def get_gold_study_pipeline_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, str, bool]:
     return (
         context.op_config["study_id"],
         context.op_config["study_type"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
+        context.op_config["include_field_site_info"],
     )
 
 
@@ -643,6 +657,7 @@ def nmdc_schema_database_from_gold_study(
     biosamples: List[Dict[str, Any]],
     analysis_projects: List[Dict[str, Any]],
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -657,6 +672,7 @@ def nmdc_schema_database_from_gold_study(
         projects,
         analysis_projects,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
         id_minter=id_minter,
     )
     database = translator.get_database()
@@ -1030,115 +1046,95 @@ def site_code_mapping() -> dict:
 
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
+    """
+    This function re-creates the alldocs collection to reflect the current state of the Mongo database.
+    See nmdc-runtime/docs/nb/bulk_validation_referential_integrity_check.ipynb for more details.
+    """
     mdb = context.resources.mongo.db
+    schema_view = nmdc_schema_view()
+
+    # batch size for writing documents to alldocs
+    BULK_WRITE_BATCH_SIZE = 2000
+
+    # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
+    #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
     collection_names = populated_schema_collection_names_with_id_field(mdb)
+    context.log.info(f"constructing `alldocs` collection using {collection_names=}")
 
-    # Insert a no-op as an anchor point for this comment.
-    #
-    # Note: There used to be code here that `assert`-ed that each collection could only contain documents of a single
-    #       type. With the legacy schema, that assertion was true. With the Berkeley schema, it is false. That code was
-    #       in place because subsequent code (further below) used a single document in a collection as the source of the
-    #       class ancestry information of _all_ documents in that collection; an optimization that spared us from
-    #       having to do the same for every single document in that collection. With the Berkeley schema, we have
-    #       eliminated that optimization (since it is inadequate; it would produce some incorrect class ancestries
-    #       for descendants of `PlannedProcess`, for example).
-    #
-    pass
-
-    context.log.info(f"{collection_names=}")
-
-    # Drop any existing `alldocs` collection (e.g. from previous use of this op).
-    #
-    # FIXME: This "nuke and pave" approach introduces a race condition.
-    #        For example, if someone were to visit an API endpoint that uses the "alldocs" collection,
-    #        the endpoint would fail to perform its job since the "alldocs" collection is temporarily missing.
-    #
-    mdb.alldocs.drop()
-
-    # Build alldocs
-    context.log.info("constructing `alldocs` collection")
-
-    # For each collection, group its documents by their `type` value, transform them, and load them into `alldocs`.
-    for collection_name in collection_names:
-        context.log.info(
-            f"Found {mdb[collection_name].estimated_document_count()} estimated documents for {collection_name=}."
-        )
-
-        # Process all the distinct `type` values (i.e. value in the `type` field) of the documents in this collection.
-        #
-        # References:
-        # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.distinct
-        #
-        distinct_type_values = mdb[collection_name].distinct(key="type")
-        context.log.info(
-            f"Found {len(distinct_type_values)} distinct `type` values in {collection_name=}: {distinct_type_values=}"
-        )
-        for type_value in distinct_type_values:
-
-            # Process all the documents in this collection that have this value in their `type` field.
-            #
-            # References:
-            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.count_documents
-            # - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.find
-            #
-            filter_ = {"type": type_value}
-            num_docs_having_type = mdb[collection_name].count_documents(filter=filter_)
-            docs_having_type = mdb[collection_name].find(filter=filter_)
-            context.log.info(
-                f"Found {num_docs_having_type} documents having {type_value=} in {collection_name=}."
-            )
-
-            # Get a "representative" document from the result.
-            #
-            # Note: Since all of the documents in this batch have the same class ancestry, we will save time by
-            #       determining the class ancestry of only _one_ of them (we call this the "representative") and then
-            #       (later) attributing that class ancestry to all of them.
-            #
-            representative_doc = next(docs_having_type)
-
-            # Instantiate the Python class represented by the "representative" document.
-            db_dict = {
-                # Shed the `_id` attribute, since the constructor doesn't allow it.
-                collection_name: [dissoc(representative_doc, "_id")]
-            }
-            nmdc_db = NMDCDatabase(**db_dict)
-            representative_instance = getattr(nmdc_db, collection_name)[0]
-
-            # Get the class ancestry of that instance, as a list of class names (including its own class name).
-            ancestor_class_names = class_hierarchy_as_list(representative_instance)
-
-            # Store the documents belonging to this group, in the `alldocs` collection, setting their `type` field
-            # to the list of class names obtained from the "representative" document above.
-            #
-            # TODO: Document why clobbering the existing contents of the `type` field is OK.
-            #
-            # Note: The reason we `chain()` our "representative" document (in an iterable) with the `docs_having_type`
-            #       iterator here is that, when we called `next(docs_having_type)` above, we "consumed" our
-            #       "representative" document from that iterator. We use `chain()` here so that that document gets
-            #       inserted alongside its cousins (i.e. the documents _still_ accessible via `docs_having_type`).
-            #       Reference: https://docs.python.org/3/library/itertools.html#itertools.chain
-            #
-            inserted_many_result = mdb.alldocs.insert_many(
-                [
-                    assoc(dissoc(doc, "type", "_id"), "type", ancestor_class_names)
-                    for doc in chain([representative_doc], docs_having_type)
-                ]
-            )
-            context.log.info(
-                f"Inserted {len(inserted_many_result.inserted_ids)} documents from {collection_name=} "
-                f"originally having {type_value=}."
-            )
-
-    # Re-idx for `alldocs` collection
-    mdb.alldocs.create_index("id", unique=True)
-    # The indexes were added to improve the performance of the
-    # /data_objects/study/{study_id} endpoint
-    mdb.alldocs.create_index("has_input")
-    mdb.alldocs.create_index("has_output")
-    mdb.alldocs.create_index("was_informed_by")
-    context.log.info(
-        f"refreshed {mdb.alldocs} collection with {mdb.alldocs.estimated_document_count()} docs."
+    document_class_names = set(
+        chain.from_iterable(collection_name_to_class_names.values())
     )
+
+    cls_slot_map = {
+        cls_name: {
+            slot.name: slot for slot in schema_view.class_induced_slots(cls_name)
+        }
+        for cls_name in document_class_names
+    }
+
+    # Any ancestor of a document class is a document-referencable range,
+    # i.e., a valid range of a document-reference-ranged slot.
+    document_referenceable_ranges = set(
+        chain.from_iterable(
+            schema_view.class_ancestors(cls_name) for cls_name in document_class_names
+        )
+    )
+
+    document_reference_ranged_slots = defaultdict(list)
+    for cls_name, slot_map in cls_slot_map.items():
+        for slot_name, slot in slot_map.items():
+            if (
+                set(get_names_of_classes_in_effective_range_of_slot(schema_view, slot))
+                & document_referenceable_ranges
+            ):
+                document_reference_ranged_slots[cls_name].append(slot_name)
+
+    # Build `alldocs` to a temporary collection for atomic replacement
+    # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
+    temp_alldocs_collection_name = f"tmp.alldocs.{ObjectId()}"
+    temp_alldocs_collection = mdb[temp_alldocs_collection_name]
+    context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
+
+    for coll_name in collection_names:
+        context.log.info(f"{coll_name=}")
+        write_operations = []
+        documents_processed_counter = 0
+        for doc in mdb[coll_name].find():
+            doc_type = doc["type"][5:]  # lop off "nmdc:" prefix
+            slots_to_include = ["id", "type"] + document_reference_ranged_slots[
+                doc_type
+            ]
+            new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
+            new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            write_operations.append(InsertOne(new_doc))
+            if len(write_operations) == BULK_WRITE_BATCH_SIZE:
+                _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
+                write_operations.clear()
+                documents_processed_counter += BULK_WRITE_BATCH_SIZE
+        if len(write_operations) > 0:
+            _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
+            documents_processed_counter += len(write_operations)
+        context.log.info(
+            f"Inserted {documents_processed_counter} documents from {coll_name=} "
+        )
+
+    context.log.info(
+        f"produced `{temp_alldocs_collection.name}` collection with"
+        f" {temp_alldocs_collection.estimated_document_count()} docs."
+    )
+
+    context.log.info(f"creating indexes on `{temp_alldocs_collection.name}` ...")
+    # Ensure unique index on "id". Index creation here is blocking (i.e. background=False),
+    # so that `temp_alldocs_collection` will be "good to go" on renaming.
+    temp_alldocs_collection.create_index("id", unique=True)
+    # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
+    slots_to_index = ["has_input", "has_output", "was_informed_by"]
+    [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
+    context.log.info(f"created indexes on id, {slots_to_index}.")
+
+    context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
+    temp_alldocs_collection.rename("alldocs", dropTarget=True)
+
     return mdb.alldocs.estimated_document_count()
 
 
@@ -1250,3 +1246,58 @@ def ncbi_submission_xml_from_nmdc_study(
         all_instruments,
     )
     return ncbi_xml
+
+
+@op
+def nmdc_study_id_filename(nmdc_study_id: str) -> str:
+    filename = nmdc_study_id_to_filename(nmdc_study_id)
+    return f"missing_database_records_for_{filename}.json"
+
+
+@op(
+    config_schema={
+        "nmdc_study_id": str,
+        "gold_nmdc_instrument_mapping_file_url": str,
+    },
+    out={
+        "nmdc_study_id": Out(str),
+        "gold_nmdc_instrument_mapping_file_url": Out(str),
+    },
+)
+def get_database_updater_inputs(context: OpExecutionContext) -> Tuple[str, str]:
+    return (
+        context.op_config["nmdc_study_id"],
+        context.op_config["gold_nmdc_instrument_mapping_file_url"],
+    )
+
+
+@op(
+    required_resource_keys={
+        "runtime_api_user_client",
+        "runtime_api_site_client",
+        "gold_api_client",
+    }
+)
+def missing_data_generation_repair(
+    context: OpExecutionContext,
+    nmdc_study_id: str,
+    gold_nmdc_instrument_map_df: pd.DataFrame,
+) -> nmdc.Database:
+    runtime_api_user_client: RuntimeApiUserClient = (
+        context.resources.runtime_api_user_client
+    )
+    runtime_api_site_client: RuntimeApiSiteClient = (
+        context.resources.runtime_api_site_client
+    )
+    gold_api_client: GoldApiClient = context.resources.gold_api_client
+
+    database_updater = DatabaseUpdater(
+        runtime_api_user_client,
+        runtime_api_site_client,
+        gold_api_client,
+        nmdc_study_id,
+        gold_nmdc_instrument_map_df,
+    )
+    database = database_updater.create_missing_dg_records()
+
+    return database

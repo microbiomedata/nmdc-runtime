@@ -11,7 +11,10 @@ from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.util import permitted, users_allowed, strip_oid
+from nmdc_runtime.api.endpoints.util import (
+    check_action_permitted,
+    strip_oid,
+)
 from nmdc_runtime.api.models.query import (
     Query,
     QueryResponseOptions,
@@ -35,7 +38,9 @@ def unmongo(d: dict) -> dict:
 
 def check_can_update_and_delete(user: User):
     # update and delete queries require same level of permissions
-    if not permitted(user.username, "/queries:run(query_cmd:DeleteCommand)"):
+    if not check_action_permitted(
+        user.username, "/queries:run(query_cmd:DeleteCommand)"
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue update and delete commands.",
@@ -222,14 +227,16 @@ def _run_query(query, mdb) -> CommandResponse:
         if cmd_response.ok
         else QueryRun(qid=query.id, ran_at=ran_at, error=cmd_response)
     )
-    if q_type in (DeleteCommand, UpdateCommand) and cmd_response.n == 0:
-        raise HTTPException(
-            status_code=status.HTTP_418_IM_A_TEAPOT,
-            detail=(
-                f"{'update' if q_type is UpdateCommand else 'delete'} command modified zero documents."
-                " I'm guessing that's not what you expected. Check the syntax of your request."
-                " But what do I know? I'm just a teapot.",
-            ),
-        )
+    if q_type in (DeleteCommand, UpdateCommand):
+        # TODO `_request_dagster_run` of `ensure_alldocs`?
+        if cmd_response.n == 0:
+            raise HTTPException(
+                status_code=status.HTTP_418_IM_A_TEAPOT,
+                detail=(
+                    f"{'update' if q_type is UpdateCommand else 'delete'} command modified zero documents."
+                    " I'm guessing that's not what you expected. Check the syntax of your request."
+                    " But what do I know? I'm just a teapot.",
+                ),
+            )
     mdb.query_runs.insert_one(query_run.model_dump(exclude_unset=True))
     return cmd_response

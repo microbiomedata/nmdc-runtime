@@ -43,6 +43,8 @@ test-dbinit:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
+# Tip: If you append a file path to this "recipe", pytest will run only the tests defined in that file.
+#      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
 test-run:
 	docker compose --file docker-compose.test.yml run test
 
@@ -101,7 +103,7 @@ mongorestore-nmdc-db:
 	mkdir -p /tmp/remote-mongodump/nmdc
 	# Optionally, manually update MONGO_REMOTE_DUMP_DIR env var:
 	# ```bash
-	# export MONGO_REMOTE_DUMP_DIR=$(ssh -i ~/.ssh/nersc -q ${NERSC_USERNAME}@dtn01.nersc.gov 'bash -s ' < get_latest_nmdc_prod_dump_dir.sh 2>/dev/null)
+	# export MONGO_REMOTE_DUMP_DIR=$(ssh -i ~/.ssh/nersc -q ${NERSC_USERNAME}@dtn01.nersc.gov 'bash -s ' < util/get_latest_nmdc_prod_dump_dir.sh 2>/dev/null)
 	# ```
 	# Rsync the remote dump directory items of interest:
 	rsync -av --exclude='_*' --exclude='fs\.*' \

@@ -19,7 +19,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
-    permitted,
+    check_action_permitted,
     persist_content_and_get_drs_object,
 )
 from nmdc_runtime.api.models.job import Job
@@ -93,7 +93,7 @@ async def submit_changesheet(
     #       `/metadata/changesheets:submit` action), themselves, so that they don't have to contact an admin
     #       or submit an example changesheet in order to find that out.
 
-    if not permitted(user.username, "/metadata/changesheets:submit"):
+    if not check_action_permitted(user.username, "/metadata/changesheets:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -188,7 +188,7 @@ async def submit_json_nmdcdb(
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    if not permitted(user.username, "/metadata/json:submit"):
+    if not check_action_permitted(user.username, "/metadata/json:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to submit json at this time.",

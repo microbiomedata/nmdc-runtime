@@ -249,8 +249,9 @@ def timeit(cursor):
 
 
 def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
-    r"""
-    TODO: Document this function.
+    """Find nmdc schema collection entities that match the FindRequest.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
     """
     if req.group_by:
         raise HTTPException(
@@ -377,8 +378,11 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 def find_resources_spanning(
     req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
 ):
-    r"""
-    TODO: Document this function.
+    """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
+
+    This is useful for collections that house documents that are subclasses of a common ancestor class.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
     """
     if req.cursor or not req.page:
         raise HTTPException(
@@ -420,31 +424,9 @@ def find_resources_spanning(
 
 def exists(collection: MongoCollection, filter_: dict):
     r"""
-    TODO: Document this function.
+    Returns True if there are any documents in the collection that meet the filter requirements.
     """
     return collection.count_documents(filter_) > 0
-
-
-def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
-    r"""
-    TODO: Document this function.
-    """
-    if resource == "biosamples":
-        return find_resources(req, mdb, "biosample_set")
-    elif resource == "studies":
-        return find_resources(req, mdb, "study_set")
-    elif resource == "data_objects":
-        return find_resources(req, mdb, "data_object_set")
-    elif resource == "activities":
-        return find_resources_spanning(req, mdb, activity_collection_names(mdb))
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Unknown API resource '{resource}'. "
-                f"Known resources: {{activities, biosamples, data_objects, studies}}."
-            ),
-        )
 
 
 def persist_content_and_get_drs_object(
@@ -456,8 +438,13 @@ def persist_content_and_get_drs_object(
     id_ns="json-metadata-in",
     exists_ok=False,
 ):
-    r"""
-    TODO: Document this function.
+    """Persist a Data Repository Service (DRS) object.
+
+    An object may be a blob, analogous to a file, or a bundle, analogous to a folder. Sites register objects,
+    and sites must ensure that these objects are accessible to the NMDC data broker.
+    An object may be associated with one or more object types, useful for triggering workflows.
+
+    Reference: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes
     """
     mdb = get_mongo_db()
     drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
@@ -513,9 +500,7 @@ def _create_object(
     self_uri,
     exists_ok=False,
 ):
-    r"""
-    TODO: Document this function.
-    """
+    """Helper function for creating a Data Repository Service (DRS) object."""
     drs_obj = DrsObject(
         **object_in.model_dump(exclude_unset=True),
         id=drs_id,
@@ -610,10 +595,8 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
 
 
 @lru_cache
-def nmdc_workflow_id_to_dagster_job_name_map():
-    r"""
-    TODO: Document this function and change its name to a verb.
-    """
+def map_nmdc_workflow_id_to_dagster_job_name():
+    """Returns a dictionary mapping nmdc_workflow_id to dagster_job_name."""
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
@@ -629,7 +612,8 @@ def ensure_run_config_data(
     user: User,
 ):
     r"""
-    TODO: Document this function and say what it "ensures" about the "run config data".
+    Ensures that run_config_data has entries for certain nmdc workflow ids.
+    Returns return_config_data.
     """
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
         run_config_data = assoc_in(
@@ -660,9 +644,7 @@ def ensure_run_config_data(
 
 
 def inputs_for(nmdc_workflow_id, run_config_data):
-    r"""
-    TODO: Document this function.
-    """
+    """Returns a URI path for given nmdc_workflow_id, constructed from run_config_data."""
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
             "/objects/"
@@ -696,9 +678,11 @@ def _request_dagster_run(
     repository_name=None,
 ):
     r"""
-    TODO: Document this function.
+    Requests a Dagster run using the specified parameters.
+    Returns a json dictionary indicating the job's success or failure.
+    This is a generic wrapper.
     """
-    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
+    dagster_job_name = map_nmdc_workflow_id_to_dagster_job_name()[nmdc_workflow_id]
 
     extra_run_config_data = ensure_run_config_data(
         nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
@@ -745,7 +729,7 @@ def _request_dagster_run(
 
 def _get_dagster_run_status(run_id: str):
     r"""
-    TODO: Document this function.
+    Returns the status (either "success" or "error") of a requested Dagster run.
     """
     dagster_client = get_dagster_graphql_client()
     try:
@@ -755,20 +739,10 @@ def _get_dagster_run_status(run_id: str):
         return {"type": "error", "detail": str(exc)}
 
 
-def permitted(username: str, action: str):
-    r"""
-    TODO: Document this function and change its name to a verb.
-    """
+def check_action_permitted(username: str, action: str):
+    """Returns True if a Mongo database action is "allowed" and "not denied"."""
     db: MongoDatabase = get_mongo_db()
     filter_ = {"username": username, "action": action}
     denied = db["_runtime.api.deny"].find_one(filter_) is not None
     allowed = db["_runtime.api.allow"].find_one(filter_) is not None
     return (not denied) and allowed
-
-
-def users_allowed(action: str):
-    r"""
-    TODO: Document this function and change its name to a verb.
-    """
-    db: MongoDatabase = get_mongo_db()
-    return db["_runtime.api.allow"].distinct("username", {"action": action})

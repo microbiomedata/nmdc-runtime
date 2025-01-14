@@ -57,6 +57,9 @@ from nmdc_runtime.site.ops import (
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
+    get_database_updater_inputs,
+    nmdc_study_id_filename,
+    missing_data_generation_repair,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -117,19 +120,24 @@ def apply_changesheet():
     sheet_in = get_changesheet_in()
     outputs = perform_changesheet_updates(sheet_in)
     add_output_run_event(outputs)
+    materialize_alldocs()
 
 
 @graph
 def apply_metadata_in():
     outputs = perform_mongo_updates(get_json_in())
     add_output_run_event(outputs)
+    materialize_alldocs()
 
 
 @graph
 def gold_study_to_database():
-    (study_id, study_type, gold_nmdc_instrument_mapping_file_url) = (
-        get_gold_study_pipeline_inputs()
-    )
+    (
+        study_id,
+        study_type,
+        gold_nmdc_instrument_mapping_file_url,
+        include_field_site_info,
+    ) = get_gold_study_pipeline_inputs()
 
     projects = gold_projects_by_study(study_id)
     biosamples = gold_biosamples_by_study(study_id)
@@ -144,6 +152,7 @@ def gold_study_to_database():
         biosamples,
         analysis_projects,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
@@ -461,3 +470,16 @@ def nmdc_study_to_ncbi_submission_export():
         all_instruments,
     )
     ncbi_submission_xml_asset(xml_data)
+
+
+@graph
+def fill_missing_data_generation_data_object_records():
+    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
+
+    database = missing_data_generation_repair(study_id, gold_nmdc_instrument_map_df)
+
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_study_id_filename(study_id)
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
