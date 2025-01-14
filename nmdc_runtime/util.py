@@ -706,12 +706,13 @@ def validate_json(
             with OverlayDB(mdb) as overlay_db:
                 print(f"Inserting documents into the OverlayDB.")
                 for collection_name, documents_to_insert in docs.items():
-                    try:
-                        overlay_db.replace_or_insert_many(
-                            collection_name, documents_to_insert
-                        )
-                    except OverlayDBError as error:
-                        validation_errors[collection_name].append(str(error))
+                    if len(documents_to_insert) > 0:
+                        try:
+                            overlay_db.replace_or_insert_many(
+                                collection_name, documents_to_insert
+                            )
+                        except OverlayDBError as error:
+                            validation_errors[collection_name].append(str(error))
 
                 # Now that the OverlayDB contains all the specified documents, we will check whether
                 # every document referenced by any of the inserted documents exists.
