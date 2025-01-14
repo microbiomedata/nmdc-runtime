@@ -697,11 +697,6 @@ def validate_json(
 
         # Third pass (if enabled): Check inter-document references.
         if check_inter_document_references is True:
-
-            def is_dict(v) -> bool:
-                r"""Helper function that determines whether the specified value is a dictionary."""
-                return isinstance(v, dict)
-
             # Insert all documents specified for all collections specified, into the OverlayDB.
             #
             # Note: This will allow us to validate referential integrity in the database's _final_ state. If we were to,
@@ -712,21 +707,20 @@ def validate_json(
             #
             with OverlayDB(mdb) as overlay_db:
                 print(f"Inserting documents into the OverlayDB.")
-                for collection_name, raw_documents_to_insert in docs.items():
-                    # Filter out documents that are strings instead of dictionaries.
+                for collection_name, documents_to_insert in docs.items():
+                    # Insert the documents into the OverlayDB.
                     #
-                    # Note: This is to work around the fact that the previous validation stages allow for the
-                    #       request payload to specify a collection named "@type" whose value is a string, as opposed
-                    #       to a list of dictionaries. I don't know why they allow that. I posed the question in this
-                    #       GitHub Discussion: https://github.com/microbiomedata/nmdc-runtime/discussions/858
-                    #       For now, I am filtering out documents that are not dictionaries, and logging a message.
+                    # Note: The `isinstance(..., list)` check is here to work around the fact that the previous
+                    #       validation stages allow for the request payload to specify a collection named "@type" whose
+                    #       value is a string, as opposed to a list of dictionaries.
                     #
-                    documents_to_insert = list(filter(is_dict, raw_documents_to_insert))
-                    if len(raw_documents_to_insert) - len(documents_to_insert) > 0:
-                        print(f"Filtered out documents that were not dictionaries.")
-
-                    # If any documents survived that filtering stage, insert them.
-                    if len(documents_to_insert) > 0:
+                    #       I don't know why they allow that. I posed the question in this GitHub Discussion:
+                    #       https://github.com/microbiomedata/nmdc-runtime/discussions/858
+                    #
+                    #       The `len(...) > 0` check is here because pymongo complains when `insert_many` is called
+                    #       with an empty list.
+                    #
+                    if isinstance(documents_to_insert, list) and len(documents_to_insert) > 0:
                         try:
                             overlay_db.replace_or_insert_many(
                                 collection_name, documents_to_insert
@@ -741,14 +735,11 @@ def validate_json(
                 reference_field_names_by_source_class_name = (
                     references.get_reference_field_names_by_source_class_name()
                 )
-                for source_collection_name, raw_documents_inserted in docs.items():
-                    # Filter out documents that are strings instead of dictionaries.
-                    #
-                    # Note: Again, this is to work around the fact that the previous validation stages allow for the
-                    #       request payload to specify a collection named "@type" whose value is a string, as opposed
-                    #       to a list of dictionaries.
-                    #
-                    documents_inserted = list(filter(is_dict, raw_documents_inserted))
+                for source_collection_name, documents_inserted in docs.items():
+                    # If `documents_inserted` is not a list (which is a scenario that the previous validation stages
+                    # allow), abort processing this collection and proceed to processing the next collection.
+                    if not isinstance(documents_inserted, list):
+                        continue
 
                     # Check the referential integrity of the replaced or inserted documents.
                     #
