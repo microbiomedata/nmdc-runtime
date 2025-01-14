@@ -661,6 +661,8 @@ def validate_json(
     known_coll_names = set(nmdc_database_collection_names())
     for coll_name, coll_docs in docs.items():
         if coll_name not in known_coll_names:
+            # FIXME: Document what `@type` is (conceptually; e.g., why this function accepts it as a collection name).
+            #        See: https://github.com/microbiomedata/nmdc-runtime/discussions/858
             if coll_name == "@type" and coll_docs in ("Database", "nmdc:Database"):
                 continue
             else:
@@ -695,6 +697,10 @@ def validate_json(
 
         # Third pass (if enabled): Check inter-document references.
         if check_inter_document_references is True:
+            def is_dict(v) -> bool:
+                r"""Helper function that determines whether the specified value is a dictionary."""
+                return isinstance(v, dict)
+
             # Insert all documents specified for all collections specified, into the OverlayDB.
             #
             # Note: This will allow us to validate referential integrity in the database's _final_ state. If we were to,
@@ -705,7 +711,20 @@ def validate_json(
             #
             with OverlayDB(mdb) as overlay_db:
                 print(f"Inserting documents into the OverlayDB.")
-                for collection_name, documents_to_insert in docs.items():
+                for collection_name, raw_documents_to_insert in docs.items():
+                    # Filter out documents that are strings instead of dictionaries.
+                    #
+                    # Note: This is to work around the fact that the previous validation stages allow for the
+                    #       request payload to specify a collection named "@type" whose value is a string, as
+                    #       opposed to a dictionary. I don't know why they allow that. I posed the question in this
+                    #       GitHub Discussion: https://github.com/microbiomedata/nmdc-runtime/discussions/858
+                    #       For now, I am filtering out documents that are not dictionaries, and logging a message.
+                    #
+                    documents_to_insert = list(filter(is_dict, raw_documents_to_insert))
+                    if len(raw_documents_to_insert) - len(documents_to_insert) > 0:
+                        print(f"Filtered out documents that were not dictionaries.")
+
+                    # If any documents survived that filtering stage, insert them.
                     if len(documents_to_insert) > 0:
                         try:
                             overlay_db.replace_or_insert_many(
@@ -721,7 +740,15 @@ def validate_json(
                 reference_field_names_by_source_class_name = (
                     references.get_reference_field_names_by_source_class_name()
                 )
-                for source_collection_name, documents_inserted in docs.items():
+                for source_collection_name, raw_documents_inserted in docs.items():
+                    # Filter out documents that are strings instead of dictionaries.
+                    #
+                    # Note: Again, this is to work around the fact that the previous validation stages allow for the
+                    #       request payload to specify a collection named "@type" whose value is a string, as
+                    #       opposed to a dictionary.
+                    #
+                    documents_inserted = list(filter(is_dict, raw_documents_inserted))
+
                     # Check the referential integrity of the replaced or inserted documents.
                     #
                     # Note: Much of this code was copy/pasted from refscan, at:
