@@ -159,6 +159,18 @@ class RuntimeApiUserClient(RuntimeApiClient):
         response.raise_for_status()
         return response.json()["cursor"]["firstBatch"]
 
+    def get_study(self, study_id: str):
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "study_set",
+                "filter": {"id": study_id},
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
 
 class RuntimeApiSiteClient(RuntimeApiClient):
     def __init__(

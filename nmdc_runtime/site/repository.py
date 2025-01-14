@@ -25,6 +25,7 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    fill_missing_biosample_records_from_gold,
     translate_metadata_submission_to_nmdc_schema_database,
     ingest_metadata_submission,
     gold_study_to_database,
@@ -928,6 +929,47 @@ def database_record_repair():
     normal_resources = run_config_frozen__normal_env["resources"]
     return [
         fill_missing_data_generation_data_object_records.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_user_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "username": {"env": "API_ADMIN_USER"},
+                                "password": {"env": "API_ADMIN_PASS"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_database_updater_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        ),
+        fill_missing_biosample_records_from_gold.to_job(
             resource_defs=resource_defs,
             config={
                 "resources": merge(

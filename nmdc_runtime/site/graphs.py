@@ -2,6 +2,7 @@ from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
+    missing_gold_biosample_repair,
     nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
     nmdc_schema_object_to_dict,
@@ -479,6 +480,18 @@ def fill_missing_data_generation_data_object_records():
 
     database = missing_data_generation_repair(study_id, gold_nmdc_instrument_map_df)
 
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = nmdc_study_id_filename(study_id)
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
+
+
+@graph
+def fill_missing_biosample_records_from_gold():
+    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
+
+    database = missing_gold_biosample_repair(study_id, gold_nmdc_instrument_map_df)
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_study_id_filename(study_id)
     outputs = export_json_to_drs(database_dict, filename)

@@ -58,7 +58,7 @@ class DatabaseUpdater:
         """
         return self.gold_api_client.fetch_projects_by_biosample(gold_biosample_id)
 
-    def create_missing_dg_records(self):
+    def create_missing_dg_records(self) -> nmdc.Database:
         """This method creates missing data generation records for a given study in the NMDC database using
         metadata from GOLD. The way the logic works is, it first fetches all the biosamples associated
         with the study from the NMDC database. Then, it fetches all the biosample and project data data
@@ -146,5 +146,83 @@ class DatabaseUpdater:
                             nmdc_study_id=self.study_id,
                         )
                     )
+
+        return database
+
+    def generate_biosample_set_from_gold_api_for_study(self) -> nmdc.Database:
+        """This method creates biosample_set records for a given study in the NMDC database using
+        metadata from GOLD. The logic works by first fetching the biosampleGoldId values of all
+        biosamples associated with the study. Then, it fetches the list of all biosamples associated
+        with the GOLD study using the GOLD API. There's pre-processing logic in the GoldStudyTranslator
+        to filter out biosamples based on `sequencingStrategy` and `projectStatus`. On this list of
+        filtered biosamples, we compute a "set difference" (conceptually) between the list of
+        filtered samples and ones that are already in the NMDC database, i.e., we ignore biosamples
+        that are already present in the database, and continue on to create biosample_set records for
+        those that do not have records in the database already.
+
+        :return: An instance of `nmdc:Database` object which is JSON-ified and rendered on the frontend.
+        """
+        database = nmdc.Database()
+
+        # get a list of all biosamples associated with a given NMDC study id
+        biosample_set = self.runtime_api_user_client.get_biosamples_for_study(
+            self.study_id
+        )
+
+        # get a list of GOLD biosample ids (`biosampleGoldId` values) by iterating
+        # over all the biosample_set records retrieved using the above logic
+        nmdc_gold_ids = set()
+        for biosample in biosample_set:
+            gold_ids = biosample.get("gold_biosample_identifiers", [])
+            for gold_id in gold_ids:
+                nmdc_gold_ids.add(gold_id.replace("gold:", ""))
+
+        # retrieve GOLD study id by looking at the `gold_study_identifiers` key/slot
+        # on the NMDC study record
+        nmdc_study = self.runtime_api_user_client.get_study(self.study_id)[0]
+        gold_study_id = nmdc_study.get("gold_study_identifiers", [])[0].replace(
+            "gold:", ""
+        )
+
+        # use the GOLD study id to fetch all biosample records associated with the study
+        gold_biosamples_for_study = self.gold_api_client.fetch_biosamples_by_study(
+            gold_study_id
+        )
+
+        # part of the code where we are (conceptually) computing a set difference between
+        # the list of filtered samples and ones that are already in the NMDC database
+        missing_gold_biosamples = [
+            gbs
+            for gbs in gold_biosamples_for_study
+            if gbs.get("biosampleGoldId") not in nmdc_gold_ids
+        ]
+
+        gold_study_translator = GoldStudyTranslator(
+            biosamples=missing_gold_biosamples,
+            gold_nmdc_instrument_map_df=self.gold_nmdc_instrument_map_df,
+        )
+
+        translated_biosamples = gold_study_translator.biosamples
+
+        # mint new NMDC biosample IDs for the "missing" biosamples
+        gold_biosample_ids = [
+            biosample["biosampleGoldId"] for biosample in translated_biosamples
+        ]
+        nmdc_biosample_ids = self.runtime_api_site_client.mint_id(
+            "nmdc:Biosample", len(translated_biosamples)
+        ).json()
+        gold_to_nmdc_biosample_ids = dict(zip(gold_biosample_ids, nmdc_biosample_ids))
+
+        database.biosample_set = [
+            gold_study_translator._translate_biosample(
+                biosample,
+                nmdc_biosample_id=gold_to_nmdc_biosample_ids[
+                    biosample["biosampleGoldId"]
+                ],
+                nmdc_study_id=self.study_id,
+                nmdc_field_site_id=None,
+            )
+            for biosample in translated_biosamples
+        ]
 
         return database
