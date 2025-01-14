@@ -1,9 +1,9 @@
 from importlib.metadata import version
 import re
-from typing import List, Dict
+from typing import List, Dict, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
@@ -21,7 +21,11 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
     get_collection_names_from_schema,
 )
-from nmdc_runtime.api.endpoints.util import list_resources
+from nmdc_runtime.api.endpoints.util import (
+    list_resources,
+    strip_oid,
+    comma_separated_values,
+)
 from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 
@@ -29,6 +33,9 @@ router = APIRouter()
 
 
 def ensure_collection_name_is_known_to_schema(collection_name: str):
+    r"""
+    Raises an exception if the specified string is _not_ the name of a collection described by the NMDC Schema.
+    """
     names = get_collection_names_from_schema()
     if collection_name not in names:
         raise HTTPException(
@@ -37,15 +44,13 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
         )
 
 
-def strip_oid(doc):
-    return dissoc(doc, "_id")
-
-
 @router.get("/nmdcschema/version")
 def get_nmdc_schema_version():
-    """
-    To view the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version the database is currently using,
-    try executing the GET /nmdcschema/version endpoint
+    r"""
+    Returns a string indicating which version of the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/)
+    the Runtime is using.
+
+    **Note:** The same information—and more—is also available via the `/version` endpoint.
     """
     return version("nmdc_schema")
 
@@ -108,18 +113,46 @@ def get_nmdc_database_collection_stats(
     "/nmdcschema/{collection_name}",
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
-    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def list_from_collection(
-    collection_name: str,
-    req: ListRequest = Depends(),
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
+    req: Annotated[ListRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    Retrieves resources that match the specified filter criteria and reside in the specified collection.
+
+    Searches the specified collection for documents matching the specified `filter` criteria.
+    If the `projection` parameter is used, each document in the response will only include
+    the fields specified by that parameter (plus the `id` field).
+
+    You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
+    page of the NMDC Schema documentation.
+
+    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
+          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
+          a long time—especially for collections that contain a lot of documents (e.g. millions).
+
+    **Tips:**
+    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
+       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
+       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
     """
-    The GET /nmdcschema/{collection_name} endpoint is a general purpose way to retrieve metadata about a specified
-    collection given user-provided filter and projection criteria. Please see the [Collection Names](https://microbiomedata.github.io/nmdc-schema/Database/)
-    that may be retrieved. Please note that metadata may only be retrieved about one collection at a time.
-    """
+
+    # TODO: The note about collection names above is currently accurate, but will not necessarily always be accurate,
+    #       since the `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`,
+    #       which are traits a `Database` slot must have in order for it to represent a MongoDB collection.
+    #
+    # TODO: Implement an API endpoint that returns all valid collection names (it can get them via a `SchemaView`),
+    #       Then replace the note above with a suggestion that the user access that API endpoint.
+
     rv = list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
@@ -131,12 +164,18 @@ def list_from_collection(
     response_model_exclude_unset=True,
 )
 def get_by_id(
-    doc_id: str,
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document you want to retrieve.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    If the identifier of the record is known, the GET /nmdcshema/ids/{doc_id} can be used to retrieve the specified record.
-    \n Note that only one identifier may be used at a time, and therefore, only one record may be retrieved at a time using this method.
+    r"""
+    Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
     """
     id_dict = map_id_to_collection(mdb)
     collection_name = get_collection_for_id(doc_id, id_dict)
@@ -149,7 +188,14 @@ def get_by_id(
 
 @router.get("/nmdcschema/ids/{doc_id}/collection-name")
 def get_collection_name_by_doc_id(
-    doc_id: str,
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
@@ -247,23 +293,45 @@ def get_collection_name_by_doc_id(
     "/nmdcschema/{collection_name}/{doc_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
-    dependencies=[Depends(ensure_collection_name_is_known_to_schema)],
 )
 def get_from_collection_by_id(
-    collection_name: str,
-    doc_id: str,
-    projection: str | None = None,
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
+    doc_id: Annotated[
+        str,
+        Path(
+            title="Document ID",
+            description="The `id` of the document you want to retrieve.\n\n_Example_: `nmdc:bsm-11-abc123`",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
+    projection: Annotated[
+        str | None,
+        Query(
+            title="Projection",
+            description="""Comma-delimited list of the names of the fields you want the document in the response to
+                include.\n\n_Example_: `id,name,ecosystem_type`""",
+            examples=[
+                "id,name,ecosystem_type",
+            ],
+        ),
+    ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    Retrieves the document having the specified `id`, from the specified collection; optionally, including only the
+    fields specified via the `projection` parameter.
     """
-    If both the identifier and the collection name of the desired record is known, the
-    GET /nmdcschema/{collection_name}/{doc_id} can be used to retrieve the record. The projection parameter is optionally
-    available for this endpoint to retrieve only desired attributes from a record. Please note that only one record can
-    be retrieved at one time using this method.
+    # Note: This helper function will raise an exception if the collection name is invalid.
+    ensure_collection_name_is_known_to_schema(collection_name)
 
-    for MongoDB-like [projection](https://www.mongodb.com/docs/manual/tutorial/project-fields-from-query-results/): comma-separated list of fields you want the objects in the response to include. Example: `id,doi`
-    """
-    projection = projection.split(",") if projection else None
+    projection = comma_separated_values(projection) if projection else None
     try:
         return strip_oid(
             raise404_if_none(

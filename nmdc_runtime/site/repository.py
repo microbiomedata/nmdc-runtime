@@ -113,6 +113,13 @@ housekeeping_weekly = ScheduleDefinition(
     job=housekeeping.to_job(**preset_normal),
 )
 
+ensure_alldocs_daily = ScheduleDefinition(
+    name="daily_ensure_alldocs",
+    cron_schedule="0 3 * * *",
+    execution_timezone="America/New_York",
+    job=ensure_alldocs.to_job(**preset_normal),
+)
+
 
 def asset_materialization_metadata(asset_event, key):
     """Get metadata from an asset materialization event.
@@ -453,7 +460,7 @@ def repo():
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly]
+    schedules = [housekeeping_weekly, ensure_alldocs_daily]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
@@ -506,6 +513,7 @@ def biosample_submission_ingest():
                             "study_id": "",
                             "study_type": "research_study",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
                         },
                     },
                     "export_json_to_drs": {"config": {"username": ""}},

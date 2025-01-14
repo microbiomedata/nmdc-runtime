@@ -6,7 +6,7 @@ import pytest
 import requests
 from dagster import build_op_context
 from starlette import status
-from tenacity import wait_random_exponential, retry
+from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
 
 from nmdc_runtime.api.core.auth import get_password_hash
@@ -20,7 +20,12 @@ from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiSiteClient, mongo_resource
+from nmdc_runtime.site.resources import (
+    get_mongo,
+    RuntimeApiSiteClient,
+    mongo_resource,
+    RuntimeApiUserClient,
+)
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 
 
@@ -105,6 +110,20 @@ def ensure_test_resources(mdb):
     }
 
 
+@pytest.fixture
+def api_site_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+
+@pytest.fixture
+def api_user_client():
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
+
+
 @pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_update_operation():
     mdb = get_mongo(run_config_frozen__normal_env).db
@@ -121,13 +140,14 @@ def test_update_operation():
     )
 
 
-@pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
     base_url = os.getenv("API_HOST")
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=60))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
     def get_token():
         """
 
@@ -167,6 +187,71 @@ def test_create_user():
         User(**rv.json())
     finally:
         mdb.users.delete_one({"username": user_in.username})
+        mdb.users.update_one(
+            {"username": rs["user"]["username"]},
+            {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
+        )
+
+
+def test_update_user():
+    mdb = get_mongo(run_config_frozen__normal_env).db
+    rs = ensure_test_resources(mdb)
+    base_url = os.getenv("API_HOST")
+
+    # Try up to three times, waiting for up to 60 seconds between each attempt.
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=60), stop=stop_after_attempt(3)
+    )
+    def get_token():
+        """
+        Fetch an auth token from the Runtime API.
+        """
+
+        _rv = requests.post(
+            base_url + "/token",
+            data={
+                "grant_type": "password",
+                "username": rs["user"]["username"],
+                "password": rs["user"]["password"],
+            },
+        )
+        token_response = _rv.json()
+        return token_response["access_token"]
+
+    headers = {"Authorization": f"Bearer {get_token()}"}
+
+    user_in1 = UserIn(username="foo", password="oldpass")
+    mdb.users.delete_one({"username": user_in1.username})
+    mdb.users.update_one(
+        {"username": rs["user"]["username"]},
+        {"$addToSet": {"site_admin": "nmdc-runtime-useradmin"}},
+    )
+    rv_create = requests.request(
+        "POST",
+        url=(base_url + "/users"),
+        headers=headers,
+        json=user_in1.model_dump(exclude_unset=True),
+    )
+
+    u1 = mdb.users.find_one({"username": user_in1.username})
+
+    user_in2 = UserIn(username="foo", password="newpass")
+
+    rv_update = requests.request(
+        "PUT",
+        url=(base_url + "/users"),
+        headers=headers,
+        json=user_in2.model_dump(exclude_unset=True),
+    )
+
+    u2 = mdb.users.find_one({"username": user_in2.username})
+    try:
+        assert rv_create.status_code == status.HTTP_201_CREATED
+        assert rv_update.status_code == status.HTTP_200_OK
+        assert u1["hashed_password"] != u2["hashed_password"]
+
+    finally:
+        mdb.users.delete_one({"username": user_in1.username})
         mdb.users.update_one(
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
@@ -418,4 +503,158 @@ def test_find_planned_process_by_id(api_site_client):
         api_site_client.request(
             "GET",
             f"/planned_processes/nmdc:sty-11-00000001",
+        )
+
+
+def test_run_query_find_user(api_user_client):
+    mdb = get_mongo_db()
+    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
+        mdb.biosample_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+                ).read_text()
+            )
+        )
+
+    # Make sure user client works
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
+    )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+
+
+def test_run_query_find_site(api_site_client):
+    mdb = get_mongo_db()
+    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
+        mdb.biosample_set.insert_one(
+            json.loads(
+                (
+                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
+                ).read_text()
+            )
+        )
+
+    # Make sure site client works
+    response = api_site_client.request(
+        "POST",
+        "/queries:run",
+        {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
+    )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+
+
+def test_run_query_delete(api_user_client):
+    mdb = get_mongo_db()
+    biosample_id = "nmdc:bsm-12-deleteme"
+
+    if not mdb.biosample_set.find_one({"id": biosample_id}):
+        mdb.biosample_set.insert_one({"id": biosample_id})
+
+    # Access should not work without permissions
+    mdb["_runtime"].api.allow.delete_many(
+        {
+            "username": api_user_client.username,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
+        )
+    assert excinfo.value.response.status_code == 403
+
+    # Add persmissions to DB
+    mdb["_runtime"].api.allow.insert_one(
+        {
+            "username": api_user_client.username,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
+    try:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["n"] == 1
+    finally:
+        mdb["_runtime"].api.allow.delete_one({"username": api_user_client.username})
+
+
+def test_run_query_delete_site(api_site_client):
+    mdb = get_mongo_db()
+    biosample_id = "nmdc:bsm-12-deleteme"
+
+    if not mdb.biosample_set.find_one({"id": biosample_id}):
+        mdb.biosample_set.insert_one({"id": biosample_id})
+
+    # Access should not work without permissions
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response = api_site_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
+        )
+    assert excinfo.value.response.status_code == 403
+
+    # Add persmissions to DB
+    mdb["_runtime"].api.allow.insert_one(
+        {
+            "username": api_site_client.client_id,
+            "action": "/queries:run(query_cmd:DeleteCommand)",
+        }
+    )
+    try:
+        response = api_site_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "biosample_set",
+                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["n"] == 1
+    finally:
+        mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
+
+
+def test_run_query_update(api_user_client):
+    """Submit a request to store data that does not comply with the schema."""
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+    with pytest.raises(requests.HTTPError):
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "biosample_set",
+                "updates": [
+                    {
+                        "q": {"id": "nmdc:bsm-13-amrnys72"},
+                        "u": {"$set": {"associated_studies.0": 42}},
+                    }
+                ],
+            },
         )

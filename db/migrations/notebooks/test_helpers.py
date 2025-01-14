@@ -2,7 +2,7 @@ import unittest
 from tempfile import NamedTemporaryFile as TempFile, mkdtemp
 import shutil
 
-from demo.metadata_migration.notebooks.helpers import Config
+from db.migrations.notebooks.helpers import Config
 
 
 class TestConfig(unittest.TestCase):
@@ -10,10 +10,10 @@ class TestConfig(unittest.TestCase):
     Tests targeting the `Config` class.
 
     You can format this file like this:
-    $ python -m black demo/metadata_migration/notebooks/test_helpers.py
+    $ python -m black db/migrations/notebooks/test_helpers.py
 
     You can run these tests like this:
-    $ python -m unittest -v demo/metadata_migration/notebooks/test_helpers.py
+    $ python -m unittest -v db/migrations/notebooks/test_helpers.py
 
     Reference: https://docs.python.org/3/library/unittest.html#basic-example
     """

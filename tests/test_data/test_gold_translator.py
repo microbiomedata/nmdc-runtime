@@ -1,3 +1,4 @@
+import collections
 import pandas as pd
 import pytest
 
@@ -134,6 +135,13 @@ def test_get_insdc_biosample_identifiers():
     ]
     translator = GoldStudyTranslator(projects=projects)
 
+    translator._projects_by_id = {p["projectGoldId"]: p for p in projects}
+    translator._project_ids_by_biosample_id = collections.defaultdict(list)
+    for project in projects:
+        translator._project_ids_by_biosample_id[project["biosampleGoldId"]].append(
+            project["projectGoldId"]
+        )
+
     insdc_biosample_identifiers = translator._get_insdc_biosample_identifiers(
         "Gb0000001"
     )
@@ -237,6 +245,20 @@ def test_get_img_identifiers():
     translator = GoldStudyTranslator(
         projects=projects, analysis_projects=analysis_projects
     )
+
+    translator._projects_by_id = {p["projectGoldId"]: p for p in projects}
+    translator._analysis_projects_by_id = {
+        ap["apGoldId"]: ap for ap in analysis_projects
+    }
+
+    translator._analysis_project_ids_by_biosample_id = collections.defaultdict(list)
+    for analysis_project in analysis_projects:
+        for project_id in analysis_project["projects"]:
+            if project_id in translator._projects_by_id:
+                biosample_id = translator._projects_by_id[project_id]["biosampleGoldId"]
+                translator._analysis_project_ids_by_biosample_id[biosample_id].append(
+                    analysis_project["apGoldId"]
+                )
 
     img_identifiers = translator._get_img_identifiers("Gb0000001")
     assert "img.taxon:3300000001" in img_identifiers

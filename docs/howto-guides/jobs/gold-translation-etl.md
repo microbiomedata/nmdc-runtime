@@ -1,6 +1,5 @@
 # GOLD Translation ETL
 
-
 This job takes a `nmdc_merged_data.tsv.zip` file as a data object input.
 
 First, start your local runtime stack:
@@ -12,7 +11,6 @@ make up-dev
 Load <http://localhost:3000/workspace> and ensure the `translation` repository is loaded:
 
 ![dagster-workspace-repo-loaded](../../img/dagster-workspace-repo-loaded.png)
-
 
 Next, navigate to the Jobs page for the `translation` repository:
 
@@ -53,12 +51,13 @@ mongoexport --host="localhost:27018" \
     -d nmdc_etl_staging -c gold.biosample_set \
     --jsonArray -o gold.biosample_set.json
 ```
+
 ```
 jq '{biosample_set:.}' gold.biosample_set.json \
     > gold.biosample_set.as_nmdcdb.2021-11-18.json
 ```
 
-Now, you may [submit this metadata as JSON through the API](../tutorials/tutorial-metadata-in.md).
+Now, you may [submit this metadata as JSON through the API](../../tutorials/metadata-in.md)
 
 In the tutorial linked to above, GitHub's Gist service is used to host and obtain a URL for the
 JSON. Here's let's walk through using the NMDC's `www` directory on NERSC to host the file and
@@ -70,6 +69,7 @@ a DRS object in the API:
 scp  gold.biosample_set.as_nmdcdb.2021-11-18.json \
     dtn01.nersc.gov:/global/cfs/cdirs/m3408/www/meta/
 ```
+
 ```
 ssh dtn01.nersc.gov
 

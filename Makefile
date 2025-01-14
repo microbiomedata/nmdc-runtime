@@ -99,12 +99,18 @@ nersc-mongo-tunnels:
 
 mongorestore-nmdc-db:
 	mkdir -p /tmp/remote-mongodump/nmdc
-	# SSH into the remote server, stream the dump directory as a gzipped tar archive, and extract it locally.
-	ssh -i ~/.ssh/nersc ${NERSC_USERNAME}@dtn01.nersc.gov \
-		'tar -czf - -C /global/cfs/projectdirs/m3408/nmdc-mongodumps/dump_nmdc-prod_2024-07-29_20-12-07/nmdc .' \
-		| tar -xzv -C /tmp/remote-mongodump/nmdc
+	# Optionally, manually update MONGO_REMOTE_DUMP_DIR env var:
+	# ```bash
+	# export MONGO_REMOTE_DUMP_DIR=$(ssh -i ~/.ssh/nersc -q ${NERSC_USERNAME}@dtn01.nersc.gov 'bash -s ' < get_latest_nmdc_prod_dump_dir.sh 2>/dev/null)
+	# ```
+	# Rsync the remote dump directory items of interest:
+	rsync -av --exclude='_*' --exclude='fs\.*' \
+		-e "ssh -i ~/.ssh/nersc" \
+		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
+		/tmp/remote-mongodump/nmdc
+	# Restore from `rsync`ed local directory:
 	mongorestore -v -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
-		--drop --nsInclude='nmdc.*' --dir /tmp/remote-mongodump
+		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
 	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"

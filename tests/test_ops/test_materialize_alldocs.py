@@ -105,18 +105,21 @@ def test_materialize_alldocs(op_context):
         collection = mdb.get_collection(collection_name)
         for document in collection.find({}):
             num_upstream_docs += 1
-            document_lacking_type = dissoc(document, "_id", "type")
             document_having_generic_type = assoc(
-                document_lacking_type, "type", {"$type": "array"}
+                {"id": document["id"]},
+                "_type_and_ancestors",
+                {"$type": "array"},
             )
             assert alldocs_collection.count_documents(document_having_generic_type) == 1
 
     # Verify each of the specific documents we created above appears in the `alldocs` collection once,
-    # and that its `type` value has been replaced with its class ancestry chain.
+    # and that `_type_and_ancestors` has been set to its class ancestry chain.
     for document in field_research_site_documents:
-        alldocs_document = assoc(
-            dissoc(document, "type"), "type", field_research_site_class_ancestry_chain
-        )
+        alldocs_document = {
+            "id": document["id"],
+            "type": document["type"],
+            "_type_and_ancestors": field_research_site_class_ancestry_chain,
+        }
         assert alldocs_collection.count_documents(alldocs_document) == 1
 
     # Verify the total number of documents in all the upstream collections, combined,

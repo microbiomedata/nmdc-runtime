@@ -168,7 +168,7 @@ def test_get_gold_study_identifiers():
     )
     assert gold_ids is not None
     assert len(gold_ids) == 1
-    assert gold_ids[0] == "GOLD:Gs000000"
+    assert gold_ids[0] == "gold:Gs000000"
 
     gold_ids = translator._get_gold_study_identifiers(
         {"multiOmicsForm": {"GOLDStudyId": ""}}
