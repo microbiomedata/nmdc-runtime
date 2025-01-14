@@ -716,8 +716,8 @@ def validate_json(
                     # Filter out documents that are strings instead of dictionaries.
                     #
                     # Note: This is to work around the fact that the previous validation stages allow for the
-                    #       request payload to specify a collection named "@type" whose value is a string, as
-                    #       opposed to a dictionary. I don't know why they allow that. I posed the question in this
+                    #       request payload to specify a collection named "@type" whose value is a string, as opposed
+                    #       to a list of dictionaries. I don't know why they allow that. I posed the question in this
                     #       GitHub Discussion: https://github.com/microbiomedata/nmdc-runtime/discussions/858
                     #       For now, I am filtering out documents that are not dictionaries, and logging a message.
                     #
@@ -745,8 +745,8 @@ def validate_json(
                     # Filter out documents that are strings instead of dictionaries.
                     #
                     # Note: Again, this is to work around the fact that the previous validation stages allow for the
-                    #       request payload to specify a collection named "@type" whose value is a string, as
-                    #       opposed to a dictionary.
+                    #       request payload to specify a collection named "@type" whose value is a string, as opposed
+                    #       to a list of dictionaries.
                     #
                     documents_inserted = list(filter(is_dict, raw_documents_inserted))
 
