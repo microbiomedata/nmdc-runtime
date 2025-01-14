@@ -1,6 +1,7 @@
 import os
 import re
 from contextlib import asynccontextmanager
+from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -19,6 +20,7 @@ from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
+    get_allowed_references,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
@@ -356,9 +358,23 @@ def ensure_default_api_perms():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    r"""
+    Prepares the application to receive requests.
+
+    From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
+    > You can define logic (code) that should be executed before the application starts up. This means that
+    > this code will be executed once, before the application starts receiving requests.
+
+    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
+          but not before that (i.e. not when the application is idle before any requests start coming in).
+    """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
+
+    # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
+    get_allowed_references()  # we ignore the return value here
+
     yield
 
 
