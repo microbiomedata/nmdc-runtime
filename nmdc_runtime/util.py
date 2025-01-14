@@ -583,7 +583,9 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_json(in_docs: dict, mdb: MongoDatabase, check_inter_document_references: bool = False):
+def validate_json(
+    in_docs: dict, mdb: MongoDatabase, check_inter_document_references: bool = False
+):
     r"""
     Checks whether the specified dictionary represents a valid instance of the `Database` class
     defined in the NMDC Schema. Referential integrity checking is performed on an opt-in basis.
@@ -680,7 +682,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_inter_document_refere
                     # Note: Much of this code was copy/pasted from refscan, at:
                     #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
                     #
-                    print(f"Checking references emanating from documents inserted into '{source_collection_name}'.")
+                    print(
+                        f"Checking references emanating from documents inserted into '{source_collection_name}'."
+                    )
                     for document in documents_inserted:
                         violations = scan_outgoing_references(
                             document=document,
@@ -702,7 +706,9 @@ def validate_json(in_docs: dict, mdb: MongoDatabase, check_inter_document_refere
                                 f"does not exist in any of the collections the "
                                 f"NMDC Schema says it can exist in."
                             )
-                            validation_errors[source_collection_name].append(violation_as_str)
+                            validation_errors[source_collection_name].append(
+                                violation_as_str
+                            )
 
             # If any collection's error list is not empty, return an error response.
             if any(len(v) > 0 for v in validation_errors.values()):
