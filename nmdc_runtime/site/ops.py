@@ -1330,6 +1330,6 @@ def missing_gold_biosample_repair(
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
     )
-    database = database_updater.create_missing_biosample_records_from_gold()
+    database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
     return database
