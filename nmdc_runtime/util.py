@@ -714,7 +714,7 @@ def validate_json(
                     #       validation stages allow for the request payload to specify a collection named "@type" whose
                     #       value is a string, as opposed to a list of dictionaries.
                     #
-                    #       I don't know why they allow that. I posed the question in this GitHub Discussion:
+                    #       I don't know why those stages do that. I posed the question in this GitHub Discussion:
                     #       https://github.com/microbiomedata/nmdc-runtime/discussions/858
                     #
                     #       The `len(...) > 0` check is here because pymongo complains when `insert_many` is called
@@ -745,10 +745,6 @@ def validate_json(
                         continue
 
                     # Check the referential integrity of the replaced or inserted documents.
-                    #
-                    # Note: Much of this code was copy/pasted from refscan, at:
-                    #       https://github.com/microbiomedata/refscan/blob/46daba3b3cd05ee6a8a91076515f737248328cdb/refscan/refscan.py#L286-L349
-                    #
                     print(
                         f"Checking references emanating from documents inserted into '{source_collection_name}'."
                     )
