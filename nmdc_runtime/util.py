@@ -697,6 +697,7 @@ def validate_json(
 
         # Third pass (if enabled): Check inter-document references.
         if check_inter_document_references is True:
+
             def is_dict(v) -> bool:
                 r"""Helper function that determines whether the specified value is a dictionary."""
                 return isinstance(v, dict)
