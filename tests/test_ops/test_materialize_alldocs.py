@@ -42,11 +42,28 @@ def test_materialize_alldocs(op_context):
     #
     # Reference: https://microbiomedata.github.io/berkeley-schema-fy24/FieldResearchSite/#direct
     #
-    field_research_site_class_ancestry_chain = ["FieldResearchSite", "Site", "MaterialEntity", "NamedThing"]
+    field_research_site_class_ancestry_chain = [
+        "FieldResearchSite",
+        "Site",
+        "MaterialEntity",
+        "NamedThing",
+    ]
     field_research_site_documents = [
-        {"id": "frsite-99-00000001", "type": "nmdc:FieldResearchSite", "name": "Site A"},
-        {"id": "frsite-99-00000002", "type": "nmdc:FieldResearchSite", "name": "Site B"},
-        {"id": "frsite-99-00000003", "type": "nmdc:FieldResearchSite", "name": "Site C"},
+        {
+            "id": "frsite-99-00000001",
+            "type": "nmdc:FieldResearchSite",
+            "name": "Site A",
+        },
+        {
+            "id": "frsite-99-00000002",
+            "type": "nmdc:FieldResearchSite",
+            "name": "Site B",
+        },
+        {
+            "id": "frsite-99-00000003",
+            "type": "nmdc:FieldResearchSite",
+            "name": "Site C",
+        },
     ]
     field_research_site_set_collection = mdb.get_collection("field_research_site_set")
     for document in field_research_site_documents:
@@ -70,7 +87,9 @@ def test_materialize_alldocs(op_context):
 
     # Get a reference to the newly-materialized `alldocs` collection.
     alldocs_collection = mdb.get_collection("alldocs")
-    num_alldocs_docs = alldocs_collection.count_documents({})  # here, we get an _exact_ count
+    num_alldocs_docs = alldocs_collection.count_documents(
+        {}
+    )  # here, we get an _exact_ count
 
     # Verify each upstream document is represented correctly—and only once—in the `alldocs` collection.
     #
@@ -87,13 +106,17 @@ def test_materialize_alldocs(op_context):
         for document in collection.find({}):
             num_upstream_docs += 1
             document_lacking_type = dissoc(document, "_id", "type")
-            document_having_generic_type = assoc(document_lacking_type, "type", {"$type": "array"})
+            document_having_generic_type = assoc(
+                document_lacking_type, "type", {"$type": "array"}
+            )
             assert alldocs_collection.count_documents(document_having_generic_type) == 1
 
     # Verify each of the specific documents we created above appears in the `alldocs` collection once,
     # and that its `type` value has been replaced with its class ancestry chain.
     for document in field_research_site_documents:
-        alldocs_document = assoc(dissoc(document, "type"), "type", field_research_site_class_ancestry_chain)
+        alldocs_document = assoc(
+            dissoc(document, "type"), "type", field_research_site_class_ancestry_chain
+        )
         assert alldocs_collection.count_documents(alldocs_document) == 1
 
     # Verify the total number of documents in all the upstream collections, combined,

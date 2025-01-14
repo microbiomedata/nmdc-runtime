@@ -289,10 +289,10 @@ def test_submit_workflow_activities(api_site_client):
                 "has_output": [
                     "nmdc:dobj-11-w5dak635",
                     "nmdc:dobj-11-g6d71n77",
-                    "nmdc:dobj-11-bds7qq03"
+                    "nmdc:dobj-11-bds7qq03",
                 ],
                 "type": "nmdc:ReadQcAnalysis",
-                "version": "v1.0.8"
+                "version": "v1.0.8",
             }
         ]
     }
@@ -378,6 +378,7 @@ def test_find_planned_processes(api_site_client):
         "/planned_processes",
     )
     assert rv.json()["meta"]["count"] >= 9
+
 
 def test_find_planned_process_by_id(api_site_client):
     # Seed the database with documents that represent instances of the `PlannedProcess` class or any of its subclasses.
