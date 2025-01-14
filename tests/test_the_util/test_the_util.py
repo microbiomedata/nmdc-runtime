@@ -1,3 +1,5 @@
+import pytest
+
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.util import validate_json
 
@@ -11,40 +13,47 @@ from nmdc_runtime.util import validate_json
 # returns when it considers the input to be valid.
 ok_result = {"result": "All Okay!"}
 
+# Make a concise alias whose items we can unpack (via `**check_refs`) into `kwargs`
+# when invoking the `validate_json` function in our tests.
+check_refs = dict(check_inter_document_references=True)
 
-def test_validate_json():
-    # Get a reference to the MongoDB database, since the `validate_json` function requires
-    # it to be passed in as a parameter.
-    mdb = get_mongo_db()
 
-    # Test: An empty outer dictionary is valid.
-    database_dict = {}
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+@pytest.fixture
+def db():
+    r"""Returns a reference to the MongoDB database specified by environment variables."""
+    return get_mongo_db()
 
-    # Test: An empty collection is valid.
+
+def test_validate_json_returns_valid_when_input_is_empty_dictionary(db):
+    assert validate_json({}, mdb=db) == ok_result
+    assert validate_json({}, mdb=db, **check_refs) == ok_result
+
+
+def test_validate_json_returns_valid_when_collection_is_empty_list(db):
     database_dict = {"study_set": []}
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
-    # Test: The function reports an error for a schema-defiant collection name.
+
+def test_validate_json_returns_invalid_when_collection_name_is_schema_defiant(db):
     database_dict = {"OTHER_set": []}
-    result = validate_json(in_docs=database_dict, mdb=mdb)
-    assert result["result"] == "errors"
-    assert len(result["detail"]["OTHER_set"]) == 1
-    #
-    # Invoke the function-under-test again, but with referential integrity checking enabled.
-    #
-    result = validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True)
+    result = validate_json(in_docs=database_dict, mdb=db)
     assert result["result"] == "errors"
     assert len(result["detail"]["OTHER_set"]) == 1
 
-    # Test: Two empty collections is valid.
+    # Invoke the function-under-test again, but with referential integrity checking enabled.
+    result = validate_json(in_docs=database_dict, mdb=db, **check_refs)
+    assert result["result"] == "errors"
+    assert len(result["detail"]["OTHER_set"]) == 1
+
+
+def test_validate_json_returns_valid_when_payload_has_multiple_empty_collections(db):
     database_dict = {"biosample_set": [], "study_set": []}
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
-    # Test: A schema-compliant document is valid.
+
+def test_validate_json_returns_valid_when_the_only_document_is_schema_compliant(db):
     database_dict = {
         "study_set": [
             {
@@ -54,50 +63,11 @@ def test_validate_json():
             }
         ]
     }
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
-    # Test: A schema-defiant document is invalid.
-    database_dict = {
-        "study_set": [
-            {
-                "id": "nmdc:OTHER-00-000001",
-                "type": "nmdc:Study",
-                "study_category": "research_study",
-            },
-        ]
-    }
-    result = validate_json(in_docs=database_dict, mdb=mdb)
-    assert result["result"] == "errors"
-    assert len(result["detail"]["study_set"]) == 1
-    #
-    # Invoke the function-under-test again, but with referential integrity checking enabled.
-    #
-    result = validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True)
-    assert result["result"] == "errors"
-    assert len(result["detail"]["study_set"]) == 1
 
-    # Test: An otherwise schema-compliant document that references a non-existent document is valid when referential
-    #       integrity checking is disabled, and is invalid when referential integrity checking is enabled.
-    database_dict = {
-        "study_set": [
-            {
-                "id": "nmdc:sty-00-000001",
-                "type": "nmdc:Study",
-                "study_category": "research_study",
-                "part_of": ["nmdc:sty-00-999999"],  # identifies a non-existent study
-            }
-        ]
-    }
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    #
-    # Invoke the function-under-test again, but with referential integrity checking enabled.
-    #
-    result = validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True)
-    assert len(result["detail"]["study_set"]) == 1
-    assert "nmdc:sty-00-000001" in result["detail"]["study_set"][0]
-
-    # Test: Multiple schema-compliant documents are valid.
+def test_validate_json_returns_valid_when_all_documents_are_schema_compliant(db):
     database_dict = {
         "study_set": [
             {
@@ -112,39 +82,79 @@ def test_validate_json():
             },
         ]
     }
-    assert validate_json(in_docs=database_dict, mdb=mdb) == ok_result
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
-    # Test: The function reports an error for each schema-defiant document.
+
+def test_validate_json_returns_invalid_when_document_is_schema_defiant(db):
     database_dict = {
         "study_set": [
             {
-                "id": "nmdc:OTHER-00-000001",
-                "type": "nmdc:Study",
-                "study_category": "research_study",
-            },
-            {
-                "id": "nmdc:OTHER-00-000002",
+                "id": "nmdc:OTHER-00-000001",  # invalid string format
                 "type": "nmdc:Study",
                 "study_category": "research_study",
             },
         ]
     }
-    result = validate_json(in_docs=database_dict, mdb=mdb)
+    result = validate_json(in_docs=database_dict, mdb=db)
     assert result["result"] == "errors"
-    assert "study_set" in result["detail"]
-    assert len(result["detail"]["study_set"]) == 2
-    #
-    # Invoke the function-under-test again, but with referential integrity checking enabled.
-    #
-    result = validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True)
-    assert result["result"] == "errors"
-    assert "study_set" in result["detail"]
-    assert len(result["detail"]["study_set"]) == 2
+    assert len(result["detail"]["study_set"]) == 1
 
-    # Test: A single request can add a document that references another document added via the same request. The
-    #       referential integrity checker performs its check on the _final_ result of all requested operations across
-    #       all collections.
+    # Invoke the function-under-test again, but with referential integrity checking enabled.
+    result = validate_json(in_docs=database_dict, mdb=db, **check_refs)
+    assert result["result"] == "errors"
+    assert len(result["detail"]["study_set"]) == 1
+
+
+def test_validate_json_returns_invalid_when_otherwise_schema_compliant_document_references_missing_document(db):
+    database_dict = {
+        "study_set": [
+            {
+                "id": "nmdc:sty-00-000001",
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+                "part_of": ["nmdc:sty-00-999999"],  # identifies a non-existent study
+            }
+        ]
+    }
+    assert validate_json(in_docs=database_dict, mdb=db) == ok_result
+
+    # Invoke the function-under-test again, but with referential integrity checking enabled.
+    result = validate_json(in_docs=database_dict, mdb=db, **check_refs)
+    assert len(result["detail"]["study_set"]) == 1
+    assert "nmdc:sty-00-000001" in result["detail"]["study_set"][0]
+
+
+def test_validate_json_does_not_check_references_if_documents_are_schema_defiant(db):
+    database_dict = {
+        "study_set": [
+            {
+                "id": "nmdc:OTHER-00-000001",  # invalid string format
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+                "part_of": ["nmdc:sty-00-000009"],  # identifies a non-existent study
+            },
+        ]
+    }
+    result = validate_json(in_docs=database_dict, mdb=db)
+    assert result["result"] == "errors"
+    assert "study_set" in result["detail"]
+    assert len(result["detail"]["study_set"]) == 1
+
+    # Invoke the function-under-test again, but with referential integrity checking enabled.
+    result = validate_json(in_docs=database_dict, mdb=db, **check_refs)
+    assert result["result"] == "errors"
+    assert "study_set" in result["detail"]
+    assert len(result["detail"]["study_set"]) == 1  # not 2
+
+
+def test_validate_json_checks_referential_integrity_after_applying_all_collections_changes(db):
+    r"""
+    Note: This test targets the scenario where a single payload introduces both the source document and target document
+          of a given reference, and those documents reside in different collections. If the referential integrity
+          checker were to performs a check after each individual collection's changes had been applied, it would not
+          find referenced documents that hadn't been introduced into the database yet.
+    """
     database_dict = {
         "biosample_set": [
             {
@@ -159,4 +169,4 @@ def test_validate_json():
             {"id": "nmdc:sty-00-000002", "type": "nmdc:Study", "study_category": "research_study", "part_of": ["nmdc:sty-00-000001"]}
         ]
     }
-    assert validate_json(in_docs=database_dict, mdb=mdb, check_inter_document_references=True) == ok_result
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
