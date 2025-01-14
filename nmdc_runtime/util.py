@@ -720,7 +720,10 @@ def validate_json(
                     #       The `len(...) > 0` check is here because pymongo complains when `insert_many` is called
                     #       with an empty list.
                     #
-                    if isinstance(documents_to_insert, list) and len(documents_to_insert) > 0:
+                    if (
+                        isinstance(documents_to_insert, list)
+                        and len(documents_to_insert) > 0
+                    ):
                         try:
                             overlay_db.replace_or_insert_many(
                                 collection_name, documents_to_insert
