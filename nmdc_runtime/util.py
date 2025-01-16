@@ -708,6 +708,11 @@ def validate_json(
             #          JSON payload. If it does, then we "waive" (i.e. discard) that violation.
             #       The violations that remain after those two stages are the ones we return to the caller.
             #
+            # Note: The reason we do not insert documents into an `OverlayDB` and scan _that_, is that the `OverlayDB`
+            #       does not provide a means to perform arbitrary queries against its virtual "merged" database. It
+            #       is not a drop-in replacement for a pymongo's `Database` class, which is the only thing that
+            #       `refscan`'s `Finder` class accepts.
+            #
             finder = Finder(database=mdb)
             references = get_allowed_references()
             reference_field_names_by_source_class_name = (
