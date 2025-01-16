@@ -570,13 +570,6 @@ class OverlayDB(AbstractContextManager):
     def __exit__(self, exc_type, exc_value, traceback):
         self._bottom_db.client.drop_database(self._top_db.name)
 
-    def get_collection(self, coll_name: str):
-        r"""Returns a reference to the specified collection."""
-        try:
-            return self._top_db[coll_name]
-        except OperationFailure as e:
-            raise OverlayDBError(str(e.details))
-
     def replace_or_insert_many(self, coll_name, documents: list):
         try:
             self._top_db[coll_name].insert_many(documents)
