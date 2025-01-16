@@ -199,7 +199,7 @@ def test_validate_json_considers_existing_documents_when_checking_references(db)
 
     db.get_collection("study_set").replace_one(
         {"id": existing_study_id},
-        {"id": "nmdc:sty-00-000001", "type": "nmdc:Study", "study_category": "research_study"},
+        {"id": existing_study_id, "type": "nmdc:Study", "study_category": "research_study"},
         upsert=True
     )
     database_dict = {
