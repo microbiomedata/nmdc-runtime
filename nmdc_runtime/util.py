@@ -709,13 +709,9 @@ def validate_json(
 
             # Iterate over the collections in the JSON payload.
             for source_collection_name, documents in in_docs.items():
-                print(
-                    f"Checking inter-document references for {source_collection_name}"
-                )
                 for document in documents:
-                    source_document = dict(
-                        document, _id=None
-                    )  # adds `_id` field, since `refscan` requires it to exist
+                    # Add an `_id` field to the document, since `refscan` requires the document to have one.
+                    source_document = dict(document, _id=None)
                     violations = scan_outgoing_references(
                         document=source_document,
                         schema_view=nmdc_schema_view(),
@@ -729,9 +725,6 @@ def validate_json(
 
                     # For each violation, check whether the misplaced document is in the JSON payload, itself.
                     for violation in violations:
-                        print(
-                            f"Checking whether inter-document referential integrity violation can be waived."
-                        )
                         can_waive_violation = False
                         # Determine which collections can contain the referenced document, based upon
                         # the schema class of which this source document is an instance.
@@ -742,13 +735,10 @@ def validate_json(
                             )
                         )
                         # Check whether the referenced document exists in any of those collections in the JSON payload.
-                        for in_collection_name, in_collection_docs in in_docs.items():
-                            if in_collection_name in target_collection_names:
-                                for in_collection_doc in in_collection_docs:
-                                    if (
-                                        in_collection_doc.get("id")
-                                        == violation.target_id
-                                    ):
+                        for json_coll_name, json_coll_docs in in_docs.items():
+                            if json_coll_name in target_collection_names:
+                                for json_coll_doc in json_coll_docs:
+                                    if json_coll_doc["id"] == violation.target_id:
                                         can_waive_violation = True
                                         break  # stop checking
                             if can_waive_violation:
