@@ -36,7 +36,7 @@ def mock_clients():
 
 @pytest.fixture
 def db_updater(mock_clients):
-    study_id = "nmdc:sty-11-e4yb9z58"
+    study_id = "nmdc:sty-11-abcdefx"
     return DatabaseUpdater(
         runtime_api_user_client=mock_clients["runtime_api_user_client"],
         runtime_api_site_client=mock_clients["runtime_api_site_client"],
@@ -135,7 +135,7 @@ def test_generate_biosample_set_from_gold_api_for_study(
 
     mock_runtime_api_user_client.get_study.return_value = [
         {
-            "id": "nmdc:sty-11-547rwq94",
+            "id": "nmdc:sty-11-abcdefx",
             "gold_study_identifiers": ["gold:Gs0154244"],
         }
     ]
@@ -229,7 +229,7 @@ def test_generate_biosample_set_from_gold_api_for_study(
 
     mock_runtime_api_user_client.get_biosamples_for_study.assert_called_once()
     mock_runtime_api_user_client.get_study.assert_called_once_with(
-        "nmdc:sty-11-547rwq94"
+        "nmdc:sty-11-abcdefx"
     )
     mock_gold_api_client.fetch_biosamples_by_study.assert_called_once_with("Gs0154244")
     mock_runtime_api_site_client.mint_id.assert_called_once_with("nmdc:Biosample", 2)
