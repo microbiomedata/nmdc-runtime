@@ -697,69 +697,59 @@ def validate_json(
 
         # Third pass (if enabled): Check inter-document references.
         if check_inter_document_references is True:
-            # Insert all documents specified for all collections specified, into the OverlayDB.
+            # Prepare to use `refscan`.
             #
-            # Note: This will allow us to validate referential integrity in the database's _final_ state. If we were to,
-            #       instead, validate it after processing _each_ collection, we would get a false positive if a document
-            #       inserted into an earlier-processed collection happened to reference a document slated for insertion
-            #       into a later-processed collection. By waiting until all documents in all collections specified have
-            #       been inserted, we avoid that situation.
+            # Note: We check the inter-document references in two stages, which are:
+            #       1. For each document in the JSON payload, check whether each document it references already exists
+            #          (in the collections the schema says it can exist in) in the database. We use the
+            #          `refscan` package to do this, which returns violation details we'll use in the second stage.
+            #       2. For each violation found in the first stage (i.e. each reference to a not-found document), we
+            #          check whether that document exists (in the collections the schema says it can exist in) in the
+            #          JSON payload. If it does, then we "waive" (i.e. discard) that violation.
+            #       The violations that remain after those two stages are the ones we return to the caller.
             #
-            with OverlayDB(mdb) as overlay_db:
-                print(f"Inserting documents into the OverlayDB.")
-                for collection_name, documents_to_insert in docs.items():
-                    # Insert the documents into the OverlayDB.
-                    #
-                    # Note: The `isinstance(..., list)` check is here to work around the fact that the previous
-                    #       validation stages allow for the request payload to specify a collection named "@type" whose
-                    #       value is a string, as opposed to a list of dictionaries.
-                    #
-                    #       I don't know why those stages do that. I posed the question in this GitHub Discussion:
-                    #       https://github.com/microbiomedata/nmdc-runtime/discussions/858
-                    #
-                    #       The `len(...) > 0` check is here because pymongo complains when `insert_many` is called
-                    #       with an empty list.
-                    #
-                    if (
-                        isinstance(documents_to_insert, list)
-                        and len(documents_to_insert) > 0
-                    ):
-                        try:
-                            overlay_db.replace_or_insert_many(
-                                collection_name, documents_to_insert
-                            )
-                        except OverlayDBError as error:
-                            validation_errors[collection_name].append(str(error))
+            finder = Finder(database=mdb)
+            references = get_allowed_references()
+            reference_field_names_by_source_class_name = (
+                references.get_reference_field_names_by_source_class_name()
+            )
 
-                # Now that the OverlayDB contains all the specified documents, we will check whether
-                # every document referenced by any of the inserted documents exists.
-                finder = Finder(database=overlay_db)
-                references = get_allowed_references()
-                reference_field_names_by_source_class_name = (
-                    references.get_reference_field_names_by_source_class_name()
-                )
-                for source_collection_name, documents_inserted in docs.items():
-                    # If `documents_inserted` is not a list (which is a scenario that the previous validation stages
-                    # allow), abort processing this collection and proceed to processing the next collection.
-                    if not isinstance(documents_inserted, list):
-                        continue
-
-                    # Check the referential integrity of the replaced or inserted documents.
-                    print(
-                        f"Checking references emanating from documents inserted into '{source_collection_name}'."
+            # Iterate over the collections in the JSON payload.
+            for source_collection_name, documents in in_docs.items():
+                print(f"Checking inter-document references for {source_collection_name}")
+                for document in documents:
+                    source_document = dict(document, _id=None)  # adds `_id` field, since `refscan` requires it to exist
+                    violations = scan_outgoing_references(
+                        document=source_document,
+                        schema_view=nmdc_schema_view(),
+                        reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
+                        references=references,
+                        finder=finder,
+                        collection_names=nmdc_database_collection_names(),
+                        source_collection_name=source_collection_name,
+                        user_wants_to_locate_misplaced_documents=False,
                     )
-                    for document in documents_inserted:
-                        violations = scan_outgoing_references(
-                            document=document,
-                            schema_view=nmdc_schema_view(),
-                            reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
-                            references=references,
-                            finder=finder,
-                            collection_names=nmdc_database_collection_names(),
-                            source_collection_name=source_collection_name,
-                            user_wants_to_locate_misplaced_documents=False,
+
+                    # For each violation, check whether the misplaced document is in the JSON payload, itself.
+                    for violation in violations:
+                        print(f"Checking whether inter-document referential integrity violation can be waived.")
+                        can_waive_violation = False
+                        # Determine which collections can contain the referenced document, based upon
+                        # the schema class of which this source document is an instance.
+                        target_collection_names = references.get_target_collection_names(
+                            source_class_name=violation.source_class_name,
+                            source_field_name=violation.source_field_name,
                         )
-                        for violation in violations:
+                        # Check whether the referenced document exists in any of those collections in the JSON payload.
+                        for in_collection_name, in_collection_docs in in_docs.items():
+                            if in_collection_name in target_collection_names:
+                                for in_collection_doc in in_collection_docs:
+                                    if in_collection_doc.get("id") == violation.target_id:
+                                        can_waive_violation = True
+                                        break  # stop checking
+                            if can_waive_violation:
+                                break  # stop checking
+                        if not can_waive_violation:
                             violation_as_str = (
                                 f"Document '{violation.source_document_id}' "
                                 f"in collection '{violation.source_collection_name}' "
