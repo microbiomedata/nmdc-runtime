@@ -542,6 +542,13 @@ class OverlayDB(AbstractContextManager):
     overlay collection, that id is marked as "seen" and will not also be returned when
     subsequently scanning the (unmodified) base-database collection.
 
+    Note: The OverlayDB object does not provide a means to perform arbitrary MongoDB queries on the virtual "merged"
+          database. Callers can access the real database via `overlay_db._bottom_db` and the overlaying database via
+          `overlay_db._top_db` and perform arbitrary MongoDB queries on the individual databases that way. Access to
+          the virtual "merged" database is limited to the methods of the `OverlayDB` class, which simulates the
+          "merging" just-in-time to process the method invocation. You can see an example of this in the implementation
+          of the `merge_find` method, which internally accesses both the real database and the overlaying database.
+
     Mongo "update" commands (as the "apply_updates" method) are simulated by first copying affected
     documents from a base collection to the overlay, and then applying the updates to the overlay,
     so that again, base collections are unmodified, and a "merge_find" call will produce a result
