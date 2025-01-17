@@ -6,7 +6,7 @@ from nmdc_runtime.util import validate_json
 # Tip: At the time of this writing, you can run the tests in this file without running other tests in this repo,
 #      by issuing the following command from the root directory of the repository within the `fastapi` container:
 #      ```
-#      $ pytest tests/test_the_util/test_the_util.py
+#      $ pytest -vv tests/test_the_util/test_the_util.py
 #      ```
 
 # Define a reusable dictionary that matches the value the `validate_json` function
@@ -148,6 +148,23 @@ def test_validate_json_does_not_check_references_if_documents_are_schema_defiant
     assert len(result["detail"]["study_set"]) == 1  # not 2
 
 
+def test_validate_json_reports_multiple_broken_references_emanating_from_single_document(db):
+    database_dict = {
+        "study_set": [
+            {
+                "id": "nmdc:sty-00-000001",
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+                "part_of": ["nmdc:sty-00-000008", "nmdc:sty-00-000009"],  # identifies 2 non-existent studies
+            },
+        ]
+    }
+    result = validate_json(in_docs=database_dict, mdb=db, **check_refs)
+    assert result["result"] == "errors"
+    assert "study_set" in result["detail"]
+    assert len(result["detail"]["study_set"]) == 2
+
+
 def test_validate_json_checks_referential_integrity_after_applying_all_collections_changes(db):
     r"""
     Note: This test targets the scenario where a single payload introduces both the source document and target document
@@ -170,3 +187,31 @@ def test_validate_json_checks_referential_integrity_after_applying_all_collectio
         ]
     }
     assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
+
+
+def test_validate_json_considers_existing_documents_when_checking_references(db):
+    r"""
+    Note: This test focuses on the case where the database already contains the to-be-referenced document;
+          as opposed to the to-be-referenced document being introduced via the same request payload.
+          For that reason, we will seed the database before calling the function-under-test.
+    """
+    existing_study_id = "nmdc:sty-00-000001"
+
+    db.get_collection("study_set").replace_one(
+        {"id": existing_study_id},
+        {"id": existing_study_id, "type": "nmdc:Study", "study_category": "research_study"},
+        upsert=True
+    )
+    database_dict = {
+        "study_set": [
+            {
+                "id": "nmdc:sty-00-000002",
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+                "part_of": [existing_study_id],  # identifies the existing study
+            },
+        ]
+    }
+    assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
+
+    db.get_collection("study_set").delete_one({"id": existing_study_id})
