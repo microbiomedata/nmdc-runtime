@@ -20,11 +20,25 @@ jobs:
       - run: pip install git+https://${GH_TOKEN}@github.com/squidfunk/mkdocs-material-insiders.git
       - run: pip install mkdocs-mermaid2-plugin
       - run: pip install mkdocs-jupyter
-      - run: mkdocs gh-deploy --force
+      # Build the MkDocs site (but don't deploy it).
+      #
+      # Note: Until January 17, 2025, we would build and deploy the MkDocs website to GitHub Pages.
+      #       As of January 17, 2025, we just _build_ it — we don't deploy it.
+      #
+      #       The reason is that the NMDC has a new, centralized documentation website: https://docs.microbiomedata.org.
+      #       That website includes a copy of the Runtime documentation (it's at the path, `/runtime`). Instead of
+      #       deploying this redundant copy (being built here) to `https://microbiomedata.github.io/nmdc-runtime`,
+      #       we instead deploy _HTTP Redirects_ there. Those HTTP Redirects will redirect visitors from
+      #       `https://microbiomedata.github.io/nmdc-runtime` to `https://docs.microbiomedata.org/runtime`.
+      #
+      #       This redirection is not implemented in the MkDocs site, itself. That's because those source files
+      #       are used to build the website hosted at `https://docs.microbiomedata.org/runtime`; and, if a page were
+      #       to redirect to itself, the result would be a circular redirect.
+      #
+      #       The reason we still bother to build the MkDocs site here is so we get an error (a failed GHA workflow run)
+      #       when the site is no longer buildable (e.g. due to someone inadvertently introducing an invalid source
+      #       file, or due to one of the dependencies becoming unavailable).
+      #
+      - run: mkdocs build
 env:
   GH_TOKEN: ${{ secrets.GH_TOKEN_MKDOCS_MATERIAL_INSIDERS }}
-
-
-
-
-
