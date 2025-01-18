@@ -28,16 +28,17 @@ jobs:
       #       The reason is that the NMDC has a new, centralized documentation website: https://docs.microbiomedata.org.
       #       That website includes a copy of the Runtime documentation (it's at the path, `/runtime`). Instead of
       #       deploying this redundant copy (being built here) to `https://microbiomedata.github.io/nmdc-runtime`,
-      #       we instead deploy _HTTP Redirects_ there. Those HTTP Redirects will redirect visitors from
-      #       `https://microbiomedata.github.io/nmdc-runtime` to `https://docs.microbiomedata.org/runtime`.
+      #       we will (via the new `deploy-redirects.yml` workflow) deploy a bunch of HTML files that redirect visitors
+      #       from pages on `https://microbiomedata.github.io/nmdc-runtime` to their counterparts on
+      #       `https://docs.microbiomedata.org/runtime`.
       #
-      #       This redirection is not implemented in the MkDocs site, itself. That's because those source files
+      #       This redirection is not implemented in the MkDocs site, _itself_, because those MkDocs site source files
       #       are used to build the website hosted at `https://docs.microbiomedata.org/runtime`; and, if a page were
       #       to redirect to itself, the result would be a circular redirect.
       #
       #       The reason we still bother to build the MkDocs site here is so we get an error (a failed GHA workflow run)
       #       when the site is no longer buildable (e.g. due to someone inadvertently introducing an invalid source
-      #       file, or due to one of the dependencies becoming unavailable).
+      #       file, or due to one of the dependencies becoming unavailable), which can prompt remedial action.
       #
       - run: mkdocs build
 env:
