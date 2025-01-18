@@ -20,15 +20,15 @@ jobs:
     steps:
       - name: Check out commit
         uses: actions/checkout@v4
-      - name: Define helper bash function
+      - name: Create website file tree
         run: |
+          # Define helper function.
           make_redirect() { 
             # This function prints the HTML markup for a web page that redirects the client.
             local url="https://docs.microbiomedata.org/runtime/${1}"
             echo "<html><head><meta http-equiv=\"refresh\" content=\"0; url=${url}\" /></head><body>Redirecting to <a href=\"${url}\">${url}</a>...</body></html>"
-          }
-      - name: Create website file tree
-        run: |
+          }          
+          
           # Create directories.
           mkdir -p \
             _build/html \
