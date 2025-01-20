@@ -39,6 +39,15 @@ jobs:
             _build/html/nb
           
           # Create HTML files containing redirects.
+          #
+          # Note: These HTML files will be accessible at the same URLs at which _original_ Runtime documentation pages
+          #       had been accessible (on the https://microbiomedata.github.io/nmdc-runtime/ website) prior to the
+          #       launch of the new, NMDC-wide documentation website (i.e., https://docs.microbiomedata.org).
+          #
+          #       For documents added to the Runtime repo's `docs/` directory _after_ the launch of the latter website,
+          #       creating redirects for those documents' URLs is unnecessary, since there was nothing at those URLs
+          #       before (presumably, nobody has expects anything other than an "HTTP 404 Not Found" error at them).
+          #
           cd _build/html
           make_redirect index.html                                          > index.html
           make_redirect admin.html                                          > admin.html
