@@ -4,12 +4,12 @@
     │ Summarize the changes you made on this branch. This is typically a more │
     │ detailed restatement of the PR title.                                   │
     │                                                                         │
-    │ Example: "In this branch, I updated the `/studies/{study_id}` endpoint  │
+    │ Example: "On this branch, I updated the `/studies/{study_id}` endpoint  │
     │           so it returns an HTTP 404 response when the specified study   │
     │           does not exist."                                              │
     └─────────────────────────────────────────────────────────────────────────┘-->
 
-In this branch, I...
+On this branch, I...
 
 ### Details
 
