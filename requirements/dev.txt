@@ -4,7 +4,7 @@
 #
 #    pip-compile --allow-unsafe --output-file=requirements/dev.txt --strip-extras requirements/dev.in
 #
-attrs==24.2.0
+attrs==24.3.0
     # via
     #   -c /code/requirements/main.txt
     #   cattrs
@@ -19,7 +19,7 @@ cattrs==24.1.2
     # via
     #   -c /code/requirements/main.txt
     #   requests-cache
-certifi==2024.8.30
+certifi==2024.12.14
     # via
     #   -c /code/requirements/main.txt
     #   requests
@@ -27,16 +27,16 @@ cffi==1.17.1
     # via
     #   -c /code/requirements/main.txt
     #   cryptography
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via
     #   -c /code/requirements/main.txt
     #   requests
-click==8.1.7
+click==8.1.8
     # via
     #   -c /code/requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.6.8
+coverage==7.6.10
     # via
     #   -r requirements/dev.in
     #   pytest-cov
@@ -57,7 +57,7 @@ idna==3.10
     # via
     #   -c /code/requirements/main.txt
     #   requests
-importlib-metadata==8.5.0
+importlib-metadata==8.6.1
     # via keyring
 iniconfig==2.0.0
     # via
@@ -75,7 +75,7 @@ jeepney==0.8.0
     # via
     #   keyring
     #   secretstorage
-keyring==25.5.0
+keyring==25.6.0
     # via twine
 markdown-it-py==3.0.0
     # via
@@ -87,13 +87,13 @@ mdurl==0.1.2
     # via
     #   -c /code/requirements/main.txt
     #   markdown-it-py
-more-itertools==10.5.0
+more-itertools==10.6.0
     # via
     #   jaraco-classes
     #   jaraco-functools
 mypy-extensions==1.0.0
     # via black
-nh3==0.2.19
+nh3==0.2.20
     # via readme-renderer
 packaging==24.2
     # via
@@ -127,7 +127,7 @@ pycparser==2.22
     #   cffi
 pyflakes==3.2.0
     # via flake8
-pygments==2.18.0
+pygments==2.19.1
     # via
     #   -c /code/requirements/main.txt
     #   readme-renderer
@@ -143,7 +143,7 @@ pytest==8.3.4
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
-pytest-asyncio==0.24.0
+pytest-asyncio==0.25.2
     # via -r requirements/dev.in
 pytest-cov==6.0.0
     # via -r requirements/dev.in
@@ -176,7 +176,7 @@ rich==13.9.4
     #   twine
 secretstorage==3.3.3
     # via keyring
-six==1.16.0
+six==1.17.0
     # via
     #   -c /code/requirements/main.txt
     #   url-normalize
@@ -200,7 +200,7 @@ url-normalize==1.4.3
     # via
     #   -c /code/requirements/main.txt
     #   requests-cache
-urllib3==2.2.3
+urllib3==2.3.0
     # via
     #   -c /code/requirements/main.txt
     #   requests
@@ -216,7 +216,7 @@ pip==24.3.1
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==75.6.0
+setuptools==75.8.0
     # via
     #   -c /code/requirements/main.txt
     #   -r requirements/dev.in
