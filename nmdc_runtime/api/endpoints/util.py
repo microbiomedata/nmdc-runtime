@@ -143,6 +143,22 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         return {"resources": resources, "next_page_token": token}
 
 
+def get_more_with_cursor_continuation(cc_id: str, mdb: MongoDatabase):
+    """Return next batch of documents pointed to by the cursor continuation.
+
+    Functionally similar to MongoDB's `getMore` database command, this method retrieves a *cursor continuation*
+    document in order to effectively resume a `find` or `aggregate` database command. The retrieved document
+    represents a *continuation* (cf. <https://en.wikipedia.org/wiki/Continuation>) for a command and uses a stored
+    value ("cursor") for a unique-valued document field such that the documents returned by the command are
+    guaranteed to be sorted in ascending order by this field.
+
+    In this way, an API client may retrieve all documents defined by a `find` or `aggregate` command over multiple
+    HTTP requests. One can think of this process as akin to pagination; however, with "cursor-based" pagination,
+    there are no guarantees wrt a fixed "page size".
+    """
+    coll_cc = mdb["_runtime.cursor_continuations"]
+
+
 def coerce_to_float_if_possible(val):
     r"""
     Converts the specified value into a floating-point number if possible;
