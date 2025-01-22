@@ -25,7 +25,7 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
-    fill_missing_biosample_records_from_gold,
+    generate_biosample_set_from_samples_in_gold,
     translate_metadata_submission_to_nmdc_schema_database,
     ingest_metadata_submission,
     gold_study_to_database,
@@ -45,7 +45,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
     nmdc_study_to_ncbi_submission_export,
-    fill_missing_data_generation_data_object_records,
+    generate_data_generation_set_for_biosamples_in_nmdc_study,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -925,10 +925,11 @@ def biosample_export():
 
 
 @repository
-def database_record_repair():
+def database_records_stitching():
     normal_resources = run_config_frozen__normal_env["resources"]
     return [
-        fill_missing_data_generation_data_object_records.to_job(
+        generate_data_generation_set_for_biosamples_in_nmdc_study.to_job(
+            description="This job can be used to create a data_generation_set JSON for biosamples that are already present in the NMDC database.",
             resource_defs=resource_defs,
             config={
                 "resources": merge(
@@ -969,7 +970,8 @@ def database_record_repair():
                 },
             },
         ),
-        fill_missing_biosample_records_from_gold.to_job(
+        generate_biosample_set_from_samples_in_gold.to_job(
+            description="This job can be used to create a biosample_set JSON from samples in GOLD for a given study in NMDC.",
             resource_defs=resource_defs,
             config={
                 "resources": merge(

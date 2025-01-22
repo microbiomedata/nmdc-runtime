@@ -47,7 +47,7 @@ def db_updater(mock_clients):
 
 
 @patch("nmdc_runtime.site.repair.database_updater.GoldStudyTranslator")
-def test_create_missing_dg_records(
+def test_generate_data_generation_set_records_from_gold_api_for_study(
     MockGoldStudyTranslator, db_updater, mock_clients, test_minter
 ):
     mock_runtime_api_user_client = mock_clients["runtime_api_user_client"]
@@ -95,7 +95,7 @@ def test_create_missing_dg_records(
     mint_id_mock.json.return_value = test_minter("nmdc:NucleotideSequencing", 1)
     mock_runtime_api_site_client.mint_id.return_value = mint_id_mock
 
-    database = db_updater.create_missing_dg_records()
+    database = db_updater.generate_data_generation_set_records_from_gold_api_for_study()
 
     assert database is not None
     assert len(database.data_generation_set) > 0
