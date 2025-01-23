@@ -73,6 +73,12 @@ class AggregateCommand(CommandBase):
         return data
 
 
+class GetMoreCommand(CommandBase):
+    # Note: No `collection` field. See `CursorContinuation` for inter-API-request "sessions" are modeled.
+    getMore: int
+    batchSize: Optional[PositiveInt] = None
+
+
 class CommandResponse(BaseModel):
     ok: OneOrZero
 
@@ -93,19 +99,33 @@ class CountCommandResponse(CommandResponse):
 
 
 class CommandResponseCursor(BaseModel):
+    # Note: No `ns` field, `id` is a `str`, and `partialResultsReturned` aliased to `queriedShardsUnavailable` to be
+    # less confusing to Runtime API clients. See `CursorContinuation` for inter-API-request "sessions" are modeled.
+    partialResultsReturned: Optional[bool] = Field(
+        None, alias="queriedShardsUnavailable"
+    )
+    id: Optional[str] = None
+
+
+class InitialCommandResponseCursor(CommandResponseCursor):
     firstBatch: List[Document]
-    partialResultsReturned: Optional[bool] = None
-    id: Optional[int] = None
-    ns: str
+
+
+class GetMoreCommandResponseCursor(CommandResponseCursor):
+    nextBatch: List[Document]
+
+
+class GetMoreCommandResponse(CommandResponse):
+    cursor: GetMoreCommandResponseCursor
 
 
 class FindCommandResponse(CommandResponse):
-    cursor: CommandResponseCursor
+    cursor: InitialCommandResponseCursor
 
 
 class AggregateCommandResponse(CommandResponse):
     # model_config = ConfigDict(extra="allow")
-    cursor: CommandResponseCursor
+    cursor: InitialCommandResponseCursor
 
 
 class DeleteStatement(BaseModel):
@@ -151,23 +171,6 @@ class UpdateCommandResponse(CommandResponse):
     nModified: NonNegativeInt
     upserted: Optional[List[DocumentUpserted]] = None
     writeErrors: Optional[List[Document]] = None
-
-
-class GetMoreCommand(CommandBase):
-    getMore: int
-    collection: str
-    batchSize: Optional[PositiveInt] = None
-
-
-class GetMoreCommandResponseCursor(BaseModel):
-    nextBatch: List[Document]
-    partialResultsReturned: Optional[bool] = None
-    id: Optional[int] = None
-    ns: str
-
-
-class GetMoreCommandResponse(CommandResponse):
-    cursor: GetMoreCommandResponseCursor
 
 
 QueryCmd = Union[
