@@ -76,14 +76,6 @@ def _dump(m: BaseModel):
     return m.model_dump(by_alias=True, exclude_unset=True)
 
 
-def can_instantiate(params: dict, cls: Callable):
-    try:
-        cls(**params)
-        return True
-    except TypeError:
-        return False
-
-
 def create_cc(cursor_command: dict, user: dict):
     if "find" in cursor_command:
         history_item = FindCommand(**cursor_command)
