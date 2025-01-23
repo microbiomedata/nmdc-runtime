@@ -49,7 +49,7 @@ def check_can_update_and_delete(user: User):
 
 @router.post("/queries:run", response_model=QueryResponseOptions)
 def run_query(
-    query_cmd: QueryCmd,  # TODO expand to accommodate pagination -- refer to "/nmdcschema/{collection_name}"
+    query_cmd: QueryCmd,
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
