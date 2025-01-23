@@ -24,6 +24,10 @@ from nmdc_schema.get_nmdc_view import ViewGetter
 from pydantic import Field, BaseModel
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import OperationFailure
+from refscan.lib.helpers import identify_references
+from refscan.lib.Finder import Finder
+from refscan.lib.ReferenceList import ReferenceList
+from refscan.scanner import scan_outgoing_references
 from toolz import merge, unique
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
@@ -118,6 +122,23 @@ def get_class_names_from_collection_spec(
         class_names = list(map(lambda name: f"{prefix}{name}", class_names))
 
     return class_names
+
+
+@lru_cache
+def get_allowed_references() -> ReferenceList:
+    r"""
+    Returns a `ReferenceList` of all the inter-document references that
+    the NMDC Schema allows a schema-compliant MongoDB database to contain.
+    """
+
+    # Identify the inter-document references that the schema allows a database to contain.
+    print("Identifying schema-allowed references.")
+    references = identify_references(
+        schema_view=nmdc_schema_view(),
+        collection_name_to_class_names=collection_name_to_class_names,
+    )
+
+    return references
 
 
 @lru_cache
@@ -353,6 +374,14 @@ def nmdc_database_collection_instance_class_names():
 
 @lru_cache
 def nmdc_database_collection_names():
+    r"""
+    TODO: Document this function.
+
+    TODO: Assuming this function was designed to return a list of names of all Database slots that represents database
+          collections, use the function named `get_collection_names_from_schema` in `nmdc_runtime/api/db/mongo.py`
+          instead, since (a) it includes documentation and (b) it performs the additional checks the lead schema
+          maintainer expects (e.g. checking whether a slot is `multivalued` and `inlined_as_list`).
+    """
     names = []
     view = nmdc_schema_view()
     all_classes = set(view.all_classes())
@@ -513,6 +542,13 @@ class OverlayDB(AbstractContextManager):
     overlay collection, that id is marked as "seen" and will not also be returned when
     subsequently scanning the (unmodified) base-database collection.
 
+    Note: The OverlayDB object does not provide a means to perform arbitrary MongoDB queries on the virtual "merged"
+          database. Callers can access the real database via `overlay_db._bottom_db` and the overlaying database via
+          `overlay_db._top_db` and perform arbitrary MongoDB queries on the individual databases that way. Access to
+          the virtual "merged" database is limited to the methods of the `OverlayDB` class, which simulates the
+          "merging" just-in-time to process the method invocation. You can see an example of this in the implementation
+          of the `merge_find` method, which internally accesses both the real database and the overlaying database.
+
     Mongo "update" commands (as the "apply_updates" method) are simulated by first copying affected
     documents from a base collection to the overlay, and then applying the updates to the overlay,
     so that again, base collections are unmodified, and a "merge_find" call will produce a result
@@ -591,7 +627,33 @@ class OverlayDB(AbstractContextManager):
                 yield doc
 
 
-def validate_json(in_docs: dict, mdb: MongoDatabase):
+def validate_json(
+    in_docs: dict, mdb: MongoDatabase, check_inter_document_references: bool = False
+):
+    r"""
+    Checks whether the specified dictionary represents a valid instance of the `Database` class
+    defined in the NMDC Schema. Referential integrity checking is performed on an opt-in basis.
+
+    Example dictionary:
+    {
+        "biosample_set": [
+            {"id": "nmdc:bsm-00-000001", ...},
+            {"id": "nmdc:bsm-00-000002", ...}
+        ],
+        "study_set": [
+            {"id": "nmdc:sty-00-000001", ...},
+            {"id": "nmdc:sty-00-000002", ...}
+        ]
+    }
+
+    :param in_docs: The dictionary you want to validate
+    :param mdb: A reference to a MongoDB database
+    :param check_inter_document_references: Whether you want this function to check whether every document that
+                                            is referenced by any of the documents passed in would, indeed, exist
+                                            in the database, if the documents passed in were to be inserted into
+                                            the database. In other words, set this to `True` if you want this
+                                            function to perform referential integrity checks.
+    """
     validator = Draft7Validator(get_nmdc_jsonschema_dict())
     docs = deepcopy(in_docs)
     validation_errors = {}
@@ -599,6 +661,8 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
     known_coll_names = set(nmdc_database_collection_names())
     for coll_name, coll_docs in docs.items():
         if coll_name not in known_coll_names:
+            # FIXME: Document what `@type` is (conceptually; e.g., why this function accepts it as a collection name).
+            #        See: https://github.com/microbiomedata/nmdc-runtime/discussions/858
             if coll_name == "@type" and coll_docs in ("Database", "nmdc:Database"):
                 continue
             else:
@@ -630,6 +694,84 @@ def validate_json(in_docs: dict, mdb: MongoDatabase):
             NMDCDatabase(**in_docs)
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
+
+        # Third pass (if enabled): Check inter-document references.
+        if check_inter_document_references is True:
+            # Prepare to use `refscan`.
+            #
+            # Note: We check the inter-document references in two stages, which are:
+            #       1. For each document in the JSON payload, check whether each document it references already exists
+            #          (in the collections the schema says it can exist in) in the database. We use the
+            #          `refscan` package to do this, which returns violation details we'll use in the second stage.
+            #       2. For each violation found in the first stage (i.e. each reference to a not-found document), we
+            #          check whether that document exists (in the collections the schema says it can exist in) in the
+            #          JSON payload. If it does, then we "waive" (i.e. discard) that violation.
+            #       The violations that remain after those two stages are the ones we return to the caller.
+            #
+            # Note: The reason we do not insert documents into an `OverlayDB` and scan _that_, is that the `OverlayDB`
+            #       does not provide a means to perform arbitrary queries against its virtual "merged" database. It
+            #       is not a drop-in replacement for a pymongo's `Database` class, which is the only thing that
+            #       `refscan`'s `Finder` class accepts.
+            #
+            finder = Finder(database=mdb)
+            references = get_allowed_references()
+            reference_field_names_by_source_class_name = (
+                references.get_reference_field_names_by_source_class_name()
+            )
+
+            # Iterate over the collections in the JSON payload.
+            for source_collection_name, documents in in_docs.items():
+                for document in documents:
+                    # Add an `_id` field to the document, since `refscan` requires the document to have one.
+                    source_document = dict(document, _id=None)
+                    violations = scan_outgoing_references(
+                        document=source_document,
+                        schema_view=nmdc_schema_view(),
+                        reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
+                        references=references,
+                        finder=finder,
+                        collection_names=nmdc_database_collection_names(),
+                        source_collection_name=source_collection_name,
+                        user_wants_to_locate_misplaced_documents=False,
+                    )
+
+                    # For each violation, check whether the misplaced document is in the JSON payload, itself.
+                    for violation in violations:
+                        can_waive_violation = False
+                        # Determine which collections can contain the referenced document, based upon
+                        # the schema class of which this source document is an instance.
+                        target_collection_names = (
+                            references.get_target_collection_names(
+                                source_class_name=violation.source_class_name,
+                                source_field_name=violation.source_field_name,
+                            )
+                        )
+                        # Check whether the referenced document exists in any of those collections in the JSON payload.
+                        for json_coll_name, json_coll_docs in in_docs.items():
+                            if json_coll_name in target_collection_names:
+                                for json_coll_doc in json_coll_docs:
+                                    if json_coll_doc["id"] == violation.target_id:
+                                        can_waive_violation = True
+                                        break  # stop checking
+                            if can_waive_violation:
+                                break  # stop checking
+                        if not can_waive_violation:
+                            violation_as_str = (
+                                f"Document '{violation.source_document_id}' "
+                                f"in collection '{violation.source_collection_name}' "
+                                f"has a field '{violation.source_field_name}' that "
+                                f"references a document having id "
+                                f"'{violation.target_id}', but the latter document "
+                                f"does not exist in any of the collections the "
+                                f"NMDC Schema says it can exist in."
+                            )
+                            validation_errors[source_collection_name].append(
+                                violation_as_str
+                            )
+
+            # If any collection's error list is not empty, return an error response.
+            if any(len(v) > 0 for v in validation_errors.values()):
+                return {"result": "errors", "detail": validation_errors}
 
         return {"result": "All Okay!"}
     else:

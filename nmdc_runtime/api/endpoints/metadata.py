@@ -168,13 +168,16 @@ async def get_stored_metadata_object(
 
 @router.post("/metadata/json:validate", name="Validate JSON")
 async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
-    """
-
+    r"""
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
+    This API endpoint validates the JSON payload in two steps. The first step is to check the format of each document
+    (e.g., the presence, name, and value of each field). If it encounters any violations during that step, it will not
+    proceed to the second step. The second step is to check whether all documents referenced by the document exist,
+    whether in the database or the same JSON payload. We call the second step a "referential integrity check."
     """
 
-    return validate_json(docs, mdb)
+    return validate_json(docs, mdb, check_inter_document_references=True)
 
 
 @router.post("/metadata/json:submit", name="Submit JSON")

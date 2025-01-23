@@ -13,6 +13,7 @@ nav:
     - tutorials/metadata-in.md
     - tutorials/translators.md
     - tutorials/exporters.md
+    - nb/api_access_via_python.ipynb
   - How-to guides:
     - howto-guides/author-changesheets.md
     - howto-guides/create-triggers.md
