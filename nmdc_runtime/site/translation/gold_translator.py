@@ -46,8 +46,10 @@ class GoldStudyTranslator(Translator):
         # biosamples on their `projects` field
         valid_project_ids = {
             project.get("projectGoldId")
-            for biosample in self.biosamples
-            for project in biosample.get("projects", [])
+            for project in projects
+            if project.get("sequencingStrategy") in SEQUENCING_STRATEGIES
+            and project.get("projectStatus")
+            in ("Permanent Draft", "Complete and Published")
         }
         # Filter projects to only those with `projectGoldId` in valid_project_ids
         self.projects = [
