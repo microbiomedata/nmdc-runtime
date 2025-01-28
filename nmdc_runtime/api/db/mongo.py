@@ -1,30 +1,19 @@
 import gzip
-import json
 import os
-from collections import defaultdict
-from contextlib import AbstractContextManager
 from functools import lru_cache
-from typing import Set, Dict, Any, Iterable
-from uuid import uuid4
+from typing import Set
 
 import bson
-from linkml_runtime import SchemaView
-from nmdc_schema.get_nmdc_view import ViewGetter
-from nmdc_schema.nmdc_data import get_nmdc_schema_definition
-from pymongo.errors import OperationFailure, AutoReconnect
+from pymongo.errors import AutoReconnect
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pydantic import BaseModel, conint
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
-from toolz import concat, merge, unique, dissoc
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.util import (
-    get_nmdc_jsonschema_dict,
-    schema_collection_names_with_id_field,
     nmdc_schema_view,
     collection_name_to_class_names,
 )
-from pymongo import MongoClient, ReplaceOne
+from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 
 
