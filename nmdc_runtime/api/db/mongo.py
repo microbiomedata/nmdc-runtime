@@ -39,13 +39,25 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
 
 
 @lru_cache
-def get_mongo_db() -> MongoDatabase:
-    _client = MongoClient(
+def get_mongo_client() -> MongoClient:
+    r"""
+    Returns a `MongoClient` instance configured to access the MongoDB server specified via environment variables.
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html#pymongo.mongo_client.MongoClient
+    """
+    return MongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
     )
+
+
+@lru_cache
+def get_mongo_db() -> MongoDatabase:
+    r"""
+    TODO: Document this function.
+    """
+    _client = get_mongo_client()
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
     return mdb
@@ -95,6 +107,9 @@ def get_collection_names_from_schema() -> list[str]:
 
 @lru_cache
 def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
+    r"""
+    TODO: Document this function.
+    """
     return get_nonempty_nmdc_schema_collection_names(mdb) - {
         "biosample_set",
         "study_set",
