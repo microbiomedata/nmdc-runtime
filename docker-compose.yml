@@ -105,8 +105,8 @@ services:
     #
     healthcheck:
       test: /bin/sh /ensure_replica_set_is_initialized.sh
-      start_period: 10s
-      start_interval: 1s
+      start_period: 1m
+      start_interval: 5s
       interval: 10m
 
 volumes:

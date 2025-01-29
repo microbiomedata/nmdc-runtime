@@ -19,8 +19,6 @@
 
 echo '
   try {
-    // Note: If the replica set is not initiated yet, the invoked function will
-    //       throw an error, which will be caught below.
     rs.status();
   } catch (e) {
     rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "localhost" }] });
