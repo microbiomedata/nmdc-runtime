@@ -1,11 +1,12 @@
 from uuid import uuid4
 
 import pytest
-from pymongo.collection import Collection
-from pymongo.errors import BulkWriteError, DuplicateKeyError
 from toolz import dissoc
 
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_mongo_client,
+)
 from nmdc_runtime.util import (
     all_docs_have_unique_id,
     OverlayDB,
@@ -15,6 +16,12 @@ from nmdc_runtime.util import (
 
 def _new_collection(mdb):
     return mdb.create_collection(f"test-{uuid4()}")
+
+
+@pytest.fixture
+def mongo_client():
+    r"""Yields a `MongoClient` instance configured to access the MongoDB server specified via environment variables."""
+    yield get_mongo_client()
 
 
 @pytest.fixture
@@ -123,3 +130,47 @@ def test_overlaydb_replace_or_insert_many(test_db):
     with OverlayDB(test_db) as odb:
         odb.replace_or_insert_many(coll.name, [{"id": n} for n in range(20)])
         assert len(list(odb.merge_find(coll.name, {}))) == 20
+
+
+def test_mongo_client_supports_transactions(mongo_client):
+    r"""
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/client_session.html#transactions
+    """
+
+    # Create a test database containing an empty collection.
+    db_name = f"test-{uuid4()}"
+    collection_name = "thing_set"
+    db = mongo_client.get_database(db_name)
+    collection = db.create_collection(collection_name)
+    assert len(db.list_collection_names()) == 1
+
+    # Insert a document into that collection.
+    collection.insert_one({"x": 1})
+    assert collection.count_documents({}) == 1
+    assert collection.count_documents({"x": 1}) == 1  # the original document
+
+    # Within a transaction, modify that document, examine the tentative database, then abort the transaction.
+    with mongo_client.start_session() as session:
+        with session.start_transaction():
+            # Modify the document.
+            collection.update_one({"x": 1}, {"$set": {"x": 2}}, session=session)
+
+            # Examine the tentative database.
+            assert collection.count_documents({}, session=session) == 1
+            assert collection.count_documents({"x": 1}, session=session) == 0  # no original document
+            assert collection.count_documents({"x": 2}, session=session) == 1  # the modified document
+
+            # Abort the transaction.
+            #
+            # Note: If an exception had been raised within the pending transaction,
+            #       PyMongo would have invoked this function automatically.
+            #
+            session.abort_transaction()
+
+        # Confirm the modification to the original document was discarded.
+        assert collection.count_documents({}) == 1
+        assert collection.count_documents({"x": 1}) == 1  # the original document
+        assert collection.count_documents({"x": 2}) == 0  # no modified document
+
+    # Clean up.
+    mongo_client.drop_database(db_name)
