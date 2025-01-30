@@ -137,7 +137,7 @@ endpoint allows you to get a filtered list of documents from one of the NMDC Sch
 The `collection_name` must be one defined for a
 [nmdc:Database](https://microbiomedata.github.io/nmdc-schema/Database/), in the form expected by the
 JSON Schema,
-[nmdc.schema.json](https://github.com/microbiomedata/nmdc-schema/blob/69fd1ee91afac1a943b2cc9bfbfdecd0e2cdd089/jsonschema/nmdc.schema.json#L987).
+[nmdc_materialized_patterns.schema.json](https://github.com/microbiomedata/nmdc-schema/blob/1b42cef7e3a47930d25bde35b4bca0aa4391b283/nmdc_schema/nmdc_materialized_patterns.schema.json#L6699).
 This typically means that any spaces in the name should be entered as underscores (`_`) instead.
 
 The `filter`, if provided, is a JSON document in the form of the
