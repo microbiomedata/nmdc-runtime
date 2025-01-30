@@ -11,6 +11,10 @@ import json
 
 
 def validate_json(data_path, schema_path, log_file):
+    r"""
+    TODO: Document this function.
+    TODO: Add type hints for this function's parameters and its return value.
+    """
 
     with open(data_path, "r") as json_file:  # load data
         data = json.load(json_file)
@@ -32,9 +36,13 @@ def validate_json(data_path, schema_path, log_file):
 
 def test_gold_study_json(
     data_path="output/nmdc_etl/gold_study.json",
-    schema_path="../../../schema/nmdc.schema.json",
+    schema_path="/path/to/nmdc_materialized_patterns.schema.json",
     log_file="study_error.log",
 ):
+    r"""
+    TODO: Document this function.
+    TODO: Add type hints for this function's parameters and its return value.
+    """
     valid = validate_json(data_path, schema_path, log_file)
 
     assert valid
