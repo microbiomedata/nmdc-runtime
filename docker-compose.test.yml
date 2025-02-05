@@ -67,10 +67,25 @@ services:
       - "8000:8000"
     env_file:
       - .env.test
+    # Wait until the MongoDB replica set has been set up by the "init container"
+    # before starting this FastAPI container.
     depends_on:
-      - mongo
+      mongo-init:
+        condition: service_completed_successfully
     volumes:
       - .:/code
+
+  # This is an "init container," which sets up a MongoDB replica set on the `mongo` container, then shuts off.
+  mongo-init:
+    image: mongo:7.0.15
+    container_name: mongo-init
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh:ro
+      - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
+    depends_on:
+      mongo:
+        condition: service_started
+    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
 
   mongo:
     image: mongo:7.0.15
@@ -82,7 +97,6 @@ services:
       - ~/nmdcdb-mongodump:/nmdc_dump:ro
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
       - ./mongoKeyFile:/keyFile:ro
-      - .docker/mongo/ensure_replica_set_is_initialized.sh:/ensure_replica_set_is_initialized.sh:ro
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
@@ -94,20 +108,6 @@ services:
     #       replica set mode and (b) running MongoDB with authentication enabled.
     #
     command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile"]
-
-    # Implement a healthcheck that initializes the replica set if it hasn't already been initialized.
-    #
-    # Note: One of our team members got the idea for repurposing Docker Compose's `healthcheck` feature
-    #       for running an arbitrary script some time after the container has started up, from this article:
-    #       https://medium.com/workleap/the-only-local-mongodb-replica-set-with-docker-compose-guide-youll-ever-need-2f0b74dd8384
-    #
-    # Reference: https://docs.docker.com/reference/compose-file/services/#healthcheck
-    #
-    healthcheck:
-      test: /bin/sh /ensure_replica_set_is_initialized.sh
-      start_period: 1m
-      start_interval: 5s
-      interval: 10m
 
   test:
     profiles:
