@@ -31,7 +31,6 @@ db.updateRole("nmdc_scheduler", {
 
 db.updateRole("nmdc_aggregator", {
     privileges: [
-        { resource: { db: "nmdc", collection: "metap_gene_function_aggregation" }, actions: ["find", "insert", "update", "remove"] },
         { resource: { db: "nmdc", collection: "functional_annotation_agg" }, actions: ["find", "insert", "update", "remove"] },
     ],
     roles: [
