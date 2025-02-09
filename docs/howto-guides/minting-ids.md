@@ -72,13 +72,13 @@ Here's how you can mint an ID:
 3. Mint an ID
    1. Expand the `POST /pids/mint` API endpoint section.
    2. Click the "Try it out" button on the right.
-   3. In the "Request body" section, within the `"schema_class": { ... }` object, replace "`nmdc:Biosample`" with the `class_uri` of the [schema class](https://microbiomedata.github.io/nmdc-schema/#classes) you want to mint an ID for. For example (to mint the IDs of ten studies):
+   3. In the "Request body" section, within the `"schema_class": { ... }` object, replace "`nmdc:Biosample`" with the `class_uri` of the [schema class](https://microbiomedata.github.io/nmdc-schema/#classes) you want to mint an ID for. For example (to mint IDs for two studies):
       ```json
       {
         "schema_class": {
           "id": "nmdc:Study"
         },
-        "how_many": 10
+        "how_many": 2
       }
       ```
    4. Click the "Execute" button.
