@@ -26,8 +26,8 @@ Here's how you can obtain site client credentials:
    2. Click the "Try it out" button on the right.
    3. Click the "Execute" button.
    4. Check whether the "Response body" value has any items in its `site_admin` list.
-      1. If it does, your user account is already an admin of a site. In this case, **skip step 4**, which is about creating a site—and go straight to step 5, which is about generating site client credentials.
-      2. If it doesn't, your user account is not already an admin of a site. In this case, **continue to step 4 to create a site**.
+      1. If it does, your user account is already an admin of a site. In this case, **skip top-level step 4**, which is about creating a site—and go straight to top-level step 5, which is about generating site client credentials.
+      2. If it doesn't, your user account is not already an admin of a site. In this case, **continue to top-level step 4 to create a site**.
 4. **Create a site**.
    1. Expand the `POST /sites` API endpoint section.
    2. Click the "Try it out" button on the right.
