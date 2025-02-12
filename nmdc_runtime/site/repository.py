@@ -829,7 +829,7 @@ def biosample_submission_ingest():
                         "config": {
                             "surface_water_data_product": {
                                 "product_id": "DP1.20281.001",
-                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent, mms_swRawDataFiles",
                             }
                         }
                     },
@@ -856,7 +856,7 @@ def biosample_submission_ingest():
                         "config": {
                             "surface_water_data_product": {
                                 "product_id": "DP1.20281.001",
-                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent, mms_swRawDataFiles",
                             }
                         }
                     },
