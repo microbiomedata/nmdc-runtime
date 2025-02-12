@@ -2,6 +2,7 @@ from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
+    generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
     nmdc_schema_object_to_dict,
@@ -58,8 +59,8 @@ from nmdc_runtime.site.ops import (
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
     get_database_updater_inputs,
-    nmdc_study_id_filename,
-    missing_data_generation_repair,
+    post_submission_portal_biosample_ingest_record_stitching_filename,
+    generate_data_generation_set_post_biosample_ingest,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -473,13 +474,33 @@ def nmdc_study_to_ncbi_submission_export():
 
 
 @graph
-def fill_missing_data_generation_data_object_records():
+def generate_data_generation_set_for_biosamples_in_nmdc_study():
     (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
     gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
 
-    database = missing_data_generation_repair(study_id, gold_nmdc_instrument_map_df)
+    database = generate_data_generation_set_post_biosample_ingest(
+        study_id, gold_nmdc_instrument_map_df
+    )
 
     database_dict = nmdc_schema_object_to_dict(database)
-    filename = nmdc_study_id_filename(study_id)
+    filename = post_submission_portal_biosample_ingest_record_stitching_filename(
+        study_id
+    )
+    outputs = export_json_to_drs(database_dict, filename)
+    add_output_run_event(outputs)
+
+
+@graph
+def generate_biosample_set_from_samples_in_gold():
+    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
+
+    database = generate_biosample_set_for_nmdc_study_from_gold(
+        study_id, gold_nmdc_instrument_map_df
+    )
+    database_dict = nmdc_schema_object_to_dict(database)
+    filename = post_submission_portal_biosample_ingest_record_stitching_filename(
+        study_id
+    )
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)

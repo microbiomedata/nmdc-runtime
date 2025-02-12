@@ -13,7 +13,7 @@ load_from:
       attribute: biosample_submission_ingest
   - python_package:
       package_name: nmdc_runtime.site.repository
-      attribute: database_record_repair
+      attribute: database_records_stitching
 #  - python_package:
 #      package_name: nmdc_runtime.site.repository
 #      attribute: validation

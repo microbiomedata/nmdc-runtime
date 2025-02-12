@@ -12,6 +12,29 @@ from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 SEQUENCING_STRATEGIES = {"Metagenome", "Metatranscriptome"}
 
 
+def _is_valid_project(project: dict) -> bool:
+    """A project is considered valid if:
+    1. `sequencingStrategy` is in {"Metagenome", "Metatranscriptome"}
+    2. if `sequencingCenters` == 'DOE Joint Genome Institute (JGI)' then
+        `projectStatus` must be in ("Permanent Draft", "Complete and Published")
+    3. otherwise, no `projectStatus` filter is applied
+
+    :param project: GOLD project object (structurally similar to response
+                    from `/projects` endpoint)
+    :return: True if the project is valid, False otherwise
+    """
+    if project.get("sequencingStrategy") not in SEQUENCING_STRATEGIES:
+        return False
+
+    if project.get("sequencingCenters") == "DOE Joint Genome Institute (JGI)":
+        return project.get("projectStatus") in (
+            "Permanent Draft",
+            "Complete and Published",
+        )
+
+    return True
+
+
 class GoldStudyTranslator(Translator):
     def __init__(
         self,
@@ -36,18 +59,15 @@ class GoldStudyTranslator(Translator):
             biosample
             for biosample in biosamples
             if any(
-                project.get("sequencingStrategy") in SEQUENCING_STRATEGIES
-                and project.get("projectStatus")
-                in ("Permanent Draft", "Complete and Published")
-                for project in biosample.get("projects", [])
+                _is_valid_project(project) for project in biosample.get("projects", [])
             )
         ]
         # Fetch the valid projectGoldIds that are associated with filtered
         # biosamples on their `projects` field
         valid_project_ids = {
             project.get("projectGoldId")
-            for biosample in self.biosamples
-            for project in biosample.get("projects", [])
+            for project in projects
+            if _is_valid_project(project)
         }
         # Filter projects to only those with `projectGoldId` in valid_project_ids
         self.projects = [
