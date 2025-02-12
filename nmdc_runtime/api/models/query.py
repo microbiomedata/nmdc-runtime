@@ -106,6 +106,14 @@ class CommandResponseCursor(BaseModel):
     )
     id: Optional[str] = None
 
+    @field_validator('id', mode='before')
+    @classmethod
+    def coerce_int_to_str(cls, value: Any) -> Any:
+        if isinstance(value, int):
+            return str(value)
+        else:
+            return value
+
 
 class InitialCommandResponseCursor(CommandResponseCursor):
     firstBatch: List[Document]
