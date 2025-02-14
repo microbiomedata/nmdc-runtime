@@ -1,4 +1,5 @@
 from io import BytesIO, StringIO
+from nmdc_runtime.api.endpoints.util import strip_oid
 from nmdc_runtime.minter.config import typecodes
 from lxml import etree
 
@@ -45,7 +46,9 @@ def get_instruments(instrument_set_collection):
         raise RuntimeError(f"An error occurred while fetching instrument data: {e}")
 
 
-def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
+def fetch_data_objects_from_biosamples(
+    all_docs_collection, data_object_set, biosamples_list
+):
     biosample_data_objects = []
 
     for biosample in biosamples_list:
@@ -67,11 +70,9 @@ def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
 
                 for output_id in has_output:
                     if get_classname_from_typecode(output_id) == "DataObject":
-                        data_object_doc = all_docs_collection.find_one(
-                            {"id": output_id}
-                        )
+                        data_object_doc = data_object_set.find_one({"id": output_id})
                         if data_object_doc:
-                            collected_data_objects.append(data_object_doc)
+                            collected_data_objects.append(strip_oid(data_object_doc))
                     else:
                         new_current_ids.append(output_id)
 
@@ -83,7 +84,9 @@ def fetch_data_objects_from_biosamples(all_docs_collection, biosamples_list):
     return biosample_data_objects
 
 
-def fetch_nucleotide_sequencing_from_biosamples(all_docs_collection, biosamples_list):
+def fetch_nucleotide_sequencing_from_biosamples(
+    all_docs_collection, data_generation_set, biosamples_list
+):
     biosample_data_objects = []
 
     for biosample in biosamples_list:
@@ -105,11 +108,13 @@ def fetch_nucleotide_sequencing_from_biosamples(all_docs_collection, biosamples_
 
                 for output_id in has_output:
                     if get_classname_from_typecode(output_id) == "DataObject":
-                        nucleotide_sequencing_doc = all_docs_collection.find_one(
+                        nucleotide_sequencing_doc = data_generation_set.find_one(
                             {"id": document["id"]}
                         )
                         if nucleotide_sequencing_doc:
-                            collected_data_objects.append(nucleotide_sequencing_doc)
+                            collected_data_objects.append(
+                                strip_oid(nucleotide_sequencing_doc)
+                            )
                     else:
                         new_current_ids.append(output_id)
 
@@ -121,7 +126,9 @@ def fetch_nucleotide_sequencing_from_biosamples(all_docs_collection, biosamples_
     return biosample_data_objects
 
 
-def fetch_library_preparation_from_biosamples(all_docs_collection, biosamples_list):
+def fetch_library_preparation_from_biosamples(
+    all_docs_collection, material_processing_set, biosamples_list
+):
     biosample_lib_prep = []
 
     for biosample in biosamples_list:
@@ -144,10 +151,10 @@ def fetch_library_preparation_from_biosamples(all_docs_collection, biosamples_li
                 "has_input": output_id,
                 "type": {"$in": ["LibraryPreparation"]},
             }
-            lib_prep_doc = all_docs_collection.find_one(lib_prep_query)
+            lib_prep_doc = material_processing_set.find_one(lib_prep_query)
 
             if lib_prep_doc:
-                biosample_lib_prep.append({biosample_id: lib_prep_doc})
+                biosample_lib_prep.append({biosample_id: strip_oid(lib_prep_doc)})
                 break  # Stop at the first document that meets the criteria
 
     return biosample_lib_prep
