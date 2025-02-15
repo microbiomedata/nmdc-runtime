@@ -33,7 +33,7 @@ ENV PYTHONFAULTHANDLER=1
 #
 # Note: Because these `pip install` commands would consistently time out for one of our developers while he would build
 #       this container image, we have overridden pip's default socket timeout (from 15 → 30 seconds) and retry count
-#       (from 5 → 10 times). With those overrides in place, these `pip install` commands run OK for that team member.
+#       (from 5 → 10 times). With those overrides in place, these `pip install` commands run OK for that developer.
 #
 #       References:
 #       - https://stackoverflow.com/a/59796952 (source of the workaround)
@@ -69,7 +69,7 @@ FROM base AS dagster
 # Copy repository contents into image.
 #
 # Note: This base path (i.e. "/opt/dagster/lib") is used in some hard-coded paths in `nmdc_runtime/site/ops.py`.
-#       That's why I did not use the interal path `/code` here, unlike the other images in this Dockerfile.
+#       That's why I did not use the path `/code` here, unlike the other images in this Dockerfile.
 #
 COPY . /opt/dagster/lib
 
@@ -117,4 +117,4 @@ RUN cd /code && \
 RUN chmod +x /code/wait-for-it.sh
 
 # Use `wait-for-it.sh` to run `pytest` as soon as the FastAPI server is accessible.
-ENTRYPOINT [ "/code/wait-for-it.sh", "fastapi:8000" , "--strict" , "--timeout=300" , "--" , "pytest", "--cov=nmdc_runtime"]
+ENTRYPOINT ["/code/wait-for-it.sh", "fastapi:8000", "--strict", "--timeout=300", "--", "pytest", "--cov=nmdc_runtime"]
