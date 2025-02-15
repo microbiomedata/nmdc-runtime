@@ -10,7 +10,6 @@ on:
       - '.github/workflows/build-and-release-to-spin.yml'
       - 'Makefile'
       - '**/Dockerfile'
-      - '**.Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
 

@@ -17,7 +17,6 @@ dist
 /docker-compose.yml
 /docker-compose.test.yml
 /nmdc_runtime/Dockerfile
-/nmdc_runtime/*.Dockerfile
 
 # Omit any local Python virtual environment from the image build context. The
 # image build process includes its own package download/installation step.
