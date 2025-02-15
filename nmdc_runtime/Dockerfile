@@ -21,7 +21,10 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     build-essential \
     git \
     make \
-    zip && \
+    zip \
+    curl \
+    wget \
+    gnupg && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 
