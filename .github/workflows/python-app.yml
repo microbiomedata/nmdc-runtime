@@ -18,7 +18,7 @@ on:
     paths:
       - '.github/workflows/python-app.yml'
       - 'Makefile'
-      - '**.Dockerfile'
+      - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
       # Every file in the `data` directory or in any of its subdirectories:
@@ -27,7 +27,7 @@ on:
     paths:
       - '.github/workflows/python-app.yml'
       - 'Makefile'
-      - '**.Dockerfile'
+      - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
       - 'metadata-translation/notebooks/data/**'
