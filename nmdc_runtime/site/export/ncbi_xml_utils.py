@@ -1,6 +1,7 @@
 from io import BytesIO, StringIO
 from nmdc_runtime.api.endpoints.util import strip_oid
 from nmdc_runtime.minter.config import typecodes
+from nmdc_schema.get_nmdc_view import ViewGetter
 from lxml import etree
 
 import csv
@@ -51,30 +52,36 @@ def fetch_data_objects_from_biosamples(
 ):
     biosample_data_objects = []
 
+    def collect_data_objects(doc_ids, collected_objects, unique_ids):
+        for doc_id in doc_ids:
+            if (
+                get_classname_from_typecode(doc_id) == "DataObject"
+                and doc_id not in unique_ids
+            ):
+                data_obj = data_object_set.find_one({"id": doc_id})
+                if data_obj:
+                    collected_objects.append(strip_oid(data_obj))
+                    unique_ids.add(doc_id)
+
+    biosample_data_objects = []
+
     for biosample in biosamples_list:
         current_ids = [biosample["id"]]
         collected_data_objects = []
+        unique_ids = set()
 
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
-                query = {"has_input": current_id}
-                document = all_docs_collection.find_one(query)
+                for doc in all_docs_collection.find({"has_input": current_id}):
+                    has_output = doc.get("has_output", [])
 
-                if not document:
-                    continue
-
-                has_output = document.get("has_output")
-                if not has_output:
-                    continue
-
-                for output_id in has_output:
-                    if get_classname_from_typecode(output_id) == "DataObject":
-                        data_object_doc = data_object_set.find_one({"id": output_id})
-                        if data_object_doc:
-                            collected_data_objects.append(strip_oid(data_object_doc))
-                    else:
-                        new_current_ids.append(output_id)
+                    collect_data_objects(has_output, collected_data_objects, unique_ids)
+                    new_current_ids.extend(
+                        op
+                        for op in has_output
+                        if get_classname_from_typecode(op) != "DataObject"
+                    )
 
             current_ids = new_current_ids
 
