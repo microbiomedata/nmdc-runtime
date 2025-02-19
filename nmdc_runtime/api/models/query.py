@@ -15,7 +15,7 @@ from pydantic import (
     WrapSerializer,
 )
 from pymongo.database import Database as MongoDatabase
-from toolz import assoc
+from toolz import assoc, assoc_in
 from typing_extensions import Annotated
 
 from nmdc_runtime.api.core.idgen import generate_one_id
@@ -89,14 +89,12 @@ class AggregateCommand(CommandBase):
 
 
 class GetMoreCommand(CommandBase):
-    # Note: No `collection` field. See `CursorContinuation` for inter-API-request "sessions" are modeled.
+    # Note: No `collection` field. See `QueryContinuation` for inter-API-request "sessions" are modeled.
     getMore: str  # Note: runtime uses a `str` id, not an `int` like mongo's native session cursors.
     batchSize: Optional[PositiveInt] = None
 
 
 class CommandResponse(BaseModel):
-    query_id: str
-    ran_at: datetime.datetime
     ok: OneOrZero
 
 
@@ -117,7 +115,8 @@ class CountCommandResponse(CommandResponse):
 
 class CommandResponseCursor(BaseModel):
     # Note: No `ns` field, `id` is a `str`, and `partialResultsReturned` aliased to `queriedShardsUnavailable` to be
-    # less confusing to Runtime API clients. See `CursorContinuation` for inter-API-request "sessions" are modeled.
+    # less confusing to Runtime API clients. See `QueryContinuation` for inter-API-request "sessions" are modeled.
+    batch: List[Document]
     partialResultsReturned: Optional[bool] = Field(
         None, alias="queriedShardsUnavailable"
     )
@@ -132,33 +131,19 @@ class CommandResponseCursor(BaseModel):
             return value
 
 
-class InitialCommandResponseCursor(CommandResponseCursor):
-    firstBatch: List[Document]
-
-
-class GetMoreCommandResponseCursor(CommandResponseCursor):
-    nextBatch: List[Document]
-
-
-class GetMoreCommandResponse(CommandResponse):
-    cursor: GetMoreCommandResponseCursor
-
-
-class FindOrAggregateCommandResponse(CommandResponse):
-    cursor: InitialCommandResponseCursor
+class CursorYieldingCommandResponse(CommandResponse):
+    cursor: CommandResponseCursor
 
     @classmethod
-    def cursor_batch__ids_only(cls, cmd_response) -> "FindOrAggregateCommandResponse":
-        """Create a new response object that retains only the `_id` for each cursor firstBatch|nextBatch document."""
-        doc: dict = cmd_response.model_dump(exclude_unset=True)
-        # FIXME
-        batch_key = "firstBatch" if "firstBatch" in doc["cursor"] else "nextBatch"
-        doc["cursor"]["firstBatch"] = [
-            pick(["_id"], batch_doc) for batch_doc in doc["cursor"][batch_key]
-        ]
-        if batch_key == "nextBatch":
-            del doc["cursor"]["nextBatch"]
-        return cls(**doc)
+    def slimmed(cls, cmd_response) -> "CursorYieldingCommandResponse":
+        """Create a new response object that retains only the `_id` for each cursor batch document."""
+        dump: dict = cmd_response.model_dump(exclude_unset=True)
+        dump = assoc_in(
+            dump,
+            ["cursor", "batch"],
+            [pick(["_id"], batch_doc) for batch_doc in dump["cursor"]["batch"]],
+        )
+        return cls(**dump)
 
 
 class DeleteStatement(BaseModel):
@@ -206,57 +191,42 @@ class UpdateCommandResponse(CommandResponse):
     writeErrors: Optional[List[Document]] = None
 
 
-QueryCmd = Union[
-    CollStatsCommand,
-    CountCommand,
-    FindCommand,
+QueryCmd = Union[FindCommand, AggregateCommand]
+
+CursorYieldingCommand = Union[
+    QueryCmd,
     GetMoreCommand,
-    DeleteCommand,
-    UpdateCommand,
-    AggregateCommand,
 ]
 
-QueryResponseOptions = Union[
+
+Cmd = Union[
+    CursorYieldingCommand,
+    CollStatsCommand,
+    CountCommand,
+    DeleteCommand,
+    UpdateCommand,
+]
+
+CommandResponseOptions = Union[
+    CursorYieldingCommandResponse,
     CollStatsCommandResponse,
     CountCommandResponse,
-    FindOrAggregateCommandResponse,
-    GetMoreCommandResponse,
     DeleteCommandResponse,
     UpdateCommandResponse,
 ]
 
-CursorCommand = Union[
-    AggregateCommand,
-    FindCommand,
-    GetMoreCommand,
-]
-
-CursorResponse = Union[
-    FindOrAggregateCommandResponse,
-    GetMoreCommandResponse,
-]
-
 
 def command_response_for(type_):
+    if issubclass(type_, CursorYieldingCommand):
+        return CursorYieldingCommandResponse
+
     d = {
         CollStatsCommand: CollStatsCommandResponse,
         CountCommand: CountCommandResponse,
-        FindCommand: FindOrAggregateCommandResponse,
-        GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
         UpdateCommand: UpdateCommandResponse,
-        AggregateCommand: FindOrAggregateCommandResponse,
     }
     return d.get(type_)
 
 
 _mdb = get_mongo_db()
-
-
-class Query(BaseModel):
-    id: str
-    cmd: QueryCmd
-
-    @classmethod
-    def from_cmd(cls, cmd: QueryCmd) -> "Query":
-        return Query(cmd=cmd, id=generate_one_id(_mdb, "qy"))
