@@ -146,13 +146,15 @@ def get_classname_from_typecode(doc_id: str) -> str:
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
+    #
     # Customize the name that Swagger UI displays for the API endpoint.
     #
     # Note: By default, FastAPI derives the name of the API endpoint from the name of the decorated function. Here, we
     #       are using a custom name that matches the derived one, except that the custom one ends with `(experimental)`.
     #       This is to encourage users to read the API endpoint's description.
     #
-    name="Find Data Objects For Study (experimental)",
+    name="Find Data Objects For Study (delayed)",
+    #
     # Customize the description that Swagger UI displays for the API endpoint.
     #
     # Note: By default, FastAPI derives the description of the API endpoint from the docstring of the decorated
