@@ -1,8 +1,10 @@
 from io import BytesIO, StringIO
+from typing import Any, Dict, List, Union
+
 from nmdc_runtime.api.endpoints.util import strip_oid
 from nmdc_runtime.minter.config import typecodes
-from nmdc_schema.get_nmdc_view import ViewGetter
 from lxml import etree
+from pymongo.collection import Collection
 
 import csv
 import requests
@@ -48,7 +50,9 @@ def get_instruments(instrument_set_collection):
 
 
 def fetch_data_objects_from_biosamples(
-    all_docs_collection, data_object_set, biosamples_list
+    all_docs_collection: Collection,
+    data_object_set: Collection,
+    biosamples_list: List[Dict[str, Any]],
 ):
     biosample_data_objects = []
 
@@ -92,13 +96,15 @@ def fetch_data_objects_from_biosamples(
 
 
 def fetch_nucleotide_sequencing_from_biosamples(
-    all_docs_collection, data_generation_set, biosamples_list
+    all_docs_collection: Collection,
+    data_generation_set: Collection,
+    biosamples_list: List[Dict[str, Any]],
 ):
-    biosample_data_objects = []
+    biosample_ntseq_objects = []
 
     for biosample in biosamples_list:
         current_ids = [biosample["id"]]
-        collected_data_objects = []
+        collected_ntseq_objects = []
 
         while current_ids:
             new_current_ids = []
@@ -119,7 +125,7 @@ def fetch_nucleotide_sequencing_from_biosamples(
                             {"id": document["id"]}
                         )
                         if nucleotide_sequencing_doc:
-                            collected_data_objects.append(
+                            collected_ntseq_objects.append(
                                 strip_oid(nucleotide_sequencing_doc)
                             )
                     else:
@@ -127,14 +133,16 @@ def fetch_nucleotide_sequencing_from_biosamples(
 
             current_ids = new_current_ids
 
-        if collected_data_objects:
-            biosample_data_objects.append({biosample["id"]: collected_data_objects})
+        if collected_ntseq_objects:
+            biosample_ntseq_objects.append({biosample["id"]: collected_ntseq_objects})
 
-    return biosample_data_objects
+    return biosample_ntseq_objects
 
 
 def fetch_library_preparation_from_biosamples(
-    all_docs_collection, material_processing_set, biosamples_list
+    all_docs_collection: Collection,
+    material_processing_set: Collection,
+    biosamples_list: List[Dict[str, Any]],
 ):
     biosample_lib_prep = []
 
