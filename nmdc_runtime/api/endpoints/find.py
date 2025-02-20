@@ -146,11 +146,29 @@ def get_classname_from_typecode(doc_id: str) -> str:
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
-    # Note: We include a description here so that FastAPI does not use the function's docstring as the API endpoint's
-    #       description. The docstring currently contains non-user-facing information, such as mentioning the
-    #       implementation detail of using the `alldocs` collection under the hood, and mentioning function parameters
-    #       that are not API request parameters.
-    description="Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`.",
+    #
+    # Customize the name that Swagger UI displays for the API endpoint.
+    #
+    # Note: By default, FastAPI derives the name of the API endpoint from the name of the decorated function. Here, we
+    #       are using a custom name that matches the derived one, except that the custom one ends with `(delayed)`.
+    #
+    # Note: Each word in the name will appear capitalized on Swagger UI.
+    #
+    name="Find data objects for study (delayed)",
+    #
+    # Customize the description that Swagger UI displays for the API endpoint.
+    #
+    # Note: By default, FastAPI derives the description of the API endpoint from the docstring of the decorated
+    #       function. Here, we are using a custom description that was written for an audience of API consumers,
+    #       as opposed to the derived description that was written for an audience of `nmdc-runtime` developers.
+    #
+    description=(
+        "Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
+        "<br /><br />"  # newlines
+        "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
+        "with respect to the NMDC database. That's because the cache that underlies this API "
+        "endpoint gets refreshed to match the NMDC database once every 24 hours."
+    ),
 )
 def find_data_objects_for_study(
     study_id: Annotated[
