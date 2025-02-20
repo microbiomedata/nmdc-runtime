@@ -53,7 +53,17 @@ def fetch_data_objects_from_biosamples(
     all_docs_collection: Collection,
     data_object_set: Collection,
     biosamples_list: List[Dict[str, Any]],
-):
+) -> List[Dict[str, Dict[str, Any]]]:
+    """This method fetches the data objects that are "associated" (derived from/products of)
+    with their respective biosamples by iterating over the alldocs collection recursively.
+    The methods returns a dictionary with biosample ids as keys and the associated list of
+    data objects as values.
+
+    :param all_docs_collection: reference to the alldocs collection
+    :param data_object_set: reference to the data_object_set collection
+    :param biosamples_list: list of biosamples as JSON documents
+    :return: list of dictionaries with biosample ids as keys and associated data objects as values
+    """
     biosample_data_objects = []
 
     def collect_data_objects(doc_ids, collected_objects, unique_ids):
@@ -99,7 +109,16 @@ def fetch_nucleotide_sequencing_from_biosamples(
     all_docs_collection: Collection,
     data_generation_set: Collection,
     biosamples_list: List[Dict[str, Any]],
-):
+) -> List[Dict[str, Dict[str, Any]]]:
+    """This method fetches the nucleotide sequencing process records that create data objects
+    for biosamples by iterating over the alldocs collection recursively.
+
+    :param all_docs_collection: reference to the alldocs collection
+    :param data_generation_set: reference to the data_generation_set collection
+    :param biosamples_list: list of biosamples as JSON documents
+    :return: list of dictionaries with biosample ids as keys and associated nucleotide sequencing
+    process objects as values
+    """
     biosample_ntseq_objects = []
 
     for biosample in biosamples_list:
@@ -143,7 +162,17 @@ def fetch_library_preparation_from_biosamples(
     all_docs_collection: Collection,
     material_processing_set: Collection,
     biosamples_list: List[Dict[str, Any]],
-):
+) -> List[Dict[str, Dict[str, Any]]]:
+    """This method fetches the library preparation process records that create processed samples,
+    which are further fed/inputted into (by `has_input` slot) a nucleotide sequencing process
+    for biosamples by iterating over the alldocs collection recursively.
+
+    :param all_docs_collection: reference to the alldocs collection
+    :param material_processing_set: reference to the material_processing_set collection
+    :param biosamples_list: list of biosamples as JSON documents
+    :return: list of dictionaries with biosample ids as keys and associated library preparation process
+    objects as values
+    """
     biosample_lib_prep = []
 
     for biosample in biosamples_list:
