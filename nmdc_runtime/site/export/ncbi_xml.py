@@ -366,7 +366,7 @@ class NCBISubmissionXML:
                             )
                             # Currently, we are making the assumption that only one instrument
                             # is used to sequence a Biosample
-                            instrument_used: Union[str, List[str]] = ntseq.get(
+                            instrument_used: List[str] = ntseq.get(
                                 "instrument_used", []
                             )
                             if not instrument_used:
