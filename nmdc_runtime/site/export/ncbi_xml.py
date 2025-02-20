@@ -4,7 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from typing import Any
+from typing import Any, List, Union
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     get_instruments,
@@ -366,7 +366,9 @@ class NCBISubmissionXML:
                             )
                             # Currently, we are making the assumption that only one instrument
                             # is used to sequence a Biosample
-                            instrument_used = ntseq.get("instrument_used", "")
+                            instrument_used: Union[str, List[str]] = ntseq.get(
+                                "instrument_used", []
+                            )
                             if not instrument_used:
                                 instrument_id = None
                             else:
