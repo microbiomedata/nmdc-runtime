@@ -48,6 +48,9 @@ def check_can_update_and_delete(user: User):
         )
 
 
+# Note: We set `response_model_exclude_unset=True` so that all the properties of the `CommandResponseOptions` object
+#       that we don't explicitly assign values to while handling the HTTP request, are omitted from the HTTP response.
+#       Reference: https://fastapi.tiangolo.com/tutorial/response-model/#use-the-response_model_exclude_unset-parameter
 @router.post(
     "/queries:run",
     response_model=CommandResponseOptions,
