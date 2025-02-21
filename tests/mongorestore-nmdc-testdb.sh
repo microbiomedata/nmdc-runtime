@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Summary: This script restores a pre-determined MongoDB database dump into the MongoDB server at `localhost:27017`.
+
 # Example usage from repo root dir:
 # $ docker compose up mongo --force-recreate --detach
 # $ docker compose exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
