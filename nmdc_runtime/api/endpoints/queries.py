@@ -82,21 +82,25 @@ def run_query(
 
     {
       "delete": "biosample_set",
-      "deletes": [{"q": {"id": "NOT_A_REAL_ID"}, "limit": 1}]
+      "deletes": [{"q": {"id": "A_BIOSAMPLE_ID"}, "limit": 1}]
     }
 
     {
-        "update": "biosample_set",
-        "updates": [{"q": {"id": "YOUR_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
+      "update": "biosample_set",
+      "updates": [{"q": {"id": "A_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
     }
 
     {
-        "aggregate": "biosample_set",
-        "pipeline": [{"$sortByCount": "$associated_studies"}],
-        "cursor": {"batchSize": 25}
+      "aggregate": "biosample_set",
+      "pipeline": [{"$sortByCount": "$associated_studies"}],
+      "cursor": {"batchSize": 25}
     }
     ```
     """
+    # TODO: Add an example payload that includes the `getMore` command.
+
+    # If the command is one that requires the user to have specific permissions, check for those permissions now.
+    # Note: The permission-checking function will raise an exception if the user lacks those permissions.
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         check_can_update_and_delete(user)
     cmd_response = _run_mdb_cmd(cmd)
@@ -107,6 +111,10 @@ _mdb = get_mongo_db()
 
 
 def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
+    r"""
+    TODO: Document this function.
+    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~170 lines.
+    """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
 
