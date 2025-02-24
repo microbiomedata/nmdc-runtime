@@ -7,3 +7,23 @@ deployment
 .pytest_cache
 build
 dist
+
+# Omit the Docker configuration/specification files from the image build context,
+# so we can edit them without invalidating existing image layers.
+# Reference: https://docs.docker.com/build/concepts/context/#dockerignore-files
+/.dockerignore
+/.docker
+/.gitpod.Dockerfile
+/docker-compose.yml
+/docker-compose.test.yml
+/nmdc_runtime/Dockerfile
+
+# Omit any local Python virtual environment from the image build context. The
+# image build process includes its own package download/installation step.
+/venv
+/.venv
+
+# Omit residual files left behind by some tests.
+/neon.db
+/neon_api_cache.sqlite
+/neon_cache.sqlite
