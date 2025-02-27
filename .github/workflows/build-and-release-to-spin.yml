@@ -78,7 +78,10 @@ jobs:
         with:
           context: .
           push: ${{ env.IS_ORIGINAL_REPO }}
-          file: nmdc_runtime/${{ matrix.image }}.Dockerfile
+          file: nmdc_runtime/Dockerfile
+          # Note: Since our `Dockerfile` describes multiple stages, we use the `target` option to specify a stage.
+          #       Reference: https://github.com/marketplace/actions/build-and-push-docker-images#inputs
+          target: ${{ matrix.image }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
