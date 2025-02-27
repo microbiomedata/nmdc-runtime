@@ -90,6 +90,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: root
 
   test:
+    # Prevent Docker Compose from starting this service automatically.
+    # Reference: https://stackoverflow.com/a/65957695
     profiles:
       - donotstart
     build:
