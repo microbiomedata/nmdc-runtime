@@ -42,10 +42,16 @@ dev-reset-db:
 	docker compose \
 		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
 
+# Uses Docker Compose to build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
+#
+# Note: This does not build or spin up the `test` container, itself, since the `test` container's Docker Compose service
+#       has the "donotstart" profile specified for it in `docker-compose.test.yml`.
+#
 up-test:
 	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
+# Uses Docker Compose to build the container image for the `test` container (i.e. the test runner).
 test-build:
 	docker compose --file docker-compose.test.yml build test
 
@@ -53,8 +59,11 @@ test-dbinit:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
+# Uses Docker Compose to spin up the `test` container (i.e. the test runner), effectively running the tests.
+#
 # Tip: If you append a file path to this "recipe", pytest will run only the tests defined in that file.
 #      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
+#
 test-run:
 	docker compose --file docker-compose.test.yml run test
 
