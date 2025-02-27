@@ -32,7 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Reference: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONFAULTHANDLER
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python requirements into the image.
+# Install Python dependencies into the image.
 #
 # Note: Because these `pip install` commands would consistently time out for one of our developers while he would build
 #       this container image, we have overridden pip's default socket timeout (from 15 → 30 seconds) and retry count
@@ -49,12 +49,12 @@ RUN pip install \
     --no-cache-dir \
     -r /code/requirements/main.txt
 
+# Copy repository contents into image.
+COPY . /code
+
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
 # ────────────────────────────────────────────────────────────────────────────┘
-
-# Copy repository contents into image.
-COPY . /code
 
 # Install the project in editable mode.
 RUN cd /code && \
@@ -69,12 +69,12 @@ CMD ["uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0
 FROM base AS dagster
 # ────────────────────────────────────────────────────────────────────────────┘
 
-# Copy repository contents into image.
+# Move repository contents into the place Dagster expects.
 #
-# Note: This base path (i.e. "/opt/dagster/lib") is used in some hard-coded paths in `nmdc_runtime/site/ops.py`.
-#       That's why I did not use the path `/code` here, unlike the other images in this Dockerfile.
+# Note: This path (i.e. "/opt/dagster/lib/") is hard-coded in a few places in `nmdc_runtime/site/ops.py`.
 #
-COPY . /opt/dagster/lib
+RUN mkdir -p   /opt/dagster/lib/ && \
+    mv /code/* /opt/dagster/lib/
 
 # Install the project in editable mode.
 RUN cd /opt/dagster/lib && \
@@ -101,9 +101,6 @@ ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
-
-# Copy repository contents into image.
-COPY . /code
 
 # Install development-only Python dependencies into the image.
 RUN pip install \
