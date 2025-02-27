@@ -32,7 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Reference: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONFAULTHANDLER
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python requirements into the image.
+# Install Python dependencies into the image.
 #
 # Note: Because these `pip install` commands would consistently time out for one of our developers while he would build
 #       this container image, we have overridden pip's default socket timeout (from 15 → 30 seconds) and retry count
@@ -71,8 +71,8 @@ FROM base AS dagster
 
 # Copy repository contents into image.
 #
-# Note: This base path (i.e. "/opt/dagster/lib") is used in some hard-coded paths in `nmdc_runtime/site/ops.py`.
-#       That's why I did not use the path `/code` here, unlike the other images in this Dockerfile.
+# Note: This path (i.e. "/opt/dagster/lib/") is hard-coded in a few places in `nmdc_runtime/site/ops.py`. That's why
+#       this image does not store the repository contents in `/code`, unlike the other images in this Dockerfile.
 #
 COPY . /opt/dagster/lib
 
