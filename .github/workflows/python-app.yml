@@ -51,7 +51,7 @@ jobs:
 #      run: |
 #        pip install flake8
 #        make lint
-    - name: Test with pytest
-      run: |
-        make up-test
-        make test
+    - name: Build and spin up test stack
+      run: make up-test
+    - name: Run tests
+      run: make test-run
