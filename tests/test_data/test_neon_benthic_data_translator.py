@@ -127,6 +127,48 @@ benthic_data = {
             }
         ]
     ),
+    "mms_benthicRawDataFiles": pd.DataFrame(
+        [
+            {
+                "uid": "74cfedfb-b369-43f2-81e8-035dadaabd34",
+                "domainID": "D13",
+                "siteID": "WLOU",
+                "namedLocation": "WLOU.AOS.reach",
+                "laboratoryName": "Battelle Applied Genomics",
+                "sequencingFacilityID": "Battelle Memorial Institute",
+                "setDate": "2018-07-26T15:51Z",
+                "collectDate": "2018-07-26T15:51Z",
+                "sequencerRunID": "HWVWKBGX7",
+                "dnaSampleID": "WLOU.20180726.AMC.EPILITHON.1-DNA1",
+                "dnaSampleCode": "LV7005092900",
+                "internalLabID": "BMI_AquaticPlate6WellA5",
+                "rawDataFileName": "BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz",
+                "rawDataFileDescription": "R2 metagenomic archive of fastq files",
+                "rawDataFilePath": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R2/BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz",
+                "remarks": "",
+                "dataQF": "",
+            },
+            {
+                "uid": "6dfc7444-3878-4db1-85da-b4430f52a023",
+                "domainID": "D13",
+                "siteID": "WLOU",
+                "namedLocation": "WLOU.AOS.reach",
+                "laboratoryName": "Battelle Applied Genomics",
+                "sequencingFacilityID": "Battelle Memorial Institute",
+                "setDate": "2018-07-26T15:51Z",
+                "collectDate": "2018-07-26T15:51Z",
+                "sequencerRunID": "HWVWKBGX7",
+                "dnaSampleID": "WLOU.20180726.AMC.EPILITHON.1-DNA1",
+                "dnaSampleCode": "LV7005092900",
+                "internalLabID": "BMI_AquaticPlate6WellA5",
+                "rawDataFileName": "BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz",
+                "rawDataFileDescription": "R1 metagenomic archive of fastq files",
+                "rawDataFilePath": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R1/BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz",
+                "remarks": "",
+                "dataQF": "",
+            }
+        ]
+    )
 }
 
 
@@ -176,6 +218,8 @@ class TestNeonBenthicDataTranslator:
         )
 
     def test_get_database(self, translator):
+        translator.samp_procsm_dict = {"WLOU.20180726.AMC.EPILITHON.1": "nmdc:procsm-11-x1y2z3"}
+        
         database = translator.get_database()
 
         # verify lengths of all collections in database
