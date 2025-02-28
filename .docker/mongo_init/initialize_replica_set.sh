@@ -24,6 +24,8 @@
 # 3. https://www.warp.dev/terminus/docker-compose-health-check
 ###############################################################################
 
+echo 'Setting up replica set.'
+
 echo '
   try {
     rs.status();
@@ -35,3 +37,8 @@ echo '
   --port "${2}" \
   --username "${3}" \
   --password "${4}"
+
+echo 'Finished setting up replica set.'
+
+# Exit with a status code of 0.
+exit 0
