@@ -18,7 +18,7 @@ on:
     paths:
       - '.github/workflows/python-app.yml'
       - 'Makefile'
-      - '**.Dockerfile'
+      - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
       # Every file in the `data` directory or in any of its subdirectories:
@@ -27,7 +27,7 @@ on:
     paths:
       - '.github/workflows/python-app.yml'
       - 'Makefile'
-      - '**.Dockerfile'
+      - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
       - 'metadata-translation/notebooks/data/**'
@@ -51,7 +51,9 @@ jobs:
 #      run: |
 #        pip install flake8
 #        make lint
-    - name: Test with pytest
-      run: |
-        make up-test
-        make test
+    - name: Build and run containers upon which test runner depends
+      run: make up-test
+    - name: Build test runner container image
+      run: make test-build
+    - name: Run tests
+      run: make test-run
