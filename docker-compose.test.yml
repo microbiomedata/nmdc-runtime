@@ -5,6 +5,9 @@ services:
   # Note: This service uses the same configuration as in the development stack,
   #       except it mounts a different volume.
   #
+  # References:
+  # - https://docs.docker.com/reference/compose-file/services/#extends
+  #
   dagster-postgresql:
     extends: { file: docker-compose.yml, service: dagster-postgresql }
     volumes:
@@ -15,20 +18,25 @@ services:
   # Note: This service uses the same configuration as in the development stack,
   #       except its environment variables are sourced from a different file.
   #
+  # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
+  #       overrides the extended list instead of appending this value to it.
+  #       Reference: https://docs.docker.com/reference/compose-file/services/#merging-service-definitions
+  #
   dagster-dagit:
     extends: { file: docker-compose.yml, service: dagster-dagit }
-    env_file:
-      - .env.test
+    env_file: .env.test
 
   # Dagster daemon.
   #
   # Note: This service uses the same configuration as in the development stack,
   #       except its environment variables are sourced from a different file.
   #
+  # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
+  #       overrides the extended list instead of appending this value to it.
+  #
   dagster-daemon:
     extends: { file: docker-compose.yml, service: dagster-daemon }
-    env_file:
-      - .env.test
+    env_file: .env.test
 
   # Uvicorn server hosting the FastAPI application.
   #
@@ -36,16 +44,14 @@ services:
   #       except its environment variables are sourced from a different file,
   #       and it does not override the default command of the container image.
   #
-  #       We failed to find documentation about "canceling out" the extended service's
-  #       `command` value, so we are setting our own command value to an empty string here
-  #       and crossing our fingers (we as in the author of this comment, who is a human dude).
-  #       TODO: Update this comment after confirming whether the empty string cancels out the extended value.
+  # Note: We use the _scalar_ (not _sequence_) forms of `command` and `env_file` here
+  #       so Docker Compose overrides the extended lists instead of appending these
+  #       values to them.
   #
   fastapi:
     extends: { file: docker-compose.yml, service: fastapi }
     command: ""
-    env_file:
-      - .env.test
+    env_file: .env.test
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
       interval: 60s
