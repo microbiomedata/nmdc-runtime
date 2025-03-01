@@ -51,9 +51,16 @@ up-test:
 	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
+up-test-gha:
+	docker compose --file docker-compose.test.gha.yml \
+		up --build --force-recreate --detach --remove-orphans
+
 # Uses Docker Compose to build the container image for the `test` container (i.e. the test runner).
 test-build:
 	docker compose --file docker-compose.test.yml build test
+
+test-build-gha:
+	docker compose --file docker-compose.test.gha.yml build test
 
 test-dbinit:
 	docker compose --file docker-compose.test.yml \
@@ -66,6 +73,9 @@ test-dbinit:
 #
 test-run:
 	docker compose --file docker-compose.test.yml run test
+
+test-run-gha:
+	docker compose --file docker-compose.test.gha.yml run test
 
 test: test-build test-run
 

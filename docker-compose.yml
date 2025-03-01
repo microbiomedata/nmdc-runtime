@@ -22,6 +22,10 @@ services:
     extends: { file: docker-compose.base.yml, service: fastapi }
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     env_file: .env
+    # Wait until the MongoDB replica set has been set up by the "init container"
+    # before starting this FastAPI container.
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:

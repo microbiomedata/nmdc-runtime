@@ -73,11 +73,6 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
-    # Wait until the MongoDB replica set has been set up by the "init container"
-    # before starting this FastAPI container.
-    depends_on:
-      mongo-init:
-        condition: service_completed_successfully
     volumes:
       - .:/code
     healthcheck:
