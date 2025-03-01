@@ -77,6 +77,12 @@ services:
         condition: service_completed_successfully
     volumes:
       - .:/code
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   # This is an "init container," which sets up a MongoDB replica set on the `mongo` container, then shuts off.
   mongo-init:
@@ -125,10 +131,10 @@ services:
     env_file:
       - .env.test
     depends_on:
-      - mongo
-      - fastapi
-      - dagster-daemon
-      - dagster-dagit
+      mongo: { condition: service_started }
+      fastapi: { condition: service_healthy }
+      dagster-daemon: { condition: service_started }
+      dagster-dagit: { condition: service_started }
     volumes:
       - .:/code
 
