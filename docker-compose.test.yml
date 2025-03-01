@@ -1,81 +1,35 @@
 services:
 
   # Postgres server used by Dagster.
-  #
-  # Note: This service uses the same configuration as in the development stack,
-  #       except it mounts a different volume.
-  #
-  # References:
-  # - https://docs.docker.com/reference/compose-file/services/#extends
-  #
+  # Reference: https://docs.docker.com/reference/compose-file/services/#extends
   dagster-postgresql:
-    extends: { file: docker-compose.yml, service: dagster-postgresql }
+    extends: { file: docker-compose.base.yml, service: dagster-postgresql }
     volumes:
       - nmdc_runtime_test_postgres_data:/var/lib/postgresql/data
 
   # Web server that hosts the Dagster web UI.
-  #
-  # Note: This service uses the same configuration as in the development stack,
-  #       except its environment variables are sourced from a different file.
-  #
-  # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
-  #       overrides the extended value instead of appending this value to it.
-  #       Reference: https://docs.docker.com/reference/compose-file/services/#merging-service-definitions
-  #
   dagster-dagit:
-    extends: { file: docker-compose.yml, service: dagster-dagit }
+    extends: { file: docker-compose.base.yml, service: dagster-dagit }
     env_file: .env.test
 
   # Dagster daemon.
-  #
-  # Note: This service uses the same configuration as in the development stack,
-  #       except its environment variables are sourced from a different file.
-  #
-  # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
-  #       overrides the extended value instead of appending this value to it.
-  #
   dagster-daemon:
-    extends: { file: docker-compose.yml, service: dagster-daemon }
+    extends: { file: docker-compose.base.yml, service: dagster-daemon }
     env_file: .env.test
 
   # Uvicorn server hosting the FastAPI application.
-  #
-  # Note: This service uses the same configuration as in the development stack,
-  #       except its environment variables are sourced from a different file,
-  #       and it does not override the default command of the container image.
-  #
-  # Note: We use the _scalar_ (not _sequence_) forms of `command` and `env_file` here
-  #       so Docker Compose overrides the extended lists instead of appending these
-  #       values to them.
-  #
   fastapi:
-    extends: { file: docker-compose.yml, service: fastapi }
+    extends: { file: docker-compose.base.yml, service: fastapi }
     command: ""
     env_file: .env.test
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
-  #
-  # Note: This service uses the same configuration as in the development stack.
-  #
   mongo-init:
-    extends: { file: docker-compose.yml, service: mongo-init }
+    extends: { file: docker-compose.base.yml, service: mongo-init }
 
   # MongoDB server used by the FastAPI application.
-  #
-  # Note: This service uses the same configuration as in the development stack,
-  #       except it mounts different volumes.
-  #
-  # Note: Since `volumes` is a _sequence_ (not a _scalar_), Docker Compose will _append_
-  #       these items to the extended list and apply the result to this service.
-  #
   mongo:
-    extends: { file: docker-compose.yml, service: mongo }
+    extends: { file: docker-compose.base.yml, service: mongo }
     volumes:
       - nmdc_runtime_test_mongo_data:/data/db
       - ~/nmdcdb-mongodump:/nmdc_dump:ro
