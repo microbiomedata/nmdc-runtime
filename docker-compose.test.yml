@@ -33,16 +33,19 @@ services:
   # Uvicorn server hosting the FastAPI application.
   #
   # Note: This service uses the same configuration as in the development stack,
-  #       except it does not override the default command of the container image.
+  #       except its environment variables are sourced from a different file,
+  #       and it does not override the default command of the container image.
   #
   #       We failed to find documentation about "canceling out" the extended service's
   #       `command` value, so we are setting our own command value to an empty string here
   #       and crossing our fingers (we as in the author of this comment, who is a human dude).
-  #       TODO: Update this comment after confirming whether the empty string cancels out the override.
+  #       TODO: Update this comment after confirming whether the empty string cancels out the extended value.
   #
   fastapi:
     extends: { file: docker-compose.yml, service: fastapi }
     command: ""
+    env_file:
+      - .env.test
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
       interval: 60s
