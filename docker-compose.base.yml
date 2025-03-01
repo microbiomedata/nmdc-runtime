@@ -73,7 +73,6 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
-    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.
     depends_on:

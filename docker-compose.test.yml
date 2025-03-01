@@ -20,7 +20,6 @@ services:
   # Uvicorn server hosting the FastAPI application.
   fastapi:
     extends: { file: docker-compose.base.yml, service: fastapi }
-    command: ""
     env_file: .env.test
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
