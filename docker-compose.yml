@@ -27,8 +27,7 @@ services:
       - "3000"
     ports:
       - "3000:3000"
-    env_file:
-      - .env
+    env_file: .env
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -49,8 +48,7 @@ services:
     container_name: dagster-daemon
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
-    env_file:
-      - .env
+    env_file: .env
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -69,8 +67,7 @@ services:
     ports:
       - "8000:8000"
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
-    env_file:
-      - .env
+    env_file: .env
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.
     depends_on:

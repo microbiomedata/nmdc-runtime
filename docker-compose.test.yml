@@ -19,7 +19,7 @@ services:
   #       except its environment variables are sourced from a different file.
   #
   # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
-  #       overrides the extended list instead of appending this value to it.
+  #       overrides the extended value instead of appending this value to it.
   #       Reference: https://docs.docker.com/reference/compose-file/services/#merging-service-definitions
   #
   dagster-dagit:
@@ -32,7 +32,7 @@ services:
   #       except its environment variables are sourced from a different file.
   #
   # Note: We use the _scalar_ (not _sequence_) form of `env_file` here so Docker Compose
-  #       overrides the extended list instead of appending this value to it.
+  #       overrides the extended value instead of appending this value to it.
   #
   dagster-daemon:
     extends: { file: docker-compose.yml, service: dagster-daemon }
@@ -92,8 +92,7 @@ services:
       dockerfile: nmdc_runtime/Dockerfile
       target: test
     container_name: test
-    env_file:
-      - .env.test
+    env_file: .env.test
     depends_on:
       mongo: { condition: service_started }
       fastapi: { condition: service_healthy }
