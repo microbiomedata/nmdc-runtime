@@ -91,6 +91,7 @@ services:
         condition: service_started
     entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
 
+  # TODO: Why does this service, which is in the dev—not test—stack, mount a volume named `tests` — is that intentional?
   mongo:
     image: mongo:8.0.4
     container_name: mongo
@@ -99,7 +100,6 @@ services:
     volumes:
       - nmdc_runtime_mongo_data:/data/db
       - ./mongoKeyFile:/keyFile:ro
-      - .docker/mongo/ensure_replica_set_is_initialized.sh:/ensure_replica_set_is_initialized.sh:ro
       - ./tests:/app_tests
     restart: unless-stopped
     environment:
