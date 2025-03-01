@@ -49,7 +49,7 @@ services:
     env_file: .env.test
     depends_on:
       mongo: { condition: service_started }
-      fastapi: { condition: service_healthy }
+      fastapi: { condition: service_started }
       dagster-daemon: { condition: service_started }
       dagster-dagit: { condition: service_started }
     volumes:

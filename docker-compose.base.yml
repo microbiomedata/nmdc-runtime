@@ -75,12 +75,6 @@ services:
       - "8000:8000"
     volumes:
       - .:/code
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:
