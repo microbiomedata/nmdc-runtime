@@ -1,82 +1,48 @@
 services:
-  # This service runs the postgres DB used by dagster for run storage, schedule storage,
-  # and event log storage.
-  # Tests use `postgres:11` image.
-  # https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
+
+  # Postgres server used by Dagster.
+  #
+  # Note: This service uses the same configuration as in the development stack,
+  #       except it mounts a different volume.
+  #
   dagster-postgresql:
-    image: postgres:11
-    container_name: dagster-postgresql
+    extends: { file: docker-compose.yml, service: dagster-postgresql }
     volumes:
       - nmdc_runtime_test_postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: "postgres_user"
-      POSTGRES_PASSWORD: "postgres_password"
-      POSTGRES_DB: "postgres_db"
 
-  # This service runs dagit.
-  # Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
-  # a queue and later dequeued and launched by dagster-daemon.
+  # Web server that hosts the Dagster web UI.
+  #
+  # Note: This service uses the same configuration as in the development stack,
+  #       except its environment variables are sourced from a different file.
+  #
   dagster-dagit:
-    build:
-      context: .
-      dockerfile: nmdc_runtime/Dockerfile
-      target: dagster
-    container_name: dagster-dagit
-    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
-    expose:
-      - "3000"
-    ports:
-      - "3000:3000"
+    extends: { file: docker-compose.yml, service: dagster-dagit }
     env_file:
       - .env.test
-    environment:
-      DAGSTER_POSTGRES_USER: "postgres_user"
-      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
-      DAGSTER_POSTGRES_DB: "postgres_db"
-    depends_on:
-      - dagster-postgresql
-    restart: on-failure
-    volumes:
-      - ./:/opt/dagster/lib
 
-  # This service runs the dagster-daemon process, which is responsible for taking runs
-  # off of the queue and launching them, as well as creating runs from schedules or sensors.
+  # Dagster daemon.
+  #
+  # Note: This service uses the same configuration as in the development stack,
+  #       except its environment variables are sourced from a different file.
+  #
   dagster-daemon:
-    build:
-      context: .
-      dockerfile: nmdc_runtime/Dockerfile
-      target: dagster
-    container_name: dagster-daemon
-    entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
-    restart: on-failure
+    extends: { file: docker-compose.yml, service: dagster-daemon }
     env_file:
       - .env.test
-    environment:
-      DAGSTER_POSTGRES_USER: "postgres_user"
-      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
-      DAGSTER_POSTGRES_DB: "postgres_db"
-    depends_on:
-      - dagster-postgresql
-    volumes:
-      - ./:/opt/dagster/lib
 
+  # Uvicorn server hosting the FastAPI application.
+  #
+  # Note: This service uses the same configuration as in the development stack,
+  #       except it does not override the default command of the container image.
+  #
+  #       We failed to find documentation about "canceling out" the extended service's
+  #       `command` value, so we are setting our own command value to an empty string here
+  #       and crossing our fingers (we as in the author of this comment, who is a human dude).
+  #       TODO: Update this comment after confirming whether the empty string cancels out the override.
+  #
   fastapi:
-    build:
-      context: .
-      dockerfile: nmdc_runtime/Dockerfile
-      target: fastapi
-    container_name: fastapi
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env.test
-    # Wait until the MongoDB replica set has been set up by the "init container"
-    # before starting this FastAPI container.
-    depends_on:
-      mongo-init:
-        condition: service_completed_successfully
-    volumes:
-      - .:/code
+    extends: { file: docker-compose.yml, service: fastapi }
+    command: ""
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
       interval: 60s
@@ -84,40 +50,27 @@ services:
       retries: 3
       start_period: 60s
 
-  # This is an "init container," which sets up a MongoDB replica set on the `mongo` container, then shuts off.
+  # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
+  #
+  # Note: This service uses the same configuration as in the development stack.
+  #
   mongo-init:
-    image: mongo:8.0.4
-    container_name: mongo-init
-    volumes:
-      - ./wait-for-it.sh:/wait-for-it.sh:ro
-      - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
-    depends_on:
-      mongo:
-        condition: service_started
-    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
+    extends: { file: docker-compose.yml, service: mongo-init }
 
+  # MongoDB server used by the FastAPI application.
+  #
+  # Note: This service uses the same configuration as in the development stack,
+  #       except it mounts different volumes.
+  #
   mongo:
-    image: mongo:8.0.4
-    container_name: mongo
-    ports:
-      - "27018:27017"
+    extends: { file: docker-compose.yml, service: mongo }
     volumes:
       - nmdc_runtime_test_mongo_data:/data/db
       - ~/nmdcdb-mongodump:/nmdc_dump:ro
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
       - ./mongoKeyFile:/keyFile:ro
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: root
 
-    # Configure MongoDB to run in replica set mode, so we can use MongoDB transactions.
-    #
-    # Note: Including a KeyFile is necessary when doing the combination of (a) running MongoDB in
-    #       replica set mode and (b) running MongoDB with authentication enabled.
-    #
-    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile"]
-
+  # Test runner.
   test:
     # Prevent Docker Compose from starting this service automatically.
     # Reference: https://stackoverflow.com/a/65957695
