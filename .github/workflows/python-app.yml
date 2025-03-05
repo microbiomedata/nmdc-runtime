@@ -72,7 +72,8 @@ jobs:
     #
     - name: Set up MongoDB replica set
       run: |
-        sleep 10
+        docker compose --file docker-compose.test.yml ps
+        sleep 15
         docker compose --file docker-compose.test.yml ps
         docker compose --file docker-compose.test.yml exec mongo \
           mongosh \
