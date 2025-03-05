@@ -52,8 +52,33 @@ jobs:
 #        pip install flake8
 #        make lint
     - name: Build and run containers upon which test runner depends
-      run: make up-test-gha
+      run: make up-test
+
+    # Use `mongosh` (available within the `mongo` container) to set up
+    # a replicate set of which the MongoDB instance on the `mongo`
+    # container is the only member.
+    #
+    # Note: We do this explicitly here since the "mongo-init" approach
+    #       we use on our local computers does not seem to work on GHA.
+    #
+    # Note: We sleep for a few seconds to give the MongoDB server some
+    #       time to boot to the point of being able to process commands.
+    #
+    # References:
+    # - File: `.docker/mongo_init/initialize_replica_set.sh`
+    # - https://engineering.synatic.com/a-simple-way-to-run-a-mongodb-replica-set-in-github-actions
+    #
+    - name: Set up MongoDB replica set
+      run: |
+        sleep 10
+        docker compose exec mongo \
+          mongosh \
+            --host localhost \
+            --port 27017 \
+            --username admin \
+            --password root \
+            --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost"}]})'
     - name: Build test runner container image
-      run: make test-build-gha
+      run: make test-build
     - name: Run tests
-      run: make test-run-gha
+      run: make test-run
