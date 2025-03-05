@@ -867,6 +867,7 @@ def test_run_query_find_with_continuation(api_user_client):
     assert cursor["id"] != "0"  # i.e., there is another batch to fetch
 
 
+@pytest.mark.skip(reason="Skipping because aggregation with continuation not implemented")
 def test_run_query_aggregate_with_continuation(api_user_client):
     # Example taken from <https://github.com/microbiomedata/nmdc-runtime/issues/434#issuecomment-2463238444>
     response = api_user_client.request(

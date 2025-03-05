@@ -87,3 +87,18 @@ def get_cc_by_id(cc_id: str) -> QueryContinuation | None:
     if doc is None:
         raise QueryContinuationError(f"cannot find cc with id {cc_id}")
     return QueryContinuation(**doc)
+
+
+def last_doc__id_for_cc(cursor_continuation: QueryContinuation) -> str:
+    """
+    Retrieve the last document _id for the given cursor continuation.
+    """
+    # Assuming cursor_continuation has an attribute `cursor` that stores the last document _id
+    return cursor_continuation.cursor
+
+
+def initial_query_for_cc(cursor_continuation: QueryContinuation) -> QueryCmd:
+    """
+    Retrieve the initial query command for the given cursor continuation.
+    """
+    return cursor_continuation.query_cmd

@@ -212,7 +212,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # construct "getMore" equivalent of originating "find" or "aggregate" query.
         initial_cmd_doc: dict = cc.initial_query_for_cc(cursor_continuation).model_dump(
             exclude_unset=True
-        )["cmd"]
+        )
         if "find" in initial_cmd_doc:
             modified_cmd_doc = assoc_in(
                 initial_cmd_doc,
