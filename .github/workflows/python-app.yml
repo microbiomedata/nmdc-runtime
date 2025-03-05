@@ -63,6 +63,8 @@ jobs:
     #
     # Note: We sleep for a few seconds to give the MongoDB server some
     #       time to boot to the point of being able to process commands.
+    #       We run `docker compose ps` to show some information that can
+    #       help us debug this step/workflow.
     #
     # References:
     # - File: `.docker/mongo_init/initialize_replica_set.sh`
@@ -71,6 +73,7 @@ jobs:
     - name: Set up MongoDB replica set
       run: |
         sleep 10
+        docker compose ps
         docker compose --file docker-compose.test.yml exec mongo \
           mongosh \
             --host localhost \
