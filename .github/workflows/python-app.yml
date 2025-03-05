@@ -1,6 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
+# This GitHub Actions workflow spins up the "test" Docker Compose stack and runs automated tests within it.
+# Reference: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
 name: Python application
 
 # Note: The following events will trigger this workflow:
@@ -35,7 +34,6 @@ on:
   # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: { }
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -62,7 +60,7 @@ jobs:
     #
     #       The reason—within the Docker container—I do not `chmod` or `chown` the original file
     #       directly, is that I am under the impression that ownership/permission changes made
-    #       with a container to mounted files that already exist on the host will not be seen
+    #       within a container to mounted files that already exist on the host will not be seen
     #       by the host. I have not found official documentation supporting this yet.
     #       TODO: Include a reference about changing mounted file's permission within container.
     #
