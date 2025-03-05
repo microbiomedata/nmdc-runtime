@@ -62,12 +62,11 @@ jobs:
         mkdir -p _tmp
         docker run --rm \
           -v $(pwd)/mongoKeyFile:/originalFile \
-          -v $(pwd)/_tmp:/results \
+          -v $(pwd)/_tmp:/out \
           alpine \
-          sh -c 'cp /originalFile /results/mongoKeyFile && chown 999:999 /results/mongoKeyFile'
+          sh -c 'cp /originalFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
         mv _tmp/mongoKeyFile ./mongoKeyFile
         rmdir _tmp
-        chmod 600 ./mongoKeyFile
         stat ./mongoKeyFile
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
