@@ -134,43 +134,55 @@ def test_overlaydb_replace_or_insert_many(test_db):
 
 def test_mongo_client_supports_transactions(mongo_client):
     r"""
+    Note: This test was written to demonstrate how MongoDB sessions and transactions work.
+          It does not exercise any parts of the Runtime.
+
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/client_session.html#transactions
     """
 
     # Create a test database containing an empty collection.
     db_name = f"test-{uuid4()}"
-    collection_name = "thing_set"
+    collection_name = "my_collection"
     db = mongo_client.get_database(db_name)
     collection = db.create_collection(collection_name)
     assert len(db.list_collection_names()) == 1
 
-    # Insert a document into that collection.
-    collection.insert_one({"x": 1})
-    assert collection.count_documents({}) == 1
-    assert collection.count_documents({"x": 1}) == 1  # the original document
+    # Insert documents into that collection (notice the three food names begin with the letters "a", "b", and "c").
+    collection.insert_one({"food": "apple"})
+    collection.insert_one({"food": "banana"})
+    collection.insert_one({"food": "carrot"})
+    assert collection.count_documents({}) == 3
 
-    # Within a transaction, modify that document, examine the tentative database, then abort the transaction.
+    # Start a session, so we can eventually start a transaction.
     with mongo_client.start_session() as session:
-        with session.start_transaction():
-            # Modify the document.
-            collection.update_one({"x": 1}, {"$set": {"x": 2}}, session=session)
 
-            # Examine the tentative database.
-            assert collection.count_documents({}, session=session) == 1
-            assert collection.count_documents({"x": 1}, session=session) == 0  # no original document
-            assert collection.count_documents({"x": 2}, session=session) == 1  # the modified document
+        # Modify the document while using the _session_ and confirm the real database _is_ affected.
+        collection.update_one({"food": "apple"}, {"$set": {"food": "donut"}}, session=session)
+        assert set(collection.distinct("food", session=session)) == {"donut", "banana", "carrot"}
+        assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}  # immediately says "donut"
+
+        # Start a transaction.
+        with session.start_transaction():
+
+            # Modify the document within the _transaction_ and confirm the real database is _not_ affected.
+            collection.update_one({"food": "banana"}, {"$set": {"food": "egg"}}, session=session)
+            assert set(collection.distinct("food", session=session)) == {"donut", "egg", "carrot"}  # says "egg"
+            assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}  # still says "banana"
 
             # Abort the transaction.
             #
-            # Note: If an exception had been raised within the pending transaction,
-            #       PyMongo would have invoked this function automatically.
+            # Note: If an exception had been raised within this currently-pending transaction, PyMongo would have
+            #       invoked this function implicitly. Here, we invoke it explicitly instead of raising an exception.
             #
             session.abort_transaction()
 
-        # Confirm the modification to the original document was discarded.
-        assert collection.count_documents({}) == 1
-        assert collection.count_documents({"x": 1}) == 1  # the original document
-        assert collection.count_documents({"x": 2}) == 0  # no modified document
+        # Confirm the real database—whether using or not using the session—does _not_ reflect the changes that were
+        # made within the aborted transaction.
+        assert set(collection.distinct("food", session=session)) == {"donut", "banana", "carrot"}  # back to "banana"
+        assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}
+
+    # Confirm the real database _does_ reflect the changes that were made using the now-ended session.
+    assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}
 
     # Clean up.
     mongo_client.drop_database(db_name)
