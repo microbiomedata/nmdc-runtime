@@ -51,6 +51,11 @@ jobs:
 #      run: |
 #        pip install flake8
 #        make lint
+    - name: Remove volumes left over from previous workflow runs
+      run: |
+        docker volume ls
+        make down-test
+        docker volume ls
     - name: Build and run containers upon which test runner depends
       run: make up-test
 
@@ -72,6 +77,7 @@ jobs:
     #
     - name: Set up MongoDB replica set
       run: |
+        docker volume ls
         docker compose --file docker-compose.test.yml ps
         sleep 30
         docker compose --file docker-compose.test.yml ps
