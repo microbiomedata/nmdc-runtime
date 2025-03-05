@@ -38,9 +38,14 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
+# TODO: Document this newly-added make target.
+pull-testdb:
+	python -c "from tests.test_api.test_endpoints import *; ensure_schema_collections_local_filesystem_cache()"
+
+# Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the dev stack.
 dev-reset-db:
 	docker compose \
-		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
+		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
 # Uses Docker Compose to build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
 #
@@ -55,7 +60,8 @@ up-test:
 test-build:
 	docker compose --file docker-compose.test.yml build test
 
-test-dbinit:
+# Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the test stack.
+test-reset-db:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 

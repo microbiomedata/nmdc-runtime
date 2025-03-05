@@ -5,9 +5,8 @@ services:
   # https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
   dagster-postgresql:
     image: postgres:11
-    container_name: dagster-postgresql
     volumes:
-      - nmdc_runtime_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: "postgres_user"
       POSTGRES_PASSWORD: "postgres_password"
@@ -21,7 +20,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: dagster
-    container_name: dagster-dagit
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
     expose:
       - "3000"
@@ -46,7 +44,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: dagster
-    container_name: dagster-daemon
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
     env_file:
@@ -65,7 +62,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: fastapi
-    container_name: fastapi
     ports:
       - "8000:8000"
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
@@ -77,13 +73,13 @@ services:
       - .:/code
 
   mongo:
-    image: mongo:8.0.4
-    container_name: mongo
+    image: mongo:6.0.4
     ports:
       - "27018:27017"
     volumes:
-      - nmdc_runtime_mongo_data:/data/db
-      - ./tests:/app_tests
+      - mongo_data:/data/db
+      - ./tests/nmdcdb:/nmdcdb_dump:ro
+      - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
@@ -91,12 +87,14 @@ services:
 
 
 volumes:
-  nmdc_runtime_postgres_data:
+  postgres_data:
     driver: local
-  nmdc_runtime_mongo_data:
+  mongo_data:
     driver: local
 
 
 secrets:
   mongoKeyFile:
     file: ./mongoKeyFile
+
+name: nmdc-runtime-dev
