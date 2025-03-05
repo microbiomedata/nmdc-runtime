@@ -54,8 +54,10 @@ jobs:
     #
     - name: Restrict access to MongoDB keyfile
       run: |
-        chmod 600     ./mongoKeyFile
+        groupadd -g 999 temp_mongodb_group
+        useradd  -g 999 -u 999 temp_mongodb_user
         chown 999:999 ./mongoKeyFile
+        chmod 600     ./mongoKeyFile
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
