@@ -52,8 +52,11 @@ jobs:
     #       You can verify this by looking at the Dockerfile layers on Docker Hub.
     #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
     #
-    # Note: Since the GHA Runner will not allow me to `chown` the file to `999:999`,
-    #       I use a Docker container to (effectively) to it.
+    # Note: Since the GHA Runner will not allow me to `chown` the file to `999:999`, I use
+    #       a Docker container to (effectively) to it. Since, after I use the Docker container
+    #       to `chown` the file, the GHA Runner will not allow me to then `chmod` it, I do
+    #       that within the Docker container as well. I still appreciate the fine folks at
+    #       GitHub, Inc. letting me use their computer for all this.
     #       Reference: https://man7.org/linux/man-pages/man8/useradd.8.html
     #
     - name: Restrict access to MongoDB keyfile
@@ -84,43 +87,6 @@ jobs:
         docker volume ls
     - name: Build and run containers upon which test runner depends
       run: make up-test
-
-    # Use `mongosh` (available within the `mongo` container) to set up
-    # a replicate set of which the MongoDB instance on the `mongo`
-    # container is the only member.
-    #
-    # Note: We do this explicitly here since the "mongo-init" approach
-    #       we use on our local computers does not seem to work on GHA.
-    #
-    # Note: We sleep for a few seconds to give the MongoDB server some
-    #       time to boot to the point of being able to process commands.
-    #       We run `docker compose ps` to show some information that can
-    #       help us debug this step/workflow.
-    #
-    # References:
-    # - File: `.docker/mongo_init/initialize_replica_set.sh`
-    # - https://engineering.synatic.com/a-simple-way-to-run-a-mongodb-replica-set-in-github-actions
-    #
-    - name: Set up MongoDB replica set
-      run: |
-        docker volume ls
-        docker compose --file docker-compose.test.yml ps -a
-        echo 'Sleeping'
-        sleep 15
-        echo 'Waking up'
-        echo 'Logs from mongo-init'
-        docker compose --file docker-compose.test.yml logs mongo-init
-        echo 'Logs from mongo'
-        docker compose --file docker-compose.test.yml logs mongo
-        echo '---'
-        docker compose --file docker-compose.test.yml ps -a
-        docker compose --file docker-compose.test.yml exec mongo \
-          mongosh \
-            --host localhost \
-            --port 27017 \
-            --username admin \
-            --password root \
-            --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost"}]})'
     - name: Build test runner container image
       run: make test-build
     - name: Run tests
