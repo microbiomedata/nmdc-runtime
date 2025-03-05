@@ -71,7 +71,7 @@ jobs:
     - name: Set up MongoDB replica set
       run: |
         sleep 10
-        docker compose exec mongo \
+        docker compose --file docker-compose.test.yml exec mongo \
           mongosh \
             --host localhost \
             --port 27017 \
