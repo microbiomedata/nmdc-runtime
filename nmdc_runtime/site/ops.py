@@ -1193,8 +1193,9 @@ def get_ncbi_export_pipeline_inputs(context: OpExecutionContext) -> str:
 def get_data_objects_from_biosamples(context: OpExecutionContext, biosamples: list):
     mdb = context.resources.mongo.db
     alldocs_collection = mdb["alldocs"]
+    data_object_set = mdb["data_object_set"]
     biosample_data_objects = fetch_data_objects_from_biosamples(
-        alldocs_collection, biosamples
+        alldocs_collection, data_object_set, biosamples
     )
     return biosample_data_objects
 
@@ -1205,8 +1206,9 @@ def get_nucleotide_sequencing_from_biosamples(
 ):
     mdb = context.resources.mongo.db
     alldocs_collection = mdb["alldocs"]
+    data_generation_set = mdb["data_generation_set"]
     biosample_omics_processing = fetch_nucleotide_sequencing_from_biosamples(
-        alldocs_collection, biosamples
+        alldocs_collection, data_generation_set, biosamples
     )
     return biosample_omics_processing
 
@@ -1217,8 +1219,9 @@ def get_library_preparation_from_biosamples(
 ):
     mdb = context.resources.mongo.db
     alldocs_collection = mdb["alldocs"]
+    material_processing_set = mdb["material_processing_set"]
     biosample_lib_prep = fetch_library_preparation_from_biosamples(
-        alldocs_collection, biosamples
+        alldocs_collection, material_processing_set, biosamples
     )
     return biosample_lib_prep
 

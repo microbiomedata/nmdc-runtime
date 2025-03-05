@@ -4,7 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from typing import Any
+from typing import Any, List, Union
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     get_instruments,
@@ -366,7 +366,14 @@ class NCBISubmissionXML:
                             )
                             # Currently, we are making the assumption that only one instrument
                             # is used to sequence a Biosample
-                            instrument_id = ntseq.get("instrument_used", "")[0]
+                            instrument_used: List[str] = ntseq.get(
+                                "instrument_used", []
+                            )
+                            if not instrument_used:
+                                instrument_id = None
+                            else:
+                                instrument_id = instrument_used[0]
+
                             instrument = all_instruments.get(instrument_id, {})
                             instrument_vendor = instrument.get("vendor", "")
                             instrument_model = instrument.get("model", "")
@@ -446,6 +453,20 @@ class NCBISubmissionXML:
                         sra_attributes.append(
                             self.set_element(
                                 "Attribute", "NextSeq 550", {"name": "instrument_model"}
+                            )
+                        )
+                    elif instrument_model == "novaseq_6000":
+                        sra_attributes.append(
+                            self.set_element(
+                                "Attribute",
+                                "NovaSeq 6000",
+                                {"name": "instrument_model"},
+                            )
+                        )
+                    elif instrument_model == "hiseq":
+                        sra_attributes.append(
+                            self.set_element(
+                                "Attribute", "HiSeq", {"name": "instrument_model"}
                             )
                         )
 
