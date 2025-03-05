@@ -42,10 +42,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4 # update version to maintain consistency across workflows
+    # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
+    #
     # Note: This is to prevent MongoDB from reporting the error:
     #       > "permissions on /path/to/keyfile are too open"
+    #
+    # Note: In containers using the `mongo` image, UID 999 refers to a user named `mongodb`
+    #       and GID 999 refers to a group named `mongodb`, which that user belongs to.
+    #       You can verify this by looking at the Dockerfile layers on Docker Hub.
+    #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
+    #
     - name: Restrict access to MongoDB keyfile
-      run: chmod 600 ./mongoKeyFile
+      run: |
+        chmod 600     ./mongoKeyFile
+        chown 999:999 ./mongoKeyFile
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
