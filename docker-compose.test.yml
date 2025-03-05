@@ -48,6 +48,7 @@ services:
     container_name: test
     env_file: .env.test
     depends_on:
+      mongo-init: { condition: service_completed_successfully }
       mongo: { condition: service_started }
       fastapi: { condition: service_started }
       dagster-daemon: { condition: service_started }

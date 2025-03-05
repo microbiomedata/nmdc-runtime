@@ -60,7 +60,10 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
-      - dagster-postgresql
+      dagster-postgresql: { condition: service_started }
+      # Wait until the MongoDB replica set has been set up by the "init container"
+      # before starting this Dagster daemon container.
+      mongo-init: { condition: service_completed_successfully }
     volumes:
       - ./:/opt/dagster/lib
 
@@ -75,6 +78,10 @@ services:
       - "8000:8000"
     volumes:
       - .:/code
+    # Wait until the MongoDB replica set has been set up by the "init container"
+    # before starting this FastAPI container.
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:
@@ -84,8 +91,7 @@ services:
       - ./wait-for-it.sh:/wait-for-it.sh:ro
       - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
     depends_on:
-      mongo:
-        condition: service_started
+      mongo: { condition: service_started }
     entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
 
   # MongoDB server used by the FastAPI application.
