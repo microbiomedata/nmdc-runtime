@@ -47,30 +47,34 @@ jobs:
     # Note: This is to prevent MongoDB from reporting the error:
     #       > "permissions on /path/to/keyfile are too open"
     #
-    # Note: In containers using the `mongo` image, UID 999 refers to a user named `mongodb`
-    #       and GID 999 refers to a group named `mongodb`, which that user belongs to.
+    # Note: In containers using the `mongo` image, UID `999` refers to a user named `mongodb`
+    #       and GID `999` refers to a group named `mongodb`, which that user belongs to.
     #       You can verify this by looking at the Dockerfile layers on Docker Hub.
     #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
     #
-    # Note: Since the GHA Runner will not allow me to `chown` the file to `999:999`, I use
-    #       a Docker container to (effectively) to it. Since, after I use the Docker container
-    #       to `chown` the file, the GHA Runner will not allow me to then `chmod` it, I do
-    #       that within the Docker container as well. I still appreciate the fine folks at
-    #       GitHub, Inc. letting me use their computer for all this.
+    #       Since the GHA Runner will not allow me to `chown` the file to `999:999` directly,
+    #       I use a Docker container to (effectively) accomplish that. Since—after I use the
+    #       Docker container change the file's owner—the GHA Runner will not allow me to then
+    #       `chmod` the file, I accomplish that within the Docker container as well. I still
+    #       appreciate the people of GitHub, Inc. letting me use their computer for all this.
     #       Reference: https://man7.org/linux/man-pages/man8/useradd.8.html
+    #
+    #       The reason—within the Docker container—I do not `chmod`/`chown` the original file
+    #       directly, is that I am under the impression that ownership/permission changes made
+    #       with a container to mounted files that already exist on the host will not be seen
+    #       by the host. I have not found official documentation supporting this yet.
+    #       TODO: Include a reference about changing mounted file's permission within container.
     #
     - name: Restrict access to MongoDB keyfile
       run: |
-        stat ./mongoKeyFile
-        mkdir -p _tmp
+        mkdir _tmp
         docker run --rm \
-          -v $(pwd)/mongoKeyFile:/originalFile \
-          -v $(pwd)/_tmp:/out \
+          -v ./mongoKeyFile:/mongoKeyFile \
+          -v ./_tmp:/out \
           alpine \
-          sh -c 'cp /originalFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
+          sh -c 'cp /mongoKeyFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
         mv _tmp/mongoKeyFile ./mongoKeyFile
         rmdir _tmp
-        stat ./mongoKeyFile
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
@@ -80,14 +84,9 @@ jobs:
 #      run: |
 #        pip install flake8
 #        make lint
-    - name: Remove volumes left over from previous workflow runs
-      run: |
-        docker volume ls
-        make down-test
-        docker volume ls
     - name: Build and run containers upon which test runner depends
       run: make up-test
-    - name: Build test runner container image
+    - name: Build container image for test runner
       run: make test-build
     - name: Run tests
       run: make test-run
