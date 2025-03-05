@@ -888,3 +888,6 @@ setuptools==75.8.0
     #   mkdocs-mermaid2-plugin
     #   rdflib
     #   setuptools-scm
+python-dotenv
+ontology-loader==0.1.4rc4
+linkml-store

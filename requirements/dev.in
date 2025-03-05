@@ -13,3 +13,6 @@ setuptools
 twine
 requests-cache
 pytest-mock
+python-dotenv
+ontology-loader==0.1.4rc4
+linkml-store
