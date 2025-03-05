@@ -80,8 +80,13 @@ jobs:
         docker volume ls
         docker compose --file docker-compose.test.yml ps -a
         echo 'Sleeping'
-        sleep 30
+        sleep 15
         echo 'Waking up'
+        echo 'Logs from mongo-init'
+        docker compose --file docker-compose.test.yml logs mongo-init
+        echo 'Logs from mongo'
+        docker compose --file docker-compose.test.yml logs mongo
+        echo '---'
         docker compose --file docker-compose.test.yml ps -a
         docker compose --file docker-compose.test.yml exec mongo \
           mongosh \
