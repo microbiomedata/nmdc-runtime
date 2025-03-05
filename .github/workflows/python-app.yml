@@ -47,19 +47,20 @@ jobs:
     # Note: This is to prevent MongoDB from reporting the error:
     #       > "permissions on /path/to/keyfile are too open"
     #
-    # Note: In containers using the `mongo` image, UID `999` refers to a user named `mongodb`
-    #       and GID `999` refers to a group named `mongodb`, which that user belongs to.
+    # Note: This involves making the file be readable _only_ by the OS user that MongoDB runs as.
+    #
+    #       In containers using the `mongo` image, that user is named `mongodb` and has a
+    #       UID of `999`. That user belongs to a group named `mongodb`, whose GID is `999`.
     #       You can verify this by looking at the Dockerfile layers on Docker Hub.
     #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
     #
-    #       Since the GHA Runner will not allow me to `chown` the file to `999:999` directly,
-    #       I use a Docker container to (effectively) accomplish that. Since—after I use the
-    #       Docker container change the file's owner—the GHA Runner will not allow me to then
-    #       `chmod` the file, I accomplish that within the Docker container as well. I still
-    #       appreciate the people of GitHub, Inc. letting me use their computer for all this.
-    #       Reference: https://man7.org/linux/man-pages/man8/useradd.8.html
+    #       The GHA Runner will allow me to `chmod 600` the file, but not `chown 999:999` it.
+    #       Since the GHA Runner will not allow me to `chown` the file, I use a Docker container
+    #       to (effectively) accomplish that. Since—after I use the Docker container to change
+    #       the file's owner—the GHA Runner will not allow me to then `chmod` the file, I opt to
+    #       accomplish that within the Docker container as well.
     #
-    #       The reason—within the Docker container—I do not `chmod`/`chown` the original file
+    #       The reason—within the Docker container—I do not `chmod` or `chown` the original file
     #       directly, is that I am under the impression that ownership/permission changes made
     #       with a container to mounted files that already exist on the host will not be seen
     #       by the host. I have not found official documentation supporting this yet.
