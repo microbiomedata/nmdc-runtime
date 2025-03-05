@@ -52,10 +52,14 @@ jobs:
     #       You can verify this by looking at the Dockerfile layers on Docker Hub.
     #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
     #
+    # Note: Since, by default, the GHA Runner does not have a user whose UID is 999,
+    #       we created one there first (otherwise, we couldn't `chown` to that UID).
+    #       Note that the GHA Runner _does_, by default, have a group whose GID is 999.
+    #       Reference: https://man7.org/linux/man-pages/man8/useradd.8.html
+    #
     - name: Restrict access to MongoDB keyfile
       run: |
-        groupadd -g 999 temp_mongodb_group
-        useradd  -g 999 -u 999 temp_mongodb_user
+        useradd -g 999 -u 999 temp_mongodb_user
         chown 999:999 ./mongoKeyFile
         chmod 600     ./mongoKeyFile
     - name: Set up Python 3.10
