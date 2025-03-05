@@ -5,7 +5,6 @@ services:
   # https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
   dagster-postgresql:
     image: postgres:11
-    container_name: dagster-postgresql
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -21,7 +20,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: dagster
-    container_name: dagster-dagit
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
     expose:
       - "3000"
@@ -46,7 +44,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: dagster
-    container_name: dagster-daemon
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
     env_file:
@@ -65,7 +62,6 @@ services:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: fastapi
-    container_name: fastapi
     ports:
       - "8000:8000"
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
@@ -78,7 +74,6 @@ services:
 
   mongo:
     image: mongo:6.0.4
-    container_name: mongo
     ports:
       - "27018:27017"
     volumes:
