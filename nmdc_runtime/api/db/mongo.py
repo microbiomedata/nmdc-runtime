@@ -30,7 +30,7 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
 @lru_cache
 def get_mongo_client() -> MongoClient:
     r"""
-    Returns a `MongoClient` instance configured to access the MongoDB server specified via environment variables.
+    Returns a `MongoClient` instance you can use to access the MongoDB server specified via environment variables.
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html#pymongo.mongo_client.MongoClient
     """
     return MongoClient(
@@ -44,7 +44,8 @@ def get_mongo_client() -> MongoClient:
 @lru_cache
 def get_mongo_db() -> MongoDatabase:
     r"""
-    TODO: Document this function.
+    Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
     """
     _client = get_mongo_client()
     mdb = _client[os.getenv("MONGO_DBNAME")]
