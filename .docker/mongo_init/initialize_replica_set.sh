@@ -8,7 +8,7 @@
 # set of which that MongoDB instance is the sole member.
 #
 # This shell script was designed to be run within a Docker container based upon
-# the `mongo:7.0.15` container image (i.e., https://hub.docker.com/_/mongo).
+# the `mongo:8.0.4` container image (i.e., https://hub.docker.com/_/mongo).
 #
 # Positional parameters
 # ---------------------
