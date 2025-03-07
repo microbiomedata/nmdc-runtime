@@ -44,7 +44,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
-    load_ontology,
+    run_ontology_load,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
 )
@@ -127,7 +127,7 @@ load_ontology_weekly = ScheduleDefinition(
     name="weekly_load_ontology",
     cron_schedule="0 9 * * 1",  # Runs at 3 AM every Monday
     execution_timezone="America/New_York",
-    job=load_ontology.to_job(**preset_normal),
+    job=run_ontology_load.to_job(**preset_normal),
 )
 
 def asset_materialization_metadata(asset_event, key):
@@ -468,7 +468,7 @@ def repo():
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
-        load_ontology.to_job(**preset_normal),
+        run_ontology_load.to_job(**preset_normal),
     ]
     schedules = [housekeeping_weekly, ensure_alldocs_daily, load_ontology_weekly]
     sensors = [

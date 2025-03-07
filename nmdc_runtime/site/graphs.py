@@ -111,7 +111,7 @@ def ensure_alldocs():
     materialize_alldocs()
 
 @graph
-def load_ontology():
+def run_ontology_load():
     load_ontology()
 
 
