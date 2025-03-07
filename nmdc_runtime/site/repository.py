@@ -130,6 +130,7 @@ load_ontology_weekly = ScheduleDefinition(
     job=run_ontology_load.to_job(**preset_normal),
 )
 
+
 def asset_materialization_metadata(asset_event, key):
     """Get metadata from an asset materialization event.
 
