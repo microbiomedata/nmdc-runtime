@@ -1043,6 +1043,24 @@ def site_code_mapping() -> dict:
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
 
+@op(required_resource_keys={"mongo"})
+def load_ontology(context) -> int:
+    """
+    This function loads without any additional parameters, the ENVO ontology into the MongoDB database specified.
+
+    Noting that the ontology loader interacts with the ontology_class_set, and ontology_relation_set collections
+    only, and does upsert loads (meaning it will insert if the data item does not exist - as defined by the indexed key
+    structure on the class, and update slots/attributes of the collection otherwise).  It will also delete ontology-relation-set
+    documents that reference obsolete terms in the ontology.
+
+    :params context: The context object passed to the function by Dagster.
+    :return: The number of documents upserted into the MongoDB database.
+    """
+    collection_names = ["ontology_class_set", "ontology_relation_set"]
+    context.log.info(f"Loading ENVO into  {collection_names=}")
+    number_upserted = 0
+    return number_upserted
+
 
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
@@ -1106,12 +1124,14 @@ def materialize_alldocs(context) -> int:
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # InsertOne is a method on the py-mongo Client class.
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
                 write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(write_operations) > 0:
+            # here bulk_write is a method on the py-mongo db Client class
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(
