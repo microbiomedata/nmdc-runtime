@@ -1045,7 +1045,9 @@ def site_code_mapping() -> dict:
 
 
 @op(required_resource_keys={"mongo"})
-def load_ontology(context, source_ontology="envo", output_directory=None, generate_reports=True):
+def load_ontology(
+    context, source_ontology="envo", output_directory=None, generate_reports=True
+):
     """
     Run the OntologyLoaderController to load records from the source ontology into ontology_class_set and ontology_relation_set.
 
@@ -1055,7 +1057,9 @@ def load_ontology(context, source_ontology="envo", output_directory=None, genera
     :return: The number of records upserted
     """
     if output_directory is None:
-        output_directory = os.path.join(os.getcwd(), "ontology_reports")  # Save reports in current working dir
+        output_directory = os.path.join(
+            os.getcwd(), "ontology_reports"
+        )  # Save reports in current working dir
 
     print(f"Running Ontology Loader for ontology: {source_ontology}")
 
@@ -1064,7 +1068,7 @@ def load_ontology(context, source_ontology="envo", output_directory=None, genera
     loader = OntologyLoaderController(
         source_ontology=source_ontology,
         output_directory=output_directory,
-        generate_reports=generate_reports
+        generate_reports=generate_reports,
     )
 
     try:
