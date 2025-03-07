@@ -1045,7 +1045,7 @@ def site_code_mapping() -> dict:
 
 
 @op(required_resource_keys={"mongo"})
-def load_ontology(context, source_ontology="envo", output_directory=None, generate_reports=True) -> int:
+def load_ontology(context, source_ontology="envo", output_directory=None, generate_reports=True):
     """
     Run the OntologyLoaderController to load records from the source ontology into ontology_class_set and ontology_relation_set.
 
