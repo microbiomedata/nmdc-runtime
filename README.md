@@ -105,7 +105,8 @@ source .env
 set +a
 ```
 
-If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on 
+the NERSC network—set up the SSH tunnel.
 
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
@@ -135,12 +136,13 @@ Tests can be found in `tests` and are run with the following commands:
 make up-test
 make test
 ```
+docker compose --file docker-compose.test.yml run test
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
-tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
 
 ## Publish to PyPI
 

@@ -62,6 +62,22 @@ def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False
         )
     )
 
+def ensure_load_ontology():
+    print("loading ontology...")
+    materialize_alldocs(
+        build_op_context(
+            resources={
+                "mongo": mongo_resource.configured(
+                    {
+                        "dbname": os.getenv("MONGO_DBNAME"),
+                        "host": os.getenv("MONGO_HOST"),
+                        "password": os.getenv("MONGO_PASSWORD"),
+                        "username": os.getenv("MONGO_USERNAME"),
+                    }
+                )
+            }
+        )
+    )
 
 def ensure_test_resources(mdb):
     username = "testuser"

@@ -11,7 +11,7 @@ from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
 from itertools import chain
-
+from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
 
@@ -1045,6 +1045,43 @@ def site_code_mapping() -> dict:
 
 
 @op(required_resource_keys={"mongo"})
+def load_ontology(
+    context, source_ontology="envo", output_directory=None, generate_reports=True
+):
+    """
+    Run the OntologyLoaderController to load records from the source ontology into ontology_class_set and ontology_relation_set.
+
+    :param source_ontology: The source ontology to load
+    :param output_directory: The directory to save reports
+    :param generate_reports: Whether to generate reports
+    :return: The number of records upserted
+    """
+    if output_directory is None:
+        output_directory = os.path.join(
+            os.getcwd(), "ontology_reports"
+        )  # Save reports in current working dir
+
+    print(f"Running Ontology Loader for ontology: {source_ontology}")
+
+    print(os.getenv("MONGO_HOST"))
+    print(os.getenv("MONGO_PORT"))
+    loader = OntologyLoaderController(
+        source_ontology=source_ontology,
+        output_directory=output_directory,
+        generate_reports=generate_reports,
+    )
+
+    try:
+        loader.run_ontology_loader()
+        print("Ontology load completed successfully!")
+    except Exception as e:
+        print(f"Error running ontology loader: {e}")
+
+    collection_names = ["ontology_class_set", "ontology_relation_set"]
+    context.log.info(f"Loading ENVO into  {collection_names=}")
+
+
+@op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
     This function re-creates the alldocs collection to reflect the current state of the Mongo database.
@@ -1106,12 +1143,14 @@ def materialize_alldocs(context) -> int:
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # InsertOne is a method on the py-mongo Client class.
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
                 write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(write_operations) > 0:
+            # here bulk_write is a method on the py-mongo db Client class
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(
