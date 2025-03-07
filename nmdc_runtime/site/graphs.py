@@ -110,6 +110,7 @@ def housekeeping():
 def ensure_alldocs():
     materialize_alldocs()
 
+
 @graph
 def load_ontology():
     load_ontology()
