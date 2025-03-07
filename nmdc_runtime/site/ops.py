@@ -11,7 +11,7 @@ from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
 from itertools import chain
-
+from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
 
@@ -1045,22 +1045,36 @@ def site_code_mapping() -> dict:
 
 
 @op(required_resource_keys={"mongo"})
-def load_ontology(context) -> int:
+def load_ontology(context, source_ontology="envo", output_directory=None, generate_reports=True) -> int:
     """
-    This function loads without any additional parameters, the ENVO ontology into the MongoDB database specified.
+    Run the OntologyLoaderController to load records from the source ontology into ontology_class_set and ontology_relation_set.
 
-    Noting that the ontology loader interacts with the ontology_class_set, and ontology_relation_set collections
-    only, and does upsert loads (meaning it will insert if the data item does not exist - as defined by the indexed key
-    structure on the class, and update slots/attributes of the collection otherwise).  It will also delete ontology-relation-set
-    documents that reference obsolete terms in the ontology.
-
-    :params context: The context object passed to the function by Dagster.
-    :return: The number of documents upserted into the MongoDB database.
+    :param source_ontology: The source ontology to load
+    :param output_directory: The directory to save reports
+    :param generate_reports: Whether to generate reports
+    :return: The number of records upserted
     """
+    if output_directory is None:
+        output_directory = os.path.join(os.getcwd(), "ontology_reports")  # Save reports in current working dir
+
+    print(f"Running Ontology Loader for ontology: {source_ontology}")
+
+    print(os.getenv("MONGO_HOST"))
+    print(os.getenv("MONGO_PORT"))
+    loader = OntologyLoaderController(
+        source_ontology=source_ontology,
+        output_directory=output_directory,
+        generate_reports=generate_reports
+    )
+
+    try:
+        loader.run_ontology_loader()
+        print("Ontology load completed successfully!")
+    except Exception as e:
+        print(f"Error running ontology loader: {e}")
+
     collection_names = ["ontology_class_set", "ontology_relation_set"]
     context.log.info(f"Loading ENVO into  {collection_names=}")
-    number_upserted = 0
-    return number_upserted
 
 
 @op(required_resource_keys={"mongo"})
