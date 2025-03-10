@@ -12,6 +12,8 @@ guarantees wrt a fixed "page size".
 """
 
 import datetime
+import logging
+import json
 
 from pydantic import BaseModel, Field
 from pymongo.database import Database as MongoDatabase
@@ -71,7 +73,10 @@ def dump_cc(m: BaseModel):
 
 def create_cc(query_cmd: QueryCmd, cmd_response: CommandResponse) -> QueryContinuation:
     """Creates query continuation from command and response, and persists continuation to database."""
-    last_id = str(cmd_response.cursor.batch[-1]["_id"])
+
+
+    last_id = json.dumps(cmd_response.cursor.batch[-1]["_id"])
+    logging.info(f"Last document ID for query continuation: {last_id}")
     cc = QueryContinuation(
         _id=generate_one_id(_mdb, "query_continuation"),
         query_cmd=query_cmd,
@@ -94,7 +99,8 @@ def last_doc__id_for_cc(cursor_continuation: QueryContinuation) -> str:
     Retrieve the last document _id for the given cursor continuation.
     """
     # Assuming cursor_continuation has an attribute `cursor` that stores the last document _id
-    return cursor_continuation.cursor
+    logging.info(f"Cursor for last doc query continuation: {cursor_continuation.cursor}")
+    return json.loads(cursor_continuation.cursor)
 
 
 def initial_query_for_cc(cursor_continuation: QueryContinuation) -> QueryCmd:

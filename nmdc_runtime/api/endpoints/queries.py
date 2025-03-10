@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import List
 
 import bson.json_util
@@ -117,6 +118,8 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
+    logging.info(f"Command type: {type(cmd).__name__}")
+    logging.info(f"Cursor ID: {cursor_id}")
 
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
@@ -219,13 +222,15 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 ["filter", "_id", "$gt"],
                 cc.last_doc__id_for_cc(cursor_continuation),
             )
-            query_cmd = FindCommand(**modified_cmd_doc)
+            cmd = FindCommand(**modified_cmd_doc)
         elif "aggregate" in initial_cmd_doc:
             # TODO assign `query` cmd to equivalent aggregate cmd.
             pass
 
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
     #  transform e.g. `{"$oid": "..."}` instances in model_dump to `ObjectId("...")` instances.
+    logging.info(f"Command JSON: {bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))}")
+
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
