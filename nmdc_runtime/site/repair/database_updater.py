@@ -199,8 +199,20 @@ class DatabaseUpdater:
             if gbs.get("biosampleGoldId") not in nmdc_gold_ids
         ]
 
+        # use the GOLD study id to fetch all sequencing project records associated with the study
+        gold_sequencing_projects_for_study = (
+            self.gold_api_client.fetch_projects_by_study(gold_study_id)
+        )
+
+        # use the GOLD study id to fetch all analysis project records associated with the study
+        gold_analysis_projects_for_study = (
+            self.gold_api_client.fetch_analysis_projects_by_study(gold_study_id)
+        )
+
         gold_study_translator = GoldStudyTranslator(
             biosamples=missing_gold_biosamples,
+            projects=gold_sequencing_projects_for_study,
+            analysis_projects=gold_analysis_projects_for_study,
             gold_nmdc_instrument_map_df=self.gold_nmdc_instrument_map_df,
         )
 
