@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 import requests_cache
@@ -61,6 +61,7 @@ class NeonBenthicDataTranslator(Translator):
             "mms_benthicMetagenomeSequencing",
             "mms_benthicMetagenomeDnaExtraction",
             "amb_fieldParent",
+            "mms_benthicRawDataFiles",  # <--- ensure this is present
         )
 
         if all(k in benthic_data for k in neon_amb_data_tables):
@@ -79,6 +80,12 @@ class NeonBenthicDataTranslator(Translator):
             benthic_data["amb_fieldParent"].to_sql(
                 "amb_fieldParent", self.conn, if_exists="replace", index=False
             )
+            benthic_data["mms_benthicRawDataFiles"].to_sql(
+                "mms_benthicRawDataFiles",
+                self.conn,
+                if_exists="replace",
+                index=False,
+            )
         else:
             raise ValueError(
                 f"You are missing one of the aquatic benthic microbiome tables: {neon_amb_data_tables}"
@@ -88,13 +95,18 @@ class NeonBenthicDataTranslator(Translator):
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
-        self.neon_raw_data_file_mappings_df.to_sql(
-            "neonRawDataFile", self.conn, if_exists="replace", index=False
-        )
+        self.neon_raw_data_file_mappings_df = benthic_data["mms_benthicRawDataFiles"]
 
         self.site_code_mapping = site_code_mapping
+
         self.neon_nmdc_instrument_map_df = neon_nmdc_instrument_map_df
+
+    def _translate_manifest(self, manifest_id: str) -> nmdc.Manifest:
+        return nmdc.Manifest(
+            id=manifest_id,
+            manifest_category=nmdc.ManifestCategoryEnum.poolable_replicates,
+            type="nmdc:Manifest",
+        )
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
@@ -313,7 +325,7 @@ class NeonBenthicDataTranslator(Translator):
         )
 
     def _translate_data_object(
-        self, do_id: str, url: str, do_type: str, checksum: str
+        self, do_id: str, url: str, do_type: str, manifest_id: str
     ) -> nmdc.DataObject:
         """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
@@ -324,7 +336,6 @@ class NeonBenthicDataTranslator(Translator):
         :param url: URL of zipped FASTQ file on NEON file server. Retrieved from file provided
         by Hugh Cross at NEON.
         :param do_type: Indicate whether it is FASTQ for Read 1 or Read 2 (paired end sequencing).
-        :param checksum: Checksum value for FASTQ in zip file, once again provided by Hugh Cross
         at NEON.
         :return: DataObject with all the sequencing file metadata.
         """
@@ -337,14 +348,14 @@ class NeonBenthicDataTranslator(Translator):
             url=url,
             description=f"sequencing results for {basename}",
             type="nmdc:DataObject",
-            md5_checksum=checksum,
             data_object_type=do_type,
+            in_manifest=manifest_id,
         )
 
-    def get_database(self):
+    def get_database(self) -> nmdc.Database:
         database = nmdc.Database()
 
-        query = """
+        join_query = """
             SELECT
                 merged.laboratoryName,
                 merged.sequencingFacilityID,
@@ -372,202 +383,190 @@ class NeonBenthicDataTranslator(Translator):
                 afp.siteID,
                 afp.sampleID,
                 afp.collectDate
-            FROM 
-                (
-                    SELECT
-                        bs.collectDate,
-                        bs.laboratoryName,
-                        bs.sequencingFacilityID,
-                        bs.processedDate,
-                        bs.dnaSampleID,
-                        bs.dnaSampleCode,
-                        bs.internalLabID,
-                        bs.instrument_model,
-                        bs.sequencingMethod,
-                        bs.investigation_type,
-                        bs.qaqcStatus,
-                        bs.ncbiProjectID,
-                        bd.genomicsSampleID,
-                        bd.sequenceAnalysisType,
-                        bd.sampleMass,
-                        bd.nucleicAcidConcentration
-                    FROM 
-                        mms_benthicMetagenomeSequencing AS bs
-                    JOIN 
-                        mms_benthicMetagenomeDnaExtraction AS bd
-                    ON 
-                        bs.dnaSampleID = bd.dnaSampleID
-                ) AS merged
+            FROM (
+                SELECT
+                    bs.collectDate,
+                    bs.laboratoryName,
+                    bs.sequencingFacilityID,
+                    bs.processedDate,
+                    bs.dnaSampleID,
+                    bs.dnaSampleCode,
+                    bs.internalLabID,
+                    bs.instrument_model,
+                    bs.sequencingMethod,
+                    bs.investigation_type,
+                    bs.qaqcStatus,
+                    bs.ncbiProjectID,
+                    bd.genomicsSampleID,
+                    bd.sequenceAnalysisType,
+                    bd.sampleMass,
+                    bd.nucleicAcidConcentration
+                FROM mms_benthicMetagenomeSequencing AS bs
+                JOIN mms_benthicMetagenomeDnaExtraction AS bd
+                ON bs.dnaSampleID = bd.dnaSampleID
+            ) AS merged
             LEFT JOIN amb_fieldParent AS afp
-            ON
-                merged.genomicsSampleID = afp.geneticSampleID
+            ON merged.genomicsSampleID = afp.geneticSampleID
         """
-        benthic_samples = pd.read_sql_query(query, self.conn)
+        benthic_samples = pd.read_sql_query(join_query, self.conn)
         benthic_samples.to_sql(
             "benthicSamples", self.conn, if_exists="replace", index=False
         )
 
-        neon_biosample_ids = benthic_samples["sampleID"]
-        nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
-        neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
+        sample_ids = benthic_samples["sampleID"]
+        nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_ids))
+        neon_to_nmdc_biosample_ids = dict(zip(sample_ids, nmdc_biosample_ids))
 
-        neon_extraction_ids = benthic_samples["sampleID"]
-        nmdc_extraction_ids = self._id_minter(
-            "nmdc:Extraction", len(neon_extraction_ids)
-        )
-        neon_to_nmdc_extraction_ids = dict(
-            zip(neon_extraction_ids, nmdc_extraction_ids)
-        )
+        nmdc_extraction_ids = self._id_minter("nmdc:Extraction", len(sample_ids))
+        neon_to_nmdc_extraction_ids = dict(zip(sample_ids, nmdc_extraction_ids))
 
-        neon_extraction_processed_ids = benthic_samples["sampleID"]
         nmdc_extraction_processed_ids = self._id_minter(
-            "nmdc:ProcessedSample", len(neon_extraction_processed_ids)
+            "nmdc:ProcessedSample", len(sample_ids)
         )
         neon_to_nmdc_extraction_processed_ids = dict(
-            zip(neon_extraction_processed_ids, nmdc_extraction_processed_ids)
+            zip(sample_ids, nmdc_extraction_processed_ids)
         )
 
-        neon_lib_prep_ids = benthic_samples["sampleID"]
-        nmdc_lib_prep_ids = self._id_minter(
-            "nmdc:LibraryPreparation", len(neon_lib_prep_ids)
-        )
-        neon_to_nmdc_lib_prep_ids = dict(zip(neon_lib_prep_ids, nmdc_lib_prep_ids))
+        nmdc_libprep_ids = self._id_minter("nmdc:LibraryPreparation", len(sample_ids))
+        neon_to_nmdc_libprep_ids = dict(zip(sample_ids, nmdc_libprep_ids))
 
-        neon_lib_prep_processed_ids = benthic_samples["sampleID"]
-        nmdc_lib_prep_processed_ids = self._id_minter(
-            "nmdc:ProcessedSample", len(neon_lib_prep_processed_ids)
+        nmdc_libprep_processed_ids = self._id_minter(
+            "nmdc:ProcessedSample", len(sample_ids)
         )
-        neon_to_nmdc_lib_prep_processed_ids = dict(
-            zip(neon_lib_prep_processed_ids, nmdc_lib_prep_processed_ids)
+        neon_to_nmdc_libprep_processed_ids = dict(
+            zip(sample_ids, nmdc_libprep_processed_ids)
         )
 
-        neon_omprc_ids = benthic_samples["sampleID"]
-        nmdc_omprc_ids = self._id_minter(
-            "nmdc:NucleotideSequencing", len(neon_omprc_ids)
-        )
-        neon_to_nmdc_omprc_ids = dict(zip(neon_omprc_ids, nmdc_omprc_ids))
+        nmdc_ntseq_ids = self._id_minter("nmdc:NucleotideSequencing", len(sample_ids))
+        neon_to_nmdc_ntseq_ids = dict(zip(sample_ids, nmdc_ntseq_ids))
 
-        neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
-        neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
-        nmdc_data_object_ids = self._id_minter(
-            "nmdc:DataObject", len(neon_raw_file_paths)
-        )
-        neon_to_nmdc_data_object_ids = dict(
-            zip(neon_raw_file_paths, nmdc_data_object_ids)
-        )
+        raw_df = self.neon_raw_data_file_mappings_df
+        raw_file_paths = raw_df["rawDataFilePath"]
+        dataobject_ids = self._id_minter("nmdc:DataObject", len(raw_file_paths))
+        neon_to_nmdc_dataobject_ids = dict(zip(raw_file_paths, dataobject_ids))
 
-        for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
-            biosample_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+        for neon_id, biosample_id in neon_to_nmdc_biosample_ids.items():
+            row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+            if row.empty:
+                continue
 
+            # Example of how you might call _translate_biosample:
             database.biosample_set.append(
-                self._translate_biosample(neon_id, nmdc_id, biosample_row)
+                self._translate_biosample(neon_id, biosample_id, row)
             )
 
-        for neon_id, nmdc_id in neon_to_nmdc_extraction_ids.items():
-            extraction_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+        for neon_id, extraction_id in neon_to_nmdc_extraction_ids.items():
+            row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+            if row.empty:
+                continue
 
-            extraction_input = neon_to_nmdc_biosample_ids.get(neon_id)
-            processed_sample_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
+            biosample_id = neon_to_nmdc_biosample_ids.get(neon_id)
+            extraction_ps_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
 
-            if extraction_input is not None and processed_sample_id is not None:
+            if biosample_id and extraction_ps_id:
                 database.material_processing_set.append(
                     self._translate_extraction_process(
-                        nmdc_id,
-                        extraction_input,
-                        processed_sample_id,
-                        extraction_row,
+                        extraction_id, biosample_id, extraction_ps_id, row
                     )
                 )
-
-                genomics_sample_id = _get_value_or_none(
-                    extraction_row, "genomicsSampleID"
-                )
-
+                genomics_sample_id = _get_value_or_none(row, "genomicsSampleID")
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id,
+                        extraction_ps_id,
                         f"Extracted DNA from {genomics_sample_id}",
                     )
                 )
 
-        query = """
+        query2 = """
             SELECT dnaSampleID, GROUP_CONCAT(rawDataFilePath, '|') AS rawDataFilePaths
-            FROM neonRawDataFile
+            FROM mms_benthicRawDataFiles
             GROUP BY dnaSampleID
         """
-        neon_raw_data_files = pd.read_sql_query(query, self.conn)
-        neon_raw_data_files_dict = (
-            neon_raw_data_files.set_index("dnaSampleID")["rawDataFilePaths"]
+        raw_data_files_df = pd.read_sql_query(query2, self.conn)
+        dna_files_dict = (
+            raw_data_files_df.set_index("dnaSampleID")["rawDataFilePaths"]
             .str.split("|")
             .to_dict()
         )
-        filtered_neon_raw_data_files_dict = {
-            key: value
-            for key, value in neon_raw_data_files_dict.items()
-            if len(value) <= 2
-        }
 
-        for neon_id, nmdc_id in neon_to_nmdc_lib_prep_ids.items():
-            lib_prep_row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+        dna_sample_to_manifest_id: dict[str, str] = {}
 
-            lib_prep_input = neon_to_nmdc_extraction_processed_ids.get(neon_id)
-            processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(neon_id)
+        for neon_id, libprep_id in neon_to_nmdc_libprep_ids.items():
+            row = benthic_samples[benthic_samples["sampleID"] == neon_id]
+            if row.empty:
+                continue
 
-            if lib_prep_input is not None and processed_sample_id is not None:
-                database.material_processing_set.append(
-                    self._translate_library_preparation(
-                        nmdc_id,
-                        lib_prep_input,
-                        processed_sample_id,
-                        lib_prep_row,
+            extr_ps_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
+            libprep_ps_id = neon_to_nmdc_libprep_processed_ids.get(neon_id)
+            if not extr_ps_id or not libprep_ps_id:
+                continue
+
+            database.material_processing_set.append(
+                self._translate_library_preparation(
+                    libprep_id, extr_ps_id, libprep_ps_id, row
+                )
+            )
+
+            dna_sample_id = _get_value_or_none(row, "dnaSampleID")
+            database.processed_sample_set.append(
+                self._translate_processed_sample(
+                    libprep_ps_id,
+                    f"Library preparation for {dna_sample_id}",
+                )
+            )
+
+            filepaths_for_dna: list[str] = dna_files_dict.get(dna_sample_id, [])
+            if not filepaths_for_dna:
+                # no raw files => skip
+                ntseq_id = neon_to_nmdc_ntseq_ids.get(neon_id)
+                if ntseq_id:
+                    continue
+                continue
+
+            # If multiple => we create a Manifest
+            manifest_id: Optional[str] = None
+            if len(filepaths_for_dna) > 2:
+                if dna_sample_id not in dna_sample_to_manifest_id:
+                    new_man_id = self._id_minter("nmdc:Manifest", 1)[0]
+                    dna_sample_to_manifest_id[dna_sample_id] = new_man_id
+                    database.manifest_set.append(self._translate_manifest(new_man_id))
+                manifest_id = dna_sample_to_manifest_id[dna_sample_id]
+
+            has_input_value = self.samp_procsm_dict.get(neon_id)
+            if not has_input_value:
+                continue
+
+            dataobject_ids_for_run: list[str] = []
+            for fp in filepaths_for_dna:
+                if fp not in neon_to_nmdc_dataobject_ids:
+                    continue
+                do_id = neon_to_nmdc_dataobject_ids[fp]
+
+                do_type = None
+                if "_R1.fastq.gz" in fp:
+                    do_type = "Metagenome Raw Read 1"
+                elif "_R2.fastq.gz" in fp:
+                    do_type = "Metagenome Raw Read 2"
+
+                database.data_object_set.append(
+                    self._translate_data_object(
+                        do_id=do_id,
+                        url=fp,
+                        do_type=do_type,
+                        manifest_id=manifest_id,
                     )
                 )
+                dataobject_ids_for_run.append(do_id)
 
-                dna_sample_id = _get_value_or_none(lib_prep_row, "dnaSampleID")
-
-                database.processed_sample_set.append(
-                    self._translate_processed_sample(
-                        processed_sample_id,
-                        f"Library preparation for {dna_sample_id}",
+            ntseq_id = neon_to_nmdc_ntseq_ids.get(neon_id)
+            if ntseq_id:
+                database.data_generation_set.append(
+                    self._translate_nucleotide_sequencing(
+                        ntseq_id,
+                        has_input_value,  # <--- from self.samp_procsm_dict
+                        dataobject_ids_for_run,
+                        row,
                     )
                 )
-
-                has_output = None
-                has_output_do_ids = []
-
-                if dna_sample_id in filtered_neon_raw_data_files_dict:
-                    has_output = filtered_neon_raw_data_files_dict[dna_sample_id]
-                    for item in has_output:
-                        if item in neon_to_nmdc_data_object_ids:
-                            has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
-
-                        checksum = None
-                        do_type = None
-
-                        checksum = neon_raw_data_file_mappings_df[
-                            neon_raw_data_file_mappings_df["rawDataFilePath"] == item
-                        ]["checkSum"].values[0]
-                        if "_R1.fastq.gz" in item:
-                            do_type = "Metagenome Raw Read 1"
-                        elif "_R2.fastq.gz" in item:
-                            do_type = "Metagenome Raw Read 2"
-
-                        database.data_object_set.append(
-                            self._translate_data_object(
-                                neon_to_nmdc_data_object_ids.get(item),
-                                item,
-                                do_type,
-                                checksum,
-                            )
-                        )
-
-                    database.data_generation_set.append(
-                        self._translate_nucleotide_sequencing(
-                            neon_to_nmdc_omprc_ids.get(neon_id),
-                            processed_sample_id,
-                            has_output_do_ids,
-                            lib_prep_row,
-                        )
-                    )
 
         return database

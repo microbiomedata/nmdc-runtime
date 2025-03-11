@@ -1,30 +1,19 @@
 import gzip
-import json
 import os
-from collections import defaultdict
-from contextlib import AbstractContextManager
 from functools import lru_cache
-from typing import Set, Dict, Any, Iterable
-from uuid import uuid4
+from typing import Set
 
 import bson
-from linkml_runtime import SchemaView
-from nmdc_schema.get_nmdc_view import ViewGetter
-from nmdc_schema.nmdc_data import get_nmdc_schema_definition
-from pymongo.errors import OperationFailure, AutoReconnect
+from pymongo.errors import AutoReconnect
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pydantic import BaseModel, conint
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
-from toolz import concat, merge, unique, dissoc
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.util import (
-    get_nmdc_jsonschema_dict,
-    schema_collection_names_with_id_field,
     nmdc_schema_view,
     collection_name_to_class_names,
 )
-from pymongo import MongoClient, ReplaceOne
+from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 
 
@@ -39,13 +28,26 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
 
 
 @lru_cache
-def get_mongo_db() -> MongoDatabase:
-    _client = MongoClient(
+def get_mongo_client() -> MongoClient:
+    r"""
+    Returns a `MongoClient` instance you can use to access the MongoDB server specified via environment variables.
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html#pymongo.mongo_client.MongoClient
+    """
+    return MongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
     )
+
+
+@lru_cache
+def get_mongo_db() -> MongoDatabase:
+    r"""
+    Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
+    """
+    _client = get_mongo_client()
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
     return mdb
@@ -95,6 +97,9 @@ def get_collection_names_from_schema() -> list[str]:
 
 @lru_cache
 def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
+    r"""
+    TODO: Document this function.
+    """
     return get_nonempty_nmdc_schema_collection_names(mdb) - {
         "biosample_set",
         "study_set",

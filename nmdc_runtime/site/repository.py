@@ -753,7 +753,7 @@ def biosample_submission_ingest():
                         "config": {
                             "benthic_data_product": {
                                 "product_id": "DP1.20279.001",
-                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
+                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent, mms_mms_benthicRawDataFiles",
                             }
                         }
                     },
@@ -780,7 +780,7 @@ def biosample_submission_ingest():
                         "config": {
                             "benthic_data_product": {
                                 "product_id": "DP1.20279.001",
-                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
+                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent, mms_mms_benthicRawDataFiles",
                             }
                         }
                     },

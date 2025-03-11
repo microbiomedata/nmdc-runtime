@@ -1,33 +1,39 @@
 services:
-  # This service runs the postgres DB used by dagster for run storage, schedule storage,
-  # and event log storage.
-  # Tests use `postgres:11` image.
-  # https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
+
+  # Postgres server used by Dagster.
+  #
+  # > This service runs the postgres DB used by dagster for run storage, schedule storage,
+  # > and event log storage.
+  # > Tests use `postgres:11` image.
+  # > https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
+  #
   dagster-postgresql:
     image: postgres:11
     container_name: dagster-postgresql
-    volumes:
-      - nmdc_runtime_postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: "postgres_user"
       POSTGRES_PASSWORD: "postgres_password"
       POSTGRES_DB: "postgres_db"
+    volumes:
+      - nmdc_runtime_postgres_data:/var/lib/postgresql/data
 
-  # This service runs dagit.
-  # Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
-  # a queue and later dequeued and launched by dagster-daemon.
+  # Web server that hosts the Dagster web UI.
+  #
+  # > This service runs dagit.
+  # > Since our instance uses the QueuedRunCoordinator, any runs submitted from dagit will be put on
+  # > a queue and later dequeued and launched by dagster-daemon.
+  #
   dagster-dagit:
     build:
       context: .
-      dockerfile: nmdc_runtime/dagster.Dockerfile
+      dockerfile: nmdc_runtime/Dockerfile
+      target: dagster
     container_name: dagster-dagit
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
     expose:
       - "3000"
     ports:
       - "3000:3000"
-    env_file:
-      - .env
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -37,62 +43,90 @@ services:
     restart: on-failure
     volumes:
       - ./:/opt/dagster/lib
+    env_file: .env
 
-  # This service runs the dagster-daemon process, which is responsible for taking runs
-  # off of the queue and launching them, as well as creating runs from schedules or sensors.
+  # Dagster daemon.
+  #
+  # > This service runs the dagster-daemon process, which is responsible for taking runs
+  # > off of the queue and launching them, as well as creating runs from schedules or sensors.
+  #
   dagster-daemon:
     build:
       context: .
-      dockerfile: nmdc_runtime/dagster.Dockerfile
+      dockerfile: nmdc_runtime/Dockerfile
+      target: dagster
     container_name: dagster-daemon
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-daemon.sh"]
     restart: on-failure
-    env_file:
-      - .env
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
-      - dagster-postgresql
+      dagster-postgresql: { condition: service_started }
+      # Wait until the MongoDB replica set has been set up by the "init container"
+      # before starting this Dagster daemon container.
+      mongo-init: { condition: service_completed_successfully }
     volumes:
       - ./:/opt/dagster/lib
+    env_file: .env
 
+  # Uvicorn server hosting the FastAPI application.
   fastapi:
     build:
       context: .
-      dockerfile: nmdc_runtime/fastapi.Dockerfile
+      dockerfile: nmdc_runtime/Dockerfile
+      target: fastapi
     container_name: fastapi
     ports:
       - "8000:8000"
-    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
-    env_file:
-      - .env
-    depends_on:
-      - mongo
     volumes:
       - .:/code
+    # Wait until the MongoDB replica set has been set up by the "init container"
+    # before starting this FastAPI container.
+    depends_on:
+      mongo-init: { condition: service_completed_successfully }
+    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+    env_file: .env
 
+  # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
+  mongo-init:
+    image: mongo:8.0.4
+    container_name: mongo-init
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh:ro
+      - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
+    depends_on:
+      mongo: { condition: service_started }
+    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
+
+  # MongoDB server used by the FastAPI application.
+  # TODO: Why does this service, which is in the dev—not test—stack, mount a volume named `tests` — is that intentional?
   mongo:
-    image: mongo:6.0.4
+    image: mongo:8.0.4
     container_name: mongo
     ports:
       - "27018:27017"
-    volumes:
-      - nmdc_runtime_mongo_data:/data/db
-      - ./tests:/app_tests
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: root
-
+    # Configure MongoDB to run in replica set mode, so we can use MongoDB transactions.
+    #
+    # Note: Including a KeyFile is necessary when doing the combination of (a) running MongoDB in
+    #       replica set mode and (b) running MongoDB with authentication enabled.
+    #
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile"]
+    volumes:
+      - nmdc_runtime_mongo_data:/data/db
+      - ./mongoKeyFile:/keyFile:ro
+      - ./tests:/app_tests
 
 volumes:
   nmdc_runtime_postgres_data:
     driver: local
   nmdc_runtime_mongo_data:
     driver: local
-
 
 secrets:
   mongoKeyFile:
