@@ -74,7 +74,7 @@ def dump_cc(m: BaseModel):
 def create_cc(query_cmd: QueryCmd, cmd_response: CommandResponse) -> QueryContinuation:
     """Creates query continuation from command and response, and persists continuation to database."""
 
-
+    logging.info(f"cmd_response: {cmd_response}")
     last_id = json.dumps(cmd_response.cursor.batch[-1]["_id"])
     logging.info(f"Last document ID for query continuation: {last_id}")
     cc = QueryContinuation(

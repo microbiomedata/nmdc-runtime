@@ -225,7 +225,17 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             cmd = FindCommand(**modified_cmd_doc)
         elif "aggregate" in initial_cmd_doc:
             # TODO assign `query` cmd to equivalent aggregate cmd.
-            pass
+            initial_cmd_doc['pipeline'].append(
+                {"$match": {"_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}}
+            })
+            modified_cmd_doc = assoc_in(
+                initial_cmd_doc,
+                ["pipeline"],
+                initial_cmd_doc["pipeline"] + [{"$match": {"_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}}}]
+            )
+
+            cmd = AggregateCommand(**modified_cmd_doc)
+
 
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
     #  transform e.g. `{"$oid": "..."}` instances in model_dump to `ObjectId("...")` instances.
@@ -267,9 +277,16 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
 
     # Cursor-command response? Prep runtime-managed cursor id and replace mongo session cursor id in response.
     cursor_continuation = None
+    # TODO: Handle empty cursor response or situations where batch < batchSize.
+
     if isinstance(cmd, AggregateCommand):
         # TODO
-        cursor_continuation = cc.create_cc(cmd_response)
+        cursor_continuation = cc.create_cc(
+            cmd, CursorYieldingCommandResponse.slimmed(cmd_response)
+        )
+        cmd_response.cursor.id = (
+            None if cmd_response.cursor.id == "0" else cursor_continuation.id
+        )
     elif isinstance(cmd, FindCommand):
         cursor_continuation = cc.create_cc(
             cmd, CursorYieldingCommandResponse.slimmed(cmd_response)
