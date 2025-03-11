@@ -14,5 +14,5 @@ twine
 requests-cache
 pytest-mock
 python-dotenv
-ontology-loader==0.1.5
+ontology-loader==0.1.6
 linkml-store
