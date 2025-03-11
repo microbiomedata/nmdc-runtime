@@ -99,7 +99,9 @@ def last_doc__id_for_cc(cursor_continuation: QueryContinuation) -> str:
     Retrieve the last document _id for the given cursor continuation.
     """
     # Assuming cursor_continuation has an attribute `cursor` that stores the last document _id
-    logging.info(f"Cursor for last doc query continuation: {cursor_continuation.cursor}")
+    logging.info(
+        f"Cursor for last doc query continuation: {cursor_continuation.cursor}"
+    )
     return json.loads(cursor_continuation.cursor)
 
 

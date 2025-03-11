@@ -225,21 +225,33 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             cmd = FindCommand(**modified_cmd_doc)
         elif "aggregate" in initial_cmd_doc:
             # TODO assign `query` cmd to equivalent aggregate cmd.
-            initial_cmd_doc['pipeline'].append(
-                {"$match": {"_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}}
-            })
+            initial_cmd_doc["pipeline"].append(
+                {
+                    "$match": {
+                        "_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}
+                    }
+                }
+            )
             modified_cmd_doc = assoc_in(
                 initial_cmd_doc,
                 ["pipeline"],
-                initial_cmd_doc["pipeline"] + [{"$match": {"_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}}}]
+                initial_cmd_doc["pipeline"]
+                + [
+                    {
+                        "$match": {
+                            "_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}
+                        }
+                    }
+                ],
             )
 
             cmd = AggregateCommand(**modified_cmd_doc)
 
-
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
     #  transform e.g. `{"$oid": "..."}` instances in model_dump to `ObjectId("...")` instances.
-    logging.info(f"Command JSON: {bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))}")
+    logging.info(
+        f"Command JSON: {bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))}"
+    )
 
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
