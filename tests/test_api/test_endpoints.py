@@ -49,6 +49,15 @@ SCHEMA_COLLECTIONS_EXCLUDED = {
 
 
 def ensure_schema_collections_local_filesystem_cache():
+    r"""
+    Downloads the dumps of MongoDB collections that are not already present in a local directory.
+    
+    Parameters: 
+    - It downloads dumps from the remote host specified via `MONGODUMP_URL_PREFIX`.
+    - It downloads the dumps into the local directory specified via `MONGODUMP_DIR`.
+    - It does not download dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
+    """
+
     # download collections into "nmdc" db namespace
     db_dir = MONGODUMP_DIR / "nmdc"
     db_dir.mkdir(exist_ok=True)
@@ -64,6 +73,15 @@ def ensure_schema_collections_local_filesystem_cache():
 
 
 def ensure_schema_collections_loaded():
+    r"""
+    Downloads any missing MongoDB collection dumps from a remote host into a local directory,
+    then restores any non-empty dumps in that directory into the MongoDB database.
+
+    Parameters:
+    - It looks for the dumps in the local directory specified via `MONGODUMP_DIR`.
+    - It does not restore dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
+    """
+
     ensure_schema_collections_local_filesystem_cache()
     mdb = get_mongo_db()
     for name in get_collection_names_from_schema():
