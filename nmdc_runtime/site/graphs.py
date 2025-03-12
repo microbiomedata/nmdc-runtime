@@ -112,8 +112,18 @@ def ensure_alldocs():
 
 
 @graph
-def run_ontology_load():
-    load_ontology()
+def run_envo_ontology_load():
+    load_ontology(source_ontology="envo")
+
+
+@graph
+def run_uberon_ontology_load():
+    load_ontology(source_ontology="uberon")
+
+
+@graph
+def run_po_ontology_load():
+    load_ontology(source_ontology="po")
 
 
 @graph

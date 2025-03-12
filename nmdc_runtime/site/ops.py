@@ -1078,7 +1078,7 @@ def load_ontology(
         print(f"Error running ontology loader: {e}")
 
     collection_names = ["ontology_class_set", "ontology_relation_set"]
-    context.log.info(f"Loading ENVO into  {collection_names=}")
+    context.log.info(f"Loading {source_ontology} into {collection_names=}")
 
 
 @op(required_resource_keys={"mongo"})

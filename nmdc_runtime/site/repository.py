@@ -44,7 +44,9 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
-    run_ontology_load,
+    run_envo_ontology_load,
+    run_uberon_ontology_load,
+    run_po_ontology_load,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
 )
@@ -124,10 +126,24 @@ ensure_alldocs_daily = ScheduleDefinition(
 )
 
 load_envo_ontology_weekly = ScheduleDefinition(
-    name="weekly_load_ontology",
-    cron_schedule="0 9 * * 1",  # Runs at 3 AM every Monday
+    name="weekly_load_envo_ontology",
+    cron_schedule="0 9 * * 1",  # Runs at 9 AM every Monday
     execution_timezone="America/New_York",
-    job=run_ontology_load.to_job(**preset_normal),
+    job=run_envo_ontology_load.to_job(**preset_normal),
+)
+
+load_uberon_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_uberon_ontology",
+    cron_schedule="0 10 * * 1",  # Runs at 10 AM every Monday
+    execution_timezone="America/New_York",
+    job=run_uberon_ontology_load.to_job(**preset_normal),
+)
+
+load_po_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_po_ontology",
+    cron_schedule="0 11 * * 1",  # Runs at 11 AM every Monday
+    execution_timezone="America/New_York",
+    job=run_po_ontology_load.to_job(**preset_normal),
 )
 
 
@@ -469,9 +485,11 @@ def repo():
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
-        run_ontology_load.to_job(**preset_normal),
+        run_envo_ontology_load.to_job(**preset_normal),
+        run_uberon_ontology_load.to_job(**preset_normal),
+        run_po_ontology_load.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly, ensure_alldocs_daily, load_envo_ontology_weekly]
+    schedules = [housekeeping_weekly, ensure_alldocs_daily, load_envo_ontology_weekly, load_uberon_ontology_weekly, load_po_ontology_weekly]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
