@@ -26,7 +26,7 @@ mkdocs-material
 mkdocs-mermaid2-plugin
 motor
 python-dotenv
-ontology-loader==0.1.6
+ontology-loader==0.1.7
 linkml-store
 nmdc-schema==11.4.0
 openpyxl

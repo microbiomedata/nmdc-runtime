@@ -123,7 +123,7 @@ ensure_alldocs_daily = ScheduleDefinition(
     job=ensure_alldocs.to_job(**preset_normal),
 )
 
-load_ontology_weekly = ScheduleDefinition(
+load_envo_ontology_weekly = ScheduleDefinition(
     name="weekly_load_ontology",
     cron_schedule="0 9 * * 1",  # Runs at 3 AM every Monday
     execution_timezone="America/New_York",
@@ -471,7 +471,7 @@ def repo():
         ensure_alldocs.to_job(**preset_normal),
         run_ontology_load.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly, ensure_alldocs_daily, load_ontology_weekly]
+    schedules = [housekeeping_weekly, ensure_alldocs_daily, load_envo_ontology_weekly]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
