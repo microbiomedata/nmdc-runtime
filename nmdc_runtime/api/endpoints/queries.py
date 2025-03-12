@@ -290,9 +290,13 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Cursor-command response? Prep runtime-managed cursor id and replace mongo session cursor id in response.
     cursor_continuation = None
     # TODO: Handle empty cursor response or situations where batch < batchSize.
-
+    if isinstance(cmd, CursorYieldingCommand) and cmd_response.cursor.id == "0":
+        # No cursor id returned. No need to create a continuation.
+        cmd_response.cursor.id = None
+        return cmd_response
+    
+    # Cursor id returned. Create a continuation.
     if isinstance(cmd, AggregateCommand):
-        # TODO
         cursor_continuation = cc.create_cc(
             cmd, CursorYieldingCommandResponse.slimmed(cmd_response)
         )
@@ -315,5 +319,6 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         cmd_response.cursor.id = (
             None if cmd_response.cursor.id == "0" else cursor_continuation.id
         )
+        # TODO: remove print
         print(f"getmore:{cmd_response.cursor.id=}")
     return cmd_response
