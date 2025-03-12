@@ -869,6 +869,22 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
+def test_run_query_find__cursor_id_is_null_when_batch_is_empty(api_user_client):
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"id": "nmdc:sty-00-00000000"},  # a contrived `id` of a non-existent study
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "cursor" in payload
+    assert payload["cursor"]["id"] is None  # i.e., no more batches to fetch
+    assert len(payload["cursor"]["batch"]) == 0
+
+
 def test_run_query_find_with_continuation(api_user_client):
     # Example taken from <https://github.com/microbiomedata/nmdc-runtime/issues/434#issue-2074885218>
     response = api_user_client.request(
@@ -883,7 +899,7 @@ def test_run_query_find_with_continuation(api_user_client):
     assert response.status_code == 200
     assert "cursor" in response.json()
     cursor = response.json()["cursor"]
-    assert cursor["id"] != "0"  # i.e., there is another batch to fetch
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
     assert len(cursor["batch"]) == 5
 
     ids = [doc["id"] for doc in cursor["batch"]]
@@ -900,7 +916,7 @@ def test_run_query_find_with_continuation(api_user_client):
     assert response.status_code == 200
     assert "cursor" in response.json()
     get_more_cursor = response.json()["cursor"]
-    assert get_more_cursor["id"] != "0"  # i.e., there is another batch to fetch
+    assert get_more_cursor["id"] is not None  # i.e., there is another batch to fetch
     assert len(get_more_cursor["batch"]) == 5
     get_more_ids = [doc["id"] for doc in get_more_cursor["batch"]]
     # Check that the ids are different  
@@ -954,4 +970,4 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     assert response.status_code == 200
     assert "cursor" in response.json()
     cursor = response.json()["cursor"]
-    assert cursor["id"] != "0"  # i.e., there is another batch to fetch
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
