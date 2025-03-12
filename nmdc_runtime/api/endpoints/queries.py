@@ -294,7 +294,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # No cursor id returned. No need to create a continuation.
         cmd_response.cursor.id = None
         return cmd_response
-    
+
     # Cursor id returned. Create a continuation.
     if isinstance(cmd, AggregateCommand):
         cursor_continuation = cc.create_cc(
