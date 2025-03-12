@@ -869,7 +869,7 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
-def test_run_query_find__cursor_id_is_null_when_batch_is_empty(api_user_client):
+def test_run_query_find__cursor_id_is_null_when_first_batch_is_empty(api_user_client):
     response = api_user_client.request(
         "POST",
         "/queries:run",
