@@ -88,7 +88,6 @@ services:
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:
     image: mongo:8.0.4
-    container_name: mongo-init
     volumes:
       - ./wait-for-it.sh:/wait-for-it.sh:ro
       - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
