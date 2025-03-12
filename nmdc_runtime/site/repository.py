@@ -489,7 +489,13 @@ def repo():
         run_uberon_ontology_load.to_job(**preset_normal),
         run_po_ontology_load.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly, ensure_alldocs_daily, load_envo_ontology_weekly, load_uberon_ontology_weekly, load_po_ontology_weekly]
+    schedules = [
+        housekeeping_weekly,
+        ensure_alldocs_daily,
+        load_envo_ontology_weekly,
+        load_uberon_ontology_weekly,
+        load_po_ontology_weekly,
+    ]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
