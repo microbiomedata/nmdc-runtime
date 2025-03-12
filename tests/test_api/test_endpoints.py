@@ -877,12 +877,34 @@ def test_run_query_find_with_continuation(api_user_client):
         {
             "find": "data_generation_set",
             "filter": {"associated_studies": "nmdc:sty-11-aygzgv51"},
+            "batchSize": 5, 
         },
     )
     assert response.status_code == 200
     assert "cursor" in response.json()
     cursor = response.json()["cursor"]
     assert cursor["id"] != "0"  # i.e., there is another batch to fetch
+    assert len(cursor["batch"]) == 5
+
+    ids = [doc["id"] for doc in cursor["batch"]]
+
+
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+            "batchSize": 5,
+        },
+    )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+    get_more_cursor = response.json()["cursor"]
+    assert get_more_cursor["id"] != "0"  # i.e., there is another batch to fetch
+    assert len(get_more_cursor["batch"]) == 5
+    get_more_ids = [doc["id"] for doc in get_more_cursor["batch"]]
+    # Check that the ids are different  
+    assert len(set(ids).intersection(get_more_ids)) == 0
 
 
 @pytest.mark.skip(reason="Skipping because aggregation with continuation not implemented")
