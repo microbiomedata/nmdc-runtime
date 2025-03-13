@@ -67,8 +67,11 @@ test-reset-db:
 
 # Uses Docker Compose to spin up the `test` container (i.e. the test runner), effectively running the tests.
 #
-# Tip: If you append a file path to this "recipe", pytest will run only the tests defined in that file.
-#      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
+# Tip: If you append `ARGS=` and a file path to the `make` command, pytest will run only the tests defined in that file.
+#      For example, to run only the tests defined in `tests/test_api/test_endpoints.py`:
+#      ```
+#      $ make test-run ARGS="tests/test_api/test_endpoints.py"
+#      ```
 #
 test-run:
 	docker compose --file docker-compose.test.yml run test $(ARGS)
