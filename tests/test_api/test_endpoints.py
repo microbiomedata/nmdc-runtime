@@ -962,6 +962,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
                         "as": "do_output",
                     }
                 },
+                {"$limit": 10},
             ],
             # TODO: Why is this "lever" (whether the MongoDB server can use a disk) being exposed to the API client?
             #       Also, according to the MongoDB docs, this is effectively `True` by default:
@@ -970,13 +971,14 @@ def test_run_query_aggregate_with_continuation(api_user_client):
             #       Reference: https://www.mongodb.com/docs/manual/reference/method/cursor.allowDiskUse
             #
             "allowDiskUse": True,
+            "cursor": {"batchSize": 5},
         },
     )
     assert response.status_code == 200
     assert "cursor" in response.json()
     cursor = response.json()["cursor"]
     items_in_batch_1 = cursor["batch"]
-    assert len(items_in_batch_1) > 0
+    assert len(items_in_batch_1) == 5
     assert cursor["id"] is not None  # i.e., there is another batch to fetch
 
     # Fetch "more" results.
@@ -991,7 +993,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     assert "cursor" in response.json()
     cursor = response.json()["cursor"]
     items_in_batch_2 = cursor["batch"]
-    assert len(items_in_batch_2) > 0
+    assert len(items_in_batch_2) == 5
     assert cursor["id"] is not None  # i.e., there is _yet_ another batch to fetch
 
     # Confirm the documents in the second batch are distinct from the ones in the first batch.
@@ -999,3 +1001,18 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     ids_in_batch_1 = [item["id"] for item in items_in_batch_1]
     ids_in_batch_2 = [item["id"] for item in items_in_batch_2]
     assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_2))) == 0
+
+    # Fetch "more" results again.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    assert "cursor" in response.json()
+    cursor = response.json()["cursor"]
+    items_in_batch_3 = cursor["batch"]
+    assert len(items_in_batch_3) == 0
+    assert cursor["id"] is None  # i.e., no more batches to fetch
