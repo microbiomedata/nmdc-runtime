@@ -357,7 +357,7 @@ jupytext==1.16.6
     # via mkdocs-jupyter
 lazy-model==0.2.0
     # via beanie
-linkml==1.8.6
+linkml==1.8.5
     # via
     #   -r requirements/main.in
     #   nmdc-schema
@@ -443,7 +443,7 @@ nbformat==5.10.4
     #   nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-nmdc-schema==11.4.0
+nmdc-schema==11.5.1
     # via -r requirements/main.in
 notebook==7.3.2
     # via jupyter
@@ -819,7 +819,6 @@ typing-extensions==4.12.2
     #   fastapi
     #   graphene
     #   ipython
-    #   linkml
     #   mistune
     #   multidict
     #   pydantic
