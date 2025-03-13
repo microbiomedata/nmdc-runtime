@@ -63,42 +63,89 @@ def run_query(
     user: User = Depends(get_current_active_user),
 ):
     """
-    Allows `find`, `aggregate`, `update`, `delete`, etc. commands for users with permissions.
+    Performs `find`, `aggregate`, `update`, `delete`, etc. commands for users with permissions.
 
-    For `find` and `aggregate`, a `cursor` `id` may be returned, which can be used with a `getMore` command
-    to retrieve the next `batch` of documents. Note that the maximum size of the response payload is 16MB, so
-    you may need to set the `batchSize` parameter appropriately for `find` or `aggregate`.
+    For `find` and `aggregate` commands, the requested items will be in `cursor.batch`.
+    Whenever there _may_ be more items available, the response will include a non-null `cursor.id`.
+    To retrieve the next batch of items, submit a request with `getMore` set to that `cursor.id` value.
+    When the response includes a null `cursor.id`, there are no more items available.
 
-    Examples:
+    Note that the maximum size of the response payload is 16 MB. You can use the `batchSize` (or `cursor.batchSize`)
+    request body property—along with some trial and error—to ensure the response payload size remains under that limit.
+
+    **Example request bodies:**
+
+    Get all\* biosamples.
     ```
     {
       "find": "biosample_set",
       "filter": {}
     }
+    ```
 
+    Get all\* biosamples associated with a given study.
+    ```
     {
       "find": "biosample_set",
       "filter": {"associated_studies": "nmdc:sty-11-34xj1150"}
     }
+    ```
 
+    \*<small>Up to 101, which is the default "batchSize" for the "find" command.</small>
+
+    Get up to 200 biosamples associated with a given study.
+    ```
+    {
+      "find": "biosample_set",
+      "filter": {"associated_studies": "nmdc:sty-11-34xj1150"},
+      "batchSize": 200
+    }
+    ```
+
+    Delete a biosample having a given `id`.
+    ```
     {
       "delete": "biosample_set",
       "deletes": [{"q": {"id": "A_BIOSAMPLE_ID"}, "limit": 1}]
     }
+    ```
 
+    Rename all biosamples having a given `id`.
+    ```
     {
       "update": "biosample_set",
       "updates": [{"q": {"id": "A_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
     }
+    ```
 
+    Get all\* biosamples, sorted by the number of studies associated with them (most to least).
+    ```
+    {
+      "aggregate": "biosample_set",
+      "pipeline": [{"$sortByCount": "$associated_studies"}]
+    }
+    ```
+
+    \*<small>Up to 25, which is the default "batchSize" for the "aggregate" command.</small>
+
+    Get up to 10 biosamples with the largest numbers of studies associated with them,
+    sorted by that number of studies (most to least).
+    ```
     {
       "aggregate": "biosample_set",
       "pipeline": [{"$sortByCount": "$associated_studies"}],
-      "cursor": {"batchSize": 25}
+      "cursor": {"batchSize": 10}
+    }
+    ```
+
+    Use the `cursor.id` from a previous response to get the next batch of results,
+    whether that batch is empty or non-empty.
+    ```
+    {
+      "getMore": "somecursorid",
     }
     ```
     """
-    # TODO: Add an example payload that includes the `getMore` command.
 
     # If the command is one that requires the user to have specific permissions, check for those permissions now.
     # Note: The permission-checking function will raise an exception if the user lacks those permissions.
@@ -246,6 +293,11 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             )
 
             cmd = AggregateCommand(**modified_cmd_doc)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Invalid cursor continuation. Could not determine originating query.",
+            )
 
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
     #  transform e.g. `{"$oid": "..."}` instances in model_dump to `ObjectId("...")` instances.
