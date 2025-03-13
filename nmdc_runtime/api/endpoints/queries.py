@@ -295,8 +295,8 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             cmd = AggregateCommand(**modified_cmd_doc)
         else:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Invalid cursor continuation. Could not determine originating query.",
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="The specified 'getMore' value resolved to an invalid command.",
             )
 
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
