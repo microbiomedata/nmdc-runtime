@@ -71,7 +71,7 @@ test-reset-db:
 #      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
 #
 test-run:
-	docker compose --file docker-compose.test.yml run test
+	docker compose --file docker-compose.test.yml run test $(ARGS)
 
 test: test-build test-run
 

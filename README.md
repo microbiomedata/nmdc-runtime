@@ -134,6 +134,9 @@ Tests can be found in `tests` and are run with the following commands:
 ```bash
 make up-test
 make test
+
+# Run a Specific test file eg. tests/test_api/test_endpoints.py
+make test ARGS="tests/test_api/test_endpoints.py"
 ```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
