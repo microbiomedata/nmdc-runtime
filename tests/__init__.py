@@ -12,7 +12,7 @@ import dagster
 #
 # Note: When we were using Dagster version `1.9.9`, we still had the `category`
 #       kwarg set to `dagster.ExperimentalWarning`. When we updated Dagster
-#       from `1.9.9` to `1.10.4`, we found that `dagter.ExperimentalWarning` no
+#       from `1.9.9` to `1.10.4`, we found that `dagster.ExperimentalWarning` no
 #       longer existed. At that point, we changed it to `dagster.BetaWarning`
 #       after seeing this GitHub Discussion comment:
 #       https://github.com/dagster-io/dagster/discussions/13112#discussioncomment-12419858
