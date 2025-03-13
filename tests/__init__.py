@@ -4,11 +4,11 @@ import dagster
 
 # Ignore Dagster's beta warnings.
 #
-# Note: This line of code was originally preceeded by a comment saying only:
+# Note: This line of code was originally preceeded by a comment saying:
 #       > "# XXX expecting to remove this on release of dagster 0.13.0"
 #
-# TODO: Consider removing this line of code in accordance with the comment
-#       that originally preceeded it (which is shown above).
+# TODO: Consider removing this line of code, given that we are using a version
+#       of Dagster newer than the one referenced in that comment.
 #
 # Note: When we were using Dagster version `1.9.9`, we still had the `category`
 #       kwarg set to `dagster.ExperimentalWarning`. When we updated Dagster
