@@ -28,7 +28,7 @@ motor
 python-dotenv
 ontology-loader==0.1.8
 linkml-store
-nmdc-schema==11.4.0
+nmdc-schema==11.5.1
 openpyxl
 pandas
 passlib[bcrypt]

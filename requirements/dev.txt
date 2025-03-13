@@ -4,14 +4,14 @@
 #
 #    pip-compile --allow-unsafe --output-file=requirements/dev.txt --strip-extras requirements/dev.in
 #
-attrs==24.3.0
+attrs==25.2.0
     # via
     #   -c /code/requirements/main.txt
     #   cattrs
     #   requests-cache
 backports-tarfile==1.2.0
     # via jaraco-context
-black==24.10.0
+black==25.1.0
     # via -r requirements/dev.in
 build==1.2.2.post1
     # via pip-tools
@@ -19,7 +19,7 @@ cattrs==24.1.2
     # via
     #   -c /code/requirements/main.txt
     #   requests-cache
-certifi==2024.12.14
+certifi==2025.1.31
     # via
     #   -c /code/requirements/main.txt
     #   requests
@@ -36,11 +36,11 @@ click==8.1.8
     #   -c /code/requirements/main.txt
     #   black
     #   pip-tools
-coverage==7.6.10
+coverage==7.6.12
     # via
     #   -r requirements/dev.in
     #   pytest-cov
-cryptography==44.0.0
+cryptography==44.0.2
     # via
     #   -c /code/requirements/main.txt
     #   secretstorage
@@ -51,8 +51,10 @@ exceptiongroup==1.2.2
     #   -c /code/requirements/main.txt
     #   cattrs
     #   pytest
-flake8==7.1.1
+flake8==7.1.2
     # via -r requirements/dev.in
+id==1.5.0
+    # via twine
 idna==3.10
     # via
     #   -c /code/requirements/main.txt
@@ -71,7 +73,7 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.1.0
     # via keyring
-jeepney==0.8.0
+jeepney==0.9.0
     # via
     #   keyring
     #   secretstorage
@@ -93,7 +95,7 @@ more-itertools==10.6.0
     #   jaraco-functools
 mypy-extensions==1.0.0
     # via black
-nh3==0.2.20
+nh3==0.2.21
     # via readme-renderer
 packaging==24.2
     # via
@@ -108,8 +110,6 @@ pathspec==0.12.1
     #   black
 pip-tools==7.4.1
     # via -r requirements/dev.in
-pkginfo==1.12.0
-    # via twine
 platformdirs==4.3.6
     # via
     #   -c /code/requirements/main.txt
@@ -136,14 +136,14 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==8.3.4
+pytest==8.3.5
     # via
     #   -c /code/requirements/main.txt
     #   -r requirements/dev.in
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
-pytest-asyncio==0.25.2
+pytest-asyncio==0.25.3
     # via -r requirements/dev.in
 pytest-cov==6.0.0
     # via -r requirements/dev.in
@@ -154,6 +154,7 @@ readme-renderer==44.0
 requests==2.32.3
     # via
     #   -c /code/requirements/main.txt
+    #   id
     #   requests-cache
     #   requests-mock
     #   requests-toolbelt
@@ -188,7 +189,7 @@ tomli==2.2.1
     #   coverage
     #   pip-tools
     #   pytest
-twine==6.0.1
+twine==6.1.0
     # via -r requirements/dev.in
 typing-extensions==4.12.2
     # via
@@ -212,11 +213,11 @@ zipp==3.21.0
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==24.3.1
+pip==25.0.1
     # via
     #   -r requirements/dev.in
     #   pip-tools
-setuptools==75.8.0
+setuptools==76.0.0
     # via
     #   -c /code/requirements/main.txt
     #   -r requirements/dev.in
