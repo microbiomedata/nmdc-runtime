@@ -8,6 +8,7 @@ from dagster import build_op_context
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.site.ops import (
     materialize_alldocs,
+    load_ontology,
 )
 from nmdc_runtime.util import populated_schema_collection_names_with_id_field
 
@@ -28,6 +29,9 @@ def op_context(client_config):
         resources={"mongo": mongo_resource.configured(client_config)}
     )
 
+def test_load_ontology(op_context):
+    counter = load_ontology(op_context)
+    assert counter == 0
 
 def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
