@@ -385,6 +385,221 @@ def find_planned_process_by_id(
     return raise404_if_none(doc)
 
 
+@router.get(
+    "/related_objects/workflow_execution/{workflow_execution_id}",
+    response_model_exclude_unset=True,
+    name="Find related objects for workflow execution",
+    description=(
+        "Gets all related objects to the specified `WorkflowExecution` including `DataObject`s, "
+        "other `WorkflowExecution` instances, related `Biosample`s, and `Study` information."
+        "<br /><br />"  # newlines
+        "This endpoint retrieves all DataObjects that are inputs to or outputs from the "
+        "workflow execution, related workflow executions, and walks up the data provenance "
+        "chain to find related biosamples and studies through DataGeneration activities."
+    ),
+)
+def find_related_objects_for_workflow_execution(
+    workflow_execution_id: Annotated[
+        str,
+        Path(
+            title="Workflow Execution ID",
+            description="""The `id` of the `WorkflowExecution` for which you want to find
+                        related objects.\n\n_Example_: `nmdc:wfmag-11-abc123`""",
+            examples=["nmdc:wfmag-11-abc123"],
+        ),
+    ],
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """This API endpoint retrieves all objects related to a workflow execution,
+    including DataObjects that are inputs or outputs, other WorkflowExecution
+    instances that are part of the same pipeline, and related Biosamples and Studies.
+
+    :param workflow_execution_id: NMDC workflow execution id for which related objects are to be retrieved
+    :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
+    :return: Dictionary with data_objects, related_workflow_executions, biosamples, and studies lists
+    """
+    # Get the workflow execution
+    workflow_execution = raise404_if_none(
+        mdb.workflow_execution_set.find_one({"id": workflow_execution_id}),
+        detail="Workflow execution not found",
+    )
+
+    # Initialize collections for related objects
+    data_objects = []
+    related_workflow_executions = []
+    biosamples = []
+    studies = []
+
+    unique_data_object_ids = set()
+    unique_workflow_execution_ids = set()
+    unique_biosample_ids = set()
+    unique_study_ids = set()
+
+    # Add the requested workflow execution to the set of unique IDs
+    unique_workflow_execution_ids.add(workflow_execution_id)
+
+    # SchemaView interface to NMDC Schema
+    nmdc_view = ViewGetter()
+    nmdc_sv = nmdc_view.get_view()
+    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+
+    # Function to add data objects to the results
+    def add_data_object(doc_id):
+        if (
+            get_classname_from_typecode(doc_id) == "DataObject"
+            and doc_id not in unique_data_object_ids
+        ):
+            data_obj = mdb.data_object_set.find_one({"id": doc_id})
+            if data_obj:
+                data_objects.append(strip_oid(data_obj))
+                unique_data_object_ids.add(doc_id)
+                return True
+        return False
+
+    # Function to add related workflow executions
+    def add_workflow_execution(wf):
+        if wf["id"] not in unique_workflow_execution_ids:
+            wf_stripped = strip_oid(wf)
+            related_workflow_executions.append(wf_stripped)
+            unique_workflow_execution_ids.add(wf["id"])
+
+            # Add data objects from this related workflow
+            for doc_id in wf.get("has_input", []) + wf.get("has_output", []):
+                add_data_object(doc_id)
+
+    # Function to add biosamples to the results
+    def add_biosample(biosample_id):
+        if biosample_id not in unique_biosample_ids:
+            biosample = mdb.biosample_set.find_one({"id": biosample_id})
+            if biosample:
+                biosamples.append(strip_oid(biosample))
+                unique_biosample_ids.add(biosample_id)
+
+                # Add associated studies
+                for study_id in biosample.get("associated_studies", []):
+                    add_study(study_id)
+                return True
+        return False
+
+    # Function to add studies to the results
+    def add_study(study_id):
+        if study_id not in unique_study_ids:
+            study = mdb.study_set.find_one({"id": study_id})
+            if study:
+                studies.append(strip_oid(study))
+                unique_study_ids.add(study_id)
+                return True
+        return False
+
+    # Function to recursively find biosamples by walking up the chain
+    def find_biosamples_recursively(start_id):
+        # Set to track IDs we've already processed to avoid cycles
+        processed_ids = set()
+
+        def process_id(current_id):
+            if current_id in processed_ids:
+                return
+
+            processed_ids.add(current_id)
+
+            # If it's a biosample, add it directly
+            if get_classname_from_typecode(current_id) == "Biosample":
+                add_biosample(current_id)
+                return
+
+            # Find the document with this ID to see what it is
+            current_doc = mdb.alldocs.find_one({"id": current_id})
+            if current_doc:
+                # Check if this document has inputs - if so, process them
+                for input_id in current_doc.get("has_input", []):
+                    if input_id not in processed_ids:
+                        process_id(input_id)
+
+            # Also find documents that have this ID as an output
+            # This is the key to walking backward through the chain
+            for doc in mdb.alldocs.find({"has_output": current_id}):
+                # Process all inputs of this document
+                for input_id in doc.get("has_input", []):
+                    if input_id not in processed_ids:
+                        process_id(input_id)
+
+        # Start the recursive search
+        process_id(start_id)
+
+    # Collect input and output data objects directly from the workflow
+    input_ids = workflow_execution.get("has_input", [])
+    output_ids = workflow_execution.get("has_output", [])
+
+    # Add data objects from input and output
+    for doc_id in input_ids + output_ids:
+        add_data_object(doc_id)
+
+    # Find workflows that use outputs of this workflow as inputs
+    for output_id in output_ids:
+        related_wfs = mdb.workflow_execution_set.find({"has_input": output_id})
+        for wf in related_wfs:
+            add_workflow_execution(wf)
+
+    # Find workflows whose outputs are used as inputs to this workflow
+    for input_id in input_ids:
+        related_wfs = mdb.workflow_execution_set.find({"has_output": input_id})
+        for wf in related_wfs:
+            add_workflow_execution(wf)
+
+    # Find workflows that share the same "was_informed_by" relationship
+    if "was_informed_by" in workflow_execution:
+        informed_by = workflow_execution["was_informed_by"]
+        related_wfs = mdb.workflow_execution_set.find({"was_informed_by": informed_by})
+        for wf in related_wfs:
+            if wf["id"] != workflow_execution_id:
+                add_workflow_execution(wf)
+
+        # Look for the DataGeneration instance in alldocs - this is the direct path to biosamples
+        dg_doc = mdb.alldocs.find_one({"id": informed_by})
+        if dg_doc and any(
+            t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
+        ):
+            # Get biosamples from has_input by recursively walking up the chain
+            for input_id in dg_doc.get("has_input", []):
+                find_biosamples_recursively(input_id)
+
+            # Get studies directly associated with the DataGeneration
+            for study_id in dg_doc.get("associated_studies", []):
+                add_study(study_id)
+
+            # If the data generation has no associated studies but is linked to biosamples,
+            # we should still try to get the studies from the biosamples
+            if not dg_doc.get("associated_studies") and len(biosamples) > 0:
+                for bs in biosamples:
+                    for study_id in bs.get("associated_studies", []):
+                        add_study(study_id)
+
+    # For all data objects we collected, check if they have a was_generated_by reference
+    # This is a supplementary path to find more relationships
+    for data_obj in data_objects:
+        if "was_generated_by" in data_obj:
+            gen_id = data_obj["was_generated_by"]
+            dg_doc = mdb.alldocs.find_one({"id": gen_id})
+
+            if dg_doc and any(
+                t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
+            ):
+                # Get studies directly associated with the DataGeneration
+                for study_id in dg_doc.get("associated_studies", []):
+                    add_study(study_id)
+
+    # Return structured response
+    response = {
+        "workflow_execution_id": workflow_execution_id,
+        "data_objects": data_objects,
+        "related_workflow_executions": related_workflow_executions,
+        "biosamples": biosamples,
+        "studies": studies,
+    }
+
+    return response
+
+
 jinja_env = Environment(
     loader=PackageLoader("nmdc_runtime"), autoescape=select_autoescape()
 )
