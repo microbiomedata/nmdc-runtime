@@ -944,7 +944,7 @@ def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_
 
     # Insert test data
     fakes = set()
-    
+
     # Validate data objects since they don't have issues
     assert (
         validate_json(
@@ -952,7 +952,7 @@ def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_
         )["result"]
         != "errors"
     )
-    
+
     # Insert documents directly
     if (
         mdb.get_collection(name="data_object_set").find_one(
@@ -1062,7 +1062,7 @@ def test_find_related_objects_for_workflow_execution_with_connected_workflows(
 
     # Insert test data
     fakes = set()
-    
+
     # Validate data objects only
     assert (
         validate_json({"data_object_set": [data_object_intermediate]}, mdb)["result"]
@@ -1310,7 +1310,7 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
         "url": "https://example.com/input_data.fastq",  # Adding required URL field
         "file_size_bytes": 10000,  # Adding required file_size_bytes field
     }
-    
+
     data_object_output_dict = {
         "id": data_object_output_id,
         "name": "Test Output Data Object",
@@ -1334,7 +1334,7 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
         "type": "nmdc:ReadQcAnalysis",
         "version": "1.0.0",  # Adding required version field
     }
-    
+
     # Create a related workflow execution that uses the output of the main workflow
     related_workflow_dict = {
         "id": related_workflow_id,
@@ -1353,46 +1353,134 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
     # Prepare the alldocs entries to support the recursive traversal
     # This is important for testing the recursive biosample and study relationships
     alldocs_entries = [
+        # DataGeneration - critical for the path to biosamples
         {
             "id": data_generation_id,
             "has_input": [biosample_id],
             "has_output": [data_object_input_id],
-            "_type_and_ancestors": ["nmdc:NucleotideSequencing", "nmdc:DataGeneration"],
+            "_type_and_ancestors": [
+                "nmdc:NucleotideSequencing",
+                "nmdc:DataGeneration",
+                "nmdc:PlannedProcess",
+            ],
             "associated_studies": [study_id],
+            "type": "nmdc:NucleotideSequencing",
+            "name": "Test Data Generation for Full Chain",
+            "description": "A test data generation for full chain relationship testing",
+            "analyte_category": "metagenome",
         },
+        # Main workflow execution
         {
             "id": workflow_execution_id,
             "has_input": [data_object_input_id],
             "has_output": [data_object_output_id],
             "was_informed_by": data_generation_id,
-            "_type_and_ancestors": ["nmdc:ReadQcAnalysis", "nmdc:WorkflowExecution", "nmdc:PlannedProcess"],
+            "_type_and_ancestors": [
+                "nmdc:ReadQcAnalysis",
+                "nmdc:WorkflowExecution",
+                "nmdc:PlannedProcess",
+            ],
+            "type": "nmdc:ReadQcAnalysis",
+            "name": "Test Workflow Execution for Full Chain",
+            "started_at_time": "2023-03-24T01:00:00.000000+00:00",
+            "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
+            "execution_resource": "JGI",
+            "git_url": "https://github.com/microbiomedata/ReadQC",
+            "version": "1.0.0",
         },
+        # Related workflow
         {
             "id": related_workflow_id,
             "has_input": [data_object_output_id],
             "has_output": [],
             "was_informed_by": data_generation_id,
-            "_type_and_ancestors": ["nmdc:MetagenomeAssembly", "nmdc:WorkflowExecution", "nmdc:PlannedProcess"],
+            "_type_and_ancestors": [
+                "nmdc:MetagenomeAssembly",
+                "nmdc:WorkflowExecution",
+                "nmdc:PlannedProcess",
+            ],
+            "type": "nmdc:MetagenomeAssembly",
+            "name": "Related Workflow Execution",
+            "started_at_time": "2023-03-24T02:00:00.000000+00:00",
+            "ended_at_time": "2023-03-24T02:30:00.000000+00:00",
+            "execution_resource": "JGI",
+            "git_url": "https://github.com/microbiomedata/MetagenomeAssembly",
+            "version": "1.0.0",
         },
+        # Input data object
         {
             "id": data_object_input_id,
             "was_generated_by": data_generation_id,
             "_type_and_ancestors": ["nmdc:DataObject"],
+            "type": "nmdc:DataObject",
+            "name": "Test Input Data Object",
+            "description": "An input test data object for full chain relationship testing",
+            "url": "https://example.com/input_data.fastq",
+            "file_size_bytes": 10000,
         },
+        # Output data object
         {
             "id": data_object_output_id,
             "_type_and_ancestors": ["nmdc:DataObject"],
+            "type": "nmdc:DataObject",
+            "name": "Test Output Data Object",
+            "description": "An output test data object for full chain relationship testing",
+            "url": "https://example.com/output_data.fastq",
+            "file_size_bytes": 20000,
         },
+        # Biosample
         {
             "id": biosample_id,
             "associated_studies": [study_id],
             "_type_and_ancestors": ["nmdc:Biosample"],
+            "type": "nmdc:Biosample",
+            "name": "Test Biosample for Full Chain",
+            "description": "A test biosample for full chain relationship testing",
+        },
+        # Study
+        {
+            "id": study_id,
+            "_type_and_ancestors": ["nmdc:Study"],
+            "type": "nmdc:Study",
+            "name": "Test Study for Full Chain",
+            "description": "A test study for full chain relationship testing",
+            "study_category": "research_study",
         },
     ]
 
+    # Clean up any existing test data before starting
+    mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
+    mdb.get_collection(name="data_generation_set").delete_one(
+        {"id": data_generation_id}
+    )
+    mdb.get_collection(name="data_object_set").delete_one({"id": data_object_input_id})
+    mdb.get_collection(name="data_object_set").delete_one({"id": data_object_output_id})
+    mdb.get_collection(name="workflow_execution_set").delete_one(
+        {"id": workflow_execution_id}
+    )
+    mdb.get_collection(name="workflow_execution_set").delete_one(
+        {"id": related_workflow_id}
+    )
+    mdb.get_collection(name="alldocs").delete_many(
+        {
+            "id": {
+                "$in": [
+                    study_id,
+                    biosample_id,
+                    data_generation_id,
+                    data_object_input_id,
+                    data_object_output_id,
+                    workflow_execution_id,
+                    related_workflow_id,
+                ]
+            }
+        }
+    )
+
     # Insert test data - skip schema validation and insert directly
     fakes = set()
-    
+
     # Insert documents directly
     if mdb.get_collection(name="study_set").find_one({"id": study_id}) is None:
         mdb.get_collection(name="study_set").insert_one(study_dict)
@@ -1412,14 +1500,18 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
         fakes.add("data_generation")
 
     if (
-        mdb.get_collection(name="data_object_set").find_one({"id": data_object_input_id})
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_input_id}
+        )
         is None
     ):
         mdb.get_collection(name="data_object_set").insert_one(data_object_input_dict)
         fakes.add("data_object_input")
-    
+
     if (
-        mdb.get_collection(name="data_object_set").find_one({"id": data_object_output_id})
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_output_id}
+        )
         is None
     ):
         mdb.get_collection(name="data_object_set").insert_one(data_object_output_dict)
@@ -1435,7 +1527,7 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
             workflow_execution_dict
         )
         fakes.add("workflow_execution")
-    
+
     if (
         mdb.get_collection(name="workflow_execution_set").find_one(
             {"id": related_workflow_id}
@@ -1446,7 +1538,7 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
             related_workflow_dict
         )
         fakes.add("related_workflow")
-    
+
     # Insert alldocs entries to support lookup logic
     for doc in alldocs_entries:
         mdb.get_collection(name="alldocs").replace_one(
@@ -1461,6 +1553,11 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
     assert response.status_code == 200
     related_objects = response.json()
 
+    # Print the response for debugging
+    print(
+        "Response from related_objects endpoint:", json.dumps(related_objects, indent=2)
+    )
+
     # Verify data objects are returned (both input and output)
     assert len(related_objects["data_objects"]) == 2
     data_object_ids = [obj["id"] for obj in related_objects["data_objects"]]
@@ -1469,7 +1566,9 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
 
     # Verify related workflow executions are returned
     assert len(related_objects["related_workflow_executions"]) == 1
-    assert related_objects["related_workflow_executions"][0]["id"] == related_workflow_id
+    assert (
+        related_objects["related_workflow_executions"][0]["id"] == related_workflow_id
+    )
 
     # Verify biosamples are returned and linked to the right study
     assert len(related_objects["biosamples"]) == 1
@@ -1490,9 +1589,13 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
             {"id": data_generation_id}
         )
     if "data_object_input" in fakes:
-        mdb.get_collection(name="data_object_set").delete_one({"id": data_object_input_id})
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_input_id}
+        )
     if "data_object_output" in fakes:
-        mdb.get_collection(name="data_object_set").delete_one({"id": data_object_output_id})
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_output_id}
+        )
     if "workflow_execution" in fakes:
         mdb.get_collection(name="workflow_execution_set").delete_one(
             {"id": workflow_execution_id}
@@ -1501,7 +1604,7 @@ def test_find_related_objects_for_workflow_execution_with_data_generation_biosam
         mdb.get_collection(name="workflow_execution_set").delete_one(
             {"id": related_workflow_id}
         )
-    
+
     # Clean up alldocs entries
     for doc in alldocs_entries:
         mdb.get_collection(name="alldocs").delete_one({"id": doc["id"]})
