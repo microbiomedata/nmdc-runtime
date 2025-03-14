@@ -842,3 +842,591 @@ def test_run_query_update(api_user_client):
                 ],
             },
         )
+
+
+def test_find_related_objects_for_nonexistent_workflow_execution(api_site_client):
+    r"""
+    Confirms the endpoint returns an unsuccessful status code when no `WorkflowExecution` having the specified `id` exists.
+    """
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_site_client.request(
+            "GET",
+            "/related_objects/workflow_execution/nmdc:wfmag-11-nonexistent",
+        )
+
+
+def test_find_related_objects_for_workflow_execution_having_none(api_site_client):
+    # Seed the test database with a workflow execution having no related objects
+    mdb = get_mongo_db()
+    workflow_execution_id = "nmdc:wfmag-11-isolated"
+    workflow_execution_dict = {
+        "id": workflow_execution_id,
+        "name": "Isolated Workflow Execution",
+        "started_at_time": "2023-03-24T02:02:59.479107+00:00",
+        "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/RawSequencingData",
+        "has_input": [],
+        "has_output": [],
+        "type": "nmdc:MetagenomeSequencing",
+    }
+
+    fakes = set()
+    assert (
+        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
+            "result"
+        ]
+        != "errors"
+    )
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict
+        )
+        fakes.add("workflow_execution")
+
+    # Confirm the endpoint responds with no related objects
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+    assert len(related_objects["data_objects"]) == 0
+    assert len(related_objects["related_workflow_executions"]) == 0
+    assert len(related_objects["biosamples"]) == 0
+    assert len(related_objects["studies"]) == 0
+
+    # Clean up: Delete the documents we created within this test
+    if "workflow_execution" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id}
+        )
+
+
+def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_client):
+    # Seed the test database with a workflow execution and related data objects
+    mdb = get_mongo_db()
+    workflow_execution_id = "nmdc:wfmag-11-withdataobjects"
+    data_object_input_id = "nmdc:dobj-11-input123"
+    data_object_output_id = "nmdc:dobj-11-output456"
+
+    # Create data objects
+    data_object_input = {
+        "id": data_object_input_id,
+        "name": "Input Data Object",
+        "description": "Input data for test workflow",
+        "type": "nmdc:DataObject",
+    }
+    data_object_output = {
+        "id": data_object_output_id,
+        "name": "Output Data Object",
+        "description": "Output data from test workflow",
+        "type": "nmdc:DataObject",
+    }
+
+    # Create workflow execution with references to data objects
+    workflow_execution_dict = {
+        "id": workflow_execution_id,
+        "name": "Workflow With Data Objects",
+        "started_at_time": "2023-03-24T02:02:59.479107+00:00",
+        "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/MetagenomeAssembly",
+        "has_input": [data_object_input_id],
+        "has_output": [data_object_output_id],
+        "type": "nmdc:MetagenomeAssembly",
+    }
+
+    # Insert test data
+    fakes = set()
+    assert (
+        validate_json(
+            {"data_object_set": [data_object_input, data_object_output]}, mdb
+        )["result"]
+        != "errors"
+    )
+    assert (
+        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
+            "result"
+        ]
+        != "errors"
+    )
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_input_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_input)
+        fakes.add("data_object_input")
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_output_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_output)
+        fakes.add("data_object_output")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict
+        )
+        fakes.add("workflow_execution")
+
+    # Test the endpoint
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+
+    # Verify data objects are returned
+    assert len(related_objects["data_objects"]) == 2
+    data_object_ids = [obj["id"] for obj in related_objects["data_objects"]]
+    assert data_object_input_id in data_object_ids
+    assert data_object_output_id in data_object_ids
+
+    # Verify no related workflow executions
+    assert len(related_objects["related_workflow_executions"]) == 0
+
+    # Clean up: Delete the documents we created
+    if "data_object_input" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_input_id}
+        )
+    if "data_object_output" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_output_id}
+        )
+    if "workflow_execution" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id}
+        )
+
+
+def test_find_related_objects_for_workflow_execution_with_connected_workflows(
+    api_site_client,
+):
+    # Seed the test database with two connected workflow executions
+    mdb = get_mongo_db()
+    workflow_execution_id1 = "nmdc:wfmag-11-connected1"
+    workflow_execution_id2 = "nmdc:wfmag-11-connected2"
+    data_object_intermediate_id = "nmdc:dobj-11-intermediate789"
+
+    # Create intermediate data object
+    data_object_intermediate = {
+        "id": data_object_intermediate_id,
+        "name": "Intermediate Data Object",
+        "description": "Output from workflow 1, input to workflow 2",
+        "type": "nmdc:DataObject",
+    }
+
+    # Create workflow executions with shared data object
+    workflow_execution_dict1 = {
+        "id": workflow_execution_id1,
+        "name": "First Connected Workflow",
+        "started_at_time": "2023-03-24T01:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/ReadQC",
+        "has_input": [],
+        "has_output": [data_object_intermediate_id],
+        "type": "nmdc:ReadQcAnalysis",
+    }
+
+    workflow_execution_dict2 = {
+        "id": workflow_execution_id2,
+        "name": "Second Connected Workflow",
+        "started_at_time": "2023-03-24T02:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T02:30:00.000000+00:00",
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/MetagenomeAssembly",
+        "has_input": [data_object_intermediate_id],
+        "has_output": [],
+        "type": "nmdc:MetagenomeAssembly",
+    }
+
+    # Insert test data
+    fakes = set()
+    assert (
+        validate_json({"data_object_set": [data_object_intermediate]}, mdb)["result"]
+        != "errors"
+    )
+    assert (
+        validate_json(
+            {
+                "workflow_execution_set": [
+                    workflow_execution_dict1,
+                    workflow_execution_dict2,
+                ]
+            },
+            mdb,
+        )["result"]
+        != "errors"
+    )
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_intermediate_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_intermediate)
+        fakes.add("data_object_intermediate")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id1}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict1
+        )
+        fakes.add("workflow_execution1")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id2}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict2
+        )
+        fakes.add("workflow_execution2")
+
+    # Test the endpoint with the first workflow
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id1}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+
+    # Verify data objects are returned
+    assert len(related_objects["data_objects"]) == 1
+    assert related_objects["data_objects"][0]["id"] == data_object_intermediate_id
+
+    # Verify related workflow executions
+    assert len(related_objects["related_workflow_executions"]) == 1
+    assert (
+        related_objects["related_workflow_executions"][0]["id"]
+        == workflow_execution_id2
+    )
+
+    # Clean up: Delete the documents we created
+    if "data_object_intermediate" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_intermediate_id}
+        )
+    if "workflow_execution1" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id1}
+        )
+    if "workflow_execution2" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id2}
+        )
+
+
+def test_find_related_objects_for_workflow_execution_with_same_was_informed_by(
+    api_site_client,
+):
+    # Seed the test database with workflows sharing the same was_informed_by value
+    mdb = get_mongo_db()
+    workflow_execution_id1 = "nmdc:wfmag-11-informed1"
+    workflow_execution_id2 = "nmdc:wfmag-11-informed2"
+    data_generation_id = "nmdc:omprc-11-informsource"
+
+    # Create workflow executions with shared was_informed_by
+    workflow_execution_dict1 = {
+        "id": workflow_execution_id1,
+        "name": "First Informed Workflow",
+        "started_at_time": "2023-03-24T01:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
+        "was_informed_by": data_generation_id,
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/ReadQC",
+        "has_input": [],
+        "has_output": [],
+        "type": "nmdc:ReadQcAnalysis",
+    }
+
+    workflow_execution_dict2 = {
+        "id": workflow_execution_id2,
+        "name": "Second Informed Workflow",
+        "started_at_time": "2023-03-24T02:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T02:30:00.000000+00:00",
+        "was_informed_by": data_generation_id,
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/MetagenomeAssembly",
+        "has_input": [],
+        "has_output": [],
+        "type": "nmdc:MetagenomeAssembly",
+    }
+
+    # Insert test data
+    fakes = set()
+    assert (
+        validate_json(
+            {
+                "workflow_execution_set": [
+                    workflow_execution_dict1,
+                    workflow_execution_dict2,
+                ]
+            },
+            mdb,
+        )["result"]
+        != "errors"
+    )
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id1}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict1
+        )
+        fakes.add("workflow_execution1")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id2}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict2
+        )
+        fakes.add("workflow_execution2")
+
+    # Test the endpoint
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id1}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+
+    # Verify no data objects are returned
+    assert len(related_objects["data_objects"]) == 0
+
+    # Verify related workflow executions through was_informed_by
+    assert len(related_objects["related_workflow_executions"]) == 1
+    assert (
+        related_objects["related_workflow_executions"][0]["id"]
+        == workflow_execution_id2
+    )
+
+    # Verify no biosamples or studies are returned
+    assert len(related_objects["biosamples"]) == 0
+    assert len(related_objects["studies"]) == 0
+
+    # Clean up: Delete the documents we created
+    if "workflow_execution1" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id1}
+        )
+    if "workflow_execution2" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id2}
+        )
+
+
+def test_find_related_objects_for_workflow_execution_with_data_generation_biosample_study(
+    api_site_client,
+):
+    # Seed the test database with a complete chain from workflow to study
+    mdb = get_mongo_db()
+
+    # Create IDs for all entities
+    workflow_execution_id = "nmdc:wfmag-11-fullchain"
+    data_generation_id = "nmdc:omprc-11-fullchain"
+    biosample_id = "nmdc:bsm-11-fullchain"
+    study_id = "nmdc:sty-11-fullchain"
+    data_object_id = "nmdc:dobj-11-fullchain"
+
+    # Create the study
+    study_dict = {
+        "id": study_id,
+        "name": "Test Study for Full Chain",
+        "description": "A test study for full chain relationship testing",
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+
+    # Create the biosample with reference to study
+    biosample_dict = {
+        "id": biosample_id,
+        "name": "Test Biosample for Full Chain",
+        "description": "A test biosample for full chain relationship testing",
+        "type": "nmdc:Biosample",
+        "associated_studies": [study_id],
+        "env_broad_scale": {
+            "has_raw_value": "ENVO_00000446",
+            "term": {
+                "id": "ENVO:00000446",
+                "name": "terrestrial biome",
+                "type": "nmdc:OntologyClass",
+            },
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+        "env_local_scale": {
+            "has_raw_value": "ENVO_00005801",
+            "term": {
+                "id": "ENVO:00005801",
+                "name": "rhizosphere",
+                "type": "nmdc:OntologyClass",
+            },
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+        "env_medium": {
+            "has_raw_value": "ENVO_00001998",
+            "term": {
+                "id": "ENVO:00001998",
+                "name": "soil",
+                "type": "nmdc:OntologyClass",
+            },
+            "type": "nmdc:ControlledIdentifiedTermValue",
+        },
+    }
+
+    # Create data generation with references to biosample and study
+    data_generation_dict = {
+        "id": data_generation_id,
+        "name": "Test Data Generation for Full Chain",
+        "description": "A test data generation for full chain relationship testing",
+        "type": "nmdc:NucleotideSequencing",
+        "has_input": [biosample_id],
+        "associated_studies": [study_id],
+        "analyte_category": "metagenome",
+    }
+
+    # Create data object with reference to data generation
+    data_object_dict = {
+        "id": data_object_id,
+        "name": "Test Data Object for Full Chain",
+        "description": "A test data object for full chain relationship testing",
+        "type": "nmdc:DataObject",
+        "was_generated_by": data_generation_id,
+    }
+
+    # Create workflow execution with reference to data generation
+    workflow_execution_dict = {
+        "id": workflow_execution_id,
+        "name": "Test Workflow Execution for Full Chain",
+        "started_at_time": "2023-03-24T01:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
+        "was_informed_by": data_generation_id,
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/ReadQC",
+        "has_input": [data_object_id],
+        "has_output": [],
+        "type": "nmdc:ReadQcAnalysis",
+    }
+
+    # Insert test data
+    fakes = set()
+    assert validate_json({"study_set": [study_dict]}, mdb)["result"] != "errors"
+    assert validate_json({"biosample_set": [biosample_dict]}, mdb)["result"] != "errors"
+    assert (
+        validate_json({"data_generation_set": [data_generation_dict]}, mdb)["result"]
+        != "errors"
+    )
+    assert (
+        validate_json({"data_object_set": [data_object_dict]}, mdb)["result"]
+        != "errors"
+    )
+    assert (
+        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
+            "result"
+        ]
+        != "errors"
+    )
+
+    if mdb.get_collection(name="study_set").find_one({"id": study_id}) is None:
+        mdb.get_collection(name="study_set").insert_one(study_dict)
+        fakes.add("study")
+
+    if mdb.get_collection(name="biosample_set").find_one({"id": biosample_id}) is None:
+        mdb.get_collection(name="biosample_set").insert_one(biosample_dict)
+        fakes.add("biosample")
+
+    if (
+        mdb.get_collection(name="data_generation_set").find_one(
+            {"id": data_generation_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_generation_set").insert_one(data_generation_dict)
+        fakes.add("data_generation")
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one({"id": data_object_id})
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_dict)
+        fakes.add("data_object")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict
+        )
+        fakes.add("workflow_execution")
+
+    # Test the endpoint
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+
+    # Verify data objects are returned
+    assert len(related_objects["data_objects"]) == 1
+    assert related_objects["data_objects"][0]["id"] == data_object_id
+
+    # Verify no related workflow executions
+    assert len(related_objects["related_workflow_executions"]) == 0
+
+    # Verify biosamples are returned and linked to the right study
+    assert len(related_objects["biosamples"]) == 1
+    assert related_objects["biosamples"][0]["id"] == biosample_id
+    assert study_id in related_objects["biosamples"][0]["associated_studies"]
+
+    # Verify studies are returned
+    assert len(related_objects["studies"]) == 1
+    assert related_objects["studies"][0]["id"] == study_id
+
+    # Clean up: Delete the documents we created
+    if "study" in fakes:
+        mdb.get_collection(name="study_set").delete_one({"id": study_id})
+    if "biosample" in fakes:
+        mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
+    if "data_generation" in fakes:
+        mdb.get_collection(name="data_generation_set").delete_one(
+            {"id": data_generation_id}
+        )
+    if "data_object" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
+    if "workflow_execution" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id}
+        )
