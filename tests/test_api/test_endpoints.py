@@ -964,23 +964,30 @@ def test_run_query_find_with_continuation(api_user_client):
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
 
-    # Empty out the `study_set` collection.
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
     #
     # Note: The reason this is necessary is that some other tests in this repo
     #       do not leave the database in the state in which they found it in—in
-    #       other words, some tests leave residue in the database. Rather than
-    #       find the culprit(s) right now, I'm going to leave a TODO/FIXME
-    #       comment about it below. I will just clean up the collection here
-    #       on behalf of that other test(s).
+    #       other words, some tests leave residue in the database. Indeed, some
+    #       tests seem to have been designed to utilize the residue left behind
+    #       by other tests—even those defined in different test modules. Rather
+    #       than find the culprit(s) right now, I'm going to leave a TODO/FIXME
+    #       comment about it below.
     #
-    # FIXME: Update tests that leave residue in the database to not do so. Or,
-    #        (preferred) implement a database test fixture that always provides
-    #        a re-initialized database to each test that uses the fixture.
+    # FIXME: Update tests that leave residue in the database to not do so, and
+    #        update the "dependant" tests accordingly. Or, (preferred) implement
+    #        a database test fixture that always provides a re-initialized
+    #        database to each test that uses the fixture. This could be scoped
+    #        to the test function or to the test module, the latter being an
+    #        option for people that _do_ want to share residue between tests.
     #
-    study_set.delete_many({})
-
+    study_title = "Study for /queries:run testing"
+    assert study_set.count_documents({"title": study_title}) == 0
+    
     # Seed the `study_set` collection with 6 documents.
-    studies = generate_studies(6)
+    studies = generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
     # Fetch the first batch.
@@ -989,7 +996,7 @@ def test_run_query_find_with_continuation(api_user_client):
         "/queries:run",
         {
             "find": "study_set",
-            "filter": {"study_category": "research_study"},
+            "filter": {"title": study_title},
             "batchSize": 5, 
         },
     )
@@ -1025,7 +1032,7 @@ def test_run_query_find_with_continuation(api_user_client):
     assert set(ids_in_batch_1 + ids_in_batch_2) == set(seeded_study_ids)
 
     # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
-    study_set.delete_many({})
+    study_set.delete_many({"title": study_title})
 
 
 def test_run_query_aggregate_with_continuation(api_user_client):
@@ -1039,30 +1046,35 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     study_set = mdb.get_collection("study_set")
     biosample_set = mdb.get_collection("biosample_set")
 
-    # Empty out the `study_set` and `biosample_set` collections.
+    # Assert that the `study_set` and `biosample_set` collections do not already
+    # contain studies and biosamples like the ones we're going to generate here.
+    # Then, generate 1 study and 10 biosamples and insert them into the database.
     #
     # Note: The reason this is necessary is that some other tests in this repo
     #       do not leave the database in the state in which they found it in—in
-    #       other words, some tests leave residue in the database. Rather than
-    #       find the culprit(s) right now, I'm going to leave a TODO/FIXME
-    #       comment about it below. I will just clean up the collection here
-    #       on behalf of that other test(s).
+    #       other words, some tests leave residue in the database. Indeed, some
+    #       tests seem to have been designed to utilize the residue left behind
+    #       by other tests—even those defined in different test modules. Rather
+    #       than find the culprit(s) right now, I'm going to leave a TODO/FIXME
+    #       comment about it below.
     #
-    # FIXME: Update tests that leave residue in the database to not do so. Or,
-    #        (preferred) implement a database test fixture that always provides
-    #        a re-initialized database to each test that uses the fixture.
+    # FIXME: Update tests that leave residue in the database to not do so, and
+    #        update the "dependant" tests accordingly. Or, (preferred) implement
+    #        a database test fixture that always provides a re-initialized
+    #        database to each test that uses the fixture. This could be scoped
+    #        to the test function or to the test module, the latter being an
+    #        option for people that _do_ want to share residue between tests.
     #
-    study_set.delete_many({})
-    biosample_set.delete_many({})
-
-    # Ensure those two collections are empty (i.e. that there is no "residue"
-    # in them, left behind by other tests—which would be a maintenance bug).
-    assert study_set.count_documents({}) == 0
-    assert biosample_set.count_documents({}) == 0
+    study_id = "nmdc:sty-00-000001"
+    biosample_samp_name = "Sample for /queries:run testing"
+    assert study_set.count_documents({"id": study_id}) == 0
+    assert biosample_set.count_documents({"samp_name": biosample_samp_name}) == 0
 
     # Seed the `study_set` and `biosample_set` collections with documents.
-    studies = generate_studies(1, id="nmdc:sty-00-000001")
-    biosamples = generate_biosamples(10, associated_studies=["nmdc:sty-00-000001"])
+    studies = generate_studies(1, id=study_id)
+    biosamples = generate_biosamples(10, 
+                                     associated_studies=[study_id], 
+                                     samp_name=biosample_samp_name)
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
@@ -1082,7 +1094,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
                 # Match the study we want to find biosamples for.
                 {
                     "$match": {
-                        "id": "nmdc:sty-00-000001",
+                        "id": study_id,
                     },
                 },
                 # Join the `biosample_set` collection with the `study_set`
@@ -1159,5 +1171,5 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_biosample_ids)
 
     # 🧹 Clean up.
-    study_set.delete_many({})
-    biosample_set.delete_many({})
+    study_set.delete_many({"id": study_id})
+    biosample_set.delete_many({"samp_name": biosample_samp_name})
