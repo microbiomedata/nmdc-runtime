@@ -50,6 +50,11 @@ def op_context():
 
 
 def test_apply_metadata_in_functional_annotation_agg(op_context):
+
+    # FIXME: Fix this broken test, which I think was written under the
+    #        assumption that the test database will be seeded with a
+    #        specific dump.
+
     mongo = op_context.resources.mongo
     docs = {
         "functional_annotation_agg": [
