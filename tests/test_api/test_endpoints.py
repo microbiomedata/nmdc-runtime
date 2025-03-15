@@ -34,6 +34,10 @@ from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_
 from tests.test_util import download_to
 
 
+# TODO: Why is there a 43 MB `tests/nmdcdb.test.archive.gz` file in the repository
+#       at the same time as this dump-downloading code? If the aforementioned file
+#       is obsolete, delete it.
+#
 MONGODUMP_URL_PREFIX = os.getenv("MONGO_REMOTE_DUMP_URL_PREFIX")
 # extract the specific dump directory name, e.g. 'dump_nmdc-prod_2025-02-12_20-12-02'.
 MONGODUMP_DIRNAME = MONGODUMP_URL_PREFIX.rsplit("/", maxsplit=1)[-1]
