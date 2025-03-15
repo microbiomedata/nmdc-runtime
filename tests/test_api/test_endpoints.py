@@ -977,7 +977,7 @@ def test_run_query_find_with_continuation(api_user_client):
     #       comment about it below.
     #
     # FIXME: Update tests that leave residue in the database to not do so, and
-    #        update the "dependant" tests accordingly. Or, (preferred) implement
+    #        update the "dependent" tests accordingly. Or, (preferred) implement
     #        a database test fixture that always provides a re-initialized
     #        database to each test that uses the fixture. This could be scoped
     #        to the test function or to the test module, the latter being an
@@ -1059,7 +1059,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     #       comment about it below.
     #
     # FIXME: Update tests that leave residue in the database to not do so, and
-    #        update the "dependant" tests accordingly. Or, (preferred) implement
+    #        update the "dependent" tests accordingly. Or, (preferred) implement
     #        a database test fixture that always provides a re-initialized
     #        database to each test that uses the fixture. This could be scoped
     #        to the test function or to the test module, the latter being an
