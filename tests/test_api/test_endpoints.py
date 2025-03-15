@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from typing import List
 
 import pytest
 import requests
@@ -12,7 +13,11 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_collection_names_from_schema,
+    mongorestore_collection,
+)
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -27,11 +32,75 @@ from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
 )
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
+from tests.test_util import download_to
 
 
-def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False):
+# TODO: Why is there a 43 MB `tests/nmdcdb.test.archive.gz` file in the repository
+#       at the same time as this dump-downloading code? If the aforementioned file
+#       is obsolete, delete it.
+#
+MONGODUMP_URL_PREFIX = os.getenv("MONGO_REMOTE_DUMP_URL_PREFIX")
+# extract the specific dump directory name, e.g. 'dump_nmdc-prod_2025-02-12_20-12-02'.
+MONGODUMP_DIRNAME = MONGODUMP_URL_PREFIX.rsplit("/", maxsplit=1)[-1]
+MONGODUMP_DIR = REPO_ROOT_DIR / "tests" / "nmdcdb" / MONGODUMP_DIRNAME
+MONGODUMP_DIR.mkdir(parents=True, exist_ok=True)
+
+# certain schema collections are not expected for tests
+SCHEMA_COLLECTIONS_EXCLUDED = {
+    "functional_annotation_agg",
+    "functional_annotation_set",
+    "genome_feature_set",
+}
+
+
+def ensure_schema_collections_local_filesystem_cache():
     r"""
-    This function can be used to ensure properties of schema-described collections and the "alldocs" collection.
+    Downloads the dumps of MongoDB collections that are not already present in a local directory.
+    
+    Parameters: 
+    - It downloads dumps from the remote host specified via `MONGODUMP_URL_PREFIX`.
+    - It downloads the dumps into the local directory specified via `MONGODUMP_DIR`.
+    - It does not download dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
+    """
+
+    # download collections into "nmdc" db namespace
+    db_dir = MONGODUMP_DIR / "nmdc"
+    db_dir.mkdir(exist_ok=True)
+    for name in get_collection_names_from_schema():
+        if name in SCHEMA_COLLECTIONS_EXCLUDED:
+            continue
+        url = f"{MONGODUMP_URL_PREFIX}/nmdc/{name}.bson.gz"
+        target_path = db_dir / (name + ".bson.gz")
+        # TODO use sha256 hashes or at least file sizes to ensure fidelity of existing files.
+        #   Can use HEAD request on `url`?
+        if not db_dir.joinpath(name + ".bson.gz").exists():
+            download_to(url, target_path)
+
+
+def ensure_schema_collections_loaded():
+    r"""
+    Downloads any missing MongoDB collection dumps from a remote host into a local directory,
+    then restores any non-empty dumps in that directory into the MongoDB database.
+
+    Parameters:
+    - It looks for the dumps in the local directory specified via `MONGODUMP_DIR`.
+    - It does not restore dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
+    """
+
+    ensure_schema_collections_local_filesystem_cache()
+    mdb = get_mongo_db()
+    for name in get_collection_names_from_schema():
+        if name in SCHEMA_COLLECTIONS_EXCLUDED:
+            continue
+        if not mdb.get_collection(name).estimated_document_count() > 0:
+            filepath = MONGODUMP_DIR / "nmdc" / (name + ".bson.gz")
+            print(f"ensure_schema_collections_loaded: restoring {name}")
+            mongorestore_collection(mdb, name, filepath)
+
+
+def ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs: bool = False):
+    r"""
+    This function can be used to ensure the "alldocs" collection has been materialized.
 
     :param bool force_refresh_of_alldocs: Whether you want to force a refresh of the "alldocs" collection,
                                           regardless of whether it is empty or not. By default, this function
@@ -42,7 +111,7 @@ def ensure_schema_collections_and_alldocs(force_refresh_of_alldocs: bool = False
     # Return if `alldocs` collection has already been materialized, and caller does not want to force a refresh of it.
     if mdb.alldocs.estimated_document_count() > 0 and not force_refresh_of_alldocs:
         print(
-            "ensure_schema_collections_and_alldocs: `alldocs` collection already materialized"
+            "ensure_alldocs_collection_has_been_materialized: `alldocs` collection already materialized"
         )
         return
 
@@ -101,7 +170,7 @@ def ensure_test_resources(mdb):
         {"id": job_id}, job.model_dump(exclude_unset=True), upsert=True
     )
     mdb["minter.requesters"].replace_one({"id": site_id}, {"id": site_id}, upsert=True)
-    ensure_schema_collections_and_alldocs()
+    ensure_alldocs_collection_has_been_materialized()
     return {
         "site_client": {
             "site_id": site_id,
@@ -442,11 +511,11 @@ def test_find_data_objects_for_nonexistent_study(api_site_client):
     Note: The `api_site_client` fixture's `request` method will raise an exception if the server responds with
           an unsuccessful status code.
     """
-    ensure_schema_collections_and_alldocs()
+    ensure_alldocs_collection_has_been_materialized()
     with pytest.raises(requests.exceptions.HTTPError):
         api_site_client.request(
             "GET",
-            "/data_objects/study/nmdc:sty-11-hdd4bf83",
+            "/data_objects/study/nmdc:sty-11-fake",
         )
 
 
@@ -466,7 +535,7 @@ def test_find_data_objects_for_study_having_none(api_site_client):
     )
 
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
-    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     # Confirm the endpoint responds with no data objects.
     response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
@@ -600,7 +669,7 @@ def test_find_data_objects_for_study_having_one(api_site_client):
         fakes.add("workflow_execution")
 
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
-    ensure_schema_collections_and_alldocs(force_refresh_of_alldocs=True)
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     # Confirm the endpoint responds with the data object we inserted above.
     response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
@@ -690,7 +759,7 @@ def test_find_planned_process_by_id(api_site_client):
         )
 
 
-def test_run_query_find_user(api_user_client):
+def _test_run_query_find_as(client):
     mdb = get_mongo_db()
     if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
         mdb.biosample_set.insert_one(
@@ -702,7 +771,7 @@ def test_run_query_find_user(api_user_client):
         )
 
     # Make sure user client works
-    response = api_user_client.request(
+    response = client.request(
         "POST",
         "/queries:run",
         {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
@@ -711,28 +780,19 @@ def test_run_query_find_user(api_user_client):
     assert "cursor" in response.json()
 
 
-def test_run_query_find_site(api_site_client):
-    mdb = get_mongo_db()
-    if not mdb.biosample_set.find_one({"id": "nmdc:bsm-12-7mysck21"}):
-        mdb.biosample_set.insert_one(
-            json.loads(
-                (
-                    REPO_ROOT_DIR / "tests" / "files" / "nmdc_bsm-12-7mysck21.json"
-                ).read_text()
-            )
-        )
+def test_run_query_find_as_user(api_user_client):
+    _test_run_query_find_as(api_user_client)
 
-    # Make sure site client works
-    response = api_site_client.request(
-        "POST",
-        "/queries:run",
-        {"find": "biosample_set", "filter": {"id": "nmdc:bsm-12-7mysck21"}},
+
+def test_run_query_find_as_site(api_site_client):
+    _test_run_query_find_as(api_site_client)
+
+
+def _test_run_query_delete_as(client):
+    client_id_attribute = (
+        "username" if isinstance(client, RuntimeApiUserClient) else "client_id"
     )
-    assert response.status_code == 200
-    assert "cursor" in response.json()
 
-
-def test_run_query_delete(api_user_client):
     mdb = get_mongo_db()
     biosample_id = "nmdc:bsm-12-deleteme"
 
@@ -742,12 +802,12 @@ def test_run_query_delete(api_user_client):
     # Access should not work without permissions
     mdb["_runtime"].api.allow.delete_many(
         {
-            "username": api_user_client.username,
+            "username": getattr(client, client_id_attribute),
             "action": "/queries:run(query_cmd:DeleteCommand)",
         }
     )
     with pytest.raises(requests.exceptions.HTTPError) as excinfo:
-        response = api_user_client.request(
+        response = client.request(
             "POST",
             "/queries:run",
             {
@@ -760,12 +820,12 @@ def test_run_query_delete(api_user_client):
     # Add persmissions to DB
     mdb["_runtime"].api.allow.insert_one(
         {
-            "username": api_user_client.username,
+            "username": getattr(client, client_id_attribute),
             "action": "/queries:run(query_cmd:DeleteCommand)",
         }
     )
     try:
-        response = api_user_client.request(
+        response = client.request(
             "POST",
             "/queries:run",
             {
@@ -776,51 +836,20 @@ def test_run_query_delete(api_user_client):
         assert response.status_code == 200
         assert response.json()["n"] == 1
     finally:
-        mdb["_runtime"].api.allow.delete_one({"username": api_user_client.username})
-
-
-def test_run_query_delete_site(api_site_client):
-    mdb = get_mongo_db()
-    biosample_id = "nmdc:bsm-12-deleteme"
-
-    if not mdb.biosample_set.find_one({"id": biosample_id}):
-        mdb.biosample_set.insert_one({"id": biosample_id})
-
-    # Access should not work without permissions
-    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
-        response = api_site_client.request(
-            "POST",
-            "/queries:run",
-            {
-                "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
-            },
+        mdb["_runtime"].api.allow.delete_one(
+            {"username": getattr(client, client_id_attribute)}
         )
-    assert excinfo.value.response.status_code == 403
-
-    # Add persmissions to DB
-    mdb["_runtime"].api.allow.insert_one(
-        {
-            "username": api_site_client.client_id,
-            "action": "/queries:run(query_cmd:DeleteCommand)",
-        }
-    )
-    try:
-        response = api_site_client.request(
-            "POST",
-            "/queries:run",
-            {
-                "delete": "biosample_set",
-                "deletes": [{"q": {"id": biosample_id}, "limit": 1}],
-            },
-        )
-        assert response.status_code == 200
-        assert response.json()["n"] == 1
-    finally:
-        mdb["_runtime"].api.allow.delete_one({"username": api_site_client.client_id})
 
 
-def test_run_query_update(api_user_client):
+def test_run_query_delete_as_user(api_user_client):
+    _test_run_query_delete_as(api_user_client)
+
+
+def test_run_query_delete_as_site(api_site_client):
+    _test_run_query_delete_as(api_site_client)
+
+
+def test_run_query_update_as_user(api_user_client):
     """Submit a request to store data that does not comply with the schema."""
     mdb = get_mongo_db()
     allow_spec = {
@@ -842,3 +871,250 @@ def test_run_query_update(api_user_client):
                 ],
             },
         )
+
+
+def test_run_query_find__cursor_id_is_null_when_first_batch_is_empty(api_user_client):
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"id": "nmdc:sty-00-00000000"},  # a contrived `id` of a non-existent study
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "cursor" in payload
+    assert payload["cursor"]["id"] is None  # i.e., no more batches to fetch
+    assert len(payload["cursor"]["batch"]) == 0
+
+
+def test_run_query_find_with_continuation(api_user_client):
+    r"""
+    Note: In this test, we seed the database with studies and then fetch them
+          (via the "find" command, followed by the "getMore" command) in 2 batches.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Empty out the `study_set` collection.
+    #
+    # Note: The reason this is necessary is that some other tests in this repo
+    #       do not leave the database in the state in which they found it in—in
+    #       other words, some tests leave residue in the database. Rather than
+    #       find the culprit(s) right now, I'm going to leave a TODO/FIXME
+    #       comment about it below. I will just clean up the collection here
+    #       on behalf of that other test(s).
+    #
+    # FIXME: Update tests that leave residue in the database to not do so. Or,
+    #        (preferred) implement a database test fixture that always provides
+    #        a re-initialized database to each test that uses the fixture.
+    #
+    study_set.delete_many({})
+
+    # Seed the `study_set` collection with 6 documents.
+    study_ids = [
+        "nmdc:sty-00-000001",
+        "nmdc:sty-00-000002",
+        "nmdc:sty-00-000003",
+        "nmdc:sty-00-000004",
+        "nmdc:sty-00-000005",
+        "nmdc:sty-00-000006",
+    ]
+    study_base = {"type": "nmdc:Study", "study_category": "research_study"}
+    studies: List[dict] = [{"id": study_id, **study_base} for study_id in study_ids]
+    study_set.insert_many(studies)
+
+    # Fetch the first batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"study_category": "research_study"},
+            "batchSize": 5, 
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_1: list = cursor["batch"]
+    assert len(items_in_batch_1) == 5
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+
+    # Fetch the second batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_2: list = cursor["batch"]
+    assert len(items_in_batch_2) == 1
+    assert cursor["id"] is None  # i.e., there is not another batch to fetch
+
+    # Confirm the documents in the second batch are distinct from the ones in the first batch.
+    # Note: We'll use the documents' `id` values to determine that.
+    ids_in_batch_1 = [item["id"] for item in items_in_batch_1]
+    ids_in_batch_2 = [item["id"] for item in items_in_batch_2]
+    assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_2))) == 0
+
+    # Confirm each of the `id`s of the studies we seeded the database with,
+    # exist in the studies we received from the API.
+    assert set(ids_in_batch_1 + ids_in_batch_2) == set(study_ids)
+
+    # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
+    study_set.delete_many({})
+
+
+def test_run_query_aggregate_with_continuation(api_user_client):
+    r"""
+    Note: In this test, we seed the database with studies and biosamples
+          and then fetch the biosamples (via the "aggregate" command,
+          followed by the "getMore" command) in 3 batches.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+
+    # Empty out the `study_set` and `biosample_set` collections.
+    #
+    # Note: The reason this is necessary is that some other tests in this repo
+    #       do not leave the database in the state in which they found it in—in
+    #       other words, some tests leave residue in the database. Rather than
+    #       find the culprit(s) right now, I'm going to leave a TODO/FIXME
+    #       comment about it below. I will just clean up the collection here
+    #       on behalf of that other test(s).
+    #
+    # FIXME: Update tests that leave residue in the database to not do so. Or,
+    #        (preferred) implement a database test fixture that always provides
+    #        a re-initialized database to each test that uses the fixture.
+    #
+    study_set.delete_many({})
+    biosample_set.delete_many({})
+
+    # Ensure those two collections are empty (i.e. that there is no "residue"
+    # in them, left behind by other tests—which would be a maintenance bug).
+    assert study_set.count_documents({}) == 0
+    assert biosample_set.count_documents({}) == 0
+
+    # Seed the `study_set` and `biosample_set` collections with documents.
+    study_base = {
+        "type": "nmdc:Study",
+        "study_category": "research_study",
+    }
+    study_ids = ["nmdc:sty-00-000001"]
+    studies = [{**study_base, "id": study_id} for study_id in study_ids]
+    biosample_base = {
+        "type": "nmdc:Biosample",
+        "env_broad_scale": {"has_raw_value": "ENVO:00000000"},
+        "env_local_scale": {"has_raw_value": "ENVO:00000000"},
+        "env_medium": {"has_raw_value": "ENVO:00000000"},
+    }
+    biosample_ids = [f"nmdc:bsm-00-{i:06}" for i in range(1, 11)]  # makes ten IDs
+    biosamples = [{
+        **biosample_base,
+        "id": biosample_id,
+        "associated_studies": ["nmdc:sty-00-000001"],
+    } for biosample_id in biosample_ids]
+    study_set.insert_many(studies)
+    biosample_set.insert_many(biosamples)
+
+    # Fetch the first batch of biosamples associated with the study.
+    #
+    # References:
+    # - https://www.mongodb.com/docs/manual/reference/operator/aggregation/lookup/
+    # - https://www.mongodb.com/docs/manual/reference/operator/aggregation/unwind/
+    # - https://www.mongodb.com/docs/manual/reference/operator/aggregation/replaceRoot/
+    #
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                # Match the study we want to find biosamples for.
+                {
+                    "$match": {
+                        "id": "nmdc:sty-00-000001",
+                    },
+                },
+                # Join the `biosample_set` collection with the `study_set`
+                # collection.
+                {
+                    "$lookup": {
+                        "from": "biosample_set",
+                        "localField": "id",
+                        "foreignField": "associated_studies",
+                        "as": "biosamples",
+                    }
+                },
+                # Use `$unwind` followed by `$replaceRoot` to make the
+                # biosamples be the top-level items in the pipeline's output.
+                {
+                    "$unwind": "$biosamples",
+                },
+                {
+                    "$replaceRoot": {
+                        "newRoot": "$biosamples",
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_1: list = cursor["batch"]
+    assert len(items_in_batch_1) == 5
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+
+    # Fetch the second batch of biosamples associated with the study.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_2: list = cursor["batch"]
+    assert len(items_in_batch_2) == 5
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+    
+    # Fetch the third batch of biosamples associated with the study.
+    # Note: This is an empty batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_3: list = cursor["batch"]
+    assert len(items_in_batch_3) == 0  # empty batch
+    assert cursor["id"] is None  # i.e., there are no more batches to fetch
+
+    # Confirm the documents in each batches are unique from one another.
+    # Note: We'll use the documents' `id` values to determine that.
+    ids_in_batch_1 = [item["id"] for item in items_in_batch_1]
+    ids_in_batch_2 = [item["id"] for item in items_in_batch_2]
+    ids_in_batch_3 = [item["id"] for item in items_in_batch_3]
+    assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_2))) == 0
+    assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_3))) == 0
+    assert len(set(ids_in_batch_2).intersection(set(ids_in_batch_3))) == 0
+
+    # Confirm each of the `id`s of the biosamples we seeded the database with,
+    # exist in the biosamples we received from the API.
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(biosample_ids)
+
+    # 🧹 Clean up.
+    study_set.delete_many({})
+    biosample_set.delete_many({})
