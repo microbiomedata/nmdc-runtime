@@ -212,6 +212,72 @@ def test_update_operation():
     )
 
 
+def generate_studies(quantity: int, **overrides) -> List[dict]:
+    """
+    Generates the specified number of schema-compliant `study_set` documents.
+
+    :param quantity: Number of documents to create
+    :param overrides: Fields, if any, to add or override in each document
+    :return: The generated documents
+    """
+    return [
+        {
+            "id": f"nmdc:sty-00-{n:06}",
+            "study_category": "research_study",
+            "type": "nmdc:Study",
+            **overrides,
+        }
+        for n in range(1, quantity + 1)
+    ]
+
+
+def generate_biosamples(quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
+    """
+    Generates the specified number of schema-compliant `biosample_set` documents.
+
+    :param quantity: Number of documents to create
+    :param associated_studies: IDs of studies associated with each biosample
+    :param overrides: Fields, if any, to add or override in each document
+    :return: The generated documents
+    """
+    return [
+        {
+            "id": f"nmdc:bsm-00-{n:06}",
+            "env_broad_scale": {
+                "has_raw_value": "ENVO_00000446",
+                "term": {
+                    "id": "ENVO:00000446",
+                    "name": "terrestrial biome",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_local_scale": {
+                "has_raw_value": "ENVO_00005801",
+                "term": {
+                    "id": "ENVO:00005801",
+                    "name": "rhizosphere",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_medium": {
+                "has_raw_value": "ENVO_00001998",
+                "term": {
+                    "id": "ENVO:00001998",
+                    "name": "soil",
+                    "type": "nmdc:OntologyClass",
+                },
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "type": "nmdc:Biosample",
+            "associated_studies": associated_studies,
+            **overrides,
+        }
+        for n in range(1, quantity + 1)
+    ]
+
+
 def test_create_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
@@ -914,16 +980,7 @@ def test_run_query_find_with_continuation(api_user_client):
     study_set.delete_many({})
 
     # Seed the `study_set` collection with 6 documents.
-    study_ids = [
-        "nmdc:sty-00-000001",
-        "nmdc:sty-00-000002",
-        "nmdc:sty-00-000003",
-        "nmdc:sty-00-000004",
-        "nmdc:sty-00-000005",
-        "nmdc:sty-00-000006",
-    ]
-    study_base = {"type": "nmdc:Study", "study_category": "research_study"}
-    studies: List[dict] = [{"id": study_id, **study_base} for study_id in study_ids]
+    studies = generate_studies(6)
     study_set.insert_many(studies)
 
     # Fetch the first batch.
@@ -964,7 +1021,8 @@ def test_run_query_find_with_continuation(api_user_client):
 
     # Confirm each of the `id`s of the studies we seeded the database with,
     # exist in the studies we received from the API.
-    assert set(ids_in_batch_1 + ids_in_batch_2) == set(study_ids)
+    seeded_study_ids = [study["id"] for study in studies]
+    assert set(ids_in_batch_1 + ids_in_batch_2) == set(seeded_study_ids)
 
     # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
     study_set.delete_many({})
@@ -1003,24 +1061,8 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     assert biosample_set.count_documents({}) == 0
 
     # Seed the `study_set` and `biosample_set` collections with documents.
-    study_base = {
-        "type": "nmdc:Study",
-        "study_category": "research_study",
-    }
-    study_ids = ["nmdc:sty-00-000001"]
-    studies = [{**study_base, "id": study_id} for study_id in study_ids]
-    biosample_base = {
-        "type": "nmdc:Biosample",
-        "env_broad_scale": {"has_raw_value": "ENVO:00000000"},
-        "env_local_scale": {"has_raw_value": "ENVO:00000000"},
-        "env_medium": {"has_raw_value": "ENVO:00000000"},
-    }
-    biosample_ids = [f"nmdc:bsm-00-{i:06}" for i in range(1, 11)]  # makes ten IDs
-    biosamples = [{
-        **biosample_base,
-        "id": biosample_id,
-        "associated_studies": ["nmdc:sty-00-000001"],
-    } for biosample_id in biosample_ids]
+    studies = generate_studies(1, id="nmdc:sty-00-000001")
+    biosamples = generate_biosamples(10, associated_studies=["nmdc:sty-00-000001"])
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
@@ -1113,7 +1155,8 @@ def test_run_query_aggregate_with_continuation(api_user_client):
 
     # Confirm each of the `id`s of the biosamples we seeded the database with,
     # exist in the biosamples we received from the API.
-    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(biosample_ids)
+    seeded_biosample_ids = [biosample["id"] for biosample in biosamples]
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_biosample_ids)
 
     # 🧹 Clean up.
     study_set.delete_many({})
