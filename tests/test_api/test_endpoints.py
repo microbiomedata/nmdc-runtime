@@ -968,22 +968,24 @@ def test_run_query_find_with_continuation(api_user_client):
     # like the ones we're going to generate here. Then, generate 6 studies
     # and insert them into the database.
     #
-    # Note: The reason this is necessary is that some other tests in this repo
-    #       do not leave the database in the state in which they found it in—in
-    #       other words, some tests leave residue in the database. Indeed, some
-    #       tests seem to have been designed to utilize the residue left behind
-    #       by other tests—even those defined in different test modules. Rather
-    #       than find the culprit(s) right now, I'm going to leave a TODO/FIXME
-    #       comment about it below.
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. The reason we do not just empty out the collections here is
+    #       that some other longstanding tests in this repository rely on that
+    #       "residue" (i.e. leftover documents) being there. This coupling
+    #       between tests has made maintaining this repository's test suite
+    #       difficult for some contributors. Rather than address the root cause
+    #       right now, we will add the following TODO/FIXME comment about it.
     #
     # FIXME: Update tests that leave residue in the database to not do so, and
-    #        update the "dependent" tests accordingly. Or, (preferred) implement
-    #        a database test fixture that always provides a re-initialized
-    #        database to each test that uses the fixture. This could be scoped
-    #        to the test function or to the test module, the latter being an
-    #        option for people that _do_ want to share residue between tests.
+    #        update the "dependent" tests accordingly. Or, (preferrably)
+    #        implement a database test fixture that always provides a "clean"
+    #        (i.e. re-initialized) database to each test that uses the fixture.
+    #        This could be scoped to the test function or to the test module,
+    #        the latter being an option for people that _do_ want specific
+    #        tests to be coupled to one another.
     #
-    study_title = "Study for /queries:run testing"
+    study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
@@ -1050,27 +1052,23 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     # contain studies and biosamples like the ones we're going to generate here.
     # Then, generate 1 study and 10 biosamples and insert them into the database.
     #
-    # Note: The reason this is necessary is that some other tests in this repo
-    #       do not leave the database in the state in which they found it in—in
-    #       other words, some tests leave residue in the database. Indeed, some
-    #       tests seem to have been designed to utilize the residue left behind
-    #       by other tests—even those defined in different test modules. Rather
-    #       than find the culprit(s) right now, I'm going to leave a TODO/FIXME
-    #       comment about it below.
-    #
-    # FIXME: Update tests that leave residue in the database to not do so, and
-    #        update the "dependent" tests accordingly. Or, (preferred) implement
-    #        a database test fixture that always provides a re-initialized
-    #        database to each test that uses the fixture. This could be scoped
-    #        to the test function or to the test module, the latter being an
-    #        option for people that _do_ want to share residue between tests.
+    # Note: The reason we do the assertion is that some tests in this repository
+    #       leave residue in the test database after that run. The reason we do
+    #       not just empty out the collections is that some other tests in this
+    #       repository rely on that residue being there. This lack of isolation
+    #       has made adding tests to this repository difficult for some people.
+    #       We added a TODO/FIXME comment above about addressing the root cause.
+    #       In the meantime, we are just asserting that the documents this test
+    #       relies on do not exist in the database yet.
     #
     study_id = "nmdc:sty-00-000001"
     biosample_samp_name = "Sample for /queries:run testing"
     assert study_set.count_documents({"id": study_id}) == 0
     assert biosample_set.count_documents({"samp_name": biosample_samp_name}) == 0
 
-    # Seed the `study_set` and `biosample_set` collections with documents.
+    # Seed the `study_set` collection with 1 document and the `biosample_set`
+    # collection with 10 documents that are associated with that `study_set`
+    # document.
     studies = generate_studies(1, id=study_id)
     biosamples = generate_biosamples(10, 
                                      associated_studies=[study_id], 
