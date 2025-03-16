@@ -44,20 +44,13 @@ def get_study_by_id(id_: str) -> Optional[dict]:
 
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
-
-    # FIXME: Fix this broken test, which depends upon the database already
-    #        containing a particular study.
-    #
-    # TODO: Either update the collection name "study_set_set" below or
-    #       add a comment saying the use of that name is intentional.
-
     sty_local_id = "sty-11-pzmd0x14"
     remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + sty_local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
         ) as f:
-            mdb.study_set_set.insert_one(json.load(f))
+            mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
