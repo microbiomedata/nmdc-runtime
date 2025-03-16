@@ -940,19 +940,26 @@ def test_run_query_update_as_user(api_user_client):
 
 
 def test_run_query_find__cursor_id_is_null_when_first_batch_is_empty(api_user_client):
+    study_id = "nmdc:sty-00-000001"
+
+    # Confirm the study does not exist.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    assert study_set.count_documents({"id": study_id}) == 0
+
+    # Attempt to get that study via a "find" command.
     response = api_user_client.request(
         "POST",
         "/queries:run",
         {
             "find": "study_set",
-            "filter": {"id": "nmdc:sty-00-00000000"},  # a contrived `id` of a non-existent study
+            "filter": {"id": study_id},
         },
     )
     assert response.status_code == 200
-    payload = response.json()
-    assert "cursor" in payload
-    assert payload["cursor"]["id"] is None  # i.e., no more batches to fetch
-    assert len(payload["cursor"]["batch"]) == 0
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None  # i.e., no more batches to fetch
 
 
 def test_run_query_find_with_continuation(api_user_client):
@@ -983,7 +990,9 @@ def test_run_query_find_with_continuation(api_user_client):
     #        (i.e. re-initialized) database to each test that uses the fixture.
     #        This could be scoped to the test function or to the test module,
     #        the latter being an option for people that _do_ want specific
-    #        tests to be coupled to one another.
+    #        tests to be coupled to one another. This test fixture approach
+    #        would also accommodate tests that abort prematurely due to
+    #        failure and are, as a result, unable to run their "clean up" code.
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
@@ -1037,6 +1046,35 @@ def test_run_query_find_with_continuation(api_user_client):
     study_set.delete_many({"title": study_title})
 
 
+def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_user_client):
+    study_id = "nmdc:sty-00-000001"
+
+    # Confirm the study does not exist.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    assert study_set.count_documents({"id": study_id}) == 0
+
+    # Attempt to get that study via an "aggregate" command.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "id": study_id,
+                    },
+                },
+            ]
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None  # i.e., no more batches to fetch
+
+
 def test_run_query_aggregate_with_continuation(api_user_client):
     r"""
     Note: In this test, we seed the database with studies and biosamples
@@ -1053,7 +1091,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     # Then, generate 1 study and 10 biosamples and insert them into the database.
     #
     # Note: The reason we do the assertion is that some tests in this repository
-    #       leave residue in the test database after that run. The reason we do
+    #       leave residue in the test database after they run. The reason we do
     #       not just empty out the collections is that some other tests in this
     #       repository rely on that residue being there. This lack of isolation
     #       has made adding tests to this repository difficult for some people.
@@ -1062,7 +1100,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     #       relies on do not exist in the database yet.
     #
     study_id = "nmdc:sty-00-000001"
-    biosample_samp_name = "Sample for /queries:run testing"
+    biosample_samp_name = "Sample for testing"
     assert study_set.count_documents({"id": study_id}) == 0
     assert biosample_set.count_documents({"samp_name": biosample_samp_name}) == 0
 
