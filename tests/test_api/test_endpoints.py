@@ -1075,6 +1075,67 @@ def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_us
     assert cursor["id"] is None  # i.e., no more batches to fetch
 
 
+def test_run_query_aggregate__cursor_id_is_null_when_documents_lack__id_fields(api_user_client):
+    r"""
+    Note: This test is focused on the scenario where the documents produced by
+          the output stage of an aggregation pipeline do not have an `_id` field.
+    """
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    
+    # Seed the `study_set` collection with 6 documents.
+    studies = generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+
+    # Fetch the first batch and confirm the `cursor.id` value is null, since
+    # pagination is not implemented when any of the documents lacks an `_id`
+    # field.
+    #
+    # TODO: Consider whether an API client might construct an aggregation
+    #       pipeline in which the output documents have custom `_id` values,
+    #       as opposed to the default `_id` values that MongoDB generates.
+    #
+    # FIXME: The endpoint-under-test does not handle this scenario yet, so we do
+    #        not assert anything about its response yet. Update the endpoint to
+    #        handle this scenario gracefully; then update this test to assert
+    #        things about the endpoint's response.
+    #
+    with pytest.raises(requests.exceptions.HTTPError):
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "aggregate": "study_set",
+                "pipeline": [
+                    {
+                        "$match": {
+                            "title": study_title,
+                        },
+                    },
+                    # Remove the `_id` field, thereby violating a pagination prerequisite.
+                    {
+                        "$unset": "_id",
+                    }
+                ],
+                "cursor": {"batchSize": 5},
+            },
+        )
+
+    # 🧹 Clean up.
+    study_set.delete_many({"title": study_title})
+
+
 def test_run_query_aggregate_with_continuation(api_user_client):
     r"""
     Note: In this test, we seed the database with studies and biosamples
