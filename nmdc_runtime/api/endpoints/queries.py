@@ -63,15 +63,16 @@ def run_query(
     user: User = Depends(get_current_active_user),
 ):
     """
-    Performs `find`, `aggregate`, `update`, `delete`, etc. commands for users with permissions.
+    Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
 
     For `find` and `aggregate` commands, the requested items will be in `cursor.batch`.
     Whenever there _may_ be more items available, the response will include a non-null `cursor.id`.
     To retrieve the next batch of items, submit a request with `getMore` set to that `cursor.id` value.
     When the response includes a null `cursor.id`, there are no more items available.
 
-    Note that the maximum size of the response payload is 16 MB. You can use the `batchSize` (or `cursor.batchSize`)
-    request body property—along with some trial and error—to ensure the response payload size remains under that limit.
+    Note that the maximum size of the response payload is 16 MB. You can use the `batchSize` property
+    (for "find" commands) or `cursor.batchSize` (for "aggregate" commands) property—along with some
+    trial and error—to ensure the response payload size remains under that limit.
 
     **Example request bodies:**
 
@@ -93,7 +94,7 @@ def run_query(
 
     \*<small>Up to 101, which is the default "batchSize" for the "find" command.</small>
 
-    Get up to 200 biosamples associated with a given study.
+    Get the first 200 biosamples associated with a given study.
     ```
     {
       "find": "biosample_set",
@@ -102,7 +103,7 @@ def run_query(
     }
     ```
 
-    Delete a biosample having a given `id`.
+    Delete the first biosample having a given `id`.
     ```
     {
       "delete": "biosample_set",
@@ -118,7 +119,7 @@ def run_query(
     }
     ```
 
-    Get all\* biosamples, sorted by the number of studies associated with them (most to least).
+    Get all\* biosamples, sorted by the number of studies associated with them (greatest to least).
     ```
     {
       "aggregate": "biosample_set",
@@ -128,8 +129,8 @@ def run_query(
 
     \*<small>Up to 25, which is the default "batchSize" for the "aggregate" command.</small>
 
-    Get up to 10 biosamples with the largest numbers of studies associated with them,
-    sorted by that number of studies (most to least).
+    Get the first 10 biosamples having the largest numbers of studies associated with them,
+    sorted by that number of studies (greatest to least).
     ```
     {
       "aggregate": "biosample_set",
