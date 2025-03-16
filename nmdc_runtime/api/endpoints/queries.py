@@ -306,6 +306,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         f"Command JSON: {bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))}"
     )
 
+    # Send a command to the database and get the raw response. If the command was a
+    # cursor-yielding command, make a new response object in which the raw response's
+    # `cursor.firstBatch`/`cursor.nextBatch` value is in a field named `cursor.batch`.
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
@@ -316,6 +319,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             ["cursor", "batch"],
             cmd_response_raw["cursor"][batch_key],
         )
+        # TODO: Did you mean to delete this from `cmd_response_adapted` instead?
         del cmd_response_raw["cursor"][batch_key]
     else:
         cmd_response_adapted = cmd_response_raw
