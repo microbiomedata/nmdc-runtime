@@ -162,7 +162,7 @@ _mdb = get_mongo_db()
 def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     r"""
     TODO: Document this function.
-    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~170 lines.
+    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~220 lines.
     """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
