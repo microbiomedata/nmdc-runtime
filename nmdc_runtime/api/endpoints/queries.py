@@ -356,13 +356,13 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     if isinstance(cmd, AggregateCommand):
         slimmed_command_response = CursorYieldingCommandResponse.slimmed(cmd_response)
         if slimmed_command_response is None:
-            logging.warning("Some documents are missing `_id`. Not creating a continuation.")
+            logging.warning(
+                "Some documents are missing `_id`. Not creating a continuation."
+            )
             cmd_response.cursor.id = None
             return cmd_response
 
-        cursor_continuation = cc.create_cc(
-            cmd, slimmed_command_response
-        )
+        cursor_continuation = cc.create_cc(cmd, slimmed_command_response)
         cmd_response.cursor.id = (
             None if cmd_response.cursor.id == "0" else cursor_continuation.id
         )
