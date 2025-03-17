@@ -33,7 +33,11 @@ from nmdc_runtime.site.resources import (
 )
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
 from tests.test_util import download_to
+from tests.lib.faker import Faker
 
+
+# Instantiate a faker that we can use to generate fake data for testing.
+faker = Faker()
 
 # TODO: Why is there a 43 MB `tests/nmdcdb.test.archive.gz` file in the repository
 #       at the same time as this dump-downloading code? If the aforementioned file
@@ -210,72 +214,6 @@ def test_update_operation():
     assert get_in(["metadata", "model"], new_op) == dotted_path_for(
         JobOperationMetadata
     )
-
-
-def generate_studies(quantity: int, **overrides) -> List[dict]:
-    """
-    Generates the specified number of schema-compliant `study_set` documents.
-
-    :param quantity: Number of documents to create
-    :param overrides: Fields, if any, to add or override in each document
-    :return: The generated documents
-    """
-    return [
-        {
-            "id": f"nmdc:sty-00-{n:06}",
-            "study_category": "research_study",
-            "type": "nmdc:Study",
-            **overrides,
-        }
-        for n in range(1, quantity + 1)
-    ]
-
-
-def generate_biosamples(quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
-    """
-    Generates the specified number of schema-compliant `biosample_set` documents.
-
-    :param quantity: Number of documents to create
-    :param associated_studies: IDs of studies associated with each biosample
-    :param overrides: Fields, if any, to add or override in each document
-    :return: The generated documents
-    """
-    return [
-        {
-            "id": f"nmdc:bsm-00-{n:06}",
-            "env_broad_scale": {
-                "has_raw_value": "ENVO_00000446",
-                "term": {
-                    "id": "ENVO:00000446",
-                    "name": "terrestrial biome",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "env_local_scale": {
-                "has_raw_value": "ENVO_00005801",
-                "term": {
-                    "id": "ENVO:00005801",
-                    "name": "rhizosphere",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "env_medium": {
-                "has_raw_value": "ENVO_00001998",
-                "term": {
-                    "id": "ENVO:00001998",
-                    "name": "soil",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "type": "nmdc:Biosample",
-            "associated_studies": associated_studies,
-            **overrides,
-        }
-        for n in range(1, quantity + 1)
-    ]
 
 
 def test_create_user():
@@ -1003,7 +941,7 @@ def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_partly_full
     assert study_set.count_documents({"title": study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
-    studies = generate_studies(6, title=study_title)
+    studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
     # Attempt to get those studies via a "find" command, using a larger batch size.
@@ -1049,7 +987,7 @@ def test_run_query_find__first_cursor_id_is_string_when_first_batch_is_full(api_
     assert study_set.count_documents({"title": study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
-    studies = generate_studies(6, title=study_title)
+    studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
     # Attempt to get those studies via a "find" command, using an equal batch size.
@@ -1093,7 +1031,7 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partly_fu
     assert study_set.count_documents({"title": study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
-    studies = generate_studies(6, title=study_title)
+    studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
     # Fetch the first batch.
@@ -1190,7 +1128,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_documents_lack__id_fields(a
     assert study_set.count_documents({"title": study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
-    studies = generate_studies(6, title=study_title)
+    studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
     # Fetch the first batch and confirm the `cursor.id` value is null, since
@@ -1263,10 +1201,10 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     # Seed the `study_set` collection with 1 document and the `biosample_set`
     # collection with 10 documents that are associated with that `study_set`
     # document.
-    studies = generate_studies(1, id=study_id)
-    biosamples = generate_biosamples(10, 
-                                     associated_studies=[study_id], 
-                                     samp_name=biosample_samp_name)
+    studies = faker.generate_studies(1, id=study_id)
+    biosamples = faker.generate_biosamples(10, 
+                                           associated_studies=[study_id], 
+                                           samp_name=biosample_samp_name)
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
