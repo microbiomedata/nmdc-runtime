@@ -1224,11 +1224,24 @@ def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_us
     assert cursor["id"] is None  # i.e., no more batches to fetch
 
 
-def test_run_query_aggregate__cursor_id_is_null_when_documents_lack__id_fields(api_user_client):
+def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(api_user_client):
     r"""
     Note: This test is focused on the scenario where the documents produced by
           the output stage of an aggregation pipeline do not have an `_id` field.
+
+    FIXME: The endpoint-under-test does not handle this scenario yet, so we do
+           not assert anything about its response yet other than that it its
+           status code is 500. Update the endpoint to handle this scenario
+           gracefully; then update this test to assert things about the
+           endpoint's response (e.g. about the items and the cursor).
+
+    TODO: Also ensure pagination works—or that pagination not working is
+          documented in a user-facing way—in the case where the documents
+          output by the aggregation pipeline do have values in their `_id`
+          fields, but those values are not MongoDB ObjectIds (assuming that
+          is possible).
     """
+
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
 
@@ -1247,19 +1260,9 @@ def test_run_query_aggregate__cursor_id_is_null_when_documents_lack__id_fields(a
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
-    # Fetch the first batch and confirm the `cursor.id` value is null, since
-    # pagination is not implemented when any of the documents lacks an `_id`
+    # Fetch the first batch and confirm the server responds with an HTTP 500 response,
+    # since pagination is not implemented when any of the documents lacks an `_id`
     # field.
-    #
-    # TODO: Consider whether an API client might construct an aggregation
-    #       pipeline in which the output documents have custom `_id` values,
-    #       as opposed to the default `_id` values that MongoDB generates.
-    #
-    # FIXME: The endpoint-under-test does not handle this scenario yet, so we do
-    #        not assert anything about its response yet. Update the endpoint to
-    #        handle this scenario gracefully; then update this test to assert
-    #        things about the endpoint's response.
-    #
     with pytest.raises(requests.exceptions.HTTPError):
         response = api_user_client.request(
             "POST",
