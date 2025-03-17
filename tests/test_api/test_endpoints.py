@@ -1238,8 +1238,8 @@ def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(ap
     TODO: Also ensure pagination works—or that pagination not working is
           documented in a user-facing way—in the case where the documents
           output by the aggregation pipeline do have values in their `_id`
-          fields, but those values are not MongoDB ObjectIds (assuming that
-          is possible).
+          fields, but those values are not MongoDB ObjectIds. For example,
+          if the final pipeline stage is: `{ "$set": { "_id": "potato" } }`
     """
 
     mdb = get_mongo_db()
@@ -1270,12 +1270,8 @@ def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(ap
             {
                 "aggregate": "study_set",
                 "pipeline": [
-                    {
-                        "$match": {
-                            "title": study_title,
-                        },
-                    },
-                    # Remove the `_id` field, thereby violating a pagination prerequisite.
+                    # In the final stage of the pipeline, we remove the `_id` field,
+                    # _violating a prerequisite_ of the pagination implementation.
                     {
                         "$unset": "_id",
                     }
