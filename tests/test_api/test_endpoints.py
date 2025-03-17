@@ -1263,23 +1263,25 @@ def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(ap
     # Fetch the first batch and confirm the server responds with an HTTP 500 response,
     # since pagination is not implemented when any of the documents lacks an `_id`
     # field.
-    with pytest.raises(requests.exceptions.HTTPError):
-        response = api_user_client.request(
-            "POST",
-            "/queries:run",
-            {
-                "aggregate": "study_set",
-                "pipeline": [
-                    # In the final stage of the pipeline, we remove the `_id` field,
-                    # _violating a prerequisite_ of the pagination implementation.
-                    {
-                        "$unset": "_id",
-                    }
-                ],
-                "cursor": {"batchSize": 5},
-            },
-        )
-
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                # In the final stage of the pipeline, we remove the `_id` field,
+                # _violating a prerequisite_ of the pagination implementation.
+                {
+                    "$unset": "_id",
+                }
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) > 0
+    assert cursor["id"] is None    
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 

@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from typing import Optional, Any, Dict, List, Union
 
 import bson
@@ -135,13 +136,16 @@ class CursorYieldingCommandResponse(CommandResponse):
     cursor: CommandResponseCursor
 
     @classmethod
-    def slimmed(cls, cmd_response) -> "CursorYieldingCommandResponse":
+    def slimmed(cls, cmd_response) -> Optional["CursorYieldingCommandResponse"]:
         """Create a new response object that retains only the `_id` for each cursor batch document."""
         dump: dict = cmd_response.model_dump(exclude_unset=True)
+        id_list = [pick(["_id"], batch_doc) for batch_doc in dump["cursor"]["batch"]]
+        if any("_id" not in doc for doc in id_list):
+            return None
         dump = assoc_in(
             dump,
             ["cursor", "batch"],
-            [pick(["_id"], batch_doc) for batch_doc in dump["cursor"]["batch"]],
+            id_list,
         )
         return cls(**dump)
 
