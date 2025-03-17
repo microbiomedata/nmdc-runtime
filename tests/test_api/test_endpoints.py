@@ -905,7 +905,7 @@ def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_empty(api_u
     assert cursor["id"] is None  # i.e., no more batches to fetch
 
 
-def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_partly_full(api_user_client):
+def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_partially_full(api_user_client):
     r"""
     Note: In this test, the client uses the "find" command to get a batch of studies.
           Since that batch contains fewer items than the batch size, its `cursor.id` is null.
@@ -1009,7 +1009,64 @@ def test_run_query_find__first_cursor_id_is_string_when_first_batch_is_full(api_
     study_set.delete_many({"title": study_title})
 
 
-def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partly_full(api_user_client):
+def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_empty(api_user_client):
+    r"""
+    Note: In this test, the client uses the "find" command to get one batch of studies,
+          then uses the "getMore" command to get a second batch of studies, which is empty.
+          Since the second batch contains fewer items than the batch size, its `cursor.id` is null.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    
+    # Seed the `study_set` collection with 6 documents.
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+
+    # Fetch the first batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 6,  # equal to the number of studies
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 6
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+
+    # Fetch the second batch, which is empty.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None  # i.e., there is not another batch to fetch
+
+    # 🧹 Clean up.
+    study_set.delete_many({"title": study_title})
+
+
+def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partially_full(api_user_client):
     r"""
     Note: In this test, the client uses the "find" command to get one batch of studies,
           then uses the "getMore" command to get a second batch of studies. Since the
@@ -1076,6 +1133,65 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partly_fu
     assert set(ids_in_batch_1 + ids_in_batch_2) == set(seeded_study_ids)
 
     # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
+    study_set.delete_many({"title": study_title})
+
+
+def test_run_query_find__second_cursor_id_is_string_when_second_batch_is_full(api_user_client):
+    r"""
+    Note: In this test, the client uses the "find" command to get two full batches of studies.
+          Since the second batch has no vacancy, its `cursor.id` is a string instead of null.
+          Even though the third batch would be empty, the endpoint doesn't "know" that
+          ahead of time and, so, will return a non-null `cursor.id` value. This is a
+          limitation of the endpoint's pagination implementation.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    
+    # Seed the `study_set` collection with 6 documents.
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+
+    # Fetch the first batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 3,  # half the number of studies
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 3
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+
+    # Fetch the second batch, which is empty.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 3
+    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+
+    # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 
 
