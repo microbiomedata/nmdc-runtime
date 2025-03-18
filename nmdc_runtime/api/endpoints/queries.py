@@ -137,7 +137,7 @@ def run_query(
     whether that batch is empty or non-empty.
     ```
     {
-      "getMore": "somecursorid",
+      "getMore": "somecursorid"
     }
     ```
 
