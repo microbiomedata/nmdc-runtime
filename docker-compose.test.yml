@@ -96,10 +96,7 @@ services:
 
   # MongoDB server used by the FastAPI application.
   mongo:
-    # FIXME: Update this to `8.0.4` before merging this PR branch into `main`. Using version `6.0.4` was a temporary
-    #        workaround for `MONGO_REMOTE_DUMP_URL_PREFIX` pointing to an old dump that was incompatible with `8.0.4`.
-    #        We use `8.0.4` in production.
-    image: mongo:6.0.4
+    image: mongo:8.0.4
     ports:
       - "27018:27017"
     restart: unless-stopped
