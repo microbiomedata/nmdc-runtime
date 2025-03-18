@@ -66,13 +66,9 @@ def run_query(
     Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
 
     For `find` and `aggregate` commands, the requested items will be in `cursor.batch`.
-    Whenever there _may_ be more items available, the response will include a non-null `cursor.id`.
-    To retrieve the next batch of items, submit a request with `getMore` set to that `cursor.id` value.
+    When the response includes a non-null `cursor.id`, there _may_ be more items available.
+    To retrieve the next batch of items, submit a request with `getMore` set to that non-null `cursor.id`.
     When the response includes a null `cursor.id`, there are no more items available.
-
-    Note that the maximum size of the response payload is 16 MB. You can use the `batchSize` property
-    (for "find" commands) or `cursor.batchSize` (for "aggregate" commands) property—along with some
-    trial and error—to ensure the response payload size remains under that limit.
 
     **Example request bodies:**
 
@@ -146,6 +142,32 @@ def run_query(
       "getMore": "somecursorid",
     }
     ```
+
+    **Limitations:**
+
+    1. The maximum size of the response payload is 16 MB. You can use the "batchSize" property
+       (for "find" commands) or the "cursor.batchSize" property (for "aggregate" commands)—along
+       with some trial and error—to ensure the response payload size remains under that limit.
+    2. When using an "aggregate" command, if any of the objects output by the pipeline lacks an
+       "_id" field, the endpoint will return only the first batch of objects and will not offer
+       pagination (i.e. "cursor.id" will be null).
+    3. Manipulating the values of "_id" fields within an aggregation pipeline (e.g. via "$set")
+       can result in pagination not working. If this impacts your use case, please contact us.
+    """
+    r"""
+    Additional notes for developers:*
+    --------------------------------
+    * Note: Because this section isn't in the main docstring,
+            it isn't visible on Swagger UI.
+
+    1. The sorting part of the pagination algorithm is based upon the assumption
+       that the `_id` values of the documents are "deterministically sortable."
+       However, an aggregation pipeline can be used to populate the `_id` field
+       with values that are _not_ "deterministically sortable." For example,
+       the final stage of the pipeline could be: `{ "$set": { "_id": "potato" } }`
+       References: 
+       - https://www.unicode.org/notes/tn9/
+       - https://www.mongodb.com/docs/manual/reference/operator/aggregation/set/
     """
 
     # If the command is one that requires the user to have specific permissions, check for those permissions now.

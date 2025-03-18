@@ -1224,22 +1224,10 @@ def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_us
     assert cursor["id"] is None  # i.e., no more batches to fetch
 
 
-def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(api_user_client):
+def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(api_user_client):
     r"""
     Note: This test is focused on the scenario where the documents produced by
           the output stage of an aggregation pipeline do not have an `_id` field.
-
-    FIXME: The endpoint-under-test does not handle this scenario yet, so we do
-           not assert anything about its response yet other than that it its
-           status code is 500. Update the endpoint to handle this scenario
-           gracefully; then update this test to assert things about the
-           endpoint's response (e.g. about the items and the cursor).
-
-    TODO: Also ensure pagination works—or that pagination not working is
-          documented in a user-facing way—in the case where the documents
-          output by the aggregation pipeline do have values in their `_id`
-          fields, but those values are not MongoDB ObjectIds. For example,
-          if the final pipeline stage is: `{ "$set": { "_id": "potato" } }`
     """
 
     mdb = get_mongo_db()
@@ -1260,28 +1248,34 @@ def test_run_query_aggregate__endpoint_crashes_when_documents_lack__id_fields(ap
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
-    # Fetch the first batch and confirm the server responds with an HTTP 500 response,
-    # since pagination is not implemented when any of the documents lacks an `_id`
-    # field.
+    # Fetch the first batch of 5 and confirm the `cursor.id` is null,
+    # even though we didn't receive all 6 items.
     response = api_user_client.request(
         "POST",
         "/queries:run",
         {
             "aggregate": "study_set",
             "pipeline": [
+                # Only get the 6 studies we inserted above.
+                {   
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
                 # In the final stage of the pipeline, we remove the `_id` field,
-                # _violating a prerequisite_ of the pagination implementation.
+                # upon which the pagination algorithm relies.
                 {
                     "$unset": "_id",
                 }
             ],
-            "cursor": {"batchSize": 5},
+            "cursor": {"batchSize": 5},  # less than the number of studies
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
-    assert len(cursor["batch"]) > 0
-    assert cursor["id"] is None    
+    assert len(cursor["batch"]) == 5  # the client only gets the first batch
+    assert cursor["id"] is None  # the client is not given an opportunity to paginate
+
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 
