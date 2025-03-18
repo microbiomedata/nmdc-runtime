@@ -378,11 +378,15 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Cursor id returned. Create a continuation.
     if isinstance(cmd, AggregateCommand):
         slimmed_command_response = CursorYieldingCommandResponse.slimmed(cmd_response)
+
+        # First, we check whether the "slimmed" command response is `None`. That can only happen
+        # when some of the documents in the batch lack an `_id` field. We do not support pagination
+        # in that scenario (since our pagination algorithm relies on the `_id` values).
         if slimmed_command_response is None:
             logging.warning(
-                "Some documents are missing `_id`. Not creating a continuation."
+                "Failed to obtain list of `_id` values. Will return batch and no pagination token."
             )
-            cmd_response.cursor.id = None
+            cmd_response.cursor.id = None  # explicitly set the pagination token to null
             return cmd_response
 
         cursor_continuation = cc.create_cc(cmd, slimmed_command_response)
@@ -405,6 +409,5 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         cmd_response.cursor.id = (
             None if cmd_response.cursor.id == "0" else cursor_continuation.id
         )
-        # TODO: remove print
-        print(f"getmore:{cmd_response.cursor.id=}")
+
     return cmd_response
