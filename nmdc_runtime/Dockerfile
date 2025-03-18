@@ -102,8 +102,8 @@ ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
 FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
 
-# Copy repository contents into image.
-COPY . /code
+# Copy dependency lists into image.
+COPY ./requirements /code/requirements
 
 # Install development-only Python dependencies into the image.
 RUN pip install \
@@ -111,6 +111,9 @@ RUN pip install \
     --retries 10 \
     --no-cache-dir \
     -r /code/requirements/dev.txt
+
+# Copy all repository contents into image.
+COPY . /code
 
 # Install the project in editable mode.
 RUN cd /code && \
