@@ -139,13 +139,13 @@ class CursorYieldingCommandResponse(CommandResponse):
     def slimmed(cls, cmd_response) -> Optional["CursorYieldingCommandResponse"]:
         """Create a new response object that retains only the `_id` for each cursor batch document."""
         dump: dict = cmd_response.model_dump(exclude_unset=True)
-        
+
         # If any dictionary in this batch lacks an `_id` key, log a warning and return `None`.`
         id_list = [pick(["_id"], batch_doc) for batch_doc in dump["cursor"]["batch"]]
         if any("_id" not in doc for doc in id_list):
             logging.warning("Some documents in the batch lack an `_id` field.")
             return None
-        
+
         dump = assoc_in(
             dump,
             ["cursor", "batch"],
