@@ -369,7 +369,14 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
 
     # Cursor-command response? Prep runtime-managed cursor id and replace mongo session cursor id in response.
     cursor_continuation = None
+
     # TODO: Handle empty cursor response or situations where batch < batchSize.
+    #
+    #       Note: This "TODO" comment has not been removed, but — based upon the
+    #             results of the automated tests, which do submit "find" and
+    #             "aggregation" commands that produce empty result sets and result
+    #             sets smaller than one batch — I think this has been resolved.
+    #
     if isinstance(cmd, CursorYieldingCommand) and cmd_response.cursor.id == "0":
         # No cursor id returned. No need to create a continuation.
         cmd_response.cursor.id = None
