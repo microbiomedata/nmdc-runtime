@@ -295,7 +295,6 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             )
             cmd = FindCommand(**modified_cmd_doc)
         elif "aggregate" in initial_cmd_doc:
-            # TODO assign `query` cmd to equivalent aggregate cmd.
             initial_cmd_doc["pipeline"].append(
                 {
                     "$match": {
