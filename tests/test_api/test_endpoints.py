@@ -65,6 +65,8 @@ def ensure_schema_collections_local_filesystem_cache():
     - It downloads dumps from the remote host specified via `MONGODUMP_URL_PREFIX`.
     - It downloads the dumps into the local directory specified via `MONGODUMP_DIR`.
     - It does not download dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
+
+    Note: This function is currently being invoked via an inline Python script written in `Makefile`.
     """
 
     # download collections into "nmdc" db namespace
