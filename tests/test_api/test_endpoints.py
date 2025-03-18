@@ -932,3 +932,149 @@ def test_find_related_objects_for_workflow_execution_having_none(api_site_client
         mdb.get_collection(name="workflow_execution_set").delete_one(
             {"id": workflow_execution_id}
         )
+
+
+def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_client):
+    # Seed the test database with a workflow execution and related data objects
+    mdb = get_mongo_db()
+    workflow_execution_id = "nmdc:wfmgan-11-wdx72h27.1"
+    data_object_input_id = "nmdc:dobj-11-9mkb6w25"
+    data_object_output_id = "nmdc:dobj-11-5kk68p73"
+
+    # Create data objects
+    data_object_input = (
+        {
+            "id": data_object_input_id,
+            "name": "nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
+            "description": "Assembly contigs for nmdc:wfmgas-11-90bn3y70.1",
+            "alternative_identifiers": [],
+            "file_size_bytes": 26375887,
+            "md5_checksum": "64ac183a6f9c497fa6ae43cc2aa1ca6e",
+            "data_object_type": "Assembly Contigs",
+            "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgas-11-90bn3y70.1/nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
+            "type": "nmdc:DataObject",
+        },
+    )
+    data_object_output = {
+        "id": data_object_output_id,
+        "name": "nmdc_wfmgan-11-wdx72h27.1_proteins.faa",
+        "description": "FASTA Amino Acid File for nmdc:wfmgan-11-wdx72h27.1",
+        "alternative_identifiers": [],
+        "file_size_bytes": 15067142,
+        "md5_checksum": "331bce1648f53e5631753f96ee79c250",
+        "data_object_type": "Annotation Amino Acid FASTA",
+        "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgan-11-wdx72h27.1/nmdc_wfmgan-11-wdx72h27.1_proteins.faa",
+        "type": "nmdc:DataObject",
+    }
+
+    # Create workflow execution with references to data objects
+    workflow_execution_dict = {
+        "id": "nmdc:wfmag-11-05myyz45.1",
+        "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-05myyz45.1",
+        "started_at_time": "2023-07-26T21:23:37.349035+00:00",
+        "ended_at_time": "2023-07-26T21:35:02.468566+00:00",
+        "was_informed_by": "nmdc:omprc-11-vpqmce67",
+        "execution_resource": "NERSC-Perlmutter",
+        "git_url": "https://github.com/microbiomedata/metaMAGs",
+        "has_input": [
+            "nmdc:dobj-11-9mkb6w25",
+            "nmdc:dobj-11-gt7grc22",
+            "nmdc:dobj-11-20kgjz21",
+            "nmdc:dobj-11-rse8j628",
+            "nmdc:dobj-11-vkz6mc22",
+            "nmdc:dobj-11-ywbazd98",
+            "nmdc:dobj-11-s0swen20",
+            "nmdc:dobj-11-mxwbrg81",
+            "nmdc:dobj-11-n5hs3k52",
+            "nmdc:dobj-11-bvge9w42",
+            "nmdc:dobj-11-m19exh45",
+            "nmdc:dobj-11-bg0j9849",
+            "nmdc:dobj-11-r40xwr84",
+            "nmdc:dobj-11-5kk68p73",
+            "nmdc:dobj-11-jfgh0180",
+        ],
+        "has_output": [
+            "nmdc:dobj-11-yrzfq471",
+            "nmdc:dobj-11-dsbday74",
+            "nmdc:dobj-11-104ypv57",
+            "nmdc:dobj-11-t1v6w944",
+            "nmdc:dobj-11-0c397145",
+        ],
+        "type": "nmdc:MagsAnalysis",
+        "version": "v1.0.6",
+        "mags_list": [],
+    }
+
+    # Insert test data
+    fakes = set()
+    assert (
+        validate_json(
+            {"data_object_set": [data_object_input, data_object_output]}, mdb
+        )["result"]
+        != "errors"
+    )
+    assert (
+        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
+            "result"
+        ]
+        != "errors"
+    )
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_input_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_input)
+        fakes.add("data_object_input")
+
+    if (
+        mdb.get_collection(name="data_object_set").find_one(
+            {"id": data_object_output_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="data_object_set").insert_one(data_object_output)
+        fakes.add("data_object_output")
+
+    if (
+        mdb.get_collection(name="workflow_execution_set").find_one(
+            {"id": workflow_execution_id}
+        )
+        is None
+    ):
+        mdb.get_collection(name="workflow_execution_set").insert_one(
+            workflow_execution_dict
+        )
+        fakes.add("workflow_execution")
+
+    # Test the endpoint
+    response = api_site_client.request(
+        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
+    )
+    assert response.status_code == 200
+    related_objects = response.json()
+
+    # Verify data objects are returned
+    assert len(related_objects["data_objects"]) == 2
+    data_object_ids = [obj["id"] for obj in related_objects["data_objects"]]
+    assert data_object_input_id in data_object_ids
+    assert data_object_output_id in data_object_ids
+
+    # Verify no related workflow executions
+    assert len(related_objects["related_workflow_executions"]) == 0
+
+    # Clean up: Delete the documents we created
+    if "data_object_input" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_input_id}
+        )
+    if "data_object_output" in fakes:
+        mdb.get_collection(name="data_object_set").delete_one(
+            {"id": data_object_output_id}
+        )
+    if "workflow_execution" in fakes:
+        mdb.get_collection(name="workflow_execution_set").delete_one(
+            {"id": workflow_execution_id}
+        )
