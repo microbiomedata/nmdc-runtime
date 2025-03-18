@@ -33,9 +33,7 @@ _qc_collection = _mdb[COLLECTION_NAME_FOR_QUERY_CONTINUATIONS]
 
 # Ensure one-hour TTL on `_runtime.query_continuations` documents via TTL Index.
 # Reference: https://www.mongodb.com/docs/manual/core/index-ttl/
-_qc_collection.create_index(
-    {"last_modified": 1}, expireAfterSeconds=3600
-)
+_qc_collection.create_index({"last_modified": 1}, expireAfterSeconds=3600)
 
 
 def not_empty(lst: list) -> bool:
@@ -102,9 +100,7 @@ def get_last_doc__id_for_qc(query_continuation: QueryContinuation) -> str:
     Retrieve the last document `_id` for the given `QueryContinuation`.
     """
     # Assuming `query_continuation` has an attribute `cursor` that stores the last document _id
-    logging.info(
-        f"Cursor for last doc query continuation: {query_continuation.cursor}"
-    )
+    logging.info(f"Cursor for last doc query continuation: {query_continuation.cursor}")
     return json.loads(query_continuation.cursor)
 
 

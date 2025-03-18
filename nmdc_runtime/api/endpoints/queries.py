@@ -282,9 +282,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # Fetch query continuation for query, construct "getMore" equivalent, and assign `query` to that equivalent.
         query_continuation = qc.get_qc_by__id(cursor_id)
         # construct "getMore" equivalent of originating "find" or "aggregate" query.
-        initial_cmd_doc: dict = qc.get_initial_query_for_qc(query_continuation).model_dump(
-            exclude_unset=True
-        )
+        initial_cmd_doc: dict = qc.get_initial_query_for_qc(
+            query_continuation
+        ).model_dump(exclude_unset=True)
         if "find" in initial_cmd_doc:
             modified_cmd_doc = assoc_in(
                 initial_cmd_doc,
@@ -307,7 +307,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 + [
                     {
                         "$match": {
-                            "_id": {"$gt": qc.get_last_doc__id_for_qc(query_continuation)}
+                            "_id": {
+                                "$gt": qc.get_last_doc__id_for_qc(query_continuation)
+                            }
                         }
                     }
                 ],
