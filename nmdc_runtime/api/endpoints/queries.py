@@ -342,8 +342,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             ["cursor", "batch"],
             cmd_response_raw["cursor"][batch_key],
         )
-        # TODO: Did you mean to delete this from `cmd_response_adapted` instead?
-        del cmd_response_raw["cursor"][batch_key]
+        del cmd_response_adapted["cursor"][batch_key]
     else:
         cmd_response_adapted = cmd_response_raw
 
