@@ -134,6 +134,9 @@ Tests can be found in `tests` and are run with the following commands:
 ```bash
 make up-test
 make test
+
+# Run a Specific test file eg. tests/test_api/test_endpoints.py
+make test ARGS="tests/test_api/test_endpoints.py"
 ```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
@@ -141,6 +144,16 @@ desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+
+### RAM usage
+
+The `dagster-daemon` and `dagster-dagit` containers can consume a lot of RAM. If tests are failing and the console of
+the `test` container shows "Error 137," here is something you can try as a workaround: In Docker Desktop, go to 
+"Settings > Resources > Advanced," and increase the memory limit. One of our team members has
+found **12 GB** to be sufficient for running the tests.
+
+> Dedicating 12 GB of RAM to Docker may be prohibitive for some prospective developers.
+> There is an open [issue](https://github.com/microbiomedata/nmdc-runtime/issues/928) about the memory requirement.
 
 ## Publish to PyPI
 
