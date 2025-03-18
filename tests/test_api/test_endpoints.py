@@ -877,38 +877,11 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
-def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_empty(api_user_client):
+def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     r"""
-    Note: In this test, the client uses the "find" command to get an empty batch of studies.
-          Since that batch contains fewer items than the batch size, its `cursor.id` is null.
-    """
-
-    study_id = "nmdc:sty-00-000001"
-
-    # Confirm the study does not exist.
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-    assert study_set.count_documents({"id": study_id}) == 0
-
-    # Attempt to get that study via a "find" command.
-    response = api_user_client.request(
-        "POST",
-        "/queries:run",
-        {
-            "find": "study_set",
-            "filter": {"id": study_id},
-        },
-    )
-    assert response.status_code == 200
-    cursor = response.json()["cursor"]
-    assert len(cursor["batch"]) == 0
-    assert cursor["id"] is None  # i.e., no more batches to fetch
-
-
-def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_partially_full(api_user_client):
-    r"""
-    Note: In this test, the client uses the "find" command to get a batch of studies.
-          Since that batch contains fewer items than the batch size, its `cursor.id` is null.
+    Note: In this test, we seed the database, then we use the "find" command to fetch a single
+          batch of results with a few different batch sizes. For each fetch, we assert that
+          the items and `cursor.id` are what we expect.
     """
 
     mdb = get_mongo_db()
@@ -938,38 +911,85 @@ def test_run_query_find__first_cursor_id_is_null_when_first_batch_is_partially_f
     #        failure and are, as a result, unable to run their "clean up" code.
     #
     study_title = "My study"
+    nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
+    assert study_set.count_documents({"title": nonexistent_study_title}) == 0
     
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
-    # Attempt to get those studies via a "find" command, using a larger batch size.
+    # Test case 1: When the first batch is empty, its `cursor.id` is null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": nonexistent_study_title},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None
+
+    # Test case 2: When the first batch is partially full, its `cursor.id` is null.
     response = api_user_client.request(
         "POST",
         "/queries:run",
         {
             "find": "study_set",
             "filter": {"title": study_title},
-            "batchSize": 10,  # exceeds the number of studies
+            "batchSize": 10,
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     assert len(cursor["batch"]) == 6
-    assert cursor["id"] is None  # i.e., no more batches to fetch
+    assert cursor["id"] is None
+
+    # Test case 3: When the first batch is full (matching the total), its `cursor.id` is not null.
+    #              Even though the next batch would be empty, the endpoint doesn't "know" that
+    #              ahead of time and, so, will return a non-null `cursor.id` value. This is a
+    #              limitation of the endpoint's pagination implementation.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 6,
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 6
+    assert isinstance(cursor["id"], str)
+
+    # Test case 4: When the first batch is full (smaller than total), its `cursor.id` is not null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 5,
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 5
+    assert isinstance(cursor["id"], str)
 
     # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
     study_set.delete_many({"title": study_title})
 
 
-def test_run_query_find__first_cursor_id_is_string_when_first_batch_is_full(api_user_client):
+def test_run_query_find__second_batch_and_its_cursor_id(api_user_client):
     r"""
-    Note: In this test, the client uses the "find" command to get a full batch of studies.
-          Since that batch has no vacancy, its `cursor.id` is a string instead of null.
-          Even though the next batch would be empty, the endpoint doesn't "know" that
-          ahead of time and, so, will return a non-null `cursor.id` value. This is a
-          limitation of the endpoint's pagination implementation.
+    Note: In this test, we seed the database, then we use the "find" command to fetch a two
+          batches of results with a few different batch sizes. For each fetch, we assert that
+          the items and `cursor.id` are what we expect.
     """
 
     mdb = get_mongo_db()
@@ -990,66 +1010,20 @@ def test_run_query_find__first_cursor_id_is_string_when_first_batch_is_full(api_
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
-    # Attempt to get those studies via a "find" command, using an equal batch size.
+    # Test case 1: When the second batch is empty, its `cursor.id` is null.
     response = api_user_client.request(
         "POST",
         "/queries:run",
         {
             "find": "study_set",
             "filter": {"title": study_title},
-            "batchSize": 6,  # equals the number of studies
+            "batchSize": 6,
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     assert len(cursor["batch"]) == 6
-    assert cursor["id"] is not None  # i.e., there are more batches to fetch
-
-    # 🧹 Clean up.
-    study_set.delete_many({"title": study_title})
-
-
-def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_empty(api_user_client):
-    r"""
-    Note: In this test, the client uses the "find" command to get one batch of studies,
-          then uses the "getMore" command to get a second batch of studies, which is empty.
-          Since the second batch contains fewer items than the batch size, its `cursor.id` is null.
-    """
-
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-
-    # Assert that the `study_set` collection does not already contain studies
-    # like the ones we're going to generate here. Then, generate 6 studies
-    # and insert them into the database.
-    #
-    # Note: The reason assertion is necessary is that some longstanding tests
-    #       in this repostory leave "residue" in the test database after they
-    #       run. See "FIXME" comments in this module for more details.
-    #
-    study_title = "My study"
-    assert study_set.count_documents({"title": study_title}) == 0
-    
-    # Seed the `study_set` collection with 6 documents.
-    studies = faker.generate_studies(6, title=study_title)
-    study_set.insert_many(studies)
-
-    # Fetch the first batch.
-    response = api_user_client.request(
-        "POST",
-        "/queries:run",
-        {
-            "find": "study_set",
-            "filter": {"title": study_title},
-            "batchSize": 6,  # equal to the number of studies
-        },
-    )
-    assert response.status_code == 200
-    cursor = response.json()["cursor"]
-    assert len(cursor["batch"]) == 6
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
-
-    # Fetch the second batch, which is empty.
+    assert isinstance(cursor["id"], str)
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1060,17 +1034,97 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_empty(api
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     assert len(cursor["batch"]) == 0
-    assert cursor["id"] is None  # i.e., there is not another batch to fetch
+    assert cursor["id"] is None
+
+    # Test case 2: When the second batch is partially full, its `cursor.id` is null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 5,
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 5
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 1
+    assert cursor["id"] is None
+
+    # Test case 3: When the second batch is full (and includes the final item), its `cursor.id` is not null.
+    #              Even though the next batch would be empty, the endpoint doesn't "know" that
+    #              ahead of time and, so, will return a non-null `cursor.id` value. This is a
+    #              limitation of the endpoint's pagination implementation.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 3,
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 3
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 3
+    assert isinstance(cursor["id"], str)
+
+    # Test case 4: When the second batch is full (and does not include the final item), its `cursor.id` is not null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "find": "study_set",
+            "filter": {"title": study_title},
+            "batchSize": 2,
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 2
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 2
+    assert isinstance(cursor["id"], str)
 
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 
 
-def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partially_full(api_user_client):
+def test_run_query_find__three_batches_and_their_items(api_user_client):
     r"""
-    Note: In this test, the client uses the "find" command to get one batch of studies,
-          then uses the "getMore" command to get a second batch of studies. Since the
-          second batch contains fewer items than the batch size, its `cursor.id` is null.
+    Note: In this test, we fetch the results across 3 batches and verify
+          the items are what we expect.
     """
 
     mdb = get_mongo_db()
@@ -1087,8 +1141,8 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partially
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
     
-    # Seed the `study_set` collection with 6 documents.
-    studies = faker.generate_studies(6, title=study_title)
+    # Seed the `study_set` collection with 10 documents.
+    studies = faker.generate_studies(10, title=study_title)
     study_set.insert_many(studies)
 
     # Fetch the first batch.
@@ -1098,14 +1152,14 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partially
         {
             "find": "study_set",
             "filter": {"title": study_title},
-            "batchSize": 5,  # less than the number of studies
+            "batchSize": 4,
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     items_in_batch_1: list = cursor["batch"]
-    assert len(items_in_batch_1) == 5
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+    assert len(items_in_batch_1) == 4
+    assert isinstance(cursor["id"], str)
 
     # Fetch the second batch.
     response = api_user_client.request(
@@ -1118,31 +1172,164 @@ def test_run_query_find__second_cursor_id_is_null_when_second_batch_is_partially
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     items_in_batch_2: list = cursor["batch"]
-    assert len(items_in_batch_2) == 1
-    assert cursor["id"] is None  # i.e., there is not another batch to fetch
+    assert len(items_in_batch_2) == 4
+    assert isinstance(cursor["id"], str)
+    
+    # Fetch the third batch.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    items_in_batch_3: list = cursor["batch"]
+    assert len(items_in_batch_3) == 2
+    assert cursor["id"] is None
 
-    # Confirm the documents in the second batch are distinct from the ones in the first batch.
+    # Confirm the documents in each batches are unique from one another.
     # Note: We'll use the documents' `id` values to determine that.
     ids_in_batch_1 = [item["id"] for item in items_in_batch_1]
     ids_in_batch_2 = [item["id"] for item in items_in_batch_2]
+    ids_in_batch_3 = [item["id"] for item in items_in_batch_3]
     assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_2))) == 0
+    assert len(set(ids_in_batch_1).intersection(set(ids_in_batch_3))) == 0
+    assert len(set(ids_in_batch_2).intersection(set(ids_in_batch_3))) == 0
 
     # Confirm each of the `id`s of the studies we seeded the database with,
     # exist in the studies we received from the API.
     seeded_study_ids = [study["id"] for study in studies]
-    assert set(ids_in_batch_1 + ids_in_batch_2) == set(seeded_study_ids)
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_study_ids)
 
-    # 🧹 Clean up / "Leave no trace" / "Pack it in, pack it out".
+    # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 
 
-def test_run_query_find__second_cursor_id_is_string_when_second_batch_is_full(api_user_client):
+def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     r"""
-    Note: In this test, the client uses the "find" command to get two full batches of studies.
-          Since the second batch has no vacancy, its `cursor.id` is a string instead of null.
-          Even though the third batch would be empty, the endpoint doesn't "know" that
-          ahead of time and, so, will return a non-null `cursor.id` value. This is a
-          limitation of the endpoint's pagination implementation.
+    Note: In this test, we seed the database, then we use the "aggregate" command to fetch a single
+          batch of results with a few different batch sizes. For each fetch, we assert that
+          the items and `cursor.id` are what we expect.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    nonexistent_study_title = "Nonexistent study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    assert study_set.count_documents({"title": nonexistent_study_title}) == 0
+    
+    # Seed the `study_set` collection with 6 documents.
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+
+    # Test case 1: When the first batch is empty, its `cursor.id` is null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": nonexistent_study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None
+
+    # Test case 2: When the first batch is partially full, its `cursor.id` is null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 10},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 6
+    assert cursor["id"] is None
+
+    # Test case 3: When the first batch is full (matching the total), its `cursor.id` is not null.
+    #              Even though the next batch would be empty, the endpoint doesn't "know" that
+    #              ahead of time and, so, will return a non-null `cursor.id` value. This is a
+    #              limitation of the endpoint's pagination implementation.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 6},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 6
+    assert isinstance(cursor["id"], str)
+
+    # Test case 4: When the first batch is full (smaller than total), its `cursor.id` is not null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 5
+    assert isinstance(cursor["id"], str)
+
+    # 🧹 Clean up.
+    study_set.delete_many({"title": study_title})
+
+
+def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
+    r"""
+    Note: In this test, we seed the database, then we use the "aggregate" command to fetch a two
+          batches of results with a few different batch sizes. For each fetch, we assert that
+          the items and `cursor.id` are what we expect.
     """
 
     mdb = get_mongo_db()
@@ -1163,22 +1350,93 @@ def test_run_query_find__second_cursor_id_is_string_when_second_batch_is_full(ap
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
-    # Fetch the first batch.
+    # Test case 1: When the second batch is empty, its `cursor.id` is null.
     response = api_user_client.request(
         "POST",
         "/queries:run",
         {
-            "find": "study_set",
-            "filter": {"title": study_title},
-            "batchSize": 3,  # half the number of studies
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 6},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 6
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 0
+    assert cursor["id"] is None
+
+    # Test case 2: When the second batch is partially full, its `cursor.id` is null.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 5
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 1
+    assert cursor["id"] is None
+
+    # Test case 3: When the second batch is full (and includes the final item), its `cursor.id` is not null.
+    #              Even though the next batch would be empty, the endpoint doesn't "know" that
+    #              ahead of time and, so, will return a non-null `cursor.id` value. This is a
+    #              limitation of the endpoint's pagination implementation.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 3},
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     assert len(cursor["batch"]) == 3
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
-
-    # Fetch the second batch, which is empty.
+    assert isinstance(cursor["id"], str)
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1189,21 +1447,9 @@ def test_run_query_find__second_cursor_id_is_string_when_second_batch_is_full(ap
     assert response.status_code == 200
     cursor = response.json()["cursor"]
     assert len(cursor["batch"]) == 3
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+    assert isinstance(cursor["id"], str)
 
-    # 🧹 Clean up.
-    study_set.delete_many({"title": study_title})
-
-
-def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_user_client):
-    study_id = "nmdc:sty-00-000001"
-
-    # Confirm the study does not exist.
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-    assert study_set.count_documents({"id": study_id}) == 0
-
-    # Attempt to get that study via an "aggregate" command.
+    # Test case 4: When the second batch is full (and does not include the final item), its `cursor.id` is not null.
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1211,80 +1457,39 @@ def test_run_query_aggregate__cursor_id_is_null_when_first_batch_is_empty(api_us
             "aggregate": "study_set",
             "pipeline": [
                 {
-                    "$match": {
-                        "id": study_id,
-                    },
-                },
-            ]
-        },
-    )
-    assert response.status_code == 200
-    cursor = response.json()["cursor"]
-    assert len(cursor["batch"]) == 0
-    assert cursor["id"] is None  # i.e., no more batches to fetch
-
-
-def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(api_user_client):
-    r"""
-    Note: This test is focused on the scenario where the documents produced by
-          the output stage of an aggregation pipeline do not have an `_id` field.
-    """
-
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-
-    # Assert that the `study_set` collection does not already contain studies
-    # like the ones we're going to generate here. Then, generate 6 studies
-    # and insert them into the database.
-    #
-    # Note: The reason assertion is necessary is that some longstanding tests
-    #       in this repostory leave "residue" in the test database after they
-    #       run. See "FIXME" comments in this module for more details.
-    #
-    study_title = "My study"
-    assert study_set.count_documents({"title": study_title}) == 0
-    
-    # Seed the `study_set` collection with 6 documents.
-    studies = faker.generate_studies(6, title=study_title)
-    study_set.insert_many(studies)
-
-    # Fetch the first batch of 5 and confirm the `cursor.id` is null,
-    # even though we didn't receive all 6 items.
-    response = api_user_client.request(
-        "POST",
-        "/queries:run",
-        {
-            "aggregate": "study_set",
-            "pipeline": [
-                # Only get the 6 studies we inserted above.
-                {   
                     "$match": {
                         "title": study_title,
                     },
                 },
-                # In the final stage of the pipeline, we remove the `_id` field,
-                # upon which the pagination algorithm relies.
-                {
-                    "$unset": "_id",
-                }
             ],
-            "cursor": {"batchSize": 5},  # less than the number of studies
+            "cursor": {"batchSize": 2},
         },
     )
     assert response.status_code == 200
     cursor = response.json()["cursor"]
-    assert len(cursor["batch"]) == 5  # the client only gets the first batch
-    assert cursor["id"] is None  # the client is not given an opportunity to paginate
+    assert len(cursor["batch"]) == 2
+    assert isinstance(cursor["id"], str)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "getMore": cursor["id"],
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 2
+    assert isinstance(cursor["id"], str)
 
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
 
 
-def test_run_query_aggregate_with_continuation(api_user_client):
+def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     r"""
-    Note: In this test, we seed the database with studies and biosamples
-          and then fetch the biosamples (via the "aggregate" command,
-          followed by the "getMore" command) in 3 batches.
+    Note: In this test, we use a more complex aggregation pipeline, where we "join"
+          studies and biosamples. We fetch the results across 3 batches and verify
+          the items and `cursor.id` values are what we expect.
     """
 
     mdb = get_mongo_db()
@@ -1295,14 +1500,9 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     # contain studies and biosamples like the ones we're going to generate here.
     # Then, generate 1 study and 10 biosamples and insert them into the database.
     #
-    # Note: The reason we do the assertion is that some tests in this repository
-    #       leave residue in the test database after they run. The reason we do
-    #       not just empty out the collections is that some other tests in this
-    #       repository rely on that residue being there. This lack of isolation
-    #       has made adding tests to this repository difficult for some people.
-    #       We added a TODO/FIXME comment above about addressing the root cause.
-    #       In the meantime, we are just asserting that the documents this test
-    #       relies on do not exist in the database yet.
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
     #
     study_id = "nmdc:sty-00-000001"
     biosample_samp_name = "Sample for testing"
@@ -1366,7 +1566,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     cursor = response.json()["cursor"]
     items_in_batch_1: list = cursor["batch"]
     assert len(items_in_batch_1) == 5
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+    assert isinstance(cursor["id"], str)
 
     # Fetch the second batch of biosamples associated with the study.
     response = api_user_client.request(
@@ -1380,7 +1580,7 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     cursor = response.json()["cursor"]
     items_in_batch_2: list = cursor["batch"]
     assert len(items_in_batch_2) == 5
-    assert cursor["id"] is not None  # i.e., there is another batch to fetch
+    assert isinstance(cursor["id"], str)
     
     # Fetch the third batch of biosamples associated with the study.
     # Note: This is an empty batch.
@@ -1414,3 +1614,59 @@ def test_run_query_aggregate_with_continuation(api_user_client):
     # 🧹 Clean up.
     study_set.delete_many({"id": study_id})
     biosample_set.delete_many({"samp_name": biosample_samp_name})
+
+
+def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(api_user_client):
+    r"""
+    Note: This test is focused on the scenario where the documents produced by
+          the output stage of an aggregation pipeline do not have an `_id` field.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    
+    # Seed the `study_set` collection with 6 documents.
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+
+    # Fetch the first batch of 5 and confirm the `cursor.id` is null,
+    # even though we didn't receive all 6 items.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                # Only get the 6 studies we inserted above.
+                {   
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+                # In the final stage of the pipeline, we remove the `_id` field,
+                # upon which the pagination algorithm relies.
+                {
+                    "$unset": "_id",
+                }
+            ],
+            "cursor": {"batchSize": 5},  # less than the number of studies
+        },
+    )
+    assert response.status_code == 200
+    cursor = response.json()["cursor"]
+    assert len(cursor["batch"]) == 5  # the client only gets the first batch
+    assert cursor["id"] is None  # the client is not given an opportunity to paginate
+
+    # 🧹 Clean up.
+    study_set.delete_many({"title": study_title})

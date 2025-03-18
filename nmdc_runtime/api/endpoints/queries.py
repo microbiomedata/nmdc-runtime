@@ -185,6 +185,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     r"""
     TODO: Document this function.
     TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~220 lines.
+    TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
     """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
