@@ -39,70 +39,7 @@ from tests.lib.faker import Faker
 # Instantiate a faker that we can use to generate fake data for testing.
 faker = Faker()
 
-# TODO: Why is there a 43 MB `tests/nmdcdb.test.archive.gz` file in the repository
-#       at the same time as this dump-downloading code? If the aforementioned file
-#       is obsolete, delete it.
-#
-MONGODUMP_URL_PREFIX = os.getenv("MONGO_REMOTE_DUMP_URL_PREFIX")
-# extract the specific dump directory name, e.g. 'dump_nmdc-prod_2025-02-12_20-12-02'.
-MONGODUMP_DIRNAME = MONGODUMP_URL_PREFIX.rsplit("/", maxsplit=1)[-1]
-MONGODUMP_DIR = REPO_ROOT_DIR / "tests" / "nmdcdb" / MONGODUMP_DIRNAME
-MONGODUMP_DIR.mkdir(parents=True, exist_ok=True)
-
-# certain schema collections are not expected for tests
-SCHEMA_COLLECTIONS_EXCLUDED = {
-    "functional_annotation_agg",
-    "functional_annotation_set",
-    "genome_feature_set",
-}
-
-
-def ensure_schema_collections_local_filesystem_cache():
-    r"""
-    Downloads the dumps of MongoDB collections that are not already present in a local directory.
-    
-    Parameters: 
-    - It downloads dumps from the remote host specified via `MONGODUMP_URL_PREFIX`.
-    - It downloads the dumps into the local directory specified via `MONGODUMP_DIR`.
-    - It does not download dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
-
-    Note: This function is currently being invoked via an inline Python script written in `Makefile`.
-    """
-
-    # download collections into "nmdc" db namespace
-    db_dir = MONGODUMP_DIR / "nmdc"
-    db_dir.mkdir(exist_ok=True)
-    for name in get_collection_names_from_schema():
-        if name in SCHEMA_COLLECTIONS_EXCLUDED:
-            continue
-        url = f"{MONGODUMP_URL_PREFIX}/nmdc/{name}.bson.gz"
-        target_path = db_dir / (name + ".bson.gz")
-        # TODO use sha256 hashes or at least file sizes to ensure fidelity of existing files.
-        #   Can use HEAD request on `url`?
-        if not db_dir.joinpath(name + ".bson.gz").exists():
-            download_to(url, target_path)
-
-
-def ensure_schema_collections_loaded():
-    r"""
-    Downloads any missing MongoDB collection dumps from a remote host into a local directory,
-    then restores any non-empty dumps in that directory into the MongoDB database.
-
-    Parameters:
-    - It looks for the dumps in the local directory specified via `MONGODUMP_DIR`.
-    - It does not restore dumps of MongoDB collections whose names are in `SCHEMA_COLLECTIONS_EXCLUDED`.
-    """
-
-    ensure_schema_collections_local_filesystem_cache()
-    mdb = get_mongo_db()
-    for name in get_collection_names_from_schema():
-        if name in SCHEMA_COLLECTIONS_EXCLUDED:
-            continue
-        if not mdb.get_collection(name).estimated_document_count() > 0:
-            filepath = MONGODUMP_DIR / "nmdc" / (name + ".bson.gz")
-            print(f"ensure_schema_collections_loaded: restoring {name}")
-            mongorestore_collection(mdb, name, filepath)
-
+# TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
 def ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs: bool = False):
     r"""

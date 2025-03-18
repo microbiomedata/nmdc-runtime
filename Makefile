@@ -38,10 +38,6 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
-# TODO: Document this newly-added make target.
-pull-testdb:
-	python -c "from tests.test_api.test_endpoints import *; ensure_schema_collections_local_filesystem_cache()"
-
 # Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the dev stack.
 dev-reset-db:
 	docker compose \
