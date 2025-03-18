@@ -22,21 +22,20 @@ from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.query import (
-    FindCommand,
-    AggregateCommand,
     CommandResponse,
     QueryCmd,
-    CursorYieldingCommand,
 )
+
+COLLECTION_NAME_FOR_QUERY_CONTINUATIONS = "_runtime.query_continuations"
 
 _mdb: MongoDatabase = get_mongo_db()
+_qc_collection = _mdb[COLLECTION_NAME_FOR_QUERY_CONTINUATIONS]
 
 # Ensure one-hour TTL on `_runtime.query_continuations` documents via TTL Index.
-_mdb["_runtime.query_continuations"].create_index(
+# Reference: https://www.mongodb.com/docs/manual/core/index-ttl/
+_qc_collection.create_index(
     {"last_modified": 1}, expireAfterSeconds=3600
 )
-
-_coll_cc = _mdb["_runtime.query_continuations"]
 
 
 def not_empty(lst: list) -> bool:
@@ -67,11 +66,11 @@ class QueryContinuationError(Exception):
         return f"{self.__class__.__name__}: {self.detail})"
 
 
-def dump_cc(m: BaseModel):
+def dump_qc(m: BaseModel):
     return m.model_dump(by_alias=True, exclude_unset=True)
 
 
-def create_cc(query_cmd: QueryCmd, cmd_response: CommandResponse) -> QueryContinuation:
+def create_qc(query_cmd: QueryCmd, cmd_response: CommandResponse) -> QueryContinuation:
     """Creates query continuation from command and response, and persists continuation to database."""
 
     logging.info(f"cmd_response: {cmd_response}")
@@ -83,30 +82,34 @@ def create_cc(query_cmd: QueryCmd, cmd_response: CommandResponse) -> QueryContin
         cursor=last_id,
         last_modified=now(),
     )
-    _coll_cc.insert_one(dump_cc(cc))
+    _qc_collection.insert_one(dump_qc(cc))
     return cc
 
 
-def get_cc_by_id(cc_id: str) -> QueryContinuation | None:
-    doc = _coll_cc.find_one({"_id": cc_id})
+def get_qc_by__id(_id: str) -> QueryContinuation | None:
+    r"""
+    Returns the `QueryContinuation` having the specified `_id` value, raising an exception
+    if the corresponding document does not exist in the database.
+    """
+    doc = _qc_collection.find_one({"_id": _id})
     if doc is None:
-        raise QueryContinuationError(f"cannot find cc with id {cc_id}")
+        raise QueryContinuationError(f"cannot find cc with id {_id}")
     return QueryContinuation(**doc)
 
 
-def last_doc__id_for_cc(cursor_continuation: QueryContinuation) -> str:
+def get_last_doc__id_for_qc(query_continuation: QueryContinuation) -> str:
     """
-    Retrieve the last document _id for the given cursor continuation.
+    Retrieve the last document `_id` for the given `QueryContinuation`.
     """
-    # Assuming cursor_continuation has an attribute `cursor` that stores the last document _id
+    # Assuming `query_continuation` has an attribute `cursor` that stores the last document _id
     logging.info(
-        f"Cursor for last doc query continuation: {cursor_continuation.cursor}"
+        f"Cursor for last doc query continuation: {query_continuation.cursor}"
     )
-    return json.loads(cursor_continuation.cursor)
+    return json.loads(query_continuation.cursor)
 
 
-def initial_query_for_cc(cursor_continuation: QueryContinuation) -> QueryCmd:
+def get_initial_query_for_qc(query_continuation: QueryContinuation) -> QueryCmd:
     """
-    Retrieve the initial query command for the given cursor continuation.
+    Retrieve the initial query command for the given `QueryContinuation`.
     """
-    return cursor_continuation.query_cmd
+    return query_continuation.query_cmd

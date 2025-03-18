@@ -1,14 +1,12 @@
 import json
 import logging
-from typing import List
 
 import bson.json_util
 from fastapi import APIRouter, Depends, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in, dissoc
 
-from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import now, raise404_if_none, pick
+from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
@@ -17,7 +15,7 @@ from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
 )
-import nmdc_runtime.api.models.query_continuation as cc
+import nmdc_runtime.api.models.query_continuation as qc
 from nmdc_runtime.api.models.query import (
     DeleteCommand,
     CommandResponse,
@@ -282,23 +280,23 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         cmd.sort = (cmd.sort or {}) | {"_id": 1}
     elif isinstance(cmd, GetMoreCommand):
         # Fetch query continuation for query, construct "getMore" equivalent, and assign `query` to that equivalent.
-        cursor_continuation = cc.get_cc_by_id(cursor_id)
+        query_continuation = qc.get_qc_by__id(cursor_id)
         # construct "getMore" equivalent of originating "find" or "aggregate" query.
-        initial_cmd_doc: dict = cc.initial_query_for_cc(cursor_continuation).model_dump(
+        initial_cmd_doc: dict = qc.get_initial_query_for_qc(query_continuation).model_dump(
             exclude_unset=True
         )
         if "find" in initial_cmd_doc:
             modified_cmd_doc = assoc_in(
                 initial_cmd_doc,
                 ["filter", "_id", "$gt"],
-                cc.last_doc__id_for_cc(cursor_continuation),
+                qc.get_last_doc__id_for_qc(query_continuation),
             )
             cmd = FindCommand(**modified_cmd_doc)
         elif "aggregate" in initial_cmd_doc:
             initial_cmd_doc["pipeline"].append(
                 {
                     "$match": {
-                        "_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}
+                        "_id": {"$gt": qc.get_last_doc__id_for_qc(query_continuation)}
                     }
                 }
             )
@@ -309,7 +307,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 + [
                     {
                         "$match": {
-                            "_id": {"$gt": cc.last_doc__id_for_cc(cursor_continuation)}
+                            "_id": {"$gt": qc.get_last_doc__id_for_qc(query_continuation)}
                         }
                     }
                 ],
@@ -366,7 +364,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             )
 
     # Cursor-command response? Prep runtime-managed cursor id and replace mongo session cursor id in response.
-    cursor_continuation = None
+    query_continuation = None
 
     # TODO: Handle empty cursor response or situations where batch < batchSize.
     #
@@ -394,25 +392,25 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             cmd_response.cursor.id = None  # explicitly set the pagination token to null
             return cmd_response
 
-        cursor_continuation = cc.create_cc(cmd, slimmed_command_response)
+        query_continuation = qc.create_qc(cmd, slimmed_command_response)
         cmd_response.cursor.id = (
-            None if cmd_response.cursor.id == "0" else cursor_continuation.id
+            None if cmd_response.cursor.id == "0" else query_continuation.id
         )
     elif isinstance(cmd, FindCommand):
-        cursor_continuation = cc.create_cc(
+        query_continuation = qc.create_qc(
             cmd, CursorYieldingCommandResponse.slimmed(cmd_response)
         )
         cmd_response.cursor.id = (
-            None if cmd_response.cursor.id == "0" else cursor_continuation.id
+            None if cmd_response.cursor.id == "0" else query_continuation.id
         )
     elif isinstance(cmd, GetMoreCommand):
         # Append query run to current continuation
-        cursor_continuation = cc.get_cc_by_id(cursor_id)
-        cursor_continuation.cmd_responses.append(
+        query_continuation = qc.get_qc_by__id(cursor_id)
+        query_continuation.cmd_responses.append(
             CursorYieldingCommandResponse.cursor_batch__ids_only(cmd_response)
         )
         cmd_response.cursor.id = (
-            None if cmd_response.cursor.id == "0" else cursor_continuation.id
+            None if cmd_response.cursor.id == "0" else query_continuation.id
         )
 
     return cmd_response
