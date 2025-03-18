@@ -41,7 +41,10 @@ faker = Faker()
 
 # TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
-def ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs: bool = False):
+
+def ensure_alldocs_collection_has_been_materialized(
+    force_refresh_of_alldocs: bool = False,
+):
     r"""
     This function can be used to ensure the "alldocs" collection has been materialized.
 
@@ -914,19 +917,17 @@ def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_
     data_object_output_id = "nmdc:dobj-11-5kk68p73"
 
     # Create data objects
-    data_object_input = (
-        {
-            "id": data_object_input_id,
-            "name": "nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
-            "description": "Assembly contigs for nmdc:wfmgas-11-90bn3y70.1",
-            "alternative_identifiers": [],
-            "file_size_bytes": 26375887,
-            "md5_checksum": "64ac183a6f9c497fa6ae43cc2aa1ca6e",
-            "data_object_type": "Assembly Contigs",
-            "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgas-11-90bn3y70.1/nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
-            "type": "nmdc:DataObject",
-        },
-    )
+    data_object_input = {
+        "id": data_object_input_id,
+        "name": "nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
+        "description": "Assembly contigs for nmdc:wfmgas-11-90bn3y70.1",
+        "alternative_identifiers": [],
+        "file_size_bytes": 26375887,
+        "md5_checksum": "64ac183a6f9c497fa6ae43cc2aa1ca6e",
+        "data_object_type": "Assembly Contigs",
+        "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgas-11-90bn3y70.1/nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
+        "type": "nmdc:DataObject",
+    }
     data_object_output = {
         "id": data_object_output_id,
         "name": "nmdc_wfmgan-11-wdx72h27.1_proteins.faa",
@@ -1050,6 +1051,8 @@ def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_
         mdb.get_collection(name="workflow_execution_set").delete_one(
             {"id": workflow_execution_id}
         )
+
+
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     r"""
     Note: In this test, we seed the database, then we use the "find" command to fetch a single
@@ -1087,7 +1090,7 @@ def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
@@ -1178,7 +1181,7 @@ def test_run_query_find__second_batch_and_its_cursor_id(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
@@ -1313,7 +1316,7 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 10 documents.
     studies = faker.generate_studies(10, title=study_title)
     study_set.insert_many(studies)
@@ -1347,7 +1350,7 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     items_in_batch_2: list = cursor["batch"]
     assert len(items_in_batch_2) == 4
     assert isinstance(cursor["id"], str)
-    
+
     # Fetch the third batch.
     response = api_user_client.request(
         "POST",
@@ -1374,7 +1377,9 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     # Confirm each of the `id`s of the studies we seeded the database with,
     # exist in the studies we received from the API.
     seeded_study_ids = [study["id"] for study in studies]
-    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_study_ids)
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(
+        seeded_study_ids
+    )
 
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
@@ -1402,7 +1407,7 @@ def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
@@ -1518,7 +1523,7 @@ def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
@@ -1686,9 +1691,9 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     # collection with 10 documents that are associated with that `study_set`
     # document.
     studies = faker.generate_studies(1, id=study_id)
-    biosamples = faker.generate_biosamples(10, 
-                                           associated_studies=[study_id], 
-                                           samp_name=biosample_samp_name)
+    biosamples = faker.generate_biosamples(
+        10, associated_studies=[study_id], samp_name=biosample_samp_name
+    )
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
@@ -1754,7 +1759,7 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     items_in_batch_2: list = cursor["batch"]
     assert len(items_in_batch_2) == 5
     assert isinstance(cursor["id"], str)
-    
+
     # Fetch the third batch of biosamples associated with the study.
     # Note: This is an empty batch.
     response = api_user_client.request(
@@ -1782,14 +1787,18 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     # Confirm each of the `id`s of the biosamples we seeded the database with,
     # exist in the biosamples we received from the API.
     seeded_biosample_ids = [biosample["id"] for biosample in biosamples]
-    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_biosample_ids)
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(
+        seeded_biosample_ids
+    )
 
     # 🧹 Clean up.
     study_set.delete_many({"id": study_id})
     biosample_set.delete_many({"samp_name": biosample_samp_name})
 
 
-def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(api_user_client):
+def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(
+    api_user_client,
+):
     r"""
     Note: This test is focused on the scenario where the documents produced by
           the output stage of an aggregation pipeline do not have an `_id` field.
@@ -1808,7 +1817,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
@@ -1822,7 +1831,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
             "aggregate": "study_set",
             "pipeline": [
                 # Only get the 6 studies we inserted above.
-                {   
+                {
                     "$match": {
                         "title": study_title,
                     },
@@ -1831,7 +1840,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
                 # upon which the pagination algorithm relies.
                 {
                     "$unset": "_id",
-                }
+                },
             ],
             "cursor": {"batchSize": 5},  # less than the number of studies
         },
