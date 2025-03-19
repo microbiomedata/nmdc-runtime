@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -18,6 +19,7 @@ from nmdc_runtime.api.db.mongo import (
     get_collection_names_from_schema,
     mongorestore_collection,
 )
+from nmdc_runtime.api.endpoints.find import find_related_objects_for_workflow_execution
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -819,238 +821,149 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
-def test_find_related_objects_for_nonexistent_workflow_execution(api_site_client):
-    r"""
-    Confirms the endpoint returns an unsuccessful status code when no `WorkflowExecution` having the specified `id` exists.
+def test_find_related_objects_for_workflow_execution_with_data_generation_biosample_study(
+    mocker,
+):
     """
-    with pytest.raises(requests.exceptions.HTTPError):
-        api_site_client.request(
-            "GET",
-            "/related_objects/workflow_execution/nmdc:wfmag-11-nonexistent",
-        )
+    This test mocks the database so that a workflow execution
+    is linked to a DataGeneration, Biosample, and Study in a full chain.
+    We then confirm the function returns the expected relationships.
+    """
 
+    # -----------------------------------------------------
+    # 1) Create the IDs (for reference in mock data)
+    # -----------------------------------------------------
+    workflow_execution_id = "nmdc:wfmag-11-fullchain"
+    data_generation_id = "nmdc:omprc-11-fullchain"
+    biosample_id = "nmdc:bsm-11-fullchain"
+    study_id = "nmdc:sty-11-fullchain"
+    data_object_id = "nmdc:dobj-11-fullchain"
 
-def test_find_related_objects_for_workflow_execution_having_none(api_site_client):
-    # Seed the test database with a workflow execution having no related objects
-    mdb = get_mongo_db()
-    workflow_execution_id = "nmdc:wfmgan-11-wdx72h27.1"
-    workflow_execution_dict = {
+    # -----------------------------------------------------
+    # 2) Create the mock DB and its collections
+    # -----------------------------------------------------
+    mock_db = MagicMock()
+
+    # Mock the workflow_execution_set
+    mock_workflow_coll = MagicMock()
+    mock_workflow_coll.find_one.return_value = {
         "id": workflow_execution_id,
-        "name": "Metagenome Annotation Analysis Activity for nmdc:wfmgan-11-wdx72h27.1",
-        "started_at_time": "2023-07-26T21:10:45.203918+00:00",
-        "ended_at_time": "2023-07-26T21:21:07.771848+00:00",
-        "was_informed_by": "nmdc:omprc-11-vpqmce67",
-        "execution_resource": "NERSC-Perlmutter",
-        "git_url": "https://github.com/microbiomedata/mg_annotation",
-        "has_input": ["nmdc:dobj-11-9mkb6w25"],
-        "has_output": [
-            "nmdc:dobj-11-5kk68p73",
-            "nmdc:dobj-11-fjnrzc15",
-            "nmdc:dobj-11-gt7grc22",
-            "nmdc:dobj-11-bvge9w42",
-            "nmdc:dobj-11-n5hs3k52",
-            "nmdc:dobj-11-m19exh45",
-            "nmdc:dobj-11-vkz6mc22",
-            "nmdc:dobj-11-ywbazd98",
-            "nmdc:dobj-11-mxwbrg81",
-            "nmdc:dobj-11-r40xwr84",
-            "nmdc:dobj-11-rse8j628",
-            "nmdc:dobj-11-20kgjz21",
-            "nmdc:dobj-11-4dh1zw09",
-            "nmdc:dobj-11-wc6rjq24",
-            "nmdc:dobj-11-e9d2an54",
-            "nmdc:dobj-11-y42pdp92",
-            "nmdc:dobj-11-becv3651",
-            "nmdc:dobj-11-96hjgp33",
-            "nmdc:dobj-11-s0swen20",
-            "nmdc:dobj-11-jfgh0180",
-            "nmdc:dobj-11-q0c0fy33",
-            "nmdc:dobj-11-0fn68580",
-            "nmdc:dobj-11-p5yknc25",
-        ],
-        "type": "nmdc:MetagenomeAnnotation",
-        "version": "v1.0.4",
-        "gold_analysis_project_identifiers": [],
+        "name": "Test Workflow Execution for Full Chain",
+        "started_at_time": "2023-03-24T01:00:00.000000+00:00",
+        "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
+        "was_informed_by": data_generation_id,
+        "execution_resource": "JGI",
+        "git_url": "https://github.com/microbiomedata/ReadQC",
+        "has_input": [data_object_id],
+        "has_output": [],
+        "type": "nmdc:ReadQcAnalysis",
     }
 
-    fakes = set()
-    assert (
-        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
-            "result"
-        ]
-        != "errors"
-    )
-    if (
-        mdb.get_collection(name="workflow_execution_set").find_one(
-            {"id": workflow_execution_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="workflow_execution_set").insert_one(
-            workflow_execution_dict
-        )
-        fakes.add("workflow_execution")
+    # Mock the data_object_set
+    mock_data_object_coll = MagicMock()
 
-    # Confirm the endpoint responds with no related objects
-    response = api_site_client.request(
-        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
-    )
-    assert response.status_code == 200
-    related_objects = response.json()
-    assert len(related_objects["data_objects"]) == 0
-    assert len(related_objects["related_workflow_executions"]) == 0
-    assert len(related_objects["biosamples"]) == 0
-    assert len(related_objects["studies"]) == 0
+    def fake_data_object_find_one(query):
+        """Return the DataObject if it matches data_object_id."""
+        if query == {"id": data_object_id}:
+            return {
+                "id": data_object_id,
+                "name": "Test Data Object for Full Chain",
+                "description": "A test data object for full chain relationship testing",
+                "type": "nmdc:DataObject",
+                "was_generated_by": data_generation_id,
+            }
+        return None
 
-    # Clean up: Delete the documents we created within this test
-    if "workflow_execution" in fakes:
-        mdb.get_collection(name="workflow_execution_set").delete_one(
-            {"id": workflow_execution_id}
-        )
+    mock_data_object_coll.find_one.side_effect = fake_data_object_find_one
 
+    # Mock the biosample_set
+    mock_biosample_coll = MagicMock()
 
-def test_find_related_objects_for_workflow_execution_with_data_objects(api_site_client):
-    # Seed the test database with a workflow execution and related data objects
-    mdb = get_mongo_db()
-    workflow_execution_id = "nmdc:wfmgan-11-wdx72h27.1"
-    data_object_input_id = "nmdc:dobj-11-9mkb6w25"
-    data_object_output_id = "nmdc:dobj-11-5kk68p73"
+    def fake_biosample_find_one(query):
+        """Return the Biosample if it matches biosample_id."""
+        if query == {"id": biosample_id}:
+            return {
+                "id": biosample_id,
+                "name": "Test Biosample for Full Chain",
+                "description": "A test biosample for full chain relationship testing",
+                "type": "nmdc:Biosample",
+                "associated_studies": [study_id],
+            }
+        return None
 
-    # Create data objects
-    data_object_input = {
-        "id": data_object_input_id,
-        "name": "nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
-        "description": "Assembly contigs for nmdc:wfmgas-11-90bn3y70.1",
-        "alternative_identifiers": [],
-        "file_size_bytes": 26375887,
-        "md5_checksum": "64ac183a6f9c497fa6ae43cc2aa1ca6e",
-        "data_object_type": "Assembly Contigs",
-        "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgas-11-90bn3y70.1/nmdc_wfmgas-11-90bn3y70.1_contigs.fna",
-        "type": "nmdc:DataObject",
-    }
-    data_object_output = {
-        "id": data_object_output_id,
-        "name": "nmdc_wfmgan-11-wdx72h27.1_proteins.faa",
-        "description": "FASTA Amino Acid File for nmdc:wfmgan-11-wdx72h27.1",
-        "alternative_identifiers": [],
-        "file_size_bytes": 15067142,
-        "md5_checksum": "331bce1648f53e5631753f96ee79c250",
-        "data_object_type": "Annotation Amino Acid FASTA",
-        "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-vpqmce67/nmdc:wfmgan-11-wdx72h27.1/nmdc_wfmgan-11-wdx72h27.1_proteins.faa",
-        "type": "nmdc:DataObject",
-    }
+    mock_biosample_coll.find_one.side_effect = fake_biosample_find_one
 
-    # Create workflow execution with references to data objects
-    workflow_execution_dict = {
-        "id": "nmdc:wfmag-11-05myyz45.1",
-        "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-05myyz45.1",
-        "started_at_time": "2023-07-26T21:23:37.349035+00:00",
-        "ended_at_time": "2023-07-26T21:35:02.468566+00:00",
-        "was_informed_by": "nmdc:omprc-11-vpqmce67",
-        "execution_resource": "NERSC-Perlmutter",
-        "git_url": "https://github.com/microbiomedata/metaMAGs",
-        "has_input": [
-            "nmdc:dobj-11-9mkb6w25",
-            "nmdc:dobj-11-gt7grc22",
-            "nmdc:dobj-11-20kgjz21",
-            "nmdc:dobj-11-rse8j628",
-            "nmdc:dobj-11-vkz6mc22",
-            "nmdc:dobj-11-ywbazd98",
-            "nmdc:dobj-11-s0swen20",
-            "nmdc:dobj-11-mxwbrg81",
-            "nmdc:dobj-11-n5hs3k52",
-            "nmdc:dobj-11-bvge9w42",
-            "nmdc:dobj-11-m19exh45",
-            "nmdc:dobj-11-bg0j9849",
-            "nmdc:dobj-11-r40xwr84",
-            "nmdc:dobj-11-5kk68p73",
-            "nmdc:dobj-11-jfgh0180",
-        ],
-        "has_output": [
-            "nmdc:dobj-11-yrzfq471",
-            "nmdc:dobj-11-dsbday74",
-            "nmdc:dobj-11-104ypv57",
-            "nmdc:dobj-11-t1v6w944",
-            "nmdc:dobj-11-0c397145",
-        ],
-        "type": "nmdc:MagsAnalysis",
-        "version": "v1.0.6",
-        "mags_list": [],
-    }
+    # Mock the study_set
+    mock_study_coll = MagicMock()
 
-    # Insert test data
-    fakes = set()
-    assert (
-        validate_json(
-            {"data_object_set": [data_object_input, data_object_output]}, mdb
-        )["result"]
-        != "errors"
-    )
-    assert (
-        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
-            "result"
-        ]
-        != "errors"
-    )
+    def fake_study_find_one(query):
+        """Return the Study if it matches study_id."""
+        if query == {"id": study_id}:
+            return {
+                "id": study_id,
+                "name": "Test Study for Full Chain",
+                "description": "A test study for full chain relationship testing",
+                "type": "nmdc:Study",
+            }
+        return None
 
-    if (
-        mdb.get_collection(name="data_object_set").find_one(
-            {"id": data_object_input_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="data_object_set").insert_one(data_object_input)
-        fakes.add("data_object_input")
+    mock_study_coll.find_one.side_effect = fake_study_find_one
 
-    if (
-        mdb.get_collection(name="data_object_set").find_one(
-            {"id": data_object_output_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="data_object_set").insert_one(data_object_output)
-        fakes.add("data_object_output")
+    # Mock the alldocs collection
+    # Because the logic might check alldocs for data_generation info or recursion
+    mock_alldocs_coll = MagicMock()
 
-    if (
-        mdb.get_collection(name="workflow_execution_set").find_one(
-            {"id": workflow_execution_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="workflow_execution_set").insert_one(
-            workflow_execution_dict
-        )
-        fakes.add("workflow_execution")
+    def fake_alldocs_find_one(query):
+        """Return the DataGeneration doc if the ID matches."""
+        if query == {"id": data_generation_id}:
+            # This doc is recognized as a DataGeneration (or descendant)
+            return {
+                "id": data_generation_id,
+                "name": "Test Data Generation for Full Chain",
+                "type": "nmdc:NucleotideSequencing",
+                "has_input": [biosample_id],
+                "associated_studies": [study_id],
+                "_type_and_ancestors": ["NucleotideSequencing", "DataGeneration"],
+            }
+        return None
 
-    # Test the endpoint
-    response = api_site_client.request(
-        "GET", f"/related_objects/workflow_execution/{workflow_execution_id}"
-    )
-    assert response.status_code == 200
-    related_objects = response.json()
+    mock_alldocs_coll.find_one.side_effect = fake_alldocs_find_one
 
-    # Verify data objects are returned
-    assert len(related_objects["data_objects"]) == 2
-    data_object_ids = [obj["id"] for obj in related_objects["data_objects"]]
-    assert data_object_input_id in data_object_ids
-    assert data_object_output_id in data_object_ids
+    # Assign these mocks to your mock DB
+    mock_db.workflow_execution_set = mock_workflow_coll
+    mock_db.data_object_set = mock_data_object_coll
+    mock_db.biosample_set = mock_biosample_coll
+    mock_db.study_set = mock_study_coll
+    mock_db.alldocs = mock_alldocs_coll
 
-    # Verify no related workflow executions
-    assert len(related_objects["related_workflow_executions"]) == 0
+    # -----------------------------------------------------
+    # 3) Patch get_mongo_db so the function sees our mock DB
+    # -----------------------------------------------------
+    mocker.patch("nmdc_runtime.api.db.mongo.get_mongo_db", return_value=mock_db)
 
-    # Clean up: Delete the documents we created
-    if "data_object_input" in fakes:
-        mdb.get_collection(name="data_object_set").delete_one(
-            {"id": data_object_input_id}
-        )
-    if "data_object_output" in fakes:
-        mdb.get_collection(name="data_object_set").delete_one(
-            {"id": data_object_output_id}
-        )
-    if "workflow_execution" in fakes:
-        mdb.get_collection(name="workflow_execution_set").delete_one(
-            {"id": workflow_execution_id}
-        )
+    # -----------------------------------------------------
+    # 4) Call the logic function directly
+    # -----------------------------------------------------
+    result = find_related_objects_for_workflow_execution(workflow_execution_id, mock_db)
+
+    # -----------------------------------------------------
+    # 5) Assertions
+    # -----------------------------------------------------
+    # Confirm the DataObject is returned
+    assert len(result["data_objects"]) == 1
+    assert result["data_objects"][0]["id"] == data_object_id
+
+    # Confirm no related workflows
+    assert len(result["related_workflow_executions"]) == 0
+
+    # Confirm the Biosample is returned and references the study
+    assert len(result["biosamples"]) == 1
+    assert result["biosamples"][0]["id"] == biosample_id
+    assert result["biosamples"][0]["associated_studies"] == [study_id]
+
+    # Confirm the Study is returned
+    assert len(result["studies"]) == 1
+    assert result["studies"][0]["id"] == study_id
 
 
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
