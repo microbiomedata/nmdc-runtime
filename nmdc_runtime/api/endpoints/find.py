@@ -415,7 +415,7 @@ def find_related_objects_for_workflow_execution(
     instances that are part of the same pipeline, and related Biosamples and Studies.
 
     :param workflow_execution_id: NMDC workflow execution id for which related objects are to be retrieved
-    :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
+    :param mdb: A PyMongo `Database` instance that can be used to access the MongoDB database
     :return: Dictionary with data_objects, related_workflow_executions, biosamples, and studies lists
     """
     # Get the workflow execution
