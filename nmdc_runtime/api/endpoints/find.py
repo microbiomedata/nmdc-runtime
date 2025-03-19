@@ -390,8 +390,8 @@ def find_planned_process_by_id(
     response_model_exclude_unset=True,
     name="Find related objects for workflow execution",
     description=(
-        "Gets all related objects to the specified `WorkflowExecution` including `DataObject`s, "
-        "other `WorkflowExecution` instances, related `Biosample`s, and `Study` information."
+        "Finds `DataObject`s, `Biosample`s, `Study`s, and other `WorkflowExecution`s "
+        "related to the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
         "This endpoint retrieves all DataObjects that are inputs to or outputs from the "
         "workflow execution, related workflow executions, and walks up the data provenance "
