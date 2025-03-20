@@ -24,6 +24,9 @@ class Faker:
     def generate_studies(quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of schema-compliant `study_set` documents.
+        The documents comply with schema v11.5.1.
+
+        Reference: https://microbiomedata.github.io/nmdc-schema/Study/
 
         :param quantity: Number of documents to create
         :param overrides: Fields, if any, to add or override in each document
@@ -57,6 +60,9 @@ class Faker:
     def generate_biosamples(quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of schema-compliant `biosample_set` documents.
+        The documents comply with schema v11.5.1.
+
+        Reference: https://microbiomedata.github.io/nmdc-schema/Biosample/
 
         :param quantity: Number of documents to create
         :param associated_studies: IDs of studies associated with each biosample
@@ -105,6 +111,90 @@ class Faker:
                 },
                 "type": "nmdc:Biosample",
                 "associated_studies": associated_studies,
+                **overrides,
+            }
+            for n in range(1, quantity + 1)
+        ]
+
+    @staticmethod
+    def generate_metagenome_annotations(quantity: int, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `MetagenomeAnnotation` instances,
+        which can be stored in the  `workflow_execution_set` collection.
+        The documents comply with schema v11.5.1.
+
+        Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
+
+        :param quantity: Number of documents to create
+        :param was_informed_by: The `id` of a `DataGeneration` instance
+        :param has_input: The `id`s of one or more `NamedThing` instances
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> metagenome_annotations = f.generate_metagenome_annotations(1, was_informed_by='nmdc:dgns-00-000001', has_input=['nmdc:bsm-00-000001'])
+        >>> len(metagenome_annotations)
+        1
+        >>> metagenome_annotations[0]['id']
+        'nmdc:wfmgan-00-000001'
+        >>> metagenome_annotations[0]['was_informed_by']
+        'nmdc:dgns-00-000001'
+        >>> metagenome_annotations[0]['has_input'][0]
+        'nmdc:bsm-00-000001'
+        >>> metagenome_annotations[0]['type']
+        'nmdc:MetagenomeAnnotation'
+        """
+
+        return [
+            {
+                "id": f"nmdc:wfmgan-00-{n:06}",
+                "type": "nmdc:MetagenomeAnnotation",
+                "execution_resource": "JGI",
+                "git_url": "https://www.example.com",
+                "started_at_time": "2000-01-01 12:00:00",
+                "was_informed_by": was_informed_by,
+                "has_input": has_input,
+                **overrides,
+            }
+            for n in range(1, quantity + 1)
+        ]
+
+    @staticmethod
+    def generate_nucleotide_sequencings(quantity: int, associated_studies: List[str], has_input: List[str], **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `NucleotideSequencing` instances,
+        which can be stored in the `data_generation_set` collection.
+        The documents comply with schema v11.5.1.
+
+        Reference: https://microbiomedata.github.io/nmdc-schema/NucleotideSequencing/
+
+        :param quantity: Number of documents to create
+        :param associated_studies: The `id`s of one or more `Study` instances
+        :param has_input: The `id`s of one or more `Sample` instances
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> nucleotide_sequencings = f.generate_nucleotide_sequencings(1, associated_studies=['nmdc:sty-00-000001'], has_input=['nmdc:bsm-00-000001'])
+        >>> len(nucleotide_sequencings)
+        1
+        >>> nucleotide_sequencings[0]['id']
+        'nmdc:dgns-00-000001'
+        >>> nucleotide_sequencings[0]['associated_studies'][0]
+        'nmdc:sty-00-000001'
+        >>> nucleotide_sequencings[0]['has_input'][0]
+        'nmdc:bsm-00-000001'
+        >>> nucleotide_sequencings[0]['type']
+        'nmdc:NucleotideSequencing'
+        """
+
+        return [
+            {
+                "id": f"nmdc:dgns-00-{n:06}",
+                "type": "nmdc:NucleotideSequencing",
+                "analyte_category": "arbitrary_string",
+                "associated_studies": associated_studies,
+                "has_input": has_input,
                 **overrides,
             }
             for n in range(1, quantity + 1)
