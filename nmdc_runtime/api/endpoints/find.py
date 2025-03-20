@@ -388,7 +388,7 @@ def find_planned_process_by_id(
 @router.get(
     "/related_objects/workflow_execution/{workflow_execution_id}",
     response_model_exclude_unset=True,
-    name="Find related objects for workflow execution",
+    name="Find related objects for a given <i>id</i> from the `workflow_execution_set` collection.",
     description=(
         "Finds `DataObject`s, `Biosample`s, `Study`s, and other `WorkflowExecution`s "
         "related to the specified `WorkflowExecution`."
@@ -404,21 +404,20 @@ def find_related_objects_for_workflow_execution(
         Path(
             title="Workflow Execution ID",
             description="""The `id` of the `WorkflowExecution` for which you want to find
-                        related objects.\n\n_Example_: `nmdc:wfmag-11-abc123`""",
-            examples=["nmdc:wfmag-11-abc123"],
+                        related objects.\n\n_Example_: `nmdc:wfmgan-11-wdx72h27.1`""",
+            examples=["nmdc:wfmgan-11-wdx72h27.1"],
         ),
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """This API endpoint retrieves all objects related to a workflow execution,
+    """This API endpoint retrieves all objects/instances/records related to a WorkflowExecution record,
     including DataObjects that are inputs or outputs, other WorkflowExecution
     instances that are part of the same pipeline, and related Biosamples and Studies.
 
-    :param workflow_execution_id: NMDC workflow execution id for which related objects are to be retrieved
+    :param workflow_execution_id: id of workflow_execution_set instance for which related objects are to be retrieved
     :param mdb: A PyMongo `Database` instance that can be used to access the MongoDB database
     :return: Dictionary with data_objects, related_workflow_executions, biosamples, and studies lists
     """
-
     # Get the specified `WorkflowExecution` document from the database.
     workflow_execution = raise404_if_none(
         mdb.workflow_execution_set.find_one({"id": workflow_execution_id}),
@@ -514,23 +513,45 @@ def find_related_objects_for_workflow_execution(
         r"""
         Recursive helper function that traverses the database in search of relevant `Biosample`s.
 
-        TODO: Document the function parameter. For recursive functions, I recommend documenting them in detail as they can be difficult to debug.
-        """
+        This function searches for biosamples starting from the "input" to a DataGeneration record by
+        traversing the data provenance graph – which is the bipartite graph formed by the
+        `has_input` / `has_output` relationships in the schema. It uses the ids asserted on
+        `has_input` and `has_output` slots on documents in the `alldocs` collection to tie related documents
+        in the chain together.
 
+        Note: The function uses an internal nested recursive function (`process_id()`) to avoid cycles
+        in the graph and tracks processed IDs to prevent infinite recursion.
+
+        :param start_id: The ID of the document to start the search from. This will typically
+            be the input to a `DataGeneration` record, which may be a `Biosample` directly or a
+            `ProcessedSample`.
+        """
         # Create an empty set we can use to track the `id`s of documents we've already processed,
         # in order to avoid processing the same documents multiple times (i.e. cycling in the graph).
         processed_ids = set()
 
         def process_id(current_id):
             r"""
-            TODO: Document this recursive helper function (which is defined within a recursive helper function).
+            Recursive helper function that processes a single document ID and follows
+            connections to discover related biosamples.
+
+            This function:
+            1. Checks if the current ID is already processed to prevent cycles
+            2. Directly adds the document if it's a `Biosample`
+            3. For non-Biosample documents (type of `PlannedProcess`), it:
+               - Processes input (`has_input`) IDs of the current document
+               - Finds documents that have the current ID as output (`has_output`) and processes their inputs
+
+            This recursive approach allows traversing the provenance graph in both directions.
+
+            :param current_id: The ID of the document to process in this recursive step
             """
             if current_id in processed_ids:
                 return
 
             processed_ids.add(current_id)
 
-            # If it's a biosample, add it directly
+            # If it's a `Biosample`, i.e., "type" == "nmdc:Biosample"
             if get_classname_from_typecode(current_id) == "Biosample":
                 add_biosample(current_id)
                 return
@@ -616,13 +637,12 @@ def find_related_objects_for_workflow_execution(
                 for study_id in dg_doc.get("associated_studies", []):
                     add_study(study_id)
 
-    # Return structured response
     response = {
-        "workflow_execution_id": workflow_execution_id,
-        "data_objects": data_objects,
-        "related_workflow_executions": related_workflow_executions,
-        "biosamples": biosamples,
-        "studies": studies,
+        "workflow_execution_id": workflow_execution_id,  # workflow_execution_id provided as argument to endpoint
+        "data_objects": data_objects,  # related DataObjects – input/output of given workflow and related workflows
+        "related_workflow_executions": related_workflow_executions,  # related WorkflowExecutions
+        "biosamples": biosamples,  # related Biosamples
+        "studies": studies,  # related Studies
     }
 
     return response
