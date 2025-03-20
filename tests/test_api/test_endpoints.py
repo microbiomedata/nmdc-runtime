@@ -857,9 +857,9 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     base_url: str,
 ):
     # Generate interrelated documents.
-    study = faker.generate_studies(1)[0]
-    biosample = faker.generate_biosamples(1, associated_studies=[study["id"]])[0]
-    data_generation = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+    study_a, study_b = faker.generate_studies(2)  # only one is related
+    biosample_a, biosample_b = faker.generate_biosamples(2, associated_studies=[study_a["id"]])  # both are related
+    data_generation = faker.generate_nucleotide_sequencings(1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"], biosample_b["id"]])[0]
     data_object = faker.generate_data_objects(1, was_generated_by=data_generation["id"])[0]
     workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=data_generation["id"], has_input=[data_object["id"]])[0]
 
@@ -871,15 +871,15 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     data_generation_set = mdb.get_collection("data_generation_set")
     data_object_set = mdb.get_collection("data_object_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    assert study_set.count_documents({"id": study["id"]}) == 0
-    assert biosample_set.count_documents({"id": biosample["id"]}) == 0
+    assert study_set.count_documents({"id": {"$in": [study_a["id"], study_b["id"]]}}) == 0
+    assert biosample_set.count_documents({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}) == 0
     assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
     assert data_object_set.count_documents({"id": data_object["id"]}) == 0
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
     # Insert the documents.
-    study_set.insert_one(study)
-    biosample_set.insert_one(biosample)
+    study_set.insert_many([study_a, study_b])
+    biosample_set.insert_many([biosample_a, biosample_b])
     data_generation_set.insert_one(data_generation)
     data_object_set.insert_one(data_object)
     workflow_execution_set.insert_one(workflow_execution)
@@ -899,14 +899,15 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     assert len(response_payload["data_objects"]) == 1
     assert response_payload["data_objects"][0]["id"] == data_object["id"]
     assert len(response_payload["related_workflow_executions"]) == 0
-    assert len(response_payload["biosamples"]) == 1
-    assert response_payload["biosamples"][0]["id"] == biosample["id"]
-    assert len(response_payload["studies"]) == 1
-    assert response_payload["studies"][0]["id"] == study["id"]
+    assert len(response_payload["biosamples"]) == 2
+    returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
+    assert set(returned_biosample_ids) == {biosample_a["id"], biosample_b["id"]}  # each id is present
+    assert len(response_payload["studies"]) == 1  # only one study is related
+    assert response_payload["studies"][0]["id"] == study_a["id"]  # not study_b
 
-    # 🧹 Clean up.
-    study_set.delete_many({'id': study['id']})
-    biosample_set.delete_many({'id': biosample['id']})
+    # 🧹 Clean up. We use the same filters as in our initial absence assertions above.
+    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
     data_generation_set.delete_many({'id': data_generation['id']})
     data_object_set.delete_many({'id': data_object['id']})
     workflow_execution_set.delete_many({'id': workflow_execution['id']})
