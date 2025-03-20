@@ -131,6 +131,15 @@ def ensure_test_resources(mdb):
 
 
 @pytest.fixture
+def base_url() -> str:
+    r"""Returns the base URL of the API."""
+
+    base_url = os.getenv("API_HOST")
+    assert isinstance(base_url, str), "Base URL is not defined"
+    return base_url
+
+
+@pytest.fixture
 def api_site_client():
     mdb = get_mongo_db()
     rs = ensure_test_resources(mdb)
@@ -819,6 +828,29 @@ def test_run_query_update_as_user(api_user_client):
                 ],
             },
         )
+
+
+def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
+    base_url: str,
+):
+    r"""
+    Note: This test is focused on the case where there is no `WorkflowExecution` having the specified `id`.
+    """
+
+    workflow_execution_id = "nmdc:wfe-00-000000"  # arbitrary, made-up `id` value
+
+    # Confirm there is no `WorkflowExecution` having that `id` value.
+    # Note: This confirmation step is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    # Confirm the endpoint response with an HTTP 404 status code.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_id}"
+    )
+    assert response.status_code == 404
 
 
 def test_find_related_objects_for_workflow_execution_with_data_generation_biosample_study(
