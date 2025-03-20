@@ -863,8 +863,8 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     data_object = faker.generate_data_objects(1, was_generated_by=data_generation["id"])[0]
     workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=data_generation["id"], has_input=[data_object["id"]])[0]
 
-    # Confirm document like this don't already exist in the database.
-    # Note: This confirmation step is necessary because some old tests currently leave "residue" in the database.
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    # Note: This absence check is necessary because some old tests currently leave "residue" in the database.
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
     biosample_set = mdb.get_collection("biosample_set")
@@ -905,7 +905,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     assert len(response_payload["studies"]) == 1  # only one study is related
     assert response_payload["studies"][0]["id"] == study_a["id"]  # not study_b
 
-    # 🧹 Clean up. We use the same filters as in our initial absence assertions above.
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
     study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
     biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
     data_generation_set.delete_many({'id': data_generation['id']})
