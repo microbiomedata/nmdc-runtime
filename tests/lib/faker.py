@@ -120,7 +120,7 @@ class Faker:
     def generate_metagenome_annotations(quantity: int, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
-        which can be stored in the  `workflow_execution_set` collection.
+        which can be stored in the `workflow_execution_set` collection.
         The documents comply with schema v11.5.1.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
@@ -195,6 +195,42 @@ class Faker:
                 "analyte_category": "arbitrary_string",
                 "associated_studies": associated_studies,
                 "has_input": has_input,
+                **overrides,
+            }
+            for n in range(1, quantity + 1)
+        ]
+
+    def generate_data_objects(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `DataObject` instances,
+        which can be stored in the `data_object_set` collection.
+        The documents comply with schema v11.5.1.
+
+        Reference: https://microbiomedata.github.io/nmdc-schema/DataObject/
+
+        :param quantity: Number of documents to create
+        :param associated_studies: The `id`s of one or more `Study` instances
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> data_objects = f.generate_data_objects(1, name='my_data_object')
+        >>> len(data_objects)
+        1
+        >>> data_objects[0]['id']
+        'nmdc:dobj-00-000001'
+        >>> data_objects[0]['type']
+        'nmdc:DataObject'
+        >>> data_objects[0]['name']
+        'my_data_object'
+        """
+
+        return [
+            {
+                "id": f"nmdc:dobj-00-{n:06}",
+                "type": "nmdc:DataObject",
+                "name": "arbitrary_string",
+                "description": "arbitrary_string",
                 **overrides,
             }
             for n in range(1, quantity + 1)

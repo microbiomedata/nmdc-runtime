@@ -853,6 +853,65 @@ def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexis
     assert response.status_code == 404
 
 
+def test_find_related_objects_for_workflow_execution__returns_related_objects(
+    base_url: str,
+):
+    # Generate interrelated documents.
+    study = faker.generate_studies(1)[0]
+    biosample = faker.generate_biosamples(1, associated_studies=[study["id"]])[0]
+    data_generation = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+    data_object = faker.generate_data_objects(1, was_generated_by=data_generation["id"])[0]
+    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=data_generation["id"], has_input=[data_object["id"]])[0]
+
+    # Confirm document like this don't already exist in the database.
+    # Note: This confirmation step is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert study_set.count_documents({"id": study["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample["id"]}) == 0
+    assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
+    assert data_object_set.count_documents({"id": data_object["id"]}) == 0
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # Insert the documents.
+    study_set.insert_one(study)
+    biosample_set.insert_one(biosample)
+    data_generation_set.insert_one(data_generation)
+    data_object_set.insert_one(data_object)
+    workflow_execution_set.insert_one(workflow_execution)
+
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Submit the API request and verify the response payload contains what we expect.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution['id']}"
+    )
+    assert response.status_code == 200
+    response_payload = response.json()
+    assert response_payload["workflow_execution_id"] == workflow_execution["id"]
+    assert len(response_payload["data_objects"]) == 1
+    assert response_payload["data_objects"][0]["id"] == data_object["id"]
+    assert len(response_payload["related_workflow_executions"]) == 0
+    assert len(response_payload["biosamples"]) == 1
+    assert response_payload["biosamples"][0]["id"] == biosample["id"]
+    assert len(response_payload["studies"]) == 1
+    assert response_payload["studies"][0]["id"] == study["id"]
+
+    # 🧹 Clean up.
+    study_set.delete_many({'id': study['id']})
+    biosample_set.delete_many({'id': biosample['id']})
+    data_generation_set.delete_many({'id': data_generation['id']})
+    data_object_set.delete_many({'id': data_object['id']})
+    workflow_execution_set.delete_many({'id': workflow_execution['id']})
+
+
 def test_find_related_objects_for_workflow_execution_with_data_generation_biosample_study(
     mocker,
 ):
