@@ -575,7 +575,7 @@ def find_related_objects_for_workflow_execution(
         # Start the recursive search
         process_id(start_id)
 
-    # Collect input and output data objects directly from the workflow
+    # Collect input (`has_input`) and output (`has_output`) data objects directly from WorkflowExecution
     input_ids = workflow_execution.get("has_input", [])
     output_ids = workflow_execution.get("has_output", [])
 
@@ -583,19 +583,19 @@ def find_related_objects_for_workflow_execution(
     for doc_id in input_ids + output_ids:
         add_data_object(doc_id)
 
-    # Find workflows that use outputs of this workflow as inputs
+    # Find WorkflowExecution records that use outputs of this WorkflowExecution as inputs
     for output_id in output_ids:
         related_wfs = mdb.workflow_execution_set.find({"has_input": output_id})
         for wf in related_wfs:
             add_workflow_execution(wf)
 
-    # Find workflows whose outputs are used as inputs to this workflow
+    # Find WorkflowExecution records whose outputs are used as inputs to this WorkflowExecution
     for input_id in input_ids:
         related_wfs = mdb.workflow_execution_set.find({"has_output": input_id})
         for wf in related_wfs:
             add_workflow_execution(wf)
 
-    # Find workflows that share the same "was_informed_by" relationship
+    # Find WorkflowExecution records that share the same "was_informed_by" relationship
     if "was_informed_by" in workflow_execution:
         informed_by = workflow_execution["was_informed_by"]
         related_wfs = mdb.workflow_execution_set.find({"was_informed_by": informed_by})
@@ -603,12 +603,12 @@ def find_related_objects_for_workflow_execution(
             if wf["id"] != workflow_execution_id:
                 add_workflow_execution(wf)
 
-        # Look for the DataGeneration instance in alldocs - this is the direct path to biosamples
+        # Look for the DataGeneration instance in `alldocs` - this is the direct path to Biosamples
         dg_doc = mdb.alldocs.find_one({"id": informed_by})
         if dg_doc and any(
             t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
         ):
-            # Get biosamples from has_input by recursively walking up the chain
+            # Get Biosamples from `has_input` by recursively walking up the chain
             for input_id in dg_doc.get("has_input", []):
                 find_biosamples_recursively(input_id)
 
@@ -616,14 +616,14 @@ def find_related_objects_for_workflow_execution(
             for study_id in dg_doc.get("associated_studies", []):
                 add_study(study_id)
 
-            # If the data generation has no associated studies but is linked to biosamples,
-            # we should still try to get the studies from the biosamples
+            # If the data generation has no associated studies but is linked to Biosamples,
+            # we should still try to get the studies from the Biosamples
             if not dg_doc.get("associated_studies") and len(biosamples) > 0:
                 for bs in biosamples:
                     for study_id in bs.get("associated_studies", []):
                         add_study(study_id)
 
-    # For all data objects we collected, check if they have a was_generated_by reference
+    # For all data objects we collected, check if they have a `was_generated_by` reference
     # This is a supplementary path to find more relationships
     for data_obj in data_objects:
         if "was_generated_by" in data_obj:
@@ -633,13 +633,13 @@ def find_related_objects_for_workflow_execution(
             if dg_doc and any(
                 t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
             ):
-                # Get studies directly associated with the DataGeneration
+                # Get Studies directly associated with the DataGeneration
                 for study_id in dg_doc.get("associated_studies", []):
                     add_study(study_id)
 
     response = {
         "workflow_execution_id": workflow_execution_id,  # workflow_execution_id provided as argument to endpoint
-        "data_objects": data_objects,  # related DataObjects – input/output of given workflow and related workflows
+        "data_objects": data_objects,  # related DataObjects – input/output of given workflow and related WorkflowExecution records
         "related_workflow_executions": related_workflow_executions,  # related WorkflowExecutions
         "biosamples": biosamples,  # related Biosamples
         "studies": studies,  # related Studies
