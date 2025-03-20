@@ -418,33 +418,40 @@ def find_related_objects_for_workflow_execution(
     :param mdb: A PyMongo `Database` instance that can be used to access the MongoDB database
     :return: Dictionary with data_objects, related_workflow_executions, biosamples, and studies lists
     """
-    # Get the workflow execution
+
+    # Get the specified `WorkflowExecution` document from the database.
     workflow_execution = raise404_if_none(
         mdb.workflow_execution_set.find_one({"id": workflow_execution_id}),
         detail="Workflow execution not found",
     )
 
-    # Initialize collections for related objects
+    # Create empty lists that will contain the related documents we find.
     data_objects = []
     related_workflow_executions = []
     biosamples = []
     studies = []
 
+    # Create empty sets that we'll use to avoid processing a given document multiple times.
     unique_data_object_ids = set()
     unique_workflow_execution_ids = set()
     unique_biosample_ids = set()
     unique_study_ids = set()
 
-    # Add the requested workflow execution to the set of unique IDs
+    # Add the ID of the specified `WorkflowExecution` document, to the set of unique `WorkflowExecution` IDs.
     unique_workflow_execution_ids.add(workflow_execution_id)
 
-    # SchemaView interface to NMDC Schema
+    # Get a `SchemaView` that is bound to the NMDC schema.
     nmdc_view = ViewGetter()
     nmdc_sv = nmdc_view.get_view()
     dg_descendants = nmdc_sv.class_descendants("DataGeneration")
 
-    # Function to add data objects to the results
-    def add_data_object(doc_id):
+    def add_data_object(doc_id: str) -> bool:
+        r"""
+        Helper function that adds the `DataObject` having the specified `id`
+        to our list of `DataObjects`, if it isn't already in there.
+        """
+        # TODO: Consider deriving the class name from the document's `type` value,
+        #       instead of its `id` value. Seems more "direct" to me.
         if (
             get_classname_from_typecode(doc_id) == "DataObject"
             and doc_id not in unique_data_object_ids
@@ -456,33 +463,45 @@ def find_related_objects_for_workflow_execution(
                 return True
         return False
 
-    # Function to add related workflow executions
-    def add_workflow_execution(wf):
-        if wf["id"] not in unique_workflow_execution_ids:
-            wf_stripped = strip_oid(wf)
-            related_workflow_executions.append(wf_stripped)
-            unique_workflow_execution_ids.add(wf["id"])
+    def add_workflow_execution(wfe: dict) -> None:
+        r"""
+        Helper function that adds the specified `WorkflowExecution`
+        to our list of `WorkflowExecution`s, if it isn't already in there;
+        and adds its related `DataObjects` to our list of `DataObject`s.
+        """
+        if wfe["id"] not in unique_workflow_execution_ids:
+            related_workflow_executions.append(strip_oid(wfe))
+            unique_workflow_execution_ids.add(wfe["id"])
 
-            # Add data objects from this related workflow
-            for doc_id in wf.get("has_input", []) + wf.get("has_output", []):
+            # Add data objects related to this workflow execution.
+            ids_of_inputs = wfe.get("has_input", [])
+            ids_of_outputs = wfe.get("has_output", [])
+            for doc_id in ids_of_inputs + ids_of_outputs:
                 add_data_object(doc_id)
 
-    # Function to add biosamples to the results
-    def add_biosample(biosample_id):
+    def add_biosample(biosample_id: str) -> bool:
+        r"""
+        Helper function that adds the specified `Biosample`
+        to our list of `Biosample`s, if it isn't already in there;
+        and adds its related `Study`s to our list of `Study`s.
+        """
         if biosample_id not in unique_biosample_ids:
             biosample = mdb.biosample_set.find_one({"id": biosample_id})
             if biosample:
                 biosamples.append(strip_oid(biosample))
                 unique_biosample_ids.add(biosample_id)
 
-                # Add associated studies
+                # Add studies related to this biosample.
                 for study_id in biosample.get("associated_studies", []):
                     add_study(study_id)
                 return True
         return False
 
-    # Function to add studies to the results
-    def add_study(study_id):
+    def add_study(study_id: str) -> bool:
+        r"""
+        Helper function that adds the specified `Study`
+        to our list of `Study`s, if it isn't already in there.
+        """
         if study_id not in unique_study_ids:
             study = mdb.study_set.find_one({"id": study_id})
             if study:
@@ -491,12 +510,21 @@ def find_related_objects_for_workflow_execution(
                 return True
         return False
 
-    # Function to recursively find biosamples by walking up the chain
-    def find_biosamples_recursively(start_id):
-        # Set to track IDs we've already processed to avoid cycles
+    def find_biosamples_recursively(start_id: str) -> None:
+        r"""
+        Recursive helper function that traverses the database in search of relevant `Biosample`s.
+
+        TODO: Document the function parameter. For recursive functions, I recommend documenting them in detail as they can be difficult to debug.
+        """
+
+        # Create an empty set we can use to track the `id`s of documents we've already processed,
+        # in order to avoid processing the same documents multiple times (i.e. cycling in the graph).
         processed_ids = set()
 
         def process_id(current_id):
+            r"""
+            TODO: Document this recursive helper function (which is defined within a recursive helper function).
+            """
             if current_id in processed_ids:
                 return
 
