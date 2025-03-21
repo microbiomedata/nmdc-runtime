@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -18,6 +19,7 @@ from nmdc_runtime.api.db.mongo import (
     get_collection_names_from_schema,
     mongorestore_collection,
 )
+from nmdc_runtime.api.endpoints.find import find_related_objects_for_workflow_execution
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -36,12 +38,12 @@ from tests.test_util import download_to
 from tests.lib.faker import Faker
 
 
-# Instantiate a faker that we can use to generate fake data for testing.
-faker = Faker()
-
 # TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
-def ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs: bool = False):
+
+def ensure_alldocs_collection_has_been_materialized(
+    force_refresh_of_alldocs: bool = False,
+):
     r"""
     This function can be used to ensure the "alldocs" collection has been materialized.
 
@@ -123,6 +125,15 @@ def ensure_test_resources(mdb):
         "user": {"username": username, "password": password},
         "job": job.model_dump(exclude_unset=True),
     }
+
+
+@pytest.fixture
+def base_url() -> str:
+    r"""Returns the base URL of the API."""
+
+    base_url = os.getenv("API_HOST")
+    assert isinstance(base_url, str), "Base URL is not defined"
+    return base_url
 
 
 @pytest.fixture
@@ -816,6 +827,213 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
+def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
+    base_url: str,
+):
+    r"""
+    Note: This test is focused on the case where there is no `WorkflowExecution` having the specified `id`.
+    """
+
+    workflow_execution_id = "nmdc:wfe-00-000000"  # arbitrary, made-up `id` value
+
+    # Confirm there is no `WorkflowExecution` having that `id` value.
+    # Note: This confirmation step is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    # Confirm the endpoint response with an HTTP 404 status code.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/workflow_executions/{workflow_execution_id}/related_resources",
+    )
+    assert response.status_code == 404
+
+
+def test_find_related_objects_for_workflow_execution__returns_related_objects(
+    base_url: str,
+):
+    # Generate interrelated documents.
+    faker = Faker()
+    study_a, study_b = faker.generate_studies(2)  # only one is related
+    biosample_a, biosample_b = faker.generate_biosamples(
+        2, associated_studies=[study_a["id"]]
+    )  # both are related
+    data_generation = faker.generate_nucleotide_sequencings(
+        1,
+        associated_studies=[study_a["id"]],
+        has_input=[biosample_a["id"], biosample_b["id"]],
+    )[0]
+    data_object = faker.generate_data_objects(
+        1, was_generated_by=data_generation["id"]
+    )[0]
+    workflow_execution = faker.generate_metagenome_annotations(
+        1, was_informed_by=data_generation["id"], has_input=[data_object["id"]]
+    )[0]
+
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    # Note: This absence check is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert (
+        study_set.count_documents({"id": {"$in": [study_a["id"], study_b["id"]]}}) == 0
+    )
+    assert (
+        biosample_set.count_documents(
+            {"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}
+        )
+        == 0
+    )
+    assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
+    assert data_object_set.count_documents({"id": data_object["id"]}) == 0
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # Insert the documents.
+    study_set.insert_many([study_a, study_b])
+    biosample_set.insert_many([biosample_a, biosample_b])
+    data_generation_set.insert_one(data_generation)
+    data_object_set.insert_one(data_object)
+    workflow_execution_set.insert_one(workflow_execution)
+
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Submit the API request and verify the response payload contains what we expect.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/workflow_executions/{workflow_execution['id']}/related_resources",
+    )
+    assert response.status_code == 200
+    response_payload = response.json()
+    assert response_payload["workflow_execution_id"] == workflow_execution["id"]
+    assert len(response_payload["data_objects"]) == 1
+    assert response_payload["data_objects"][0]["id"] == data_object["id"]
+    assert len(response_payload["related_workflow_executions"]) == 0
+    assert len(response_payload["biosamples"]) == 2
+    returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
+    assert set(returned_biosample_ids) == {
+        biosample_a["id"],
+        biosample_b["id"],
+    }  # each id is present
+    assert len(response_payload["studies"]) == 1  # only one study is related
+    assert response_payload["studies"][0]["id"] == study_a["id"]  # not study_b
+
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+    data_generation_set.delete_many({"id": data_generation["id"]})
+    data_object_set.delete_many({"id": data_object["id"]})
+    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
+
+
+def test_find_related_objects_for_workflow_execution__returns_related_workflow_exections(
+    base_url: str,
+):
+    """
+    Note: This test is focused on the case where there _is_ a `WorkflowExecution` related to the one whose `id` is in the request URL.
+          The related `WorkflowExecution` is part of the same `has_input` / `has_output` provenance chain as the specified one.
+    """
+    # Generate interrelated documents.
+    faker = Faker()
+    study_a = faker.generate_studies(1)[0]
+    biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
+    data_generation_a = faker.generate_nucleotide_sequencings(
+        1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"]]
+    )[0]
+    data_object_a = faker.generate_data_objects(
+        1, was_generated_by=data_generation_a["id"]
+    )[0]
+    workflow_execution_a = faker.generate_metagenome_annotations(
+        1, was_informed_by=data_generation_a["id"], has_input=[data_object_a["id"]]
+    )[0]
+
+    # Create a second `WorkflowExecution` that is related to the first one.
+    data_object_b = faker.generate_data_objects(1, has_output=workflow_execution_a["id"])[0]
+    workflow_execution_b = faker.generate_metagenome_annotations(
+        1,
+        was_informed_by=data_generation_a["id"],
+        has_input=[data_object_b["id"]],
+    )[0]
+
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    # Note: This absence check is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert study_set.count_documents({"id": study_a["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample_a["id"]}) == 0
+    assert (
+        data_generation_set.count_documents({"id": {"$in": [data_generation_a["id"]]}})
+        == 0
+    )
+    assert (
+        data_object_set.count_documents(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        == 0
+    )
+    assert (
+        workflow_execution_set.count_documents(
+            {"id": {"$in": [workflow_execution_a["id"], workflow_execution_b["id"]]}}
+        )
+        == 0
+    )
+
+    # Insert the documents.
+    study_set.insert_one(study_a)
+    biosample_set.insert_one(biosample_a)
+    data_generation_set.insert_many([data_generation_a])
+    data_object_set.insert_many([data_object_a, data_object_b])
+    workflow_execution_set.insert_many([workflow_execution_a, workflow_execution_b])
+
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Submit the API request and verify the response payload contains what we expect.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/workflow_executions/{workflow_execution_a['id']}/related_resources",
+    )
+    assert response.status_code == 200
+    response_payload = response.json()
+    assert response_payload["workflow_execution_id"] == workflow_execution_a["id"]
+    assert len(response_payload["data_objects"]) == 2
+    returned_data_object_ids = [do["id"] for do in response_payload["data_objects"]]
+    assert set(returned_data_object_ids) == {
+        data_object_a["id"],
+        data_object_b["id"],
+    }  # each id is present
+    assert len(response_payload["related_workflow_executions"]) == 1
+    assert (
+        response_payload["related_workflow_executions"][0]["id"]
+        == workflow_execution_b["id"]
+    )
+    assert len(response_payload["biosamples"]) == 1
+    assert response_payload["biosamples"][0]["id"] == biosample_a["id"]
+    assert len(response_payload["studies"]) == 1
+    assert response_payload["studies"][0]["id"] == study_a["id"]
+
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_one({"id": study_a["id"]})
+    biosample_set.delete_one({"id": biosample_a["id"]})
+    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"]]}})
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
+    workflow_execution_set.delete_many(
+        {"id": {"$in": [workflow_execution_a["id"], workflow_execution_b["id"]]}}
+    )
+
+
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     r"""
     Note: In this test, we seed the database, then we use the "find" command to fetch a single
@@ -853,8 +1071,9 @@ def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -944,8 +1163,9 @@ def test_run_query_find__second_batch_and_its_cursor_id(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1079,8 +1299,9 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 10 documents.
+    faker = Faker()
     studies = faker.generate_studies(10, title=study_title)
     study_set.insert_many(studies)
 
@@ -1113,7 +1334,7 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     items_in_batch_2: list = cursor["batch"]
     assert len(items_in_batch_2) == 4
     assert isinstance(cursor["id"], str)
-    
+
     # Fetch the third batch.
     response = api_user_client.request(
         "POST",
@@ -1140,7 +1361,9 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     # Confirm each of the `id`s of the studies we seeded the database with,
     # exist in the studies we received from the API.
     seeded_study_ids = [study["id"] for study in studies]
-    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_study_ids)
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(
+        seeded_study_ids
+    )
 
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
@@ -1168,8 +1391,9 @@ def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1284,8 +1508,9 @@ def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1451,10 +1676,11 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     # Seed the `study_set` collection with 1 document and the `biosample_set`
     # collection with 10 documents that are associated with that `study_set`
     # document.
+    faker = Faker()
     studies = faker.generate_studies(1, id=study_id)
-    biosamples = faker.generate_biosamples(10, 
-                                           associated_studies=[study_id], 
-                                           samp_name=biosample_samp_name)
+    biosamples = faker.generate_biosamples(
+        10, associated_studies=[study_id], samp_name=biosample_samp_name
+    )
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
@@ -1520,7 +1746,7 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     items_in_batch_2: list = cursor["batch"]
     assert len(items_in_batch_2) == 5
     assert isinstance(cursor["id"], str)
-    
+
     # Fetch the third batch of biosamples associated with the study.
     # Note: This is an empty batch.
     response = api_user_client.request(
@@ -1548,14 +1774,18 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     # Confirm each of the `id`s of the biosamples we seeded the database with,
     # exist in the biosamples we received from the API.
     seeded_biosample_ids = [biosample["id"] for biosample in biosamples]
-    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(seeded_biosample_ids)
+    assert set(ids_in_batch_1 + ids_in_batch_2 + ids_in_batch_3) == set(
+        seeded_biosample_ids
+    )
 
     # 🧹 Clean up.
     study_set.delete_many({"id": study_id})
     biosample_set.delete_many({"samp_name": biosample_samp_name})
 
 
-def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(api_user_client):
+def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_underscore_id_field(
+    api_user_client,
+):
     r"""
     Note: This test is focused on the scenario where the documents produced by
           the output stage of an aggregation pipeline do not have an `_id` field.
@@ -1574,8 +1804,9 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     #
     study_title = "My study"
     assert study_set.count_documents({"title": study_title}) == 0
-    
+
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1588,7 +1819,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
             "aggregate": "study_set",
             "pipeline": [
                 # Only get the 6 studies we inserted above.
-                {   
+                {
                     "$match": {
                         "title": study_title,
                     },
@@ -1597,7 +1828,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
                 # upon which the pagination algorithm relies.
                 {
                     "$unset": "_id",
-                }
+                },
             ],
             "cursor": {"batchSize": 5},  # less than the number of studies
         },
