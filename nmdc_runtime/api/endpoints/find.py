@@ -388,7 +388,7 @@ def find_planned_process_by_id(
 @router.get(
     "/workflow_executions/{workflow_execution_id}/related_resources",
     response_model_exclude_unset=True,
-    name="Find resources related to the specified `WorkflowExecution`",
+    name="Find resources related to the specified WorkflowExecution",
     description=(
         "Finds `DataObject`s, `Biosample`s, `Study`s, and other `WorkflowExecution`s "
         "related to the specified `WorkflowExecution`."
