@@ -845,7 +845,7 @@ def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexis
     # Confirm the endpoint response with an HTTP 404 status code.
     response = requests.request(
         "GET",
-        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_id}",
+        url=f"{base_url}/workflow_executions/{workflow_execution_id}/related_resources",
     )
     assert response.status_code == 404
 
@@ -906,7 +906,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     # Submit the API request and verify the response payload contains what we expect.
     response = requests.request(
         "GET",
-        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution['id']}",
+        url=f"{base_url}/workflow_executions/{workflow_execution['id']}/related_resources",
     )
     assert response.status_code == 200
     response_payload = response.json()
@@ -1001,7 +1001,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_workflow_e
     # Submit the API request and verify the response payload contains what we expect.
     response = requests.request(
         "GET",
-        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_a['id']}",
+        url=f"{base_url}/workflow_executions/{workflow_execution_a['id']}/related_resources",
     )
     assert response.status_code == 200
     response_payload = response.json()

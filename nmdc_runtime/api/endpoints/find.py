@@ -386,7 +386,7 @@ def find_planned_process_by_id(
 
 
 @router.get(
-    "/related_objects/workflow_execution/{workflow_execution_id}",
+    "/workflow_executions/{workflow_execution_id}/related_resources",
     response_model_exclude_unset=True,
     name="Find resources related to the specified `WorkflowExecution`",
     description=(
@@ -421,8 +421,8 @@ def find_related_objects_for_workflow_execution(
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """This API endpoint retrieves resources related to a WorkflowExecution record,
-    including DataObjects that are inputs or outputs, other WorkflowExecution
+    """This API endpoint retrieves resources related to the specified WorkflowExecution,
+    including DataObjects that are inputs to — or outputs from — it, other WorkflowExecution
     instances that are part of the same pipeline, and related Biosamples and Studies.
 
     :param workflow_execution_id: id of workflow_execution_set instance for which related objects are to be retrieved
