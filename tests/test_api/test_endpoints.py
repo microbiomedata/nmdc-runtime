@@ -38,9 +38,6 @@ from tests.test_util import download_to
 from tests.lib.faker import Faker
 
 
-# Instantiate a faker that we can use to generate fake data for testing.
-faker = Faker()
-
 # TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
 
@@ -857,6 +854,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     base_url: str,
 ):
     # Generate interrelated documents.
+    faker = Faker()
     study_a, study_b = faker.generate_studies(2)  # only one is related
     biosample_a, biosample_b = faker.generate_biosamples(
         2, associated_studies=[study_a["id"]]
@@ -933,13 +931,15 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_find_related_objects_for_workflow_execution__returns_non_zero_related_workflow_exections(
+def test_find_related_objects_for_workflow_execution__returns_related_workflow_exections(
     base_url: str,
 ):
-    """Note: This test is focused on the case where there is a `WorkflowExecution` that is related to the one specified by the `id` in the request URL.
-    The related `WorkflowExecution` is part of the `has_input` / `has_output` provenance chain.
+    """
+    Note: This test is focused on the case where there _is_ a `WorkflowExecution` related to the one whose `id` is in the request URL.
+          The related `WorkflowExecution` is part of the same `has_input` / `has_output` provenance chain as the specified one.
     """
     # Generate interrelated documents.
+    faker = Faker()
     study_a = faker.generate_studies(1)[0]
     biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
     data_generation_a = faker.generate_nucleotide_sequencings(
@@ -953,15 +953,11 @@ def test_find_related_objects_for_workflow_execution__returns_non_zero_related_w
     )[0]
 
     # Create a second `WorkflowExecution` that is related to the first one.
-    # data_generation_b = faker.generate_nucleotide_sequencings(1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"]], id="nmdc:dgns-00-000002")[0]
-    data_object_b = faker.generate_data_objects(
-        1, has_output=workflow_execution_a["id"], id="nmdc:dobj-00-000002"
-    )[0]
+    data_object_b = faker.generate_data_objects(1, has_output=workflow_execution_a["id"])[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
         was_informed_by=data_generation_a["id"],
         has_input=[data_object_b["id"]],
-        id="nmdc:wfmgan-00-000002",
     )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
@@ -1077,6 +1073,7 @@ def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1168,6 +1165,7 @@ def test_run_query_find__second_batch_and_its_cursor_id(api_user_client):
     assert study_set.count_documents({"title": study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1303,6 +1301,7 @@ def test_run_query_find__three_batches_and_their_items(api_user_client):
     assert study_set.count_documents({"title": study_title}) == 0
 
     # Seed the `study_set` collection with 10 documents.
+    faker = Faker()
     studies = faker.generate_studies(10, title=study_title)
     study_set.insert_many(studies)
 
@@ -1394,6 +1393,7 @@ def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     assert study_set.count_documents({"title": nonexistent_study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1510,6 +1510,7 @@ def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
     assert study_set.count_documents({"title": study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
@@ -1675,6 +1676,7 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     # Seed the `study_set` collection with 1 document and the `biosample_set`
     # collection with 10 documents that are associated with that `study_set`
     # document.
+    faker = Faker()
     studies = faker.generate_studies(1, id=study_id)
     biosamples = faker.generate_biosamples(
         10, associated_studies=[study_id], samp_name=biosample_samp_name
@@ -1804,6 +1806,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     assert study_set.count_documents({"title": study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
