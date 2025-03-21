@@ -14,7 +14,7 @@ database translation jobs.
 Why multiple repositories? A given repository may require resources that a given Dagster deployment
 may not provide -- it is nice to opt-in to serve a given repository of functionality.
 
-A Dagster [Workspace](https://docs.dagster.io/concepts/repositories-workspaces/workspaces) loads one
+A Dagster [Workspace](https://docs.dagster.io/guides/deploy/code-locations/workspace-yaml) loads one
 or more repositories for a given deployment.
 
 A Dagster [Sensor](https://docs.dagster.io/concepts/partitions-schedules-sensors/sensors) defines a
@@ -62,7 +62,7 @@ def apply_changesheet():
     perform_changesheet_updates(sheet_in)
 ```
 
-which is rendered in Dagster's [Dagit UI](https://docs.dagster.io/concepts/dagit/dagit) as a graph:
+which is rendered in Dagster's [web UI](https://docs.dagster.io/guides/operate/webserver) (sometimes still referred to as "Dagit," which was its previous name) as a graph:
 
 <figure markdown style="max-width: 25em">
   ![Dagit UI rendering of `apply_changesheet` job](../img/dagit-apply-changesheet-job.png)
@@ -71,9 +71,8 @@ which is rendered in Dagster's [Dagit UI](https://docs.dagster.io/concepts/dagit
 
 Thus, Dagster inspects the Python code's abstract syntax tree (AST) in order to create a graph of
 operation nodes and their input/output dependencies. You can explore the Dagit rendering of this job
-at `/workspace/repo@nmdc_runtime.site.repository:repo/jobs/apply_changesheet/` on your local
-instance (at `http://localhost:3000` by default) or e.g. [the read-only deployed
-version](https://dagit-readonly.nmdc-runtime-dev.polyneme.xyz/workspace/repo@nmdc_runtime.site.repository:repo/jobs/apply_changesheet/).
+on your local
+instance (at `http://localhost:3000` by default).
 
 The operations comprising `apply_changesheet` are `@op`-decorated functions in
 [`nmdc_runtime.site.ops`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/ops.py), i.e.
@@ -98,7 +97,7 @@ Here you can see that Dagster operations (Ops) communicate what resources the ne
 run. [Resources](https://docs.dagster.io/concepts/resources) are injected as part of the `context`
 argument supplied to the function call. You can also see that other particular values that configure
 the job run, and thus are usable as input, can be passed to the specific *solid* being run (*solid*
-is Dagster's [deprecated](https://docs.dagster.io/_apidocs/solids#legacy-solids) term for *op*, and
+is Dagster's _deprecated_ term for *op*, and
 `context` objects now have equivalent `op_config` attributes).
 
 This extra level of indirection allows different schemes for the execution of job steps, i.e. ops.
@@ -115,7 +114,7 @@ how the NMDC Runtime deployment is configured via its
 file.
 
 In summary, there are many "touch points" for a given job, such as how it is scheduled (e.g. via a
-Sensor or via a [Schedule](https://docs.dagster.io/concepts/partitions-schedules-sensors/schedules)
+Sensor or via a [Schedule](https://docs.dagster.io/guides/automate/schedules)
 that is more akin to [Cron](https://en.wikipedia.org/wiki/Cron)), how it is configured to source
 particular Resources from a Graph template, and how the work of the Graph is split into a collection
 of Ops that declare their dependencies so that everything can be run in a suitable order. All of

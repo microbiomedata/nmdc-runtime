@@ -15,8 +15,7 @@ houses the LinkML schema specification, as well as generated artifacts (e.g. JSO
 * [nmdc-server](https://github.com/microbiomedata/nmdc-server)
 houses code specific to the data portal -- its database, back-end API, and front-end application.
 
-* [workflow_documentation](https://docs.microbiomedata.org/workflows/)
-references workflow code spread across several repositories, that take source data and produce computed data.
+* Workflows — documented in the [workflows](https://docs.microbiomedata.org/workflows/) section of the NMDC documentation website — take source data and produce computed data.
 
 * This repo (nmdc-runtime)
    * houses code that takes source data and computed data, and transforms it
