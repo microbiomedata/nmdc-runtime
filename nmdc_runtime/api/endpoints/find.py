@@ -586,49 +586,56 @@ def find_related_objects_for_workflow_execution(
         # Start the recursive search
         process_id(start_id)
 
-    # Collect input (`has_input`) and output (`has_output`) data objects directly from WorkflowExecution
+    # Get the DataObject `id`s that are inputs (`has_input`) to and 
+    # outputs (`has_output`) from the user-specified WorkflowExecution.
     input_ids = workflow_execution.get("has_input", [])
     output_ids = workflow_execution.get("has_output", [])
 
-    # Add data objects from input and output
+    # Add those DataObjects to our list of DataObjects.
     for doc_id in input_ids + output_ids:
         add_data_object(doc_id)
 
-    # Find WorkflowExecution records that use outputs of this WorkflowExecution as inputs
+    # Find WorkflowExecutions whose inputs are outputs of this WorkflowExecution.
+    # Add those to our list of related WorkflowExecutions.
     for output_id in output_ids:
-        related_wfs = mdb.workflow_execution_set.find({"has_input": output_id})
-        for wf in related_wfs:
-            add_workflow_execution(wf)
+        related_wfes = mdb.workflow_execution_set.find({"has_input": output_id})
+        for wfe in related_wfes:
+            add_workflow_execution(wfe)
 
-    # Find WorkflowExecution records whose outputs are used as inputs to this WorkflowExecution
+    # Find WorkflowExecutions whose outputs are inputs of this WorkflowExecution.
+    # Add those, too, to our list of related WorkflowExecutions.
     for input_id in input_ids:
-        related_wfs = mdb.workflow_execution_set.find({"has_output": input_id})
-        for wf in related_wfs:
-            add_workflow_execution(wf)
+        related_wfes = mdb.workflow_execution_set.find({"has_output": input_id})
+        for wfe in related_wfes:
+            add_workflow_execution(wfe)
 
-    # Find WorkflowExecution records that share the same "was_informed_by" relationship
+    # Find WorkflowExecutions whose `was_informed_by` value matches that of the user-specified WorkflowExecution.
+    # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
-        informed_by = workflow_execution["was_informed_by"]
-        related_wfs = mdb.workflow_execution_set.find({"was_informed_by": informed_by})
-        for wf in related_wfs:
-            if wf["id"] != workflow_execution_id:
-                add_workflow_execution(wf)
+        was_informed_by = workflow_execution["was_informed_by"]
+        related_wfes = mdb.workflow_execution_set.find({"was_informed_by": was_informed_by})
+        for wfe in related_wfes:
+            if wfe["id"] != workflow_execution_id:
+                add_workflow_execution(wfe)
 
-        # Look for the DataGeneration instance in `alldocs` - this is the direct path to Biosamples
-        dg_doc = mdb.alldocs.find_one({"id": informed_by})
+        # Look for a DataGeneration in the `alldocs` collection.
+        # We'll use that DataGeneration to get to related Biosamples.
+        dg_doc = mdb.alldocs.find_one({"id": was_informed_by})
         if dg_doc and any(
             t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
         ):
-            # Get Biosamples from `has_input` by recursively walking up the chain
+            # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
+            # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
             for input_id in dg_doc.get("has_input", []):
                 find_biosamples_recursively(input_id)
 
-            # Get studies directly associated with the DataGeneration
+            # Get Studies associated with the DataGeneration,
+            # and add them to our list of Studies.
             for study_id in dg_doc.get("associated_studies", []):
                 add_study(study_id)
 
-            # If the data generation has no associated studies but is linked to Biosamples,
-            # we should still try to get the studies from the Biosamples
+            # If the DataGeneration has no associated Studies, but has related Biosamples,
+            # add the Studies associated with those Biosamples to our list of Studies.
             if not dg_doc.get("associated_studies") and len(biosamples) > 0:
                 for bs in biosamples:
                     for study_id in bs.get("associated_studies", []):
@@ -649,11 +656,11 @@ def find_related_objects_for_workflow_execution(
                     add_study(study_id)
 
     response = {
-        "workflow_execution_id": workflow_execution_id,  # workflow_execution_id provided as argument to endpoint
-        "data_objects": data_objects,  # related DataObjects – input/output of given workflow and related WorkflowExecution records
-        "related_workflow_executions": related_workflow_executions,  # related WorkflowExecutions
-        "biosamples": biosamples,  # related Biosamples
-        "studies": studies,  # related Studies
+        "workflow_execution_id": workflow_execution_id,  # `WorkflowExecution` `id` provided by user
+        "data_objects": data_objects,  # related `DataObject`s
+        "related_workflow_executions": related_workflow_executions,  # related `WorkflowExecution`s
+        "biosamples": biosamples,  # related `Biosample`s
+        "studies": studies,  # related `Study`s
     }
 
     return response
