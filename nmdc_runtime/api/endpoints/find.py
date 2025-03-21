@@ -388,14 +388,22 @@ def find_planned_process_by_id(
 @router.get(
     "/related_objects/workflow_execution/{workflow_execution_id}",
     response_model_exclude_unset=True,
-    name="Find related objects for a given <i>id</i> from the `workflow_execution_set` collection.",
+    name="Find resources related to the specified `WorkflowExecution`",
     description=(
         "Finds `DataObject`s, `Biosample`s, `Study`s, and other `WorkflowExecution`s "
         "related to the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
-        "This endpoint retrieves all DataObjects that are inputs to or outputs from the "
-        "workflow execution, related workflow executions, and walks up the data provenance "
-        "chain to find related biosamples and studies through DataGeneration activities."
+        "This endpoint returns a JSON object that contains "
+        "(a) all the `DataObject`s that are inputs to — or outputs from — the specified `WorkflowExecution`, "
+        "(b) all the `DataGeneration`s that generated those `DataObject`s, "
+        "(c) all the `Biosample`s that were inputs to those `DataGeneration`s, "
+        "(d) all the `Study`s with which those `Biosample`s are associated, and "
+        "(e) all the other `WorkflowExecution`s that are part of the same processing pipeline "
+        "as the specified `WorkflowExecution`."
+        "<br /><br />"  # newlines
+        "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
+        "with respect to the NMDC database. That's because the cache that underlies this API "
+        "endpoint gets refreshed to match the NMDC database once every 24 hours."
     ),
 )
 def find_related_objects_for_workflow_execution(
@@ -403,14 +411,17 @@ def find_related_objects_for_workflow_execution(
         str,
         Path(
             title="Workflow Execution ID",
-            description="""The `id` of the `WorkflowExecution` for which you want to find
-                        related objects.\n\n_Example_: `nmdc:wfmgan-11-wdx72h27.1`""",
+            description=(
+                "The `id` of the `WorkflowExecution` to which you want to find related resources."
+                "\n\n"
+                "_Example_: `nmdc:wfmgan-11-wdx72h27.1`"
+            ),
             examples=["nmdc:wfmgan-11-wdx72h27.1"],
         ),
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """This API endpoint retrieves all objects/instances/records related to a WorkflowExecution record,
+    """This API endpoint retrieves resources related to a WorkflowExecution record,
     including DataObjects that are inputs or outputs, other WorkflowExecution
     instances that are part of the same pipeline, and related Biosamples and Studies.
 
