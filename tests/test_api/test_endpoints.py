@@ -848,7 +848,7 @@ def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexis
     # Confirm the endpoint response with an HTTP 404 status code.
     response = requests.request(
         "GET",
-        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_id}"
+        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_id}",
     )
     assert response.status_code == 404
 
@@ -858,10 +858,20 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
 ):
     # Generate interrelated documents.
     study_a, study_b = faker.generate_studies(2)  # only one is related
-    biosample_a, biosample_b = faker.generate_biosamples(2, associated_studies=[study_a["id"]])  # both are related
-    data_generation = faker.generate_nucleotide_sequencings(1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"], biosample_b["id"]])[0]
-    data_object = faker.generate_data_objects(1, was_generated_by=data_generation["id"])[0]
-    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=data_generation["id"], has_input=[data_object["id"]])[0]
+    biosample_a, biosample_b = faker.generate_biosamples(
+        2, associated_studies=[study_a["id"]]
+    )  # both are related
+    data_generation = faker.generate_nucleotide_sequencings(
+        1,
+        associated_studies=[study_a["id"]],
+        has_input=[biosample_a["id"], biosample_b["id"]],
+    )[0]
+    data_object = faker.generate_data_objects(
+        1, was_generated_by=data_generation["id"]
+    )[0]
+    workflow_execution = faker.generate_metagenome_annotations(
+        1, was_informed_by=data_generation["id"], has_input=[data_object["id"]]
+    )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
     # Note: This absence check is necessary because some old tests currently leave "residue" in the database.
@@ -871,8 +881,15 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     data_generation_set = mdb.get_collection("data_generation_set")
     data_object_set = mdb.get_collection("data_object_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    assert study_set.count_documents({"id": {"$in": [study_a["id"], study_b["id"]]}}) == 0
-    assert biosample_set.count_documents({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}) == 0
+    assert (
+        study_set.count_documents({"id": {"$in": [study_a["id"], study_b["id"]]}}) == 0
+    )
+    assert (
+        biosample_set.count_documents(
+            {"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}
+        )
+        == 0
+    )
     assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
     assert data_object_set.count_documents({"id": data_object["id"]}) == 0
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
@@ -891,7 +908,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     # Submit the API request and verify the response payload contains what we expect.
     response = requests.request(
         "GET",
-        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution['id']}"
+        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution['id']}",
     )
     assert response.status_code == 200
     response_payload = response.json()
@@ -901,161 +918,124 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     assert len(response_payload["related_workflow_executions"]) == 0
     assert len(response_payload["biosamples"]) == 2
     returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
-    assert set(returned_biosample_ids) == {biosample_a["id"], biosample_b["id"]}  # each id is present
+    assert set(returned_biosample_ids) == {
+        biosample_a["id"],
+        biosample_b["id"],
+    }  # each id is present
     assert len(response_payload["studies"]) == 1  # only one study is related
     assert response_payload["studies"][0]["id"] == study_a["id"]  # not study_b
 
     # 🧹 Clean up. We use the same filters as in our initial absence check (above).
     study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
     biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
-    data_generation_set.delete_many({'id': data_generation['id']})
-    data_object_set.delete_many({'id': data_object['id']})
-    workflow_execution_set.delete_many({'id': workflow_execution['id']})
+    data_generation_set.delete_many({"id": data_generation["id"]})
+    data_object_set.delete_many({"id": data_object["id"]})
+    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_find_related_objects_for_workflow_execution_with_data_generation_biosample_study(
-    mocker,
+def test_find_related_objects_for_workflow_execution__returns_non_zero_related_workflow_exections(
+    base_url: str,
 ):
+    """Note: This test is focused on the case where there is a `WorkflowExecution` that is related to the one specified by the `id` in the request URL.
+    The related `WorkflowExecution` is part of the `has_input` / `has_output` provenance chain.
     """
-    This test mocks the database so that a workflow execution
-    is linked to a DataGeneration, Biosample, and Study in a full chain.
-    We then confirm the function returns the expected relationships.
-    """
+    # Generate interrelated documents.
+    study_a = faker.generate_studies(1)[0]
+    biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
+    data_generation_a = faker.generate_nucleotide_sequencings(
+        1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"]]
+    )[0]
+    data_object_a = faker.generate_data_objects(
+        1, was_generated_by=data_generation_a["id"]
+    )[0]
+    workflow_execution_a = faker.generate_metagenome_annotations(
+        1, was_informed_by=data_generation_a["id"], has_input=[data_object_a["id"]]
+    )[0]
 
-    # -----------------------------------------------------
-    # 1) Create the IDs (for reference in mock data)
-    # -----------------------------------------------------
-    workflow_execution_id = "nmdc:wfmag-11-fullchain"
-    data_generation_id = "nmdc:omprc-11-fullchain"
-    biosample_id = "nmdc:bsm-11-fullchain"
-    study_id = "nmdc:sty-11-fullchain"
-    data_object_id = "nmdc:dobj-11-fullchain"
+    # Create a second `WorkflowExecution` that is related to the first one.
+    # data_generation_b = faker.generate_nucleotide_sequencings(1, associated_studies=[study_a["id"]], has_input=[biosample_a["id"]], id="nmdc:dgns-00-000002")[0]
+    data_object_b = faker.generate_data_objects(
+        1, has_output=workflow_execution_a["id"], id="nmdc:dobj-00-000002"
+    )[0]
+    workflow_execution_b = faker.generate_metagenome_annotations(
+        1,
+        was_informed_by=data_generation_a["id"],
+        has_input=[data_object_b["id"]],
+        id="nmdc:wfmgan-00-000002",
+    )[0]
 
-    # -----------------------------------------------------
-    # 2) Create the mock DB and its collections
-    # -----------------------------------------------------
-    mock_db = MagicMock()
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    # Note: This absence check is necessary because some old tests currently leave "residue" in the database.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert study_set.count_documents({"id": study_a["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample_a["id"]}) == 0
+    assert (
+        data_generation_set.count_documents({"id": {"$in": [data_generation_a["id"]]}})
+        == 0
+    )
+    assert (
+        data_object_set.count_documents(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        == 0
+    )
+    assert (
+        workflow_execution_set.count_documents(
+            {"id": {"$in": [workflow_execution_a["id"], workflow_execution_b["id"]]}}
+        )
+        == 0
+    )
 
-    # Mock the workflow_execution_set
-    mock_workflow_coll = MagicMock()
-    mock_workflow_coll.find_one.return_value = {
-        "id": workflow_execution_id,
-        "name": "Test Workflow Execution for Full Chain",
-        "started_at_time": "2023-03-24T01:00:00.000000+00:00",
-        "ended_at_time": "2023-03-24T01:30:00.000000+00:00",
-        "was_informed_by": data_generation_id,
-        "execution_resource": "JGI",
-        "git_url": "https://github.com/microbiomedata/ReadQC",
-        "has_input": [data_object_id],
-        "has_output": [],
-        "type": "nmdc:ReadQcAnalysis",
-    }
+    # Insert the documents.
+    study_set.insert_one(study_a)
+    biosample_set.insert_one(biosample_a)
+    data_generation_set.insert_many([data_generation_a])
+    data_object_set.insert_many([data_object_a, data_object_b])
+    workflow_execution_set.insert_many([workflow_execution_a, workflow_execution_b])
 
-    # Mock the data_object_set
-    mock_data_object_coll = MagicMock()
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
-    def fake_data_object_find_one(query):
-        """Return the DataObject if it matches data_object_id."""
-        if query == {"id": data_object_id}:
-            return {
-                "id": data_object_id,
-                "name": "Test Data Object for Full Chain",
-                "description": "A test data object for full chain relationship testing",
-                "type": "nmdc:DataObject",
-                "was_generated_by": data_generation_id,
-            }
-        return None
+    # Submit the API request and verify the response payload contains what we expect.
+    response = requests.request(
+        "GET",
+        url=f"{base_url}/related_objects/workflow_execution/{workflow_execution_a['id']}",
+    )
+    assert response.status_code == 200
+    response_payload = response.json()
+    assert response_payload["workflow_execution_id"] == workflow_execution_a["id"]
+    assert len(response_payload["data_objects"]) == 2
+    returned_data_object_ids = [do["id"] for do in response_payload["data_objects"]]
+    assert set(returned_data_object_ids) == {
+        data_object_a["id"],
+        data_object_b["id"],
+    }  # each id is present
+    assert len(response_payload["related_workflow_executions"]) == 1
+    assert (
+        response_payload["related_workflow_executions"][0]["id"]
+        == workflow_execution_b["id"]
+    )
+    assert len(response_payload["biosamples"]) == 1
+    assert response_payload["biosamples"][0]["id"] == biosample_a["id"]
+    assert len(response_payload["studies"]) == 1
+    assert response_payload["studies"][0]["id"] == study_a["id"]
 
-    mock_data_object_coll.find_one.side_effect = fake_data_object_find_one
-
-    # Mock the biosample_set
-    mock_biosample_coll = MagicMock()
-
-    def fake_biosample_find_one(query):
-        """Return the Biosample if it matches biosample_id."""
-        if query == {"id": biosample_id}:
-            return {
-                "id": biosample_id,
-                "name": "Test Biosample for Full Chain",
-                "description": "A test biosample for full chain relationship testing",
-                "type": "nmdc:Biosample",
-                "associated_studies": [study_id],
-            }
-        return None
-
-    mock_biosample_coll.find_one.side_effect = fake_biosample_find_one
-
-    # Mock the study_set
-    mock_study_coll = MagicMock()
-
-    def fake_study_find_one(query):
-        """Return the Study if it matches study_id."""
-        if query == {"id": study_id}:
-            return {
-                "id": study_id,
-                "name": "Test Study for Full Chain",
-                "description": "A test study for full chain relationship testing",
-                "type": "nmdc:Study",
-            }
-        return None
-
-    mock_study_coll.find_one.side_effect = fake_study_find_one
-
-    # Mock the alldocs collection
-    # Because the logic might check alldocs for data_generation info or recursion
-    mock_alldocs_coll = MagicMock()
-
-    def fake_alldocs_find_one(query):
-        """Return the DataGeneration doc if the ID matches."""
-        if query == {"id": data_generation_id}:
-            # This doc is recognized as a DataGeneration (or descendant)
-            return {
-                "id": data_generation_id,
-                "name": "Test Data Generation for Full Chain",
-                "type": "nmdc:NucleotideSequencing",
-                "has_input": [biosample_id],
-                "associated_studies": [study_id],
-                "_type_and_ancestors": ["NucleotideSequencing", "DataGeneration"],
-            }
-        return None
-
-    mock_alldocs_coll.find_one.side_effect = fake_alldocs_find_one
-
-    # Assign these mocks to your mock DB
-    mock_db.workflow_execution_set = mock_workflow_coll
-    mock_db.data_object_set = mock_data_object_coll
-    mock_db.biosample_set = mock_biosample_coll
-    mock_db.study_set = mock_study_coll
-    mock_db.alldocs = mock_alldocs_coll
-
-    # -----------------------------------------------------
-    # 3) Patch get_mongo_db so the function sees our mock DB
-    # -----------------------------------------------------
-    mocker.patch("nmdc_runtime.api.db.mongo.get_mongo_db", return_value=mock_db)
-
-    # -----------------------------------------------------
-    # 4) Call the logic function directly
-    # -----------------------------------------------------
-    result = find_related_objects_for_workflow_execution(workflow_execution_id, mock_db)
-
-    # -----------------------------------------------------
-    # 5) Assertions
-    # -----------------------------------------------------
-    # Confirm the DataObject is returned
-    assert len(result["data_objects"]) == 1
-    assert result["data_objects"][0]["id"] == data_object_id
-
-    # Confirm no related workflows
-    assert len(result["related_workflow_executions"]) == 0
-
-    # Confirm the Biosample is returned and references the study
-    assert len(result["biosamples"]) == 1
-    assert result["biosamples"][0]["id"] == biosample_id
-    assert result["biosamples"][0]["associated_studies"] == [study_id]
-
-    # Confirm the Study is returned
-    assert len(result["studies"]) == 1
-    assert result["studies"][0]["id"] == study_id
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_one({"id": study_a["id"]})
+    biosample_set.delete_one({"id": biosample_a["id"]})
+    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"]]}})
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
+    workflow_execution_set.delete_many(
+        {"id": {"$in": [workflow_execution_a["id"], workflow_execution_b["id"]]}}
+    )
 
 
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
