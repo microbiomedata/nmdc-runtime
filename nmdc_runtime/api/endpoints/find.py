@@ -586,7 +586,7 @@ def find_related_objects_for_workflow_execution(
         # Start the recursive search
         process_id(start_id)
 
-    # Get the DataObject `id`s that are inputs (`has_input`) to and 
+    # Get the DataObject `id`s that are inputs (`has_input`) to and
     # outputs (`has_output`) from the user-specified WorkflowExecution.
     input_ids = workflow_execution.get("has_input", [])
     output_ids = workflow_execution.get("has_output", [])
@@ -613,7 +613,9 @@ def find_related_objects_for_workflow_execution(
     # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
         was_informed_by = workflow_execution["was_informed_by"]
-        related_wfes = mdb.workflow_execution_set.find({"was_informed_by": was_informed_by})
+        related_wfes = mdb.workflow_execution_set.find(
+            {"was_informed_by": was_informed_by}
+        )
         for wfe in related_wfes:
             if wfe["id"] != workflow_execution_id:
                 add_workflow_execution(wfe)
