@@ -13,7 +13,6 @@ dist
 # Reference: https://docs.docker.com/build/concepts/context/#dockerignore-files
 /.dockerignore
 /.docker
-/.gitpod.Dockerfile
 /docker-compose.yml
 /docker-compose.test.yml
 /nmdc_runtime/Dockerfile
