@@ -83,10 +83,10 @@ docker compose version
 docker info
 ```
 
-Ensure the permissions of `./mongoKeyFile` are such that only the file's owner can read or write the file.
+Ensure the permissions of `./.docker/mongoKeyFile` are such that only the file's owner can read or write the file.
 
 ```shell
-chmod 600 ./mongoKeyFile
+chmod 600 ./.docker/mongoKeyFile
 ```
 
 Ensure you have a `.env` file for the Docker services to source from. You may copy `.env.example` to

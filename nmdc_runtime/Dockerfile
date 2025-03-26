@@ -120,8 +120,8 @@ RUN cd /code && \
     pip install --no-cache-dir --editable .
 
 # Make `wait-for-it.sh` executable.
-RUN chmod +x /code/wait-for-it.sh
+RUN chmod +x /code/.docker/wait-for-it.sh
 
 # Use `wait-for-it.sh` to run `pytest` as soon as the FastAPI server is accessible.
 WORKDIR /code
-ENTRYPOINT ["./wait-for-it.sh", "fastapi:8000", "--strict", "--timeout=300", "--", "pytest", "--cov=nmdc_runtime"]
+ENTRYPOINT ["./.docker/wait-for-it.sh", "fastapi:8000", "--strict", "--timeout=300", "--", "pytest", "--cov=nmdc_runtime"]

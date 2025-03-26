@@ -113,8 +113,17 @@ publish:
 docs-dev:
 	mkdocs serve -a localhost:8080
 
+# 🙋 Prerequisites:
+#
+# 1. The `PATH_TO_NERSC_SSHPROXY` environment variable is set to the path of
+#    an executable copy of the `sshproxy` program maintained by NERSC.
+#    You can read about and download that program at the following URL:
+#    https://docs.nersc.gov/connect/mfa/#sshproxy
+#    
+# 2. The `NERSC_USERNAME` environment variable is set to your NERSC username.
+#
 nersc-sshproxy:
-	bash ./nersc-sshproxy.sh -u ${NERSC_USERNAME} # https://docs.nersc.gov/connect/mfa/#sshproxy
+	bash ${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
