@@ -50,6 +50,7 @@ from nmdc_runtime.site.ops import (
     get_df_from_url,
     site_code_mapping,
     materialize_alldocs,
+    load_ontology,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
@@ -108,6 +109,21 @@ def housekeeping():
 @graph
 def ensure_alldocs():
     materialize_alldocs()
+
+
+@graph
+def run_envo_ontology_load():
+    load_ontology(source_ontology="envo")
+
+
+@graph
+def run_uberon_ontology_load():
+    load_ontology(source_ontology="uberon")
+
+
+@graph
+def run_po_ontology_load():
+    load_ontology(source_ontology="po")
 
 
 @graph

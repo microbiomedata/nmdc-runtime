@@ -887,3 +887,6 @@ setuptools==76.0.0
     #   jupyterlab
     #   mkdocs-mermaid2-plugin
     #   setuptools-scm
+python-dotenv
+ontology-loader==0.1.8
+linkml-store
