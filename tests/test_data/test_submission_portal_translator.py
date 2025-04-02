@@ -274,7 +274,8 @@ def test_get_from():
 
 
 @pytest.mark.parametrize(
-    "data_file_base", ["plant_air_jgi", "nucleotide_sequencing_mapping"]
+    "data_file_base",
+    ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data"],
 )
 def test_get_dataset(test_minter, monkeypatch, data_file_base):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the

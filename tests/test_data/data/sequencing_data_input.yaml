@@ -1,0 +1,185 @@
+metadata_submission:
+  metadata_submission:
+    packageName:
+      - soil
+    addressForm:
+      shipper:
+        name: ""
+        email: ""
+        phone: ""
+        line1: ""
+        line2: ""
+        city: ""
+        state: ""
+        postalCode: ""
+        country: ""
+      expectedShippingDate: null
+      shippingConditions: ""
+      sample: ""
+      description: ""
+      experimentalGoals: ""
+      randomization: ""
+      usdaRegulated: null
+      permitNumber: ""
+      biosafetyLevel: ""
+      irbOrHipaa: null
+      comments: ""
+    templates:
+      - soil
+      - data_mg
+      - data_mt_interleaved
+    studyForm:
+      studyName: asdfasdf
+      piName: ""
+      piEmail: pkalita@lbl.gov
+      piOrcid: ""
+      fundingSources: []
+      linkOutWebpage: []
+      studyDate: null
+      description: ""
+      notes: ""
+      contributors: []
+      alternativeNames: []
+      GOLDStudyId: ""
+      NCBIBioProjectId: ""
+    multiOmicsForm:
+      award: ""
+      awardDois:
+        - ""
+        - ""
+      dataGenerated: true
+      doe: null
+      facilities: []
+      facilityGenerated: false
+      JGIStudyId: ""
+      mgCompatible: true
+      mgInterleaved: false
+      mtCompatible: true
+      mtInterleaved: true
+      omicsProcessingTypes:
+        - mg
+        - mt
+      otherAward: ""
+      ship: false
+      studyNumber: "12312"
+      unknownDoi: true
+    sampleData:
+      soil_data:
+        - elev: 1325
+          depth: 0 - 0.1
+          lat_lon: 43 -120
+          samp_name: "001"
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - metagenomics
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+        - elev: 1325
+          depth: 0 - 0.1
+          lat_lon: 43 -120
+          samp_name: "002"
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - metagenomics
+            - metatranscriptomics
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+        - elev: 1325
+          depth: 0 - 0.1
+          lat_lon: 43 -120
+          samp_name: "003"
+          env_medium: bulk soil [ENVO:00005802]
+          store_cond: frozen
+          geo_loc_name: "USA: Fake, Fake"
+          growth_facil: field
+          analysis_type:
+            - metatranscriptomics
+          collection_date: 2025-01-01
+          env_broad_scale: mixed forest biome [ENVO:01000198]
+          env_local_scale: area of evergreen forest [ENVO:01000843]
+          samp_store_temp: -80 Cel
+      metagenome_sequencing_non_interleaved_data:
+        - model: hiseq_1500
+          samp_name: "001"
+          read_1_url: http://example.com/001-1.fastq
+          read_2_url: http://example.com/001-2.fastq
+          analysis_type:
+            - metagenomics
+          protocol_link: http://example.com
+          read_1_md5_checksum: b1946ac92492d2347c6235b4d2611184
+          read_2_md5_checksum: 94baaad4d1347ec6e15ae35c88ee8bc8
+          processing_institution: UCSD
+          insdc_bioproject_identifiers: bioproject:PRJNA366857
+          insdc_experiment_identifiers: insdc.sra:ERX000000
+        - model: hiseq_1500
+          samp_name: "002"
+          read_1_url: http://example.com/002-1.fastq
+          read_2_url: http://example.com/002-2.fastq
+          analysis_type:
+            - metagenomics
+            - metatranscriptomics
+          protocol_link: http://example.com
+          read_1_md5_checksum: 916f4c31aaa35d6b867dae9a7f54270d
+          read_2_md5_checksum: 764efa883dda1e11db47671c4a3bbd9e
+          processing_institution: UCSD
+          insdc_bioproject_identifiers: bioproject:PRJNA366857
+          insdc_experiment_identifiers: insdc.sra:ERX000000
+      metatranscriptome_sequencing_interleaved_data:
+        - model: nextseq
+          samp_name: "002"
+          analysis_type:
+            - metagenomics
+            - metatranscriptomics
+          protocol_link: http://example.org/protocol.html
+          interleaved_url: http://example.org/002-metat.fastq
+          processing_institution: Battelle
+          interleaved_md5_checksum: 93ee47243d79217978cbed946c4e203a
+          insdc_bioproject_identifiers: bioproject:PRJNA366858
+          insdc_experiment_identifiers: insdc.sra:DRX000001
+        - model: nextseq
+          samp_name: "003"
+          analysis_type:
+            - metatranscriptomics
+          protocol_link: http://example.org/protocol.html
+          interleaved_url: http://example.org/003-metat.fastq
+          processing_institution: Battelle
+          interleaved_md5_checksum: 8a7a02537074949bbef514cba5d669d8
+          insdc_bioproject_identifiers: bioproject:PRJNA366858
+          insdc_experiment_identifiers: insdc.sra:DRX000002
+  status: in-progress
+  source_client: null
+  is_test_submission: false
+  id: e12d0754-c00c-4417-9a25-6eb372054182
+  author_orcid: 0000-0002-6150-307X
+  created: 2025-03-28T17:03:50.955416
+  author:
+    id: 2f836e03-c2ac-4494-a641-dae1b77f7ece
+    orcid: 0000-0002-6150-307X
+    name: Patrick Kalita
+    email: null
+    is_admin: true
+  templates:
+    - soil
+    - data_mg
+    - data_mt_interleaved
+  study_name: asdfasdf
+  field_notes_metadata: null
+  date_last_modified: 2025-03-31T21:32:16.065533
+  lock_updated: null
+  locked_by:
+    id: 2f836e03-c2ac-4494-a641-dae1b77f7ece
+    orcid: 0000-0002-6150-307X
+    name: Patrick Kalita
+    email: null
+    is_admin: true
+  permission_level: owner

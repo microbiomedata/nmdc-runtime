@@ -1,0 +1,327 @@
+biosample_set:
+- id: nmdc:bsm-00-4wn6isig
+  type: nmdc:Biosample
+  name: '001'
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
+  samp_name: '001'
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 0.1
+    has_maximum_numeric_value: 0.1
+    has_minimum_numeric_value: 0.0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_numeric_value: -80.0
+    has_unit: Cel
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - metagenomics
+- id: nmdc:bsm-00-q8jtgev4
+  type: nmdc:Biosample
+  name: '002'
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
+  samp_name: '002'
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 0.1
+    has_maximum_numeric_value: 0.1
+    has_minimum_numeric_value: 0.0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_numeric_value: -80.0
+    has_unit: Cel
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - metagenomics
+  - metatranscriptomics
+- id: nmdc:bsm-00-9gw1un94
+  type: nmdc:Biosample
+  name: '003'
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
+  samp_name: '003'
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 0.1
+    has_maximum_numeric_value: 0.1
+    has_minimum_numeric_value: 0.0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_numeric_value: -80.0
+    has_unit: Cel
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - metatranscriptomics
+data_generation_set:
+- id: nmdc:dgns-00-27qd9afz
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-4wn6isig
+  has_output:
+  - nmdc:dobj-00-a5vpuemo
+  - nmdc:dobj-00-pj82ffu6
+  processing_institution: UCSD
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.com
+  analyte_category: metagenome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  add_date: '2023-10-17'
+  mod_date: '2023-10-17'
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366857
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+- id: nmdc:dgns-00-5gt9sh9v
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-q8jtgev4
+  has_output:
+  - nmdc:dobj-00-8n9s2fyu
+  - nmdc:dobj-00-pslmlcq4
+  processing_institution: UCSD
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.com
+  analyte_category: metagenome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  add_date: '2023-10-17'
+  mod_date: '2023-10-17'
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366857
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+- id: nmdc:dgns-00-efijcf8z
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-q8jtgev4
+  has_output:
+  - nmdc:dobj-00-7r7pn0r2
+  processing_institution: Battelle
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.org/protocol.html
+  analyte_category: metatranscriptome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  add_date: '2023-10-17'
+  mod_date: '2023-10-17'
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366858
+  insdc_experiment_identifiers:
+  - insdc.sra:DRX000001
+- id: nmdc:dgns-00-5wfuh5vm
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-9gw1un94
+  has_output:
+  - nmdc:dobj-00-pbrhoxkv
+  processing_institution: Battelle
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.org/protocol.html
+  analyte_category: metatranscriptome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  add_date: '2023-10-17'
+  mod_date: '2023-10-17'
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366858
+  insdc_experiment_identifiers:
+  - insdc.sra:DRX000002
+data_object_set:
+- id: nmdc:dobj-00-a5vpuemo
+  type: nmdc:DataObject
+  name: 001_metagenome_read_1
+  description: 001_metagenome_read_1
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+  md5_checksum: b1946ac92492d2347c6235b4d2611184
+  url: http://example.com/001-1.fastq
+  was_generated_by: nmdc:dgns-00-27qd9afz
+- id: nmdc:dobj-00-pj82ffu6
+  type: nmdc:DataObject
+  name: 001_metagenome_read_2
+  description: 001_metagenome_read_2
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+  md5_checksum: 94baaad4d1347ec6e15ae35c88ee8bc8
+  url: http://example.com/001-2.fastq
+  was_generated_by: nmdc:dgns-00-27qd9afz
+- id: nmdc:dobj-00-8n9s2fyu
+  type: nmdc:DataObject
+  name: 002_metagenome_read_1
+  description: 002_metagenome_read_1
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+  md5_checksum: 916f4c31aaa35d6b867dae9a7f54270d
+  url: http://example.com/002-1.fastq
+  was_generated_by: nmdc:dgns-00-5gt9sh9v
+- id: nmdc:dobj-00-pslmlcq4
+  type: nmdc:DataObject
+  name: 002_metagenome_read_2
+  description: 002_metagenome_read_2
+  insdc_experiment_identifiers:
+  - insdc.sra:ERX000000
+  md5_checksum: 764efa883dda1e11db47671c4a3bbd9e
+  url: http://example.com/002-2.fastq
+  was_generated_by: nmdc:dgns-00-5gt9sh9v
+- id: nmdc:dobj-00-7r7pn0r2
+  type: nmdc:DataObject
+  name: 002_metatranscriptome_interleaved
+  description: 002_metatranscriptome_interleaved
+  insdc_experiment_identifiers:
+  - insdc.sra:DRX000001
+  md5_checksum: 93ee47243d79217978cbed946c4e203a
+  url: http://example.org/002-metat.fastq
+  was_generated_by: nmdc:dgns-00-efijcf8z
+- id: nmdc:dobj-00-pbrhoxkv
+  type: nmdc:DataObject
+  name: 003_metatranscriptome_interleaved
+  description: 003_metatranscriptome_interleaved
+  insdc_experiment_identifiers:
+  - insdc.sra:DRX000002
+  md5_checksum: 8a7a02537074949bbef514cba5d669d8
+  url: http://example.org/003-metat.fastq
+  was_generated_by: nmdc:dgns-00-5wfuh5vm
+study_set:
+- id: nmdc:sty-00-y0cq65zt
+  type: nmdc:Study
+  name: asdfasdf
+  study_category: research_study
+  principal_investigator:
+    type: nmdc:PersonValue
+    email: pkalita@lbl.gov
+    name: ''
+    orcid: ''
+  title: asdfasdf

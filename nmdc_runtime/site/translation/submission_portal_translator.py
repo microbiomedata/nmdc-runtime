@@ -15,6 +15,14 @@ from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
 
+TAB_NAME_KEY = "__tab_name"
+TAB_NAME_TO_ANALYTE_CATEGORY: dict[str, nmdc.NucleotideSequencingEnum] = {
+    "metagenome_sequencing_non_interleaved_data": nmdc.NucleotideSequencingEnum.metagenome,
+    "metagenome_sequencing_interleaved_data": nmdc.NucleotideSequencingEnum.metagenome,
+    "metatranscriptome_sequencing_non_interleaved_data": nmdc.NucleotideSequencingEnum.metatranscriptome,
+    "metatranscriptome_sequencing_interleaved_data": nmdc.NucleotideSequencingEnum.metatranscriptome,
+}
+
 
 class EnvironmentPackage(Enum):
     r"""
@@ -568,6 +576,36 @@ class SubmissionPortalTranslator(Translator):
             transformed_values[slot_name] = transformed_value
         return transformed_values
 
+    def _translate_data_object(
+        self,
+        sample_data: JSON_OBJECT,
+        *,
+        name: str,
+        nmdc_data_object_id: str,
+        was_generated_by: str,
+        url: Optional[str] = None,
+        md5_checksum: Optional[str] = None,
+    ):
+        """Translate sample data from portal submission into an `nmdc:DataObject` object.
+
+        Optionally provide a URL and md5 checksum which override the values in the sample data.
+        """
+        data_object_slots = {
+            "id": nmdc_data_object_id,
+            "name": name,
+            "description": name,
+            "was_generated_by": was_generated_by,
+            "type": "nmdc:DataObject",
+        }
+        data_object_slots.update(
+            self._transform_dict_for_class(sample_data, "DataObject")
+        )
+        if url:
+            data_object_slots["url"] = url
+        if md5_checksum:
+            data_object_slots["md5_checksum"] = md5_checksum
+        return nmdc.DataObject(**data_object_slots)
+
     def _translate_biosample(
         self,
         sample_data: List[JSON_OBJECT],
@@ -649,6 +687,11 @@ class SubmissionPortalTranslator(Translator):
             except KeyError:
                 pass
 
+        # Before regrouping the data by sample name, record which tab each object came from
+        for tab_name in sample_data.keys():
+            for row in sample_data[tab_name]:
+                row[TAB_NAME_KEY] = tab_name
+
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
             concat(sample_data.values()),
@@ -667,6 +710,106 @@ class SubmissionPortalTranslator(Translator):
             for sample_data_id, sample_data in sample_data_by_id.items()
             if sample_data
         ]
+
+        database.data_generation_set = []
+        database.data_object_set = []
+        today = datetime.now().strftime("%Y-%m-%d")
+        for sample_data_id, sample_data in sample_data_by_id.items():
+            for row in sample_data:
+                tab_name = row.get(TAB_NAME_KEY)
+                analyte_category = TAB_NAME_TO_ANALYTE_CATEGORY.get(tab_name)
+                if not analyte_category:
+                    continue
+
+                nucleotide_sequencing_id = self._id_minter(
+                    "nmdc:NucleotideSequencing", 1
+                )[0]
+                nucleotide_sequencing_slots = {
+                    "id": nucleotide_sequencing_id,
+                    "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
+                    "has_output": [],
+                    "associated_studies": [nmdc_study_id],
+                    "add_date": today,
+                    "mod_date": today,
+                    "analyte_category": analyte_category,
+                    "type": "nmdc:NucleotideSequencing",
+                }
+                if "protocol_link" in row:
+                    protocol_link = row.pop("protocol_link")
+                    nucleotide_sequencing_slots["protocol_link"] = nmdc.Protocol(
+                        url=protocol_link,
+                        type="nmdc:Protocol",
+                    )
+                if "model" in row:
+                    # TODO: deal with translating `model` to `instrument_used`
+                    ...
+                nucleotide_sequencing_slots.update(
+                    self._transform_dict_for_class(row, "NucleotideSequencing")
+                )
+                nucleotide_sequencing = nmdc.NucleotideSequencing(
+                    **nucleotide_sequencing_slots
+                )
+                database.data_generation_set.append(nucleotide_sequencing)
+
+                read_1_url = row.get("read_1_url")
+                read_1_md5_checksum = row.get("read_1_md5_checksum")
+                if read_1_url:
+                    data_object_id = self._id_minter("nmdc:DataObject", 1)[0]
+                    nucleotide_sequencing.has_output.append(data_object_id)
+                    data_object = self._translate_data_object(
+                        row,
+                        name=(
+                            row.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
+                            + "_"
+                            + analyte_category.text
+                            + "_read_1"
+                        ),
+                        was_generated_by=nucleotide_sequencing_id,
+                        nmdc_data_object_id=data_object_id,
+                        url=read_1_url,
+                        md5_checksum=read_1_md5_checksum,
+                    )
+                    database.data_object_set.append(data_object)
+
+                read_2_url = row.get("read_2_url")
+                read_2_md5_checksum = row.get("read_2_md5_checksum")
+                if read_2_url:
+                    data_object_id = self._id_minter("nmdc:DataObject", 1)[0]
+                    nucleotide_sequencing.has_output.append(data_object_id)
+                    data_object = self._translate_data_object(
+                        row,
+                        name=(
+                            row.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
+                            + "_"
+                            + analyte_category.text
+                            + "_read_2"
+                        ),
+                        nmdc_data_object_id=data_object_id,
+                        was_generated_by=nucleotide_sequencing_id,
+                        url=read_2_url,
+                        md5_checksum=read_2_md5_checksum,
+                    )
+                    database.data_object_set.append(data_object)
+
+                interleaved_url = row.get("interleaved_url")
+                interleaved_md5_checksum = row.get("interleaved_md5_checksum")
+                if interleaved_url:
+                    data_object_id = self._id_minter("nmdc:DataObject", 1)[0]
+                    nucleotide_sequencing.has_output.append(data_object_id)
+                    data_object = self._translate_data_object(
+                        row,
+                        name=(
+                            row.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
+                            + "_"
+                            + analyte_category.text
+                            + "_interleaved"
+                        ),
+                        nmdc_data_object_id=data_object_id,
+                        was_generated_by=nucleotide_sequencing_id,
+                        url=interleaved_url,
+                        md5_checksum=interleaved_md5_checksum,
+                    )
+                    database.data_object_set.append(data_object)
 
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part
