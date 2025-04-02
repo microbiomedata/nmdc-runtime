@@ -246,6 +246,7 @@ data_generation_set:
   - nmdc:bsm-00-9gw1un94
   has_output:
   - nmdc:dobj-00-pbrhoxkv
+  - nmdc:dobj-00-1dgjoc8e
   processing_institution: Battelle
   protocol_link:
     type: nmdc:Protocol
@@ -307,12 +308,21 @@ data_object_set:
   was_generated_by: nmdc:dgns-00-efijcf8z
 - id: nmdc:dobj-00-pbrhoxkv
   type: nmdc:DataObject
-  name: 003_metatranscriptome_interleaved
-  description: 003_metatranscriptome_interleaved
+  name: 003_run_1_metatranscriptome_interleaved
+  description: 003_run_1_metatranscriptome_interleaved
   insdc_experiment_identifiers:
-  - insdc.sra:DRX000002
+    - insdc.sra:DRX000002
   md5_checksum: 8a7a02537074949bbef514cba5d669d8
-  url: http://example.org/003-metat.fastq
+  url: http://example.org/003-metat-a.fastq
+  was_generated_by: nmdc:dgns-00-5wfuh5vm
+- id: nmdc:dobj-00-1dgjoc8e
+  type: nmdc:DataObject
+  name: 003_run_2_metatranscriptome_interleaved
+  description: 003_run_2_metatranscriptome_interleaved
+  insdc_experiment_identifiers:
+    - insdc.sra:DRX000002
+  md5_checksum: 2dee554dd9bd8d2403e3b5430d19e3c3
+  url: http://example.org/003-metat-b.fastq
   was_generated_by: nmdc:dgns-00-5wfuh5vm
 study_set:
 - id: nmdc:sty-00-y0cq65zt

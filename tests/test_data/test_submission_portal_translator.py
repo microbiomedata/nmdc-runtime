@@ -273,6 +273,38 @@ def test_get_from():
     assert translator._get_from(metadata, ["one", "some_empty"]) == ["one", "three"]
 
 
+def test_url_and_md5_lengths(test_minter):
+    """Test that _get_data_objects_from_fields enforces the same number of urls and md5s"""
+    translator = SubmissionPortalTranslator(
+        id_minter=test_minter,
+    )
+    sample_data = {
+        "model": "hiseq_1500",
+        "samp_name": "001",
+        "read_1_url": "http://example.com/001-1.fastq",
+        "read_2_url": "http://example.com/001-2.fastq",
+        "analysis_type": ["metagenomics"],
+        "read_1_md5_checksum": "b1946ac92492d2347c6235b4d2611184",
+        "read_2_md5_checksum": "94baaad4d1347ec6e15ae35c88ee8bc8",
+    }
+    data_objects = translator._get_data_objects_from_fields(
+        sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+    )
+    assert len(data_objects) == 1
+
+    sample_data["read_1_url"] = "http://example.com/001-1a.fastq; http://example.com/001-1b.fastq"
+    with pytest.raises(ValueError, match="read_1_url"):
+        translator._get_data_objects_from_fields(
+            sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+        )
+
+    sample_data["read_1_md5_checksum"] = "b1946ac92492d2347c6235b4d2611184; 94baaad4d1347ec6e15ae35c88ee8bc8"
+    data_objects = translator._get_data_objects_from_fields(
+        sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+    )
+    assert len(data_objects) == 2
+
+
 @pytest.mark.parametrize(
     "data_file_base",
     ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data"],

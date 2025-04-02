@@ -151,9 +151,9 @@ metadata_submission:
           analysis_type:
             - metatranscriptomics
           protocol_link: http://example.org/protocol.html
-          interleaved_url: http://example.org/003-metat.fastq
+          interleaved_url: http://example.org/003-metat-a.fastq; http://example.org/003-metat-b.fastq
           processing_institution: Battelle
-          interleaved_md5_checksum: 8a7a02537074949bbef514cba5d669d8
+          interleaved_md5_checksum: 8a7a02537074949bbef514cba5d669d8; 2dee554dd9bd8d2403e3b5430d19e3c3
           insdc_bioproject_identifiers: bioproject:PRJNA366858
           insdc_experiment_identifiers: insdc.sra:DRX000002
   status: in-progress
