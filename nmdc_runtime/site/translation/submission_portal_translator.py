@@ -808,12 +808,25 @@ class SubmissionPortalTranslator(Translator):
                 )
                 database.data_generation_set.append(nucleotide_sequencing)
 
-                data_objects = self._get_data_objects_from_fields(
-                    tab, "read_1_url", "read_1_md5_checksum", name_suffix=f"{analyte_category.text}_read_1"
-                ) + self._get_data_objects_from_fields(
-                    tab, "read_2_url", "read_2_md5_checksum", name_suffix=f"{analyte_category.text}_read_2"
-                ) + self._get_data_objects_from_fields(
-                    tab, "interleaved_url", "interleaved_md5_checksum", name_suffix=f"{analyte_category.text}_interleaved"
+                data_objects = (
+                    self._get_data_objects_from_fields(
+                        tab,
+                        "read_1_url",
+                        "read_1_md5_checksum",
+                        name_suffix=f"{analyte_category.text}_read_1",
+                    )
+                    + self._get_data_objects_from_fields(
+                        tab,
+                        "read_2_url",
+                        "read_2_md5_checksum",
+                        name_suffix=f"{analyte_category.text}_read_2",
+                    )
+                    + self._get_data_objects_from_fields(
+                        tab,
+                        "interleaved_url",
+                        "interleaved_md5_checksum",
+                        name_suffix=f"{analyte_category.text}_interleaved",
+                    )
                 )
                 for data_object in data_objects:
                     data_object.was_generated_by = nucleotide_sequencing_id
