@@ -5,14 +5,38 @@ import random
 import yaml
 from linkml_runtime.dumpers import json_dumper
 import pytest
+from nmdc_schema.nmdc import (
+    DoiCategoryEnum,
+    DoiProviderEnum,
+    InstrumentModelEnum,
+    InstrumentVendorEnum,
+    Database,
+)
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
-from nmdc_schema import nmdc
 
 from nmdc_runtime.util import validate_json
 from tests.conftest import get_mongo_test_db
+
+
+def _mock_soil_data(sample_name: str, analysis_type: list[str] = ["metagenomics"]):
+    return {
+        "elev": 1325,
+        "depth": "0 - 0.1",
+        "lat_lon": "43 -120",
+        "samp_name": sample_name,
+        "env_medium": "bulk soil [ENVO:00005802]",
+        "store_cond": "frozen",
+        "geo_loc_name": "USA: Fake, Fake",
+        "growth_facil": "field",
+        "analysis_type": analysis_type,
+        "collection_date": "2025-01-01",
+        "env_broad_scale": "mixed forest biome [ENVO:01000198]",
+        "env_local_scale": "area of evergreen forest [ENVO:01000843]",
+        "samp_store_temp": "-80 Cel",
+    }
 
 
 def test_get_pi():
@@ -57,9 +81,7 @@ def test_get_doi():
     doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
     assert doi is not None
     assert doi[0].doi_value == "doi:1234"
-    assert doi[0].doi_category == nmdc.DoiCategoryEnum(
-        nmdc.DoiCategoryEnum.dataset_doi.text
-    )
+    assert doi[0].doi_category == DoiCategoryEnum(DoiCategoryEnum.dataset_doi)
 
     doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
     assert doi is None
@@ -73,10 +95,8 @@ def test_get_doi():
     doi = translator._get_doi({"contextForm": {"datasetDoi": "5678"}})
     assert doi is not None
     assert doi[0].doi_value == "doi:5678"
-    assert doi[0].doi_category == nmdc.DoiCategoryEnum(
-        nmdc.DoiCategoryEnum.award_doi.text
-    )
-    assert doi[0].doi_provider == nmdc.DoiProviderEnum(nmdc.DoiProviderEnum.kbase.text)
+    assert doi[0].doi_category == DoiCategoryEnum(DoiCategoryEnum.award_doi)
+    assert doi[0].doi_provider == DoiProviderEnum(DoiProviderEnum.kbase)
 
 
 def test_get_has_credit_associations():
@@ -292,17 +312,85 @@ def test_url_and_md5_lengths(test_minter):
     )
     assert len(data_objects) == 1
 
-    sample_data["read_1_url"] = "http://example.com/001-1a.fastq; http://example.com/001-1b.fastq"
+    sample_data["read_1_url"] = (
+        "http://example.com/001-1a.fastq; http://example.com/001-1b.fastq"
+    )
     with pytest.raises(ValueError, match="read_1_url"):
         translator._get_data_objects_from_fields(
             sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
         )
 
-    sample_data["read_1_md5_checksum"] = "b1946ac92492d2347c6235b4d2611184; 94baaad4d1347ec6e15ae35c88ee8bc8"
+    sample_data["read_1_md5_checksum"] = (
+        "b1946ac92492d2347c6235b4d2611184; 94baaad4d1347ec6e15ae35c88ee8bc8"
+    )
     data_objects = translator._get_data_objects_from_fields(
         sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
     )
     assert len(data_objects) == 2
+
+
+def test_instruments(test_minter):
+    """Test that get_database reuses known instruments when possible and creates new ones when needed."""
+    known_instruments = {
+        "hiseq_2500": "nmdc:inst-14-nn4b6k72",
+    }
+    metadata_submission = {
+        "metadata_submission": {
+            "packageName": ["soil"],
+            "templates": ["soil", "data_mg_interleaved"],
+            "studyForm": {
+                "studyName": "asdfasdf",
+                "piEmail": "fake@fake.com",
+            },
+            "sampleData": {
+                "soil_data": [
+                    _mock_soil_data("001"),
+                    _mock_soil_data("002"),
+                ],
+                "metagenome_sequencing_interleaved_data": [
+                    {
+                        "model": "hiseq_1500",
+                        "samp_name": "001",
+                        "interleaved_url": "http://example.com/001-1.fastq",
+                        "analysis_type": ["metagenomics"],
+                        "interleaved_checksum": "b1946ac92492d2347c6235b4d2611184",
+                    },
+                    {
+                        "model": "hiseq_2500",
+                        "samp_name": "002",
+                        "interleaved_url": "http://example.com/002-1.fastq",
+                        "analysis_type": [
+                            "metagenomics",
+                        ],
+                        "interleaved_checksum": "916f4c31aaa35d6b867dae9a7f54270d",
+                    },
+                ],
+            },
+        },
+    }
+    translator = SubmissionPortalTranslator(
+        id_minter=test_minter,
+        illumina_instrument_mapping=known_instruments,
+        metadata_submission=metadata_submission,
+        study_category="research_study",
+    )
+    database = translator.get_database()
+
+    # One instrument should be created for the hiseq_1500
+    assert len(database.instrument_set) == 1
+    assert database.instrument_set[0].model == InstrumentModelEnum(
+        InstrumentModelEnum.hiseq_1500
+    )
+    assert database.instrument_set[0].vendor == InstrumentVendorEnum(
+        InstrumentVendorEnum.illumina
+    )
+
+    # Both the new ID and the known ID should be used by nucleotide sequencing instances
+    minted_instrument_id = database.instrument_set[0].id
+    known_instrument_id = known_instruments["hiseq_2500"]
+    assert len(database.data_generation_set) == 2
+    instruments_used = {dg.instrument_used[0] for dg in database.data_generation_set}
+    assert instruments_used == {minted_instrument_id, known_instrument_id}
 
 
 @pytest.mark.parametrize(
@@ -333,17 +421,25 @@ def test_get_dataset(test_minter, monkeypatch, data_file_base):
     with open(data_path / f"{data_file_base}_output.yaml") as f:
         expected_output = yaml.safe_load(f)
 
+    # Use mocked known instruments. The ability to test that the translator creates new instrument
+    # instances is tested elsewhere.
+    instrument_mapping = {
+        "hiseq_1500": "nmdc:inst-00-00000001",
+        "nextseq": "nmdc:inst-00-00000002",
+    }
+
     # Reset the random number seed here so that fake IDs generated by the `test_minter`
     # fixture are stable across test runs
     random.seed(0)
     translator = SubmissionPortalTranslator(
         **translator_inputs,
         id_minter=test_minter,
+        illumina_instrument_mapping=instrument_mapping,
         study_category="research_study",
         study_doi_provider="jgi",
     )
 
-    expected = nmdc.Database(**expected_output)
+    expected = Database(**expected_output)
     actual = translator.get_database()
     assert actual == expected
 

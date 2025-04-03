@@ -110,6 +110,7 @@ class SubmissionPortalTranslator(Translator):
         *args,
         nucleotide_sequencing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
+        illumina_instrument_mapping: Optional[dict[str, str]] = None,
         # Additional study-level metadata not captured by the submission portal currently
         # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_doi_category: Optional[str] = None,
@@ -129,6 +130,9 @@ class SubmissionPortalTranslator(Translator):
         self.metadata_submission = metadata_submission
         self.nucleotide_sequencing_mapping = nucleotide_sequencing_mapping
         self.data_object_mapping = data_object_mapping
+        self.illumina_instrument_mapping: dict[str, str] = (
+            illumina_instrument_mapping or {}
+        )
 
         self.study_doi_category = (
             nmdc.DoiCategoryEnum(study_doi_category)
@@ -483,7 +487,6 @@ class SubmissionPortalTranslator(Translator):
         data_object_ids = self._id_minter("nmdc:DataObject", len(urls))
         for i, url in enumerate(urls):
             data_object_id = data_object_ids[i]
-            # nucleotide_sequencing.has_output.append(data_object_id)
             name = sample_data.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
             if len(urls) > 1:
                 name += f"_run_{i + 1}"
@@ -492,13 +495,11 @@ class SubmissionPortalTranslator(Translator):
             data_object = self._translate_data_object(
                 sample_data,
                 name=name,
-                # was_generated_by=nucleotide_sequencing_id,
                 nmdc_data_object_id=data_object_id,
                 url=url,
                 md5_checksum=md5_checksums[i] if md5_checksums else None,
             )
             data_objects.append(data_object)
-            # database.data_object_set.append(data_object)
         return data_objects
 
     def _translate_study(
@@ -770,6 +771,7 @@ class SubmissionPortalTranslator(Translator):
 
         database.data_generation_set = []
         database.data_object_set = []
+        database.instrument_set = []
         today = datetime.now().strftime("%Y-%m-%d")
         for sample_data_id, sample_data in sample_data_by_id.items():
             for tab in sample_data:
@@ -798,8 +800,24 @@ class SubmissionPortalTranslator(Translator):
                         type="nmdc:Protocol",
                     )
                 if "model" in tab:
-                    # TODO: deal with translating `model` to `instrument_used`
-                    ...
+                    model = tab.pop("model")
+                    if model not in self.illumina_instrument_mapping:
+                        # If the model is not already in the mapping, create a new record for it
+                        nmdc_instrument_id = self._id_minter("nmdc:Instrument", 1)[0]
+                        database.instrument_set.append(
+                            nmdc.Instrument(
+                                id=nmdc_instrument_id,
+                                vendor=nmdc.InstrumentVendorEnum(
+                                    nmdc.InstrumentVendorEnum.illumina
+                                ),
+                                model=nmdc.InstrumentModelEnum(model),
+                                type="nmdc:Instrument",
+                            )
+                        )
+                        self.illumina_instrument_mapping[model] = nmdc_instrument_id
+                    nucleotide_sequencing_slots["instrument_used"] = (
+                        self.illumina_instrument_mapping[model]
+                    )
                 nucleotide_sequencing_slots.update(
                     self._transform_dict_for_class(tab, "NucleotideSequencing")
                 )

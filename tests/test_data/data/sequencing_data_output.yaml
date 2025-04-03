@@ -197,6 +197,8 @@ data_generation_set:
   - nmdc:sty-00-y0cq65zt
   add_date: '2023-10-17'
   mod_date: '2023-10-17'
+  instrument_used:
+    - nmdc:inst-00-00000001
   insdc_bioproject_identifiers:
   - bioproject:PRJNA366857
   insdc_experiment_identifiers:
@@ -217,6 +219,8 @@ data_generation_set:
   - nmdc:sty-00-y0cq65zt
   add_date: '2023-10-17'
   mod_date: '2023-10-17'
+  instrument_used:
+    - nmdc:inst-00-00000001
   insdc_bioproject_identifiers:
   - bioproject:PRJNA366857
   insdc_experiment_identifiers:
@@ -236,6 +240,8 @@ data_generation_set:
   - nmdc:sty-00-y0cq65zt
   add_date: '2023-10-17'
   mod_date: '2023-10-17'
+  instrument_used:
+    - nmdc:inst-00-00000002
   insdc_bioproject_identifiers:
   - bioproject:PRJNA366858
   insdc_experiment_identifiers:
@@ -256,6 +262,8 @@ data_generation_set:
   - nmdc:sty-00-y0cq65zt
   add_date: '2023-10-17'
   mod_date: '2023-10-17'
+  instrument_used:
+    - nmdc:inst-00-00000002
   insdc_bioproject_identifiers:
   - bioproject:PRJNA366858
   insdc_experiment_identifiers:
