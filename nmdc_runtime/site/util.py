@@ -57,6 +57,5 @@ def nmdc_study_id_to_filename(nmdc_study_id: str) -> str:
 def get_instruments_by_id(mdb: MongoDatabase) -> dict[str, dict]:
     """Get all documents from the instrument_set collection in a dict keyed by id."""
     return {
-        instrument["id"]: instrument
-        for instrument in mdb["instrument_set"].find({})
+        instrument["id"]: instrument for instrument in mdb["instrument_set"].find({})
     }
