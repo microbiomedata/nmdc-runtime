@@ -7,6 +7,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
+from pprint import pformat
 from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
@@ -69,7 +70,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
     fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
-    get_instruments,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
@@ -96,6 +96,7 @@ from nmdc_runtime.site.util import (
     run_and_log,
     schema_collection_has_index_on_id,
     nmdc_study_id_to_filename,
+    get_instruments_by_id,
 )
 from nmdc_runtime.util import (
     drs_object_in_for,
@@ -720,6 +721,7 @@ def translate_portal_submission_to_nmdc_schema_database(
     metadata_submission: Dict[str, Any],
     nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
+    instrument_mapping: Dict[str, str],
     study_category: Optional[str],
     study_doi_category: Optional[str],
     study_doi_provider: Optional[str],
@@ -744,6 +746,7 @@ def translate_portal_submission_to_nmdc_schema_database(
         study_pi_image_url=study_pi_image_url,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
+        illumina_instrument_mapping=instrument_mapping,
     )
     database = translator.get_database()
     return database
@@ -1227,11 +1230,26 @@ def get_library_preparation_from_biosamples(
 
 
 @op(required_resource_keys={"mongo"})
-def get_all_instruments(context: OpExecutionContext):
+def get_all_instruments(context: OpExecutionContext) -> dict[str, dict]:
     mdb = context.resources.mongo.db
-    instrument_set_collection = mdb["instrument_set"]
-    all_instruments = get_instruments(instrument_set_collection)
-    return all_instruments
+    return get_instruments_by_id(mdb)
+
+
+@op(required_resource_keys={"mongo"})
+def get_instrument_ids_by_model(context: OpExecutionContext) -> dict[str, str]:
+    mdb = context.resources.mongo.db
+    instruments_by_id = get_instruments_by_id(mdb)
+    instruments_by_model: dict[str, str] = {}
+    for inst_id, instrument in instruments_by_id.items():
+        model = instrument.get("model")
+        if model is None:
+            context.log.warning(f"Instrument {inst_id} has no model.")
+            continue
+        if model in instruments_by_model:
+            context.log.warning(f"Instrument model {model} is not unique.")
+        instruments_by_model[model] = inst_id
+    context.log.info("Instrument models: %s", pformat(instruments_by_model))
+    return instruments_by_model
 
 
 @op

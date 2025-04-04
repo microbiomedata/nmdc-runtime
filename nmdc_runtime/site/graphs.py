@@ -61,6 +61,7 @@ from nmdc_runtime.site.ops import (
     get_database_updater_inputs,
     post_submission_portal_biosample_ingest_record_stitching_filename,
     generate_data_generation_set_post_biosample_ingest,
+    get_instrument_ids_by_model,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -181,6 +182,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
     biosample_extras_slot_mapping = get_csv_rows_from_url(
         biosample_extras_slot_mapping_file_url
     )
+    instrument_mapping = get_instrument_ids_by_model()
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
@@ -188,6 +190,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
+        instrument_mapping=instrument_mapping,
     )
 
     validate_metadata(database)
@@ -217,6 +220,7 @@ def ingest_metadata_submission():
     biosample_extras_slot_mapping = get_csv_rows_from_url(
         biosample_extras_slot_mapping_file_url
     )
+    instrument_mapping = get_instrument_ids_by_model()
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
@@ -224,6 +228,7 @@ def ingest_metadata_submission():
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
+        instrument_mapping=instrument_mapping,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
