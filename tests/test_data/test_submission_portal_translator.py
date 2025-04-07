@@ -329,7 +329,7 @@ def test_url_and_md5_lengths(test_minter):
     )
     assert len(data_objects) == 2
     assert manifest is not None
-    assert all(do.in_manifest == manifest.id for do in data_objects)
+    assert all(do.in_manifest == [manifest.id] for do in data_objects)
 
 
 def test_instruments(test_minter):
