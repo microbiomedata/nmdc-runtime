@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from functools import lru_cache
 from importlib import resources
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Tuple
 
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
@@ -465,8 +465,11 @@ class SubmissionPortalTranslator(Translator):
         md5_checksum_field_name: str,
         *,
         name_suffix: str | None,
-    ) -> List[nmdc.DataObject]:
+    ) -> Tuple[List[nmdc.DataObject], nmdc.Manifest | None]:
         """Get a DataObject instances based on the URLs and MD5 checksums in the given fields.
+
+        If the field provides multiple URLs, multiple DataObject instances will be created and a
+        Manifest will be created and provided in the second return value.
 
         :param sample_data: sample data
         :param url_field_name: field name for the URL
@@ -476,7 +479,7 @@ class SubmissionPortalTranslator(Translator):
         data_objects: List[nmdc.DataObject] = []
         urls = split_strip(sample_data.get(url_field_name), ";")
         if not urls:
-            return data_objects
+            return data_objects, None
 
         md5_checksums = split_strip(sample_data.get(md5_checksum_field_name), ";")
         if md5_checksums and len(urls) != len(md5_checksums):
@@ -485,6 +488,17 @@ class SubmissionPortalTranslator(Translator):
             )
 
         data_object_ids = self._id_minter("nmdc:DataObject", len(urls))
+        manifest: nmdc.Manifest | None = None
+        if len(urls) > 1:
+            manifest_id = self._id_minter("nmdc:Manifest", 1)[0]
+            manifest = nmdc.Manifest(
+                id=manifest_id,
+                manifest_category=nmdc.ManifestCategoryEnum(
+                    nmdc.ManifestCategoryEnum.poolable_replicates
+                ),
+                type="nmdc:Manifest",
+            )
+
         for i, url in enumerate(urls):
             data_object_id = data_object_ids[i]
             name = sample_data.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
@@ -499,8 +513,11 @@ class SubmissionPortalTranslator(Translator):
                 url=url,
                 md5_checksum=md5_checksums[i] if md5_checksums else None,
             )
+            if manifest:
+                data_object.in_manifest = [manifest.id]
             data_objects.append(data_object)
-        return data_objects
+
+        return data_objects, manifest
 
     def _translate_study(
         self, metadata_submission: JSON_OBJECT, nmdc_study_id: str
@@ -772,6 +789,7 @@ class SubmissionPortalTranslator(Translator):
         database.data_generation_set = []
         database.data_object_set = []
         database.instrument_set = []
+        database.manifest_set = []
         today = datetime.now().strftime("%Y-%m-%d")
         for sample_data_id, sample_data in sample_data_by_id.items():
             for tab in sample_data:
@@ -826,30 +844,24 @@ class SubmissionPortalTranslator(Translator):
                 )
                 database.data_generation_set.append(nucleotide_sequencing)
 
-                data_objects = (
-                    self._get_data_objects_from_fields(
+                url_fields = [
+                    ("read_1_url", "read_1_md5_checksum", "read_1"),
+                    ("read_2_url", "read_2_md5_checksum", "read_2"),
+                    ("interleaved_url", "interleaved_md5_checksum", "interleaved"),
+                ]
+                for (url_field_name, md5_field_name, name_suffix) in url_fields:
+                    data_objects, manifest = self._get_data_objects_from_fields(
                         tab,
-                        "read_1_url",
-                        "read_1_md5_checksum",
-                        name_suffix=f"{analyte_category.text}_read_1",
+                        url_field_name,
+                        md5_field_name,
+                        name_suffix=f"{analyte_category.text}_{name_suffix}",
                     )
-                    + self._get_data_objects_from_fields(
-                        tab,
-                        "read_2_url",
-                        "read_2_md5_checksum",
-                        name_suffix=f"{analyte_category.text}_read_2",
-                    )
-                    + self._get_data_objects_from_fields(
-                        tab,
-                        "interleaved_url",
-                        "interleaved_md5_checksum",
-                        name_suffix=f"{analyte_category.text}_interleaved",
-                    )
-                )
-                for data_object in data_objects:
-                    data_object.was_generated_by = nucleotide_sequencing_id
-                    nucleotide_sequencing.has_output.append(data_object.id)
-                    database.data_object_set.append(data_object)
+                    if manifest:
+                        database.manifest_set.append(manifest)
+                    for data_object in data_objects:
+                        data_object.was_generated_by = nucleotide_sequencing_id
+                        nucleotide_sequencing.has_output.append(data_object.id)
+                        database.data_object_set.append(data_object)
 
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part

@@ -323,6 +323,8 @@ data_object_set:
   md5_checksum: 8a7a02537074949bbef514cba5d669d8
   url: http://example.org/003-metat-a.fastq
   was_generated_by: nmdc:dgns-00-5wfuh5vm
+  in_manifest:
+    - nmdc:manif-00-bhmhzfxh
 - id: nmdc:dobj-00-1dgjoc8e
   type: nmdc:DataObject
   name: 003_run_2_metatranscriptome_interleaved
@@ -332,6 +334,12 @@ data_object_set:
   md5_checksum: 2dee554dd9bd8d2403e3b5430d19e3c3
   url: http://example.org/003-metat-b.fastq
   was_generated_by: nmdc:dgns-00-5wfuh5vm
+  in_manifest:
+    - nmdc:manif-00-bhmhzfxh
+manifest_set:
+- id: nmdc:manif-00-bhmhzfxh
+  type: 'nmdc:Manifest'
+  manifest_category: poolable_replicates
 study_set:
 - id: nmdc:sty-00-y0cq65zt
   type: nmdc:Study

@@ -307,10 +307,11 @@ def test_url_and_md5_lengths(test_minter):
         "read_1_md5_checksum": "b1946ac92492d2347c6235b4d2611184",
         "read_2_md5_checksum": "94baaad4d1347ec6e15ae35c88ee8bc8",
     }
-    data_objects = translator._get_data_objects_from_fields(
+    data_objects, manifest = translator._get_data_objects_from_fields(
         sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
     )
     assert len(data_objects) == 1
+    assert manifest is None
 
     sample_data["read_1_url"] = (
         "http://example.com/001-1a.fastq; http://example.com/001-1b.fastq"
@@ -323,10 +324,12 @@ def test_url_and_md5_lengths(test_minter):
     sample_data["read_1_md5_checksum"] = (
         "b1946ac92492d2347c6235b4d2611184; 94baaad4d1347ec6e15ae35c88ee8bc8"
     )
-    data_objects = translator._get_data_objects_from_fields(
+    data_objects, manifest = translator._get_data_objects_from_fields(
         sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
     )
     assert len(data_objects) == 2
+    assert manifest is not None
+    assert all(do.in_manifest == manifest.id for do in data_objects)
 
 
 def test_instruments(test_minter):
