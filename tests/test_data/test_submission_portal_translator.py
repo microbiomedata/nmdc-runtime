@@ -76,29 +76,6 @@ def test_get_pi():
     assert pi_person_value.profile_image_url == "http://www.example.org/image.jpg"
 
 
-def test_get_doi():
-    translator = SubmissionPortalTranslator()
-    doi = translator._get_doi({"contextForm": {"datasetDoi": "1234"}})
-    assert doi is not None
-    assert doi[0].doi_value == "doi:1234"
-    assert doi[0].doi_category == DoiCategoryEnum(DoiCategoryEnum.dataset_doi)
-
-    doi = translator._get_doi({"contextForm": {"datasetDoi": ""}})
-    assert doi is None
-
-    doi = translator._get_doi({"contextForm": {}})
-    assert doi is None
-
-    translator = SubmissionPortalTranslator(
-        study_doi_provider="kbase", study_doi_category="award_doi"
-    )
-    doi = translator._get_doi({"contextForm": {"datasetDoi": "5678"}})
-    assert doi is not None
-    assert doi[0].doi_value == "doi:5678"
-    assert doi[0].doi_category == DoiCategoryEnum(DoiCategoryEnum.award_doi)
-    assert doi[0].doi_provider == DoiProviderEnum(DoiProviderEnum.kbase)
-
-
 def test_get_has_credit_associations():
     translator = SubmissionPortalTranslator()
     credit_associations = translator._get_has_credit_associations(
@@ -185,14 +162,14 @@ def test_get_gold_study_identifiers():
     translator = SubmissionPortalTranslator()
 
     gold_ids = translator._get_gold_study_identifiers(
-        {"multiOmicsForm": {"GOLDStudyId": "Gs000000"}}
+        {"studyForm": {"GOLDStudyId": "Gs000000"}}
     )
     assert gold_ids is not None
     assert len(gold_ids) == 1
     assert gold_ids[0] == "gold:Gs000000"
 
     gold_ids = translator._get_gold_study_identifiers(
-        {"multiOmicsForm": {"GOLDStudyId": ""}}
+        {"studyForm": {"GOLDStudyId": ""}}
     )
     assert gold_ids is None
 

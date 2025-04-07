@@ -726,11 +726,6 @@ study_set:
     email: shade.ashley@gmail.com
     name: Ashley Shade
     type: nmdc:PersonValue
-  associated_dois:
-  - doi_value: doi:10.46936/10.25585/60000818
-    doi_provider: jgi
-    doi_category: dataset_doi
-    type: nmdc:Doi
   funding_sources:
     - Some award ABC
     - Some award XYZ
@@ -760,7 +755,14 @@ study_set:
     - Principal Investigator
     - Funding acquisition
     type: nmdc:CreditAssociation
+  alternative_names:
+  - foo
+  - bar
   gold_study_identifiers:
   - gold:Gs0123456
   jgi_portal_study_identifiers:
   - jgi.proposal:123456
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA1234567
+  emsl_project_identifiers:
+  - emsl.project:45678

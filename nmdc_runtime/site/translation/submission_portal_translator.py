@@ -177,28 +177,6 @@ class SubmissionPortalTranslator(Translator):
             type=nmdc.PersonValue.class_class_curie,
         )
 
-    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.Doi], None]:
-        """Get DOI information from the context form data
-
-        :param metadata_submission: submission portal entry
-        :return: list of strings or None
-        """
-        dataset_doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
-        if not dataset_doi:
-            return None
-
-        if not dataset_doi.startswith("doi:"):
-            dataset_doi = f"doi:{dataset_doi}"
-
-        return [
-            nmdc.Doi(
-                doi_value=dataset_doi,
-                doi_provider=self.study_doi_provider,
-                doi_category=self.study_doi_category,
-                type="nmdc:Doi",
-            )
-        ]
-
     def _get_has_credit_associations(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[nmdc.CreditAssociation], None]:
@@ -232,11 +210,24 @@ class SubmissionPortalTranslator(Translator):
         :param metadata_submission: submission portal entry
         :return: GOLD CURIE
         """
-        gold_study_id = get_in(["multiOmicsForm", "GOLDStudyId"], metadata_submission)
+        gold_study_id = get_in(["studyForm", "GOLDStudyId"], metadata_submission)
         if not gold_study_id:
             return None
 
         return [self._ensure_curie(gold_study_id, default_prefix="gold")]
+
+    def _get_ncbi_bioproject_identifiers(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[str], None]:
+        """Construct a NCBI Bioproject CURIE from the multiomics from data"""
+
+        ncbi_bioproject_id = get_in(
+            ["studyForm", "NCBIBioProjectId"], metadata_submission
+        )
+        if not ncbi_bioproject_id:
+            return None
+
+        return [self._ensure_curie(ncbi_bioproject_id, default_prefix="bioproject")]
 
     def _get_jgi_study_identifiers(
         self, metadata_submission: JSON_OBJECT
@@ -251,6 +242,20 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return [self._ensure_curie(jgi_study_id, default_prefix="jgi.proposal")]
+
+    def _get_emsl_project_identifiers(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[str], None]:
+        """Construct an EMSL project CURIE from the multiomics from data
+
+        :param metadata_submission: submission portal entry
+        :return: EMSL project CURIE
+        """
+        emsl_project_id = get_in(["multiOmicsForm", "studyNumber"], metadata_submission)
+        if not emsl_project_id:
+            return None
+
+        return [self._ensure_curie(emsl_project_id, default_prefix="emsl.project")]
 
     def _get_quantity_value(
         self, raw_value: Optional[str], unit: Optional[str] = None
@@ -533,18 +538,17 @@ class SubmissionPortalTranslator(Translator):
         """
         return nmdc.Study(
             alternative_names=self._get_from(
-                metadata_submission, ["multiOmicsForm", "alternativeNames"]
+                metadata_submission, ["studyForm", "alternativeNames"]
             ),
-            associated_dois=self._get_doi(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
             funding_sources=self._get_from(
                 metadata_submission, ["studyForm", "fundingSources"]
             ),
-            # emsl_proposal_identifier=self._get_from(
-            #     metadata_submission, ["multiOmicsForm", "studyNumber"]
-            # ),
+            emsl_project_identifiers=self._get_emsl_project_identifiers(
+                metadata_submission
+            ),
             gold_study_identifiers=self._get_gold_study_identifiers(
                 metadata_submission
             ),
@@ -552,8 +556,8 @@ class SubmissionPortalTranslator(Translator):
                 metadata_submission
             ),
             id=nmdc_study_id,
-            insdc_bioproject_identifiers=self._get_from(
-                metadata_submission, ["multiOmicsForm", "NCBIBioProjectId"]
+            insdc_bioproject_identifiers=self._get_ncbi_bioproject_identifiers(
+                metadata_submission
             ),
             jgi_portal_study_identifiers=self._get_jgi_study_identifiers(
                 metadata_submission

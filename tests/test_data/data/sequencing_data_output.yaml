@@ -351,3 +351,5 @@ study_set:
     name: ''
     orcid: ''
   title: asdfasdf
+  emsl_project_identifiers:
+  - 'emsl.project:12312'

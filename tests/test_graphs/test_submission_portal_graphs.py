@@ -14,7 +14,6 @@ MOCK_PORTAL_SUBMISSION = {
     "id": MOCK_PORTAL_SUBMISSION_ID,
     "metadata_submission": {
         "packageName": "plant-associated",
-        "contextForm": {"datasetDoi": "doi:10.12345/10.12345/00000000"},
         "templates": ["plant-associated"],
         "studyForm": {
             "studyName": "A test submission",

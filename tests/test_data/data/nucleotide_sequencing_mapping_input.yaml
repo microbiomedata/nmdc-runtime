@@ -1,8 +1,6 @@
 metadata_submission:
   id: 00000000-0000-0000-0000-000000000000,
   metadata_submission:
-    contextForm:
-      datasetDoi: doi:10.12345/10.12345/00000000
     packageName: plant-associated
     sampleData:
       plant_associated_data:
@@ -26,6 +24,9 @@ metadata_submission:
           source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
           specific_ecosystem: Phyllosphere
     studyForm:
+      GOLDStudyId: ''
+      alternativeNames: [ ]
+      NCBIBioProjectId: ''
       contributors:
         - name: Test Testerson
           type: nmdc:PersonValue
@@ -38,16 +39,13 @@ metadata_submission:
         - Some award XYZ
       linkOutWebpage:
         - http://www.example.com/submission-test
-      multiOmicsForm:
-        GOLDStudyId: ''
-        JGIStudyId: ''
-        NCBIBioProjectId: ''
-        alternativeNames: [ ]
-        studyNumber: ''
       piEmail: test.testerson@example.com
       piName: Test Testerson
       piOrcid: 0000-0000-0000-0000
       studyName: A test submission
+    multiOmicsForm:
+      JGIStudyId: ''
+      studyNumber: ''
     templates:
       - plant-associated
 nucleotide_sequencing_mapping:

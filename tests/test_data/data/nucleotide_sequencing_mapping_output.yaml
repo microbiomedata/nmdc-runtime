@@ -89,11 +89,6 @@ study_set:
     type: nmdc:Study
     name: A test submission
     description: This is a test submission
-    associated_dois:
-      - doi_value: doi:10.12345/10.12345/00000000
-        doi_provider: jgi
-        doi_category: dataset_doi
-        type: nmdc:Doi
     funding_sources:
       - Some award ABC
       - Some award XYZ

@@ -1,13 +1,6 @@
 metadata_submission:
   metadata_submission:
     packageName: [ 'plant-associated', 'air' ]
-    contextForm:
-      datasetDoi: doi:10.46936/10.25585/60000818
-      dataGenerated: true
-      facilityGenerated: true
-      facilities: [ ]
-      award:
-      otherAward: ''
     addressForm:
       shipper:
         name: ''
@@ -77,15 +70,22 @@ metadata_submission:
             - Software
             - Principal Investigator
             - Funding acquisition
-    multiOmicsForm:
-      alternativeNames: [ ]
-      studyNumber: ''
+      alternativeNames:
+        - foo
+        - bar
       GOLDStudyId: 'Gs0123456'
+      NCBIBioProjectId: 'PRJNA1234567'
+    multiOmicsForm:
       JGIStudyId: '123456'
-      NCBIBioProjectId: ''
+      award:
+      dataGenerated: true
+      facilities: [ ]
+      facilityGenerated: true
       omicsProcessingTypes:
         - mg
         - mt
+      otherAward: ''
+      studyNumber: '45678'
     sampleData:
       plant_associated_data:
         - elev: 286
