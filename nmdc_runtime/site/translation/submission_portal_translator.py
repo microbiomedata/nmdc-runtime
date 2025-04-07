@@ -849,7 +849,7 @@ class SubmissionPortalTranslator(Translator):
                     ("read_2_url", "read_2_md5_checksum", "read_2"),
                     ("interleaved_url", "interleaved_md5_checksum", "interleaved"),
                 ]
-                for (url_field_name, md5_field_name, name_suffix) in url_fields:
+                for url_field_name, md5_field_name, name_suffix in url_fields:
                     data_objects, manifest = self._get_data_objects_from_fields(
                         tab,
                         url_field_name,
