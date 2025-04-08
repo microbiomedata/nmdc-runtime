@@ -106,18 +106,15 @@ class SubmissionPortalTranslator(Translator):
 
     def __init__(
         self,
-        metadata_submission: JSON_OBJECT = {},
+        metadata_submission: Optional[JSON_OBJECT] = None,
         *args,
         nucleotide_sequencing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
         illumina_instrument_mapping: Optional[dict[str, str]] = None,
         # Additional study-level metadata not captured by the submission portal currently
         # See: https://github.com/microbiomedata/submission-schema/issues/162
-        study_doi_category: Optional[str] = None,
-        study_doi_provider: Optional[str] = None,
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
-        study_funding_sources: Optional[list[str]] = None,
         # Additional biosample-level metadata with optional column mapping information not captured
         # by the submission portal currently.
         # See: https://github.com/microbiomedata/submission-schema/issues/162
@@ -127,26 +124,17 @@ class SubmissionPortalTranslator(Translator):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-        self.metadata_submission = metadata_submission
+        self.metadata_submission: JSON_OBJECT = metadata_submission or {}
         self.nucleotide_sequencing_mapping = nucleotide_sequencing_mapping
         self.data_object_mapping = data_object_mapping
         self.illumina_instrument_mapping: dict[str, str] = (
             illumina_instrument_mapping or {}
         )
 
-        self.study_doi_category = (
-            nmdc.DoiCategoryEnum(study_doi_category)
-            if study_doi_category
-            else nmdc.DoiCategoryEnum.dataset_doi
-        )
-        self.study_doi_provider = (
-            nmdc.DoiProviderEnum(study_doi_provider) if study_doi_provider else None
-        )
         self.study_category = (
             nmdc.StudyCategoryEnum(study_category) if study_category else None
         )
         self.study_pi_image_url = study_pi_image_url
-        self.study_funding_sources = study_funding_sources
 
         self.biosample_extras = group_dicts_by_key(
             BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras
@@ -746,16 +734,18 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc:Database object
         """
         database = nmdc.Database()
-
-        nmdc_study_id = self._id_minter("nmdc:Study")[0]
-
         metadata_submission_data = self.metadata_submission.get(
             "metadata_submission", {}
         )
+
+        # Generate one Study instance based on the metadata submission
+        nmdc_study_id = self._id_minter("nmdc:Study")[0]
         database.study_set = [
             self._translate_study(metadata_submission_data, nmdc_study_id)
         ]
 
+        # Automatically populate the `env_package` field in the sample data based on which
+        # environmental data tab the sample data came from.
         sample_data = metadata_submission_data.get("sampleData", {})
         for key in sample_data.keys():
             env = key.removesuffix("_data").upper()
@@ -764,6 +754,8 @@ class SubmissionPortalTranslator(Translator):
                 for sample in sample_data[key]:
                     sample["env_package"] = package_name
             except KeyError:
+                # This is expected when processing rows from tabs like the JGI/EMSL tabs or external
+                # sequencing data tabs.
                 pass
 
         # Before regrouping the data by sample name, record which tab each object came from
@@ -771,6 +763,7 @@ class SubmissionPortalTranslator(Translator):
             for tab in sample_data[tab_name]:
                 tab[TAB_NAME_KEY] = tab_name
 
+        # Reorganize the sample data by sample name and generate a unique NMDC ID for each
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
             concat(sample_data.values()),
@@ -780,6 +773,7 @@ class SubmissionPortalTranslator(Translator):
             zip(sample_data_by_id.keys(), nmdc_biosample_ids)
         )
 
+        # Translate the sample data into nmdc:Biosample objects
         database.biosample_set = [
             self._translate_biosample(
                 sample_data,
@@ -790,6 +784,8 @@ class SubmissionPortalTranslator(Translator):
             if sample_data
         ]
 
+        # This section handles the translation of information in the external sequencing tabs into
+        # various NMDC objects.
         database.data_generation_set = []
         database.data_object_set = []
         database.instrument_set = []
@@ -800,8 +796,13 @@ class SubmissionPortalTranslator(Translator):
                 tab_name = tab.get(TAB_NAME_KEY)
                 analyte_category = TAB_NAME_TO_ANALYTE_CATEGORY.get(tab_name)
                 if not analyte_category:
+                    # If the tab name cannot be mapped to an analyte category, that means we're
+                    # not in an external sequencing data tabs (e.g. this is an environmental data
+                    # tab or a JGI/EMSL tab). Skip this tab.
                     continue
 
+                # Start by generating one NucleotideSequencing instance with a has_input
+                # relationship to the current Biosample instance.
                 nucleotide_sequencing_id = self._id_minter(
                     "nmdc:NucleotideSequencing", 1
                 )[0]
@@ -815,12 +816,18 @@ class SubmissionPortalTranslator(Translator):
                     "analyte_category": analyte_category,
                     "type": "nmdc:NucleotideSequencing",
                 }
+                # If the protocol_link column was filled in, expand it into an nmdc:Protocol object
                 if "protocol_link" in tab:
                     protocol_link = tab.pop("protocol_link")
                     nucleotide_sequencing_slots["protocol_link"] = nmdc.Protocol(
                         url=protocol_link,
                         type="nmdc:Protocol",
                     )
+                # If model column was filled in, expand it into an nmdc:Instrument object. This is
+                # done by first checking the provided instrument mapping to see if the model is
+                # already present. If it is not, a new instrument object is created and added to the
+                # instrument_set. Currently, we only accept sequencing data in the submission portal
+                # that was generated by Illumina instruments, so the vendor is hardcoded here.
                 if "model" in tab:
                     model = tab.pop("model")
                     if model not in self.illumina_instrument_mapping:
@@ -840,6 +847,8 @@ class SubmissionPortalTranslator(Translator):
                     nucleotide_sequencing_slots["instrument_used"] = (
                         self.illumina_instrument_mapping[model]
                     )
+                # Process the remaining columns according to the NucleotideSequencing class
+                # definition
                 nucleotide_sequencing_slots.update(
                     self._transform_dict_for_class(tab, "NucleotideSequencing")
                 )
@@ -848,6 +857,10 @@ class SubmissionPortalTranslator(Translator):
                 )
                 database.data_generation_set.append(nucleotide_sequencing)
 
+                # Iterate over the columns that contain URLs and MD5 checksums and translate them
+                # into DataObject instances. Each of these DataObject instances will be connected
+                # to the NucleotideSequencing instance via the has_output/was_generated_by
+                # relationships.
                 url_fields = [
                     ("read_1_url", "read_1_md5_checksum", "read_1"),
                     ("read_2_url", "read_2_md5_checksum", "read_2"),
@@ -867,6 +880,10 @@ class SubmissionPortalTranslator(Translator):
                         nucleotide_sequencing.has_output.append(data_object.id)
                         database.data_object_set.append(data_object)
 
+        # This is the older way of handling attaching NucleotideSequencing and DataObject instances
+        # to the Biosample instances. This should now mainly be handled by the external sequencing
+        # data tabs in the submission portal. This code is being left in place for now in case it is
+        # needed in the future.
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part
             # assumes that there is a column in that file with the header __biosample_samp_name

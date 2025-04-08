@@ -6,8 +6,6 @@ import yaml
 from linkml_runtime.dumpers import json_dumper
 import pytest
 from nmdc_schema.nmdc import (
-    DoiCategoryEnum,
-    DoiProviderEnum,
     InstrumentModelEnum,
     InstrumentVendorEnum,
     Database,
@@ -416,7 +414,6 @@ def test_get_dataset(test_minter, monkeypatch, data_file_base):
         id_minter=test_minter,
         illumina_instrument_mapping=instrument_mapping,
         study_category="research_study",
-        study_doi_provider="jgi",
     )
 
     expected = Database(**expected_output)
