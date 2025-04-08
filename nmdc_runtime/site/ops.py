@@ -39,7 +39,7 @@ from dagster import (
     Bool,
 )
 from gridfs import GridFS
-from linkml_runtime.dumpers import json_dumper
+from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
@@ -760,7 +760,7 @@ def nmdc_schema_database_export_filename(study: Dict[str, Any]) -> str:
 
 @op
 def nmdc_schema_object_to_dict(object: YAMLRoot) -> Dict[str, Any]:
-    return json_dumper.to_dict(object)
+    return as_simple_dict(object)
 
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
@@ -1359,3 +1359,26 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
     return database
+
+
+@op
+def log_database_ids(
+    context: OpExecutionContext,
+    database: nmdc.Database,
+) -> None:
+    """Log the IDs of the database."""
+    database_dict = as_simple_dict(database)
+    message = ""
+    for collection_name, collection in database_dict.items():
+        if not isinstance(collection, list):
+            continue
+        message += f"{collection_name} ({len(collection)}):\n"
+        if len(collection) < 10:
+            message += "\n".join(f"  {doc['id']}" for doc in collection)
+        else:
+            message += "\n".join(f"  {doc['id']}" for doc in collection[:4])
+            message += f"\n  ... {len(collection) - 8} more\n"
+            message += "\n".join(f"  {doc['id']}" for doc in collection[-4:])
+        message += "\n"
+    if message:
+        context.log.info(message)
