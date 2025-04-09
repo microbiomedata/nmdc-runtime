@@ -193,7 +193,7 @@ class SubmissionPortalTranslator(Translator):
     def _get_gold_study_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct a GOLD CURIE from the multiomics from data
+        """Construct a GOLD CURIE from the study form data
 
         :param metadata_submission: submission portal entry
         :return: GOLD CURIE
@@ -207,7 +207,7 @@ class SubmissionPortalTranslator(Translator):
     def _get_ncbi_bioproject_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct a NCBI Bioproject CURIE from the multiomics from data"""
+        """Construct a NCBI Bioproject CURIE from the study form data"""
 
         ncbi_bioproject_id = get_in(
             ["studyForm", "NCBIBioProjectId"], metadata_submission
@@ -220,7 +220,7 @@ class SubmissionPortalTranslator(Translator):
     def _get_jgi_study_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct a JGI proposal CURIE from the multiomics from data
+        """Construct a JGI proposal CURIE from the multiomics form data
 
         :param metadata_submission: submission portal entry
         :return: JGI proposal CURIE
@@ -234,7 +234,7 @@ class SubmissionPortalTranslator(Translator):
     def _get_emsl_project_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct an EMSL project CURIE from the multiomics from data
+        """Construct an EMSL project CURIE from the multiomics form data
 
         :param metadata_submission: submission portal entry
         :return: EMSL project CURIE
