@@ -38,70 +38,103 @@ collections:
 ![Get one valid](../img/validate-json-get-one-valid.png)
 
 For example,
-[https://api.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217](https://api.microbiomedata.org/nmdcschema/biosample_set/gold:Gb0115217)
+[https://api.microbiomedata.org/nmdcschema/biosample_set/nmdc:bsm-11-002vgm56](https://api.microbiomedata.org/nmdcschema/biosample_set/nmdc:bsm-11-002vgm56)
 is
 
 ```json
 {
-  "location": "groundwater-surface water interaction zone in Washington, USA",
-  "env_medium": {
-    "has_raw_value": "ENVO:01000017"
-  },
-  "depth2": {
-    "has_raw_value": "1.0",
-    "has_numeric_value": 1,
-    "has_unit": "meter"
-  },
-  "env_broad_scale": {
-    "has_raw_value": "ENVO:01000253"
-  },
-  "alternative_identifiers": [
-    "img.taxon:3300042741"
+  "analysis_type": [
+    "metagenomics"
   ],
-  "ecosystem": "Engineered",
-  "ecosystem_category": "Artificial ecosystem",
-  "id": "gold:Gb0115217",
-  "env_local_scale": {
-    "has_raw_value": "ENVO:01000621"
+  "carb_nitro_ratio": {
+    "has_numeric_value": 25.4,
+    "type": "nmdc:QuantityValue"
   },
-  "community": "microbial communities",
-  "mod_date": "2021-06-17",
-  "ecosystem_subtype": "Unclassified",
-  "INSDC_biosample_identifiers": [
-    "biosample:SAMN06343863"
-  ],
-  "description": "Sterilized sand packs were incubated back in the ground and collected at time point T2.",
   "collection_date": {
-    "has_raw_value": "2014-09-23"
+    "has_raw_value": "2016-07-26T01:30Z",
+    "type": "nmdc:TimestampValue"
   },
-  "ecosystem_type": "Sand microcosm",
-  "sample_collection_site": "sand microcosm",
-  "name": "Sand microcosm microbial communities from a hyporheic zone in Columbia River, Washington, USA - GW-RW T2_23-Sept-14",
-  "lat_lon": {
-    "has_raw_value": "46.37228379 -119.2717467",
-    "latitude": 46.37228379,
-    "longitude": -119.2717467
-  },
-  "specific_ecosystem": "Unclassified",
-  "identifier": "GW-RW T2_23-Sept-14",
-  "GOLD_sample_identifiers": [
-    "gold:Gb0115217"
-  ],
-  "add_date": "2015-05-28",
-  "habitat": "sand microcosm",
-  "type": "nmdc:Biosample",
   "depth": {
-    "has_raw_value": "0.5",
-    "has_numeric_value": 0.5,
-    "has_unit": "meter"
+    "has_maximum_numeric_value": 0.325,
+    "has_minimum_numeric_value": 0,
+    "has_unit": "m",
+    "type": "nmdc:QuantityValue"
   },
-  "part_of": [
-    "gold:Gs0114663"
+  "elev": 677.6,
+  "env_broad_scale": {
+    "term": {
+      "id": "ENVO:00000446",
+      "name": "terrestrial biome",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "env_local_scale": {
+    "term": {
+      "id": "ENVO:01000861",
+      "name": "area of dwarf scrub",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "env_medium": {
+    "term": {
+      "id": "ENVO:00001998",
+      "name": "soil",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "env_package": {
+    "has_raw_value": "soil",
+    "type": "nmdc:TextValue"
+  },
+  "id": "nmdc:bsm-11-002vgm56",
+  "name": "HEAL_048-O-6.5-19.5-20160725",
+  "nitro": {
+    "has_numeric_value": 1.02,
+    "has_unit": "percent",
+    "type": "nmdc:QuantityValue"
+  },
+  "org_carb": {
+    "has_numeric_value": 25.94,
+    "has_unit": "percent",
+    "type": "nmdc:QuantityValue"
+  },
+  "ph": 6.04,
+  "samp_collec_device": "corer",
+  "soil_horizon": "O horizon",
+  "temp": {
+    "has_numeric_value": 6.6,
+    "has_unit": "Celsius",
+    "type": "nmdc:QuantityValue"
+  },
+  "type": "nmdc:Biosample",
+  "water_content": [
+    "2.667 g of water/g of dry soil"
   ],
-  "ncbi_taxonomy_name": "sediment metagenome",
   "geo_loc_name": {
-    "has_raw_value": "USA: Columbia River, Washington"
-  }
+    "has_raw_value": "USA: Alaska, Healy",
+    "type": "nmdc:TextValue"
+  },
+  "biosample_categories": [
+    "NEON"
+  ],
+  "lat_lon": {
+    "latitude": 63.875088,
+    "longitude": -149.210438,
+    "type": "nmdc:GeolocationValue"
+  },
+  "gold_biosample_identifiers": [
+    "gold:Gb0255739"
+  ],
+  "ecosystem": "Environmental",
+  "ecosystem_category": "Terrestrial",
+  "ecosystem_type": "Soil",
+  "ecosystem_subtype": "Unclassified",
+  "associated_studies": [
+    "nmdc:sty-11-34xj1150"
+  ]
 }
 ```
 
@@ -142,8 +175,8 @@ This typically means that any spaces in the name should be entered as underscore
 
 The `filter`, if provided, is a JSON document in the form of the
 [MongoDB Query Language](https://docs.mongodb.com/manual/tutorial/query-documents/). For example,
-the filter `{"part_of": "gold:Gs0114663"}` on collection_name `biosample_set` will list biosamples
-that are part of the `gold:Gs0114663` study:
+the filter `{"associated_studies": "nmdc:sty-11-34xj1150"}` on collection_name `biosample_set` will list biosamples
+that are associated with the `nmdc:sty-11-34xj1150` study:
 
 ![List from collection, with filter](../img/list-from-collection-filter.png)
 

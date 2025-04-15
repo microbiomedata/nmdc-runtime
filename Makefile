@@ -38,9 +38,10 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
+# Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the dev stack.
 dev-reset-db:
 	docker compose \
-		exec mongo /bin/bash -c "./app_tests/mongorestore-nmdc-testdb.sh"
+		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
 # Uses Docker Compose to build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
 #
@@ -55,17 +56,21 @@ up-test:
 test-build:
 	docker compose --file docker-compose.test.yml build test
 
-test-dbinit:
+# Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the test stack.
+test-reset-db:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
 # Uses Docker Compose to spin up the `test` container (i.e. the test runner), effectively running the tests.
 #
-# Tip: If you append a file path to this "recipe", pytest will run only the tests defined in that file.
-#      For example, append `tests/test_api/test_endpoints.py` to have pytest only run the endpoint tests.
+# Tip: If you append `ARGS=` and a file path to the `make` command, pytest will run only the tests defined in that file.
+#      For example, to run only the tests defined in `tests/test_api/test_endpoints.py`:
+#      ```
+#      $ make test-run ARGS="tests/test_api/test_endpoints.py"
+#      ```
 #
 test-run:
-	docker compose --file docker-compose.test.yml run test
+	docker compose --file docker-compose.test.yml run test $(ARGS)
 
 test: test-build test-run
 
@@ -108,8 +113,17 @@ publish:
 docs-dev:
 	mkdocs serve -a localhost:8080
 
+# 🙋 Prerequisites:
+#
+# 1. The `PATH_TO_NERSC_SSHPROXY` environment variable is set to the path of
+#    an executable copy of the `sshproxy` program maintained by NERSC.
+#    You can read about and download that program at the following URL:
+#    https://docs.nersc.gov/connect/mfa/#sshproxy
+#    
+# 2. The `NERSC_USERNAME` environment variable is set to your NERSC username.
+#
 nersc-sshproxy:
-	bash ./nersc-sshproxy.sh -u ${NERSC_USERNAME} # https://docs.nersc.gov/connect/mfa/#sshproxy
+	bash ${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \

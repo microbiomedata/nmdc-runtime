@@ -15,8 +15,7 @@ houses the LinkML schema specification, as well as generated artifacts (e.g. JSO
 * [nmdc-server](https://github.com/microbiomedata/nmdc-server)
 houses code specific to the data portal -- its database, back-end API, and front-end application.
 
-* [workflow_documentation](https://docs.microbiomedata.org/workflows/)
-references workflow code spread across several repositories, that take source data and produce computed data.
+* Workflows — documented in the [workflows](https://docs.microbiomedata.org/workflows/) section of the NMDC documentation website — take source data and produce computed data.
 
 * This repo (nmdc-runtime)
    * houses code that takes source data and computed data, and transforms it
@@ -85,10 +84,10 @@ docker compose version
 docker info
 ```
 
-Ensure the permissions of `./mongoKeyFile` are such that only the file's owner can read or write the file.
+Ensure the permissions of `./.docker/mongoKeyFile` are such that only the file's owner can read or write the file.
 
 ```shell
-chmod 600 ./mongoKeyFile
+chmod 600 ./.docker/mongoKeyFile
 ```
 
 Ensure you have a `.env` file for the Docker services to source from. You may copy `.env.example` to
@@ -136,6 +135,9 @@ Tests can be found in `tests` and are run with the following commands:
 ```bash
 make up-test
 make test
+
+# Run a Specific test file eg. tests/test_api/test_endpoints.py
+make test ARGS="tests/test_api/test_endpoints.py"
 ```
 docker compose --file docker-compose.test.yml run test
 
@@ -144,6 +146,16 @@ desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
+
+### RAM usage
+
+The `dagster-daemon` and `dagster-dagit` containers can consume a lot of RAM. If tests are failing and the console of
+the `test` container shows "Error 137," here is something you can try as a workaround: In Docker Desktop, go to 
+"Settings > Resources > Advanced," and increase the memory limit. One of our team members has
+found **12 GB** to be sufficient for running the tests.
+
+> Dedicating 12 GB of RAM to Docker may be prohibitive for some prospective developers.
+> There is an open [issue](https://github.com/microbiomedata/nmdc-runtime/issues/928) about the memory requirement.
 
 ## Publish to PyPI
 

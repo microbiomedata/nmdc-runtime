@@ -102,8 +102,8 @@ ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
 FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
 
-# Copy repository contents into image.
-COPY . /code
+# Copy dependency lists into image.
+COPY ./requirements /code/requirements
 
 # Install development-only Python dependencies into the image.
 RUN pip install \
@@ -112,13 +112,16 @@ RUN pip install \
     --no-cache-dir \
     -r /code/requirements/dev.txt
 
+# Copy all repository contents into image.
+COPY . /code
+
 # Install the project in editable mode.
 RUN cd /code && \
     pip install --no-cache-dir --editable .
 
 # Make `wait-for-it.sh` executable.
-RUN chmod +x /code/wait-for-it.sh
+RUN chmod +x /code/.docker/wait-for-it.sh
 
 # Use `wait-for-it.sh` to run `pytest` as soon as the FastAPI server is accessible.
 WORKDIR /code
-ENTRYPOINT ["./wait-for-it.sh", "fastapi:8000", "--strict", "--timeout=300", "--", "pytest", "--cov=nmdc_runtime"]
+ENTRYPOINT ["./.docker/wait-for-it.sh", "fastapi:8000", "--strict", "--timeout=300", "--", "pytest", "--cov=nmdc_runtime"]
