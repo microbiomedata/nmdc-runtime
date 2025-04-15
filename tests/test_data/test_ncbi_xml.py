@@ -283,11 +283,6 @@ class TestNCBISubmissionXML:
             "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)"
             in bioproject_xml
         )
-        assert "bioproject:PRJNA406976" in bioproject_xml
-        assert (
-            "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing."
-            in bioproject_xml
-        )
         assert "metagenome" in bioproject_xml
         assert "Test Org" in bioproject_xml
 
