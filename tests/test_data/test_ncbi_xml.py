@@ -283,7 +283,7 @@ class TestNCBISubmissionXML:
             "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)"
             in bioproject_xml
         )
-        assert "bioproject:PRJNA1029061" in bioproject_xml
+        assert "bioproject:PRJNA406976" in bioproject_xml
         assert (
             "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing."
             in bioproject_xml
@@ -355,7 +355,7 @@ class TestNCBISubmissionXML:
         )
         assert "E. coli" in biosample_xml
         assert "Test Org" in biosample_xml
-        assert "PRJNA1029061" in biosample_xml
+        assert "PRJNA406976" in biosample_xml
 
     def test_set_fastq(
         self,
@@ -407,7 +407,7 @@ class TestNCBISubmissionXML:
                 "BMI_HVKNKBGX5_Tube347_srt_R1.fastq.gz" in action_xml
                 or "BMI_HVKNKBGX5_Tube347_srt_R2.fastq.gz" in action_xml
             )
-            assert "PRJNA1029061" in action_xml
+            assert "PRJNA406976" in action_xml
             assert "nmdc:bsm-12-p9q5v236" in action_xml
             assert "Test Org" in action_xml
             # library Attributes in SRA <Action> block
