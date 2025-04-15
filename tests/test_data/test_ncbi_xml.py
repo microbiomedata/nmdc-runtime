@@ -21,61 +21,66 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
 )
 
 MOCK_NMDC_STUDY = {
-    "id": "nmdc:sty-11-34xj1150",
-    "name": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
-    "description": "This study contains the quality-controlled laboratory metadata and minimally processed sequence data from NEON's soil microbial shotgun metagenomics sequencing. Typically, measurements are done on plot-level composite samples and represent up to three randomly selected sampling locations within a plot.",
-    "gold_study_identifiers": ["gold:Gs0144570", "gold:Gs0161344"],
-    "principal_investigator": {
-        "has_raw_value": "Kate Thibault",
-        "email": "kthibault@battelleecology.org",
-        "name": "Kate Thibault",
-        "orcid": "orcid:0000-0003-3477-6424",
-        "profile_image_url": "https://portal.nersc.gov/project/m3408/profile_images/thibault_katy.jpg",
-    },
-    "title": "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)",
+    "id": "nmdc:sty-11-pzmd0x14",
+    "name": "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)",
     "type": "nmdc:Study",
+    "title": "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)",
+    "description": "This study contains the primary field and quality-controlled laboratory metadata and minimally processed sequence data from NEON's benthic microbial shotgun metagenomics sequencing.",
     "websites": [
-        "https://data.neonscience.org/data-products/DP1.10107.001",
-        "https://data.neonscience.org/api/v0/documents/NEON.DOC.014048vO",
+        "https://data.neonscience.org/data-products/DP1.20279.001",
         "https://data.neonscience.org/api/v0/documents/NEON_metagenomes_userGuide_vE.pdf",
-    ],
-    "study_image": [
-        {
-            "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg"
-        }
     ],
     "funding_sources": [
         "NSF#1724433 National Ecological Observatory Network: Operations Activities"
     ],
+    "principal_investigator": {
+        "name": "Kate Thibault",
+        "email": "kthibault@battelleecology.org",
+        "orcid": "orcid:0000-0003-3477-6424",
+        "has_raw_value": "Kate Thibault",
+        "type": "nmdc:PersonValue",
+    },
     "has_credit_associations": [
         {
             "applies_to_person": {
                 "name": "Hugh Cross",
                 "email": "crossh@battelleecology.org",
                 "orcid": "orcid:0000-0002-6745-9479",
+                "type": "nmdc:PersonValue",
             },
             "applied_roles": ["Methodology", "Data curation"],
-        },
-        {
-            "applies_to_person": {
-                "name": "Samantha Weintraub-Leff",
-                "email": "sweintraub@battelleecology.org",
-                "orcid": "orcid:0000-0003-4789-5086",
-            },
-            "applied_roles": ["Methodology", "Data curation"],
+            "type": "prov:Association",
         },
         {
             "applies_to_person": {
                 "name": "Kate Thibault",
                 "email": "kthibault@battelleecology.org",
                 "orcid": "orcid:0000-0003-3477-6424",
+                "type": "nmdc:PersonValue",
             },
             "applied_roles": ["Principal Investigator"],
+            "type": "prov:Association",
+        },
+        {
+            "applies_to_person": {
+                "name": "Stephanie Parker",
+                "email": "sparker@battelleecology.org",
+                "orcid": "0000-0002-7180-7245",
+                "type": "nmdc:PersonValue",
+            },
+            "applied_roles": ["Methodology", "Data curation"],
+            "type": "prov:Association",
         },
     ],
+    "study_image": [
+        {
+            "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg",
+            "type": "nmdc:ImageValue",
+        }
+    ],
+    "gold_study_identifiers": [],
     "part_of": ["nmdc:sty-11-nxrz9m96"],
     "study_category": "consortium",
-    "insdc_bioproject_identifiers": ["bioproject:PRJNA1029061"],
     "homepage_website": ["https://www.neonscience.org/"],
 }
 
@@ -274,7 +279,7 @@ class TestNCBISubmissionXML:
             ncbi_submission_client.root.find(".//Project"), "unicode"
         )
         assert (
-            "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
+            "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)"
             in bioproject_xml
         )
         assert "bioproject:PRJNA1029061" in bioproject_xml
@@ -951,7 +956,7 @@ class TestNCBISubmissionXML:
         assert "2015-07-21T18:00Z" in submission_xml
         assert "National Microbiome Data Collaborative" in submission_xml
         assert (
-            "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
+            "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)"
             in submission_xml
         )
 
