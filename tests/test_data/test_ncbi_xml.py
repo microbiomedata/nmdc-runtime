@@ -17,6 +17,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_float_value,
     handle_string_value,
     get_instruments,
+    check_if_biosample_is_pooled,
 )
 
 MOCK_NMDC_STUDY = {
@@ -388,6 +389,7 @@ class TestNCBISubmissionXML:
             nmdc_biosamples=nmdc_biosample,
             nmdc_library_preparation=biosample_library_preparation,
             all_instruments=all_instruments,
+            # Not passing the optional pool-related parameters, so no pooling will be detected
         )
 
         action_elements = ncbi_submission_client.root.findall(".//Action")
@@ -411,6 +413,428 @@ class TestNCBISubmissionXML:
             assert "ARIK.20150721.AMC.EPIPSAMMON.3" in action_xml
             assert "BMI_metagenomicsSequencingSOP_v1" in action_xml
             assert "sra-run-fastq" in action_xml
+
+    def test_set_fastq_with_pooling(
+        self,
+        mocker,
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        """Test set_fastq method with pooled biosamples using the new parameter approach."""
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        # Create test data with two biosamples that are pooled together
+        biosample1 = nmdc_biosample[0]
+        biosample2 = {
+            "id": "nmdc:bsm-12-abcdefg",
+            "name": "ARIK.20150721.AMC.EPIPSAMMON.4",
+            "type": "nmdc:Biosample",
+        }
+
+        test_biosamples = [biosample1, biosample2]
+
+        # Create data objects for both biosamples
+        biosample_data_objects = [
+            {biosample["id"]: data_objects_list} for biosample in test_biosamples
+        ]
+
+        biosample_nucleotide_sequencing = [
+            {biosample["id"]: nucleotide_sequencing_list}
+            for biosample in test_biosamples
+        ]
+
+        biosample_library_preparation = [
+            {biosample["id"]: library_preparation_dict} for biosample in test_biosamples
+        ]
+
+        # Create pooled biosample info that shows these biosamples are in the same pool
+        pooled_biosamples = [biosample1["id"], biosample2["id"]]
+        pooled_biosample_info = {
+            biosample1["id"]: {
+                "is_pooled": True,
+                "library_name": "Library prep for Pool123",
+                "pooled_biosamples": pooled_biosamples,
+            },
+            biosample2["id"]: {
+                "is_pooled": True,
+                "library_name": "Library prep for Pool123",
+                "pooled_biosamples": pooled_biosamples,
+            },
+        }
+
+        # Run the method with the new pooled_biosample_info parameter
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=biosample_data_objects,
+            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
+            org="Test Org",
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
+            nmdc_biosamples=test_biosamples,
+            nmdc_library_preparation=biosample_library_preparation,
+            all_instruments=all_instruments,
+            pooled_biosample_info=pooled_biosample_info,
+        )
+
+        # Verify that only one SRA action block was created, not two
+        # (since both biosamples are in the same pool)
+        action_elements = ncbi_submission_client.root.findall(".//Action")
+        assert len(action_elements) == 1
+
+        # Verify that the library name comes from the pooled sample info
+        action_xml = ET.tostring(action_elements[0], "unicode")
+        assert "Library prep for Pool123" in action_xml
+        assert "library_name" in action_xml
+
+        # Verify that both biosamples are included as AttributeRefId elements in the AddFiles block
+        # Find all AttributeRefId elements with name="BioSample"
+        biosample_refs = ncbi_submission_client.root.findall(
+            ".//AttributeRefId[@name='BioSample']"
+        )
+
+        # Extract the SPUID values
+        biosample_ids = []
+        for ref in biosample_refs:
+            spuid = ref.find(".//SPUID")
+            if spuid is not None:
+                biosample_ids.append(spuid.text)
+
+        # Verify both biosamples are included
+        assert biosample1["id"] in biosample_ids
+        assert biosample2["id"] in biosample_ids
+
+    def test_set_fastq_with_pooling_and_nonpooled(
+        self,
+        mocker,
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        """Test set_fastq method with a mix of pooled and non-pooled biosamples."""
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        # Create test data with three biosamples:
+        # - biosample1 and biosample2 are pooled together
+        # - biosample3 is not pooled
+        biosample1 = nmdc_biosample[0]
+        biosample2 = {
+            "id": "nmdc:bsm-12-abcdefg",
+            "name": "ARIK.20150721.AMC.EPIPSAMMON.4",
+            "type": "nmdc:Biosample",
+        }
+        biosample3 = {
+            "id": "nmdc:bsm-12-xyz1234",
+            "name": "ARIK.20150721.AMC.EPIPSAMMON.5",
+            "type": "nmdc:Biosample",
+        }
+
+        test_biosamples = [biosample1, biosample2, biosample3]
+
+        # Create data objects for all biosamples
+        biosample_data_objects = [
+            {biosample["id"]: data_objects_list} for biosample in test_biosamples
+        ]
+
+        biosample_nucleotide_sequencing = [
+            {biosample["id"]: nucleotide_sequencing_list}
+            for biosample in test_biosamples
+        ]
+
+        biosample_library_preparation = [
+            {biosample["id"]: library_preparation_dict} for biosample in test_biosamples
+        ]
+
+        # Create pooled biosample info that shows biosample1 and biosample2 are pooled
+        # biosample3 is not pooled
+        pooled_biosamples = [biosample1["id"], biosample2["id"]]
+        pooled_biosample_info = {
+            biosample1["id"]: {
+                "is_pooled": True,
+                "library_name": "Library prep for Pool123",
+                "pooled_biosamples": pooled_biosamples,
+            },
+            biosample2["id"]: {
+                "is_pooled": True,
+                "library_name": "Library prep for Pool123",
+                "pooled_biosamples": pooled_biosamples,
+            },
+            biosample3["id"]: {
+                "is_pooled": False,
+                "library_name": None,
+                "pooled_biosamples": [],
+            },
+        }
+
+        # Run the method with the new pooled_biosample_info parameter
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=biosample_data_objects,
+            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
+            org="Test Org",
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
+            nmdc_biosamples=test_biosamples,
+            nmdc_library_preparation=biosample_library_preparation,
+            all_instruments=all_instruments,
+            pooled_biosample_info=pooled_biosample_info,
+        )
+
+        # Verify that we have two SRA action blocks
+        # (one for the pooled biosamples and one for the non-pooled biosample)
+        action_elements = ncbi_submission_client.root.findall(".//Action")
+        assert len(action_elements) == 2
+
+        # Find all AddFiles elements
+        add_files_elements = ncbi_submission_client.root.findall(".//AddFiles")
+        assert len(add_files_elements) == 2
+
+        # For each AddFiles element, extract the biosample IDs
+        pooled_found = False
+        non_pooled_found = False
+
+        for add_files in add_files_elements:
+            biosample_refs = add_files.findall(".//AttributeRefId[@name='BioSample']")
+            biosample_ids = []
+            for ref in biosample_refs:
+                spuid = ref.find(".//SPUID")
+                if spuid is not None:
+                    biosample_ids.append(spuid.text)
+
+            # Check if this is the pooled block (contains both biosample1 and biosample2)
+            if biosample1["id"] in biosample_ids and biosample2["id"] in biosample_ids:
+                pooled_found = True
+                assert len(biosample_ids) == 2
+
+                # Check for library name
+                library_attr = add_files.find(".//Attribute[@name='library_name']")
+                assert library_attr is not None
+                assert library_attr.text == "Library prep for Pool123"
+
+            # Check if this is the non-pooled block (contains only biosample3)
+            if biosample3["id"] in biosample_ids and len(biosample_ids) == 1:
+                non_pooled_found = True
+
+                # Check for library name
+                library_attr = add_files.find(".//Attribute[@name='library_name']")
+                assert library_attr is not None
+                assert library_attr.text == "ARIK.20150721.AMC.EPIPSAMMON.5"
+
+        # Verify both kinds of blocks were found
+        assert pooled_found, "Pooled biosamples block not found"
+        assert non_pooled_found, "Non-pooled biosample block not found"
+
+    def test_check_if_biosample_is_pooled(self, mocker):
+        # Mock the collection objects
+        material_processing_set = mocker.MagicMock()
+        all_docs_collection = mocker.MagicMock()
+        processed_sample_set = mocker.MagicMock()
+
+        # Test case 1: Biosample is not part of a pooling process
+        material_processing_set.find_one.return_value = None
+
+        result = check_if_biosample_is_pooled(
+            "nmdc:bsm-12-p9q5v236",
+            material_processing_set,
+            all_docs_collection,
+            processed_sample_set,
+        )
+
+        material_processing_set.find_one.assert_called_once_with(
+            {"has_input": "nmdc:bsm-12-p9q5v236", "type": "nmdc:Pooling"}
+        )
+
+        assert result["is_pooled"] is False
+        assert result["library_name"] is None
+        assert result["pooled_biosamples"] == []
+
+        # Test case 2: Biosample is part of a pooling process with direct library preparation link
+        material_processing_set.reset_mock()
+        all_docs_collection.reset_mock()
+        processed_sample_set.reset_mock()
+
+        pooling_record = {
+            "has_input": ["nmdc:bsm-12-p9q5v236", "nmdc:bsm-12-abcdefg"],
+            "has_output": ["nmdc:procsm-11-xyz123"],
+        }
+
+        lib_prep_record = {
+            "has_input": "nmdc:procsm-11-xyz123",
+            "has_output": ["nmdc:procsm-11-lib456"],
+        }
+
+        processed_sample = {
+            "id": "nmdc:procsm-11-lib456",
+            "name": "Library prep for Pool123",
+        }
+
+        # Configure mocks for this scenario
+        material_processing_set.find_one.side_effect = [pooling_record, lib_prep_record]
+        processed_sample_set.find_one.return_value = processed_sample
+
+        result = check_if_biosample_is_pooled(
+            "nmdc:bsm-12-p9q5v236",
+            material_processing_set,
+            all_docs_collection,
+            processed_sample_set,
+        )
+
+        assert result["is_pooled"] is True
+        assert result["library_name"] == "Library prep for Pool123"
+        assert set(result["pooled_biosamples"]) == {
+            "nmdc:bsm-12-p9q5v236",
+            "nmdc:bsm-12-abcdefg",
+        }
+
+        # Test calls to find_one
+        assert material_processing_set.find_one.call_count == 2
+        material_processing_set.find_one.assert_any_call(
+            {"has_input": "nmdc:bsm-12-p9q5v236", "type": "nmdc:Pooling"}
+        )
+        material_processing_set.find_one.assert_any_call(
+            {"has_input": "nmdc:procsm-11-xyz123", "type": "nmdc:LibraryPreparation"}
+        )
+        processed_sample_set.find_one.assert_called_once_with(
+            {"id": "nmdc:procsm-11-lib456"}
+        )
+
+        # Test case 3: Library preparation record is found in all_docs_collection
+        material_processing_set.reset_mock()
+        all_docs_collection.reset_mock()
+        processed_sample_set.reset_mock()
+
+        pooling_record = {
+            "has_input": ["nmdc:bsm-12-p9q5v236", "nmdc:bsm-12-abcdefg"],
+            "has_output": ["nmdc:procsm-11-xyz123"],
+        }
+
+        # First call to material_processing_set.find_one returns pooling record
+        # Second call (looking for lib prep) returns None - not found in material_processing_set
+        material_processing_set.find_one.side_effect = [pooling_record, None]
+
+        # Intermediate document in the processing chain
+        intermediate_doc = {
+            "id": "nmdc:procs-11-intermediate",
+            "has_input": "nmdc:procsm-11-xyz123",
+            "has_output": ["nmdc:procsm-11-abc789"],
+        }
+
+        # Library preparation record in all_docs_collection
+        lib_prep_record_in_all_docs = {
+            "id": "nmdc:libprp-11-def987",
+            "type": "nmdc:LibraryPreparation",
+            "has_input": "nmdc:procsm-11-abc789",
+            "has_output": ["nmdc:procsm-11-lib456"],
+        }
+
+        all_docs_collection.find_one.side_effect = [
+            intermediate_doc,
+            lib_prep_record_in_all_docs,
+        ]
+
+        processed_sample = {
+            "id": "nmdc:procsm-11-lib456",
+            "name": "Library prep via all_docs",
+        }
+
+        processed_sample_set.find_one.return_value = processed_sample
+
+        result = check_if_biosample_is_pooled(
+            "nmdc:bsm-12-p9q5v236",
+            material_processing_set,
+            all_docs_collection,
+            processed_sample_set,
+        )
+
+        assert result["is_pooled"] is True
+        assert result["library_name"] == "Library prep via all_docs"
+        assert set(result["pooled_biosamples"]) == {
+            "nmdc:bsm-12-p9q5v236",
+            "nmdc:bsm-12-abcdefg",
+        }
+
+        # Verify interaction with all_docs_collection
+        all_docs_collection.find_one.assert_any_call(
+            {"has_input": "nmdc:procsm-11-xyz123"}
+        )
+
+        # Test case 4: Using technique from fetch_library_preparation_from_biosamples
+        material_processing_set.reset_mock()
+        all_docs_collection.reset_mock()
+        processed_sample_set.reset_mock()
+
+        pooling_record = {
+            "has_input": ["nmdc:bsm-12-p9q5v236", "nmdc:bsm-12-abcdefg"],
+            "has_output": ["nmdc:procsm-11-xyz123"],
+        }
+
+        # First find_one returns pooling record
+        # Second find_one (for lib prep) returns None
+        material_processing_set.find_one.side_effect = [
+            pooling_record,
+            None,
+            None,
+            None,
+        ]
+
+        # Initial document with biosample's pooling output as input
+        initial_document = {
+            "id": "nmdc:proc-11-initial",
+            "has_input": "nmdc:procsm-11-xyz123",
+            "has_output": ["nmdc:procsm-11-data789"],
+        }
+
+        # No intermediate document found - simulating we need the technique from fetch_library_preparation
+        all_docs_collection.find_one.side_effect = [None, initial_document, None]
+
+        lib_prep_record_in_material = {
+            "id": "nmdc:libprp-11-fetch987",
+            "type": "nmdc:LibraryPreparation",
+            "has_input": "nmdc:procsm-11-data789",
+            "has_output": ["nmdc:procsm-11-libfetch"],
+        }
+
+        # The next find_one with type["$in"] will be successful
+        material_processing_set.find_one.side_effect = [
+            pooling_record,
+            None,
+            lib_prep_record_in_material,
+        ]
+
+        processed_sample = {
+            "id": "nmdc:procsm-11-libfetch",
+            "name": "Library from fetch technique",
+        }
+
+        processed_sample_set.find_one.return_value = processed_sample
+
+        result = check_if_biosample_is_pooled(
+            "nmdc:bsm-12-p9q5v236",
+            material_processing_set,
+            all_docs_collection,
+            processed_sample_set,
+        )
+
+        assert result["is_pooled"] is True
+        assert result["library_name"] == "Library from fetch technique"
+        assert set(result["pooled_biosamples"]) == {
+            "nmdc:bsm-12-p9q5v236",
+            "nmdc:bsm-12-abcdefg",
+        }
 
     def test_get_submission_xml(
         self,
@@ -487,22 +911,23 @@ class TestNCBISubmissionXML:
             {biosample["id"]: library_preparation_dict} for biosample in nmdc_biosample
         ]
 
-        ncbi_submission_client.set_fastq(
-            biosample_data_objects=biosample_data_objects,
-            bioproject_id=MOCK_NMDC_STUDY["insdc_bioproject_identifiers"][0],
-            org="Test Org",
-            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
-            nmdc_biosamples=nmdc_biosample,
-            nmdc_library_preparation=biosample_library_preparation,
-            all_instruments=all_instruments,
-        )
+        # Create pooled biosamples info with no pooled samples for this test
+        pooled_biosample_info = {
+            biosample["id"]: {
+                "is_pooled": False,
+                "library_name": None,
+                "pooled_biosamples": [],
+            }
+            for biosample in nmdc_biosample
+        }
 
         submission_xml = ncbi_submission_client.get_submission_xml(
             nmdc_biosample,
-            [],
+            biosample_nucleotide_sequencing,
             biosample_data_objects,
             biosample_library_preparation,
             all_instruments,
+            pooled_biosample_info=pooled_biosample_info,
         )
 
         assert "nmdc:bsm-12-p9q5v236" in submission_xml
