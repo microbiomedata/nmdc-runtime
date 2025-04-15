@@ -3,6 +3,7 @@ from dagster import graph
 from nmdc_runtime.site.ops import (
     build_merged_db,
     generate_biosample_set_for_nmdc_study_from_gold,
+    get_pooled_biosample_info,
     nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
     nmdc_schema_object_to_dict,
@@ -461,6 +462,7 @@ def nmdc_study_to_ncbi_submission_export():
     data_object_records = get_data_objects_from_biosamples(biosamples)
     library_preparation_records = get_library_preparation_from_biosamples(biosamples)
     all_instruments = get_all_instruments()
+    pooled_biosample_info = get_pooled_biosample_info(biosamples)
     xml_data = ncbi_submission_xml_from_nmdc_study(
         nmdc_study,
         ncbi_submission_metadata,
@@ -469,6 +471,7 @@ def nmdc_study_to_ncbi_submission_export():
         data_object_records,
         library_preparation_records,
         all_instruments,
+        pooled_biosample_info,
     )
     ncbi_submission_xml_asset(xml_data)
 

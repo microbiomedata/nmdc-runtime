@@ -18,6 +18,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_string_value,
     load_mappings,
     validate_xml,
+    check_if_biosample_is_pooled,
 )
 
 
@@ -335,22 +336,53 @@ class NCBISubmissionXML:
         nmdc_biosamples: list,
         nmdc_library_preparation: list,
         all_instruments: dict,
+        pooled_biosample_info: dict = None,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
         }
 
+        # Keep track of processed pooled biosamples to avoid duplicate SRA actions
+        processed_pooled_biosamples = set()
+
         for entry in biosample_data_objects:
             fastq_files = []
             biosample_ids = []
+            pooled_biosample_ids = []  # To store all biosamples in the pool
             nucleotide_sequencing_ids = {}
             lib_prep_protocol_names = {}
             analyte_category = ""
             library_name = ""
             instrument_vendor = ""
             instrument_model = ""
+            # Flag to track if we're dealing with a pooled biosample
+            is_pooled_sample = False
 
             for biosample_id, data_objects in entry.items():
+                # Check if we have pooling information for this biosample
+                current_biosample_pooling_info = None
+                if pooled_biosample_info and biosample_id in pooled_biosample_info:
+                    current_biosample_pooling_info = pooled_biosample_info[biosample_id]
+
+                    # If this is a pooled biosample and we've already processed its pool, skip it
+                    if current_biosample_pooling_info["is_pooled"] and any(
+                        bsm_id in processed_pooled_biosamples
+                        for bsm_id in current_biosample_pooling_info[
+                            "pooled_biosamples"
+                        ]
+                    ):
+                        continue
+
+                    # If this is a pooled biosample, mark all biosamples in the pool as processed
+                    # and collect them to include in the SRA block
+                    if current_biosample_pooling_info["is_pooled"]:
+                        is_pooled_sample = True
+                        pooled_biosample_ids = current_biosample_pooling_info[
+                            "pooled_biosamples"
+                        ]
+                        for pooled_bsm_id in pooled_biosample_ids:
+                            processed_pooled_biosamples.add(pooled_bsm_id)
+
                 biosample_ids.append(biosample_id)
                 for data_object in data_objects:
                     if "url" in data_object:
@@ -379,7 +411,19 @@ class NCBISubmissionXML:
                             instrument_model = instrument.get("model", "")
 
                             analyte_category = ntseq.get("analyte_category", "")
-                            library_name = bsm_id_name_dict.get(biosample_id, "")
+
+                            # Use processed sample name from pooling info if available,
+                            # otherwise use the biosample name as before
+                            if (
+                                current_biosample_pooling_info
+                                and current_biosample_pooling_info["is_pooled"]
+                                and current_biosample_pooling_info["library_name"]
+                            ):
+                                library_name = current_biosample_pooling_info[
+                                    "library_name"
+                                ]
+                            else:
+                                library_name = bsm_id_name_dict.get(biosample_id, "")
 
                 for lib_prep_dict in nmdc_library_preparation:
                     if biosample_id in lib_prep_dict:
@@ -424,25 +468,49 @@ class NCBISubmissionXML:
                     )
                 ]
 
-                for biosample_id in biosample_ids:
-                    attribute_elements.append(
-                        self.set_element(
-                            "AttributeRefId",
-                            attrib={"name": "BioSample"},
-                            children=[
-                                self.set_element(
-                                    "RefId",
-                                    children=[
-                                        self.set_element(
-                                            "SPUID",
-                                            biosample_id,
-                                            {"spuid_namespace": org},
-                                        )
-                                    ],
-                                )
-                            ],
+                # If we're dealing with a pooled sample, add all biosamples in the pool
+                # to the attribute elements
+                if is_pooled_sample and pooled_biosample_ids:
+                    for pooled_biosample_id in pooled_biosample_ids:
+                        attribute_elements.append(
+                            self.set_element(
+                                "AttributeRefId",
+                                attrib={"name": "BioSample"},
+                                children=[
+                                    self.set_element(
+                                        "RefId",
+                                        children=[
+                                            self.set_element(
+                                                "SPUID",
+                                                pooled_biosample_id,
+                                                {"spuid_namespace": org},
+                                            )
+                                        ],
+                                    )
+                                ],
+                            )
                         )
-                    )
+                else:
+                    # Otherwise use the single biosample as before
+                    for biosample_id in biosample_ids:
+                        attribute_elements.append(
+                            self.set_element(
+                                "AttributeRefId",
+                                attrib={"name": "BioSample"},
+                                children=[
+                                    self.set_element(
+                                        "RefId",
+                                        children=[
+                                            self.set_element(
+                                                "SPUID",
+                                                biosample_id,
+                                                {"spuid_namespace": org},
+                                            )
+                                        ],
+                                    )
+                                ],
+                            )
+                        )
 
                 sra_attributes = []
                 if instrument_vendor == "illumina":
@@ -577,6 +645,7 @@ class NCBISubmissionXML:
         biosample_data_objects_list: list,
         biosample_library_preparation_list: list,
         instruments_dict: dict,
+        pooled_biosample_info: dict = None,
     ):
         data_type = None
         ncbi_project_id = None
@@ -622,6 +691,7 @@ class NCBISubmissionXML:
             nmdc_biosamples=biosamples_list,
             nmdc_library_preparation=biosample_library_preparation_list,
             all_instruments=instruments_dict,
+            pooled_biosample_info=pooled_biosample_info,
         )
 
         rough_string = ET.tostring(self.root, "unicode")

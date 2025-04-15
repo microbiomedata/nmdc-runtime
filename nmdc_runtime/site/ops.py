@@ -1234,6 +1234,78 @@ def get_all_instruments(context: OpExecutionContext):
     return all_instruments
 
 
+@op(required_resource_keys={"mongo"})
+def check_if_biosample_is_pooled_op(
+    context: OpExecutionContext, biosample_id: str
+) -> dict:
+    """
+    Dagster op to check if a biosample is part of a pooling process and retrieve pooling information.
+
+    Args:
+        context: OpExecutionContext
+        biosample_id: ID of the biosample to check
+
+    Returns:
+        A dictionary containing:
+            'is_pooled': True if biosample is part of a pooling process, False otherwise
+            'library_name': The name of the processed sample (output of library prep) if exists
+            'pooled_biosamples': List of all biosample IDs in the same pool (if pooled)
+    """
+    mdb = context.resources.mongo.db
+    material_processing_set = mdb["material_processing_set"]
+    all_docs_collection = mdb["alldocs"]
+    processed_sample_set = mdb["processed_sample_set"]
+
+    from nmdc_runtime.site.export.ncbi_xml_utils import check_if_biosample_is_pooled
+
+    pooling_info = check_if_biosample_is_pooled(
+        biosample_id, material_processing_set, all_docs_collection, processed_sample_set
+    )
+
+    return pooling_info
+
+
+@op(required_resource_keys={"mongo"})
+def get_pooled_biosample_info(
+    context: OpExecutionContext,
+    biosamples: list,
+) -> dict:
+    """
+    Gather pooling information for a list of biosamples.
+
+    Args:
+        context: OpExecutionContext
+        biosamples: List of biosample documents
+
+    Returns:
+        Dictionary mapping biosample IDs to their pooling information
+    """
+    pooled_biosample_info = {}
+
+    for biosample in biosamples:
+        biosample_id = biosample["id"]
+
+        # Use the check_if_biosample_is_pooled_op directly, since we're in an op context
+        # but avoid making additional db calls
+        mdb = context.resources.mongo.db
+        material_processing_set = mdb["material_processing_set"]
+        all_docs_collection = mdb["alldocs"]
+        processed_sample_set = mdb["processed_sample_set"]
+
+        from nmdc_runtime.site.export.ncbi_xml_utils import check_if_biosample_is_pooled
+
+        pooling_info = check_if_biosample_is_pooled(
+            biosample_id,
+            material_processing_set,
+            all_docs_collection,
+            processed_sample_set,
+        )
+
+        pooled_biosample_info[biosample_id] = pooling_info
+
+    return pooled_biosample_info
+
+
 @op
 def ncbi_submission_xml_from_nmdc_study(
     context: OpExecutionContext,
@@ -1244,6 +1316,7 @@ def ncbi_submission_xml_from_nmdc_study(
     data_object_records: list,
     library_preparation_records: list,
     all_instruments: dict,
+    pooled_biosample_info: dict = None,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(
@@ -1252,6 +1325,7 @@ def ncbi_submission_xml_from_nmdc_study(
         data_object_records,
         library_preparation_records,
         all_instruments,
+        pooled_biosample_info,
     )
     return ncbi_xml
 
