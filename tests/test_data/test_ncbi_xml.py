@@ -82,6 +82,7 @@ MOCK_NMDC_STUDY = {
     "part_of": ["nmdc:sty-11-nxrz9m96"],
     "study_category": "consortium",
     "homepage_website": ["https://www.neonscience.org/"],
+    "insdc_bioproject_identifiers": ["PRJNA406976"],
 }
 
 MOCK_NCBI_SUBMISSION_METADATA = {
