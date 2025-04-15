@@ -134,7 +134,7 @@ load_envo_ontology_weekly = ScheduleDefinition(
             **preset_normal.get("config", {}),  # Merge preset config
             "ops": {"source_ontology": {"value": "envo"}},  # Add additional config
         }
-    )
+    ),
 )
 
 load_uberon_ontology_weekly = ScheduleDefinition(
@@ -146,7 +146,7 @@ load_uberon_ontology_weekly = ScheduleDefinition(
             **preset_normal.get("config", {}),  # Merge preset config
             "ops": {"source_ontology": {"value": "uberon"}},  # Add additional config
         }
-    )
+    ),
 )
 
 load_po_ontology_weekly = ScheduleDefinition(
@@ -158,7 +158,7 @@ load_po_ontology_weekly = ScheduleDefinition(
             **preset_normal.get("config", {}),  # Merge preset config
             "ops": {"source_ontology": {"value": "po"}},  # Add additional config
         }
-    )
+    ),
 )
 
 
