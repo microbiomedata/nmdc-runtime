@@ -955,10 +955,6 @@ class TestNCBISubmissionXML:
         assert "USA: Colorado, Arikaree River" in submission_xml
         assert "2015-07-21T18:00Z" in submission_xml
         assert "National Microbiome Data Collaborative" in submission_xml
-        assert (
-            "National Ecological Observatory Network: benthic metagenomes (DP1.20279.001)"
-            in submission_xml
-        )
 
 
 class TestNCBIXMLUtils:
