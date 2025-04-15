@@ -1,4 +1,4 @@
-from dagster import graph
+from dagster import graph, GraphIn
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
@@ -112,18 +112,18 @@ def ensure_alldocs():
 
 
 @graph
-def run_envo_ontology_load():
-    load_ontology(source_ontology="envo")
+def run_envo_ontology_load(source_ontology: str):
+    load_ontology(source_ontology=source_ontology)
 
 
 @graph
-def run_uberon_ontology_load():
-    load_ontology(source_ontology="uberon")
+def run_uberon_ontology_load(source_ontology):
+    load_ontology(source_ontology=source_ontology)
 
 
 @graph
-def run_po_ontology_load():
-    load_ontology(source_ontology="po")
+def run_po_ontology_load(source_ontology):
+    load_ontology(source_ontology=source_ontology)
 
 
 @graph
