@@ -724,7 +724,17 @@ class TestNCBISubmissionXML:
 
         # First call to material_processing_set.find_one returns pooling record
         # Second call (looking for lib prep) returns None - not found in material_processing_set
-        material_processing_set.find_one.side_effect = [pooling_record, None]
+        def material_find_one_case3(query):
+            if query == {"has_input": "nmdc:bsm-12-p9q5v236", "type": "nmdc:Pooling"}:
+                return pooling_record
+            if query == {
+                "has_input": "nmdc:procsm-11-xyz123",
+                "type": "nmdc:LibraryPreparation",
+            }:
+                return None
+            return None
+
+        material_processing_set.find_one.side_effect = material_find_one_case3
 
         # Intermediate document in the processing chain
         intermediate_doc = {
@@ -784,12 +794,17 @@ class TestNCBISubmissionXML:
 
         # First find_one returns pooling record
         # Second find_one (for lib prep) returns None
-        material_processing_set.find_one.side_effect = [
-            pooling_record,
-            None,
-            None,
-            None,
-        ]
+        def material_find_one_case4(query):
+            if query == {"has_input": "nmdc:bsm-12-p9q5v236", "type": "nmdc:Pooling"}:
+                return pooling_record
+            elif query == {
+                "has_input": "nmdc:procsm-11-data789",
+                "type": "nmdc:LibraryPreparation",
+            }:
+                return lib_prep_record_in_material
+            return None
+
+        material_processing_set.find_one.side_effect = material_find_one_case4
 
         # Initial document with biosample's pooling output as input
         initial_document = {
