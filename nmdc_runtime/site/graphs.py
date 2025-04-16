@@ -112,18 +112,18 @@ def ensure_alldocs():
 
 
 @graph
-def run_envo_ontology_load(source_ontology: str):
-    load_ontology(source_ontology=source_ontology)
+def run_envo_ontology_load():
+    load_ontology()
 
 
 @graph
-def run_uberon_ontology_load(source_ontology):
-    load_ontology(source_ontology=source_ontology)
+def run_uberon_ontology_load():
+    load_ontology()
 
 
 @graph
-def run_po_ontology_load(source_ontology):
-    load_ontology(source_ontology=source_ontology)
+def run_po_ontology_load():
+    load_ontology()
 
 
 @graph

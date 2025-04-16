@@ -25,6 +25,7 @@ from dagster import (
     Failure,
     List,
     MetadataValue,
+    Noneable,
     OpExecutionContext,
     Out,
     Output,
@@ -1044,27 +1045,24 @@ def site_code_mapping() -> dict:
         )
 
 
-@op(required_resource_keys={"mongo"})
-def load_ontology(
-    context, source_ontology="envo", output_directory=None, generate_reports=True
-):
-    """
-    Run the OntologyLoaderController to load records from the source ontology into ontology_class_set and ontology_relation_set.
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "source_ontology": str,
+        "output_directory": Field(Noneable(str), default_value=None, is_required=False),
+        "generate_reports": Field(bool, default_value=True, is_required=False),
+    },
+)
+def load_ontology(context: OpExecutionContext):
+    cfg = context.op_config
+    source_ontology = cfg["source_ontology"]
+    output_directory = cfg.get("output_directory")
+    generate_reports = cfg.get("generate_reports", True)
 
-    :param source_ontology: The source ontology to load
-    :param output_directory: The directory to save reports
-    :param generate_reports: Whether to generate reports
-    :return: The number of records upserted
-    """
     if output_directory is None:
-        output_directory = os.path.join(
-            os.getcwd(), "ontology_reports"
-        )  # Save reports in current working dir
+        output_directory = os.path.join(os.getcwd(), "ontology_reports")
 
     print(f"Running Ontology Loader for ontology: {source_ontology}")
-
-    print(os.getenv("MONGO_HOST"))
-    print(os.getenv("MONGO_PORT"))
     loader = OntologyLoaderController(
         source_ontology=source_ontology,
         output_directory=output_directory,
@@ -1077,8 +1075,7 @@ def load_ontology(
     except Exception as e:
         print(f"Error running ontology loader: {e}")
 
-    collection_names = ["ontology_class_set", "ontology_relation_set"]
-    context.log.info(f"Loading {source_ontology} into {collection_names=}")
+    context.log.info(f"Loaded {source_ontology}")
 
 
 @op(required_resource_keys={"mongo"})
