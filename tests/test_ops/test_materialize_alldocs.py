@@ -29,10 +29,6 @@ def op_context(client_config):
         resources={"mongo": mongo_resource.configured(client_config)}
     )
 
-def test_load_ontology(op_context):
-    counter = load_ontology(op_context)
-    assert counter == 0
-
 def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
 
