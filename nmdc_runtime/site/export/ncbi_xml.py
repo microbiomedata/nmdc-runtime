@@ -4,10 +4,9 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from typing import Any, List, Union
+from typing import Any, List
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
-    get_instruments,
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
     handle_geolocation_value,
@@ -17,8 +16,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_float_value,
     handle_string_value,
     load_mappings,
-    validate_xml,
-    check_if_biosample_is_pooled,
 )
 
 
@@ -167,6 +164,13 @@ class NCBISubmissionXML:
         )
 
         for biosample in nmdc_biosamples:
+            # Skip creating BioSample action if the biosample already has NCBI identifiers
+            if (
+                "insdc_biosample_identifiers" in biosample
+                and biosample["insdc_biosample_identifiers"]
+            ):
+                continue
+
             attributes = {}
             sample_id_value = None
             env_package = None
@@ -342,6 +346,14 @@ class NCBISubmissionXML:
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
         }
 
+        # Create a dictionary to quickly check if a biosample has NCBI identifiers
+        biosamples_with_ncbi_ids = {
+            biosample["id"]: True
+            for biosample in nmdc_biosamples
+            if "insdc_biosample_identifiers" in biosample
+            and biosample["insdc_biosample_identifiers"]
+        }
+
         # Keep track of processed pooled biosamples to avoid duplicate SRA actions
         processed_pooled_biosamples = set()
 
@@ -357,8 +369,14 @@ class NCBISubmissionXML:
             instrument_model = ""
             # Flag to track if we're dealing with a pooled biosample
             is_pooled_sample = False
+            # Flag to check if all biosamples in this entry have NCBI identifiers
+            all_biosamples_have_ncbi_ids = True
 
             for biosample_id, data_objects in entry.items():
+                # Check if this biosample has NCBI identifiers
+                if biosample_id not in biosamples_with_ncbi_ids:
+                    all_biosamples_have_ncbi_ids = False
+
                 # Check if we have pooling information for this biosample
                 current_biosample_pooling_info = None
                 if pooled_biosample_info and biosample_id in pooled_biosample_info:
@@ -380,8 +398,12 @@ class NCBISubmissionXML:
                         pooled_biosample_ids = current_biosample_pooling_info[
                             "pooled_biosamples"
                         ]
-                        for pooled_bsm_id in pooled_biosample_ids:
-                            processed_pooled_biosamples.add(pooled_bsm_id)
+                        # Check if all biosamples in the pool have NCBI identifiers
+                        if is_pooled_sample:
+                            for pooled_bsm_id in pooled_biosample_ids:
+                                if pooled_bsm_id not in biosamples_with_ncbi_ids:
+                                    all_biosamples_have_ncbi_ids = False
+                                processed_pooled_biosamples.add(pooled_bsm_id)
 
                 biosample_ids.append(biosample_id)
                 for data_object in data_objects:
@@ -432,6 +454,10 @@ class NCBISubmissionXML:
                             .get("protocol_link", {})
                             .get("name", "")
                         )
+
+            # Skip creating SRA actions if all biosamples in this entry have NCBI identifiers
+            if all_biosamples_have_ncbi_ids:
+                continue
 
             if fastq_files:
                 files_elements = [
