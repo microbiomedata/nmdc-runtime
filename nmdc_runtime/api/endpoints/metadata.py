@@ -196,7 +196,10 @@ async def submit_json_nmdcdb(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to submit json at this time.",
         )
-    rv = validate_json(docs, mdb)
+    
+    # Validate the JSON payload, both (a) the format of each document and
+    # (b) the integrity of any inter-document references being introduced.
+    rv = validate_json(docs, mdb, check_inter_document_references=True)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
