@@ -223,5 +223,5 @@ setuptools==76.0.0
     #   -r requirements/dev.in
     #   pip-tools
 python-dotenv
-ontology-loader==0.1.8
+ontology-loader==0.1.9
 linkml-store
