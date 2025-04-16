@@ -132,10 +132,12 @@ load_envo_ontology_weekly = ScheduleDefinition(
     execution_timezone="America/New_York",
     job=run_envo_ontology_load.to_job(
         name="scheduled_envo_ontology_load",
-        config=unfreeze(merge(
-            run_config_frozen__normal_env,
-            {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
-        )),
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+            )
+        ),
         resource_defs=resource_defs,
     ),
 )
@@ -146,10 +148,12 @@ load_uberon_ontology_weekly = ScheduleDefinition(
     execution_timezone="America/New_York",
     job=run_uberon_ontology_load.to_job(
         name="scheduled_uberon_ontology_load",
-        config=unfreeze(merge(
-            run_config_frozen__normal_env,
-            {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
-        )),
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+            )
+        ),
         resource_defs=resource_defs,
     ),
 )
@@ -160,10 +164,12 @@ load_po_ontology_weekly = ScheduleDefinition(
     execution_timezone="America/New_York",
     job=run_po_ontology_load.to_job(
         name="scheduled_po_ontology_load",
-        config=unfreeze(merge(
-            run_config_frozen__normal_env,
-            {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
-        )),
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+            )
+        ),
         resource_defs=resource_defs,
     ),
 )
@@ -509,29 +515,38 @@ def repo():
         ensure_alldocs.to_job(**preset_normal),
         run_uberon_ontology_load.to_job(
             name="uberon_ontology_load",
-            config=unfreeze(merge(
-                run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
-            )),
+            config=unfreeze(
+                merge(
+                    run_config_frozen__normal_env,
+                    {
+                        "ops": {
+                            "load_ontology": {"config": {"source_ontology": "uberon"}}
+                        }
+                    },
+                )
+            ),
             resource_defs=resource_defs,
         ),
         run_envo_ontology_load.to_job(
-            name="envo_ontology_load", 
-            config=unfreeze(merge(
-                run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
-            )),
+            name="envo_ontology_load",
+            config=unfreeze(
+                merge(
+                    run_config_frozen__normal_env,
+                    {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+                )
+            ),
             resource_defs=resource_defs,
         ),
         run_po_ontology_load.to_job(
             name="po_ontology_load",
-            config=unfreeze(merge(
-                run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
-            )),
+            config=unfreeze(
+                merge(
+                    run_config_frozen__normal_env,
+                    {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+                )
+            ),
             resource_defs=resource_defs,
-        )
-
+        ),
     ]
     schedules = [
         housekeeping_weekly,
