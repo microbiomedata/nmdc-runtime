@@ -80,7 +80,11 @@ def test_load_ontology(mock_ontology_loader, op_context):
     assert result is None
 
 
-# Integration test approach similar to test_materialize_alldocs
+
+@pytest.mark.skipif(
+    os.getenv("MONGO_PASSWORD") is None or os.getenv("ENABLE_DB_TESTS") != "true",
+    reason="Skipping test: Requires MONGO_PASSWORD and ENABLE_DB_TESTS=true",
+)
 def test_load_ontology_integration(op_context):
     """Tests the load_ontology op with actual MongoDB connection and verifies results"""
     import socket
