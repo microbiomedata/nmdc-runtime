@@ -9,6 +9,7 @@ from nmdc_schema.nmdc import (
     InstrumentModelEnum,
     InstrumentVendorEnum,
     Database,
+    FileTypeEnum,
 )
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
@@ -283,7 +284,11 @@ def test_url_and_md5_lengths(test_minter):
         "read_2_md5_checksum": "94baaad4d1347ec6e15ae35c88ee8bc8",
     }
     data_objects, manifest = translator._get_data_objects_from_fields(
-        sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+        sample_data,
+        url_field_name="read_1_url",
+        md5_checksum_field_name="read_1_md5_checksum",
+        nucleotide_sequencing_id="nmdc:dgns-00-00000000",
+        data_object_type=FileTypeEnum("Metagenome Raw Reads"),
     )
     assert len(data_objects) == 1
     assert manifest is None
@@ -293,14 +298,22 @@ def test_url_and_md5_lengths(test_minter):
     )
     with pytest.raises(ValueError, match="read_1_url"):
         translator._get_data_objects_from_fields(
-            sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+            sample_data,
+            url_field_name="read_1_url",
+            md5_checksum_field_name="read_1_md5_checksum",
+            nucleotide_sequencing_id="nmdc:dgns-00-00000000",
+            data_object_type=FileTypeEnum("Metagenome Raw Reads"),
         )
 
     sample_data["read_1_md5_checksum"] = (
         "b1946ac92492d2347c6235b4d2611184; 94baaad4d1347ec6e15ae35c88ee8bc8"
     )
     data_objects, manifest = translator._get_data_objects_from_fields(
-        sample_data, "read_1_url", "read_1_md5_checksum", name_suffix=""
+        sample_data,
+        url_field_name="read_1_url",
+        md5_checksum_field_name="read_1_md5_checksum",
+        nucleotide_sequencing_id="nmdc:dgns-00-00000000",
+        data_object_type=FileTypeEnum("Metagenome Raw Reads"),
     )
     assert len(data_objects) == 2
     assert manifest is not None

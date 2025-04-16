@@ -5,6 +5,7 @@ from enum import Enum
 from functools import lru_cache
 from importlib import resources
 from typing import Any, List, Optional, Union, Tuple
+from urllib.parse import urlparse
 
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
@@ -454,10 +455,11 @@ class SubmissionPortalTranslator(Translator):
     def _get_data_objects_from_fields(
         self,
         sample_data: JSON_OBJECT,
+        *,
         url_field_name: str,
         md5_checksum_field_name: str,
-        *,
-        name_suffix: str | None,
+        nucleotide_sequencing_id: str,
+        data_object_type: nmdc.FileTypeEnum,
     ) -> Tuple[List[nmdc.DataObject], nmdc.Manifest | None]:
         """Get a DataObject instances based on the URLs and MD5 checksums in the given fields.
 
@@ -467,6 +469,8 @@ class SubmissionPortalTranslator(Translator):
         :param sample_data: sample data
         :param url_field_name: field name for the URL
         :param md5_checksum_field_name: field name for the MD5 checksum
+        :param nucleotide_sequencing_id: ID for the nmdc:NucleotideSequencing object that generated the data object(s)
+        :param data_object_type: FileTypeEnum representing the type of the data object
         :return: nmdc.DataObject or None
         """
         data_objects: List[nmdc.DataObject] = []
@@ -494,21 +498,26 @@ class SubmissionPortalTranslator(Translator):
 
         for i, url in enumerate(urls):
             data_object_id = data_object_ids[i]
-            name = sample_data.get(BIOSAMPLE_UNIQUE_KEY_SLOT)
-            if len(urls) > 1:
-                name += f"_run_{i + 1}"
-            if name_suffix:
-                name += f"_{name_suffix}"
-            data_object = self._translate_data_object(
-                sample_data,
-                name=name,
-                nmdc_data_object_id=data_object_id,
-                url=url,
-                md5_checksum=md5_checksums[i] if md5_checksums else None,
+            parsed_url = urlparse(url)
+            possible_filename = parsed_url.path.rsplit("/", 1)[-1]
+            data_object_slots = {
+                "id": data_object_id,
+                "name": possible_filename,
+                "description": f"{data_object_type} for {nucleotide_sequencing_id}",
+                "type": "nmdc:DataObject",
+                "url": url,
+                "md5_checksum": md5_checksums[i] if md5_checksums else None,
+                "in_manifest": [manifest.id] if manifest else None,
+                "data_category": nmdc.DataCategoryEnum(
+                    nmdc.DataCategoryEnum.instrument_data
+                ),
+                "data_object_type": data_object_type,
+                "was_generated_by": nucleotide_sequencing_id,
+            }
+            data_object_slots.update(
+                self._transform_dict_for_class(sample_data, "DataObject")
             )
-            if manifest:
-                data_object.in_manifest = [manifest.id]
-            data_objects.append(data_object)
+            data_objects.append(nmdc.DataObject(**data_object_slots))
 
         return data_objects, manifest
 
@@ -644,34 +653,6 @@ class SubmissionPortalTranslator(Translator):
 
             transformed_values[slot_name] = transformed_value
         return transformed_values
-
-    def _translate_data_object(
-        self,
-        sample_data: JSON_OBJECT,
-        *,
-        name: str,
-        nmdc_data_object_id: str,
-        url: Optional[str] = None,
-        md5_checksum: Optional[str] = None,
-    ):
-        """Translate sample data from portal submission into an `nmdc:DataObject` object.
-
-        Optionally provide a URL and md5 checksum which override the values in the sample data.
-        """
-        data_object_slots = {
-            "id": nmdc_data_object_id,
-            "name": name,
-            "description": name,
-            "type": "nmdc:DataObject",
-        }
-        data_object_slots.update(
-            self._transform_dict_for_class(sample_data, "DataObject")
-        )
-        if url:
-            data_object_slots["url"] = url
-        if md5_checksum:
-            data_object_slots["md5_checksum"] = md5_checksum
-        return nmdc.DataObject(**data_object_slots)
 
     def _translate_biosample(
         self,
@@ -862,21 +843,21 @@ class SubmissionPortalTranslator(Translator):
                 # to the NucleotideSequencing instance via the has_output/was_generated_by
                 # relationships.
                 url_fields = [
-                    ("read_1_url", "read_1_md5_checksum", "read_1"),
-                    ("read_2_url", "read_2_md5_checksum", "read_2"),
-                    ("interleaved_url", "interleaved_md5_checksum", "interleaved"),
+                    ("read_1_url", "read_1_md5_checksum", "Metagenome Raw Read 1"),
+                    ("read_2_url", "read_2_md5_checksum", "Metagenome Raw Read 2"),
+                    ("interleaved_url", "interleaved_md5_checksum", "Metagenome Raw Reads")
                 ]
-                for url_field_name, md5_field_name, name_suffix in url_fields:
+                for url_field, md5_field, data_object_type in url_fields:
                     data_objects, manifest = self._get_data_objects_from_fields(
                         tab,
-                        url_field_name,
-                        md5_field_name,
-                        name_suffix=f"{analyte_category.text}_{name_suffix}",
+                        url_field_name=url_field,
+                        md5_checksum_field_name=md5_field,
+                        nucleotide_sequencing_id=nucleotide_sequencing_id,
+                        data_object_type=nmdc.FileTypeEnum(data_object_type),
                     )
                     if manifest:
                         database.manifest_set.append(manifest)
                     for data_object in data_objects:
-                        data_object.was_generated_by = nucleotide_sequencing_id
                         nucleotide_sequencing.has_output.append(data_object.id)
                         database.data_object_set.append(data_object)
 

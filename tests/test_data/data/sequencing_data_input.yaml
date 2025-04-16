@@ -111,8 +111,8 @@ metadata_submission:
       metagenome_sequencing_non_interleaved_data:
         - model: hiseq_1500
           samp_name: "001"
-          read_1_url: http://example.com/001-1.fastq
-          read_2_url: http://example.com/001-2.fastq
+          read_1_url: http://example.com/001-1.fastq.gz
+          read_2_url: http://example.com/001-2.fastq.gz
           analysis_type:
             - metagenomics
           protocol_link: http://example.com
@@ -123,8 +123,8 @@ metadata_submission:
           insdc_experiment_identifiers: insdc.sra:ERX000000
         - model: hiseq_1500
           samp_name: "002"
-          read_1_url: http://example.com/002-1.fastq
-          read_2_url: http://example.com/002-2.fastq
+          read_1_url: http://example.com/002-1.fastq.gz
+          read_2_url: http://example.com/002-2.fastq.gz
           analysis_type:
             - metagenomics
             - metatranscriptomics
@@ -141,7 +141,7 @@ metadata_submission:
             - metagenomics
             - metatranscriptomics
           protocol_link: http://example.org/protocol.html
-          interleaved_url: http://example.org/002-metat.fastq
+          interleaved_url: http://example.org/002-metat.fastq.gz
           processing_institution: Battelle
           interleaved_md5_checksum: 93ee47243d79217978cbed946c4e203a
           insdc_bioproject_identifiers: bioproject:PRJNA366858
@@ -151,7 +151,7 @@ metadata_submission:
           analysis_type:
             - metatranscriptomics
           protocol_link: http://example.org/protocol.html
-          interleaved_url: http://example.org/003-metat-a.fastq; http://example.org/003-metat-b.fastq
+          interleaved_url: http://example.org/003-metat-a.fastq.gz; http://example.org/003-metat-b.fastq.gz
           processing_institution: Battelle
           interleaved_md5_checksum: 8a7a02537074949bbef514cba5d669d8; 2dee554dd9bd8d2403e3b5430d19e3c3
           insdc_bioproject_identifiers: bioproject:PRJNA366858
