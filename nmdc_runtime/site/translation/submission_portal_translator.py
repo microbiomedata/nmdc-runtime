@@ -845,7 +845,11 @@ class SubmissionPortalTranslator(Translator):
                 url_fields = [
                     ("read_1_url", "read_1_md5_checksum", "Metagenome Raw Read 1"),
                     ("read_2_url", "read_2_md5_checksum", "Metagenome Raw Read 2"),
-                    ("interleaved_url", "interleaved_md5_checksum", "Metagenome Raw Reads")
+                    (
+                        "interleaved_url",
+                        "interleaved_md5_checksum",
+                        "Metagenome Raw Reads",
+                    ),
                 ]
                 for url_field, md5_field, data_object_type in url_fields:
                     data_objects, manifest = self._get_data_objects_from_fields(
