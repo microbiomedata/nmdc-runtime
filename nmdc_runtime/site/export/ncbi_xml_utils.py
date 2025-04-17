@@ -312,3 +312,130 @@ def validate_xml(xml, xsd_url):
         raise ValueError(f"There were errors while validating against: {xsd_url}")
 
     return True
+
+
+def check_if_biosample_is_pooled(
+    biosample_id: str,
+    material_processing_set: Collection,
+    all_docs_collection: Collection,
+    processed_sample_set: Collection,
+) -> dict:
+    """
+    Checks if a biosample is part of a pooling process (i.e., if it is asserted on the `has_input` key
+    of a Pooling record) and if so, traverses the chain to get the library name.
+
+    This method uses all_docs_collection to follow the document chain from biosample through pooling
+    and to library preparation.
+
+    Args:
+        biosample_id: ID of the biosample to check
+        material_processing_set: Reference to the material_processing_set collection
+        all_docs_collection: Reference to the all_docs collection
+        processed_sample_set: Reference to the processed_sample_set collection
+
+    Returns:
+        A dictionary containing:
+            'is_pooled': True if biosample is part of a pooling process, False otherwise
+            'library_name': The name of the processed sample (output of library prep) if exists
+            'pooled_biosamples': List of all biosample IDs in the same pool (if pooled)
+    """
+    result = {"is_pooled": False, "library_name": None, "pooled_biosamples": []}
+
+    # Step 1: Check if biosample is part of a pooling process
+    # (find a Pooling record that has this biosample in its has_input)
+    pooling_query = {"has_input": biosample_id, "type": "nmdc:Pooling"}
+    pooling_record = material_processing_set.find_one(pooling_query)
+
+    if not pooling_record:
+        return result
+
+    # Biosample is part of a pooling process
+    result["is_pooled"] = True
+
+    # Get all biosamples that are part of this pooling process
+    if "has_input" in pooling_record and isinstance(pooling_record["has_input"], list):
+        result["pooled_biosamples"] = pooling_record["has_input"]
+
+    # Get the output of the pooling process
+    if "has_output" not in pooling_record or not pooling_record["has_output"]:
+        return result
+
+    pooling_output = pooling_record["has_output"]
+    if not isinstance(pooling_output, list) or not pooling_output:
+        return result
+
+    pooling_output_id = pooling_output[0]  # Assuming there's just one output
+
+    # Step 2: Find the library preparation that has this pooling output as input
+    # First, try direct query in material_processing_set
+    lib_prep_query = {"has_input": pooling_output_id, "type": "nmdc:LibraryPreparation"}
+    lib_prep_record = material_processing_set.find_one(lib_prep_query)
+
+    # If direct query fails, search through all_docs_collection
+    if not lib_prep_record:
+        # Find any document that has the pooling output as input
+        intermediate_query = {"has_input": pooling_output_id}
+        intermediate_doc = all_docs_collection.find_one(intermediate_query)
+
+        if intermediate_doc and "has_output" in intermediate_doc:
+            for output_id in intermediate_doc.get("has_output", []):
+                # Try to find a LibraryPreparation that has this output as input
+                lib_prep_query = {
+                    "has_input": output_id,
+                    "type": "nmdc:LibraryPreparation",
+                }
+                lib_prep_record = material_processing_set.find_one(lib_prep_query)
+                if lib_prep_record:
+                    break
+
+                # If that fails, try searching in all_docs_collection
+                if not lib_prep_record:
+                    lib_prep_query = {
+                        "has_input": output_id,
+                        "type": "nmdc:LibraryPreparation",
+                    }
+                    lib_prep_record = all_docs_collection.find_one(lib_prep_query)
+                    if lib_prep_record:
+                        break
+
+    # If we still couldn't find a library preparation record, try using
+    # the technique from fetch_library_preparation_from_biosamples
+    if not lib_prep_record:
+        # Find any document with the pooling output id as has_input
+        initial_query = {"has_input": pooling_output_id}
+        initial_document = all_docs_collection.find_one(initial_query)
+
+        if initial_document and "has_output" in initial_document:
+            for output_id in initial_document.get("has_output", []):
+                lib_prep_query = {
+                    "has_input": output_id,
+                    "type": {"$in": ["LibraryPreparation", "nmdc:LibraryPreparation"]},
+                }
+                lib_prep_record = material_processing_set.find_one(lib_prep_query)
+                if lib_prep_record:
+                    break
+
+                # Try in all_docs_collection as well
+                lib_prep_record = all_docs_collection.find_one(lib_prep_query)
+                if lib_prep_record:
+                    break
+
+    # If we found a library preparation record, extract the processed sample name
+    if (
+        lib_prep_record
+        and "has_output" in lib_prep_record
+        and lib_prep_record["has_output"]
+    ):
+        lib_prep_output = lib_prep_record["has_output"]
+        if isinstance(lib_prep_output, list) and lib_prep_output:
+            processed_sample_id = lib_prep_output[0]  # Assuming there's just one output
+
+            # Get the processed sample record to retrieve its name
+            processed_sample = processed_sample_set.find_one(
+                {"id": processed_sample_id}
+            )
+
+            if processed_sample and "name" in processed_sample:
+                result["library_name"] = processed_sample["name"]
+
+    return result
