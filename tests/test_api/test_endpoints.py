@@ -381,11 +381,17 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
         )
     assert exc.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # Assert that the "detail" property of the exception mentions
-    # "errors", the "study_set" collection, and the "part_of" field.
-    # Note: The "detail" property is a string, not a dictionary.
+    # Assert that the "detail" property of the exception contains the words "errors",
+    # "study_set" (i.e. the collection name), and "part_of" (i.e. the field name).
+    #
+    # Note: The "detail" value is a string representation of a Python dictionary
+    #       (its keys are wrapped in single quotes, not double quotes). It is not
+    #       a valid JSON string, so we cannot use `json.loads()` to parse it.
+    #       I do not know whether that was by design.
+    #
     assert "detail" in exc.value.response.json()
-    detail_str: str = exc.value.response.json()["detail"]
+    detail_str = exc.value.response.json()["detail"]
+    assert isinstance(detail_str, str)
     assert "errors" in detail_str
     assert "study_set" in detail_str
     assert "part_of" in detail_str
