@@ -339,34 +339,37 @@ def test_metadata_validate_json_with_unknown_collection(api_site_client):
     assert rv.json()["result"] == "errors"
 
 
-def test_metadata_json_submit_rejects_document_containing_broken_reference(api_user_client):
+def test_metadata_json_submit_rejects_document_containing_broken_reference(
+    api_user_client,
+):
     # Make sure the `study_set` collection` doesn't already contain documents
     # having the IDs we're going to be using in this test.
     nonexistent_study_id = "nmdc:sty-00-000001"
     my_study_id = "nmdc:sty-00-000002"
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
-    assert study_set.count_documents({"id": {"$in": [my_study_id, nonexistent_study_id]}}) == 0
+    assert (
+        study_set.count_documents({"id": {"$in": [my_study_id, nonexistent_study_id]}})
+        == 0
+    )
 
     # Generate a study having one of those IDs, and have it _reference_ a non-existent study
     # having the other one of those IDs.
     faker = Faker()
-    my_study = faker.generate_studies(1, id=my_study_id, part_of=[nonexistent_study_id])[0]
+    my_study = faker.generate_studies(
+        1, id=my_study_id, part_of=[nonexistent_study_id]
+    )[0]
 
     # 👤 Give the user permission to use this API endpoint if it doesn't already have
     # such permission (i.e. do an upsert).
     allowances_collection = mdb.get_collection("_runtime.api.allow")
-    allowances_collection.replace_one(
-        {
-            "username": api_user_client.username,
-            "action": "/metadata/json:submit",
-        },
-        {
-            "username": api_user_client.username,
-            "action": "/metadata/json:submit",
-        },
-        upsert=True,
-    )
+    user_allowance = {
+        "username": api_user_client.username,
+        "action": "/metadata/json:submit",
+    }
+    user_was_not_allowed = allowances_collection.find_one(user_allowance) is None
+    if user_was_not_allowed:
+        allowances_collection.insert_one(user_allowance)
 
     # Submit an API request whose payload contains the study.
     #
@@ -402,10 +405,8 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
     assert study_set.count_documents({"id": my_study_id}) == 0
 
     # 🧹 Clean up.
-    allowances_collection.delete_many({
-        "username": api_user_client.username,
-        "action": "/metadata/json:submit",
-    })
+    if user_was_not_allowed:
+        allowances_collection.delete_one(user_allowance)
 
 
 # TODO: Add a test that demonstrates the "success" behavior of the `/metadata/json:submit` API endpoint.
@@ -1026,7 +1027,9 @@ def test_find_related_objects_for_workflow_execution__returns_related_workflow_e
     )[0]
 
     # Create a second `WorkflowExecution` that is related to the first one.
-    data_object_b = faker.generate_data_objects(1, has_output=workflow_execution_a["id"])[0]
+    data_object_b = faker.generate_data_objects(
+        1, has_output=workflow_execution_a["id"]
+    )[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
         was_informed_by=data_generation_a["id"],
