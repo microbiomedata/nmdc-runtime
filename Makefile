@@ -123,7 +123,7 @@ docs-dev:
 # 2. The `NERSC_USERNAME` environment variable is set to your NERSC username.
 #
 nersc-sshproxy:
-	bash ${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
+	${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
