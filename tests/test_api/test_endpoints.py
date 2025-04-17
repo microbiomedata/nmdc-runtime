@@ -379,19 +379,20 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
             "/metadata/json:submit",
             {"study_set": [my_study]},
         )
-    assert exc.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = exc.value.response
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # Assert that the "detail" property of the exception contains the words "errors",
+    # Assert that the "detail" property of the response payload contains the words "errors",
     # "study_set" (i.e. the problematic collection), and "part_of" (i.e. the problematic field).
     #
-    # Note: The "detail" value is a string representation of a Python dictionary
-    #       (its keys are wrapped in single quotes, not double quotes). It is not
-    #       a valid JSON string, so we cannot use `json.loads()` to parse it.
-    #       I do not know whether that was by design. Maybe I am not accessing
-    #       the exception's content in the way its author intended.
+    # Note: The "detail" value is a string representation of the Python dictionary returned
+    #       by the `validate_json` function (i.e. its keys are wrapped in single quotes,
+    #       not double quotes). It is not a valid JSON string, so we cannot use `json.loads()`
+    #       to parse it. I do not know whether that was by design. Maybe I am not accessing
+    #       the exception's content in the way its designer intended.
     #
-    assert "detail" in exc.value.response.json()
-    detail_str = exc.value.response.json()["detail"]
+    assert "detail" in response.json()
+    detail_str = response.json()["detail"]
     assert isinstance(detail_str, str)
     assert "errors" in detail_str
     assert "study_set" in detail_str
