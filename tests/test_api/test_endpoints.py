@@ -370,8 +370,8 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
 
     # Submit an API request whose payload contains the study.
     #
-    # Note: The `api_user_client.request` helper method raises an exception
-    #       when the response is not a success response.
+    # Note: The `api_user_client.request` method raises an exception when
+    #       the HTTP response is not a "success" response.
     #
     with pytest.raises(requests.exceptions.HTTPError) as exc:
         api_user_client.request(
@@ -381,8 +381,8 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
         )
     assert exc.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # Assert that the "detail" property of the exception contains the words "errors",
-    # "study_set" (i.e. the collection name), and "part_of" (i.e. the field name).
+    # Assert that the top-level "detail" property of the exception contains the words "errors",
+    # "study_set" (i.e. the problematic collection), and "part_of" (i.e. the problematic field).
     #
     # Note: The "detail" value is a string representation of a Python dictionary
     #       (its keys are wrapped in single quotes, not double quotes). It is not
