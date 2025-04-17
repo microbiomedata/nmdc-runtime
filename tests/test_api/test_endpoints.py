@@ -339,6 +339,62 @@ def test_metadata_validate_json_with_unknown_collection(api_site_client):
     assert rv.json()["result"] == "errors"
 
 
+def test_metadata_json_submit_rejects_document_containing_broken_reference(api_user_client):
+    # Make sure the `study_set` collection` doesn't already contain documents
+    # having the IDs we're going to be using in this test.
+    nonexistent_study_id = "nmdc:sty-00-000001"
+    my_study_id = "nmdc:sty-00-000002"
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    assert study_set.count_documents({"id": {"$in": [my_study_id, nonexistent_study_id]}}) == 0
+
+    # Generate a study having one of those IDs, and have it _reference_ a non-existent study
+    # having the other one of those IDs.
+    faker = Faker()
+    my_study = faker.generate_studies(1, id=my_study_id, part_of=nonexistent_study_id)[0]
+
+    # 👤 Give the user permission to use this API endpoint if it doesn't already have
+    # such permission (i.e. do an upsert).
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allowances_collection.replace_one(
+        {
+            "username": api_user_client.username,
+            "action": "/metadata/json:submit",
+        },
+        {
+            "username": api_user_client.username,
+            "action": "/metadata/json:submit",
+        },
+        upsert=True,
+    )
+
+    # Submit an API request whose payload contains the study.
+    #
+    # Note: The `api_user_client.request` helper method raises an exception
+    #       when the response is not a success response.
+    #
+    with pytest.raises(requests.exceptions.HTTPError) as error:
+        api_user_client.request(
+            "POST",
+            "/metadata/json:submit",
+            {"study_set": [my_study]},
+        )
+    assert error.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Assert that the `study_set` collection still does not contain the study we submitted.
+    assert study_set.count_documents({"id": my_study_id}) == 0
+
+    # 🧹 Clean up.
+    allowances_collection.delete_many({
+        "username": api_user_client.username,
+        "action": "/metadata/json:submit",
+    })
+
+
+# TODO: Add a test that demonstrates the "success" behavior of the `/metadata/json:submit` API endpoint.
+#       Note that that behavior involves Dagster.
+
+
 def test_submit_changesheet():
     sheet_in = ChangesheetIn(
         name="sheet",
