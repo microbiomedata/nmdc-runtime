@@ -351,7 +351,7 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
     # Generate a study having one of those IDs, and have it _reference_ a non-existent study
     # having the other one of those IDs.
     faker = Faker()
-    my_study = faker.generate_studies(1, id=my_study_id, part_of=nonexistent_study_id)[0]
+    my_study = faker.generate_studies(1, id=my_study_id, part_of=[nonexistent_study_id])[0]
 
     # 👤 Give the user permission to use this API endpoint if it doesn't already have
     # such permission (i.e. do an upsert).
@@ -373,13 +373,22 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(api_u
     # Note: The `api_user_client.request` helper method raises an exception
     #       when the response is not a success response.
     #
-    with pytest.raises(requests.exceptions.HTTPError) as error:
+    with pytest.raises(requests.exceptions.HTTPError) as exc:
         api_user_client.request(
             "POST",
             "/metadata/json:submit",
             {"study_set": [my_study]},
         )
-    assert error.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Assert that the "detail" property of the exception mentions
+    # "errors", the "study_set" collection, and the "part_of" field.
+    # Note: The "detail" property is a string, not a dictionary.
+    assert "detail" in exc.value.response.json()
+    detail_str: str = exc.value.response.json()["detail"]
+    assert "errors" in detail_str
+    assert "study_set" in detail_str
+    assert "part_of" in detail_str
 
     # Assert that the `study_set` collection still does not contain the study we submitted.
     assert study_set.count_documents({"id": my_study_id}) == 0
