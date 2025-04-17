@@ -361,7 +361,7 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(
     )[0]
 
     # 👤 Give the user permission to use this API endpoint if it doesn't already have
-    # such permission (i.e. do an upsert).
+    # such permission.
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     user_allowance = {
         "username": api_user_client.username,
