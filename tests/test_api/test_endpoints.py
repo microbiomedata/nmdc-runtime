@@ -455,10 +455,10 @@ def test_submit_changesheet():
     assert True
 
 
-def test_submit_workflow_activities(api_site_client):
+def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_client):
     r"""
     In this test, we submit a workflow execution to the `/workflows/workflow_executions` API endpoint,
-    and confirm the endpoint returns a success response.
+    and then confirm that that workflow execution has been inserted into the database.
     """
 
     # Generate a `workflow_execution_set` document and the other kinds of documents necessary
@@ -566,8 +566,8 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
 
     # Assert that the "detail" property of the response payload contains the words "errors",
     # "workflow_execution_set" (i.e. the problematic collection), and "was_informed_by"
-    # (i.e. the problematic field), but not "has_input" or "has_output" (i.e. a referring
-    # fields having no referential integrity issues).
+    # (i.e. the problematic field), but not "has_input" or "has_output" (i.e. referring
+    # fields that do not have any referential integrity issues).
     assert "detail" in response.json()
     detail_str = response.json()["detail"]
     assert isinstance(detail_str, str)
