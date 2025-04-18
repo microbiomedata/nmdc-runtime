@@ -92,7 +92,7 @@ async def post_workflow_execution(
     _ = site  # must be authenticated
     try:
         # validate request JSON
-        rv = validate_json(workflow_execution_set, mdb)
+        rv = validate_json(workflow_execution_set, mdb, check_inter_document_references=True)
         if rv["result"] == "errors":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

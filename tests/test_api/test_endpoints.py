@@ -497,6 +497,62 @@ def test_submit_workflow_activities(api_site_client):
     assert "id" in rv.json() and "input_read_count" not in rv.json()
 
 
+def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(api_site_client):
+    r"""
+    In this test, we submit a workflow execution that contains a reference to a non-existent data generation,
+    to the `/workflows/workflow_executions` API endpoint, and confirm the endpoint returns an error response.
+    """
+
+    # Generate a `data_object_set` document and generate a `workflow_execution_set` document that references
+    # (a) that `data_object_set` document and (b) a non-existent `data_generation_set` document.
+    faker = Faker()
+    nonexistent_data_generation_id = "nmdc:dgns-00-000001"
+    data_object = faker.generate_data_objects(1)[0]
+    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=nonexistent_data_generation_id, has_input=[data_object["id"]])[0]
+    
+    # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
+    # don't already contain documents like the ones involved in this test.
+    mdb = get_mongo_db()
+    data_generation_set = mdb.get_collection("data_generation_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
+    assert data_object_set.count_documents({"id": data_object["id"]}) == 0
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # Insert the referenced `data_object_set` document into the database. Notice that we are
+    # not inserting any `data_generation_set` documents into the database.
+    data_object_set.insert_one(data_object)
+
+    # Submit an API request whose payload contains the `workflow_execution_set` document, which
+    # contains a broken reference.
+    request_payload = {"workflow_execution_set": [workflow_execution]}
+    with pytest.raises(requests.exceptions.HTTPError) as exc:
+        api_site_client.request(
+            "POST",
+            "/workflows/workflow_executions",
+            request_payload,
+        )
+    response = exc.value.response
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Assert that the "detail" property of the response payload contains the words "errors",
+    # "workflow_execution_set" (i.e. the problematic collection),
+    # and "was_informed_by" (i.e. the problematic field).
+    assert "detail" in response.json()
+    detail_str = response.json()["detail"]
+    assert isinstance(detail_str, str)
+    assert "errors" in detail_str
+    assert "workflow_execution_set" in detail_str
+    assert "was_informed_by" in detail_str
+
+    # Assert that the `workflow_execution_set` collection still does not contain the document we submitted.
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # 🧹 Clean up.
+    data_object_set.delete_many({"id": data_object["id"]})
+
+
 def test_get_class_name_and_collection_names_by_doc_id():
     base_url = os.getenv("API_HOST")
 
