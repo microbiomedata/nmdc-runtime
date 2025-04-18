@@ -16,7 +16,7 @@ from toolz import concat, dissoc, get_in, groupby, valmap
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
 
-DataUrlSet = namedtuple('DataUrlSet', ['url', 'md5_checksum'])
+DataUrlSet = namedtuple("DataUrlSet", ["url", "md5_checksum"])
 
 READ_1 = DataUrlSet("read_1_url", "read_1_md5_checksum")
 READ_2 = DataUrlSet("read_2_url", "read_2_md5_checksum")
@@ -46,6 +46,7 @@ DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] 
     (READ_2, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 2",
     (INTERLEAVED, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Reads",
 }
+
 
 class EnvironmentPackage(Enum):
     r"""
@@ -865,7 +866,9 @@ class SubmissionPortalTranslator(Translator):
                 # to the NucleotideSequencing instance via the has_output/was_generated_by
                 # relationships.
                 for data_url in DATA_URL_SETS:
-                    data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[(data_url, str(analyte_category))]
+                    data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[
+                        (data_url, str(analyte_category))
+                    ]
                     data_objects, manifest = self._get_data_objects_from_fields(
                         tab,
                         url_field_name=data_url.url,
