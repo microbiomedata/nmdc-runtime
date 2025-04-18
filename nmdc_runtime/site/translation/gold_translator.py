@@ -639,12 +639,12 @@ class GoldStudyTranslator(Translator):
         :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
-        gold_bioproject_identifier = gold_project.get("ncbiBioProjectAccession")
+        ncbi_bioproject_identifier = gold_project.get("ncbiBioProjectAccession")
         insdc_bioproject_identifiers = []
-        if gold_bioproject_identifier:
+        if ncbi_bioproject_identifier:
             insdc_bioproject_identifiers.append(
                 self._ensure_curie(
-                    gold_bioproject_identifier,
+                    ncbi_bioproject_identifier,
                     default_prefix="bioproject",
                 )
             )
