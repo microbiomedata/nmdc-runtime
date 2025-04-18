@@ -11,7 +11,7 @@ from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
 from itertools import chain
-
+from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
 
@@ -25,6 +25,7 @@ from dagster import (
     Failure,
     List,
     MetadataValue,
+    Noneable,
     OpExecutionContext,
     Out,
     Output,
@@ -1044,6 +1045,39 @@ def site_code_mapping() -> dict:
         )
 
 
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "source_ontology": str,
+        "output_directory": Field(Noneable(str), default_value=None, is_required=False),
+        "generate_reports": Field(bool, default_value=True, is_required=False),
+    },
+)
+def load_ontology(context: OpExecutionContext):
+    cfg = context.op_config
+    source_ontology = cfg["source_ontology"]
+    output_directory = cfg.get("output_directory")
+    generate_reports = cfg.get("generate_reports", True)
+
+    if output_directory is None:
+        output_directory = os.path.join(os.getcwd(), "ontology_reports")
+
+    print(f"Running Ontology Loader for ontology: {source_ontology}")
+    loader = OntologyLoaderController(
+        source_ontology=source_ontology,
+        output_directory=output_directory,
+        generate_reports=generate_reports,
+    )
+
+    try:
+        loader.run_ontology_loader()
+        print("Ontology load completed successfully!")
+    except Exception as e:
+        print(f"Error running ontology loader: {e}")
+
+    context.log.info(f"Loaded {source_ontology}")
+
+
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
@@ -1111,12 +1145,14 @@ def materialize_alldocs(context) -> int:
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # InsertOne is a method on the py-mongo Client class.
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
                 write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(write_operations) > 0:
+            # here bulk_write is a method on the py-mongo db Client class
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(

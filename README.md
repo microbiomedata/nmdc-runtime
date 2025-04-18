@@ -28,6 +28,7 @@ houses code specific to the data portal -- its database, back-end API, and front
 
 The NMDC metadata as of 2021-10 is available here:
 
+
 https://drs.microbiomedata.org/ga4gh/drs/v1/objects/sys086d541
 
 The link returns a [GA4GH DRS API bundle object record](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_drs_datatypes), with the NMDC metadata collections (study_set, biosample_set, etc.) as contents, each a DRS API blob object.
@@ -104,7 +105,8 @@ source .env
 set +a
 ```
 
-If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on 
+the NERSC network—set up the SSH tunnel.
 
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
@@ -137,12 +139,13 @@ make test
 # Run a Specific test file eg. tests/test_api/test_endpoints.py
 make test ARGS="tests/test_api/test_endpoints.py"
 ```
+docker compose --file docker-compose.test.yml run test
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
-tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
 
 ### RAM usage
 
