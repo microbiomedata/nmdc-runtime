@@ -2,7 +2,7 @@ import json
 from typing import Optional, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
 
@@ -63,7 +63,14 @@ def claim_job(
     "/jobs/{job_id}:release", response_model=Job, response_model_exclude_unset=True
 )
 def release_job(
-    job_id: str,
+    job_id: Annotated[
+        str,
+        Path(
+            title="Job ID",
+            description="The `id` of the job you want to release.\n\n_Example_: `nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6`",
+            examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
