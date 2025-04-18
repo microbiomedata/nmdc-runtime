@@ -507,8 +507,12 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     # (a) that `data_object_set` document and (b) a non-existent `data_generation_set` document.
     faker = Faker()
     nonexistent_data_generation_id = "nmdc:dgns-00-000001"
-    data_object = faker.generate_data_objects(1)[0]
-    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=nonexistent_data_generation_id, has_input=[data_object["id"]])[0]
+    data_object = faker.generate_data_objects(quantity=1)[0]
+    workflow_execution = faker.generate_metagenome_annotations(
+        quantity=1,
+        has_input=[data_object["id"]],
+        was_informed_by=nonexistent_data_generation_id,  # intentionally-broken reference
+    )[0]
     
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
     # don't already contain documents like the ones involved in this test.
