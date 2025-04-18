@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import namedtuple
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache
@@ -14,16 +15,37 @@ from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
+
+DataUrlSet = namedtuple('DataUrlSet', ['url', 'md5_checksum'])
+
+READ_1 = DataUrlSet("read_1_url", "read_1_md5_checksum")
+READ_2 = DataUrlSet("read_2_url", "read_2_md5_checksum")
+INTERLEAVED = DataUrlSet("interleaved_url", "interleaved_md5_checksum")
+
+DATA_URL_SETS: list[DataUrlSet] = [READ_1, READ_2, INTERLEAVED]
+
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
 
 TAB_NAME_KEY = "__tab_name"
+METAGENOME = nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metagenome)
+METATRANSCRIPTOME = nmdc.NucleotideSequencingEnum(
+    nmdc.NucleotideSequencingEnum.metatranscriptome
+)
 TAB_NAME_TO_ANALYTE_CATEGORY: dict[str, nmdc.NucleotideSequencingEnum] = {
-    "metagenome_sequencing_non_interleaved_data": nmdc.NucleotideSequencingEnum.metagenome,
-    "metagenome_sequencing_interleaved_data": nmdc.NucleotideSequencingEnum.metagenome,
-    "metatranscriptome_sequencing_non_interleaved_data": nmdc.NucleotideSequencingEnum.metatranscriptome,
-    "metatranscriptome_sequencing_interleaved_data": nmdc.NucleotideSequencingEnum.metatranscriptome,
+    "metagenome_sequencing_non_interleaved_data": METAGENOME,
+    "metagenome_sequencing_interleaved_data": METAGENOME,
+    "metatranscriptome_sequencing_non_interleaved_data": METATRANSCRIPTOME,
+    "metatranscriptome_sequencing_interleaved_data": METATRANSCRIPTOME,
 }
 
+DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] = {
+    (READ_1, str(METAGENOME)): "Metagenome Raw Read 1",
+    (READ_2, str(METAGENOME)): "Metagenome Raw Read 2",
+    (INTERLEAVED, str(METAGENOME)): "Metagenome Raw Reads",
+    (READ_1, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 1",
+    (READ_2, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 2",
+    (INTERLEAVED, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Reads",
+}
 
 class EnvironmentPackage(Enum):
     r"""
@@ -842,20 +864,12 @@ class SubmissionPortalTranslator(Translator):
                 # into DataObject instances. Each of these DataObject instances will be connected
                 # to the NucleotideSequencing instance via the has_output/was_generated_by
                 # relationships.
-                url_fields = [
-                    ("read_1_url", "read_1_md5_checksum", "Metagenome Raw Read 1"),
-                    ("read_2_url", "read_2_md5_checksum", "Metagenome Raw Read 2"),
-                    (
-                        "interleaved_url",
-                        "interleaved_md5_checksum",
-                        "Metagenome Raw Reads",
-                    ),
-                ]
-                for url_field, md5_field, data_object_type in url_fields:
+                for data_url in DATA_URL_SETS:
+                    data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[(data_url, str(analyte_category))]
                     data_objects, manifest = self._get_data_objects_from_fields(
                         tab,
-                        url_field_name=url_field,
-                        md5_checksum_field_name=md5_field,
+                        url_field_name=data_url.url,
+                        md5_checksum_field_name=data_url.md5_checksum,
                         nucleotide_sequencing_id=nucleotide_sequencing_id,
                         data_object_type=nmdc.FileTypeEnum(data_object_type),
                     )

@@ -316,18 +316,18 @@ data_object_set:
 - id: nmdc:dobj-00-7r7pn0r2
   type: nmdc:DataObject
   name: 002-metat.fastq.gz
-  description: Metagenome Raw Reads for nmdc:dgns-00-efijcf8z  # FIXME when Metatranscriptome PVs are available
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-efijcf8z
   insdc_experiment_identifiers:
   - insdc.sra:DRX000001
   md5_checksum: 93ee47243d79217978cbed946c4e203a
   url: http://example.org/002-metat.fastq.gz
   was_generated_by: nmdc:dgns-00-efijcf8z
   data_category: instrument_data
-  data_object_type: Metagenome Raw Reads  # FIXME when Metatranscriptome PVs are available
+  data_object_type: Metatranscriptome Raw Reads
 - id: nmdc:dobj-00-pbrhoxkv
   type: nmdc:DataObject
   name: 003-metat-a.fastq.gz
-  description: Metagenome Raw Reads for nmdc:dgns-00-5wfuh5vm  # FIXME when Metatranscriptome PVs are available
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-5wfuh5vm
   insdc_experiment_identifiers:
     - insdc.sra:DRX000002
   md5_checksum: 8a7a02537074949bbef514cba5d669d8
@@ -336,11 +336,11 @@ data_object_set:
   data_category: instrument_data
   in_manifest:
     - nmdc:manif-00-bhmhzfxh
-  data_object_type: Metagenome Raw Reads  # FIXME when Metatranscriptome PVs are available
+  data_object_type: Metatranscriptome Raw Reads
 - id: nmdc:dobj-00-1dgjoc8e
   type: nmdc:DataObject
   name: 003-metat-b.fastq.gz
-  description: Metagenome Raw Reads for nmdc:dgns-00-5wfuh5vm  # FIXME when Metatranscriptome PVs are available
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-5wfuh5vm
   insdc_experiment_identifiers:
     - insdc.sra:DRX000002
   md5_checksum: 2dee554dd9bd8d2403e3b5430d19e3c3
@@ -349,7 +349,7 @@ data_object_set:
   data_category: instrument_data
   in_manifest:
     - nmdc:manif-00-bhmhzfxh
-  data_object_type: Metagenome Raw Reads  # FIXME when Metatranscriptome PVs are available
+  data_object_type: Metatranscriptome Raw Reads
 manifest_set:
 - id: nmdc:manif-00-bhmhzfxh
   type: 'nmdc:Manifest'
