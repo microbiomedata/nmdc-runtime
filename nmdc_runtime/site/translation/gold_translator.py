@@ -639,6 +639,16 @@ class GoldStudyTranslator(Translator):
         :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
+        gold_bioproject_identifier = gold_project.get("ncbiBioProjectAccession")
+        insdc_bioproject_identifiers = []
+        if gold_bioproject_identifier:
+            insdc_bioproject_identifiers.append(
+                self._ensure_curie(
+                    gold_bioproject_identifier,
+                    default_prefix="bioproject",
+                )
+            )
+
         return nmdc.NucleotideSequencing(
             id=nmdc_nucleotide_sequencing_id,
             name=gold_project.get("projectName"),
@@ -650,6 +660,7 @@ class GoldStudyTranslator(Translator):
             has_input=nmdc_biosample_id,
             add_date=gold_project.get("addDate"),
             mod_date=self._get_mod_date(gold_project),
+            insdc_bioproject_identifiers=insdc_bioproject_identifiers,
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             instrument_used=self._get_instrument(gold_project),
