@@ -7,7 +7,6 @@ import xml.dom.minidom
 from typing import Any, List, Union
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
-    get_instruments,
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
     handle_geolocation_value,

@@ -1,9 +1,9 @@
 import os
 
-from dagster import op
 from functools import lru_cache
 from pymongo.database import Database as MongoDatabase
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
+from toolz import groupby
 
 from nmdc_runtime.api.db.mongo import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
@@ -52,3 +52,10 @@ def get_basename(filename: str) -> str:
 
 def nmdc_study_id_to_filename(nmdc_study_id: str) -> str:
     return nmdc_study_id.replace(":", "_").replace("-", "_")
+
+
+def get_instruments_by_id(mdb: MongoDatabase) -> dict[str, dict]:
+    """Get all documents from the instrument_set collection in a dict keyed by id."""
+    return {
+        instrument["id"]: instrument for instrument in mdb["instrument_set"].find({})
+    }
