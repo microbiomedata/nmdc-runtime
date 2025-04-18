@@ -67,7 +67,7 @@ def release_job(
         str,
         Path(
             title="Job ID",
-            description="The `id` of the job you want to release.\n\n_Example_: `nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6`",
+            description="The `id` of the job.\n\n_Example_: `nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6`",
             examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
         ),
     ],
