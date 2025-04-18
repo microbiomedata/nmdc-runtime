@@ -1916,3 +1916,24 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
 
     # 🧹 Clean up.
     study_set.delete_many({"title": study_title})
+
+
+def test_release_job(api_site_client):
+    mdb = get_mongo_db()
+    test_job_id = mdb.jobs.find_one({"workflow.id": "test"})["id"]
+    # claim the test job
+    api_site_client.request(
+        "POST",
+        f"/jobs/{test_job_id}:claim",
+    )
+    # release the test job
+    rv = api_site_client.request(
+        "POST",
+        f"/jobs/{test_job_id}:release",
+    )
+    # assert that all claims by this site are cancelled.
+    assert all(
+        claim["cancelled"]
+        for claim in rv.json()["claims"]
+        if claim["site_id"] == api_site_client.site_id
+    )
