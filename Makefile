@@ -123,7 +123,7 @@ docs-dev:
 # 2. The `NERSC_USERNAME` environment variable is set to your NERSC username.
 #
 nersc-sshproxy:
-	bash ${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
+	${PATH_TO_NERSC_SSHPROXY} -u ${NERSC_USERNAME}
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
@@ -139,7 +139,7 @@ mongorestore-nmdc-db:
 	# export MONGO_REMOTE_DUMP_DIR=$(ssh -i ~/.ssh/nersc -q ${NERSC_USERNAME}@dtn01.nersc.gov 'bash -s ' < util/get_latest_nmdc_prod_dump_dir.sh 2>/dev/null)
 	# ```
 	# Rsync the remote dump directory items of interest:
-	rsync -av --exclude='_*' --exclude='fs\.*' \
+	rsync -av --no-perms --exclude='_*' --exclude='fs\.*' \
 		-e "ssh -i ~/.ssh/nersc" \
 		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
 		/tmp/remote-mongodump/nmdc

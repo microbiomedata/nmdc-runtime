@@ -171,7 +171,7 @@ class Faker:
         >>> len(metagenome_annotations)
         1
         >>> metagenome_annotations[0]['id']
-        'nmdc:wfmgan-00-000001'
+        'nmdc:wfmgan-00-000001.1'
         >>> metagenome_annotations[0]['was_informed_by']
         'nmdc:dgns-00-000001'
         >>> metagenome_annotations[0]['has_input'][0]
@@ -182,7 +182,7 @@ class Faker:
 
         return [
             {
-                "id": self.make_unique_id(f"nmdc:wfmgan-00-"),
+                "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
                 "type": "nmdc:MetagenomeAnnotation",
                 "execution_resource": "JGI",
                 "git_url": "https://www.example.com",

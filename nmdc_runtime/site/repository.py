@@ -645,8 +645,6 @@ def biosample_submission_ingest():
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
                             "study_category": "research_study",
-                            "study_doi_category": None,
-                            "study_doi_provider": None,
                             "study_pi_image_url": None,
                         }
                     },
@@ -683,8 +681,6 @@ def biosample_submission_ingest():
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
                             "study_category": None,
-                            "study_doi_category": None,
-                            "study_doi_provider": None,
                             "study_pi_image_url": None,
                         }
                     },

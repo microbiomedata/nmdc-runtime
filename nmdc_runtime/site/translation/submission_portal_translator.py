@@ -1,10 +1,12 @@
 import logging
 import re
+from collections import namedtuple
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache
 from importlib import resources
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Tuple
+from urllib.parse import urlparse
 
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
@@ -13,7 +15,37 @@ from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
+
+DataUrlSet = namedtuple("DataUrlSet", ["url", "md5_checksum"])
+
+READ_1 = DataUrlSet("read_1_url", "read_1_md5_checksum")
+READ_2 = DataUrlSet("read_2_url", "read_2_md5_checksum")
+INTERLEAVED = DataUrlSet("interleaved_url", "interleaved_md5_checksum")
+
+DATA_URL_SETS: list[DataUrlSet] = [READ_1, READ_2, INTERLEAVED]
+
 BIOSAMPLE_UNIQUE_KEY_SLOT = "samp_name"
+
+TAB_NAME_KEY = "__tab_name"
+METAGENOME = nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metagenome)
+METATRANSCRIPTOME = nmdc.NucleotideSequencingEnum(
+    nmdc.NucleotideSequencingEnum.metatranscriptome
+)
+TAB_NAME_TO_ANALYTE_CATEGORY: dict[str, nmdc.NucleotideSequencingEnum] = {
+    "metagenome_sequencing_non_interleaved_data": METAGENOME,
+    "metagenome_sequencing_interleaved_data": METAGENOME,
+    "metatranscriptome_sequencing_non_interleaved_data": METATRANSCRIPTOME,
+    "metatranscriptome_sequencing_interleaved_data": METATRANSCRIPTOME,
+}
+
+DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] = {
+    (READ_1, str(METAGENOME)): "Metagenome Raw Read 1",
+    (READ_2, str(METAGENOME)): "Metagenome Raw Read 2",
+    (INTERLEAVED, str(METAGENOME)): "Metagenome Raw Reads",
+    (READ_1, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 1",
+    (READ_2, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 2",
+    (INTERLEAVED, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Reads",
+}
 
 
 class EnvironmentPackage(Enum):
@@ -75,6 +107,18 @@ def group_dicts_by_key(key: str, seq: Optional[list[dict]]) -> Optional[dict]:
     return grouped
 
 
+def split_strip(string: str | None, sep: str) -> list[str] | None:
+    """Split a string by a separator and strip whitespace from each part.
+
+    :param string: string to split
+    :param sep: separator to split by
+    :return: list of stripped strings
+    """
+    if string is None:
+        return None
+    return [s.strip() for s in string.split(sep)]
+
+
 class SubmissionPortalTranslator(Translator):
     """A Translator subclass for handling submission portal entries
 
@@ -86,17 +130,15 @@ class SubmissionPortalTranslator(Translator):
 
     def __init__(
         self,
-        metadata_submission: JSON_OBJECT = {},
+        metadata_submission: Optional[JSON_OBJECT] = None,
         *args,
         nucleotide_sequencing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
+        illumina_instrument_mapping: Optional[dict[str, str]] = None,
         # Additional study-level metadata not captured by the submission portal currently
         # See: https://github.com/microbiomedata/submission-schema/issues/162
-        study_doi_category: Optional[str] = None,
-        study_doi_provider: Optional[str] = None,
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
-        study_funding_sources: Optional[list[str]] = None,
         # Additional biosample-level metadata with optional column mapping information not captured
         # by the submission portal currently.
         # See: https://github.com/microbiomedata/submission-schema/issues/162
@@ -106,23 +148,17 @@ class SubmissionPortalTranslator(Translator):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-        self.metadata_submission = metadata_submission
+        self.metadata_submission: JSON_OBJECT = metadata_submission or {}
         self.nucleotide_sequencing_mapping = nucleotide_sequencing_mapping
         self.data_object_mapping = data_object_mapping
+        self.illumina_instrument_mapping: dict[str, str] = (
+            illumina_instrument_mapping or {}
+        )
 
-        self.study_doi_category = (
-            nmdc.DoiCategoryEnum(study_doi_category)
-            if study_doi_category
-            else nmdc.DoiCategoryEnum.dataset_doi
-        )
-        self.study_doi_provider = (
-            nmdc.DoiProviderEnum(study_doi_provider) if study_doi_provider else None
-        )
         self.study_category = (
             nmdc.StudyCategoryEnum(study_category) if study_category else None
         )
         self.study_pi_image_url = study_pi_image_url
-        self.study_funding_sources = study_funding_sources
 
         self.biosample_extras = group_dicts_by_key(
             BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras
@@ -153,28 +189,6 @@ class SubmissionPortalTranslator(Translator):
             type=nmdc.PersonValue.class_class_curie,
         )
 
-    def _get_doi(self, metadata_submission: JSON_OBJECT) -> Union[List[nmdc.Doi], None]:
-        """Get DOI information from the context form data
-
-        :param metadata_submission: submission portal entry
-        :return: list of strings or None
-        """
-        dataset_doi = get_in(["contextForm", "datasetDoi"], metadata_submission)
-        if not dataset_doi:
-            return None
-
-        if not dataset_doi.startswith("doi:"):
-            dataset_doi = f"doi:{dataset_doi}"
-
-        return [
-            nmdc.Doi(
-                doi_value=dataset_doi,
-                doi_provider=self.study_doi_provider,
-                doi_category=self.study_doi_category,
-                type="nmdc:Doi",
-            )
-        ]
-
     def _get_has_credit_associations(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[nmdc.CreditAssociation], None]:
@@ -203,21 +217,34 @@ class SubmissionPortalTranslator(Translator):
     def _get_gold_study_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct a GOLD CURIE from the multiomics from data
+        """Construct a GOLD CURIE from the study form data
 
         :param metadata_submission: submission portal entry
         :return: GOLD CURIE
         """
-        gold_study_id = get_in(["multiOmicsForm", "GOLDStudyId"], metadata_submission)
+        gold_study_id = get_in(["studyForm", "GOLDStudyId"], metadata_submission)
         if not gold_study_id:
             return None
 
         return [self._ensure_curie(gold_study_id, default_prefix="gold")]
 
+    def _get_ncbi_bioproject_identifiers(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[str], None]:
+        """Construct a NCBI Bioproject CURIE from the study form data"""
+
+        ncbi_bioproject_id = get_in(
+            ["studyForm", "NCBIBioProjectId"], metadata_submission
+        )
+        if not ncbi_bioproject_id:
+            return None
+
+        return [self._ensure_curie(ncbi_bioproject_id, default_prefix="bioproject")]
+
     def _get_jgi_study_identifiers(
         self, metadata_submission: JSON_OBJECT
     ) -> Union[List[str], None]:
-        """Construct a JGI proposal CURIE from the multiomics from data
+        """Construct a JGI proposal CURIE from the multiomics form data
 
         :param metadata_submission: submission portal entry
         :return: JGI proposal CURIE
@@ -227,6 +254,20 @@ class SubmissionPortalTranslator(Translator):
             return None
 
         return [self._ensure_curie(jgi_study_id, default_prefix="jgi.proposal")]
+
+    def _get_emsl_project_identifiers(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[str], None]:
+        """Construct an EMSL project CURIE from the multiomics form data
+
+        :param metadata_submission: submission portal entry
+        :return: EMSL project CURIE
+        """
+        emsl_project_id = get_in(["multiOmicsForm", "studyNumber"], metadata_submission)
+        if not emsl_project_id:
+            return None
+
+        return [self._ensure_curie(emsl_project_id, default_prefix="emsl.project")]
 
     def _get_quantity_value(
         self, raw_value: Optional[str], unit: Optional[str] = None
@@ -434,6 +475,75 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
+    def _get_data_objects_from_fields(
+        self,
+        sample_data: JSON_OBJECT,
+        *,
+        url_field_name: str,
+        md5_checksum_field_name: str,
+        nucleotide_sequencing_id: str,
+        data_object_type: nmdc.FileTypeEnum,
+    ) -> Tuple[List[nmdc.DataObject], nmdc.Manifest | None]:
+        """Get a DataObject instances based on the URLs and MD5 checksums in the given fields.
+
+        If the field provides multiple URLs, multiple DataObject instances will be created and a
+        Manifest will be created and provided in the second return value.
+
+        :param sample_data: sample data
+        :param url_field_name: field name for the URL
+        :param md5_checksum_field_name: field name for the MD5 checksum
+        :param nucleotide_sequencing_id: ID for the nmdc:NucleotideSequencing object that generated the data object(s)
+        :param data_object_type: FileTypeEnum representing the type of the data object
+        :return: nmdc.DataObject or None
+        """
+        data_objects: List[nmdc.DataObject] = []
+        urls = split_strip(sample_data.get(url_field_name), ";")
+        if not urls:
+            return data_objects, None
+
+        md5_checksums = split_strip(sample_data.get(md5_checksum_field_name), ";")
+        if md5_checksums and len(urls) != len(md5_checksums):
+            raise ValueError(
+                f"{url_field_name} and {md5_checksum_field_name} must have the same number of values"
+            )
+
+        data_object_ids = self._id_minter("nmdc:DataObject", len(urls))
+        manifest: nmdc.Manifest | None = None
+        if len(urls) > 1:
+            manifest_id = self._id_minter("nmdc:Manifest", 1)[0]
+            manifest = nmdc.Manifest(
+                id=manifest_id,
+                manifest_category=nmdc.ManifestCategoryEnum(
+                    nmdc.ManifestCategoryEnum.poolable_replicates
+                ),
+                type="nmdc:Manifest",
+            )
+
+        for i, url in enumerate(urls):
+            data_object_id = data_object_ids[i]
+            parsed_url = urlparse(url)
+            possible_filename = parsed_url.path.rsplit("/", 1)[-1]
+            data_object_slots = {
+                "id": data_object_id,
+                "name": possible_filename,
+                "description": f"{data_object_type} for {nucleotide_sequencing_id}",
+                "type": "nmdc:DataObject",
+                "url": url,
+                "md5_checksum": md5_checksums[i] if md5_checksums else None,
+                "in_manifest": [manifest.id] if manifest else None,
+                "data_category": nmdc.DataCategoryEnum(
+                    nmdc.DataCategoryEnum.instrument_data
+                ),
+                "data_object_type": data_object_type,
+                "was_generated_by": nucleotide_sequencing_id,
+            }
+            data_object_slots.update(
+                self._transform_dict_for_class(sample_data, "DataObject")
+            )
+            data_objects.append(nmdc.DataObject(**data_object_slots))
+
+        return data_objects, manifest
+
     def _translate_study(
         self, metadata_submission: JSON_OBJECT, nmdc_study_id: str
     ) -> nmdc.Study:
@@ -448,18 +558,17 @@ class SubmissionPortalTranslator(Translator):
         """
         return nmdc.Study(
             alternative_names=self._get_from(
-                metadata_submission, ["multiOmicsForm", "alternativeNames"]
+                metadata_submission, ["studyForm", "alternativeNames"]
             ),
-            associated_dois=self._get_doi(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
             funding_sources=self._get_from(
                 metadata_submission, ["studyForm", "fundingSources"]
             ),
-            # emsl_proposal_identifier=self._get_from(
-            #     metadata_submission, ["multiOmicsForm", "studyNumber"]
-            # ),
+            emsl_project_identifiers=self._get_emsl_project_identifiers(
+                metadata_submission
+            ),
             gold_study_identifiers=self._get_gold_study_identifiers(
                 metadata_submission
             ),
@@ -467,8 +576,8 @@ class SubmissionPortalTranslator(Translator):
                 metadata_submission
             ),
             id=nmdc_study_id,
-            insdc_bioproject_identifiers=self._get_from(
-                metadata_submission, ["multiOmicsForm", "NCBIBioProjectId"]
+            insdc_bioproject_identifiers=self._get_ncbi_bioproject_identifiers(
+                metadata_submission
             ),
             jgi_portal_study_identifiers=self._get_jgi_study_identifiers(
                 metadata_submission
@@ -555,7 +664,7 @@ class SubmissionPortalTranslator(Translator):
             if slot_definition.multivalued:
                 value_list = value
                 if isinstance(value, str):
-                    value_list = [v.strip() for v in value.split("|")]
+                    value_list = split_strip(value, "|")
                 transformed_value = [
                     self._transform_value_for_slot(item, slot_definition, unit)
                     for item in value_list
@@ -629,16 +738,18 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc:Database object
         """
         database = nmdc.Database()
-
-        nmdc_study_id = self._id_minter("nmdc:Study")[0]
-
         metadata_submission_data = self.metadata_submission.get(
             "metadata_submission", {}
         )
+
+        # Generate one Study instance based on the metadata submission
+        nmdc_study_id = self._id_minter("nmdc:Study")[0]
         database.study_set = [
             self._translate_study(metadata_submission_data, nmdc_study_id)
         ]
 
+        # Automatically populate the `env_package` field in the sample data based on which
+        # environmental data tab the sample data came from.
         sample_data = metadata_submission_data.get("sampleData", {})
         for key in sample_data.keys():
             env = key.removesuffix("_data").upper()
@@ -647,8 +758,16 @@ class SubmissionPortalTranslator(Translator):
                 for sample in sample_data[key]:
                     sample["env_package"] = package_name
             except KeyError:
+                # This is expected when processing rows from tabs like the JGI/EMSL tabs or external
+                # sequencing data tabs.
                 pass
 
+        # Before regrouping the data by sample name, record which tab each object came from
+        for tab_name in sample_data.keys():
+            for tab in sample_data[tab_name]:
+                tab[TAB_NAME_KEY] = tab_name
+
+        # Reorganize the sample data by sample name and generate a unique NMDC ID for each
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
             concat(sample_data.values()),
@@ -658,6 +777,7 @@ class SubmissionPortalTranslator(Translator):
             zip(sample_data_by_id.keys(), nmdc_biosample_ids)
         )
 
+        # Translate the sample data into nmdc:Biosample objects
         database.biosample_set = [
             self._translate_biosample(
                 sample_data,
@@ -668,6 +788,104 @@ class SubmissionPortalTranslator(Translator):
             if sample_data
         ]
 
+        # This section handles the translation of information in the external sequencing tabs into
+        # various NMDC objects.
+        database.data_generation_set = []
+        database.data_object_set = []
+        database.instrument_set = []
+        database.manifest_set = []
+        today = datetime.now().strftime("%Y-%m-%d")
+        for sample_data_id, sample_data in sample_data_by_id.items():
+            for tab in sample_data:
+                tab_name = tab.get(TAB_NAME_KEY)
+                analyte_category = TAB_NAME_TO_ANALYTE_CATEGORY.get(tab_name)
+                if not analyte_category:
+                    # If the tab name cannot be mapped to an analyte category, that means we're
+                    # not in an external sequencing data tabs (e.g. this is an environmental data
+                    # tab or a JGI/EMSL tab). Skip this tab.
+                    continue
+
+                # Start by generating one NucleotideSequencing instance with a has_input
+                # relationship to the current Biosample instance.
+                nucleotide_sequencing_id = self._id_minter(
+                    "nmdc:NucleotideSequencing", 1
+                )[0]
+                nucleotide_sequencing_slots = {
+                    "id": nucleotide_sequencing_id,
+                    "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
+                    "has_output": [],
+                    "associated_studies": [nmdc_study_id],
+                    "add_date": today,
+                    "mod_date": today,
+                    "analyte_category": analyte_category,
+                    "type": "nmdc:NucleotideSequencing",
+                }
+                # If the protocol_link column was filled in, expand it into an nmdc:Protocol object
+                if "protocol_link" in tab:
+                    protocol_link = tab.pop("protocol_link")
+                    nucleotide_sequencing_slots["protocol_link"] = nmdc.Protocol(
+                        url=protocol_link,
+                        type="nmdc:Protocol",
+                    )
+                # If model column was filled in, expand it into an nmdc:Instrument object. This is
+                # done by first checking the provided instrument mapping to see if the model is
+                # already present. If it is not, a new instrument object is created and added to the
+                # instrument_set. Currently, we only accept sequencing data in the submission portal
+                # that was generated by Illumina instruments, so the vendor is hardcoded here.
+                if "model" in tab:
+                    model = tab.pop("model")
+                    if model not in self.illumina_instrument_mapping:
+                        # If the model is not already in the mapping, create a new record for it
+                        nmdc_instrument_id = self._id_minter("nmdc:Instrument", 1)[0]
+                        database.instrument_set.append(
+                            nmdc.Instrument(
+                                id=nmdc_instrument_id,
+                                vendor=nmdc.InstrumentVendorEnum(
+                                    nmdc.InstrumentVendorEnum.illumina
+                                ),
+                                model=nmdc.InstrumentModelEnum(model),
+                                type="nmdc:Instrument",
+                            )
+                        )
+                        self.illumina_instrument_mapping[model] = nmdc_instrument_id
+                    nucleotide_sequencing_slots["instrument_used"] = (
+                        self.illumina_instrument_mapping[model]
+                    )
+                # Process the remaining columns according to the NucleotideSequencing class
+                # definition
+                nucleotide_sequencing_slots.update(
+                    self._transform_dict_for_class(tab, "NucleotideSequencing")
+                )
+                nucleotide_sequencing = nmdc.NucleotideSequencing(
+                    **nucleotide_sequencing_slots
+                )
+                database.data_generation_set.append(nucleotide_sequencing)
+
+                # Iterate over the columns that contain URLs and MD5 checksums and translate them
+                # into DataObject instances. Each of these DataObject instances will be connected
+                # to the NucleotideSequencing instance via the has_output/was_generated_by
+                # relationships.
+                for data_url in DATA_URL_SETS:
+                    data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[
+                        (data_url, str(analyte_category))
+                    ]
+                    data_objects, manifest = self._get_data_objects_from_fields(
+                        tab,
+                        url_field_name=data_url.url,
+                        md5_checksum_field_name=data_url.md5_checksum,
+                        nucleotide_sequencing_id=nucleotide_sequencing_id,
+                        data_object_type=nmdc.FileTypeEnum(data_object_type),
+                    )
+                    if manifest:
+                        database.manifest_set.append(manifest)
+                    for data_object in data_objects:
+                        nucleotide_sequencing.has_output.append(data_object.id)
+                        database.data_object_set.append(data_object)
+
+        # This is the older way of handling attaching NucleotideSequencing and DataObject instances
+        # to the Biosample instances. This should now mainly be handled by the external sequencing
+        # data tabs in the submission portal. This code is being left in place for now in case it is
+        # needed in the future.
         if self.nucleotide_sequencing_mapping:
             # If there is data from an NucleotideSequencing mapping file, process it now. This part
             # assumes that there is a column in that file with the header __biosample_samp_name

@@ -1,0 +1,111 @@
+biosample_set:
+  - id: nmdc:bsm-00-4wn6isig
+    type: nmdc:Biosample
+    name: G5R1_MAIN_09MAY2016
+    associated_studies:
+      - nmdc:sty-00-y0cq65zt
+    env_broad_scale:
+      type: nmdc:ControlledIdentifiedTermValue
+      has_raw_value: agricultural biome [ENVO:01001442]
+      term:
+        id: ENVO:01001442
+        type: nmdc:OntologyClass
+        name: agricultural biome
+    env_local_scale:
+      type: nmdc:ControlledIdentifiedTermValue
+      has_raw_value: phyllosphere biome [ENVO:01001442]
+      term:
+        id: ENVO:01001442
+        type: nmdc:OntologyClass
+        name: phyllosphere biome
+    env_medium:
+      type: nmdc:ControlledIdentifiedTermValue
+      has_raw_value: plant-associated biome [ENVO:01001001]
+      term:
+        id: ENVO:01001001
+        type: nmdc:OntologyClass
+        name: plant-associated biome
+    samp_name: G5R1_MAIN_09MAY2016
+    collection_date:
+      has_raw_value: '2016-05-09'
+      type: nmdc:TimestampValue
+    depth:
+      has_raw_value: '0'
+      has_numeric_value: 0.0
+      type: nmdc:QuantityValue
+    ecosystem: Environmental
+    ecosystem_category: Terrestrial
+    ecosystem_subtype: Leaf
+    ecosystem_type: Plant-associated
+    elev: 286.0
+    env_package:
+      has_raw_value: plant-associated
+      type: nmdc:TextValue
+    geo_loc_name:
+      has_raw_value: 'USA: Kellogg Biological Station, Michigan'
+      type: nmdc:TextValue
+    growth_facil:
+      has_raw_value: field
+      type: nmdc:ControlledTermValue
+    lat_lon:
+      has_raw_value: 42.39 -85.37
+      latitude: 42.39
+      longitude: -85.37
+      type: nmdc:GeolocationValue
+    samp_store_temp:
+      has_raw_value: -80 Celsius
+      has_unit: Celsius
+      has_numeric_value: -80.0
+      type: nmdc:QuantityValue
+    source_mat_id:
+      has_raw_value: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+      type: nmdc:TextValue
+    specific_ecosystem: Phyllosphere
+    analysis_type:
+      - metagenomics
+data_object_set:
+  - id: nmdc:dobj-00-9gw1un94
+    name: Metagenome Raw Reads
+    description: Metagenome Raw Reads
+    data_object_type: Metagenome Raw Reads
+    url: http://example.com/data.fastq.gz
+    type: nmdc:DataObject
+data_generation_set:
+  - id: nmdc:dgns-00-q8jtgev4
+    has_input:
+      - nmdc:bsm-00-4wn6isig
+    add_date: '2023-10-17'
+    has_output:
+      - nmdc:dobj-00-9gw1un94
+    instrument_used: nmdc:inst-00-00000000
+    mod_date: '2023-10-17'
+    analyte_category: metagenome
+    associated_studies:
+      - nmdc:sty-00-y0cq65zt
+    processing_institution: JGI
+    type: nmdc:NucleotideSequencing
+study_set:
+  - id: nmdc:sty-00-y0cq65zt
+    type: nmdc:Study
+    name: A test submission
+    description: This is a test submission
+    funding_sources:
+      - Some award ABC
+      - Some award XYZ
+    has_credit_associations:
+      - applies_to_person:
+          orcid: 0000-0000-0000-0000
+          name: Test Testerson
+          type: nmdc:PersonValue
+        applied_roles:
+          - Principal Investigator
+        type: nmdc:CreditAssociation
+    principal_investigator:
+      orcid: 0000-0000-0000-0000
+      email: test.testerson@example.com
+      name: Test Testerson
+      type: nmdc:PersonValue
+    study_category: research_study
+    title: A test submission
+    websites:
+      - http://www.example.com/submission-test
