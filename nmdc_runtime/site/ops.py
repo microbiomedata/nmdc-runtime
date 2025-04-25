@@ -1046,8 +1046,22 @@ def site_code_mapping() -> dict:
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
-    This function re-creates the alldocs collection to reflect the current state of the Mongo database.
-    See nmdc-runtime/docs/nb/bulk_validation_referential_integrity_check.ipynb for more details.
+    This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
+
+    1. Getting all populated schema collection names with an `id` field.
+    2. Create a temporary collection to build the new alldocs collection.
+    3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
+    4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
+    5. Add indexes for `id` and several other frequently-queried fields.
+    6. Finally, atomically replace the existing `alldocs` collection with the temporary one.
+
+    The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
+    `nmdc_runtime.site.repository.ensure_alldocs_daily`. The collection is also updated as part of various workflows,
+    such as when applying a changesheet or metadata updates (see `nmdc_runtime.site.graphs`).
+
+    The `alldocs` collection is used primarily by API endpoints like `/data_objects/study/{study_id}` and
+    `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
+    related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
     """
     mdb = context.resources.mongo.db
     schema_view = nmdc_schema_view()
