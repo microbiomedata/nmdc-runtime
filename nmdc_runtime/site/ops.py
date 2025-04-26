@@ -113,10 +113,13 @@ from nmdc_runtime.util import (
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pydantic import BaseModel
-from pymongo import InsertOne
+from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import assoc, dissoc, get_in, valfilter, identity
+
+# batch size for writing documents to alldocs
+BULK_WRITE_BATCH_SIZE = 2000
 
 
 @op
@@ -1043,6 +1046,110 @@ def site_code_mapping() -> dict:
         )
 
 
+def _add_related_ids_to_alldocs(
+    temp_collection, context, document_reference_ranged_slots_by_type
+):
+    """
+    Adds a _related_ids field to each document in the temporary alldocs collection.
+
+    The _related_ids field contains an array of subdocuments, each with fields `id` and `type`.
+    Each subdocument represents a link to any other document that either links to or is linked from
+    the document via document-reference-ranged slots.
+
+    Args:
+        temp_collection: The temporary MongoDB collection to process
+        context: The Dagster execution context for logging
+        document_reference_ranged_slots_by_type: Dictionary mapping document types to their reference-ranged slot names
+
+    Returns:
+        None (modifies the documents in place)
+    """
+
+    context.log.info("Building relationships and adding _related_ids field...")
+
+    # Maps to track relationships efficiently
+    id_to_type_map = {}  # document ID -> type (with "nmdc:" prefix preserved)
+    doc_references = defaultdict(set)  # document ID -> set of referenced document IDs
+    doc_referenced_by = defaultdict(
+        set
+    )  # document ID -> set of referencing document IDs
+
+    # Collect relationships.
+    for doc in temp_collection.find():
+        doc_id = doc["id"]
+        # Store the full type with prefix intact
+        doc_type = doc["type"]
+        # For looking up reference slots, we still need the type without prefix
+        doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
+
+        # Record ID to type mapping - preserve the original type with prefix
+        id_to_type_map[doc_id] = doc_type
+
+        # Find all document references from this document
+        reference_slots = document_reference_ranged_slots_by_type.get(
+            doc_type_no_prefix, []
+        )
+        for slot in reference_slots:
+            if slot in doc:
+                # Handle both single value and array references
+                refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
+                for ref_id in refs:
+                    doc_references[doc_id].add(ref_id)
+                    doc_referenced_by[ref_id].add(doc_id)
+
+    context.log.info(
+        f"Found {len(id_to_type_map)} documents with {len(doc_references)} containing references"
+    )
+
+    # Construct, and update documents with, `_related_ids` field values.
+    bulk_operations = []
+    update_count = 0
+    for doc_id, doc_type in id_to_type_map.items():
+        # Get all IDs related to this document (outgoing and incoming refs)
+        related_ids = set()
+        if doc_id in doc_references:
+            related_ids.update(doc_references[doc_id])
+        if doc_id in doc_referenced_by:
+            related_ids.update(doc_referenced_by[doc_id])
+
+        # Format as array of subdocuments with id and type
+        related_docs = []
+        for related_id in related_ids:
+            if related_id in id_to_type_map:
+                related_docs.append(
+                    {"id": related_id, "type": id_to_type_map[related_id]}
+                )
+
+        # Only update if there are related documents
+        if related_docs:
+            bulk_operations.append(
+                UpdateOne({"id": doc_id}, {"$set": {"_related_ids": related_docs}})
+            )
+
+            # Execute in batches for efficiency
+            if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
+                temp_collection.bulk_write(bulk_operations)
+                update_count += len(bulk_operations)
+                context.log.info(f"Updated {update_count} documents with _related_ids")
+                bulk_operations = []
+
+    # Execute any remaining operations
+    if bulk_operations:
+        temp_collection.bulk_write(bulk_operations)
+        update_count += len(bulk_operations)
+
+    context.log.info(f"Added _related_ids to {update_count} documents in total")
+
+    context.log.info("Creating index on _related_ids.id...")
+    temp_collection.create_index("_related_ids.id")
+    # Create compound index on _related_ids.type and _related_ids.id to ensure index-covered queries
+    context.log.info(
+        "Creating compound index on _related_ids.type and _related_ids.id..."
+    )
+    temp_collection.create_index([("_related_ids.type", 1), ("_related_ids.id", 1)])
+    context.log.info("Successfully created indexes on _related_ids fields")
+
+
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
@@ -1052,8 +1159,9 @@ def materialize_alldocs(context) -> int:
     2. Create a temporary collection to build the new alldocs collection.
     3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
-    5. Add indexes for `id` and several other frequently-queried fields.
-    6. Finally, atomically replace the existing `alldocs` collection with the temporary one.
+    5. Add a special `_related_ids` field with subdocuments containing ID and type of related entities.
+    6. Add indexes for `id`, relationship fields, and `_related_ids.type`/`_related_ids.id` compound index.
+    7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
     `nmdc_runtime.site.repository.ensure_alldocs_daily`. The collection is also updated as part of various workflows,
@@ -1062,12 +1170,12 @@ def materialize_alldocs(context) -> int:
     The `alldocs` collection is used primarily by API endpoints like `/data_objects/study/{study_id}` and
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
     related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
+
+    The `_related_ids` field enables efficient index-covered queries to find all entities of specific types that are
+    related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype expansions.
     """
     mdb = context.resources.mongo.db
     schema_view = nmdc_schema_view()
-
-    # batch size for writing documents to alldocs
-    BULK_WRITE_BATCH_SIZE = 2000
 
     # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
     #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
@@ -1114,7 +1222,10 @@ def materialize_alldocs(context) -> int:
         documents_processed_counter = 0
         for doc in mdb[coll_name].find():
             try:
-                doc_type = doc["type"][5:]  # lop off "nmdc:" prefix
+                # Keep the full type with prefix for document
+                doc_type_full = doc["type"]
+                # Remove prefix for slot lookup and ancestor lookup
+                doc_type = doc_type_full[5:] if doc_type_full.startswith("nmdc:") else doc_type_full
             except KeyError:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
@@ -1123,7 +1234,9 @@ def materialize_alldocs(context) -> int:
                 doc_type
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
-            new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # Get ancestors without the prefix, but add prefix to each one in the output
+            ancestors = schema_view.class_ancestors(doc_type)
+            new_doc["_type_and_ancestors"] = ["nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors]
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
@@ -1149,6 +1262,12 @@ def materialize_alldocs(context) -> int:
     slots_to_index = ["has_input", "has_output", "was_informed_by"]
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
+
+    # Add _related_ids field to enable efficient relationship traversal
+    context.log.info("Adding _related_ids field to documents...")
+    _add_related_ids_to_alldocs(
+        temp_alldocs_collection, context, document_reference_ranged_slots
+    )
 
     context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
     temp_alldocs_collection.rename("alldocs", dropTarget=True)

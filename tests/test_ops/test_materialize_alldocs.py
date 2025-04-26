@@ -130,3 +130,16 @@ def test_materialize_alldocs(op_context):
     for document in field_research_site_documents:
         field_research_site_set_collection.delete_one(document)
     alldocs_collection.delete_many({})
+
+
+"""TODO
+
+From the the body of test_find_data_objects_for_study_having_one, extract a dict that is a nmdc:Database that 
+contains the nmdc:Study, the nmdc:Biosample, the nmdc:NucleotideSequencing, the nmdc:DataObject, 
+and the nmdc:MetagenomeSequencing instances.
+
+Draft a new test for inclusion in test_materialize_alldocs.py that specifically kicks the tires on use of 
+_related_ids in conjunction with _type_and_ancestors to find, for example, all nmdc:DataObjects related to a given 
+nmdc:Biosample, using an index-covered mongodb query.
+
+"""
