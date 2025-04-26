@@ -1153,7 +1153,11 @@ def materialize_alldocs(context) -> int:
     context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
 
-    return mdb.alldocs.estimated_document_count()
+    n_alldocs_documents = mdb.alldocs.estimated_document_count()
+    context.log.info(
+        f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
+    )
+    return n_alldocs_documents
 
 
 @op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
