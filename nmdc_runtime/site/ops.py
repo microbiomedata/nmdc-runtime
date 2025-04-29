@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import mimetypes
 import os
 import subprocess
@@ -1044,7 +1045,6 @@ def site_code_mapping() -> dict:
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
 
-
 @op(
     required_resource_keys={"mongo"},
     config_schema={
@@ -1062,7 +1062,16 @@ def load_ontology(context: OpExecutionContext):
     if output_directory is None:
         output_directory = os.path.join(os.getcwd(), "ontology_reports")
 
-    print(f"Running Ontology Loader for ontology: {source_ontology}")
+    # Redirect Python logging to Dagster context
+    handler = logging.Handler()
+    handler.emit = lambda record: context.log.info(record.getMessage())
+
+    # Get logger from ontology_load package
+    controller_logger = logging.getLogger("ontology_loader.ontology_load_controller")
+    controller_logger.setLevel(logging.INFO)
+    controller_logger.addHandler(handler)
+
+    context.log.info(f"Running Ontology Loader for ontology: {source_ontology}")
     loader = OntologyLoaderController(
         source_ontology=source_ontology,
         output_directory=output_directory,
@@ -1071,9 +1080,9 @@ def load_ontology(context: OpExecutionContext):
 
     try:
         loader.run_ontology_loader()
-        print("Ontology load completed successfully!")
+        context.log.info("Ontology load completed successfully!")
     except Exception as e:
-        print(f"Error running ontology loader: {e}")
+        context.log.info(f"Error running ontology loader: {e}")
 
     context.log.info(f"Loaded {source_ontology}")
 

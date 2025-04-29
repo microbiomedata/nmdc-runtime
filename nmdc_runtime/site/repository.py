@@ -14,6 +14,7 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
+    in_process_executor
 )
 from starlette import status
 from toolz import merge, get_in
@@ -526,6 +527,7 @@ def repo():
                 )
             ),
             resource_defs=resource_defs,
+            executor_def=in_process_executor,
         ),
         run_envo_ontology_load.to_job(
             name="envo_ontology_load",
@@ -536,6 +538,7 @@ def repo():
                 )
             ),
             resource_defs=resource_defs,
+            executor_def=in_process_executor,
         ),
         run_po_ontology_load.to_job(
             name="po_ontology_load",
@@ -546,6 +549,7 @@ def repo():
                 )
             ),
             resource_defs=resource_defs,
+            executor_def=in_process_executor,
         ),
     ]
     schedules = [
