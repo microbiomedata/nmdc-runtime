@@ -210,6 +210,9 @@ entity_attributes_to_index = {
         "md5_checksum",
         "url",
     },
+    # TODO: Refrain from ensuring indexes exist in the `omics_processing_set` collection,
+    #       since that collection was deleted as part of the "Berkeley schema" refactor.
+    #       Reference: https://microbiomedata.github.io/nmdc-schema/v10-vs-v11-retrospective/#slots-removed-from-database
     "omics_processing_set": {
         "has_input",
         "has_output",
@@ -217,4 +220,8 @@ entity_attributes_to_index = {
         "alternative_identifiers",
     },
     "functional_annotation_agg": {"was_generated_by"},
+    "workflow_execution_set": {
+        "has_input",
+        "has_output",
+    },
 }
