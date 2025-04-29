@@ -1225,7 +1225,11 @@ def materialize_alldocs(context) -> int:
                 # Keep the full type with prefix for document
                 doc_type_full = doc["type"]
                 # Remove prefix for slot lookup and ancestor lookup
-                doc_type = doc_type_full[5:] if doc_type_full.startswith("nmdc:") else doc_type_full
+                doc_type = (
+                    doc_type_full[5:]
+                    if doc_type_full.startswith("nmdc:")
+                    else doc_type_full
+                )
             except KeyError:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
@@ -1236,7 +1240,9 @@ def materialize_alldocs(context) -> int:
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
             # Get ancestors without the prefix, but add prefix to each one in the output
             ancestors = schema_view.class_ancestors(doc_type)
-            new_doc["_type_and_ancestors"] = ["nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors]
+            new_doc["_type_and_ancestors"] = [
+                "nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors
+            ]
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
