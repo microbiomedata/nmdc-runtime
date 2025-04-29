@@ -14,7 +14,7 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
-    in_process_executor
+    in_process_executor,
 )
 from starlette import status
 from toolz import merge, get_in
