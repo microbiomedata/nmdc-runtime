@@ -48,6 +48,7 @@ class EmptyResult(Result):
 class Metadata(BaseModel):
     # XXX alternative: set model field using __class__ on __init__()?
     model: Optional[PythonImportPath] = None
+    cancelled: Optional[bool] = None
 
 
 class PausedOrNot(Metadata):

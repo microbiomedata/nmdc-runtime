@@ -8,6 +8,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 from io import BytesIO, StringIO
+from pprint import pformat
 from toolz.dicttoolz import keyfilter
 from typing import Tuple
 from zipfile import ZipFile
@@ -40,7 +41,7 @@ from dagster import (
     Bool,
 )
 from gridfs import GridFS
-from linkml_runtime.dumpers import json_dumper
+from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
@@ -71,7 +72,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
     fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
-    get_instruments,
 )
 from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
@@ -98,6 +98,7 @@ from nmdc_runtime.site.util import (
     run_and_log,
     schema_collection_has_index_on_id,
     nmdc_study_id_to_filename,
+    get_instruments_by_id,
 )
 from nmdc_runtime.util import (
     drs_object_in_for,
@@ -722,9 +723,8 @@ def translate_portal_submission_to_nmdc_schema_database(
     metadata_submission: Dict[str, Any],
     nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
+    instrument_mapping: Dict[str, str],
     study_category: Optional[str],
-    study_doi_category: Optional[str],
-    study_doi_provider: Optional[str],
     study_pi_image_url: Optional[str],
     biosample_extras: Optional[list[dict]],
     biosample_extras_slot_mapping: Optional[list[dict]],
@@ -741,11 +741,10 @@ def translate_portal_submission_to_nmdc_schema_database(
         data_object_mapping=data_object_mapping,
         id_minter=id_minter,
         study_category=study_category,
-        study_doi_category=study_doi_category,
-        study_doi_provider=study_doi_provider,
         study_pi_image_url=study_pi_image_url,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
+        illumina_instrument_mapping=instrument_mapping,
     )
     database = translator.get_database()
     return database
@@ -763,7 +762,7 @@ def nmdc_schema_database_export_filename(study: Dict[str, Any]) -> str:
 
 @op
 def nmdc_schema_object_to_dict(object: YAMLRoot) -> Dict[str, Any]:
-    return json_dumper.to_dict(object)
+    return as_simple_dict(object)
 
 
 @op(required_resource_keys={"mongo"}, config_schema={"username": str})
@@ -1272,11 +1271,26 @@ def get_library_preparation_from_biosamples(
 
 
 @op(required_resource_keys={"mongo"})
-def get_all_instruments(context: OpExecutionContext):
+def get_all_instruments(context: OpExecutionContext) -> dict[str, dict]:
     mdb = context.resources.mongo.db
-    instrument_set_collection = mdb["instrument_set"]
-    all_instruments = get_instruments(instrument_set_collection)
-    return all_instruments
+    return get_instruments_by_id(mdb)
+
+
+@op(required_resource_keys={"mongo"})
+def get_instrument_ids_by_model(context: OpExecutionContext) -> dict[str, str]:
+    mdb = context.resources.mongo.db
+    instruments_by_id = get_instruments_by_id(mdb)
+    instruments_by_model: dict[str, str] = {}
+    for inst_id, instrument in instruments_by_id.items():
+        model = instrument.get("model")
+        if model is None:
+            context.log.warning(f"Instrument {inst_id} has no model.")
+            continue
+        if model in instruments_by_model:
+            context.log.warning(f"Instrument model {model} is not unique.")
+        instruments_by_model[model] = inst_id
+    context.log.info("Instrument models: %s", pformat(instruments_by_model))
+    return instruments_by_model
 
 
 @op
@@ -1390,3 +1404,26 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
     return database
+
+
+@op
+def log_database_ids(
+    context: OpExecutionContext,
+    database: nmdc.Database,
+) -> None:
+    """Log the IDs of the database."""
+    database_dict = as_simple_dict(database)
+    message = ""
+    for collection_name, collection in database_dict.items():
+        if not isinstance(collection, list):
+            continue
+        message += f"{collection_name} ({len(collection)}):\n"
+        if len(collection) < 10:
+            message += "\n".join(f"  {doc['id']}" for doc in collection)
+        else:
+            message += "\n".join(f"  {doc['id']}" for doc in collection[:4])
+            message += f"\n  ... {len(collection) - 8} more\n"
+            message += "\n".join(f"  {doc['id']}" for doc in collection[-4:])
+        message += "\n"
+    if message:
+        context.log.info(message)

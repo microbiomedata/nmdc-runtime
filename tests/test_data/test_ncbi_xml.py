@@ -16,7 +16,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_geolocation_value,
     handle_float_value,
     handle_string_value,
-    get_instruments,
 )
 
 MOCK_NMDC_STUDY = {
@@ -677,20 +676,3 @@ class TestNCBIXMLUtils:
 
         assert attribute_mappings == expected_attribute_mappings
         assert slot_range_mappings == expected_slot_range_mappings
-
-    def test_get_instruments(
-        self,
-        mocker: Callable[..., Generator[MockerFixture, None, None]],
-        mocked_instruments: list[dict[str, Any]],
-    ):
-        mock_instrument_set_collection = mocker.Mock()
-        mock_instrument_set_collection.find.return_value = iter(mocked_instruments)
-
-        actual_instruments = get_instruments(mock_instrument_set_collection)
-
-        expected_instruments = {
-            "nmdc:inst-14-xz5tb342": {"vendor": "illumina", "model": "nextseq_550"},
-            "nmdc:inst-14-79zxap02": {"vendor": "illumina", "model": "hiseq"},
-        }
-
-        assert actual_instruments == expected_instruments
