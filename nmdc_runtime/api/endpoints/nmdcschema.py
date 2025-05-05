@@ -1,13 +1,13 @@
 from importlib.metadata import version
 import re
-from typing import List, Dict, Annotated
+from typing import List, Dict, Annotated, Optional
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import nmdc_database_collection_names
+from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
@@ -107,6 +107,107 @@ def get_nmdc_database_collection_stats(
         ):
             stats.append(doc)
     return stats
+
+
+@router.get(
+    "/nmdcschema/related_ids",
+    response_model=Doc,
+    response_model_exclude_unset=True,
+)
+def get_related_ids(
+    ids: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by IDs",
+            description=(
+                "A list of document IDs to filter related IDs by.\n\n"
+                "_Example_: `nmdc:bsm-11-abc123,nmdc:bsm-11-def456`"
+            ),
+            examples=["nmdc:bsm-11-abc123,nmdc:bsm-11-def456"],
+        ),
+    ] = None,
+    types: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by Types",
+            description="A list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
+            examples=["nmdc:Biosample,nmdc:Study"],
+        ),
+    ] = None,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    r"""
+    Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
+    Optionally filter related IDs by specific IDs and/or types.
+    """
+    ids = ids.split(",") if ids else []
+    types = types.split(",") if types else []
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
+    types_not_found = list(set(types) - types_possible)
+    if types_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Some types not found: {types_not_found}. "
+                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+            ),
+        )
+
+    related_ids_docs = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_related_ids.id",
+                        "connectFromField": "_related_ids.id",
+                        "connectToField": "id",
+                        "as": "_related_ids_incl_extra_hops",
+                        "maxDepth": 2,
+                        "depthField": "n_hops",
+                        # "restrictSearchWithMatch": {
+                        #     "_type_and_ancestors": {
+                        #         "$in": [terminal_types],
+                        #     },
+                        # },
+                    }
+                },
+                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
+                {
+                    "$match": {
+                        "_related_ids_incl_extra_hops._type_and_ancestors": {
+                            "$in": types
+                        }
+                    }
+                },
+                {"$project": {"id": 1, "related_id": "$_related_ids_incl_extra_hops"}},
+                {
+                    "$project": {
+                        "id": 1,
+                        "related_id.id": 1,
+                        "related_id.type": 1,
+                    }
+                },
+                {"$group": {"_id": "$id", "related_ids": {"$addToSet": "$related_id"}}},
+                {"$project": {"id": "$_id", "_id": 0, "related_ids": 1}},
+            ],
+            allowDiskUse=True,
+        )
+    )
+    return {
+        # Return `id` first in sorted JSON objects.
+        "related_ids": [
+            {"id": d["id"], "related_ids": d["related_ids"]} for d in related_ids_docs
+        ]
+    }
 
 
 @router.get(
