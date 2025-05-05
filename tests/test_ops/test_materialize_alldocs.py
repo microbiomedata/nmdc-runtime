@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 import pytest
 from toolz import assoc, dissoc
@@ -9,7 +10,10 @@ from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.site.ops import (
     materialize_alldocs,
 )
-from nmdc_runtime.util import populated_schema_collection_names_with_id_field
+from nmdc_runtime.util import (
+    nmdc_schema_view,
+    populated_schema_collection_names_with_id_field,
+)
 
 
 @pytest.fixture
@@ -43,10 +47,10 @@ def test_materialize_alldocs(op_context):
     # Reference: https://microbiomedata.github.io/berkeley-schema-fy24/FieldResearchSite/#direct
     #
     field_research_site_class_ancestry_chain = [
-        "FieldResearchSite",
-        "Site",
-        "MaterialEntity",
-        "NamedThing",
+        "nmdc:FieldResearchSite",
+        "nmdc:Site",
+        "nmdc:MaterialEntity",
+        "nmdc:NamedThing",
     ]
     field_research_site_documents = [
         {
@@ -214,106 +218,141 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
     """
     mdb = op_context.resources.mongo.db
 
-    # Get the schema view to retrieve class ancestry chains
-    from nmdc_runtime.util import nmdc_schema_view
+    # Prepare to store any existing documents with the IDs we'll be using, to restore later
+    existing_docs = defaultdict(list)
+    # Prepare to store IDs for each test-document entity by type.
+    ids_for = defaultdict(list)
 
-    schema_view = nmdc_schema_view()
-
-    # Store any existing documents with the IDs we'll be using to restore later
-    existing_docs = {}
     for (
         collection_name,
         docs,
     ) in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.items():
         collection = mdb.get_collection(collection_name)
-        existing_docs[collection_name] = []
         for doc in docs:
+
+            # Store any existing document
             existing_doc = collection.find_one({"id": doc["id"]})
             if existing_doc:
                 existing_docs[collection_name].append(existing_doc)
 
-    # Insert our test documents into their respective collections
-    for (
-        collection_name,
-        docs,
-    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.items():
-        collection = mdb.get_collection(collection_name)
-        for doc in docs:
+            # Insert test document
             collection.replace_one({"id": doc["id"]}, doc, upsert=True)
 
-    # Extract the IDs for each entity type
-    study_id = _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj["study_set"][0]["id"]
-    biosample_id = _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj["biosample_set"][
-        0
-    ]["id"]
-    data_generation_id = _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj[
-        "data_generation_set"
-    ][0]["id"]
-    data_object_id = _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj[
-        "data_object_set"
-    ][0]["id"]
-    workflow_execution_id = _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj[
-        "workflow_execution_set"
-    ][0]["id"]
+            # Store ID for test document
+            ids_for[collection_name].append(doc["id"])
 
-    # Get class ancestry chains from schema
+    # Get class ancestry chains via a schema view, ensuring "nmdc:" CURIE prefix.
+    schema_view = nmdc_schema_view()
+    ancestry_chain = defaultdict(list)
+    for cls in {"Biosample", "DataObject"}:
+        ancestry_chain[cls] = [
+            "nmdc:" + a if not a.startswith("nmdc:") else a
+            for a in schema_view.class_ancestors(cls)
+        ]
 
-    biosample_ancestry_chain = [
-        "nmdc:" + a if not a.startswith("nmdc:") else a
-        for a in schema_view.class_ancestors("Biosample")
-    ]
-    data_object_ancestry_chain = [
-        "nmdc:" + a if not a.startswith("nmdc:") else a
-        for a in schema_view.class_ancestors("DataObject")
-    ]
-
-    # Materialize the alldocs collection
     materialize_alldocs(op_context)
 
-    # Verify the alldocs collection contains our test documents
+    # Verify that `alldocs` contains our test documents
     alldocs_collection = mdb.get_collection("alldocs")
     for collection_docs in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.values():
-        for doc in collection_docs:
-            assert alldocs_collection.count_documents({"id": doc["id"]}) == 1
+        assert alldocs_collection.count_documents(
+            {"id": {"$in": [doc["id"] for doc in collection_docs]}}
+        ) == len(collection_docs)
 
-    # Verify _related_ids and _type_and_ancestors fields are properly set
-    biosample_doc = alldocs_collection.find_one({"id": biosample_id})
+    # Verify that `_related_ids` and `_type_and_ancestors` fields are properly set
+    biosample_doc = alldocs_collection.find_one({"id": ids_for["biosample_set"][0]})
     assert biosample_doc is not None
     assert "_related_ids" in biosample_doc
-    assert "_type_and_ancestors" in biosample_doc
-    assert data_object_id in biosample_doc["_related_ids"]
-    assert set(biosample_doc["_type_and_ancestors"]) == set(biosample_ancestry_chain)
-
-    # Now perform an index-covered query to find all DataObjects related to the biosample
-    query = {"_related_ids": biosample_id, "_type_and_ancestors": "nmdc:DataObject"}
-
-    # Use explain() to verify this is an index-covered query
-    explain_result = alldocs_collection.find(query).explain()
-    # Check that the query is using the appropriate indexes
-    assert explain_result["queryPlanner"]["winningPlan"]["inputStage"]["indexName"] in [
-        "_related_ids_1__type_and_ancestors_1",
-        "_type_and_ancestors_1__related_ids_1",
+    assert ids_for["workflow_execution_set"][0] in [
+        d["id"] for d in biosample_doc["_related_ids"]
     ]
+    assert "_type_and_ancestors" in biosample_doc
+    assert set(biosample_doc["_type_and_ancestors"]) == set(ancestry_chain["Biosample"])
 
-    # Execute the query and verify results
+    # Find the `nmdc:DataObject`(s) related to a `nmdc:Biosample` via a `nmdc:DataEmitterProcess`.
+    #
+    # Prune `$graphLookup` branches that include "parent" `nmdc:PlannedProcess`es. While we *do* want to collect
+    # `nmdc:DataObject`s that are "child" `nmdc:ProcessedSample`s of our `nmdc:Biosample` `biosample_id`, we *do not*
+    # want to include `nmdc:DataObjects` that are related only to "parent" `nmdc:Sample`s.
+    biosample_id = ids_for["biosample_set"][0]
     related_data_objects = list(
-        alldocs_collection.find(query, {"_id": 0, "id": 1, "type": 1})
+        alldocs_collection.aggregate(
+            [
+                {"$match": {"id": biosample_id}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_related_ids.id",
+                        "connectFromField": "_related_ids.id",
+                        "connectToField": "id",
+                        "as": "_related_ids_incl_extra_hops",
+                        "maxDepth": 10,
+                        "restrictSearchWithMatch": {
+                            # Prune branches that explore "parent" `nmdc:PlannedProcess`es.
+                            "has_output": {"$ne": biosample_id},
+                            # Prune branches that explore a `nmdc:Study`'s other `nmdc:Biosample`s.
+                            "_type_and_ancestors": {
+                                "$in": [
+                                    "nmdc:MaterialEntity",
+                                    "nmdc:PlannedProcess",
+                                    "nmdc:InformationObject",
+                                ]
+                            },
+                        },
+                    }
+                },
+                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
+                {
+                    "$match": {
+                        "_related_ids_incl_extra_hops._type_and_ancestors": "nmdc:DataObject"
+                    }
+                },
+                {"$replaceRoot": {"newRoot": "$_related_ids_incl_extra_hops"}},
+                {"$unset": ["_id"]},
+            ],
+        )
     )
 
-    # We should find exactly one related data object
-    assert len(related_data_objects) == 1
-    assert related_data_objects[0]["id"] == data_object_id
-    assert related_data_objects[0]["type"] == "nmdc:DataObject"
+    assert ids_for["data_object_set"][0] in [d["id"] for d in related_data_objects]
 
-    # Also test the reverse query - find all biosamples related to a given data object
-    reverse_query = {
-        "_related_ids": data_object_id,
-        "_type_and_ancestors": "nmdc:Biosample",
-    }
-
-    # Verify reverse query results
+    # Also test the reverse query - find the `nmdc:Biosample`(s) related to a given `nmdc:DataObject`.
+    data_object_id = ids_for["data_object_set"][0]
     related_biosamples = list(
-        alldocs_collection.find(reverse_query, {"_id": 0, "id": 1, "type": 1})
+        alldocs_collection.aggregate(
+            [
+                {"$match": {"id": data_object_id}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_related_ids.id",
+                        "connectFromField": "_related_ids.id",
+                        "connectToField": "id",
+                        "as": "_related_ids_incl_extra_hops",
+                        "maxDepth": 10,
+                        "restrictSearchWithMatch": {
+                            # Prune branches that explore e.g. downstream `nmdc:DataEmitterProcess`es.
+                            "has_input": {"$ne": data_object_id},
+                            # Prune branches that could yield e.g. a `nmdc:Study`'s other `nmdc:Biosample`s.
+                            "_type_and_ancestors": {
+                                "$in": [
+                                    "nmdc:MaterialEntity",
+                                    "nmdc:PlannedProcess",
+                                    "nmdc:InformationObject",
+                                ],
+                            },
+                        },
+                    }
+                },
+                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
+                {
+                    "$match": {
+                        "_related_ids_incl_extra_hops._type_and_ancestors": "nmdc:Sample"
+                    }
+                },
+                {"$replaceRoot": {"newRoot": "$_related_ids_incl_extra_hops"}},
+                {"$unset": ["_id"]},
+            ]
+        )
     )
     assert len(related_biosamples) == 1
     assert related_biosamples[0]["id"] == biosample_id
@@ -341,5 +380,5 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
                 )
                 collection.replace_one({"id": doc["id"]}, original_doc)
 
-    # XXX Clean up the alldocs collection?
-    alldocs_collection.delete_many({})
+    # Re-materalize alldocs
+    materialize_alldocs(op_context)

@@ -465,17 +465,19 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
     # in order to have referential integrity (i.e. generate all "referenced" documents).
     faker = Faker()
     study = faker.generate_studies(quantity=1)[0]
-    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
+    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[
+        0
+    ]
     data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
     data_generation = faker.generate_nucleotide_sequencings(
-        quantity=1,
-        associated_studies=[study["id"]],
-        has_input=[biosample["id"]]
+        quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]]
     )[0]
     workflow_execution = faker.generate_metagenome_annotations(
         quantity=1,
         has_input=[data_object_a["id"]],
-        has_output=[data_object_b["id"]],  # schema says field optional; but validator complains when absent
+        has_output=[
+            data_object_b["id"]
+        ],  # schema says field optional; but validator complains when absent
         was_informed_by=data_generation["id"],
     )[0]
 
@@ -489,7 +491,12 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
     assert study_set.count_documents({"id": study["id"]}) == 0
     assert biosample_set.count_documents({"id": biosample["id"]}) == 0
-    assert data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
+    assert (
+        data_object_set.count_documents(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        == 0
+    )
     assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
@@ -515,12 +522,16 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
     # 🧹 Clean up.
     study_set.delete_many({"id": study["id"]})
     biosample_set.delete_many({"id": biosample["id"]})
-    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
     data_generation_set.delete_many({"id": data_generation["id"]})
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(api_site_client):
+def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(
+    api_site_client,
+):
     r"""
     In this test, we submit a workflow execution that contains a reference to a non-existent data generation,
     to the `/workflows/workflow_executions` API endpoint, and confirm the endpoint returns an error response.
@@ -534,18 +545,27 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     workflow_execution = faker.generate_metagenome_annotations(
         quantity=1,
         has_input=[data_object_a["id"]],
-        has_output=[data_object_b["id"]],  # schema says field optional; but validator complains when absent
+        has_output=[
+            data_object_b["id"]
+        ],  # schema says field optional; but validator complains when absent
         was_informed_by=nonexistent_data_generation_id,  # intentionally-broken reference
     )[0]
-    
+
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
     # don't already contain documents like the ones involved in this test.
     mdb = get_mongo_db()
     data_generation_set = mdb.get_collection("data_generation_set")
     data_object_set = mdb.get_collection("data_object_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    assert data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
-    assert data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
+    assert (
+        data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
+    )
+    assert (
+        data_object_set.count_documents(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        == 0
+    )
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
     # Insert the referenced `data_object_set` documents into the database. Notice that we are
@@ -581,7 +601,9 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
     # 🧹 Clean up.
-    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
 
 
 def test_get_class_name_and_collection_names_by_doc_id():
