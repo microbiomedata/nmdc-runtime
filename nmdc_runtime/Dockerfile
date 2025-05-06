@@ -125,6 +125,6 @@ RUN chmod +x /code/.docker/wait-for-it.sh
 WORKDIR /code
 
 # Ensure started container does not exit, so that a subsequent `docker exec` command can run tests.
-# For an example `docker exec` command, see `Makefile`'s `test-exec` target.
+# For an example `docker exec` command, see `Makefile`'s `run-test` target.
 # Such a command should use `wait-for-it.sh` to run `pytest` no earlier than when the FastAPI server is accessible.
 ENTRYPOINT ["tail", "-f", "/dev/null"]
