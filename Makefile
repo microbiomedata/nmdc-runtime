@@ -127,7 +127,6 @@ nersc-sshproxy:
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
-		-L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		-L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
 		-o ServerAliveInterval=60 \
 		${NERSC_USERNAME}@dtn02.nersc.gov
