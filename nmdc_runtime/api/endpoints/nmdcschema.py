@@ -241,6 +241,19 @@ def get_collection_name_by_doc_id(
 
 
 @router.get(
+    "/nmdcschema/collection_names",
+    response_model=List[str],
+    status_code=status.HTTP_200_OK,
+)
+def get_collection_names():
+    """
+    Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
+    https://w3id.org/nmdc/Database/) that describe database collections.
+    """
+    return sorted(get_collection_names_from_schema())
+
+
+@router.get(
     "/nmdcschema/{collection_name}",
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
@@ -263,6 +276,10 @@ def list_from_collection(
     Searches the specified collection for documents matching the specified `filter` criteria.
     If the `projection` parameter is used, each document in the response will only include
     the fields specified by that parameter (plus the `id` field).
+
+    Use the [`GET /nmdcschema/collection_names`](/nmdcschema/collection_names) API endpoint to return all valid
+    collection names, i.e. the names of the slots of [the nmdc:Database class](https://w3id.org/nmdc/Database/) that
+    describe database collections.
 
     Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
           in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
