@@ -22,6 +22,7 @@ from nmdc_runtime.site.ops import (
     filter_ops_done_object_puts,
     hello,
     mongo_stats,
+    run_script_to_update_insdc_biosample_identifiers,
     submit_metadata_to_db,
     filter_ops_undone_expired,
     construct_jobs,
@@ -58,6 +59,7 @@ from nmdc_runtime.site.ops import (
     get_ncbi_export_pipeline_inputs,
     ncbi_submission_xml_from_nmdc_study,
     ncbi_submission_xml_asset,
+    render_text,
     get_database_updater_inputs,
     post_submission_portal_biosample_ingest_record_stitching_filename,
     generate_data_generation_set_post_biosample_ingest,
@@ -515,3 +517,20 @@ def generate_biosample_set_from_samples_in_gold():
     )
     outputs = export_json_to_drs(database_dict, filename)
     add_output_run_event(outputs)
+
+
+@graph
+def generate_update_script_for_insdc_biosample_identifiers():
+    """Generate a MongoDB update script to add INSDC biosample identifiers to biosamples based on GOLD data.
+
+    This graph fetches the necessary inputs, then calls the run_script_to_update_insdc_biosample_identifiers op
+    to generate a script for updating biosample records with INSDC identifiers obtained from GOLD.
+    The script is returned as a dictionary that can be executed against MongoDB.
+    """
+    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
+
+    update_script = run_script_to_update_insdc_biosample_identifiers(
+        study_id, gold_nmdc_instrument_map_df
+    )
+    render_text(update_script)
