@@ -1067,6 +1067,45 @@ def _add_related_ids_to_alldocs(
 
     context.log.info("Building relationships and adding _related_ids field...")
 
+    # The bifurcation of document-reference-ranged slots as "inbound" and "outbound" is essential
+    # in order to perform graph traversal and collect all entities "related" to a given entity without
+    # recursion "exploding".
+    #
+    # An "inbound" slot is one for which an entity in the domain prov:wasInfluencedBy an entity in the range.
+    inbound_document_reference_ranged_slots = [
+        "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
+        "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "has_input",  # a `nmdc:PlannedProcess` was influenced by a `nmdc:NamedThing`.
+        "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
+        "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
+        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+    ]
+    # An "outbound" slot is one for which an entity in the domain "influences"
+    # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
+    outbound_document_reference_ranged_slots = [
+        "associated_studies",  # a `nmdc:Biosample` influences a `nmdc:Study`.
+        "calibration_object",  # `nmdc:CalibrationInformation` generates a `nmdc:DataObject`.
+        "generates_calibration",  # a `nmdc:PlannedProcess` generates `nmdc:CalibrationInformation`.
+        "has_output",  # a `nmdc:PlannedProcess` generates a `nmdc:NamedThing`.
+        "in_manifest",  # a `nmdc:DataObject` becomes associated with `nmdc:Manifest`.
+        "part_of",  # a "contained" `nmdc:NamedThing` influences its "container" `nmdc:NamedThing`,
+    ]
+
+    unique_document_reference_ranged_slot_names = set()
+    for slot_names in document_reference_ranged_slots_by_type.values():
+        for slot_name in slot_names:
+            unique_document_reference_ranged_slot_names.add(slot_name)
+    context.log.info(f"{unique_document_reference_ranged_slot_names=}")
+    if len(inbound_document_reference_ranged_slots) + len(
+        outbound_document_reference_ranged_slots
+    ) != len(unique_document_reference_ranged_slot_names):
+        context.log.warning(
+            "Number of detected unique document-reference-ranged slot names does not match "
+            "sum of accounted-for inbound and outbound document-reference-ranged slot names."
+        )
+
     # Maps to track relationships efficiently
     id_to_type_map = {}  # document ID -> type (with "nmdc:" prefix preserved)
     doc_references = defaultdict(set)  # document ID -> set of referenced document IDs
@@ -1075,6 +1114,7 @@ def _add_related_ids_to_alldocs(
     )  # document ID -> set of referencing document IDs
 
     # Collect relationships.
+    # TODO incl. key-value metadata that labels each relationship as "inbound" or "outbound".
     for doc in temp_collection.find():
         doc_id = doc["id"]
         # Store the full type with prefix intact
