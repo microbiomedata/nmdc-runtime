@@ -247,7 +247,8 @@ class DatabaseUpdater:
         """This method creates a MongoDB update script to add INSDC biosample identifiers to biosamples
         based on data from GOLD. It gets all the biosamples associated with a study ID, fetches their
         gold_biosample_identifiers, then uses the fetch_projects_by_biosample() method in the gold_api_client
-        to get the "ncbiBioSampleAccession" values for each biosample.
+        to get the "ncbiBioSampleAccession" values for each biosample. It also adds "ncbiBioProjectAccession"
+        values to the insdc_bioproject_identifiers field.
 
         :return: A dictionary containing the MongoDB update script with updates for each biosample.
         """
@@ -268,7 +269,8 @@ class DatabaseUpdater:
             if not biosample_id:
                 continue
 
-            insdc_identifiers = []
+            insdc_biosample_identifiers = []
+            insdc_bioproject_identifiers = []
 
             # Process each GOLD identifier for this biosample
             for gold_biosample_id in gold_biosample_identifiers:
@@ -280,38 +282,46 @@ class DatabaseUpdater:
                     normalized_id
                 )
 
-                # Look for ncbiBioSampleAccession in the projects
+                # Look for ncbiBioSampleAccession and ncbiBioProjectAccession in the projects
                 for project in gold_projects:
                     ncbi_biosample_accession = project.get("ncbiBioSampleAccession")
                     if ncbi_biosample_accession and ncbi_biosample_accession.strip():
-                        insdc_identifiers.append(ncbi_biosample_accession)
+                        insdc_biosample_identifiers.append(ncbi_biosample_accession)
 
-            # If we found INSDC identifiers and they're not already in the biosample, create an update
-            if insdc_identifiers:
-                existing_insdc_identifiers = biosample.get(
+                    ncbi_bioproject_accession = project.get("ncbiBioProjectAccession")
+                    if ncbi_bioproject_accession and ncbi_bioproject_accession.strip():
+                        insdc_bioproject_identifiers.append(ncbi_bioproject_accession)
+
+            # Process updates for insdc_biosample_identifiers
+            if insdc_biosample_identifiers:
+                existing_insdc_biosample_identifiers = biosample.get(
                     "insdc_biosample_identifiers", []
                 )
-                new_insdc_identifiers = list(
-                    set(insdc_identifiers) - set(existing_insdc_identifiers)
+                new_insdc_biosample_identifiers = list(
+                    set(insdc_biosample_identifiers)
+                    - set(existing_insdc_biosample_identifiers)
                 )
 
-                if new_insdc_identifiers:
+                if new_insdc_biosample_identifiers:
                     # Add biosample: prefix to all identifiers
-                    prefixed_new_identifiers = [
-                        f"biosample:{id}" for id in new_insdc_identifiers
+                    prefixed_new_biosample_identifiers = [
+                        f"biosample:{id}" for id in new_insdc_biosample_identifiers
                     ]
 
                     # If biosample already has insdc_biosample_identifiers, append to it
-                    if existing_insdc_identifiers:
-                        all_identifiers = list(
-                            set(existing_insdc_identifiers + prefixed_new_identifiers)
+                    if existing_insdc_biosample_identifiers:
+                        all_biosample_identifiers = list(
+                            set(
+                                existing_insdc_biosample_identifiers
+                                + prefixed_new_biosample_identifiers
+                            )
                         )
                         updates.append(
                             {
                                 "q": {"id": biosample_id},
                                 "u": {
                                     "$set": {
-                                        "insdc_biosample_identifiers": all_identifiers
+                                        "insdc_biosample_identifiers": all_biosample_identifiers
                                     }
                                 },
                             }
@@ -323,7 +333,54 @@ class DatabaseUpdater:
                                 "q": {"id": biosample_id},
                                 "u": {
                                     "$set": {
-                                        "insdc_biosample_identifiers": prefixed_new_identifiers
+                                        "insdc_biosample_identifiers": prefixed_new_biosample_identifiers
+                                    }
+                                },
+                            }
+                        )
+
+            # Process updates for insdc_bioproject_identifiers
+            if insdc_bioproject_identifiers:
+                existing_insdc_bioproject_identifiers = biosample.get(
+                    "insdc_bioproject_identifiers", []
+                )
+                new_insdc_bioproject_identifiers = list(
+                    set(insdc_bioproject_identifiers)
+                    - set(existing_insdc_bioproject_identifiers)
+                )
+
+                if new_insdc_bioproject_identifiers:
+                    # Add bioproject: prefix to all identifiers
+                    prefixed_new_bioproject_identifiers = [
+                        f"bioproject:{id}" for id in new_insdc_bioproject_identifiers
+                    ]
+
+                    # If biosample already has insdc_bioproject_identifiers, append to it
+                    if existing_insdc_bioproject_identifiers:
+                        all_bioproject_identifiers = list(
+                            set(
+                                existing_insdc_bioproject_identifiers
+                                + prefixed_new_bioproject_identifiers
+                            )
+                        )
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_bioproject_identifiers": all_bioproject_identifiers
+                                    }
+                                },
+                            }
+                        )
+                    # Otherwise, create a new field
+                    else:
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_bioproject_identifiers": prefixed_new_bioproject_identifiers
                                     }
                                 },
                             }
