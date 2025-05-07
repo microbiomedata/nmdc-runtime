@@ -83,9 +83,7 @@ jobs:
 #      run: |
 #        pip install flake8
 #        make lint
-    - name: Build and run containers upon which test runner depends
+    - name: Build and start containers upon which test runner depends
       run: make up-test
-    - name: Build container image for test runner
-      run: make test-build
     - name: Run tests
-      run: make test-run
+      run: make run-test

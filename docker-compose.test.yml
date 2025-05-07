@@ -117,21 +117,17 @@ services:
 
   # Test runner.
   test:
-    # Prevent Docker Compose from starting this service automatically.
-    # Reference: https://stackoverflow.com/a/65957695
-    profiles:
-      - donotstart
     build:
       context: .
       dockerfile: nmdc_runtime/Dockerfile
       target: test
-    env_file: .env.test
     depends_on:
       mongo-init: { condition: service_completed_successfully }
       mongo: { condition: service_started }
       fastapi: { condition: service_started }
       dagster-daemon: { condition: service_started }
       dagster-dagit: { condition: service_started }
+    env_file: .env.test
     volumes:
       - .:/code
 
