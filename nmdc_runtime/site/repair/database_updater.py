@@ -296,10 +296,15 @@ class DatabaseUpdater:
                 )
 
                 if new_insdc_identifiers:
+                    # Add biosample: prefix to all identifiers
+                    prefixed_new_identifiers = [
+                        f"biosample:{id}" for id in new_insdc_identifiers
+                    ]
+
                     # If biosample already has insdc_biosample_identifiers, append to it
                     if existing_insdc_identifiers:
                         all_identifiers = list(
-                            set(existing_insdc_identifiers + new_insdc_identifiers)
+                            set(existing_insdc_identifiers + prefixed_new_identifiers)
                         )
                         updates.append(
                             {
@@ -318,7 +323,7 @@ class DatabaseUpdater:
                                 "q": {"id": biosample_id},
                                 "u": {
                                     "$set": {
-                                        "insdc_biosample_identifiers": new_insdc_identifiers
+                                        "insdc_biosample_identifiers": prefixed_new_identifiers
                                     }
                                 },
                             }
