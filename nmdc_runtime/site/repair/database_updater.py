@@ -241,7 +241,7 @@ class DatabaseUpdater:
 
         return database
 
-    def queries_run_script_to_update_insdc_biosample_identifiers(
+    def queries_run_script_to_update_insdc_identifiers(
         self,
     ) -> Dict[str, Any]:
         """This method creates a `/queries:run` API endpoint compatible update script that can be run

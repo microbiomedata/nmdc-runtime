@@ -1401,9 +1401,7 @@ def run_script_to_update_insdc_biosample_identifiers(
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
     )
-    update_script = (
-        database_updater.queries_run_script_to_update_insdc_biosample_identifiers()
-    )
+    update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
 
     context.log.info(
         f"Generated update script for study {nmdc_study_id} with {len(update_script.get('updates', []))} updates"

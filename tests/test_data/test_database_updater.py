@@ -235,9 +235,7 @@ def test_generate_biosample_set_from_gold_api_for_study(
     mock_runtime_api_site_client.mint_id.assert_called_once_with("nmdc:Biosample", 2)
 
 
-def test_queries_run_script_to_update_insdc_biosample_identifiers(
-    db_updater, mock_clients
-):
+def test_queries_run_script_to_update_insdc_identifiers(db_updater, mock_clients):
     mock_runtime_api_user_client = mock_clients["runtime_api_user_client"]
     mock_gold_api_client = mock_clients["gold_api_client"]
 
@@ -307,7 +305,7 @@ def test_queries_run_script_to_update_insdc_biosample_identifiers(
     mock_gold_api_client.fetch_projects_by_biosample.side_effect = mock_fetch_projects
 
     # Run the method
-    result = db_updater.queries_run_script_to_update_insdc_biosample_identifiers()
+    result = db_updater.queries_run_script_to_update_insdc_identifiers()
 
     # Assertions
     assert result is not None
