@@ -244,23 +244,23 @@ class DatabaseUpdater:
     def queries_run_script_to_update_insdc_biosample_identifiers(
         self,
     ) -> Dict[str, Any]:
-        """This method creates a MongoDB update script to add INSDC biosample identifiers to biosamples
-        based on data from GOLD. It gets all the biosamples associated with a study ID, fetches their
-        gold_biosample_identifiers, then uses the fetch_projects_by_biosample() method in the gold_api_client
-        to get the "ncbiBioSampleAccession" values for each biosample. It also adds "ncbiBioProjectAccession"
-        values to the insdc_bioproject_identifiers field.
+        """This method creates a `/queries:run` API endpoint compatible update script that can be run
+        using that API endpoint to update/add information on the `insdc_biosample_identifiers` and
+        `insdc_bioproject_identifiers` fields of biosample_set records. The information to be asserted
+        is retrieved from the `ncbiBioSampleAccession` and `ncbiBioProjectAccession` fields on the
+        GOLD `/projects` API endpoint.
 
-        :return: A dictionary containing the MongoDB update script with updates for each biosample.
+        :return: A `/queries:run` update query compatible script serialized as a dictionary/JSON.
         """
-        # Get all biosamples associated with the study
+        # Fetch all biosamples associated with the study
         biosample_set = self.runtime_api_user_client.get_biosamples_for_study(
             self.study_id
         )
 
         updates = []
 
-        # Process each biosample
         for biosample in biosample_set:
+            # get the list (usually one) of GOLD biosample identifiers on the gold_biosample_identifiers slot
             gold_biosample_identifiers = biosample.get("gold_biosample_identifiers", [])
             if not gold_biosample_identifiers:
                 continue
@@ -272,17 +272,14 @@ class DatabaseUpdater:
             insdc_biosample_identifiers = []
             insdc_bioproject_identifiers = []
 
-            # Process each GOLD identifier for this biosample
             for gold_biosample_id in gold_biosample_identifiers:
-                # Strip 'gold:' prefix if present
                 normalized_id = gold_biosample_id.replace("gold:", "")
 
-                # Fetch projects associated with this biosample from GOLD API
+                # fetch projects associated with a GOLD biosample from the GOLD `/projects` API endpoint
                 gold_projects = self.gold_api_client.fetch_projects_by_biosample(
                     normalized_id
                 )
 
-                # Look for ncbiBioSampleAccession and ncbiBioProjectAccession in the projects
                 for project in gold_projects:
                     ncbi_biosample_accession = project.get("ncbiBioSampleAccession")
                     if ncbi_biosample_accession and ncbi_biosample_accession.strip():
@@ -292,7 +289,6 @@ class DatabaseUpdater:
                     if ncbi_bioproject_accession and ncbi_bioproject_accession.strip():
                         insdc_bioproject_identifiers.append(ncbi_bioproject_accession)
 
-            # Process updates for insdc_biosample_identifiers
             if insdc_biosample_identifiers:
                 existing_insdc_biosample_identifiers = biosample.get(
                     "insdc_biosample_identifiers", []
@@ -303,12 +299,10 @@ class DatabaseUpdater:
                 )
 
                 if new_insdc_biosample_identifiers:
-                    # Add biosample: prefix to all identifiers
                     prefixed_new_biosample_identifiers = [
                         f"biosample:{id}" for id in new_insdc_biosample_identifiers
                     ]
 
-                    # If biosample already has insdc_biosample_identifiers, append to it
                     if existing_insdc_biosample_identifiers:
                         all_biosample_identifiers = list(
                             set(
@@ -326,7 +320,6 @@ class DatabaseUpdater:
                                 },
                             }
                         )
-                    # Otherwise, create a new field
                     else:
                         updates.append(
                             {
@@ -339,7 +332,6 @@ class DatabaseUpdater:
                             }
                         )
 
-            # Process updates for insdc_bioproject_identifiers
             if insdc_bioproject_identifiers:
                 existing_insdc_bioproject_identifiers = biosample.get(
                     "insdc_bioproject_identifiers", []
@@ -350,12 +342,10 @@ class DatabaseUpdater:
                 )
 
                 if new_insdc_bioproject_identifiers:
-                    # Add bioproject: prefix to all identifiers
                     prefixed_new_bioproject_identifiers = [
                         f"bioproject:{id}" for id in new_insdc_bioproject_identifiers
                     ]
 
-                    # If biosample already has insdc_bioproject_identifiers, append to it
                     if existing_insdc_bioproject_identifiers:
                         all_bioproject_identifiers = list(
                             set(
@@ -373,7 +363,6 @@ class DatabaseUpdater:
                                 },
                             }
                         )
-                    # Otherwise, create a new field
                     else:
                         updates.append(
                             {
@@ -386,5 +375,4 @@ class DatabaseUpdater:
                             }
                         )
 
-        # Return the formatted script
         return {"update": "biosample_set", "updates": updates}
