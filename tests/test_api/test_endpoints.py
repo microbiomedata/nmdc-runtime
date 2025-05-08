@@ -852,7 +852,13 @@ def test_find_planned_processes(api_site_client):
         "GET",
         "/planned_processes",
     )
-    assert rv.json()["meta"]["count"] >= 9
+    try:
+        assert rv.json()["meta"]["count"] >= 9
+    finally:  # clean up
+        for collection_name, docs in database_dict.items():
+            mdb[collection_name].delete_one(
+                {"id": {"$in": [doc["id"] for doc in docs]}}
+            )
 
 
 def test_find_planned_process_by_id(api_site_client):
@@ -894,6 +900,10 @@ def test_find_planned_process_by_id(api_site_client):
             "GET",
             f"/planned_processes/nmdc:sty-11-00000001",
         )
+
+    # clean up
+    for collection_name, docs in database_dict.items():
+        mdb[collection_name].delete_one({"id": {"$in": [doc["id"] for doc in docs]}})
 
 
 def _test_run_query_find_as(client):
