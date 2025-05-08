@@ -1094,6 +1094,10 @@ def _add_related_ids_to_alldocs(
             if slot in doc:
                 # Handle both single-value and array references
                 refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
+                for ref_doc in temp_collection.find(
+                    {"id": {"$in": refs}}, ["id", "type"]
+                ):
+                    id_to_type_map[ref_doc["id"]] = ref_doc["type"]
                 for ref_id in refs:
                     relationship_triples.add((doc_id, slot, ref_id))
 
