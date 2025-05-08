@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
-from typing import Tuple
+from typing import Tuple, Set
 from zipfile import ZipFile
 from itertools import chain
 
@@ -1050,9 +1050,9 @@ def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ):
     """
-    Adds a _related_ids field to each document in the temporary alldocs collection.
+    Adds {`_inbound`,`_outbound`} fields to each document in the temporary alldocs collection.
 
-    The _related_ids field contains an array of subdocuments, each with fields `id` and `type`.
+    The {`_inbound`,`_outbound`} fields each contain an array of subdocuments, each with fields `id` and `type`.
     Each subdocument represents a link to any other document that either links to or is linked from
     the document via document-reference-ranged slots.
 
@@ -1065,7 +1065,42 @@ def _add_related_ids_to_alldocs(
         None (modifies the documents in place)
     """
 
-    context.log.info("Building relationships and adding _related_ids field...")
+    context.log.info(
+        "Building relationships and adding `_inbound` and `_outbound` fields..."
+    )
+
+    # document ID -> type (with "nmdc:" prefix preserved)
+    id_to_type_map: Dict[str, str] = {}
+
+    # set of (<referencing document ID>, <slot>, <referenced document ID>) 3-tuples.
+    relationship_triples: Set[Tuple[str, str, str]] = set()
+
+    # Collect relationship triples.
+    for doc in temp_collection.find():
+        doc_id = doc["id"]
+        # Store the full type with prefix intact
+        doc_type = doc["type"]
+        # For looking up reference slots, we still need the type without prefix
+        doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
+
+        # Record ID to type mapping - preserve the original type with prefix
+        id_to_type_map[doc_id] = doc_type
+
+        # Find all document references from this document
+        reference_slots = document_reference_ranged_slots_by_type.get(
+            doc_type_no_prefix, []
+        )
+        for slot in reference_slots:
+            if slot in doc:
+                # Handle both single-value and array references
+                refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
+                for ref_id in refs:
+                    relationship_triples.add((doc_id, slot, ref_id))
+
+    context.log.info(
+        f"Found {len(id_to_type_map)} documents, with "
+        f"{len({d for (d, _, _) in relationship_triples})} containing references"
+    )
 
     # The bifurcation of document-reference-ranged slots as "inbound" and "outbound" is essential
     # in order to perform graph traversal and collect all entities "related" to a given entity without
@@ -1101,93 +1136,70 @@ def _add_related_ids_to_alldocs(
     if len(inbound_document_reference_ranged_slots) + len(
         outbound_document_reference_ranged_slots
     ) != len(unique_document_reference_ranged_slot_names):
-        context.log.warning(
+        raise Failure(
             "Number of detected unique document-reference-ranged slot names does not match "
             "sum of accounted-for inbound and outbound document-reference-ranged slot names."
         )
 
-    # Maps to track relationships efficiently
-    id_to_type_map = {}  # document ID -> type (with "nmdc:" prefix preserved)
-    doc_references = defaultdict(set)  # document ID -> set of referenced document IDs
-    doc_referenced_by = defaultdict(
-        set
-    )  # document ID -> set of referencing document IDs
+    # Construct, and update documents with, `_incoming` and `_outgoing` field values.
+    #
+    # manage batching of MongoDB `bulk_write` operations
+    bulk_operations, update_count = [], 0
+    for doc_id, slot, ref_id in relationship_triples:
 
-    # Collect relationships.
-    # TODO incl. key-value metadata that labels each relationship as "inbound" or "outbound".
-    for doc in temp_collection.find():
-        doc_id = doc["id"]
-        # Store the full type with prefix intact
-        doc_type = doc["type"]
-        # For looking up reference slots, we still need the type without prefix
-        doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
+        # Determine in which respective fields to push this relationship
+        # for the subject (doc) and object (ref) of this triple.
+        if slot in inbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_inbound", "_outbound"
+        elif slot in outbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_outbound", "_inbound"
+        else:
+            raise Failure(f"Unknown slot {slot} for document {doc_id}")
 
-        # Record ID to type mapping - preserve the original type with prefix
-        id_to_type_map[doc_id] = doc_type
+        updates = [
+            {
+                "filter": {"id": doc_id},
+                "update": {
+                    "$push": {
+                        field_for_doc: {"id": ref_id, "type": id_to_type_map[ref_id]}
+                    }
+                },
+            },
+            {
+                "filter": {"id": ref_id},
+                "update": {
+                    "$push": {
+                        field_for_ref: {"id": doc_id, "type": id_to_type_map[doc_id]}
+                    }
+                },
+            },
+        ]
+        for update in updates:
+            bulk_operations.append(UpdateOne(**update))
 
-        # Find all document references from this document
-        reference_slots = document_reference_ranged_slots_by_type.get(
-            doc_type_no_prefix, []
-        )
-        for slot in reference_slots:
-            if slot in doc:
-                # Handle both single value and array references
-                refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
-                for ref_id in refs:
-                    doc_references[doc_id].add(ref_id)
-                    doc_referenced_by[ref_id].add(doc_id)
-
-    context.log.info(
-        f"Found {len(id_to_type_map)} documents with {len(doc_references)} containing references"
-    )
-
-    # Construct, and update documents with, `_related_ids` field values.
-    bulk_operations = []
-    update_count = 0
-    for doc_id, doc_type in id_to_type_map.items():
-        # Get all IDs related to this document (outgoing and incoming refs)
-        related_ids = set()
-        if doc_id in doc_references:
-            related_ids.update(doc_references[doc_id])
-        if doc_id in doc_referenced_by:
-            related_ids.update(doc_referenced_by[doc_id])
-
-        # Format as array of subdocuments with id and type
-        related_docs = []
-        for related_id in related_ids:
-            if related_id in id_to_type_map:
-                related_docs.append(
-                    {"id": related_id, "type": id_to_type_map[related_id]}
-                )
-
-        # Only update if there are related documents
-        if related_docs:
-            bulk_operations.append(
-                UpdateOne({"id": doc_id}, {"$set": {"_related_ids": related_docs}})
+        # Execute in batches for efficiency
+        if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
+            temp_collection.bulk_write(bulk_operations)
+            update_count += len(bulk_operations)
+            context.log.info(
+                f"Pushed {update_count/(2*len(relationship_triples)):.1%} of updates so far..."
             )
-
-            # Execute in batches for efficiency
-            if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
-                temp_collection.bulk_write(bulk_operations)
-                update_count += len(bulk_operations)
-                context.log.info(f"Updated {update_count} documents with _related_ids")
-                bulk_operations = []
+            bulk_operations = []
 
     # Execute any remaining operations
     if bulk_operations:
         temp_collection.bulk_write(bulk_operations)
         update_count += len(bulk_operations)
 
-    context.log.info(f"Added _related_ids to {update_count} documents in total")
+    context.log.info(f"Pushed {update_count} updates in total")
 
-    context.log.info("Creating index on _related_ids.id...")
-    temp_collection.create_index("_related_ids.id")
-    # Create compound index on _related_ids.type and _related_ids.id to ensure index-covered queries
-    context.log.info(
-        "Creating compound index on _related_ids.type and _related_ids.id..."
-    )
-    temp_collection.create_index([("_related_ids.type", 1), ("_related_ids.id", 1)])
-    context.log.info("Successfully created indexes on _related_ids fields")
+    context.log.info("Creating {`_inbound`,`_outbound`} indexes...")
+    temp_collection.create_index("_inbound.id")
+    temp_collection.create_index("_outbound.id")
+    # Create compound indexes to ensure index-covered queries
+    temp_collection.create_index([("_inbound.type", 1), ("_inbound.id", 1)])
+    temp_collection.create_index([("_outbound.type", 1), ("_outbound.id", 1)])
+    context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
 @op(required_resource_keys={"mongo"})
@@ -1310,7 +1322,7 @@ def materialize_alldocs(context) -> int:
     context.log.info(f"created indexes on id, {slots_to_index}.")
 
     # Add _related_ids field to enable efficient relationship traversal
-    context.log.info("Adding _related_ids field to documents...")
+    context.log.info("Adding fields for related ids to documents...")
     _add_related_ids_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots
     )

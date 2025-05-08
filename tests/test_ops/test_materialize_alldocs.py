@@ -270,10 +270,6 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
     assert set(biosample_doc["_type_and_ancestors"]) == set(ancestry_chain["Biosample"])
 
     # Find the `nmdc:DataObject`(s) related to a `nmdc:Biosample` via a `nmdc:DataEmitterProcess`.
-    #
-    # Prune `$graphLookup` branches that include "parent" `nmdc:PlannedProcess`es. While we *do* want to collect
-    # `nmdc:DataObject`s that are "child" `nmdc:ProcessedSample`s of our `nmdc:Biosample` `biosample_id`, we *do not*
-    # want to include `nmdc:DataObjects` that are related only to "parent" `nmdc:Sample`s.
     biosample_id = ids_for["biosample_set"][0]
     related_data_objects = list(
         alldocs_collection.aggregate(
@@ -282,34 +278,18 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_related_ids.id",
-                        "connectFromField": "_related_ids.id",
+                        "startWith": "$_outbound.id",
+                        "connectFromField": "_outbound.id",
                         "connectToField": "id",
-                        "as": "_related_ids_incl_extra_hops",
-                        "maxDepth": 10,
-                        "restrictSearchWithMatch": {
-                            # Prune branches that explore "parent" `nmdc:PlannedProcess`es.
-                            "has_output": {"$ne": biosample_id},
-                            # Prune branches that explore a `nmdc:Study`'s other `nmdc:Biosample`s.
-                            "_type_and_ancestors": {
-                                "$in": [
-                                    "nmdc:MaterialEntity",
-                                    "nmdc:PlannedProcess",
-                                    "nmdc:InformationObject",
-                                ]
-                            },
-                        },
+                        "as": "influenced",
                     }
                 },
-                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
-                {
-                    "$match": {
-                        "_related_ids_incl_extra_hops._type_and_ancestors": "nmdc:DataObject"
-                    }
-                },
-                {"$replaceRoot": {"newRoot": "$_related_ids_incl_extra_hops"}},
+                {"$unwind": {"path": "$influenced"}},
+                {"$match": {"influenced._type_and_ancestors": "nmdc:DataObject"}},
+                {"$replaceRoot": {"newRoot": "$influenced"}},
                 {"$unset": ["_id"]},
             ],
+            allowDiskUse=True,
         )
     )
 
@@ -324,34 +304,18 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_related_ids.id",
-                        "connectFromField": "_related_ids.id",
+                        "startWith": "$_inbound.id",
+                        "connectFromField": "_inbound.id",
                         "connectToField": "id",
-                        "as": "_related_ids_incl_extra_hops",
-                        "maxDepth": 10,
-                        "restrictSearchWithMatch": {
-                            # Prune branches that explore e.g. downstream `nmdc:DataEmitterProcess`es.
-                            "has_input": {"$ne": data_object_id},
-                            # Prune branches that could yield e.g. a `nmdc:Study`'s other `nmdc:Biosample`s.
-                            "_type_and_ancestors": {
-                                "$in": [
-                                    "nmdc:MaterialEntity",
-                                    "nmdc:PlannedProcess",
-                                    "nmdc:InformationObject",
-                                ],
-                            },
-                        },
+                        "as": "was_influenced_by",
                     }
                 },
-                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
-                {
-                    "$match": {
-                        "_related_ids_incl_extra_hops._type_and_ancestors": "nmdc:Sample"
-                    }
-                },
-                {"$replaceRoot": {"newRoot": "$_related_ids_incl_extra_hops"}},
+                {"$unwind": {"path": "$was_influenced_by"}},
+                {"$match": {"was_influenced_by._type_and_ancestors": "nmdc:Sample"}},
+                {"$replaceRoot": {"newRoot": "$was_influenced_by"}},
                 {"$unset": ["_id"]},
-            ]
+            ],
+            allowDiskUse=True,
         )
     )
     assert len(related_biosamples) == 1

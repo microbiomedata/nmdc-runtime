@@ -141,7 +141,7 @@ def get_related_ids(
     Optionally filter related IDs by specific IDs and/or types.
     """
     ids = ids.split(",") if ids else []
-    types = types.split(",") if types else []
+    types = types.split(",") if types else ["nmdc:NamedThing"]
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
     if ids_not_found:
@@ -160,53 +160,83 @@ def get_related_ids(
             ),
         )
 
-    related_ids_docs = list(
+    was_influenced_by = list(
         mdb.alldocs.aggregate(
             [
                 {"$match": {"id": {"$in": ids}}},
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_related_ids.id",
-                        "connectFromField": "_related_ids.id",
+                        "startWith": "$_inbound.id",
+                        "connectFromField": "_inbound.id",
                         "connectToField": "id",
-                        "as": "_related_ids_incl_extra_hops",
-                        "maxDepth": 2,
-                        "depthField": "n_hops",
-                        # "restrictSearchWithMatch": {
-                        #     "_type_and_ancestors": {
-                        #         "$in": [terminal_types],
-                        #     },
-                        # },
+                        "as": "was_influenced_by",
                     }
                 },
-                {"$unwind": {"path": "$_related_ids_incl_extra_hops"}},
-                {
-                    "$match": {
-                        "_related_ids_incl_extra_hops._type_and_ancestors": {
-                            "$in": types
-                        }
-                    }
-                },
-                {"$project": {"id": 1, "related_id": "$_related_ids_incl_extra_hops"}},
+                {"$unwind": {"path": "$was_influenced_by"}},
+                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
                 {
                     "$project": {
                         "id": 1,
-                        "related_id.id": 1,
-                        "related_id.type": 1,
+                        "was_influenced_by.id": 1,
+                        "was_influenced_by.type": 1,
                     }
                 },
-                {"$group": {"_id": "$id", "related_ids": {"$addToSet": "$related_id"}}},
-                {"$project": {"id": "$_id", "_id": 0, "related_ids": 1}},
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "was_influenced_by": {"$addToSet": "$was_influenced_by"},
+                    }
+                },
+                {"$project": {"id": "$_id", "_id": 0, "was_influenced_by": 1}},
+            ],
+            allowDiskUse=True,
+        )
+    )
+    influenced = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_outbound.id",
+                        "connectFromField": "_outbound.id",
+                        "connectToField": "id",
+                        "as": "influenced",
+                    }
+                },
+                {"$unwind": {"path": "$influenced"}},
+                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "influenced": "$influenced"}},
+                {
+                    "$project": {
+                        "id": 1,
+                        "influenced.id": 1,
+                        "influenced.type": 1,
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "influenced": {"$addToSet": "$influenced"},
+                    }
+                },
+                {"$project": {"id": "$_id", "_id": 0, "influenced": 1}},
             ],
             allowDiskUse=True,
         )
     )
     return {
         # Return `id` first in sorted JSON objects.
-        "related_ids": [
-            {"id": d["id"], "related_ids": d["related_ids"]} for d in related_ids_docs
-        ]
+        "was_influenced_by": [
+            {"id": d["id"], "was_influenced_by": d["was_influenced_by"]}
+            for d in was_influenced_by
+        ],
+        "influenced": [
+            {"id": d["id"], "influenced": d["influenced"]} for d in influenced
+        ],
     }
 
 
