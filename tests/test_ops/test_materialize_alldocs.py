@@ -213,7 +213,7 @@ _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
 
 def test_alldocs_related_ids_with_type_and_ancestors(op_context):
     """
-    Test that _related_ids in conjunction with _type_and_ancestors can be used to find
+    Test that the {_inbound,_outbound} fields, in conjunction with the _type_and_ancestors field, can be used to find
     all nmdc:DataObjects related to a given nmdc:Biosample using an index-covered query.
     """
     mdb = op_context.resources.mongo.db
@@ -259,12 +259,12 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
             {"id": {"$in": [doc["id"] for doc in collection_docs]}}
         ) == len(collection_docs)
 
-    # Verify that `_related_ids` and `_type_and_ancestors` fields are properly set
+    # Verify that `_outbound` and `_type_and_ancestors` fields are properly set for biosample -> workflow execution.
     biosample_doc = alldocs_collection.find_one({"id": ids_for["biosample_set"][0]})
     assert biosample_doc is not None
-    assert "_related_ids" in biosample_doc
+    assert "_outbound" in biosample_doc
     assert ids_for["workflow_execution_set"][0] in [
-        d["id"] for d in biosample_doc["_related_ids"]
+        d["id"] for d in biosample_doc["_outbound"]
     ]
     assert "_type_and_ancestors" in biosample_doc
     assert set(biosample_doc["_type_and_ancestors"]) == set(ancestry_chain["Biosample"])

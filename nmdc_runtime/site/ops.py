@@ -1215,8 +1215,8 @@ def materialize_alldocs(context) -> int:
     2. Create a temporary collection to build the new alldocs collection.
     3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
-    5. Add a special `_related_ids` field with subdocuments containing ID and type of related entities.
-    6. Add indexes for `id`, relationship fields, and `_related_ids.type`/`_related_ids.id` compound index.
+    5. Add special `_inbound` and `_outbound` fields with subdocuments containing ID and type of related entities.
+    6. Add indexes for `id`, relationship fields, and `{_inbound,_outbound}.type`/`.id` compound indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
@@ -1227,8 +1227,9 @@ def materialize_alldocs(context) -> int:
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
     related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
 
-    The `_related_ids` field enables efficient index-covered queries to find all entities of specific types that are
-    related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype expansions.
+    The {`_inbound`,`_outbound`} fields enable efficient index-covered queries to find all entities of specific types
+    that are related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype
+    expansions.
     """
     mdb = context.resources.mongo.db
     schema_view = nmdc_schema_view()
@@ -1325,7 +1326,7 @@ def materialize_alldocs(context) -> int:
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
 
-    # Add _related_ids field to enable efficient relationship traversal
+    # Add related-ids fields to enable efficient relationship traversal
     context.log.info("Adding fields for related ids to documents...")
     _add_related_ids_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots
