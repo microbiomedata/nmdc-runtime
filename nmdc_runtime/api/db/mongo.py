@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
+from nmdc_runtime.mongo_util import SessionBoundDatabase
 from nmdc_runtime.util import (
     nmdc_schema_view,
     collection_name_to_class_names,
@@ -42,7 +43,7 @@ def get_mongo_client() -> MongoClient:
 
 
 @lru_cache
-def get_mongo_db() -> MongoDatabase:
+def get_mongo_db(session=None) -> MongoDatabase:
     r"""
     Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
@@ -50,7 +51,7 @@ def get_mongo_db() -> MongoDatabase:
     _client = get_mongo_client()
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
-    return mdb
+    return SessionBoundDatabase(mdb, session) if session is not None else mdb
 
 
 @lru_cache
