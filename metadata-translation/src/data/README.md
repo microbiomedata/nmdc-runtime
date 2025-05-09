@@ -1,9 +1,12 @@
 # NMDC Data Sources
 
-Data for the NDMDC is collected from a number of sources. This directory contains copies of these data sources used in the metadata translation process. Below is a listing from where the copies were obtained. Follow the source link to see from where the data was downloaded (note: you may need to login to the relevant Google Drive site).  
+Data for the NDMDC is collected from a number of sources. This directory contains copies of these data sources used in 
+the metadata translation process. Below is a listing from where the copies were obtained. Follow the source link to see
+from where the data was downloaded (note: you may need to login to the relevant Google Drive site).  
 
 ## Genomes OnLine Database (GOLD)
-Data from GOLD is contained in the SQL data export file [nmdc-version5.zip](nmdc-version5.zip). Within the zip file, the following tab-delimited files are used:
+Data from GOLD is contained in the SQL data export file [nmdc-version5.zip](nmdc-version5.zip). Within the zip file, the 
+following tab-delimited files are used:
 - Biosample metadata: `export.sql/BIOSAMPLE_DATA_TABLE.dsv`
 - Study metadata: `export.sql/STUDY_DATA_TABLE.dsv`
 - Omics processing metadata: `export.sql/PROJECT_DATA_TABLE.dsv` 

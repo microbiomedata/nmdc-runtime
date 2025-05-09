@@ -42,6 +42,9 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
+python-dotenv
+ontology-loader==0.1.9
+linkml-store
 nmdc-schema==11.6.1
 openpyxl
 pandas
