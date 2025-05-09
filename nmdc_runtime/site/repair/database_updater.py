@@ -240,3 +240,139 @@ class DatabaseUpdater:
         ]
 
         return database
+
+    def queries_run_script_to_update_insdc_identifiers(
+        self,
+    ) -> Dict[str, Any]:
+        """This method creates a `/queries:run` API endpoint compatible update script that can be run
+        using that API endpoint to update/add information on the `insdc_biosample_identifiers` and
+        `insdc_bioproject_identifiers` fields of biosample_set records. The information to be asserted
+        is retrieved from the `ncbiBioSampleAccession` and `ncbiBioProjectAccession` fields on the
+        GOLD `/projects` API endpoint.
+
+        :return: A `/queries:run` update query compatible script serialized as a dictionary/JSON.
+        """
+        # Fetch all biosamples associated with the study
+        biosample_set = self.runtime_api_user_client.get_biosamples_for_study(
+            self.study_id
+        )
+
+        updates = []
+
+        for biosample in biosample_set:
+            # get the list (usually one) of GOLD biosample identifiers on the gold_biosample_identifiers slot
+            gold_biosample_identifiers = biosample.get("gold_biosample_identifiers", [])
+            if not gold_biosample_identifiers:
+                continue
+
+            biosample_id = biosample.get("id")
+            if not biosample_id:
+                continue
+
+            insdc_biosample_identifiers = []
+            insdc_bioproject_identifiers = []
+
+            for gold_biosample_id in gold_biosample_identifiers:
+                normalized_id = gold_biosample_id.replace("gold:", "")
+
+                # fetch projects associated with a GOLD biosample from the GOLD `/projects` API endpoint
+                gold_projects = self.gold_api_client.fetch_projects_by_biosample(
+                    normalized_id
+                )
+
+                for project in gold_projects:
+                    ncbi_biosample_accession = project.get("ncbiBioSampleAccession")
+                    if ncbi_biosample_accession and ncbi_biosample_accession.strip():
+                        insdc_biosample_identifiers.append(ncbi_biosample_accession)
+
+                    ncbi_bioproject_accession = project.get("ncbiBioProjectAccession")
+                    if ncbi_bioproject_accession and ncbi_bioproject_accession.strip():
+                        insdc_bioproject_identifiers.append(ncbi_bioproject_accession)
+
+            if insdc_biosample_identifiers:
+                existing_insdc_biosample_identifiers = biosample.get(
+                    "insdc_biosample_identifiers", []
+                )
+                new_insdc_biosample_identifiers = list(
+                    set(insdc_biosample_identifiers)
+                    - set(existing_insdc_biosample_identifiers)
+                )
+
+                if new_insdc_biosample_identifiers:
+                    prefixed_new_biosample_identifiers = [
+                        f"biosample:{id}" for id in new_insdc_biosample_identifiers
+                    ]
+
+                    if existing_insdc_biosample_identifiers:
+                        all_biosample_identifiers = list(
+                            set(
+                                existing_insdc_biosample_identifiers
+                                + prefixed_new_biosample_identifiers
+                            )
+                        )
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_biosample_identifiers": all_biosample_identifiers
+                                    }
+                                },
+                            }
+                        )
+                    else:
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_biosample_identifiers": prefixed_new_biosample_identifiers
+                                    }
+                                },
+                            }
+                        )
+
+            if insdc_bioproject_identifiers:
+                existing_insdc_bioproject_identifiers = biosample.get(
+                    "insdc_bioproject_identifiers", []
+                )
+                new_insdc_bioproject_identifiers = list(
+                    set(insdc_bioproject_identifiers)
+                    - set(existing_insdc_bioproject_identifiers)
+                )
+
+                if new_insdc_bioproject_identifiers:
+                    prefixed_new_bioproject_identifiers = [
+                        f"bioproject:{id}" for id in new_insdc_bioproject_identifiers
+                    ]
+
+                    if existing_insdc_bioproject_identifiers:
+                        all_bioproject_identifiers = list(
+                            set(
+                                existing_insdc_bioproject_identifiers
+                                + prefixed_new_bioproject_identifiers
+                            )
+                        )
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_bioproject_identifiers": all_bioproject_identifiers
+                                    }
+                                },
+                            }
+                        )
+                    else:
+                        updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_bioproject_identifiers": prefixed_new_bioproject_identifiers
+                                    }
+                                },
+                            }
+                        )
+
+        return {"update": "biosample_set", "updates": updates}

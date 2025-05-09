@@ -1361,6 +1361,55 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     return database
 
 
+@op(
+    required_resource_keys={
+        "runtime_api_user_client",
+        "runtime_api_site_client",
+        "gold_api_client",
+    }
+)
+def run_script_to_update_insdc_biosample_identifiers(
+    context: OpExecutionContext,
+    nmdc_study_id: str,
+    gold_nmdc_instrument_map_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
+
+    This op uses the DatabaseUpdater to generate a script that can be used to update biosample
+    records with INSDC identifiers obtained from GOLD.
+
+    Args:
+        context: The execution context
+        nmdc_study_id: The NMDC study ID for which to generate the update script
+        gold_nmdc_instrument_map_df: A dataframe mapping GOLD instrument IDs to NMDC instrument set records
+
+    Returns:
+        A dictionary containing the MongoDB update script
+    """
+    runtime_api_user_client: RuntimeApiUserClient = (
+        context.resources.runtime_api_user_client
+    )
+    runtime_api_site_client: RuntimeApiSiteClient = (
+        context.resources.runtime_api_site_client
+    )
+    gold_api_client: GoldApiClient = context.resources.gold_api_client
+
+    database_updater = DatabaseUpdater(
+        runtime_api_user_client,
+        runtime_api_site_client,
+        gold_api_client,
+        nmdc_study_id,
+        gold_nmdc_instrument_map_df,
+    )
+    update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
+
+    context.log.info(
+        f"Generated update script for study {nmdc_study_id} with {len(update_script.get('updates', []))} updates"
+    )
+
+    return update_script
+
+
 @op
 def log_database_ids(
     context: OpExecutionContext,
@@ -1382,3 +1431,55 @@ def log_database_ids(
         message += "\n"
     if message:
         context.log.info(message)
+
+
+@op(
+    description="Render free text through the Dagit UI",
+    out=Out(description="Text content rendered through Dagit UI"),
+)
+def render_text(context: OpExecutionContext, text: Any):
+    """
+    Renders content as a Dagster Asset in the Dagit UI.
+
+    This operation creates a Dagster Asset with the provided content, making it
+    visible in the Dagit UI for easy viewing and sharing.
+
+    Args:
+        context: The execution context
+        text: The content to render (can be a string or a dictionary that will be converted to JSON)
+
+    Returns:
+        The same content that was provided as input
+    """
+    # Convert dictionary to formatted JSON string if needed
+    if isinstance(text, dict):
+        import json
+
+        content = json.dumps(text, indent=2)
+        file_extension = "json"
+        hash_text = json.dumps(text, sort_keys=True)[:20]  # For consistent hashing
+    else:
+        content = str(text)  # Convert to string in case it's not already
+        file_extension = "txt"
+        hash_text = content[:20]
+
+    filename = f"rendered_text_{context.run_id}.{file_extension}"
+    file_path = os.path.join(context.instance.storage_directory(), filename)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+
+    context.log_event(
+        AssetMaterialization(
+            asset_key=f"rendered_text_{hash_from_str(hash_text, 'md5')[:8]}",
+            description="Rendered Content",
+            metadata={
+                "file_path": MetadataValue.path(file_path),
+                "content": MetadataValue.text(content),
+            },
+        )
+    )
+
+    return Output(text)
