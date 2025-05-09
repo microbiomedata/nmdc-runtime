@@ -1,7 +1,13 @@
 import pytest
 
-from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.util import validate_json
+from refscan.lib.helpers import identify_references
+from refscan.lib.Finder import Finder
+from refscan.lib.ReferenceList import ReferenceList
+from refscan.scanner import scan_outgoing_references
+
+from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
+from nmdc_runtime.util import get_allowed_references, nmdc_schema_view, validate_json
+from tests.lib.faker import Faker
 
 # Tip: At the time of this writing, you can run the tests in this file without running other tests in this repo,
 #      by issuing the following command from the root directory of the repository within the `fastapi` container:
@@ -215,3 +221,71 @@ def test_validate_json_considers_existing_documents_when_checking_references(db)
     assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
     db.get_collection("study_set").delete_one({"id": existing_study_id})
+
+def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
+    r"""
+    Note: This test was written to demonstrate how developers can validate the
+          referential integrity of the result of a pending Mongo transaction
+          without having to commit that transaction.
+    """
+
+    # Setup the referential integrity checker.
+    references = get_allowed_references()
+    reference_field_names_by_source_class_name = (
+        references.get_reference_field_names_by_source_class_name()
+    )
+
+    # Seed the database with two studies, one of which references the other.
+    faker = Faker()
+    study_a, study_b = faker.generate_studies(2)
+    study_set = db.get_collection("study_set")
+    study_ids = [study_a["id"], study_b["id"]]
+    study_a["part_of"] = [study_b["id"]]  # link the two studies
+    assert study_set.count_documents({"id": {"$in": study_ids}}) == 0
+    study_set.insert_many([study_a, study_b])
+
+    # Validate referential integrity of the _referencing_ study (this is baseline behavior).
+    violations = scan_outgoing_references(
+        document=study_a,
+        schema_view=nmdc_schema_view(),
+        reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
+        references=references,
+        finder=Finder(database=db),
+        collection_names=get_collection_names_from_schema(),
+        source_collection_name="study_set",
+    )
+    assert len(violations) == 0
+
+    # Start a Mongo transaction.
+    with db.client.start_session() as session:
+        with session.start_transaction():
+            # Stage a change that, if committed, would introduce a broken reference.
+            # Note: In this case, we'll stage the deletion of the _referenced_ study.
+            study_set.delete_one({"id": study_b["id"]}, session=session)
+            assert study_set.count_documents({"id": study_a["id"]}, session=session) == 1
+            assert study_set.count_documents({"id": study_b["id"]}, session=session) == 0  # <-- deleted
+
+            # Now, we'll validate the referential integrity of the other study.
+            # Note: We expect this to detect the broken reference, even though
+            #       the delete operation has not been _committed_ yet.
+            violations = scan_outgoing_references(
+                document=study_a,
+                schema_view=nmdc_schema_view(),
+                reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
+                references=references,
+                finder=Finder(database=db),
+                collection_names=get_collection_names_from_schema(),
+                source_collection_name="study_set",
+                client_session=session,  # so the scan happens within the context of this session
+            )
+            assert len(violations) == 1
+
+            # Abort the transaction since there were violations.
+            session.abort_transaction()
+
+    # Finally, confirm the delete operation was not committed.
+    assert study_set.count_documents({"id": study_a["id"]}) == 1
+    assert study_set.count_documents({"id": study_b["id"]}) == 1  # <-- not deleted
+
+    # 🧹 Clean up.
+    study_set.delete_many({"id": {"$in": study_ids}})
