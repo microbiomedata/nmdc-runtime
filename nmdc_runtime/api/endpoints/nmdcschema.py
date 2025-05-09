@@ -1,13 +1,13 @@
 from importlib.metadata import version
 import re
-from typing import List, Dict, Annotated
+from typing import List, Dict, Annotated, Optional
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import nmdc_database_collection_names
+from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
@@ -107,6 +107,137 @@ def get_nmdc_database_collection_stats(
         ):
             stats.append(doc)
     return stats
+
+
+@router.get(
+    "/nmdcschema/related_ids",
+    response_model=Doc,
+    response_model_exclude_unset=True,
+)
+def get_related_ids(
+    ids: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by IDs",
+            description=(
+                "A list of document IDs to filter related IDs by.\n\n"
+                "_Example_: `nmdc:bsm-11-abc123,nmdc:bsm-11-def456`"
+            ),
+            examples=["nmdc:bsm-11-abc123,nmdc:bsm-11-def456"],
+        ),
+    ] = None,
+    types: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by Types",
+            description="A list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
+            examples=["nmdc:Biosample,nmdc:Study"],
+        ),
+    ] = None,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    r"""
+    Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
+    Optionally filter related IDs by specific IDs and/or types.
+    """
+    ids = ids.split(",") if ids else []
+    types = types.split(",") if types else ["nmdc:NamedThing"]
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
+    types_not_found = list(set(types) - types_possible)
+    if types_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Some types not found: {types_not_found}. "
+                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+            ),
+        )
+
+    was_influenced_by = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_inbound.id",
+                        "connectFromField": "_inbound.id",
+                        "connectToField": "id",
+                        "as": "was_influenced_by",
+                    }
+                },
+                {"$unwind": {"path": "$was_influenced_by"}},
+                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
+                {
+                    "$project": {
+                        "id": 1,
+                        "was_influenced_by.id": 1,
+                        "was_influenced_by.type": 1,
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "was_influenced_by": {"$addToSet": "$was_influenced_by"},
+                    }
+                },
+                {"$project": {"id": "$_id", "_id": 0, "was_influenced_by": 1}},
+            ],
+            allowDiskUse=True,
+        )
+    )
+    influenced = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_outbound.id",
+                        "connectFromField": "_outbound.id",
+                        "connectToField": "id",
+                        "as": "influenced",
+                    }
+                },
+                {"$unwind": {"path": "$influenced"}},
+                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "influenced": "$influenced"}},
+                {
+                    "$project": {
+                        "id": 1,
+                        "influenced.id": 1,
+                        "influenced.type": 1,
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "influenced": {"$addToSet": "$influenced"},
+                    }
+                },
+                {"$project": {"id": "$_id", "_id": 0, "influenced": 1}},
+            ],
+            allowDiskUse=True,
+        )
+    )
+    return {
+        # Return `id` first in sorted JSON objects.
+        "was_influenced_by": [
+            {"id": d["id"], "was_influenced_by": d["was_influenced_by"]}
+            for d in was_influenced_by
+        ],
+        "influenced": [
+            {"id": d["id"], "influenced": d["influenced"]} for d in influenced
+        ],
+    }
 
 
 @router.get(

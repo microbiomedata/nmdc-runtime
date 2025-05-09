@@ -453,7 +453,10 @@ def find_related_objects_for_workflow_execution(
     # Get a `SchemaView` that is bound to the NMDC schema.
     nmdc_view = ViewGetter()
     nmdc_sv = nmdc_view.get_view()
-    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+    dg_descendants = [
+        (f"nmdc:{t}" if ":" not in t else t)
+        for t in nmdc_sv.class_descendants("DataGeneration")
+    ]
 
     def add_data_object(doc_id: str) -> bool:
         r"""
