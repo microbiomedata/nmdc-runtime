@@ -24,7 +24,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     zip \
     curl \
     wget \
-    gnupg && \
+    gnupg \
+    jq && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 

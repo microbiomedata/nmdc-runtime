@@ -16,8 +16,6 @@ from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
     _create_object,
-    HOSTNAME_EXTERNAL,
-    BASE_URL_EXTERNAL,
 )
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -28,6 +26,7 @@ from nmdc_runtime.api.models.object import (
 from nmdc_runtime.api.models.object_type import ObjectType, DrsObjectWithTypes
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
+from nmdc_runtime.config import DRS_API_BASE_URL_EXTERNAL, API_BASE_URL_EXTERNAL
 from nmdc_runtime.minter.config import typecodes
 
 router = APIRouter()
@@ -83,7 +82,7 @@ def create_object(
     drs_id = local_part(
         id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
     )
-    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
+    self_uri = f"{DRS_API_BASE_URL_EXTERNAL}/{drs_id}"
     return _create_object(
         mdb, object_in, mgr_site=client_site.id, drs_id=drs_id, self_uri=self_uri
     )
@@ -145,7 +144,7 @@ def get_object_info(
 
     # If "sty" or "bsm" ID doesn't have preferred landing page (above), try for JSON payload
     if any(object_id.startswith(t["name"]) for t in typecodes()):
-        url_to_try = f"{BASE_URL_EXTERNAL}/nmdcschema/ids/nmdc:{object_id}"
+        url_to_try = f"{API_BASE_URL_EXTERNAL}/nmdcschema/ids/nmdc:{object_id}"
         rv = requests.head(url_to_try, allow_redirects=True)
         if rv.status_code != 404:
             return RedirectResponse(
@@ -177,7 +176,7 @@ def get_object_info(
 def get_ga4gh_object_info(object_id: DrsId):
     """Redirect to /objects/{object_id}."""
     return RedirectResponse(
-        BASE_URL_EXTERNAL + f"/objects/{object_id}",
+        API_BASE_URL_EXTERNAL + f"/objects/{object_id}",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -239,7 +238,9 @@ def get_object_access(
     if access_id.startswith("gfs0") and object_id == access_id:
         mdb_fs = GridFS(mdb)
         if mdb_fs.exists(_id=access_id):
-            return {"url": BASE_URL_EXTERNAL + f"/metadata/stored_files/{access_id}"}
+            return {
+                "url": API_BASE_URL_EXTERNAL + f"/metadata/stored_files/{access_id}"
+            }
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
