@@ -1044,6 +1044,7 @@ def site_code_mapping() -> dict:
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
 
+
 @op(
     required_resource_keys={"mongo"},
     config_schema={
