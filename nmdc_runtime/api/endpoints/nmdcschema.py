@@ -40,7 +40,7 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Collection name must be one of {names}",
+            detail=f"Collection name must be one of {sorted(names)}",
         )
 
 
@@ -107,55 +107,6 @@ def get_nmdc_database_collection_stats(
         ):
             stats.append(doc)
     return stats
-
-
-@router.get(
-    "/nmdcschema/{collection_name}",
-    response_model=ListResponse[Doc],
-    response_model_exclude_unset=True,
-)
-def list_from_collection(
-    collection_name: Annotated[
-        str,
-        Path(
-            title="Collection name",
-            description="The name of the collection.\n\n_Example_: `biosample_set`",
-            examples=["biosample_set"],
-        ),
-    ],
-    req: Annotated[ListRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
-):
-    r"""
-    Retrieves resources that match the specified filter criteria and reside in the specified collection.
-
-    Searches the specified collection for documents matching the specified `filter` criteria.
-    If the `projection` parameter is used, each document in the response will only include
-    the fields specified by that parameter (plus the `id` field).
-
-    You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
-    page of the NMDC Schema documentation.
-
-    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
-          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
-          a long time—especially for collections that contain a lot of documents (e.g. millions).
-
-    **Tips:**
-    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
-       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
-       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
-    """
-
-    # TODO: The note about collection names above is currently accurate, but will not necessarily always be accurate,
-    #       since the `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`,
-    #       which are traits a `Database` slot must have in order for it to represent a MongoDB collection.
-    #
-    # TODO: Implement an API endpoint that returns all valid collection names (it can get them via a `SchemaView`),
-    #       Then replace the note above with a suggestion that the user access that API endpoint.
-
-    rv = list_resources(req, mdb, collection_name)
-    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
-    return rv
 
 
 @router.get(
@@ -290,6 +241,65 @@ def get_collection_name_by_doc_id(
 
 
 @router.get(
+    "/nmdcschema/collection_names",
+    response_model=List[str],
+    status_code=status.HTTP_200_OK,
+)
+def get_collection_names():
+    """
+    Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
+    https://w3id.org/nmdc/Database/) that describe database collections.
+    """
+    return sorted(get_collection_names_from_schema())
+
+
+@router.get(
+    "/nmdcschema/{collection_name}",
+    response_model=ListResponse[Doc],
+    response_model_exclude_unset=True,
+)
+def list_from_collection(
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
+    req: Annotated[ListRequest, Query()],
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    r"""
+    Retrieves resources that match the specified filter criteria and reside in the specified collection.
+
+    Searches the specified collection for documents matching the specified `filter` criteria.
+    If the `projection` parameter is used, each document in the response will only include
+    the fields specified by that parameter (plus the `id` field).
+
+    Use the [`GET /nmdcschema/collection_names`](/nmdcschema/collection_names) API endpoint to return all valid
+    collection names, i.e. the names of the slots of [the nmdc:Database class](https://w3id.org/nmdc/Database/) that
+    describe database collections.
+
+    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
+          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
+          a long time—especially for collections that contain a lot of documents (e.g. millions).
+
+    **Tips:**
+    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
+       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
+       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
+    """
+
+    # raise HTTP_400_BAD_REQUEST on invalid collection_name
+    ensure_collection_name_is_known_to_schema(collection_name)
+
+    rv = list_resources(req, mdb, collection_name)
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
+
+
+@router.get(
     "/nmdcschema/{collection_name}/{doc_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
@@ -328,7 +338,7 @@ def get_from_collection_by_id(
     Retrieves the document having the specified `id`, from the specified collection; optionally, including only the
     fields specified via the `projection` parameter.
     """
-    # Note: This helper function will raise an exception if the collection name is invalid.
+    # raise HTTP_400_BAD_REQUEST on invalid collection_name
     ensure_collection_name_is_known_to_schema(collection_name)
 
     projection = comma_separated_values(projection) if projection else None

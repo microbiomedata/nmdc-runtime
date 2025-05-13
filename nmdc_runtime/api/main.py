@@ -319,6 +319,20 @@ def ensure_initial_resources_on_boot():
 
 
 def ensure_attribute_indexes():
+    r"""
+    Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
+    `entity_attributes_to_index` dictionary, has an index on each field identified by the value
+    (i.e. set of field names) associated with that key.
+
+    Example dictionary (notice each item's value is a _set_, not a _dict_):
+    ```
+    {
+        "coll_name_1": {"field_name_1"},
+        "coll_name_2": {"field_name_1", "field_name_2"},
+    }
+    ```
+    """
+
     mdb = get_mongo_db()
     for collection_name, index_specs in entity_attributes_to_index.items():
         for spec in index_specs:

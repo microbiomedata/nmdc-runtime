@@ -38,41 +38,55 @@ update: update-deps init
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
+down-dev:
+	docker compose down
+
 # Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the dev stack.
-dev-reset-db:
+reset-db-dev:
 	docker compose \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
 # Uses Docker Compose to build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
-#
-# Note: This does not build or spin up the `test` container, itself, since the `test` container's Docker Compose service
-#       has the "donotstart" profile specified for it in `docker-compose.test.yml`.
-#
 up-test:
 	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
-# Uses Docker Compose to build the container image for the `test` container (i.e. the test runner).
-test-build:
-	docker compose --file docker-compose.test.yml build test
+# Tears down the `test` stack, including removing data volumes such as that for the test MongoDB database.
+down-test:
+	docker compose --file docker-compose.test.yml down --volumes
 
 # Restores the MongoDB dump residing in `./tests/nmdcdb` on the Docker host, into the MongoDB server in the test stack.
-test-reset-db:
+reset-db-test:
 	docker compose --file docker-compose.test.yml \
 		exec mongo /bin/bash -c "/mongorestore-nmdc-testdb.sh"
 
-# Uses Docker Compose to spin up the `test` container (i.e. the test runner), effectively running the tests.
+# Run tests on the started `test` stack, passing `ARGS` to `pytest` (see Tip below).
 #
 # Tip: If you append `ARGS=` and a file path to the `make` command, pytest will run only the tests defined in that file.
-#      For example, to run only the tests defined in `tests/test_api/test_endpoints.py`:
+#
+#      Some examples, using `make test`:
+#      (You can also use `make run-test` if are sure you don't need to reset global state)
+#
+#      To run only the tests defined in `tests/test_api/test_endpoints.py`:
 #      ```
-#      $ make test-run ARGS="tests/test_api/test_endpoints.py"
+#      $ make test ARGS="tests/test_api/test_endpoints.py"
 #      ```
 #
-test-run:
-	docker compose --file docker-compose.test.yml run test $(ARGS)
+#      To run only the test `test_find_data_objects_for_study_having_one` in `tests/test_api/test_endpoints.py`:
+#      ```
+#      $ make test ARGS="-k 'test_find_data_objects_for_study_having_one'"
+#      ```
+#
+run-test:
+	docker compose --file docker-compose.test.yml exec -it test \
+		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- pytest --cov=nmdc_runtime \
+		$(ARGS)
 
-test: test-build test-run
+# Uses Docker Compose to
+# 1. Ensure the `test` stack is torn down, including data volumes such as that of the test MongoDB database.
+# 2. Build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
+# 3. Run tests on the `test` container, passing `ARGS` to `pytest` (see Tip in comment above for `run-test` target).
+test: down-test up-test run-test
 
 black:
 	black nmdc_runtime
@@ -91,24 +105,8 @@ init-lint-and-black:
 	pip install $(PIP_PINNED_FLAKE8)
 	pip install $(PIP_PINNED_BLACK)
 
-down-dev:
-	docker compose down
-
-down-test:
-	docker compose --file docker-compose.test.yml down --volumes
-
 follow-fastapi:
 	docker compose logs fastapi -f
-
-fastapi-deploy-spin:
-	rancher kubectl rollout restart deployment/runtime-fastapi --namespace=nmdc-dev
-
-dagster-deploy-spin:
-	rancher kubectl rollout restart deployment/dagit --namespace=nmdc-dev
-	rancher kubectl rollout restart deployment/dagster-daemon --namespace=nmdc-dev
-
-publish:
-	invoke publish
 
 docs-dev:
 	mkdocs serve -a localhost:8080
@@ -127,7 +125,6 @@ nersc-sshproxy:
 
 nersc-mongo-tunnels:
 	ssh -L27072:mongo-loadbalancer.nmdc.production.svc.spin.nersc.org:27017 \
-		-L28082:mongo-loadbalancer.nmdc-dev.development.svc.spin.nersc.org:27017 \
 		-L27092:mongo-loadbalancer.nmdc-dev.production.svc.spin.nersc.org:27017 \
 		-o ServerAliveInterval=60 \
 		${NERSC_USERNAME}@dtn02.nersc.gov
@@ -139,7 +136,14 @@ mongorestore-nmdc-db:
 	# export MONGO_REMOTE_DUMP_DIR=$(ssh -i ~/.ssh/nersc -q ${NERSC_USERNAME}@dtn01.nersc.gov 'bash -s ' < util/get_latest_nmdc_prod_dump_dir.sh 2>/dev/null)
 	# ```
 	# Rsync the remote dump directory items of interest:
-	rsync -av --no-perms --exclude='_*' --exclude='fs\.*' \
+	rsync -av --no-perms \
+		--exclude='*_agg\.*' \
+		--exclude='operations\.*' \
+		--exclude='_*' \
+		--exclude='ids_nmdc_sys0\.*' \
+		--exclude='query_runs\.*' \
+		--exclude='fs\.*' \
+		--exclude="alldocs\.*" \
 		-e "ssh -i ~/.ssh/nersc" \
 		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
 		/tmp/remote-mongodump/nmdc

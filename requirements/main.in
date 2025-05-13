@@ -1,3 +1,20 @@
+# This file contains a list of the direct (as opposed to transitive) production dependencies of
+# the `nmdc_runtime` package. We use `pip-compile` (typically via `$ make update-deps`) to derive
+# the "requirements.txt" file from this file.
+#
+# Reference: https://github.com/jazzband/pip-tools?tab=readme-ov-file#requirements-from-requirementsin
+#
+# Note: To specify that a Python package be built from the contents of a GitHub repository (which can
+#       be useful for integration testing before that Python package gets published to PyPI), you can
+#       use the following syntax in this file:
+#       ```
+#       {package_name} @ git+https://github.com/{owner}/{repo}.git@{commit}
+#       ```
+#       For example:
+#       ```
+#       refscan @ git+https://github.com/microbiomedata/refscan.git@b4f6bab138d2158ece7ea2423a27d8b8493d02f5
+#       ```
+#
 base32-lib
 beautifulsoup4
 beanie>=1.16.0
@@ -25,10 +42,14 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
+<<<<<<< HEAD
 python-dotenv
 ontology-loader==0.1.10
 linkml-store==0.2.10rc1
 nmdc-schema==11.6.1
+=======
+nmdc-schema==11.7.0
+>>>>>>> main
 openpyxl
 pandas
 passlib[bcrypt]
@@ -42,7 +63,7 @@ python-multipart>=0.0.18
 pyyaml
 # Note: We use `refscan` to get information about inter-document references from the schema and database.
 #       Reference: https://pypi.org/project/refscan/
-refscan==0.2.0
+refscan==0.2.4
 requests
 semver
 setuptools-scm
