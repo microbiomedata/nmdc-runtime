@@ -160,6 +160,11 @@ def get_related_ids(
             ),
         )
 
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
+    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
+    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
+    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
+    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
     was_influenced_by = list(
         mdb.alldocs.aggregate(
             [
@@ -194,6 +199,12 @@ def get_related_ids(
             allowDiskUse=True,
         )
     )
+
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
+    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
+    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
+    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
+    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
     influenced = list(
         mdb.alldocs.aggregate(
             [
