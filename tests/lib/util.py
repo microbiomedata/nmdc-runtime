@@ -11,8 +11,7 @@ def rollback_session():
     """
     This fixture provides a session that will be aborted at the end of the test, to clean up any written data.
     """
-    mdb = get_mongo_db(session=None)
-    session = mdb.client.start_session()
+    session = get_mongo_db(session=None).client.start_session()
     session.start_transaction()
     try:
         yield session
