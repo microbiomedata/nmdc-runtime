@@ -136,9 +136,22 @@ def get_related_ids(
     ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    r"""
-    Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
-    Optionally filter related IDs by specific IDs and/or types.
+    """From a list of entity `ids`, retrieve `id` and `type` values for all related entities of a type in `types`.
+
+    This endpoint performs bidirectional graph traversal from the provided `ids`:
+
+    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
+       each given-in-`ids` entity, returning them in the "was_influenced_by" field.
+
+    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
+       by each given-in-`ids` entity, returning them in the "influenced" field.
+
+    Results can be filtered by specific entity `types`. By default, all types (i.e., `types=["nmdc:NamedThing"]`)
+    are included if no types are specified.
+
+    Returns a JSON object with two fields:
+    - "was_influenced_by": Contains inbound relationships (documents that influenced the given `ids`)
+    - "influenced": Contains outbound relationships (documents that were influenced by the given `ids`)
     """
     ids = ids.split(",") if ids else []
     types = types.split(",") if types else ["nmdc:NamedThing"]
