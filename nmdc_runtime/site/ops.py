@@ -1110,7 +1110,8 @@ def _add_related_ids_to_alldocs(
     # in order to perform graph traversal and collect all entities "related" to a given entity without
     # recursion "exploding".
     #
-    # An "inbound" slot is one for which an entity in the domain prov:wasInfluencedBy an entity in the range.
+    # An "inbound" slot is one for which an entity in the domain is "influenced by"
+    # (i.e., prov:wasInfluencedBy) an entity in the range.
     inbound_document_reference_ranged_slots = [
         "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
         "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
