@@ -1048,7 +1048,7 @@ def site_code_mapping() -> dict:
 
 def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
-):
+) -> None:
     """
     Adds {`_inbound`,`_outbound`} fields to each document in the temporary alldocs collection.
 
