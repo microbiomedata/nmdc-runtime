@@ -82,7 +82,7 @@ class SessionBoundDatabase(Database):
         return self._database.client
 
     @property
-    def database(self):
+    def unbounded(self):
         return self._database
 
     @property
