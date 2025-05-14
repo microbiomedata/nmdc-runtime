@@ -15,4 +15,4 @@ requests-cache
 pytest-mock
 python-dotenv
 ontology-loader==0.1.14
-linkml-store==0.2.10rc1
+linkml-store==0.2.10
