@@ -71,7 +71,7 @@ MOCK_NMDC_STUDY = {
             "applied_roles": ["Principal Investigator"],
         },
     ],
-    # To satisfy referential integrity checks, elide the below reference
+    # To satisfy referential integrity checks, omit this `part_of` reference
     # unless the corresponding study document is included.
     # "part_of": ["nmdc:sty-11-nxrz9m96"],
     "study_category": "consortium",
