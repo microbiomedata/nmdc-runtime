@@ -1110,6 +1110,9 @@ def _add_related_ids_to_alldocs(
     # in order to perform graph traversal and collect all entities "related" to a given entity without
     # recursion "exploding".
     #
+    # Note: We are hard-coding this "direction" information here in the Runtime
+    #       because the NMDC schema does not currently contain or expose it.
+    #
     # An "inbound" slot is one for which an entity in the domain "was influenced by"
     # (i.e., prov:wasInfluencedBy) an entity in the range.
     inbound_document_reference_ranged_slots = [
