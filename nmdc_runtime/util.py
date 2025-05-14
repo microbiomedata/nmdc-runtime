@@ -513,18 +513,20 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
             # Check if index already exists, and if so, drop it if not unique
             try:
                 existing_indexes = list(mdb[collection_name].list_indexes())
-                id_index = next((idx for idx in existing_indexes if idx['name'] == 'id_1'), None)
+                id_index = next(
+                    (idx for idx in existing_indexes if idx["name"] == "id_1"), None
+                )
 
                 if id_index:
                     # If index exists but isn't unique, drop it so we can recreate
-                    if not id_index.get('unique', False):
-                        mdb[collection_name].drop_index('id_1')
+                    if not id_index.get("unique", False):
+                        mdb[collection_name].drop_index("id_1")
 
                 # Create index with unique constraint
                 mdb[collection_name].create_index("id", unique=True)
             except OperationFailure as e:
                 # If error is about index with same name, just continue
-                if 'An existing index has the same name' in str(e):
+                if "An existing index has the same name" in str(e):
                     continue
                 else:
                     # Re-raise other errors
