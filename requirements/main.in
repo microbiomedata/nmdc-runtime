@@ -42,14 +42,10 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-<<<<<<< HEAD
 python-dotenv
-ontology-loader==0.1.10
+ontology-loader==0.1.12
 linkml-store==0.2.10rc1
-nmdc-schema==11.6.1
-=======
 nmdc-schema==11.7.0
->>>>>>> main
 openpyxl
 pandas
 passlib[bcrypt]
