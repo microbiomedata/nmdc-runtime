@@ -136,6 +136,9 @@ def test_materialize_alldocs(op_context):
     alldocs_collection.delete_many({})
 
 
+# A declarative representation -- specifically, a json-serializable `dict`
+# (cf. `linkml_runtime.utils.dictutils.as_simple_dict`) -- of the `nmdc:Database` constructed in the body of
+# `test_find_data_objects_for_study_having_one`.
 _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
     "study_set": [
         {
