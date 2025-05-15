@@ -43,7 +43,19 @@ def get_mongo_client() -> MongoClient:
 
 
 @lru_cache
-def get_mongo_db(session=None) -> MongoDatabase:
+def get_mongo_db() -> MongoDatabase:
+    r"""
+    Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
+    """
+    _client = get_mongo_client()
+    mdb = _client[os.getenv("MONGO_DBNAME")]
+    check_mongo_ok_autoreconnect(mdb)
+    return mdb
+
+
+@lru_cache
+def get_session_bound_mongo_db(session=None) -> MongoDatabase:
     r"""
     Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database

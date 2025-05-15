@@ -1,11 +1,11 @@
 from uuid import uuid4
 
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_session_bound_mongo_db
 from nmdc_runtime.mongo_util import SessionBoundDatabase
 
 
 def test_session_bound_mongo_db():
-    mdb = get_mongo_db(session=None)
+    mdb = get_session_bound_mongo_db(session=None)
     with mdb.client.start_session() as session:
         session_db = SessionBoundDatabase(mdb, session=session)
         session_collection = session_db[f"test-{uuid4()}"]

@@ -1,8 +1,10 @@
+from collections import defaultdict
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated, Optional
 
 import pymongo
+from beanie.odm.utils import relations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
@@ -15,7 +17,7 @@ from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
-from nmdc_runtime.api.core.util import raise404_if_none
+from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
@@ -195,19 +197,32 @@ def get_related_ids(
                 {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
                 {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
                 {
-                    "$project": {
-                        "id": 1,
-                        "was_influenced_by.id": 1,
-                        "was_influenced_by.type": 1,
+                    "$group": {
+                        "_id": "$id",
+                        "was_influenced_by": {
+                            "$addToSet": {
+                                "id": "$was_influenced_by.id",
+                                "type": "$was_influenced_by.type",
+                            }
+                        },
                     }
                 },
                 {
-                    "$group": {
-                        "_id": "$id",
-                        "was_influenced_by": {"$addToSet": "$was_influenced_by"},
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
                     }
                 },
-                {"$project": {"id": "$_id", "_id": 0, "was_influenced_by": 1}},
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "was_influenced_by": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
             ],
             allowDiskUse=True,
         )
@@ -233,35 +248,54 @@ def get_related_ids(
                 },
                 {"$unwind": {"path": "$influenced"}},
                 {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
-                {"$project": {"id": 1, "influenced": "$influenced"}},
-                {
-                    "$project": {
-                        "id": 1,
-                        "influenced.id": 1,
-                        "influenced.type": 1,
-                    }
-                },
                 {
                     "$group": {
                         "_id": "$id",
-                        "influenced": {"$addToSet": "$influenced"},
+                        "influenced": {
+                            "$addToSet": {
+                                "id": "$influenced.id",
+                                "type": "$influenced.type",
+                            }
+                        },
                     }
                 },
-                {"$project": {"id": "$_id", "_id": 0, "influenced": 1}},
+                {
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "influenced": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
             ],
             allowDiskUse=True,
         )
     )
-    return {
-        # Return `id` first in sorted JSON objects.
-        "was_influenced_by": [
-            {"id": d["id"], "was_influenced_by": d["was_influenced_by"]}
-            for d in was_influenced_by
-        ],
-        "influenced": [
-            {"id": d["id"], "influenced": d["influenced"]} for d in influenced
-        ],
-    }
+    relations_by_id = defaultdict(dict)
+    for d in was_influenced_by:
+        relations_by_id[d["id"]] = {
+            "id": d["id"],
+            "type": d["type"],
+            "was_influenced_by": d["was_influenced_by"],
+        }
+    for d in influenced:
+        if d["id"] in relations_by_id:
+            relations_by_id[d["id"]]["influenced"] = d["influenced"]
+        else:
+            relations_by_id[d["id"]] = {
+                "id": d["id"],
+                "type": d["type"],
+                "was_influenced_by": d["was_influenced_by"],
+            }
+    return {"resources": list(relations_by_id.values())}
 
 
 @router.get(
