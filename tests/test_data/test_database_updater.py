@@ -233,3 +233,157 @@ def test_generate_biosample_set_from_gold_api_for_study(
     )
     mock_gold_api_client.fetch_biosamples_by_study.assert_called_once_with("Gs0154244")
     mock_runtime_api_site_client.mint_id.assert_called_once_with("nmdc:Biosample", 2)
+
+
+def test_queries_run_script_to_update_insdc_identifiers(db_updater, mock_clients):
+    mock_runtime_api_user_client = mock_clients["runtime_api_user_client"]
+    mock_gold_api_client = mock_clients["gold_api_client"]
+
+    # Setup test data
+    mock_runtime_api_user_client.get_biosamples_for_study.return_value = [
+        {
+            "id": "nmdc:bsm-11-12345678",
+            "gold_biosample_identifiers": ["gold:Gb0111111"],
+            # No existing insdc_biosample_identifiers
+            # No existing insdc_bioproject_identifiers
+        },
+        {
+            "id": "nmdc:bsm-11-87654321",
+            "gold_biosample_identifiers": ["gold:Gb0222222"],
+            "insdc_biosample_identifiers": [
+                "biosample:SAMN11111111"
+            ],  # Existing biosample identifier
+            "insdc_bioproject_identifiers": [
+                "bioproject:PRJNA11111111"
+            ],  # Existing bioproject identifier
+        },
+        {
+            "id": "nmdc:bsm-11-abcdefgh",
+            "gold_biosample_identifiers": ["gold:Gb0333333"],
+            # No NCBI accession will be found for this one
+        },
+        {
+            # This one has no gold_biosample_identifiers
+            "id": "nmdc:bsm-11-ijklmnop",
+        },
+    ]
+
+    # Configure mock for fetch_projects_by_biosample to return different data for different inputs
+    def mock_fetch_projects(biosample_id):
+        if biosample_id == "Gb0111111":
+            return [
+                {
+                    "projectGoldId": "Gp0111111",
+                    "ncbiBioSampleAccession": "SAMN22222222",
+                    "ncbiBioProjectAccession": "PRJNA22222222",
+                }
+            ]
+        elif biosample_id == "Gb0222222":
+            return [
+                {
+                    "projectGoldId": "Gp0222222",
+                    "ncbiBioSampleAccession": "SAMN33333333",
+                    "ncbiBioProjectAccession": "PRJNA33333333",
+                },
+                {
+                    "projectGoldId": "Gp0222223",
+                    "ncbiBioSampleAccession": "SAMN33333334",  # Second accession for the same biosample
+                    "ncbiBioProjectAccession": "PRJNA33333334",  # Second bioproject for the same biosample
+                },
+            ]
+        elif biosample_id == "Gb0333333":
+            return [
+                {
+                    "projectGoldId": "Gp0333333",
+                    # No ncbiBioSampleAccession field
+                    # No ncbiBioProjectAccession field
+                }
+            ]
+        else:
+            return []
+
+    mock_gold_api_client.fetch_projects_by_biosample.side_effect = mock_fetch_projects
+
+    # Run the method
+    result = db_updater.queries_run_script_to_update_insdc_identifiers()
+
+    # Assertions
+    assert result is not None
+    assert "update" in result
+    assert result["update"] == "biosample_set"
+    assert "updates" in result
+
+    updates = result["updates"]
+    assert len(updates) == 4  # 4 updates: 2 for biosamples, 2 for bioprojects
+
+    # Group updates by biosample ID
+    updates_by_id = {}
+    for update in updates:
+        biosample_id = update["q"]["id"]
+        if biosample_id not in updates_by_id:
+            updates_by_id[biosample_id] = []
+        updates_by_id[biosample_id].append(update)
+
+    # Check updates for first biosample (no existing identifiers)
+    assert "nmdc:bsm-11-12345678" in updates_by_id
+    first_biosample_updates = updates_by_id["nmdc:bsm-11-12345678"]
+
+    # Check both biosample and bioproject identifiers are updated
+    biosample_update = next(
+        u
+        for u in first_biosample_updates
+        if "insdc_biosample_identifiers" in u["u"]["$set"]
+    )
+    assert biosample_update["u"]["$set"]["insdc_biosample_identifiers"] == [
+        "biosample:SAMN22222222"
+    ]
+
+    bioproject_update = next(
+        u
+        for u in first_biosample_updates
+        if "insdc_bioproject_identifiers" in u["u"]["$set"]
+    )
+    assert bioproject_update["u"]["$set"]["insdc_bioproject_identifiers"] == [
+        "bioproject:PRJNA22222222"
+    ]
+
+    # Check updates for second biosample (existing identifiers to be merged)
+    assert "nmdc:bsm-11-87654321" in updates_by_id
+    second_biosample_updates = updates_by_id["nmdc:bsm-11-87654321"]
+
+    # Check both biosample and bioproject identifiers are updated
+    biosample_update = next(
+        u
+        for u in second_biosample_updates
+        if "insdc_biosample_identifiers" in u["u"]["$set"]
+    )
+    updated_biosample_identifiers = set(
+        biosample_update["u"]["$set"]["insdc_biosample_identifiers"]
+    )
+    assert "biosample:SAMN11111111" in updated_biosample_identifiers
+    assert "biosample:SAMN33333333" in updated_biosample_identifiers
+    assert "biosample:SAMN33333334" in updated_biosample_identifiers
+    assert len(updated_biosample_identifiers) == 3
+
+    bioproject_update = next(
+        u
+        for u in second_biosample_updates
+        if "insdc_bioproject_identifiers" in u["u"]["$set"]
+    )
+    updated_bioproject_identifiers = set(
+        bioproject_update["u"]["$set"]["insdc_bioproject_identifiers"]
+    )
+    assert "bioproject:PRJNA11111111" in updated_bioproject_identifiers
+    assert "bioproject:PRJNA33333333" in updated_bioproject_identifiers
+    assert "bioproject:PRJNA33333334" in updated_bioproject_identifiers
+    assert len(updated_bioproject_identifiers) == 3
+
+    # Check that 3rd and 4th biosamples don't have updates
+    assert "nmdc:bsm-11-abcdefgh" not in updates_by_id
+    assert "nmdc:bsm-11-ijklmnop" not in updates_by_id
+
+    # Verify calls to the necessary methods
+    mock_runtime_api_user_client.get_biosamples_for_study.assert_called_once()
+    assert (
+        mock_gold_api_client.fetch_projects_by_biosample.call_count == 3
+    )  # Called for the first 3 biosamples that have gold_ids
