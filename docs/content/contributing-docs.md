@@ -4,7 +4,7 @@ Reference for contributing to this documentation.
 
 ## Commands
 
-* `mkdocs serve -f docs/mkdocs.yml` - Build the MkDocs documentation website and serve it (with live reloading) at http://localhost:8000.
+* `mkdocs serve -f docs/mkdocs.yml` - Build the MkDocs documentation website and serve it (with live reloading) at `http://localhost:8000`.
 * `mkdocs build -f docs/mkdocs.yml` - Build the MkDocs documentation website.
 * `mkdocs -h` - Print help message and exit.
 

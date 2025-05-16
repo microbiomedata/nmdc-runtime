@@ -19,6 +19,8 @@ one or more *draft identifiers* are minted. Each minted identifier has these att
 - `shoulder`: a reference to the ID's shoulder component, e.g. with `name` "11" and `assigned_to` the `service` that minted the ID.
 - `status`:  a reference to the ID's status, e.g. "draft".
 
+<!-- FIXME: The web browser is not rendering this as a diagram. Meanwhile, it _is_ rendering the Mermaid diagram on the homepage as a diagram. -->
+
 ```mermaid
 flowchart LR
     %% o1[/"(input/output) object"/]

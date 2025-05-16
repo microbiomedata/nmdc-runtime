@@ -1,3 +1,57 @@
+/* Define CSS variables for the "nmdc" color scheme. */
+/* Note: This blob of CSS was copied from a CSS file the `docs` repo; i.e. this file:
+         https://github.com/microbiomedata/docs/blob/d11814ac243350b5a464900cfa61adfb6ff98aac/content/home/src/_static/css/custom.css */
+:root {
+    /* Note: These colors were copied from: https://github.com/microbiomedata/nmdc-status-website?tab=readme-ov-file#color-palette */
+    --nmdc-white: #ffffff;
+    --nmdc-black: #000000;
+    --nmdc-blue: #02aae7;
+    --nmdc-orange: #ee5338;
+    --nmdc-purple: #4f3b80;
+    --nmdc-light-gray: #f5f5f5;
+    --nmdc-light-blue: #edf9fd;
+
+    /* Note: These colors were derived via: https://maketintsandshades.com */
+    --nmdc-blue--dark-20: #0288b9;
+    --nmdc-purple--light-50: #a79dc0;
+    --nmdc-purple--dark-50: #281e40;
+}
+
+/* Define an "nmdc" (light mode) color scheme for the Material for MkDocs theme.
+   Reference: https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#custom-color-schemes
+   Reference: https://github.com/squidfunk/mkdocs-material/blob/master/src/templates/assets/stylesheets/main/_colors.scss#L31-L42 */
+[data-md-color-scheme="nmdc"] {
+    --md-primary-fg-color:                    var(--nmdc-purple);
+    --md-primary-fg-color--light:             var(--nmdc-purple--light-50);
+    --md-primary-fg-color--dark:              var(--nmdc-purple--dark-50);
+    --md-accent-fg-color:                     var(--nmdc-blue);
+    --md-accent-fg-color--transparent:   hsla(var(--nmdc-blue), 0.1);
+    --md-typeset-a-color:                     var(--nmdc-blue);
+}
+
+/* Customize the "slate" (dark mode) color scheme for the Material for MkDocs theme. */
+[data-md-color-scheme="slate"][data-md-color-primary=indigo] {
+    --md-primary-fg-color:                    var(--nmdc-purple);
+    --md-primary-fg-color--light:             var(--nmdc-purple--light-50);
+    --md-primary-fg-color--dark:              var(--nmdc-purple--dark-50);
+    --md-accent-fg-color:                     var(--nmdc-blue);
+    --md-accent-fg-color--transparent:   hsla(var(--nmdc-blue), 0.1);
+    --md-typeset-a-color:                     var(--nmdc-blue);
+}
+
+/* Make it so that, when someone hovers over a hyperlink in the content area
+   (not sidebar), the link appears a bit darker than normal. */
+.md-typeset a:hover {
+    color: var(--nmdc-blue--dark-20);
+}
+
+/* Note: At the time of this writing, this CSS style rule only applies
+         to the words "Domain Vision Statement" and "Core Domain" on a
+         single page of the documentation website (i.e. the 
+         "domain-vision-statement" page). I don't know whether styling
+         them in small caps is a convention outside of this repository;
+         or was done only for the general purpose of distinguishing them
+         from the words surrounding them. */
 span.term {
     font-variant: small-caps ;
 }
