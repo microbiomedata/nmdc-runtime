@@ -25,7 +25,7 @@ from nmdc_runtime.api.core.auth import (
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
+from nmdc_runtime.config import API_BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import authenticate_site_client
 from nmdc_runtime.api.models.user import UserInDB, UserIn, get_user
 from nmdc_runtime.api.models.user import (
@@ -43,7 +43,7 @@ async def receive_orcid_code(request: Request, code: str, state: str | None = No
         f"{ORCID_BASE_URL}/oauth/token",
         data=(
             f"client_id={ORCID_NMDC_CLIENT_ID}&client_secret={ORCID_NMDC_CLIENT_SECRET}&"
-            f"grant_type=authorization_code&code={code}&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
+            f"grant_type=authorization_code&code={code}&redirect_uri={API_BASE_URL_EXTERNAL}/orcid_code"
         ),
         headers={
             "Content-type": "application/x-www-form-urlencoded",

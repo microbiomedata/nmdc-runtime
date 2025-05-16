@@ -46,16 +46,13 @@ from nmdc_runtime.api.models.util import (
     ListRequest,
     ResultT,
 )
+from nmdc_runtime.config import DRS_API_BASE_URL_EXTERNAL
 from nmdc_runtime.util import drs_metadata_for
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import DuplicateKeyError
 from starlette import status
 from toolz import assoc_in, concat, dissoc, get_in, merge
-
-BASE_URL_INTERNAL = os.getenv("API_HOST")
-BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
-HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def check_filter(filter_: str):
@@ -483,7 +480,7 @@ def persist_content_and_get_drs_object(
                 timestamp=now_to_the_minute,
             )
         )
-    self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
+    self_uri = f"{DRS_API_BASE_URL_EXTERNAL}/{drs_id}"
     return _create_object(
         mdb,
         object_in,

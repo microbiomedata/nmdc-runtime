@@ -48,7 +48,7 @@ from nmdc_runtime.api.endpoints import (
     users,
     workflows,
 )
-from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
+from nmdc_runtime.config import API_BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
@@ -395,7 +395,7 @@ async def lifespan(app: FastAPI):
 @api_router.get("/")
 async def root():
     return RedirectResponse(
-        BASE_URL_EXTERNAL + "/docs",
+        API_BASE_URL_EXTERNAL + "/docs",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -424,7 +424,7 @@ app = FastAPI(
         '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
         f'<a href="{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
         "&response_type=code&scope=openid&"
-        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
+        f'redirect_uri={API_BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
         " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
         " in the below-right 'Authorized' button.)"
     ),
@@ -464,7 +464,7 @@ def custom_swagger_ui_html(
     if user_id_token:
         # get bearer token
         rv = requests.post(
-            url=f"{BASE_URL_EXTERNAL}/token",
+            url=f"{API_BASE_URL_EXTERNAL}/token",
             data={
                 "client_id": user_id_token,
                 "client_secret": "",

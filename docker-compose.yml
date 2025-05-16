@@ -28,10 +28,8 @@ services:
       dockerfile: nmdc_runtime/Dockerfile
       target: dagster
     entrypoint: ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
-    expose:
-      - "3000"
     ports:
-      - "3000:3000"
+      - "3000"
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -75,13 +73,15 @@ services:
       dockerfile: nmdc_runtime/Dockerfile
       target: fastapi
     ports:
-      - "8000:8000"
+      - "8000"
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - .:/code
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.
     depends_on:
       mongo-init: { condition: service_completed_successfully }
+    entrypoint: ["./.docker/entrypoint.sh"]
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     env_file: .env
 
@@ -100,7 +100,7 @@ services:
   mongo:
     image: mongo:8.0.4
     ports:
-      - "27018:27017"
+      - "27017"
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
