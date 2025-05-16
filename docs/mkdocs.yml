@@ -3,6 +3,11 @@ site_description: Documentation for the National Microbiome Data Collaborative (
 site_url: https://microbiomedata.github.io/nmdc-runtime/
 repo_url: https://github.com/microbiomedata/nmdc-runtime/
 edit_uri_template: 'blob/main/docs/{path}'
+
+# This is the path (relative to this configuration file) to the directory containing the documentation source files.
+# Docs: https://www.mkdocs.org/user-guide/configuration/#docs_dir
+docs_dir: content
+
 extra_css:
   - stylesheets/extra.css
 nav:
@@ -36,6 +41,10 @@ nav:
 
 theme:
   name: material
+  # This is the path (relative to this configuration file) to the directory containing files that override the default theme files.
+  # Docs:
+  # - https://www.mkdocs.org/user-guide/configuration/#custom_dir
+  # - https://www.mkdocs.org/user-guide/customizing-your-theme/#using-the-theme-custom_dir
   custom_dir: mkdocs_overrides
   palette:
     - media: "(prefers-color-scheme: light)"
