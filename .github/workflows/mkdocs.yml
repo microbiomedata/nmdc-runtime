@@ -5,8 +5,6 @@ on:
       - main
     paths:
       - 'docs/**'
-      - 'mkdocs_overrides/**'
-      - 'mkdocs.yml'
       - '.github/workflows/mkdocs.yml'
 jobs:
   deploy:
@@ -41,4 +39,4 @@ jobs:
       #       file, or due to one of the dependencies becoming unavailable), which can prompt remedial action.
       #
       - name: Build MkDocs site
-        run: mkdocs build
+        run: mkdocs build -f docs/mkdocs.yml
