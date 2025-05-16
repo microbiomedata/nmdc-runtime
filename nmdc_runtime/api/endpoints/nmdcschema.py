@@ -1,13 +1,15 @@
+from collections import defaultdict
 from importlib.metadata import version
 import re
-from typing import List, Dict, Annotated
+from typing import List, Dict, Annotated, Optional
 
 import pymongo
+from beanie.odm.utils import relations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import nmdc_database_collection_names
+from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import dissoc
@@ -15,7 +17,7 @@ from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
-from nmdc_runtime.api.core.util import raise404_if_none
+from nmdc_runtime.api.core.util import raise404_if_none, pick
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
@@ -107,6 +109,193 @@ def get_nmdc_database_collection_stats(
         ):
             stats.append(doc)
     return stats
+
+
+@router.get(
+    "/nmdcschema/related_ids",
+    response_model=Doc,
+    response_model_exclude_unset=True,
+)
+def get_related_ids(
+    ids: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by IDs",
+            description=(
+                "A list of document IDs to filter related IDs by.\n\n"
+                "_Example_: `nmdc:bsm-11-abc123,nmdc:bsm-11-def456`"
+            ),
+            examples=["nmdc:bsm-11-abc123,nmdc:bsm-11-def456"],
+        ),
+    ] = None,
+    types: Annotated[
+        Optional[str] | None,
+        Query(
+            title="Filter by Types",
+            description="A list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
+            examples=["nmdc:Biosample,nmdc:Study"],
+        ),
+    ] = None,
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    """From a list of entity `ids`, retrieve `id` and `type` values for all related entities of a type in `types`.
+
+    This endpoint performs bidirectional graph traversal from the provided `ids`:
+
+    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
+       each given-in-`ids` entity, returning them in the "was_influenced_by" field.
+
+    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
+       by each given-in-`ids` entity, returning them in the "influenced" field.
+
+    Results can be filtered by specific entity `types`. By default, all types (i.e., `types=["nmdc:NamedThing"]`)
+    are included if no types are specified.
+
+    Returns a JSON object with two fields:
+    - "was_influenced_by": Contains inbound relationships (documents that influenced the given `ids`)
+    - "influenced": Contains outbound relationships (documents that were influenced by the given `ids`)
+    """
+    ids = ids.split(",") if ids else []
+    types = types.split(",") if types else ["nmdc:NamedThing"]
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
+    types_not_found = list(set(types) - types_possible)
+    if types_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Some types not found: {types_not_found}. "
+                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+            ),
+        )
+
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
+    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
+    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
+    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
+    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
+    was_influenced_by = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_inbound.id",
+                        "connectFromField": "_inbound.id",
+                        "connectToField": "id",
+                        "as": "was_influenced_by",
+                    }
+                },
+                {"$unwind": {"path": "$was_influenced_by"}},
+                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "was_influenced_by": {
+                            "$addToSet": {
+                                "id": "$was_influenced_by.id",
+                                "type": "$was_influenced_by.type",
+                            }
+                        },
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "was_influenced_by": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
+            ],
+            allowDiskUse=True,
+        )
+    )
+
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
+    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
+    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
+    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
+    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
+    influenced = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_outbound.id",
+                        "connectFromField": "_outbound.id",
+                        "connectToField": "id",
+                        "as": "influenced",
+                    }
+                },
+                {"$unwind": {"path": "$influenced"}},
+                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "influenced": {
+                            "$addToSet": {
+                                "id": "$influenced.id",
+                                "type": "$influenced.type",
+                            }
+                        },
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "influenced": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
+            ],
+            allowDiskUse=True,
+        )
+    )
+    relations_by_id = defaultdict(dict)
+    for d in was_influenced_by:
+        relations_by_id[d["id"]] = {
+            "id": d["id"],
+            "type": d["type"],
+            "was_influenced_by": d["was_influenced_by"],
+        }
+    for d in influenced:
+        if d["id"] in relations_by_id:
+            relations_by_id[d["id"]]["influenced"] = d["influenced"]
+        else:
+            relations_by_id[d["id"]] = {
+                "id": d["id"],
+                "type": d["type"],
+                "was_influenced_by": d["was_influenced_by"],
+            }
+    return {"resources": list(relations_by_id.values())}
 
 
 @router.get(
