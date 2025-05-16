@@ -3,7 +3,7 @@ site_author: National Microbiome Data Collaborative
 site_description: Documentation for the National Microbiome Data Collaborative (NMDC) Runtime System and API
 site_url: https://microbiomedata.github.io/nmdc-runtime/
 repo_url: https://github.com/microbiomedata/nmdc-runtime/
-edit_uri_template: 'blob/main/docs/{path}'
+edit_uri_template: 'blob/main/docs/content/{path}'
 
 # This is the path (relative to this configuration file) to the directory containing the documentation source files.
 # Docs: https://www.mkdocs.org/user-guide/configuration/#docs_dir
