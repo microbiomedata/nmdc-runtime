@@ -122,7 +122,7 @@ def get_related_ids(
         Query(
             title="Filter by IDs",
             description=(
-                "A list of document IDs to filter related IDs by.\n\n"
+                "A comma-delimited list of document IDs to filter related IDs by.\n\n"
                 "_Example_: `nmdc:bsm-11-abc123,nmdc:bsm-11-def456`"
             ),
             examples=["nmdc:bsm-11-abc123,nmdc:bsm-11-def456"],
@@ -132,7 +132,7 @@ def get_related_ids(
         Optional[str] | None,
         Query(
             title="Filter by Types",
-            description="A list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
+            description="A comma-delimited list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
             examples=["nmdc:Biosample,nmdc:Study"],
         ),
     ] = None,
