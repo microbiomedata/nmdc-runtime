@@ -655,7 +655,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
     study_set = mdb.get_collection(name="study_set")
     assert study_set.count_documents({"id": study_a["id"]}) == 0
     study_set.insert_many([study_a])
-    ensure_alldocs_collection_has_been_materialized()
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     # Also, verify that the database does _not_ contain any studies having the following `id`.
     nonexistent_study_id = "nmdc:sty-00-00000x"
@@ -694,7 +694,7 @@ def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(api_u
     study_set = mdb.get_collection(name="study_set")
     assert study_set.count_documents({"id": study_a["id"]}) == 0
     study_set.insert_many([study_a])
-    ensure_alldocs_collection_has_been_materialized()
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
     response = api_user_client.request(
