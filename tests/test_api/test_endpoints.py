@@ -640,6 +640,34 @@ def test_get_class_name_and_collection_names_by_doc_id():
     assert response.status_code == 404
 
 
+def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(api_user_client):
+    # Seed the database with a study that neither influences—nor is influenced by—any documents.
+    mdb = get_mongo_db()
+    faker = Faker()
+    study_a = faker.generate_studies(quantity=1, part_of=[])[0]
+    study_set = mdb.get_collection(name="study_set")
+    assert study_set.count_documents({"id": study_a["id"]}) == 0
+    study_set.insert_many([study_a])
+    ensure_alldocs_collection_has_been_materialized()
+
+    # Request the `id`s of the documents that either influence—or are influenced by—that study.
+    response = api_user_client.request(
+        "GET",
+        "/nmdcschema/related_ids",
+        {"ids": ",".join([study_a["id"]])},
+    )
+
+    # Assert that the response contains an empty "resources" list.
+    assert response.status_code == 200
+    payload = response.json()
+    assert "resources" in payload
+    assert isinstance(payload["resources"], list)
+    assert len(payload["resources"]) == 0
+
+    # 🧹 Clean up: Delete the study we created earlier.
+    study_set.delete_many({"id": study_a["id"]})
+
+
 def test_find_data_objects_for_nonexistent_study(api_site_client):
     r"""
     Confirms the endpoint returns an unsuccessful status code when no `Study` having the specified `id` exists.
