@@ -640,6 +640,52 @@ def test_get_class_name_and_collection_names_by_doc_id():
     assert response.status_code == 404
 
 
+def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(api_user_client):
+    r"""
+    This test demonstrates that the `/nmdcschema/related_ids` API endpoint returns an
+    unsuccessful status code when the request contains an `id` that does not exist in the
+    database; and that that is the case whether that `id` is submitted on its own or as
+    part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
+    """
+
+    # Seed the database with a study.
+    mdb = get_mongo_db()
+    faker = Faker()
+    study_a = faker.generate_studies(quantity=1, part_of=[])[0]
+    study_set = mdb.get_collection(name="study_set")
+    assert study_set.count_documents({"id": study_a["id"]}) == 0
+    study_set.insert_many([study_a])
+    ensure_alldocs_collection_has_been_materialized()
+
+    # Also, verify that the database does _not_ contain any studies having the following `id`.
+    nonexistent_study_id = "nmdc:sty-00-00000x"
+    assert study_set.count_documents({"id": nonexistent_study_id}) == 0
+
+    # Request the `id`s of documents related to only that nonexistent study.
+    #
+    # Note: The `api_user_client` fixture's `request` method will raise an
+    #       exception if the server responds with an unsuccessful status code.
+    #
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_user_client.request(
+            "GET",
+            "/nmdcschema/related_ids",
+            {"ids": ",".join([nonexistent_study_id])},  # one `id`
+        )
+
+    # Submit the same request, but specify _both_ the existing study's `id`
+    # and the nonexistent study's `id`.
+    with pytest.raises(requests.exceptions.HTTPError):
+        api_user_client.request(
+            "GET",
+            "/nmdcschema/related_ids",
+            {"ids": ",".join([study_a["id"], nonexistent_study_id])},  # two `id`s
+        )
+
+    # 🧹 Clean up: Delete the study we created earlier.
+    study_set.delete_many({"id": study_a["id"]})
+
+
 def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(api_user_client):
     # Seed the database with a study that neither influences—nor is influenced by—any documents.
     mdb = get_mongo_db()
