@@ -790,10 +790,26 @@ def test_get_related_ids_returns_related_ids(api_user_client):
     assert len(influenced) == 1
     assert influenced[0]["id"] == study_a["id"]
 
-    # TODO: Why does the endpoint return an HTTP 500 response when it receives a request
-    #       payload in which the "ids" value is a list consisting of the `id` of
-    #       `biosample_a`? As a reminder, `biosample_a` influences `study_a`
-    #       and is not influenced by anything.
+    # Request the `id`s of the documents related to `biosample_a`, which influences `study_a`,
+    # and is not influenced by anything.
+    response = api_user_client.request(
+        "GET",
+        "/nmdcschema/related_ids",
+        {"ids": ",".join([biosample_a["id"]])},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "resources" in payload
+    resources = payload["resources"]
+    assert isinstance(resources, list)
+    assert len(resources) == 1  # represents the subject (i.e. `biosample_a`)
+    resource = resources[0]
+    assert "was_influenced_by" not in resource  # `biosample_a` is not influenced by anything
+    assert "influenced" in resource
+    influenced = resource["influenced"]
+    assert isinstance(influenced, list)
+    assert len(influenced) == 1
+    assert influenced[0]["id"] == study_a["id"]
 
     # 🧹 Clean up: Delete the documents we created earlier.
     study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
