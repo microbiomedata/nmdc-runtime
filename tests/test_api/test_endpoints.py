@@ -714,6 +714,93 @@ def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(api_u
     study_set.delete_many({"id": study_a["id"]})
 
 
+def test_get_related_ids_returns_related_ids(api_user_client):
+    # Seed the database with the following interrelated documents:
+    # - `study_a`
+    # - `study_b`, which influences (via `part_of`) `study_a`
+    # - `biosample_a`, which influences (via `associated_studies`) `study_a`
+    # - `biosample_b`, which influences (via `associated_studies`) `study_b`
+    #
+    mdb = get_mongo_db()
+    faker = Faker()
+    study_a, study_b = faker.generate_studies(quantity=2, part_of=[])
+    biosample_a, biosample_b = faker.generate_biosamples(quantity=2, associated_studies=[])
+    study_a["part_of"] = []
+    study_b["part_of"] = [study_a["id"]]
+    biosample_a["associated_studies"] = [study_a["id"]]
+    biosample_b["associated_studies"] = [study_b["id"]]
+    study_set = mdb.get_collection(name="study_set")
+    biosample_set = mdb.get_collection(name="biosample_set")
+    assert study_set.count_documents({"id": study_a["id"]}) == 0
+    assert study_set.count_documents({"id": study_b["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample_a["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample_b["id"]}) == 0
+    study_set.insert_many([study_a, study_b])
+    biosample_set.insert_many([biosample_a, biosample_b])
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Request the `id`s of the documents related to `study_a`, which is influenced by
+    # `study_b`, `biosample_a`, and `biosample_b`, and which influences nothing.
+    #
+    # Note: The API doesn't advertise that the related `id`s will be in any particular order.
+    #
+    response = api_user_client.request(
+        "GET",
+        "/nmdcschema/related_ids",
+        {"ids": ",".join([study_a["id"]])},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "resources" in payload
+    resources = payload["resources"]
+    assert isinstance(resources, list)
+    assert len(resources) == 1  # represents the subject (i.e. `study_a`)
+    resource = resources[0]
+    assert "was_influenced_by" in resource
+    was_influenced_by = resource["was_influenced_by"]
+    assert isinstance(resource["was_influenced_by"], list)
+    assert len(resource["was_influenced_by"]) == 3
+    assert any(d["id"] == study_b["id"] for d in was_influenced_by)
+    assert any(d["id"] == biosample_a["id"] for d in was_influenced_by)
+    assert any(d["id"] == biosample_b["id"] for d in was_influenced_by)
+    assert all(d["type"] in ["nmdc:Study", "nmdc:Biosample"] for d in was_influenced_by)
+    assert "influenced" not in resource  # `study_a` does not influence anything
+
+    # Request the `id`s of the documents related to `study_b`, which is influenced by
+    # `biosample_b`, and which influences `study_a`.
+    response = api_user_client.request(
+        "GET",
+        "/nmdcschema/related_ids",
+        {"ids": ",".join([study_b["id"]])},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert "resources" in payload
+    resources = payload["resources"]
+    assert isinstance(resources, list)
+    assert len(resources) == 1  # represents the subject (i.e. `study_b`)
+    resource = resources[0]
+    assert "was_influenced_by" in resource
+    was_influenced_by = resource["was_influenced_by"]
+    assert isinstance(resource["was_influenced_by"], list)
+    assert len(resource["was_influenced_by"]) == 1
+    assert was_influenced_by[0]["id"] == biosample_b["id"]
+    assert "influenced" in resource
+    influenced = resource["influenced"]
+    assert isinstance(influenced, list)
+    assert len(influenced) == 1
+    assert influenced[0]["id"] == study_a["id"]
+
+    # TODO: Why does the endpoint return an HTTP 500 response when it receives a request
+    #       payload in which the "ids" value is a list consisting of the `id` of
+    #       `biosample_a`? As a reminder, `biosample_a` influences `study_a`
+    #       and is not influenced by anything.
+
+    # 🧹 Clean up: Delete the documents we created earlier.
+    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+
+
 def test_find_data_objects_for_nonexistent_study(api_site_client):
     r"""
     Confirms the endpoint returns an unsuccessful status code when no `Study` having the specified `id` exists.
