@@ -285,7 +285,7 @@ def get_related_ids(
     # For each subject document that "was influenced by" any documents, create a dictionary
     # containing that subject document's `id`, its `type`, and the list of `id`s of the
     # documents that it "was influenced by".
-    # 
+    #
     # Note: We store the subject document's dictionary in an overall `relations_by_id` dictionary,
     #       using the subject document's `id` as the key. That will allow us to quickly locate it
     #       later, in case we want to add an `influenced` field to it.
