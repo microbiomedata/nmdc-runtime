@@ -725,7 +725,6 @@ def test_get_related_ids_returns_related_ids(api_user_client):
     faker = Faker()
     study_a, study_b = faker.generate_studies(quantity=2, part_of=[])
     biosample_a, biosample_b = faker.generate_biosamples(quantity=2, associated_studies=[])
-    study_a["part_of"] = []
     study_b["part_of"] = [study_a["id"]]
     biosample_a["associated_studies"] = [study_a["id"]]
     biosample_b["associated_studies"] = [study_b["id"]]
