@@ -76,23 +76,6 @@ def ensure_alldocs_collection_has_been_materialized(
         )
     )
 
-def ensure_load_ontology():
-    print("loading ontology...")
-    materialize_alldocs(
-        build_op_context(
-            resources={
-                "mongo": mongo_resource.configured(
-                    {
-                        "dbname": os.getenv("MONGO_DBNAME"),
-                        "host": os.getenv("MONGO_HOST"),
-                        "password": os.getenv("MONGO_PASSWORD"),
-                        "username": os.getenv("MONGO_USERNAME"),
-                    }
-                )
-            }
-        )
-    )
-
 def ensure_test_resources(mdb):
     username = "testuser"
     password = generate_secret()
