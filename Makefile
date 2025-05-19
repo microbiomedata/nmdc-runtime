@@ -108,8 +108,10 @@ init-lint-and-black:
 follow-fastapi:
 	docker compose logs fastapi -f
 
+# Build the MkDocs documentation website and serve it at http://localhost:8080.
+# Docs: https://www.mkdocs.org/user-guide/cli/#mkdocs-serve
 docs-dev:
-	mkdocs serve -a localhost:8080
+	mkdocs serve --config-file docs/mkdocs.yml --dev-addr localhost:8080
 
 # 🙋 Prerequisites:
 #
