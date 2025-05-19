@@ -129,7 +129,7 @@ ensure_alldocs_daily = ScheduleDefinition(
 
 load_envo_ontology_weekly = ScheduleDefinition(
     name="weekly_load_envo_ontology",
-    cron_schedule="0 9 * * 1",
+    cron_schedule="0 7 * * 1",
     execution_timezone="America/New_York",
     job=run_envo_ontology_load.to_job(
         name="scheduled_envo_ontology_load",
@@ -145,7 +145,7 @@ load_envo_ontology_weekly = ScheduleDefinition(
 
 load_uberon_ontology_weekly = ScheduleDefinition(
     name="weekly_load_uberon_ontology",
-    cron_schedule="0 9 * * 1",
+    cron_schedule="0 8 * * 1",
     execution_timezone="America/New_York",
     job=run_uberon_ontology_load.to_job(
         name="scheduled_uberon_ontology_load",

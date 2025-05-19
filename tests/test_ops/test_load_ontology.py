@@ -87,9 +87,6 @@ def test_load_ontology(mock_ontology_loader, op_context):
 )
 def test_load_ontology_integration(op_context):
     """Tests the load_ontology op with actual MongoDB connection and verifies results"""
-    import socket
-    from pymongo.errors import ServerSelectionTimeoutError
-    
     try:
         # Get MongoDB client
         mdb = op_context.resources.mongo.db
@@ -105,23 +102,23 @@ def test_load_ontology_integration(op_context):
         
         # Execute the op
         result = load_ontology(op_context)
-        
+
         # Verify the op behavior:
         # 1. Check that ontology_class_set has entries
         ontology_class_count = mdb.get_collection("ontology_class_set").count_documents({})
         print(f"After running: {ontology_class_count} classes")
-        assert ontology_class_count >= ontology_class_set_before
-        
+
         # 2. Check that ontology_relation_set has entries
         ontology_relation_count = mdb.get_collection("ontology_relation_set").count_documents({})
         print(f"After running: {ontology_relation_count} relations")
-        assert ontology_relation_count >= ontology_relation_set_before
         
         # 3. Check for some known ENVO terms if we have ontology data
-        if ontology_class_count > 0:
-            sample_envo_id = "ENVO:00000001"  # Example ENVO ID
-            envo_term = mdb.get_collection("ontology_class_set").find_one({"id": sample_envo_id})
-            assert envo_term is not None
+        assert ontology_class_count > 0
+        assert ontology_relation_count > 0
+
+        sample_envo_id = "ENVO:00000001"  # Example ENVO ID
+        envo_term = mdb.get_collection("ontology_class_set").find_one({"id": sample_envo_id})
+        assert envo_term is not None
         
         # 4. Check report files if generate_reports was True
         if op_context.op_config["generate_reports"]:
@@ -131,25 +128,8 @@ def test_load_ontology_integration(op_context):
         
         # 5. Verify the function has no return value (was incorrectly expected to be 0)
         assert result is None
-        
-    except ServerSelectionTimeoutError as e:
-        # Check if we're trying to connect to mongo:27017 but not in Docker
-        if "mongo:27017" in str(e):
-            # Try to determine if we're in Docker
-            try:
-                # In Docker, the hostname is typically a short hex string
-                hostname = socket.gethostname()
-                in_docker = len(hostname) == 12 and all(c in '0123456789abcdef' for c in hostname)
-                
-                if not in_docker:
-                    pytest.skip(
-                        "MongoDB connection error: You appear to be running outside Docker but trying to connect "
-                        "to 'mongo:27017'. Try one of the following:\n"
-                        "1. Set MONGO_HOST=mongodb://localhost:27018 in your environment\n"
-                        "2. Run the test through Docker with: make test-run ARGS='tests/test_ops/test_load_ontology.py'"
-                    )
-            except Exception:
-                pass
-        
-        # Re-raise the exception for other MongoDB connection issues
+    except Exception as e:
+        print(f"An error occurred: {e}")
         raise
+
+
