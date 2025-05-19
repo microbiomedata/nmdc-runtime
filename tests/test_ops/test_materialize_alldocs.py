@@ -8,7 +8,6 @@ from dagster import build_op_context
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.site.ops import (
     materialize_alldocs,
-    load_ontology,
 )
 from nmdc_runtime.util import populated_schema_collection_names_with_id_field
 
