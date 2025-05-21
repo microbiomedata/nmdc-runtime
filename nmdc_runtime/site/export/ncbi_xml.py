@@ -579,7 +579,37 @@ class NCBISubmissionXML:
     ):
         data_type = None
         ncbi_project_id = None
+
+        # Find biosample IDs where processing_institution is "JGI" to exclude
+        biosamples_to_exclude = set()
         for bsm_ntseq in biosample_nucleotide_sequencing_list:
+            for bsm_id, ntseq_list in bsm_ntseq.items():
+                for ntseq in ntseq_list:
+                    if (
+                        "processing_institution" in ntseq
+                        and ntseq["processing_institution"] == "JGI"
+                    ):
+                        biosamples_to_exclude.add(bsm_id)
+
+        # Filter biosample_nucleotide_sequencing_list to exclude JGI records
+        filtered_nucleotide_sequencing_list = []
+        for bsm_ntseq in biosample_nucleotide_sequencing_list:
+            filtered_dict = {}
+            for bsm_id, ntseq_list in bsm_ntseq.items():
+                if bsm_id not in biosamples_to_exclude:
+                    filtered_dict[bsm_id] = ntseq_list
+            if filtered_dict:  # Only add non-empty dictionaries
+                filtered_nucleotide_sequencing_list.append(filtered_dict)
+
+        # Filter biosamples_list to exclude JGI-processed biosamples
+        filtered_biosamples_list = [
+            biosample
+            for biosample in biosamples_list
+            if biosample.get("id") not in biosamples_to_exclude
+        ]
+
+        # Get data_type and ncbi_project_id from filtered list
+        for bsm_ntseq in filtered_nucleotide_sequencing_list:
             for _, ntseq_list in bsm_ntseq.items():
                 for ntseq in ntseq_list:
                     if "analyte_category" in ntseq:
@@ -610,16 +640,36 @@ class NCBISubmissionXML:
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
             bioproject_id=ncbi_project_id,
-            nmdc_biosamples=biosamples_list,
+            nmdc_biosamples=filtered_biosamples_list,
         )
 
+        # Also filter biosample_data_objects_list
+        filtered_data_objects_list = []
+        for entry in biosample_data_objects_list:
+            filtered_entry = {}
+            for biosample_id, data_objects in entry.items():
+                if biosample_id not in biosamples_to_exclude:
+                    filtered_entry[biosample_id] = data_objects
+            if filtered_entry:  # Only add non-empty entries
+                filtered_data_objects_list.append(filtered_entry)
+
+        # Filter library preparation list as well
+        filtered_library_preparation_list = []
+        for lib_prep_dict in biosample_library_preparation_list:
+            filtered_lib_prep = {}
+            for biosample_id, lib_prep in lib_prep_dict.items():
+                if biosample_id not in biosamples_to_exclude:
+                    filtered_lib_prep[biosample_id] = lib_prep
+            if filtered_lib_prep:  # Only add non-empty entries
+                filtered_library_preparation_list.append(filtered_lib_prep)
+
         self.set_fastq(
-            biosample_data_objects=biosample_data_objects_list,
+            biosample_data_objects=filtered_data_objects_list,
             bioproject_id=ncbi_project_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
-            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing_list,
-            nmdc_biosamples=biosamples_list,
-            nmdc_library_preparation=biosample_library_preparation_list,
+            nmdc_nucleotide_sequencing=filtered_nucleotide_sequencing_list,
+            nmdc_biosamples=filtered_biosamples_list,
+            nmdc_library_preparation=filtered_library_preparation_list,
             all_instruments=instruments_dict,
         )
 
