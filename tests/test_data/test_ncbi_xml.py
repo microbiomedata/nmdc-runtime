@@ -500,7 +500,7 @@ class TestNCBISubmissionXML:
 
         submission_xml = ncbi_submission_client.get_submission_xml(
             nmdc_biosample,
-            [],
+            biosample_nucleotide_sequencing,
             biosample_data_objects,
             biosample_library_preparation,
             all_instruments,
@@ -515,6 +515,91 @@ class TestNCBISubmissionXML:
             "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
             in submission_xml
         )
+
+    def test_get_submission_xml_filters_jgi_biosamples(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "id": "",
+                    "collection_date": "collection_date",
+                    "geo_loc_name": "geo_loc_name",
+                    "lat_lon": "lat_lon",
+                    "name": "sample_name",
+                },
+                {
+                    "id": "uriorcurie",
+                    "collection_date": "TimestampValue",
+                    "geo_loc_name": "TextValue",
+                    "lat_lon": "GeolocationValue",
+                    "name": "string",
+                },
+            ),
+        )
+
+        # Create two biosamples
+        biosample1 = nmdc_biosample[0].copy()
+        biosample1["id"] = "nmdc:bsm-12-p9q5v236"
+
+        biosample2 = nmdc_biosample[0].copy()
+        biosample2["id"] = "nmdc:bsm-12-jgitest"
+
+        all_biosamples = [biosample1, biosample2]
+
+        # Create nucleotide sequencing entries - one with JGI as processing_institution
+        ntseq1 = nucleotide_sequencing_list[0].copy()
+        ntseq1["processing_institution"] = "Battelle"
+
+        ntseq2 = nucleotide_sequencing_list[0].copy()
+        ntseq2["processing_institution"] = "JGI"  # This should be filtered out
+
+        biosample_nucleotide_sequencing = [
+            {biosample1["id"]: [ntseq1]},
+            {biosample2["id"]: [ntseq2]},
+        ]
+
+        # Setup data objects and library prep
+        biosample_data_objects = [
+            {biosample1["id"]: data_objects_list},
+            {biosample2["id"]: data_objects_list},
+        ]
+
+        biosample_library_preparation = [
+            {biosample1["id"]: library_preparation_dict},
+            {biosample2["id"]: library_preparation_dict},
+        ]
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        # Call get_submission_xml with both biosamples
+        submission_xml = ncbi_submission_client.get_submission_xml(
+            all_biosamples,
+            biosample_nucleotide_sequencing,
+            biosample_data_objects,
+            biosample_library_preparation,
+            all_instruments,
+        )
+
+        # Biosample 1 should be included
+        assert "nmdc:bsm-12-p9q5v236" in submission_xml
+
+        # Biosample 2 should be filtered out (JGI processing)
+        assert "nmdc:bsm-12-jgitest" not in submission_xml
 
 
 class TestNCBIXMLUtils:
