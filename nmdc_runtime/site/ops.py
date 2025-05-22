@@ -1113,8 +1113,8 @@ def _add_related_ids_to_alldocs(
     # Note: We are hard-coding this "direction" information here in the Runtime
     #       because the NMDC schema does not currently contain or expose it.
     #
-    # An "inbound" slot is one for which an entity in the domain "was influenced by"
-    # (i.e., prov:wasInfluencedBy) an entity in the range.
+    # An "inbound" slot is one for which an entity in the domain "was influenced by" (formally,
+    # <https://www.w3.org/ns/prov#wasInfluencedBy>, with typical CURIE prov:wasInfluencedBy) an entity in the range.
     inbound_document_reference_ranged_slots = [
         "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
         "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
