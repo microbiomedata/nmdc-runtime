@@ -45,7 +45,8 @@ def check_can_update_and_delete(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue update and delete commands.",
         )
-    
+
+
 def check_can_aggregate(user: User):
     # aggregate queries require same level of permissions
     if not check_action_permitted(
@@ -55,6 +56,7 @@ def check_can_aggregate(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue aggregate commands.",
         )
+
 
 # Note: We set `response_model_exclude_unset=True` so that all the properties of the `CommandResponseOptions` object
 #       that we don't explicitly assign values to while handling the HTTP request, are omitted from the HTTP response.
