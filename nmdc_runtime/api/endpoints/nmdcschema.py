@@ -124,17 +124,17 @@ def get_related_ids(
             title="Filter by IDs",
             description=(
                 "A comma-delimited list of document IDs to filter related IDs by.\n\n"
-                "_Example_: `nmdc:bsm-11-abc123,nmdc:bsm-11-def456`"
+                "_Example_: `nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`"
             ),
-            examples=["nmdc:bsm-11-abc123,nmdc:bsm-11-def456"],
+            examples=["nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
         ),
     ] = None,
     types: Annotated[
         Optional[str] | None,
         Query(
             title="Filter by Types",
-            description="A comma-delimited list of document types to filter related IDs by.\n\n_Example_: `nmdc:Biosample,nmdc:Study`",
-            examples=["nmdc:Biosample,nmdc:Study"],
+            description="A comma-delimited list of document types to filter related IDs by.\n\n_Example_: `nmdc:Site,nmdc:PlannedProcess`",
+            examples=["nmdc:Site,nmdc:PlannedProcess"],
         ),
     ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
