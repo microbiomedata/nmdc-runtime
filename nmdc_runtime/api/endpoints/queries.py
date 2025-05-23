@@ -45,7 +45,16 @@ def check_can_update_and_delete(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue update and delete commands.",
         )
-
+    
+def check_can_aggregate(user: User):
+    # aggregate queries require same level of permissions
+    if not check_action_permitted(
+        user.username, "/queries:run(query_cmd:AggregateCommand)"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specific users are allowed to issue aggregate commands.",
+        )
 
 # Note: We set `response_model_exclude_unset=True` so that all the properties of the `CommandResponseOptions` object
 #       that we don't explicitly assign values to while handling the HTTP request, are omitted from the HTTP response.
@@ -172,6 +181,11 @@ def run_query(
     # Note: The permission-checking function will raise an exception if the user lacks those permissions.
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         check_can_update_and_delete(user)
+
+    # check if the user has permission to run aggregate commands
+    if isinstance(cmd, AggregateCommand):
+        check_can_aggregate(user)
+
     cmd_response = _run_mdb_cmd(cmd)
     return cmd_response
 
