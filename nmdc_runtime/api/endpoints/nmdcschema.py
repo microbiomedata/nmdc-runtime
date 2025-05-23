@@ -7,6 +7,7 @@ import pymongo
 from beanie.odm.utils import relations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
+from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
@@ -113,7 +114,7 @@ def get_nmdc_database_collection_stats(
 
 @router.get(
     "/nmdcschema/related_ids",
-    response_model=Doc,
+    response_model=ListResponse[RelatedIDs],
     response_model_exclude_unset=True,
 )
 def get_related_ids(
@@ -150,10 +151,6 @@ def get_related_ids(
 
     Results can be filtered by specific entity `types`. By default, all types (i.e., `types=["nmdc:NamedThing"]`)
     are included if no types are specified.
-
-    Returns a JSON object with two fields:
-    - "was_influenced_by": Contains inbound relationships (documents that influenced the given `ids`)
-    - "influenced": Contains outbound relationships (documents that were influenced by the given `ids`)
     """
     ids = ids.split(",") if ids else []
     types = types.split(",") if types else ["nmdc:NamedThing"]
@@ -281,13 +278,11 @@ def get_related_ids(
     )
 
     relations_by_id = {
-        id_: defaultdict(
-            lambda: {
-                "id": id_,
-                "was_influenced_by": [],
-                "influenced": [],
-            }
-        )
+        id_: {
+            "id": id_,
+            "was_influenced_by": [],
+            "influenced": [],
+        }
         for id_ in ids
     }
 
@@ -295,9 +290,9 @@ def get_related_ids(
     # containing that subject document's `id`, its `type`, and the list of `id`s of the
     # documents that it "was influenced by" and "influenced".
     for d in was_influenced_by + influenced:
-        relations_by_id[d["type"]] = d["type"]
-        relations_by_id[d["was_influenced_by"]] += d.get("was_influenced_by", [])
-        relations_by_id[d["influenced"]] += d.get("influenced", [])
+        relations_by_id[d["id"]]["type"] = d["type"]
+        relations_by_id[d["id"]]["was_influenced_by"] += d.get("was_influenced_by", [])
+        relations_by_id[d["id"]]["influenced"] += d.get("influenced", [])
 
     return {"resources": list(relations_by_id.values())}
 

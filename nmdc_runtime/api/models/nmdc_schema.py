@@ -130,3 +130,18 @@ def list_request_filter_to_mongo_filter(req: dict):
 
 
 DataObjectListRequest = create_list_request_model_for(DataObject)
+
+
+class RelatedIDs(BaseModel):
+    id: str = Field(
+        default=None,
+        description="document ID",
+    )
+    was_influenced_by: List[dict] = Field(
+        default=None,
+        description="{`id`,`type`} of documents that influenced `id`.",
+    )
+    influenced: List[dict] = Field(
+        default=None,
+        description="{`id`,`type`} of documents that were influenced by `id`.",
+    )

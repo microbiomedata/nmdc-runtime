@@ -640,15 +640,9 @@ def test_get_class_name_and_collection_names_by_doc_id():
     assert response.status_code == 404
 
 
-def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(api_user_client):
-    r"""
-    This test demonstrates that the `/nmdcschema/related_ids` API endpoint returns an
-    unsuccessful status code when the request contains an `id` that does not exist in the
-    database; and that that is the case whether that `id` is submitted on its own or as
-    part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
-    """
-
-    # Seed the database with a study.
+@pytest.fixture
+def fake_study_in_mdb():
+    # Seed the database with a study that neither influences—nor is influenced by—any documents.
     mdb = get_mongo_db()
     faker = Faker()
     study_a = faker.generate_studies(quantity=1, part_of=[])[0]
@@ -657,9 +651,32 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
     study_set.insert_many([study_a])
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
-    # Also, verify that the database does _not_ contain any studies having the following `id`.
+    yield study_a
+
+    # 🧹 Clean up: Delete the study we created earlier.
+    study_set.delete_many({"id": study_a["id"]})
+
+
+@pytest.fixture
+def fake_study_nonexistent_in_mdb():
+    mdb = get_mongo_db()
     nonexistent_study_id = "nmdc:sty-00-00000x"
-    assert study_set.count_documents({"id": nonexistent_study_id}) == 0
+    assert (
+        mdb.get_collection("study_set").count_documents({"id": nonexistent_study_id})
+        == 0
+    )
+    yield nonexistent_study_id
+
+
+def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
+    api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
+):
+    r"""
+    This test demonstrates that the `/nmdcschema/related_ids` API endpoint returns an
+    unsuccessful status code when the request contains an `id` that does not exist in the
+    database; and that that is the case whether that `id` is submitted on its own or as
+    part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
+    """
 
     # Request the `id`s of documents related to only that nonexistent study.
     #
@@ -670,7 +687,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         api_user_client.request(
             "GET",
             "/nmdcschema/related_ids",
-            {"ids": ",".join([nonexistent_study_id])},  # one `id`
+            {"ids": ",".join([fake_study_nonexistent_in_mdb])},  # one `id`
         )
 
     # Submit the same request, but specify _both_ the existing study's `id`
@@ -679,42 +696,38 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         api_user_client.request(
             "GET",
             "/nmdcschema/related_ids",
-            {"ids": ",".join([study_a["id"], nonexistent_study_id])},  # two `id`s
+            {
+                "ids": ",".join(
+                    [fake_study_in_mdb["id"], fake_study_nonexistent_in_mdb]
+                )
+            },  # two `id`s
         )
 
-    # 🧹 Clean up: Delete the study we created earlier.
-    study_set.delete_many({"id": study_a["id"]})
 
-
-def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(api_user_client):
-    # Seed the database with a study that neither influences—nor is influenced by—any documents.
-    mdb = get_mongo_db()
-    faker = Faker()
-    study_a = faker.generate_studies(quantity=1, part_of=[])[0]
-    study_set = mdb.get_collection(name="study_set")
-    assert study_set.count_documents({"id": study_a["id"]}) == 0
-    study_set.insert_many([study_a])
-    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
-
+def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
+    api_user_client, fake_study_in_mdb
+):
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
     response = api_user_client.request(
         "GET",
         "/nmdcschema/related_ids",
-        {"ids": ",".join([study_a["id"]])},
+        {"ids": ",".join([fake_study_in_mdb["id"]])},
     )
-
     # Assert that the response contains an empty "resources" list.
     assert response.status_code == 200
-    payload = response.json()
-    assert "resources" in payload
-    assert isinstance(payload["resources"], list)
-    assert len(payload["resources"]) == 0
+    assert response.json() == {
+        "resources": [
+            {
+                "id": fake_study_in_mdb["id"],
+                "was_influenced_by": [],
+                "influenced": [],
+            }
+        ]
+    }
 
-    # 🧹 Clean up: Delete the study we created earlier.
-    study_set.delete_many({"id": study_a["id"]})
 
-
-def test_get_related_ids_returns_related_ids(api_user_client):
+@pytest.fixture
+def fake_studies_and_biosamples_in_mdb():
     # Seed the database with the following interrelated documents:
     # - `study_a`
     # - `study_b`, which influences (via `part_of`) `study_a`
@@ -724,7 +737,9 @@ def test_get_related_ids_returns_related_ids(api_user_client):
     mdb = get_mongo_db()
     faker = Faker()
     study_a, study_b = faker.generate_studies(quantity=2, part_of=[])
-    biosample_a, biosample_b = faker.generate_biosamples(quantity=2, associated_studies=[])
+    biosample_a, biosample_b = faker.generate_biosamples(
+        quantity=2, associated_studies=[]
+    )
     study_b["part_of"] = [study_a["id"]]
     biosample_a["associated_studies"] = [study_a["id"]]
     biosample_b["associated_studies"] = [study_b["id"]]
@@ -738,6 +753,17 @@ def test_get_related_ids_returns_related_ids(api_user_client):
     biosample_set.insert_many([biosample_a, biosample_b])
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
+    yield study_a, study_b, biosample_a, biosample_b
+
+    # 🧹 Clean up: Delete the documents we created earlier.
+    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+
+
+def test_get_related_ids_returns_related_ids(
+    api_user_client, fake_studies_and_biosamples_in_mdb
+):
+    study_a, study_b, biosample_a, biosample_b = fake_studies_and_biosamples_in_mdb
     # Request the `id`s of the documents related to `study_a`, which is influenced by
     # `study_b`, `biosample_a`, and `biosample_b`, and which influences nothing.
     #
@@ -749,21 +775,12 @@ def test_get_related_ids_returns_related_ids(api_user_client):
         {"ids": ",".join([study_a["id"]])},
     )
     assert response.status_code == 200
-    payload = response.json()
-    assert "resources" in payload
-    resources = payload["resources"]
-    assert isinstance(resources, list)
-    assert len(resources) == 1  # represents the subject (i.e. `study_a`)
-    resource = resources[0]
-    assert "was_influenced_by" in resource
-    was_influenced_by = resource["was_influenced_by"]
-    assert isinstance(resource["was_influenced_by"], list)
-    assert len(resource["was_influenced_by"]) == 3
-    assert any(d["id"] == study_b["id"] for d in was_influenced_by)
-    assert any(d["id"] == biosample_a["id"] for d in was_influenced_by)
-    assert any(d["id"] == biosample_b["id"] for d in was_influenced_by)
-    assert all(d["type"] in ["nmdc:Study", "nmdc:Biosample"] for d in was_influenced_by)
-    assert "influenced" not in resource  # `study_a` does not influence anything
+    response_resource = response.json()["resources"][0]
+    assert study_a["id"] == response_resource["id"]
+    assert {study_b["id"], biosample_a["id"], biosample_b["id"]} == set(
+        [r["id"] for r in response_resource["was_influenced_by"]]
+    )
+    assert len(response_resource["influenced"]) == 0
 
     # Request the `id`s of the documents related to `study_b`, which is influenced by
     # `biosample_b`, and which influences `study_a`.
@@ -773,22 +790,12 @@ def test_get_related_ids_returns_related_ids(api_user_client):
         {"ids": ",".join([study_b["id"]])},
     )
     assert response.status_code == 200
-    payload = response.json()
-    assert "resources" in payload
-    resources = payload["resources"]
-    assert isinstance(resources, list)
-    assert len(resources) == 1  # represents the subject (i.e. `study_b`)
-    resource = resources[0]
-    assert "was_influenced_by" in resource
-    was_influenced_by = resource["was_influenced_by"]
-    assert isinstance(resource["was_influenced_by"], list)
-    assert len(resource["was_influenced_by"]) == 1
-    assert was_influenced_by[0]["id"] == biosample_b["id"]
-    assert "influenced" in resource
-    influenced = resource["influenced"]
-    assert isinstance(influenced, list)
-    assert len(influenced) == 1
-    assert influenced[0]["id"] == study_a["id"]
+    response_resource = response.json()["resources"][0]
+    assert study_b["id"] == response_resource["id"]
+    assert {biosample_b["id"]} == set(
+        [r["id"] for r in response_resource["was_influenced_by"]]
+    )
+    assert {study_a["id"]} == set([r["id"] for r in response_resource["influenced"]])
 
     # Request the `id`s of the documents related to `biosample_a`, which influences `study_a`,
     # and is not influenced by anything.
@@ -798,22 +805,10 @@ def test_get_related_ids_returns_related_ids(api_user_client):
         {"ids": ",".join([biosample_a["id"]])},
     )
     assert response.status_code == 200
-    payload = response.json()
-    assert "resources" in payload
-    resources = payload["resources"]
-    assert isinstance(resources, list)
-    assert len(resources) == 1  # represents the subject (i.e. `biosample_a`)
-    resource = resources[0]
-    assert "was_influenced_by" not in resource  # `biosample_a` is not influenced by anything
-    assert "influenced" in resource
-    influenced = resource["influenced"]
-    assert isinstance(influenced, list)
-    assert len(influenced) == 1
-    assert influenced[0]["id"] == study_a["id"]
-
-    # 🧹 Clean up: Delete the documents we created earlier.
-    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
-    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+    response_resource = response.json()["resources"][0]
+    assert biosample_a["id"] == response_resource["id"]
+    assert len(response_resource["was_influenced_by"]) == 0
+    assert {study_a["id"]} == set([r["id"] for r in response_resource["influenced"]])
 
 
 def test_find_data_objects_for_nonexistent_study(api_site_client):
