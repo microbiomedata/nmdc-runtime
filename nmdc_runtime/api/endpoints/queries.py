@@ -229,18 +229,19 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # multiple times in the `target_document_descriptors` cursor. Note that Mongo
         # `_id` values are always unique within a collection, so we can use them to
         # identify recurring target document descriptors.
+        #
+        # Note: We use the `distinct_target_document_object_ids` set for two things:
+        #       1. Here, so we can quickly check whether we have already preserved
+        #          a descriptor for a given document the user wants to delete.
+        #       2. Later, so we can quickly check whether a _referring_ document
+        #          is among the documents the user wants to delete.
+        # 
         distinct_target_document_descriptors = []
+        distinct_target_document_object_ids = set()
         for target_document_descriptor in target_document_descriptors:
-            if target_document_descriptor["_id"] not in [
-                d["_id"] for d in distinct_target_document_descriptors
-            ]:
+            if target_document_descriptor["_id"] not in distinct_target_document_object_ids:
+                distinct_target_document_object_ids.add(target_document_descriptor["_id"])
                 distinct_target_document_descriptors.append(target_document_descriptor)
-
-        # Make a list of all of the `_id` values up front, which we will consult
-        # later (when processing _each_ target document descriptor).
-        target_document_object_ids = [
-            tdd["_id"] for tdd in distinct_target_document_descriptors
-        ]
 
         finder = Finder(database=mdb)
         for target_document_descriptor in distinct_target_document_descriptors:
@@ -261,7 +262,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             for referring_document_descriptor in referring_document_descriptors:
                 if (
                     referring_document_descriptor["_id"]
-                    not in target_document_object_ids
+                    not in distinct_target_document_object_ids
                 ):
                     source_document_id = referring_document_descriptor[
                         "source_document_id"
