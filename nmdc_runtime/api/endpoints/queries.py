@@ -219,10 +219,12 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       not occur within a transaction. The database may change between the
         #       two events (i.e. there's a race condition).
         #
-        target_document_descriptors = list(mdb[collection_name].find(
-            filter={"$or": [spec["filter"] for spec in delete_specs]},
-            projection={"_id": 1, "id": 1, "type": 1},
-        ))
+        target_document_descriptors = list(
+            mdb[collection_name].find(
+                filter={"$or": [spec["filter"] for spec in delete_specs]},
+                projection={"_id": 1, "id": 1, "type": 1},
+            )
+        )
 
         # Make a set of the `_id` values of the target documents so that (later) we can
         # check whether a given _referring_ document is also one of the _target_ documents
