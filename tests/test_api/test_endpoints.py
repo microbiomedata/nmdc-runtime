@@ -990,6 +990,10 @@ def test_run_query_update_as_user(api_user_client):
 
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_user_client):
     # Generate interrelated documents.
+    #
+    # TODO: Migrate these seed/cleanup steps to the pytest fixture-based seed/yield/cleanup
+    #       pattern established in https://github.com/microbiomedata/nmdc-runtime/pull/972
+    #
     faker = Faker()
     study_a = faker.generate_studies(1)[0]
     bsm_a, bsm_b = faker.generate_biosamples(2, associated_studies=[study_a["id"]])
