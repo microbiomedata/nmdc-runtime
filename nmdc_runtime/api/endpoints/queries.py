@@ -211,12 +211,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
 
         # Check whether any of the documents the user wants to delete are referenced
         # by any documents that are _not_ among those documents. If any of them are,
-        # it means that performing the deletion would leave behind broken references.
-        #
-        # Note: By calling `list()` around the cursor, we are loading the entire
-        #       result set into memory.
-        #
-        # TODO: Eliminate _duplicate_ document descriptors, to avoid unnecessary work.
+        # it means that performing the deletion would leave behind a broken reference(s).
         #
         # TODO: Account for the "limit" property of the delete specs.
         #
@@ -224,21 +219,29 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       not occur within a transaction. The database may change between the
         #       two events (i.e. there's a race condition).
         #
-        target_document_descriptors = list(
-            mdb.get_collection(collection_name).find(
-                filter={"$or": [spec["filter"] for spec in delete_specs]},
-                projection={"_id": 1, "id": 1, "type": 1},
-            )
-        )
-        finder = Finder(database=mdb)
-
-        # Make a list of all of the (distinct) `_id` values up front, which we can consult
-        # when processing _each_ target document descriptor later.
-        target_document_object_ids = list(
-            set([tdd["_id"] for tdd in target_document_descriptors])
+        target_document_descriptors = mdb[collection_name].find(
+            filter={"$or": [spec["filter"] for spec in delete_specs]},
+            projection={"_id": 1, "id": 1, "type": 1},
         )
 
+        # Eliminate duplicate target document descriptors, since the same document
+        # may have matched multiple "delete specs" and, as a result, may by described
+        # multiple times in the `target_document_descriptors` cursor. Note that Mongo
+        # `_id` values are always unique within a collection, so we can use them to
+        # identify recurring target document descriptors.
+        distinct_target_document_descriptors = []
         for target_document_descriptor in target_document_descriptors:
+            if target_document_descriptor["_id"] not in [
+                d["_id"] for d in distinct_target_document_descriptors
+            ]:
+                distinct_target_document_descriptors.append(target_document_descriptor)
+
+        # Make a list of all of the `_id` values up front, which we will consult
+        # later (when processing _each_ target document descriptor).
+        target_document_object_ids = [tdd["_id"] for tdd in distinct_target_document_descriptors]
+
+        finder = Finder(database=mdb)
+        for target_document_descriptor in distinct_target_document_descriptors:
             # If the document descriptor lacks the "id" field, we already know that no
             # documents reference it (since they would have to _use_ that "id" value to
             # do so). So, we don't bother trying to identify documents that reference it.
