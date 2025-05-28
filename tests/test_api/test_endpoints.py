@@ -912,7 +912,7 @@ def _test_run_query_delete_as(client):
     biosample_id = "nmdc:bsm-12-deleteme"
 
     if not mdb.biosample_set.find_one({"id": biosample_id}):
-        mdb.biosample_set.insert_one({"id": biosample_id})
+        mdb.biosample_set.insert_one({"id": biosample_id, "type": "nmdc:Biosample"})
 
     # Access should not work without permissions
     mdb["_runtime"].api.allow.delete_many(
