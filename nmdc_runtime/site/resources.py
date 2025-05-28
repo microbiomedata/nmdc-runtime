@@ -146,7 +146,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
         )
         response.raise_for_status()
         return response.json()["resources"]
-        
+
     def get_data_generation_records_for_study(self, study_id: str):
         # TODO: same as above, we are using a large max_page_size to avoid pagination.
         response = self.request(
