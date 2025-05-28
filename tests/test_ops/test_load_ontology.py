@@ -1,7 +1,5 @@
 import os
 import pytest
-import tempfile
-import shutil
 from unittest.mock import patch, MagicMock
 from dagster import build_op_context
 from nmdc_runtime.site.resources import mongo_resource
@@ -20,18 +18,18 @@ def client_config():
     mongo_host = os.getenv("MONGO_HOST")
     mongo_dbname = os.getenv("MONGO_DBNAME")
     mongo_username = os.getenv("MONGO_USERNAME")
-    
+
     logging.info(f"Test MongoDB connection details:")
     logging.info(f"- MONGO_HOST: {mongo_host}")
     logging.info(f"- MONGO_DBNAME: {mongo_dbname}")
     logging.info(f"- MONGO_USERNAME: {mongo_username}")
-    
+
     # For local development outside Docker, try connecting to the Docker-exposed port
     if mongo_host == "mongodb://mongo:27017":
         alternative_host = "mongodb://localhost:27018"
         logging.info(f"- Inside test: MongoDB host is set to container name. "
               f"If running test locally (not in Docker), try: {alternative_host}")
-    
+
     return {
         "dbname": mongo_dbname,
         "host": mongo_host,
@@ -41,21 +39,12 @@ def client_config():
 
 
 @pytest.fixture
-def temp_directory():
-    # Create a temporary directory for test output
-    temp_dir = tempfile.mkdtemp()
-    yield temp_dir
-    # Clean up after test
-    shutil.rmtree(temp_dir)
-
-
-@pytest.fixture
-def op_context(client_config, temp_directory):
+def op_context(client_config, tmp_path):
     return build_op_context(
         resources={"mongo": mongo_resource.configured(client_config)},
         op_config={
             "source_ontology": "envo",
-            "output_directory": temp_directory,
+            "output_directory": str(tmp_path),
             "generate_reports": False
         }
     )

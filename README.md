@@ -128,6 +128,19 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+
+*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
+```
+pip-compile --build-isolation \                                 
+    --allow-unsafe --resolver=backtracking --strip-extras \
+    --output-file requirements/main.txt \
+    requirements/main.in
+```
+to generate main.txt and dev.txt files.
+
+
+```bash
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following commands:
