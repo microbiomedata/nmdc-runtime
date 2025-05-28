@@ -988,6 +988,85 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
+def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_user_client):
+    # Generate interrelated documents.
+    faker = Faker()
+    study_a = faker.generate_studies(1)[0]
+    bsm_a, bsm_b = faker.generate_biosamples(2, associated_studies=[study_a["id"]])
+
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    assert study_set.count_documents({"id": {"$in": [study_a["id"]]}}) == 0
+    assert biosample_set.count_documents({"id": {"$in": [bsm_a["id"], bsm_b["id"]]}}) == 0
+
+    # Insert the documents.
+    study_set.insert_many([study_a])
+    biosample_set.insert_many([bsm_a, bsm_b])
+
+    # Ensure the user has permission to issue "delete" commands via the `/queries:run` API endpoint.
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Case 1: We cannot delete the study because some biosamples are referencing them.
+    with pytest.raises(requests.HTTPError):
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "limit": 0,
+                    }
+                ],
+            },
+        )
+        
+    # Case 2: We can delete the biosamples because nothing is referencing them.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "delete": "biosample_set",
+            "deletes": [
+                {
+                    "q": {"id": {"$in": [bsm_a["id"], bsm_b["id"]]}},
+                    "limit": 0,
+                }
+            ],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["n"] == 2  # both biosamples were deleted
+
+    # Case 3: Now that the biosamples have been deleted, we can delete the study.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "delete": "study_set",
+            "deletes": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "limit": 0,
+                }
+            ],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["n"] == 1  # the study was deleted
+
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_many({"id": {"$in": [study_a["id"]]}})
+    biosample_set.delete_many({"id": {"$in": [bsm_a["id"], bsm_b["id"]]}})
+
+
 def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
 ):
