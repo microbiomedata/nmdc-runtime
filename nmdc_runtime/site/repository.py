@@ -45,9 +45,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
-    run_envo_ontology_load,
-    run_uberon_ontology_load,
-    run_po_ontology_load,
+    run_ontology_load,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
 )
@@ -131,7 +129,7 @@ load_envo_ontology_weekly = ScheduleDefinition(
     name="weekly_load_envo_ontology",
     cron_schedule="0 7 * * 1",
     execution_timezone="America/New_York",
-    job=run_envo_ontology_load.to_job(
+    job=run_ontology_load.to_job(
         name="scheduled_envo_ontology_load",
         config=unfreeze(
             merge(
@@ -147,7 +145,7 @@ load_uberon_ontology_weekly = ScheduleDefinition(
     name="weekly_load_uberon_ontology",
     cron_schedule="0 8 * * 1",
     execution_timezone="America/New_York",
-    job=run_uberon_ontology_load.to_job(
+    job=run_ontology_load.to_job(
         name="scheduled_uberon_ontology_load",
         config=unfreeze(
             merge(
@@ -163,7 +161,7 @@ load_po_ontology_weekly = ScheduleDefinition(
     name="weekly_load_po_ontology",
     cron_schedule="0 9 * * 1",
     execution_timezone="America/New_York",
-    job=run_po_ontology_load.to_job(
+    job=run_ontology_load.to_job(
         name="scheduled_po_ontology_load",
         config=unfreeze(
             merge(
@@ -514,43 +512,6 @@ def repo():
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
-        run_uberon_ontology_load.to_job(
-            name="uberon_ontology_load",
-            config=unfreeze(
-                merge(
-                    run_config_frozen__normal_env,
-                    {
-                        "ops": {
-                            "load_ontology": {"config": {"source_ontology": "uberon"}}
-                        }
-                    },
-                )
-            ),
-            resource_defs=resource_defs,
-            executor_def=in_process_executor,
-        ),
-        run_envo_ontology_load.to_job(
-            name="envo_ontology_load",
-            config=unfreeze(
-                merge(
-                    run_config_frozen__normal_env,
-                    {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
-                )
-            ),
-            resource_defs=resource_defs,
-            executor_def=in_process_executor,
-        ),
-        run_po_ontology_load.to_job(
-            name="po_ontology_load",
-            config=unfreeze(
-                merge(
-                    run_config_frozen__normal_env,
-                    {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
-                )
-            ),
-            resource_defs=resource_defs,
-            executor_def=in_process_executor,
-        ),
     ]
     schedules = [
         housekeeping_weekly,

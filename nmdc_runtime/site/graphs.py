@@ -114,17 +114,12 @@ def ensure_alldocs():
 
 
 @graph
-def run_envo_ontology_load():
-    load_ontology()
-
-
-@graph
-def run_uberon_ontology_load():
-    load_ontology()
-
-
-@graph
-def run_po_ontology_load():
+def run_ontology_load():
+    """
+    A graph for loading ontologies.
+    The source_ontology parameter is provided by the job configuration
+    and passed to the load_ontology op.
+    """
     load_ontology()
 
 
