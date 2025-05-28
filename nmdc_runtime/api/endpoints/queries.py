@@ -5,6 +5,8 @@ import bson.json_util
 from fastapi import APIRouter, Depends, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in, dissoc
+from refscan.lib.Finder import Finder
+from refscan.scanner import identify_referring_documents
 
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
@@ -31,7 +33,7 @@ from nmdc_runtime.api.models.query import (
     CursorYieldingCommand,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
-from nmdc_runtime.util import OverlayDB, validate_json
+from nmdc_runtime.util import OverlayDB, validate_json, get_allowed_references, nmdc_schema_view
 
 router = APIRouter()
 
@@ -201,6 +203,50 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             {"filter": del_statement.q, "limit": del_statement.limit}
             for del_statement in cmd.deletes
         ]
+
+        # Check whether any of the documents the user wants to delete are referenced
+        # by any documents that are _not_ among those documents. If any of them are,
+        # it means that performing the deletion would leave behind broken references.
+        #
+        # TODO: Eliminate _duplicate_ document descriptors, to avoid unnecessary work.
+        #
+        target_document_descriptors = mdb.get_collection(collection_name).find(
+            filter={"$or": [spec["filter"] for spec in delete_specs]},
+            projection={"_id": 1, "id": 1, "type": 1},
+        )
+        finder = Finder(database=mdb)
+        for target_document_descriptor in target_document_descriptors:
+            # If the document descriptor lacks the "id" field, we already know that
+            # no documents reference it (since they would be using that "id" value
+            # to do so). So, we don't try to identify documents that reference it.
+            if "id" not in target_document_descriptor:
+                continue
+            referring_document_descriptors = identify_referring_documents(
+                document=target_document_descriptor,  # expects at least "id" and "type"
+                schema_view=nmdc_schema_view(),
+                references=get_allowed_references(),
+                finder=finder,
+            )
+            # If _any_ referring document is _not_ among the documents the user wants
+            # to delete, then we know that performing the deletion would leave behind
+            # broken references.
+            for referring_document_descriptor in referring_document_descriptors:
+                if referring_document_descriptor["_id"] not in {
+                    d["_id"] for d in target_document_descriptors
+                }:
+                    source_document_id = referring_document_descriptor["source_document_id"]
+                    source_collection_name = referring_document_descriptor["source_collection_name"]
+                    target_document_id = target_document_descriptor["id"]
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=(
+                            f"Cannot delete the document having 'id'='{target_document_id}' "
+                            f"from collection '{collection_name}' because it is referenced by "
+                            f"the document having 'id'='{source_document_id}'"
+                            f"in collection '{source_collection_name}'."
+                        ),
+                    )
+
         for spec in delete_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
