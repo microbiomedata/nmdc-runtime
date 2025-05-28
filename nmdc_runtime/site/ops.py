@@ -1078,13 +1078,8 @@ def load_ontology(context: OpExecutionContext):
         generate_reports=generate_reports,
     )
 
-    try:
-        loader.run_ontology_loader()
-        context.log.info("Ontology load completed successfully!")
-    except Exception as e:
-        context.log.info(f"Error running ontology loader: {e}")
-
-    context.log.info(f"Loaded {source_ontology}")
+    loader.run_ontology_loader()
+    context.log.info(f"Ontology load for {source_ontology} completed successfully!")
 
 
 @op(required_resource_keys={"mongo"})
