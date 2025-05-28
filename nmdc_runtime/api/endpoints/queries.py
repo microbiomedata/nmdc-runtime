@@ -33,7 +33,12 @@ from nmdc_runtime.api.models.query import (
     CursorYieldingCommand,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
-from nmdc_runtime.util import OverlayDB, validate_json, get_allowed_references, nmdc_schema_view
+from nmdc_runtime.util import (
+    OverlayDB,
+    validate_json,
+    get_allowed_references,
+    nmdc_schema_view,
+)
 
 router = APIRouter()
 
@@ -240,8 +245,12 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 if referring_document_descriptor["_id"] not in {
                     d["_id"] for d in target_document_descriptors
                 }:
-                    source_document_id = referring_document_descriptor["source_document_id"]
-                    source_collection_name = referring_document_descriptor["source_collection_name"]
+                    source_document_id = referring_document_descriptor[
+                        "source_document_id"
+                    ]
+                    source_collection_name = referring_document_descriptor[
+                        "source_collection_name"
+                    ]
                     target_document_id = target_document_descriptor["id"]
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
