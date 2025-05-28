@@ -1,19 +1,20 @@
+"""
+Tip: At the time of this writing, you can run the tests in this file without running other tests in this repo,
+by issuing the following command from the root directory of the repository within the `fastapi` container:
+
+    ```
+    $ pytest -vv tests/test_the_util/test_the_util.py
+    ```
+"""
+
 import pytest
 
-from refscan.lib.helpers import identify_references
 from refscan.lib.Finder import Finder
-from refscan.lib.ReferenceList import ReferenceList
 from refscan.scanner import scan_outgoing_references
 
 from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view, validate_json
 from tests.lib.faker import Faker
-
-# Tip: At the time of this writing, you can run the tests in this file without running other tests in this repo,
-#      by issuing the following command from the root directory of the repository within the `fastapi` container:
-#      ```
-#      $ pytest -vv tests/test_the_util/test_the_util.py
-#      ```
 
 # Define a reusable dictionary that matches the value the `validate_json` function
 # returns when it considers the input to be valid.
@@ -112,7 +113,9 @@ def test_validate_json_returns_invalid_when_document_is_schema_defiant(db):
     assert len(result["detail"]["study_set"]) == 1
 
 
-def test_validate_json_returns_invalid_when_otherwise_schema_compliant_document_references_missing_document(db):
+def test_validate_json_returns_invalid_when_otherwise_schema_compliant_document_references_missing_document(
+    db,
+):
     database_dict = {
         "study_set": [
             {
@@ -154,14 +157,19 @@ def test_validate_json_does_not_check_references_if_documents_are_schema_defiant
     assert len(result["detail"]["study_set"]) == 1  # not 2
 
 
-def test_validate_json_reports_multiple_broken_references_emanating_from_single_document(db):
+def test_validate_json_reports_multiple_broken_references_emanating_from_single_document(
+    db,
+):
     database_dict = {
         "study_set": [
             {
                 "id": "nmdc:sty-00-000001",
                 "type": "nmdc:Study",
                 "study_category": "research_study",
-                "part_of": ["nmdc:sty-00-000008", "nmdc:sty-00-000009"],  # identifies 2 non-existent studies
+                "part_of": [
+                    "nmdc:sty-00-000008",
+                    "nmdc:sty-00-000009",
+                ],  # identifies 2 non-existent studies
             },
         ]
     }
@@ -171,7 +179,9 @@ def test_validate_json_reports_multiple_broken_references_emanating_from_single_
     assert len(result["detail"]["study_set"]) == 2
 
 
-def test_validate_json_checks_referential_integrity_after_applying_all_collections_changes(db):
+def test_validate_json_checks_referential_integrity_after_applying_all_collections_changes(
+    db,
+):
     r"""
     Note: This test targets the scenario where a single payload introduces both the source document and target document
           of a given reference, and those documents reside in different collections. If the referential integrity
@@ -184,13 +194,33 @@ def test_validate_json_checks_referential_integrity_after_applying_all_collectio
                 "id": "nmdc:bsm-00-000001",
                 "type": "nmdc:Biosample",
                 "associated_studies": ["nmdc:sty-00-000001"],
-                "env_broad_scale": {"term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"}, "type": "nmdc:ControlledIdentifiedTermValue"}, "env_local_scale": {"term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"}, "type": "nmdc:ControlledIdentifiedTermValue"}, "env_medium": {"term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"}, "type": "nmdc:ControlledIdentifiedTermValue"}
+                "env_broad_scale": {
+                    "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                    "type": "nmdc:ControlledIdentifiedTermValue",
+                },
+                "env_local_scale": {
+                    "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                    "type": "nmdc:ControlledIdentifiedTermValue",
+                },
+                "env_medium": {
+                    "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
+                    "type": "nmdc:ControlledIdentifiedTermValue",
+                },
             }
         ],
         "study_set": [
-            {"id": "nmdc:sty-00-000001", "type": "nmdc:Study", "study_category": "research_study"},
-            {"id": "nmdc:sty-00-000002", "type": "nmdc:Study", "study_category": "research_study", "part_of": ["nmdc:sty-00-000001"]}
-        ]
+            {
+                "id": "nmdc:sty-00-000001",
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+            },
+            {
+                "id": "nmdc:sty-00-000002",
+                "type": "nmdc:Study",
+                "study_category": "research_study",
+                "part_of": ["nmdc:sty-00-000001"],
+            },
+        ],
     }
     assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
@@ -205,8 +235,12 @@ def test_validate_json_considers_existing_documents_when_checking_references(db)
 
     db.get_collection("study_set").replace_one(
         {"id": existing_study_id},
-        {"id": existing_study_id, "type": "nmdc:Study", "study_category": "research_study"},
-        upsert=True
+        {
+            "id": existing_study_id,
+            "type": "nmdc:Study",
+            "study_category": "research_study",
+        },
+        upsert=True,
     )
     database_dict = {
         "study_set": [
@@ -221,6 +255,7 @@ def test_validate_json_considers_existing_documents_when_checking_references(db)
     assert validate_json(in_docs=database_dict, mdb=db, **check_refs) == ok_result
 
     db.get_collection("study_set").delete_one({"id": existing_study_id})
+
 
 def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
     r"""
@@ -262,8 +297,12 @@ def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
             # Stage a change that, if committed, would introduce a broken reference.
             # Note: In this case, we'll stage the deletion of the _referenced_ study.
             study_set.delete_one({"id": study_b["id"]}, session=session)
-            assert study_set.count_documents({"id": study_a["id"]}, session=session) == 1
-            assert study_set.count_documents({"id": study_b["id"]}, session=session) == 0  # <-- deleted
+            assert (
+                study_set.count_documents({"id": study_a["id"]}, session=session) == 1
+            )
+            assert (
+                study_set.count_documents({"id": study_b["id"]}, session=session) == 0
+            )  # <-- deleted
 
             # Now, we'll validate the referential integrity of the other study.
             # Note: We expect this to detect the broken reference, even though
