@@ -238,7 +238,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
 
         # Make a list of all of the `_id` values up front, which we will consult
         # later (when processing _each_ target document descriptor).
-        target_document_object_ids = [tdd["_id"] for tdd in distinct_target_document_descriptors]
+        target_document_object_ids = [
+            tdd["_id"] for tdd in distinct_target_document_descriptors
+        ]
 
         finder = Finder(database=mdb)
         for target_document_descriptor in distinct_target_document_descriptors:
