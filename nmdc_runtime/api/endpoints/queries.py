@@ -251,7 +251,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             # broken reference(s). In that case, we abort with an HTTP 422 error response.
             for referring_document_descriptor in referring_document_descriptors:
                 if (
-                    referring_document_descriptor["_id"]
+                    referring_document_descriptor["source_document_object_id"]
                     not in target_document_object_ids
                 ):
                     source_document_id = referring_document_descriptor[
@@ -266,8 +266,8 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         detail=(
                             f"Cannot delete the document having 'id'='{target_document_id}' from "
                             f"the collection '{collection_name}' because it is referenced by "
-                            f"the document having 'id'='{source_document_id}' "
-                            f"in the collection '{source_collection_name}'."
+                            f"the document having 'id'='{source_document_id}' in "
+                            f"the collection '{source_collection_name}'."
                         ),
                     )
 
