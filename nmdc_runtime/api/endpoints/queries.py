@@ -235,7 +235,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             )
             # If _any_ referring document is _not_ among the documents the user wants
             # to delete, then we know that performing the deletion would leave behind
-            # broken references.
+            # broken references. In that case, we abort with an HTTP 422 error response.
             for referring_document_descriptor in referring_document_descriptors:
                 if referring_document_descriptor["_id"] not in {
                     d["_id"] for d in target_document_descriptors
