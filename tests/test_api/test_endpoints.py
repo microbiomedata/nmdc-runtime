@@ -1016,7 +1016,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
     }
     mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
 
-    # Case 1: We cannot delete the study because some biosamples are referencing them.
+    # Case 1: We cannot delete the study because some biosamples are referencing it.
     with pytest.raises(requests.HTTPError):
         api_user_client.request(
             "POST",
@@ -1049,7 +1049,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
     assert response.status_code == 200
     assert response.json()["n"] == 2  # both biosamples were deleted
 
-    # Case 3: Now that the biosamples have been deleted, we can delete the study.
+    # Case 3: We can delete the study because nothing is referencing it anymore.
     response = api_user_client.request(
         "POST",
         "/queries:run",
