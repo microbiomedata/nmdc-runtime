@@ -1066,7 +1066,7 @@ def load_ontology(context: OpExecutionContext):
     handler = logging.Handler()
     handler.emit = lambda record: context.log.info(record.getMessage())
 
-    # Get logger from ontology_load package
+    # Get logger from ontology-loader package
     controller_logger = logging.getLogger("ontology_loader.ontology_load_controller")
     controller_logger.setLevel(logging.INFO)
     controller_logger.addHandler(handler)
