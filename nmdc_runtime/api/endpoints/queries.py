@@ -256,7 +256,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                         detail=(
                             f"Cannot delete the document having 'id'='{target_document_id}' from "
-                            f"from the collection '{collection_name}' because it is referenced by "
+                            f"the collection '{collection_name}' because it is referenced by "
                             f"the document having 'id'='{source_document_id}' "
                             f"in the collection '{source_collection_name}'."
                         ),
