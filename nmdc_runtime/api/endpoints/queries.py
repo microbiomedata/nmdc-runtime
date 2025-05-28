@@ -210,15 +210,21 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #
         # TODO: Eliminate _duplicate_ document descriptors, to avoid unnecessary work.
         #
+        # TODO: Account for the "limit" property of the delete specs.
+        #
+        # TODO: Account for the fact that this validation and the actual deletion do
+        #       not occur within a transaction. The database may change between the
+        #       two events (i.e. there's a race condition).
+        #
         target_document_descriptors = mdb.get_collection(collection_name).find(
             filter={"$or": [spec["filter"] for spec in delete_specs]},
             projection={"_id": 1, "id": 1, "type": 1},
         )
         finder = Finder(database=mdb)
         for target_document_descriptor in target_document_descriptors:
-            # If the document descriptor lacks the "id" field, we already know that
-            # no documents reference it (since they would be using that "id" value
-            # to do so). So, we don't try to identify documents that reference it.
+            # If the document descriptor lacks the "id" field, we already know that no
+            # documents reference it (since they would be using that "id" value to do so).
+            # So, we don't bother trying to identify documents that reference it.
             if "id" not in target_document_descriptor:
                 continue
             referring_document_descriptors = identify_referring_documents(
@@ -240,10 +246,10 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                         detail=(
-                            f"Cannot delete the document having 'id'='{target_document_id}' "
-                            f"from collection '{collection_name}' because it is referenced by "
-                            f"the document having 'id'='{source_document_id}'"
-                            f"in collection '{source_collection_name}'."
+                            f"Cannot delete the document having 'id'='{target_document_id}' from "
+                            f"from the collection '{collection_name}' because it is referenced by "
+                            f"the document having 'id'='{source_document_id}' "
+                            f"in the collection '{source_collection_name}'."
                         ),
                     )
 
