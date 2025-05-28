@@ -1047,6 +1047,7 @@ def site_code_mapping() -> dict:
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
 
+
 @op(
     required_resource_keys={"mongo"},
     config_schema={
@@ -1082,6 +1083,7 @@ def load_ontology(context: OpExecutionContext):
 
     loader.run_ontology_loader()
     context.log.info(f"Ontology load for {source_ontology} completed successfully!")
+
 
 def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
@@ -1253,7 +1255,6 @@ def _add_related_ids_to_alldocs(
     context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
-
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
@@ -1343,7 +1344,7 @@ def materialize_alldocs(context) -> int:
                 doc_type
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
-            
+
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
             # InsertOne is a method on the py-mongo Client class.
             # Get ancestors without the prefix, but add prefix to each one in the output
