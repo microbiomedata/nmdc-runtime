@@ -235,12 +235,17 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #          a descriptor for a given document the user wants to delete.
         #       2. Later, so we can quickly check whether a _referring_ document
         #          is among the documents the user wants to delete.
-        # 
+        #
         distinct_target_document_descriptors = []
         distinct_target_document_object_ids = set()
         for target_document_descriptor in target_document_descriptors:
-            if target_document_descriptor["_id"] not in distinct_target_document_object_ids:
-                distinct_target_document_object_ids.add(target_document_descriptor["_id"])
+            if (
+                target_document_descriptor["_id"]
+                not in distinct_target_document_object_ids
+            ):
+                distinct_target_document_object_ids.add(
+                    target_document_descriptor["_id"]
+                )
                 distinct_target_document_descriptors.append(target_document_descriptor)
 
         finder = Finder(database=mdb)
