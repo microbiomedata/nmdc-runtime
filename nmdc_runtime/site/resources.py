@@ -146,6 +146,19 @@ class RuntimeApiUserClient(RuntimeApiClient):
         )
         response.raise_for_status()
         return response.json()["resources"]
+        
+    def get_data_generation_records_for_study(self, study_id: str):
+        # TODO: same as above, we are using a large max_page_size to avoid pagination.
+        response = self.request(
+            "GET",
+            f"/nmdcschema/data_generation_set",
+            {
+                "filter": json.dumps({"associated_studies": study_id}),
+                "max_page_size": 10000,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
 
     def get_omics_processing_by_name(self, name: str):
         response = self.request(
