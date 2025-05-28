@@ -224,15 +224,19 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       not occur within a transaction. The database may change between the
         #       two events (i.e. there's a race condition).
         #
-        target_document_descriptors = list(mdb.get_collection(collection_name).find(
-            filter={"$or": [spec["filter"] for spec in delete_specs]},
-            projection={"_id": 1, "id": 1, "type": 1},
-        ))
+        target_document_descriptors = list(
+            mdb.get_collection(collection_name).find(
+                filter={"$or": [spec["filter"] for spec in delete_specs]},
+                projection={"_id": 1, "id": 1, "type": 1},
+            )
+        )
         finder = Finder(database=mdb)
 
         # Make a list of all of the (distinct) `_id` values up front, which we can consult
         # when processing _each_ target document descriptor later.
-        target_document_object_ids = list(set([tdd["_id"] for tdd in target_document_descriptors]))
+        target_document_object_ids = list(
+            set([tdd["_id"] for tdd in target_document_descriptors])
+        )
 
         for target_document_descriptor in target_document_descriptors:
             # If the document descriptor lacks the "id" field, we already know that no
@@ -250,7 +254,10 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             # to delete, then we know that performing the deletion would leave behind
             # broken references. In that case, we abort with an HTTP 422 error response.
             for referring_document_descriptor in referring_document_descriptors:
-                if referring_document_descriptor["_id"] not in target_document_object_ids:
+                if (
+                    referring_document_descriptor["_id"]
+                    not in target_document_object_ids
+                ):
                     source_document_id = referring_document_descriptor[
                         "source_document_id"
                     ]
