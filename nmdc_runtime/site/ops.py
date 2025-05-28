@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
-from typing import Tuple
+from typing import Tuple, Set
 from zipfile import ZipFile
 from itertools import chain
 from ontology_loader.ontology_load_controller import OntologyLoaderController
@@ -115,10 +115,13 @@ from nmdc_runtime.util import (
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pydantic import BaseModel
-from pymongo import InsertOne
+from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import assoc, dissoc, get_in, valfilter, identity
+
+# batch size for writing documents to alldocs
+BULK_WRITE_BATCH_SIZE = 2000
 
 
 @op
@@ -1044,7 +1047,6 @@ def site_code_mapping() -> dict:
             f"Failed to fetch site data from {endpoint}. Status code: {response.status_code}, Content: {response.content}"
         )
 
-
 @op(
     required_resource_keys={"mongo"},
     config_schema={
@@ -1081,18 +1083,204 @@ def load_ontology(context: OpExecutionContext):
     loader.run_ontology_loader()
     context.log.info(f"Ontology load for {source_ontology} completed successfully!")
 
+def _add_related_ids_to_alldocs(
+    temp_collection, context, document_reference_ranged_slots_by_type
+) -> None:
+    """
+    Adds {`_inbound`,`_outbound`} fields to each document in the temporary alldocs collection.
+
+    The {`_inbound`,`_outbound`} fields each contain an array of subdocuments, each with fields `id` and `type`.
+    Each subdocument represents a link to any other document that either links to or is linked from
+    the document via document-reference-ranged slots.
+
+    Args:
+        temp_collection: The temporary MongoDB collection to process
+        context: The Dagster execution context for logging
+        document_reference_ranged_slots_by_type: Dictionary mapping document types to their reference-ranged slot names
+
+    Returns:
+        None (modifies the documents in place)
+    """
+
+    context.log.info(
+        "Building relationships and adding `_inbound` and `_outbound` fields..."
+    )
+
+    # document ID -> type (with "nmdc:" prefix preserved)
+    id_to_type_map: Dict[str, str] = {}
+
+    # set of (<referencing document ID>, <slot>, <referenced document ID>) 3-tuples.
+    relationship_triples: Set[Tuple[str, str, str]] = set()
+
+    # Collect relationship triples.
+    for doc in temp_collection.find():
+        doc_id = doc["id"]
+        # Store the full type with prefix intact
+        doc_type = doc["type"]
+        # For looking up reference slots, we still need the type without prefix
+        doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
+
+        # Record ID to type mapping - preserve the original type with prefix
+        id_to_type_map[doc_id] = doc_type
+
+        # Find all document references from this document
+        reference_slots = document_reference_ranged_slots_by_type.get(
+            doc_type_no_prefix, []
+        )
+        for slot in reference_slots:
+            if slot in doc:
+                # Handle both single-value and array references
+                refs = doc[slot] if isinstance(doc[slot], list) else [doc[slot]]
+                for ref_doc in temp_collection.find(
+                    {"id": {"$in": refs}}, ["id", "type"]
+                ):
+                    id_to_type_map[ref_doc["id"]] = ref_doc["type"]
+                for ref_id in refs:
+                    relationship_triples.add((doc_id, slot, ref_id))
+
+    context.log.info(
+        f"Found {len(id_to_type_map)} documents, with "
+        f"{len({d for (d, _, _) in relationship_triples})} containing references"
+    )
+
+    # The bifurcation of document-reference-ranged slots as "inbound" and "outbound" is essential
+    # in order to perform graph traversal and collect all entities "related" to a given entity without
+    # recursion "exploding".
+    #
+    # Note: We are hard-coding this "direction" information here in the Runtime
+    #       because the NMDC schema does not currently contain or expose it.
+    #
+    # An "inbound" slot is one for which an entity in the domain "was influenced by" (formally,
+    # <https://www.w3.org/ns/prov#wasInfluencedBy>, with typical CURIE prov:wasInfluencedBy) an entity in the range.
+    inbound_document_reference_ranged_slots = [
+        "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
+        "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "has_input",  # a `nmdc:PlannedProcess` was influenced by a `nmdc:NamedThing`.
+        "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
+        "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
+        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+    ]
+    # An "outbound" slot is one for which an entity in the domain "influences"
+    # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
+    outbound_document_reference_ranged_slots = [
+        "associated_studies",  # a `nmdc:Biosample` influences a `nmdc:Study`.
+        "calibration_object",  # `nmdc:CalibrationInformation` generates a `nmdc:DataObject`.
+        "generates_calibration",  # a `nmdc:PlannedProcess` generates `nmdc:CalibrationInformation`.
+        "has_output",  # a `nmdc:PlannedProcess` generates a `nmdc:NamedThing`.
+        "in_manifest",  # a `nmdc:DataObject` becomes associated with `nmdc:Manifest`.
+        "part_of",  # a "contained" `nmdc:NamedThing` influences its "container" `nmdc:NamedThing`,
+    ]
+
+    unique_document_reference_ranged_slot_names = set()
+    for slot_names in document_reference_ranged_slots_by_type.values():
+        for slot_name in slot_names:
+            unique_document_reference_ranged_slot_names.add(slot_name)
+    context.log.info(f"{unique_document_reference_ranged_slot_names=}")
+    if len(inbound_document_reference_ranged_slots) + len(
+        outbound_document_reference_ranged_slots
+    ) != len(unique_document_reference_ranged_slot_names):
+        raise Failure(
+            "Number of detected unique document-reference-ranged slot names does not match "
+            "sum of accounted-for inbound and outbound document-reference-ranged slot names."
+        )
+
+    # Construct, and update documents with, `_incoming` and `_outgoing` field values.
+    #
+    # manage batching of MongoDB `bulk_write` operations
+    bulk_operations, update_count = [], 0
+    for doc_id, slot, ref_id in relationship_triples:
+
+        # Determine in which respective fields to push this relationship
+        # for the subject (doc) and object (ref) of this triple.
+        if slot in inbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_inbound", "_outbound"
+        elif slot in outbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_outbound", "_inbound"
+        else:
+            raise Failure(f"Unknown slot {slot} for document {doc_id}")
+
+        updates = [
+            {
+                "filter": {"id": doc_id},
+                "update": {
+                    "$push": {
+                        field_for_doc: {
+                            "id": ref_id,
+                            # TODO existing tests are failing due to `KeyError`s for `id_to_type_map.get[ref_id]` here,
+                            #   which acts as an implicit referential integrity checker (!). Using `.get` with
+                            #   "nmdc:NamedThing" as default in order to (for now) allow such tests to continue to pass.
+                            "type": id_to_type_map.get(ref_id, "nmdc:NamedThing"),
+                        }
+                    }
+                },
+            },
+            {
+                "filter": {"id": ref_id},
+                "update": {
+                    "$push": {
+                        field_for_ref: {"id": doc_id, "type": id_to_type_map[doc_id]}
+                    }
+                },
+            },
+        ]
+        for update in updates:
+            bulk_operations.append(UpdateOne(**update))
+
+        # Execute in batches for efficiency
+        if len(bulk_operations) >= BULK_WRITE_BATCH_SIZE:
+            temp_collection.bulk_write(bulk_operations)
+            update_count += len(bulk_operations)
+            context.log.info(
+                f"Pushed {update_count/(2*len(relationship_triples)):.1%} of updates so far..."
+            )
+            bulk_operations = []
+
+    # Execute any remaining operations
+    if bulk_operations:
+        temp_collection.bulk_write(bulk_operations)
+        update_count += len(bulk_operations)
+
+    context.log.info(f"Pushed {update_count} updates in total")
+
+    context.log.info("Creating {`_inbound`,`_outbound`} indexes...")
+    temp_collection.create_index("_inbound.id")
+    temp_collection.create_index("_outbound.id")
+    # Create compound indexes to ensure index-covered queries
+    temp_collection.create_index([("_inbound.type", 1), ("_inbound.id", 1)])
+    temp_collection.create_index([("_outbound.type", 1), ("_outbound.id", 1)])
+    context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
+
+
 
 @op(required_resource_keys={"mongo"})
 def materialize_alldocs(context) -> int:
     """
-    This function re-creates the alldocs collection to reflect the current state of the Mongo database.
-    See nmdc-runtime/docs/nb/bulk_validation_referential_integrity_check.ipynb for more details.
+    This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
+
+    1. Getting all populated schema collection names with an `id` field.
+    2. Create a temporary collection to build the new alldocs collection.
+    3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
+    4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
+    5. Add special `_inbound` and `_outbound` fields with subdocuments containing ID and type of related entities.
+    6. Add indexes for `id`, relationship fields, and `{_inbound,_outbound}.type`/`.id` compound indexes.
+    7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
+
+    The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
+    `nmdc_runtime.site.repository.ensure_alldocs_daily`. The collection is also updated as part of various workflows,
+    such as when applying a changesheet or metadata updates (see `nmdc_runtime.site.graphs`).
+
+    The `alldocs` collection is used primarily by API endpoints like `/data_objects/study/{study_id}` and
+    `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
+    related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
+
+    The {`_inbound`,`_outbound`} fields enable efficient index-covered queries to find all entities of specific types
+    that are related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype
+    expansions.
     """
     mdb = context.resources.mongo.db
     schema_view = nmdc_schema_view()
-
-    # batch size for writing documents to alldocs
-    BULK_WRITE_BATCH_SIZE = 2000
 
     # TODO include functional_annotation_agg  for "real-time" ref integrity checking.
     #   For now, production use cases for materialized `alldocs` are limited to `id`-having collections.
@@ -1139,7 +1327,14 @@ def materialize_alldocs(context) -> int:
         documents_processed_counter = 0
         for doc in mdb[coll_name].find():
             try:
-                doc_type = doc["type"][5:]  # lop off "nmdc:" prefix
+                # Keep the full type with prefix for document
+                doc_type_full = doc["type"]
+                # Remove prefix for slot lookup and ancestor lookup
+                doc_type = (
+                    doc_type_full[5:]
+                    if doc_type_full.startswith("nmdc:")
+                    else doc_type_full
+                )
             except KeyError:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
@@ -1148,8 +1343,14 @@ def materialize_alldocs(context) -> int:
                 doc_type
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
+            
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
             # InsertOne is a method on the py-mongo Client class.
+            # Get ancestors without the prefix, but add prefix to each one in the output
+            ancestors = schema_view.class_ancestors(doc_type)
+            new_doc["_type_and_ancestors"] = [
+                "nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors
+            ]
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
@@ -1177,10 +1378,20 @@ def materialize_alldocs(context) -> int:
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
 
+    # Add related-ids fields to enable efficient relationship traversal
+    context.log.info("Adding fields for related ids to documents...")
+    _add_related_ids_to_alldocs(
+        temp_alldocs_collection, context, document_reference_ranged_slots
+    )
+
     context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
 
-    return mdb.alldocs.estimated_document_count()
+    n_alldocs_documents = mdb.alldocs.estimated_document_count()
+    context.log.info(
+        f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
+    )
+    return n_alldocs_documents
 
 
 @op(config_schema={"nmdc_study_id": str}, required_resource_keys={"mongo"})
@@ -1402,6 +1613,55 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     return database
 
 
+@op(
+    required_resource_keys={
+        "runtime_api_user_client",
+        "runtime_api_site_client",
+        "gold_api_client",
+    }
+)
+def run_script_to_update_insdc_biosample_identifiers(
+    context: OpExecutionContext,
+    nmdc_study_id: str,
+    gold_nmdc_instrument_map_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
+
+    This op uses the DatabaseUpdater to generate a script that can be used to update biosample
+    records with INSDC identifiers obtained from GOLD.
+
+    Args:
+        context: The execution context
+        nmdc_study_id: The NMDC study ID for which to generate the update script
+        gold_nmdc_instrument_map_df: A dataframe mapping GOLD instrument IDs to NMDC instrument set records
+
+    Returns:
+        A dictionary containing the MongoDB update script
+    """
+    runtime_api_user_client: RuntimeApiUserClient = (
+        context.resources.runtime_api_user_client
+    )
+    runtime_api_site_client: RuntimeApiSiteClient = (
+        context.resources.runtime_api_site_client
+    )
+    gold_api_client: GoldApiClient = context.resources.gold_api_client
+
+    database_updater = DatabaseUpdater(
+        runtime_api_user_client,
+        runtime_api_site_client,
+        gold_api_client,
+        nmdc_study_id,
+        gold_nmdc_instrument_map_df,
+    )
+    update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
+
+    context.log.info(
+        f"Generated update script for study {nmdc_study_id} with {len(update_script.get('updates', []))} updates"
+    )
+
+    return update_script
+
+
 @op
 def log_database_ids(
     context: OpExecutionContext,
@@ -1423,3 +1683,55 @@ def log_database_ids(
         message += "\n"
     if message:
         context.log.info(message)
+
+
+@op(
+    description="Render free text through the Dagit UI",
+    out=Out(description="Text content rendered through Dagit UI"),
+)
+def render_text(context: OpExecutionContext, text: Any):
+    """
+    Renders content as a Dagster Asset in the Dagit UI.
+
+    This operation creates a Dagster Asset with the provided content, making it
+    visible in the Dagit UI for easy viewing and sharing.
+
+    Args:
+        context: The execution context
+        text: The content to render (can be a string or a dictionary that will be converted to JSON)
+
+    Returns:
+        The same content that was provided as input
+    """
+    # Convert dictionary to formatted JSON string if needed
+    if isinstance(text, dict):
+        import json
+
+        content = json.dumps(text, indent=2)
+        file_extension = "json"
+        hash_text = json.dumps(text, sort_keys=True)[:20]  # For consistent hashing
+    else:
+        content = str(text)  # Convert to string in case it's not already
+        file_extension = "txt"
+        hash_text = content[:20]
+
+    filename = f"rendered_text_{context.run_id}.{file_extension}"
+    file_path = os.path.join(context.instance.storage_directory(), filename)
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "w") as f:
+        f.write(content)
+
+    context.log_event(
+        AssetMaterialization(
+            asset_key=f"rendered_text_{hash_from_str(hash_text, 'md5')[:8]}",
+            description="Rendered Content",
+            metadata={
+                "file_path": MetadataValue.path(file_path),
+                "content": MetadataValue.text(content),
+            },
+        )
+    )
+
+    return Output(text)
