@@ -48,7 +48,6 @@ def check_can_update_and_delete(user: User):
 
 
 def check_can_aggregate(user: User):
-    # aggregate queries require same level of permissions
     if not check_action_permitted(
         user.username, "/queries:run(query_cmd:AggregateCommand)"
     ):
