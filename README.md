@@ -104,7 +104,8 @@ source .env
 set +a
 ```
 
-If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on 
+the NERSC network—set up the SSH tunnel.
 
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
@@ -126,6 +127,19 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+
+*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
+```
+pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
+```
+to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
+of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
+versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
+final requirements.txt file and import the dependencies into the Docker image.
+
+
+```bash
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following commands:
@@ -137,12 +151,13 @@ make test
 # Run a Specific test file eg. tests/test_api/test_endpoints.py
 make test ARGS="tests/test_api/test_endpoints.py"
 ```
+docker compose --file docker-compose.test.yml run test
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
-tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
 
 ### RAM usage
 

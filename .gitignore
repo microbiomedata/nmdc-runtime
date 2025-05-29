@@ -175,3 +175,4 @@ docker-build.sh
 neon.db
 neon_api_cache.sqlite
 nmdc-db.nt.gz
+**/.claude/settings.local.json

@@ -14,6 +14,7 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
+    in_process_executor,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -44,6 +45,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
+    run_ontology_load,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
     generate_update_script_for_insdc_biosample_identifiers,
@@ -121,6 +123,55 @@ ensure_alldocs_daily = ScheduleDefinition(
     cron_schedule="0 3 * * *",
     execution_timezone="America/New_York",
     job=ensure_alldocs.to_job(**preset_normal),
+)
+
+
+load_envo_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_envo_ontology",
+    cron_schedule="0 7 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_envo_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
+load_uberon_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_uberon_ontology",
+    cron_schedule="0 8 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_uberon_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
+load_po_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_po_ontology",
+    cron_schedule="0 9 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_po_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
 )
 
 
@@ -463,7 +514,13 @@ def repo():
         export_study_biosamples_metadata.to_job(**preset_normal),
         ensure_alldocs.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly, ensure_alldocs_daily]
+    schedules = [
+        housekeeping_weekly,
+        ensure_alldocs_daily,
+        load_envo_ontology_weekly,
+        load_uberon_ontology_weekly,
+        load_po_ontology_weekly,
+    ]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,

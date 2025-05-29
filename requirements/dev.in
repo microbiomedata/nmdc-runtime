@@ -8,8 +8,9 @@ pip
 pytest
 pytest-asyncio
 pytest-cov
+python-dotenv
+pytest-mock
 requests-mock
 setuptools
 twine
 requests-cache
-pytest-mock

@@ -76,7 +76,6 @@ def ensure_alldocs_collection_has_been_materialized(
         )
     )
 
-
 def ensure_test_resources(mdb):
     username = "testuser"
     password = generate_secret()
