@@ -131,12 +131,12 @@ http://127.0.0.1:8000/redoc/.
 
 *  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
 ```
-pip-compile --build-isolation \                                 
-    --allow-unsafe --resolver=backtracking --strip-extras \
-    --output-file requirements/main.txt \
-    requirements/main.in
+pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
 ```
-to generate main.txt and dev.txt files.
+to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
+of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
+versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
+final requirements.txt file and import the dependencies into the Docker image.
 
 
 ```bash
