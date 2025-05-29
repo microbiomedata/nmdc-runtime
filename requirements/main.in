@@ -42,7 +42,7 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema>=11.7.0
+nmdc-schema==11.7.0
 ontology-loader>=0.2.1
 openpyxl
 pandas
