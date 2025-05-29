@@ -31,7 +31,6 @@ def op_context(client_config):
     return build_op_context(
         resources={"mongo": mongo_resource.configured(client_config)}
     )
-
 def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
 
