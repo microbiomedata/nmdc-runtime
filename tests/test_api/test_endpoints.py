@@ -730,25 +730,23 @@ def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
 def fake_studies_and_biosamples_in_mdb():
     # Seed the database with the following interrelated documents:
     # - `study_a`
-    # - `study_b`, which influences (via `part_of`) `study_a`
-    # - `biosample_a`, which influences (via `associated_studies`) `study_a`
-    # - `biosample_b`, which influences (via `associated_studies`) `study_b`
+    # - `study_b` --[part_of]-> `study_a`
+    # - `biosample_a` --[associated_studies]-> `study_a`
+    # - `biosample_b` --[associated_studies]-> `study_b`
     #
     mdb = get_mongo_db()
     faker = Faker()
-    study_a, study_b = faker.generate_studies(quantity=2, part_of=[])
-    biosample_a, biosample_b = faker.generate_biosamples(
-        quantity=2, associated_studies=[]
-    )
+    study_a, study_b = faker.generate_studies(2)
+    biosample_a, biosample_b = faker.generate_biosamples(2, associated_studies=[])
     study_b["part_of"] = [study_a["id"]]
     biosample_a["associated_studies"] = [study_a["id"]]
     biosample_b["associated_studies"] = [study_b["id"]]
+    study_ids = [study_a["id"], study_b["id"]]
+    biosample_ids = [biosample_a["id"], biosample_b["id"]]
     study_set = mdb.get_collection(name="study_set")
     biosample_set = mdb.get_collection(name="biosample_set")
-    assert study_set.count_documents({"id": study_a["id"]}) == 0
-    assert study_set.count_documents({"id": study_b["id"]}) == 0
-    assert biosample_set.count_documents({"id": biosample_a["id"]}) == 0
-    assert biosample_set.count_documents({"id": biosample_b["id"]}) == 0
+    assert study_set.count_documents({"id": {"$in": study_ids}}) == 0
+    assert biosample_set.count_documents({"id": {"$in": biosample_ids}}) == 0
     study_set.insert_many([study_a, study_b])
     biosample_set.insert_many([biosample_a, biosample_b])
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
@@ -756,8 +754,9 @@ def fake_studies_and_biosamples_in_mdb():
     yield study_a, study_b, biosample_a, biosample_b
 
     # 🧹 Clean up: Delete the documents we created earlier.
-    study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
-    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+    study_set.delete_many({"id": {"$in": study_ids}})
+    biosample_set.delete_many({"id": {"$in": biosample_ids}})
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
 
 def test_get_related_ids_returns_related_ids(
@@ -1191,43 +1190,21 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
-def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_user_client):
-    # Generate the following interrelated documents:
-    # - `study_a`
-    # - `biosample_a` --[associated_studies]-> `study_a`
-    # - `biosample_b` --[associated_studies]-> `study_a`
-    # - `study_b`
-    # - `study_c` --[part_of]-> `study_b`
-    #
-    # TODO: Migrate these seed/cleanup steps to the pytest fixture-based seed/yield/cleanup
-    #       pattern established in https://github.com/microbiomedata/nmdc-runtime/pull/972
-    #
-    faker = Faker()
-    study_a, study_b, study_c = faker.generate_studies(3)
-    bsm_a, bsm_b = faker.generate_biosamples(2, associated_studies=[study_a["id"]])
-    study_c["part_of"] = [study_b["id"]]  # makes `study_c` reference `study_b`
-
-    # Confirm documents having the above-generated IDs don't already exist in the database.
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-    biosample_set = mdb.get_collection("biosample_set")
-    study_ids = [study_a["id"], study_b["id"], study_c["id"]]
-    biosample_ids = [bsm_a["id"], bsm_b["id"]]
-    assert study_set.count_documents({"id": {"$in": study_ids}}) == 0
-    assert biosample_set.count_documents({"id": {"$in": biosample_ids}}) == 0
-
-    # Insert the documents.
-    study_set.insert_many([study_a, study_b, study_c])
-    biosample_set.insert_many([bsm_a, bsm_b])
+def test_queries_run_rejects_deletions_that_would_leave_broken_references(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, study_b, bsm_a, bsm_b = fake_studies_and_biosamples_in_mdb
 
     # Ensure the user has permission to issue "delete" commands via the `/queries:run` API endpoint.
+    mdb = get_mongo_db()
     allow_spec = {
         "username": api_user_client.username,
         "action": "/queries:run(query_cmd:DeleteCommand)",
     }
     mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
 
-    # Case 1: We cannot delete Study A because some Biosamples are referencing it.
+    # Case 1: We cannot delete Study A because Biosample A and Study B are referencing it.
     with pytest.raises(requests.HTTPError):
         api_user_client.request(
             "POST",
@@ -1242,8 +1219,24 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
                 ],
             },
         )
-        
-    # Case 2: We can delete the Biosamples because nothing is referencing them.
+
+    # Case 2: We cannot delete Study B because Biosample B is referencing it.
+    with pytest.raises(requests.HTTPError):
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [
+                    {
+                        "q": {"id": study_b["id"]},
+                        "limit": 0,
+                    }
+                ],
+            },
+        )
+
+    # Case 3: We can delete both Biosample A and Biosample B because nothing is referencing them.
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1260,7 +1253,9 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
     assert response.status_code == 200
     assert response.json()["n"] == 2
 
-    # Case 3: Now, we _can_ delete Study A because nothing is referencing it anymore.
+    # Case 4: Now, we _can_ delete both Study A and Study B because, although Study A is still
+    #         referenced by Study B, deleting them both as part of the same operation will not
+    #         _leave behind_ any broken references.
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1268,42 +1263,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
             "delete": "study_set",
             "deletes": [
                 {
-                    "q": {"id": study_a["id"]},
-                    "limit": 0,
-                }
-            ],
-        },
-    )
-    assert response.status_code == 200
-    assert response.json()["n"] == 1
-
-    # Case 4: We cannot delete Study B because Study C is referencing it.
-    #         This is like Case 1, but with everything in one collection.
-    with pytest.raises(requests.HTTPError):
-        api_user_client.request(
-            "POST",
-            "/queries:run",
-            {
-                "delete": "study_set",
-                "deletes": [
-                    {
-                        "q": {"id": study_b["id"]},
-                        "limit": 0,
-                    }
-                ],
-            },
-        )
-
-    # Case 5: We _can_ delete Study B if we delete Study C at the same time;
-    #         since we would not be _leaving behind_ any broken references.
-    response = api_user_client.request(
-        "POST",
-        "/queries:run",
-        {
-            "delete": "study_set",
-            "deletes": [
-                {
-                    "q": {"id": {"$in": [study_b["id"], study_c["id"]]}},
+                    "q": {"id": {"$in": [study_a["id"], study_b["id"]]}},
                     "limit": 0,
                 }
             ],
@@ -1311,10 +1271,6 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(api_us
     )
     assert response.status_code == 200
     assert response.json()["n"] == 2
-
-    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
-    study_set.delete_many({"id": {"$in": study_ids}})
-    biosample_set.delete_many({"id": {"$in": biosample_ids}})
 
 
 def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
