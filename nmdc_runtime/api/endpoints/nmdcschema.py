@@ -1,13 +1,9 @@
-import logging
-from collections import defaultdict
 from importlib.metadata import version
 import re
-from typing import List, Dict, Annotated, Optional
+from typing import List, Dict, Annotated
 
 import pymongo
-from beanie.odm.utils import relations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from gql.cli import examples
 
 from nmdc_runtime.api.endpoints.lib.path_segments import (
     parse_path_segment,
@@ -19,15 +15,13 @@ from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import dissoc
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
-from nmdc_runtime.api.core.util import raise404_if_none, pick
+from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    get_nonempty_nmdc_schema_collection_names,
     get_collection_names_from_schema,
 )
 from nmdc_runtime.api.endpoints.util import (
