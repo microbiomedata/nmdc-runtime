@@ -224,11 +224,13 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # by any documents that are _not_ among those documents. If any of them are,
         # it means that performing the deletion would leave behind a broken reference(s).
         #
-        # TODO: Account for the "limit" property of the delete specs.
+        # TODO: Consider accounting for the "limit" property of the delete specs.
+        #       Currently, we ignore it and—instead—perform the validation as though
+        #       the user wants to delete _all_ matching documents.
         #
-        # TODO: Account for the fact that this validation and the actual deletion do
-        #       not occur within a transaction. The database may change between the
-        #       two events (i.e. there's a race condition).
+        # TODO: Account for the fact that this validation step and the actual deletion
+        #       step do not occur within a transaction; so, the database may change
+        #       between the two events (i.e. there's a race condition).
         #
         target_document_descriptors = list(
             mdb[collection_name].find(
