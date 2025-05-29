@@ -197,6 +197,17 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
+    # Initialize a flag that controls whether we will raise an exception
+    # (and abort the operation) or merely log a warning, when we determine
+    # that an operation would leave behind a broken reference(s).
+    #
+    # Note: We may eventually remove this flag. We are including it now
+    #       so that we can easily switch between the two modes, since
+    #       some users have expressed that they may need some time to
+    #       update some client code to work with the more strict mode.
+    #
+    are_broken_references_allowed: bool = False
+
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
@@ -261,15 +272,25 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         "source_collection_name"
                     ]
                     target_document_id = target_document_descriptor["id"]
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=(
-                            f"Cannot delete the document having 'id'='{target_document_id}' from "
-                            f"the collection '{collection_name}' because it is referenced by "
+                    if are_broken_references_allowed:
+                        logging.warning(
+                            f"The document having 'id'='{target_document_id}' in "
+                            f"the collection '{collection_name}' is referenced by "
                             f"the document having 'id'='{source_document_id}' in "
-                            f"the collection '{source_collection_name}'."
-                        ),
-                    )
+                            f"the collection '{source_collection_name}'. "
+                            f"Deleting the former will leave behind a broken reference."
+                        )
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=(
+                                f"Cannot delete the document having 'id'='{target_document_id}' from "
+                                f"the collection '{collection_name}' because it is referenced by "
+                                f"the document having 'id'='{source_document_id}' in "
+                                f"the collection '{source_collection_name}'. "
+                                f"Deleting it would leave behind a broken reference."
+                            ),
+                        )
 
         for spec in delete_specs:
             docs = list(mdb[collection_name].find(**spec))
