@@ -987,6 +987,74 @@ def test_run_query_update_as_user(api_user_client):
             },
         )
 
+def test_run_query_aggregate_as_user(api_user_client):
+    """
+    Submit a request to aggregate data without the correct permissions. Then add the permissions
+    and submit the same request again, this time expecting a successful response.
+    """
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    study_title = "My study"
+    nonexistent_study_title = "Nonexistent study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    assert study_set.count_documents({"title": nonexistent_study_title}) == 0
+
+    # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+    # Test case 1: when a user has no permission to run an aggregation query
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "aggregate": "study_set",
+                "pipeline": [
+                    {
+                        "$match": {
+                            "title": nonexistent_study_title,
+                        },
+                    },
+                ],
+                "cursor": {"batchSize": 5},
+            },
+        )
+    assert excinfo.value.response.status_code == 403
+    # Add persmissions to DB
+    mdb = get_mongo_db()
+    # Test case 2: give user permission to run aggregate queries
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    mdb["_runtime.api.allow"].insert_one(allow_spec, allow_spec, upsert=True)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": nonexistent_study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+
 
 def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
