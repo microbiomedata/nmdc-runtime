@@ -686,8 +686,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
     with pytest.raises(requests.exceptions.HTTPError):
         api_user_client.request(
             "GET",
-            "/nmdcschema/related_ids",
-            {"ids": ",".join([fake_study_nonexistent_in_mdb])},  # one `id`
+            f"/nmdcschema/related_ids/ids={fake_study_nonexistent_in_mdb}/types=nmdc:NamedThing",
         )
 
     # Submit the same request, but specify _both_ the existing study's `id`
@@ -695,12 +694,10 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
     with pytest.raises(requests.exceptions.HTTPError):
         api_user_client.request(
             "GET",
-            "/nmdcschema/related_ids",
-            {
-                "ids": ",".join(
-                    [fake_study_in_mdb["id"], fake_study_nonexistent_in_mdb]
-                )
-            },  # two `id`s
+            (
+                f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]},{fake_study_nonexistent_in_mdb}'
+                + "/types=nmdc:NamedThing"
+            ),  # two ids
         )
 
 
@@ -710,8 +707,7 @@ def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
     response = api_user_client.request(
         "GET",
-        "/nmdcschema/related_ids",
-        {"ids": ",".join([fake_study_in_mdb["id"]])},
+        f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]}/types=nmdc:NamedThing',
     )
     # Assert that the response contains an empty "resources" list.
     assert response.status_code == 200
@@ -771,8 +767,7 @@ def test_get_related_ids_returns_related_ids(
     #
     response = api_user_client.request(
         "GET",
-        "/nmdcschema/related_ids",
-        {"ids": ",".join([study_a["id"]])},
+        f'/nmdcschema/related_ids/ids={study_a["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]
@@ -786,8 +781,7 @@ def test_get_related_ids_returns_related_ids(
     # `biosample_b`, and which influences `study_a`.
     response = api_user_client.request(
         "GET",
-        "/nmdcschema/related_ids",
-        {"ids": ",".join([study_b["id"]])},
+        f'/nmdcschema/related_ids/ids={study_b["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]
@@ -801,8 +795,7 @@ def test_get_related_ids_returns_related_ids(
     # and is not influenced by anything.
     response = api_user_client.request(
         "GET",
-        "/nmdcschema/related_ids",
-        {"ids": ",".join([biosample_a["id"]])},
+        f'/nmdcschema/related_ids/ids={biosample_a["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]

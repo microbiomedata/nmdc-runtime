@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from importlib.metadata import version
 import re
@@ -6,7 +7,12 @@ from typing import List, Dict, Annotated, Optional
 import pymongo
 from beanie.odm.utils import relations
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from gql.cli import examples
 
+from nmdc_runtime.api.endpoints.lib.path_segments import (
+    parse_path_segment,
+    ParsedPathSegment,
+)
 from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
 from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.minter.config import typecodes
@@ -112,48 +118,70 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
+def _parse_prefilter(
+    prefilter: Annotated[
+        str,
+        Path(
+            description="Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.",
+            examples=["ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
+        ),
+    ],
+) -> ParsedPathSegment:
+    return parse_path_segment("prefilter;" + prefilter)
+
+
+def _parse_postfilter(
+    postfilter: Annotated[
+        str,
+        Path(
+            description=(
+                "Example: `types=nmdc:DataObject,nmdc:PlannedProcess`."
+                + '\n\nUse `types=nmdc:NamedThing` to return "all" types'
+            ),
+            examples=[
+                "types=nmdc:NamedThing",
+                "types=nmdc:DataObject,nmdc:PlannedProcess",
+            ],
+        ),
+    ],
+) -> ParsedPathSegment:
+    return parse_path_segment("postfilter;" + postfilter)
+
+
 @router.get(
-    "/nmdcschema/related_ids",
+    "/nmdcschema/related_ids/{prefilter}/{postfilter}",
     response_model=ListResponse[RelatedIDs],
     response_model_exclude_unset=True,
 )
 def get_related_ids(
-    ids: Annotated[
-        Optional[str] | None,
-        Query(
-            title="Filter by IDs",
-            description=(
-                "A comma-delimited list of document IDs to filter related IDs by.\n\n"
-                "_Example_: `nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`"
-            ),
-            examples=["nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
-        ),
-    ] = None,
-    types: Annotated[
-        Optional[str] | None,
-        Query(
-            title="Filter by Types",
-            description="A comma-delimited list of document types to filter related IDs by.\n\n_Example_: `nmdc:Site,nmdc:PlannedProcess`",
-            examples=["nmdc:Site,nmdc:PlannedProcess"],
-        ),
-    ] = None,
+    prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),
+    postfilter_parsed: ParsedPathSegment = Depends(_parse_postfilter),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """From a list of entity `ids`, retrieve `id` and `type` values for all related entities of a type in `types`.
+    """From entity IDs captured by `prefilter`, retrieve `postfilter`ed metadata for all related entities.
 
-    This endpoint performs bidirectional graph traversal from the provided `ids`:
+    Use `postfilter` to control:
+    - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
+    - what metadata are returned for them (default: `id` and `type`).
+
+    Example prefilters:
+    - `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`
+
+    Example postfilters:
+    - `types=nmdc:DataObject`
+
+    This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
 
     1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
-       each given-in-`ids` entity, returning them in the "was_influenced_by" field.
+       each given entity, returning them in the "was_influenced_by" field.
 
     2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
-       by each given-in-`ids` entity, returning them in the "influenced" field.
-
-    Results can be filtered by specific entity `types`. By default, all types (i.e., `types=["nmdc:NamedThing"]`)
-    are included if no types are specified.
+       by each given entity, returning them in the "influenced" field.
     """
-    ids = ids.split(",") if ids else []
-    types = types.split(",") if types else ["nmdc:NamedThing"]
+    ids = []
+    for param, value in prefilter_parsed.segment_parameters.items():
+        if param == "ids":
+            ids = value if isinstance(value, list) else [value]
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
     if ids_not_found:
@@ -161,6 +189,11 @@ def get_related_ids(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Some IDs not found: {ids_not_found}.",
         )
+
+    types = ["nmdc:NamedThing"]
+    for param, value in postfilter_parsed.segment_parameters.items():
+        if param == "types":
+            types = value if isinstance(value, list) else [value]
     types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
     types_not_found = list(set(types) - types_possible)
     if types_not_found:
