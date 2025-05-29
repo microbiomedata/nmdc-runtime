@@ -28,7 +28,6 @@ houses code specific to the data portal -- its database, back-end API, and front
 
 The NMDC metadata as of 2021-10 is available here:
 
-
 https://drs.microbiomedata.org/ga4gh/drs/v1/objects/sys086d541
 
 The link returns a [GA4GH DRS API bundle object record](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_drs_datatypes), with the NMDC metadata collections (study_set, biosample_set, etc.) as contents, each a DRS API blob object.

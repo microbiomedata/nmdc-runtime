@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 import pandas as pd
 from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
@@ -240,3 +240,204 @@ class DatabaseUpdater:
         ]
 
         return database
+
+    def queries_run_script_to_update_insdc_identifiers(
+        self,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """This method creates a `/queries:run` API endpoint compatible update script that can be run
+        using that API endpoint to update/add information on the `insdc_biosample_identifiers` field
+        of biosample_set records and the `insdc_bioproject_identifiers` field on data_generation_set records.
+
+        The information to be asserted is retrieved from the `ncbiBioSampleAccession` and
+        `ncbiBioProjectAccession` fields on the GOLD `/projects` API endpoint.
+
+        :return: A `/queries:run` update query compatible script serialized as a dictionary/JSON.
+        """
+        # Fetch all biosamples associated with the study
+        biosample_set = self.runtime_api_user_client.get_biosamples_for_study(
+            self.study_id
+        )
+
+        # Fetch all data_generation records associated with the study
+        data_generation_set = (
+            self.runtime_api_user_client.get_data_generation_records_for_study(
+                self.study_id
+            )
+        )
+
+        biosample_updates = []
+        data_generation_updates = []
+
+        # Dictionary to store gold_project_id -> ncbi_bioproject_accession mapping
+        gold_project_to_bioproject = {}
+
+        # Dictionary to store all project data we gather during biosample processing
+        all_processed_projects = {}
+
+        # Process biosamples for insdc_biosample_identifiers
+        for biosample in biosample_set:
+            # get the list (usually one) of GOLD biosample identifiers on the gold_biosample_identifiers slot
+            gold_biosample_identifiers = biosample.get("gold_biosample_identifiers", [])
+            if not gold_biosample_identifiers:
+                continue
+
+            biosample_id = biosample.get("id")
+            if not biosample_id:
+                continue
+
+            insdc_biosample_identifiers = []
+
+            for gold_biosample_id in gold_biosample_identifiers:
+                normalized_id = gold_biosample_id.replace("gold:", "")
+
+                # fetch projects associated with a GOLD biosample from the GOLD `/projects` API endpoint
+                gold_projects = self.gold_api_client.fetch_projects_by_biosample(
+                    normalized_id
+                )
+
+                for project in gold_projects:
+                    # Store each project for later use
+                    project_gold_id = project.get("projectGoldId")
+                    if project_gold_id:
+                        all_processed_projects[project_gold_id] = project
+
+                    # Collect ncbi_biosample_accession for biosample updates
+                    ncbi_biosample_accession = project.get("ncbiBioSampleAccession")
+                    if ncbi_biosample_accession and ncbi_biosample_accession.strip():
+                        insdc_biosample_identifiers.append(ncbi_biosample_accession)
+
+                    # Collect ncbi_bioproject_accession for data_generation records
+                    ncbi_bioproject_accession = project.get("ncbiBioProjectAccession")
+                    if (
+                        project_gold_id
+                        and ncbi_bioproject_accession
+                        and ncbi_bioproject_accession.strip()
+                    ):
+                        gold_project_to_bioproject[project_gold_id] = (
+                            ncbi_bioproject_accession
+                        )
+
+            if insdc_biosample_identifiers:
+                existing_insdc_biosample_identifiers = biosample.get(
+                    "insdc_biosample_identifiers", []
+                )
+                new_insdc_biosample_identifiers = list(
+                    set(insdc_biosample_identifiers)
+                    - set(existing_insdc_biosample_identifiers)
+                )
+
+                if new_insdc_biosample_identifiers:
+                    prefixed_new_biosample_identifiers = [
+                        f"biosample:{id}" for id in new_insdc_biosample_identifiers
+                    ]
+
+                    if existing_insdc_biosample_identifiers:
+                        all_biosample_identifiers = list(
+                            set(
+                                existing_insdc_biosample_identifiers
+                                + prefixed_new_biosample_identifiers
+                            )
+                        )
+                        biosample_updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_biosample_identifiers": all_biosample_identifiers
+                                    }
+                                },
+                            }
+                        )
+                    else:
+                        biosample_updates.append(
+                            {
+                                "q": {"id": biosample_id},
+                                "u": {
+                                    "$set": {
+                                        "insdc_biosample_identifiers": prefixed_new_biosample_identifiers
+                                    }
+                                },
+                            }
+                        )
+
+        # Process data_generation records for insdc_bioproject_identifiers
+        for data_generation in data_generation_set:
+            data_generation_id = data_generation.get("id")
+            if not data_generation_id:
+                continue
+
+            # Extract existing insdc_bioproject_identifiers
+            existing_insdc_bioproject_identifiers = data_generation.get(
+                "insdc_bioproject_identifiers", []
+            )
+
+            collected_insdc_bioproject_identifiers = set()
+
+            # Add any project identifiers already on the record
+            if "insdc_bioproject_identifiers" in data_generation:
+                for identifier in data_generation["insdc_bioproject_identifiers"]:
+                    collected_insdc_bioproject_identifiers.add(identifier)
+
+            # If there are gold_sequencing_project_identifiers, use our pre-collected mapping
+            gold_project_identifiers = data_generation.get(
+                "gold_sequencing_project_identifiers", []
+            )
+            for gold_project_id in gold_project_identifiers:
+                normalized_id = gold_project_id.replace("gold:", "")
+
+                # Check if we have a bioproject ID for this GOLD project ID
+                if normalized_id in gold_project_to_bioproject:
+                    ncbi_bioproject_accession = gold_project_to_bioproject[
+                        normalized_id
+                    ]
+                    collected_insdc_bioproject_identifiers.add(
+                        f"bioproject:{ncbi_bioproject_accession}"
+                    )
+                else:
+                    # Only if we don't have it in our mapping, try to fetch it
+                    # Instead of making a direct API request, check if we've already seen this project
+                    if normalized_id in all_processed_projects:
+                        project_data = all_processed_projects[normalized_id]
+                        ncbi_bioproject_accession = project_data.get(
+                            "ncbiBioProjectAccession"
+                        )
+                        if (
+                            ncbi_bioproject_accession
+                            and ncbi_bioproject_accession.strip()
+                        ):
+                            collected_insdc_bioproject_identifiers.add(
+                                f"bioproject:{ncbi_bioproject_accession}"
+                            )
+                            # Add to our mapping for future reference
+                            gold_project_to_bioproject[normalized_id] = (
+                                ncbi_bioproject_accession
+                            )
+
+            # Create a list from the set of collected identifiers
+            collected_insdc_bioproject_identifiers = list(
+                collected_insdc_bioproject_identifiers
+            )
+
+            # Only update if there are identifiers to add
+            if collected_insdc_bioproject_identifiers and set(
+                collected_insdc_bioproject_identifiers
+            ) != set(existing_insdc_bioproject_identifiers):
+                data_generation_updates.append(
+                    {
+                        "q": {"id": data_generation_id},
+                        "u": {
+                            "$set": {
+                                "insdc_bioproject_identifiers": collected_insdc_bioproject_identifiers
+                            }
+                        },
+                    }
+                )
+
+        # Return updates for both collections
+        if data_generation_updates:
+            return [
+                {"update": "biosample_set", "updates": biosample_updates},
+                {"update": "data_generation_set", "updates": data_generation_updates},
+            ]
+        else:
+            return {"update": "biosample_set", "updates": biosample_updates}
