@@ -1,3 +1,4 @@
+import json
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated
@@ -158,10 +159,15 @@ def get_related_ids(
     - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
     - what metadata are returned for them (default: `id` and `type`).
 
-    Example prefilters:
-    - `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`
+    Prefilters:
+    - `ids` : one or more (comma-delimited) IDs.
+        Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.
+    - `from` : `nmdc:Database` collection from which to retrieve related entities.
+        Example: `from=biosample_set`.
+    - `match` : MongoDB `filter` to apply to `from` collection. Must be proceeded by `from`.
+        Example: `from=study_set;match={"name": {"$regex": "National Ecological Observatory Network"}}`.
 
-    Example postfilters:
+    Postfilters:
     - `types=nmdc:DataObject`
 
     This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
@@ -172,17 +178,53 @@ def get_related_ids(
     2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
        by each given entity, returning them in the "influenced" field.
     """
-    ids = []
+    prefilter = {}
     for param, value in prefilter_parsed.segment_parameters.items():
         if param == "ids":
-            ids = value if isinstance(value, list) else [value]
-    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
-    ids_not_found = list(set(ids) - set(ids_found))
-    if ids_not_found:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Some IDs not found: {ids_not_found}.",
-        )
+            prefilter["ids"] = value if isinstance(value, list) else [value]
+        if param == "from":
+            prefilter["from"] = value
+        if param == "match":
+            prefilter["match"] = value
+
+    if "ids" in prefilter:
+        if ("from" in prefilter) or ("match" in prefilter):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot use `ids` prefilter parameter with {`from`,`match`} prefilter parameters.",
+            )
+        ids_found = [
+            d["id"]
+            for d in mdb.alldocs.find({"id": {"$in": prefilter["ids"]}}, {"id": 1})
+        ]
+        ids_not_found = list(set(prefilter["ids"]) - set(ids_found))
+        if ids_not_found:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Some IDs not found: {ids_not_found}.",
+            )
+    if "from" in prefilter:
+        if prefilter["from"] not in get_collection_names_from_schema():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"`from` parameter {prefilter['from']} is not a known schema collection name."
+                    f" Known names: {get_collection_names_from_schema()}."
+                ),
+            )
+    if "match" in prefilter:
+        if "from" not in prefilter:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot use `match` prefilter parameter without `from` prefilter parameter.",
+            )
+        try:
+            prefilter["match"] = json.loads(prefilter["match"])
+            assert mdb[prefilter["from"]].count_documents(prefilter["match"]) > 0
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+            )
 
     types = ["nmdc:NamedThing"]
     for param, value in postfilter_parsed.segment_parameters.items():
@@ -198,6 +240,17 @@ def get_related_ids(
                 f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
             ),
         )
+
+    # Prepare `ids` for the `was_influenced_by` and `influenced` aggregation pipelines.
+    if "from" in prefilter:
+        ids = [
+            d["id"]
+            for d in mdb[prefilter["from"]].find(
+                filter=prefilter.get("match", {}), projection={"id": 1}
+            )
+        ]
+    else:
+        ids = prefilter["ids"]
 
     # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
     # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
