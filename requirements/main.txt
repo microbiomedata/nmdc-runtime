@@ -448,9 +448,7 @@ linkml-runtime==1.9.2
     #   sssom
     #   sssom-schema
 linkml-store==0.2.10
-    # via
-    #   -r requirements/main.in
-    #   ontology-loader
+    # via ontology-loader
 lxml==5.4.0
     # via
     #   -r requirements/main.in
