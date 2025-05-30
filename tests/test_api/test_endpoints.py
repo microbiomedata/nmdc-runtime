@@ -994,7 +994,11 @@ def test_run_query_aggregate_as_user(api_user_client):
     """
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
-
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
     # Assert that the `study_set` collection does not already contain studies
     # like the ones we're going to generate here. Then, generate 6 studies
     # and insert them into the database.
@@ -1003,10 +1007,11 @@ def test_run_query_aggregate_as_user(api_user_client):
     #       in this repostory leave "residue" in the test database after they
     #       run. See "FIXME" comments in this module for more details.
     #
+    # TODO: Use test fixtures to seed/cleanup the db
     study_title = "My study"
-    nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
-    assert study_set.count_documents({"title": nonexistent_study_title}) == 0
+    # assert the user does not have permissions to run aggregate queries
+    assert allowances_collection.count_documents(allow_spec) == 0
 
     # Seed the `study_set` collection with 6 documents.
     faker = Faker()
@@ -1022,7 +1027,7 @@ def test_run_query_aggregate_as_user(api_user_client):
                 "pipeline": [
                     {
                         "$match": {
-                            "title": nonexistent_study_title,
+                            "title": study_title,
                         },
                     },
                 ],
@@ -1030,14 +1035,9 @@ def test_run_query_aggregate_as_user(api_user_client):
             },
         )
     assert excinfo.value.response.status_code == 403
-    # Add persmissions to DB
-    mdb = get_mongo_db()
+
     # Test case 2: give user permission to run aggregate queries
-    allow_spec = {
-        "username": api_user_client.username,
-        "action": "/queries:run(query_cmd:AggregateCommand)",
-    }
-    mdb["_runtime.api.allow"].insert_one(allow_spec, allow_spec, upsert=True)
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     response = api_user_client.request(
         "POST",
         "/queries:run",
@@ -1046,7 +1046,7 @@ def test_run_query_aggregate_as_user(api_user_client):
             "pipeline": [
                 {
                     "$match": {
-                        "title": nonexistent_study_title,
+                        "title": study_title,
                     },
                 },
             ],
@@ -1054,6 +1054,9 @@ def test_run_query_aggregate_as_user(api_user_client):
         },
     )
     assert response.status_code == 200
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_many({"title": study_title})
+    allowances_collection.delete_many(allow_spec)
 
 
 def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
