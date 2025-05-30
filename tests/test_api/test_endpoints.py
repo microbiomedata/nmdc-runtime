@@ -1182,6 +1182,77 @@ def test_run_query_update_as_user(api_user_client):
             },
         )
 
+def test_run_query_aggregate_as_user(api_user_client):
+    """
+    Submit a request to aggregate data without the correct permissions. Then add the permissions
+    and submit the same request again, this time expecting a successful response.
+    """
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    # Assert that the `study_set` collection does not already contain studies
+    # like the ones we're going to generate here. Then, generate 6 studies
+    # and insert them into the database.
+    #
+    # Note: The reason assertion is necessary is that some longstanding tests
+    #       in this repostory leave "residue" in the test database after they
+    #       run. See "FIXME" comments in this module for more details.
+    #
+    # TODO: Use test fixtures to seed/cleanup the db
+    study_title = "My study"
+    assert study_set.count_documents({"title": study_title}) == 0
+    # assert the user does not have permissions to run aggregate queries
+    assert allowances_collection.count_documents(allow_spec) == 0
+
+    # Seed the `study_set` collection with 6 documents.
+    faker = Faker()
+    studies = faker.generate_studies(6, title=study_title)
+    study_set.insert_many(studies)
+    # Test case 1: when a user has no permission to run an aggregation query
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response = api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "aggregate": "study_set",
+                "pipeline": [
+                    {
+                        "$match": {
+                            "title": study_title,
+                        },
+                    },
+                ],
+                "cursor": {"batchSize": 5},
+            },
+        )
+    assert excinfo.value.response.status_code == 403
+
+    # Test case 2: give user permission to run aggregate queries
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    response = api_user_client.request(
+        "POST",
+        "/queries:run",
+        {
+            "aggregate": "study_set",
+            "pipeline": [
+                {
+                    "$match": {
+                        "title": study_title,
+                    },
+                },
+            ],
+            "cursor": {"batchSize": 5},
+        },
+    )
+    assert response.status_code == 200
+    # 🧹 Clean up. We use the same filters as in our initial absence check (above).
+    study_set.delete_many({"title": study_title})
+    allowances_collection.delete_many(allow_spec)
+
 
 def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
@@ -1755,6 +1826,12 @@ def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
+    # give user permission to run aggregate queries
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     # Test case 1: When the first batch is empty, its `cursor.id` is null.
     response = api_user_client.request(
         "POST",
@@ -1872,6 +1949,12 @@ def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
 
+    # give user permission to run aggregate queries
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     # Test case 1: When the second batch is empty, its `cursor.id` is null.
     response = api_user_client.request(
         "POST",
@@ -2042,6 +2125,12 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
 
+    # give user permission to run aggregate queries
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     # Fetch the first batch of biosamples associated with the study.
     #
     # References:
@@ -2167,7 +2256,13 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
-
+    
+    # give user permission to run aggregate queries
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:AggregateCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
     # Fetch the first batch of 5 and confirm the `cursor.id` is null,
     # even though we didn't receive all 6 items.
     response = api_user_client.request(
