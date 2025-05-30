@@ -1004,9 +1004,7 @@ def test_run_query_aggregate_as_user(api_user_client):
     #       run. See "FIXME" comments in this module for more details.
     #
     study_title = "My study"
-    nonexistent_study_title = "Nonexistent study"
     assert study_set.count_documents({"title": study_title}) == 0
-    assert study_set.count_documents({"title": nonexistent_study_title}) == 0
 
     # Seed the `study_set` collection with 6 documents.
     faker = Faker()
