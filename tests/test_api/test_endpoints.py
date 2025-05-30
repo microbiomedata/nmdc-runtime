@@ -1630,7 +1630,7 @@ def test_run_query_aggregate__first_batch_and_its_cursor_id(api_user_client):
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
-    mdb = get_mongo_db()
+
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,
@@ -1753,6 +1753,7 @@ def test_run_query_aggregate__second_batch_and_its_cursor_id(api_user_client):
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
+
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,
@@ -1928,6 +1929,7 @@ def test_run_query_aggregate__three_batches_and_their_items(api_user_client):
     )
     study_set.insert_many(studies)
     biosample_set.insert_many(biosamples)
+
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,
@@ -2059,6 +2061,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
+    
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,
