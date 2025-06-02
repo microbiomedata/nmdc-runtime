@@ -1253,7 +1253,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
             ],
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json()["n"] == 2
 
     # Case 4: Now, we _can_ delete both Study A and Study B because, although Study A is still
@@ -1272,7 +1272,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
             ],
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json()["n"] == 2
 
 
