@@ -1205,7 +1205,8 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
 
     # Case 1: We cannot delete Study A because Biosample A and Study B are referencing it.
-    with pytest.raises(requests.HTTPError):
+    # Reference: https://docs.pytest.org/en/6.2.x/reference.html#pytest-raises
+    with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
             "/queries:run",
@@ -1219,9 +1220,10 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
                 ],
             },
         )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Case 2: We cannot delete Study B because Biosample B is referencing it.
-    with pytest.raises(requests.HTTPError):
+    with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
             "/queries:run",
@@ -1235,6 +1237,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
                 ],
             },
         )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Case 3: We can delete both Biosample A and Biosample B because nothing is referencing them.
     response = api_user_client.request(

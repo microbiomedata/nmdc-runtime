@@ -197,9 +197,10 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
-    # Initialize a flag that controls whether we will raise an exception
-    # (and abort the operation) or merely log a warning, when we determine
-    # that an operation would leave behind a broken reference(s).
+    # Initialize a flag we can use to control whether we will raise an exception
+    # and abort the operation (i.e. we will be "strict") or merely log a warning
+    # to the console (i.e. we will be "lenient"), when we determine that performing
+    # an operation would leave behind a broken reference(s).
     #
     # Note: We may eventually remove this flag. We are including it now
     #       so that we can easily switch between the two modes, since
@@ -246,6 +247,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             tdd["_id"] for tdd in target_document_descriptors
         )
 
+        # For each document the user wants to delete, check whether it is referenced
+        # by any documents that are _not_ among those that the user wants to delete
+        # (i.e. check whether there are any references that would be broken).
         finder = Finder(database=mdb)
         for target_document_descriptor in target_document_descriptors:
             # If the document descriptor lacks the "id" field, we already know that no
@@ -253,6 +257,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             # do so). So, we don't bother trying to identify documents that reference it.
             if "id" not in target_document_descriptor:
                 continue
+
             referring_document_descriptors = identify_referring_documents(
                 document=target_document_descriptor,  # expects at least "id" and "type"
                 schema_view=nmdc_schema_view(),
@@ -261,7 +266,12 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             )
             # If _any_ referring document is _not_ among the documents the user wants
             # to delete, then we know that performing the deletion would leave behind a
-            # broken reference(s). In that case, we abort with an HTTP 422 error response.
+            # broken reference(s).
+            #
+            # In that case, we either (a) log a warning to the server console (if broken
+            # references are being allowed) or (b) abort with an HTTP 422 error response
+            # (if broken references are not being allowed).
+            #
             for referring_document_descriptor in referring_document_descriptors:
                 if (
                     referring_document_descriptor["source_document_object_id"]
