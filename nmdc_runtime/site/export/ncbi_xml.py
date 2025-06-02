@@ -643,11 +643,27 @@ class NCBISubmissionXML:
 
         # Also filter biosample_data_objects_list
         filtered_data_objects_list = []
+        acceptable_extensions = [".fastq.gz", ".fastq"]
+
         for entry in biosample_data_objects_list:
             filtered_entry = {}
             for biosample_id, data_objects in entry.items():
                 if biosample_id not in biosamples_to_exclude:
-                    filtered_entry[biosample_id] = data_objects
+                    # filter data_objects based on acceptable/allowed extensions
+                    # for "url" key in data_object
+                    filtered_objects = []
+                    for data_object in data_objects:
+                        if "url" in data_object:
+                            url = urlparse(data_object["url"])
+                            file_path = os.path.basename(url.path)
+                            if any(
+                                file_path.endswith(ext) for ext in acceptable_extensions
+                            ):
+                                filtered_objects.append(data_object)
+
+                    if filtered_objects:
+                        filtered_entry[biosample_id] = filtered_objects
+
             if filtered_entry:  # Only add non-empty entries
                 filtered_data_objects_list.append(filtered_entry)
 
