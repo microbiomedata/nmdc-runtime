@@ -293,14 +293,23 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                             f"Deleting the former will leave behind a broken reference."
                         )
                     else:
+                        # TODO: Consider reporting _all_ would-be-broken references instead of
+                        #       only the _first_ one we encounter. That would make the response
+                        #       more informative to the user in cases where there are multiple
+                        #       such references; but it would also take longer to compute and
+                        #       would increase the response size (consider the case where the
+                        #       user-specified filter matches many, many documents).
                         raise HTTPException(
                             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=(
-                                f"Cannot delete the document having 'id'='{target_document_id}' from "
-                                f"the collection '{collection_name}' because it is referenced by "
+                                f"The operation was not performed, because performing it would "
+                                f"have left behind one or more broken references. For example: "
+                                f"The document having 'id'='{target_document_id}' in "
+                                f"the collection '{collection_name}' is referenced by "
                                 f"the document having 'id'='{source_document_id}' in "
                                 f"the collection '{source_collection_name}'. "
-                                f"Deleting it would leave behind a broken reference."
+                                f"Deleting the former would leave behind a broken reference. "
+                                f"Update or delete referring document(s) and try again."
                             ),
                         )
 
