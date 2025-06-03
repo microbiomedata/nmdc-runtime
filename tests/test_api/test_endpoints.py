@@ -728,12 +728,18 @@ def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
 
 @pytest.fixture
 def fake_studies_and_biosamples_in_mdb():
-    # Seed the database with the following interrelated documents:
-    # - `study_a`
-    # - `study_b` --[part_of]-> `study_a`
-    # - `biosample_a` --[associated_studies]-> `study_a`
-    # - `biosample_b` --[associated_studies]-> `study_b`
-    #
+    # Seed the database with the following interrelated documents (represented
+    # here as a Mermaid graph/flowchart within a Markdown fenced code block):
+    # Docs: https://mermaid.js.org/syntax/flowchart.html
+    r"""
+    ```mermaid
+    graph BT
+        study_a
+        study_b --> |part_of| study_a
+        biosample_a --> |associated_studies| study_a
+        biosample_b --> |associated_studies| study_b
+    ```
+    """
     mdb = get_mongo_db()
     faker = Faker()
     study_a, study_b = faker.generate_studies(2)
