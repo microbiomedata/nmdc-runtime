@@ -353,45 +353,10 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
             )
-        # TODO: Implement real-time referential integrity checking as described here.
-        #
-        # Note: The endpoint currently allows users to update the `id` and `type` values
-        #       of documents. Given that, here is my plan for doing real-time referential
-        #       integrity checking for "update" commands:
-        #       1. Determine the `id` and `type` values of all documents that the user
-        #          wants to update. Call this list, the `ids_of_documents_being_updated`.
-        #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
-        #          function to get the `_id`s of all documents that contain references
-        #          _to_ any of the documents the user wants to update. Call this list,
-        #          the `pre_update_referrers`.
-        #       3. Perform the user-requested updates within a MongoDB transaction and
-        #          leave the transaction in the _pending_ (i.e. not committed) state.
-        #       4. For each document in `pre_update_referrers`, call refscan's
-        #          `check_outgoing_references` function to determine whether any of its
-        #          outgoing references were broken by the (pending) "updates". If so,
-        #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
-        #       5. For each "updated" document, call refscan's `check_outgoing_references`
-        #          function to determine whether any of its outgoing references are
-        #          broken. If any are, abort the transaction and raise an HTTP 422 error.
-        #          Otherwise, abort the transaction and continue with the endpoint's
-        #          existing routine.
-        #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
-        #       just introducing a validation stage—although we happen to use a
-        #       MongoDB transaction to perform that validation).
-        #
-        #       We can take for granted that the new `type` value will be valid, since
-        #       the endpoint performs schema validation on the updated documents. A new
-        #       type value can, however, change what kinds of documents can reference
-        #       it and what it can reference. Steps 4-5 above account for that.
-        #
-        #       We can also take for granted that the new `id` value will be unique within
-        #       the collection, since MongoDB has a uniqueness index for that field in
-        #       each collection.
-        #
         update_specs = [
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in cmd.updates
-        ]
+        ]        
         # Execute this "update" command on a temporary "overlay" database so we can
         # validate its outcome before executing it on the real database. If its outcome
         # is invalid, we will abort and raise an "HTTP 422" exception.
@@ -428,6 +393,44 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
+            
+        # TODO: Implement real-time referential integrity checking as described here.
+        #
+        # Note: The endpoint currently allows users to update the `id` and `type` values
+        #       of documents. Given that, here is my plan for doing real-time referential
+        #       integrity checking for "update" commands:
+        #       1. Determine the `id` and `type` values of all documents that the user
+        #          wants to update. Call this list, the `ids_of_documents_being_updated`.
+        #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
+        #          function to get the `_id`s of all documents that contain references
+        #          _to_ any of the documents the user wants to update. Call this list,
+        #          the `pre_update_referrers`.
+        #       3. Perform the user-requested updates within a MongoDB transaction and
+        #          leave the transaction in the _pending_ (i.e. not committed) state.
+        #       4. For each document in `pre_update_referrers`, call refscan's
+        #          `check_outgoing_references` function to determine whether any of its
+        #          outgoing references were broken by the (pending) "updates". If so,
+        #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
+        #       5. For each "updated" document, call refscan's `check_outgoing_references`
+        #          function to determine whether any of its outgoing references are
+        #          broken. If any are, abort the transaction and raise an HTTP 422 error.
+        #          Otherwise, abort the transaction and continue with the endpoint's
+        #          existing routine.
+        #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
+        #       just introducing a validation stage—although we happen to use a
+        #       MongoDB transaction to perform that validation).
+        #
+        #       We can take for granted that the new `type` value will be valid, since
+        #       the endpoint performs schema validation on the updated documents. A new
+        #       type value can, however, change what kinds of documents can reference
+        #       it and what it can reference. Steps 4-5 above account for that.
+        #
+        #       We can also take for granted that the new `id` value will be unique within
+        #       the collection, since MongoDB has a uniqueness index for that field in
+        #       each collection.
+        #
+        pass
+
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
