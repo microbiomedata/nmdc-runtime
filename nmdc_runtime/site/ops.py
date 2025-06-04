@@ -39,7 +39,7 @@ from dagster import (
     Field,
     Permissive,
     In,
-    Nothing
+    Nothing,
 )
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
