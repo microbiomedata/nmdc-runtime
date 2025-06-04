@@ -400,17 +400,18 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       of documents. Given that, here is my plan for doing real-time referential
         #       integrity checking for "update" commands:
         #       1. Determine the `id` and `type` values of all documents that the user
-        #          wants to update. Call this list, the `ids_of_documents_being_updated`.
+        #          wants to update.
         #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
         #          function to get the `_id`s of all documents that contain references
-        #          _to_ any of the documents the user wants to update. Call this list,
-        #          the `pre_update_referrers`.
+        #          _to_ any of the documents the user wants to update.
         #       3. Perform the user-requested updates within a MongoDB transaction and
         #          leave the transaction in the _pending_ (i.e. not committed) state.
-        #       4. For each document in `pre_update_referrers`, call refscan's
+        #       4. For each referring document identified in step 2, call refscan's
         #          `check_outgoing_references` function to determine whether any of its
         #          outgoing references were broken by the (pending) "updates". If so,
         #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
+        #          TODO: Account for the possibility that the `id` and/or `type` value
+        #                of a referring document was changed by the update operation.
         #       5. For each "updated" document, call refscan's `check_outgoing_references`
         #          function to determine whether any of its outgoing references are
         #          broken. If any are, abort the transaction and raise an HTTP 422 error.
@@ -429,7 +430,55 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       the collection, since MongoDB has a uniqueness index for that field in
         #       each collection.
         #
+        #       TODO: Account for upserts.
+        #
+        #       TODO: Add the standard "TODO" comment about this approach being
+        #             susceptible to a race condition, wherein the database gets
+        #             modified between the validation step and the commit step.
+        #
         pass
+
+        # Make a list of the `_id`, `id`, and `type` values of the documents that
+        # the user wants to update.
+        target_document_descriptors = list(
+            mdb[collection_name].find(
+                filter={"$or": [spec["filter"] for spec in update_specs]},
+                projection={"_id": 1, "id": 1, "type": 1},
+            )
+        )
+
+        # Identify all documents that reference any of the target documents.
+        all_referring_document_descriptors_pre_update = []
+        finder = Finder(database=mdb)
+        for target_document_descriptor in target_document_descriptors:
+            # If the document descriptor lacks the "id" field, we already know that no
+            # documents reference it (since they would have to _use_ that "id" value to
+            # do so). So, we don't bother trying to identify documents that reference it.
+            if "id" not in target_document_descriptor:
+                continue
+
+            referring_document_descriptors = identify_referring_documents(
+                document=target_document_descriptor,  # expects at least "id" and "type"
+                schema_view=nmdc_schema_view(),
+                references=get_allowed_references(),
+                finder=finder,
+            )
+            all_referring_document_descriptors_pre_update.extend(referring_document_descriptors)
+
+        # Start a "throwaway" MongoDB transaction so we can simulate the updates.
+        with mdb.client.start_session() as session:
+            with session.start_transaction():
+                mdb.command(
+                    # Note: This expression was copied from further down in this function.
+                    # TODO: Document this expression (i.e. the Pydantic->JSON->BSON chain).
+                    bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True))),
+                    session=session,
+                )
+
+                # TODO: Implement referential integrity checking as described above.
+
+                # Whatever happens, abort the transaction.
+                session.abort_transaction()
 
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
