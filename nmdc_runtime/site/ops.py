@@ -1256,13 +1256,13 @@ def _add_related_ids_to_alldocs(
     context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
-# Note: Here, we define a so-called "Nothing dependency," which allows us to pass "nothing" to
-#       the op, while still using inputs/outputs to specify the order of the ops in a graph.
-#       References:
-#       - https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
-#       - https://docs.dagster.io/api/dagster/types#dagster.Nothing
+# Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
+#       pass an argument the op (in order to specify the order of the ops in the graph)
+#       while also telling Dagster that this op doesn't need the _value_ of that argument.
+#       This is the approach shown on: https://docs.dagster.io/api/dagster/types#dagster.Nothing
+#       Reference: https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
 #
-@op(required_resource_keys={"mongo"}, ins={"wait_for": In(dagster_type=Nothing)})
+@op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
 def materialize_alldocs(context) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:

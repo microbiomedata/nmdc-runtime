@@ -134,16 +134,15 @@ def ensure_jobs():
 @graph
 def apply_changesheet():
     # Note: We use `_` as a "placeholder" variable.
-    #       It's a variable we want to exist, but to whose value we assign no significance.
-    #       In this case, we are using the variable to tell Dagster that one op depends
-    #       upon the output of the other (so Dagster runs them in that order), without
-    #       telling human readers that its value has any significance to us.
+    #       It's a variable to whose value we assign no significance. In this case, we use it to
+    #       tell Dagster that one op depends upon the output of the other (so Dagster  runs them
+    #       in that order), without implying to maintainers that its value is significant to us.
     #       Reference (this strategy): https://docs.dagster.io/api/dagster/types#dagster.Nothing
     #       Reference (`_` variables): https://stackoverflow.com/a/47599668
     sheet_in = get_changesheet_in()
     outputs = perform_changesheet_updates(sheet_in)
     _ = add_output_run_event(outputs)
-    materialize_alldocs(wait_for=_)
+    materialize_alldocs(waits_for=_)
 
 
 @graph
@@ -151,7 +150,7 @@ def apply_metadata_in():
     # Note: We use `_` as a "placeholder" variable.
     outputs = perform_mongo_updates(get_json_in())
     _ = add_output_run_event(outputs)
-    materialize_alldocs(wait_for=_)
+    materialize_alldocs(waits_for=_)
 
 
 @graph
