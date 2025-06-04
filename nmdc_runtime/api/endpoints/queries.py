@@ -353,6 +353,41 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
             )
+        # TODO: Implement real-time referential integrity checking as described here.
+        #
+        # Note: The endpoint currently allows users to update the `id` and `type` values
+        #       of documents. Given that, here is my plan for doing real-time referential
+        #       integrity checking for "update" commands:
+        #       1. Determine the `id` values of all documents that would be updated.
+        #          Store this in a list named `ids_of_documents_being_updated`.
+        #       2. Before doing any updates, use refscan's `identify_referring_documents`
+        #          function to get the `_id`s of all documents that contain references
+        #          _to_ any of the documents the user wants to update. Call this list,
+        #          the `pre_update_referrers`.
+        #       3. Perform the user-requested updates within a MongoDB transaction and
+        #          leave the transaction in the pending state (i.e. do not commit it).
+        #       4. For each document in `pre_update_referrers`, call refscan's
+        #          `check_outgoing_references` function to determine whether any of its
+        #          outgoing references would be broken by the updates. If any of them
+        #          would be broken, abort the transaction and raise an HTTP 422 error.
+        #          Otherwise, continue.
+        #       5. For each updated document, call refscan's `check_outgoing_references`
+        #          function to determine whether any of its outgoing references are
+        #          broken. If any are, abort the transaction and raise an HTTP 422 error.
+        #          Otherwise, just abort the transaction.
+        #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
+        #       just introducing a validation stage—although we happen to use a
+        #       MongoDB transaction to perform that validation).
+        #
+        #       We can take for granted that the new `type` value will be valid, since
+        #       the endpoint performs schema validation on the updated documents. A new
+        #       type value can, however, change what kinds of documents can reference
+        #       it and what it can reference. Steps 4-5 above account for that.
+        #
+        #       We can also take for granted that the new `id` value will be unique within
+        #       the collection, since MongoDB has a uniqueness index for that field in
+        #       each collection.
+        #
         update_specs = [
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in cmd.updates
