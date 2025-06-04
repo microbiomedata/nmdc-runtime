@@ -133,17 +133,25 @@ def ensure_jobs():
 
 @graph
 def apply_changesheet():
+    # Note: We use `_` as a "placeholder" variable.
+    #       It's a variable we want to exist, but to whose value we assign no significance.
+    #       In this case, we are using the variable to tell Dagster that one op depends
+    #       upon the output of the other (so Dagster runs them in that order). In reality,
+    #       the later op only depends upon the earlier op having finished running
+    #       (i.e., it depends upon the earlier op's output _existing_).
+    #       Reference about this convention: https://stackoverflow.com/a/47599668
     sheet_in = get_changesheet_in()
     outputs = perform_changesheet_updates(sheet_in)
-    add_output_run_event(outputs)
-    materialize_alldocs()
+    _ = add_output_run_event(outputs)
+    materialize_alldocs(_)
 
 
 @graph
 def apply_metadata_in():
+    # Note: We use `_` as a "placeholder" variable.
     outputs = perform_mongo_updates(get_json_in())
-    add_output_run_event(outputs)
-    materialize_alldocs()
+    _ = add_output_run_event(outputs)
+    materialize_alldocs(_)
 
 
 @graph
