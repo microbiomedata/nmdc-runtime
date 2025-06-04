@@ -1263,7 +1263,7 @@ def _add_related_ids_to_alldocs(
 #       - https://docs.dagster.io/api/dagster/types#dagster.Nothing
 #
 @op(required_resource_keys={"mongo"}, ins={"wait_for": In(dagster_type=Nothing)})
-def materialize_alldocs(context, wait_for) -> int:
+def materialize_alldocs(context) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
 
