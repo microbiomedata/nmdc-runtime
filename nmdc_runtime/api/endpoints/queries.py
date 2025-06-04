@@ -227,6 +227,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
+            # Note: If the specified collection is described by the schema, but it happens to be
+            #       empty (e.g. in local development), this error message will incorrectly imply
+            #       that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
@@ -343,6 +346,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     elif isinstance(cmd, UpdateCommand):
         collection_name = cmd.update
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
+            # Note: If the specified collection is described by the schema, but it happens to be
+            #       empty (e.g. in local development), this error message will incorrectly imply
+            #       that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
