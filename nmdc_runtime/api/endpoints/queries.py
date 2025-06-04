@@ -358,23 +358,23 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         # Note: The endpoint currently allows users to update the `id` and `type` values
         #       of documents. Given that, here is my plan for doing real-time referential
         #       integrity checking for "update" commands:
-        #       1. Determine the `id` values of all documents that would be updated.
-        #          Store this in a list named `ids_of_documents_being_updated`.
-        #       2. Before doing any updates, use refscan's `identify_referring_documents`
+        #       1. Determine the `id` and `type` values of all documents that the user
+        #          wants to update. Call this list, the `ids_of_documents_being_updated`.
+        #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
         #          function to get the `_id`s of all documents that contain references
         #          _to_ any of the documents the user wants to update. Call this list,
         #          the `pre_update_referrers`.
         #       3. Perform the user-requested updates within a MongoDB transaction and
-        #          leave the transaction in the pending state (i.e. do not commit it).
+        #          leave the transaction in the _pending_ (i.e. not committed) state.
         #       4. For each document in `pre_update_referrers`, call refscan's
         #          `check_outgoing_references` function to determine whether any of its
-        #          outgoing references would be broken by the updates. If any of them
-        #          would be broken, abort the transaction and raise an HTTP 422 error.
-        #          Otherwise, continue.
-        #       5. For each updated document, call refscan's `check_outgoing_references`
+        #          outgoing references were broken by the (pending) "updates". If so,
+        #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
+        #       5. For each "updated" document, call refscan's `check_outgoing_references`
         #          function to determine whether any of its outgoing references are
         #          broken. If any are, abort the transaction and raise an HTTP 422 error.
-        #          Otherwise, just abort the transaction.
+        #          Otherwise, abort the transaction and continue with the endpoint's
+        #          existing routine.
         #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
         #       just introducing a validation stage—although we happen to use a
         #       MongoDB transaction to perform that validation).
