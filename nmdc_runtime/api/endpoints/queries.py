@@ -463,7 +463,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 references=get_allowed_references(),
                 finder=finder,
             )
-            all_referring_document_descriptors_pre_update.extend(referring_document_descriptors)
+            all_referring_document_descriptors_pre_update.extend(
+                referring_document_descriptors
+            )
 
         # Start a "throwaway" MongoDB transaction so we can simulate the updates.
         with mdb.client.start_session() as session:
@@ -471,7 +473,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 mdb.command(
                     # Note: This expression was copied from further down in this function.
                     # TODO: Document this expression (i.e. the Pydantic->JSON->BSON chain).
-                    bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True))),
+                    bson.json_util.loads(
+                        json.dumps(cmd.model_dump(exclude_unset=True))
+                    ),
                     session=session,
                 )
 
