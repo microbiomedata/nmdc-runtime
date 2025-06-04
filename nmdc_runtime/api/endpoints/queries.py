@@ -356,7 +356,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         update_specs = [
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in cmd.updates
-        ]        
+        ]
         # Execute this "update" command on a temporary "overlay" database so we can
         # validate its outcome before executing it on the real database. If its outcome
         # is invalid, we will abort and raise an "HTTP 422" exception.
@@ -393,7 +393,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
-            
+
         # TODO: Implement real-time referential integrity checking as described here.
         #
         # Note: The endpoint currently allows users to update the `id` and `type` values
