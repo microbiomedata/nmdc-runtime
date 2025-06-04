@@ -38,7 +38,8 @@ from dagster import (
     Optional,
     Field,
     Permissive,
-    Bool,
+    In,
+    Nothing
 )
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
@@ -1255,8 +1256,14 @@ def _add_related_ids_to_alldocs(
     context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
-@op(required_resource_keys={"mongo"})
-def materialize_alldocs(context) -> int:
+# Note: Here, we define a so-called "Nothing dependency," which allows us to pass "nothing" to
+#       the op, while still using inputs/outputs to specify the order of the ops in a graph.
+#       References:
+#       - https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
+#       - https://docs.dagster.io/api/dagster/types#dagster.Nothing
+#
+@op(required_resource_keys={"mongo"}, ins={"wait_for": In(dagster_type=Nothing)})
+def materialize_alldocs(context, wait_for) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
 
