@@ -541,7 +541,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 for descriptor in target_document_descriptors:
                     updated_document_oid = descriptor["_id"]
                     updated_document_id = descriptor["id"]
-                    updated_collection_name = collection_name  # makes a disambiguating alias
+                    updated_collection_name = (
+                        collection_name  # makes a disambiguating alias
+                    )
                     # Get the updated document, so we can check its outgoing references.
                     # TODO: Consider projecting only necessary fields.
                     updated_document = mdb[updated_collection_name].find_one(
