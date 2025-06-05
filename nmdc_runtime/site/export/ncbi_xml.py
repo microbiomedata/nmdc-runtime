@@ -29,6 +29,9 @@ class NCBISubmissionXML:
         self.nmdc_study_description = nmdc_study.get("description")
         # get the first INSDC BioProject ID from the NMDC study
         self.ncbi_bioproject_id = nmdc_study.get("insdc_bioproject_identifiers")[0]
+        # the value asserted in "insdc_bioproject_identifiers" will be a CURIE, so extract
+        # everything after the prefix and delimiter (":")
+        self.ncbi_bioproject_id = self.ncbi_bioproject_id.split(":")[-1]
         self.nmdc_pi_email = nmdc_study.get("principal_investigator", {}).get("email")
         nmdc_study_pi_name = (
             nmdc_study.get("principal_investigator", {}).get("name").split()
