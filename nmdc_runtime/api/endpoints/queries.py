@@ -496,6 +496,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     if referring_document_oid in target_document_object_ids:
                         continue
                     # Get the referring document, so we can check its outgoing references.
+                    # TODO: Consider projecting only necessary fields.
                     referring_document = mdb[referring_collection_name].find_one(
                         {"_id": referring_document_oid},
                         session=session,
@@ -535,11 +536,65 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                             ),
                         )
 
-                # TODO: For each updated document, check whether any of its outgoing references
-                #       is broken (in the context of the transaction).
-                pass
+                # For each updated document, check whether any of its outgoing references
+                # is broken (in the context of the transaction).
+                for descriptor in target_document_descriptors:
+                    updated_document_oid = descriptor["_id"]
+                    updated_document_id = descriptor["id"]
+                    updated_collection_name = collection_name  # makes a disambiguating alias
+                    # Get the updated document, so we can check its outgoing references.
+                    # TODO: Consider projecting only necessary fields.
+                    updated_document = mdb[updated_collection_name].find_one(
+                        {"_id": updated_document_oid},
+                        session=session,
+                    )
+                    # If the updated document is not found, we skip it, since it means that it
+                    # was deleted since we identified it.
+                    #
+                    # TODO: We can prevent this from happening by performing the "identification"
+                    #       step within this transaction. Indeed, since we will be fetching each
+                    #       of the updated documents anyway, we can validate them first (before
+                    #       validating the original referrers), storing their `_id`s for the
+                    #       use when we validate the original referrers.
+                    #
+                    if updated_document is None:
+                        continue
+                    violations = scan_outgoing_references(
+                        document=updated_document,
+                        source_collection_name=updated_collection_name,
+                        schema_view=nmdc_schema_view(),
+                        references=get_allowed_references(),
+                        finder=finder,
+                        client_session=session,  # so it uses the pending transaction's session
+                    )
+                    # If any of the references emanating from this document is broken,
+                    # we raise an HTTP 422 error and abort the transaction.
+                    #
+                    # TODO: As mentioned above, consider (accumulating and) reporting _all_
+                    #       would-be-broken references instead of only the _first_ one we encounter.
+                    #
+                    if len(violations) > 0:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=(
+                                f"The operation was not performed, because performing it would "
+                                f"have left behind one or more broken references. For example: "
+                                f"The document having 'id'='{updated_document_id}' in "
+                                f"the collection '{updated_collection_name}' has outgoing "
+                                f"references that would be broken by the update operation. "
+                                f"Update or delete referring document(s) and try again."
+                            ),
+                        )
 
                 # Whatever happens, abort the transaction.
+                #
+                # Note: If an exception was raised within this `with` block, the transaction
+                #       will already have been aborted automatically (and execution will not
+                #       have reached this statement). On the other hand, if no exception
+                #       was raised, we explicitly abort the transaction so that the updates
+                #       that we "simulated" in this block do not get applied to the real database.
+                #       Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/client_session.html
+                #
                 session.abort_transaction()
 
         for spec in update_specs:
