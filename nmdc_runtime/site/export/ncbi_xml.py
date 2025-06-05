@@ -252,7 +252,11 @@ class NCBISubmissionXML:
                     children=[
                         self.set_element(
                             "Title",
-                            f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
+                            attributes.get(
+                                "name",
+                                # fallback title if "name" is not present
+                                f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
+                            ),
                         ),
                     ],
                 ),
