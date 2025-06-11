@@ -27,7 +27,11 @@ class NCBISubmissionXML:
         self.nmdc_study_id = nmdc_study.get("id")
         self.nmdc_study_title = nmdc_study.get("title")
         self.nmdc_study_description = nmdc_study.get("description")
-        self.ncbi_bioproject_id = nmdc_study.get("insdc_bioproject_identifiers")
+        # get the first INSDC BioProject ID from the NMDC study
+        self.ncbi_bioproject_id = nmdc_study.get("insdc_bioproject_identifiers")[0]
+        # the value asserted in "insdc_bioproject_identifiers" will be a CURIE, so extract
+        # everything after the prefix and delimiter (":")
+        self.ncbi_bioproject_id = self.ncbi_bioproject_id.split(":")[-1]
         self.nmdc_pi_email = nmdc_study.get("principal_investigator", {}).get("email")
         nmdc_study_pi_name = (
             nmdc_study.get("principal_investigator", {}).get("name").split()
@@ -251,7 +255,11 @@ class NCBISubmissionXML:
                     children=[
                         self.set_element(
                             "Title",
-                            f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
+                            attributes.get(
+                                "name",
+                                # fallback title if "name" is not present
+                                f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
+                            ),
                         ),
                     ],
                 ),
@@ -577,18 +585,45 @@ class NCBISubmissionXML:
         biosample_library_preparation_list: list,
         instruments_dict: dict,
     ):
-        data_type = None
-        ncbi_project_id = None
-        for bsm_ntseq in biosample_nucleotide_sequencing_list:
-            for _, ntseq_list in bsm_ntseq.items():
-                for ntseq in ntseq_list:
-                    if "analyte_category" in ntseq:
-                        data_type = handle_string_value(
-                            ntseq["analyte_category"]
-                        ).capitalize()
+        # data_type = None
 
-                    if "ncbi_project_name" in ntseq:
-                        ncbi_project_id = ntseq["ncbi_project_name"]
+        biosamples_to_exclude = set()
+        for bsm_ntseq in biosample_nucleotide_sequencing_list:
+            for bsm_id, ntseq_list in bsm_ntseq.items():
+                # Check if any processing_institution is "JGI"
+                for ntseq in ntseq_list:
+                    if (
+                        "processing_institution" in ntseq
+                        and ntseq["processing_institution"] == "JGI"
+                    ):
+                        biosamples_to_exclude.add(bsm_id)
+                        break
+
+        # Filter biosample_nucleotide_sequencing_list to exclude JGI records
+        filtered_nucleotide_sequencing_list = []
+        for bsm_ntseq in biosample_nucleotide_sequencing_list:
+            filtered_dict = {}
+            for bsm_id, ntseq_list in bsm_ntseq.items():
+                if bsm_id not in biosamples_to_exclude:
+                    filtered_dict[bsm_id] = ntseq_list
+            if filtered_dict:  # Only add non-empty dictionaries
+                filtered_nucleotide_sequencing_list.append(filtered_dict)
+
+        # Filter biosamples_list to exclude JGI-processed biosamples
+        filtered_biosamples_list = [
+            biosample
+            for biosample in biosamples_list
+            if biosample.get("id") not in biosamples_to_exclude
+        ]
+
+        # Get data_type from filtered list
+        # for bsm_ntseq in filtered_nucleotide_sequencing_list:
+        #     for _, ntseq_list in bsm_ntseq.items():
+        #         for ntseq in ntseq_list:
+        #             if "analyte_category" in ntseq:
+        #                 data_type = handle_string_value(
+        #                     ntseq["analyte_category"]
+        #                 ).capitalize()
 
         self.set_description(
             email=self.nmdc_pi_email,
@@ -597,29 +632,65 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
         )
 
-        if not ncbi_project_id:
-            self.set_bioproject(
-                title=self.nmdc_study_title,
-                project_id=ncbi_project_id,
-                description=self.nmdc_study_description,
-                data_type=data_type,
-                org=self.ncbi_submission_metadata.get("organization", ""),
-            )
+        # if not self.ncbi_bioproject_id:
+        #     self.set_bioproject(
+        #         title=self.nmdc_study_title,
+        #         project_id=self.ncbi_bioproject_id,
+        #         description=self.nmdc_study_description,
+        #         data_type=data_type,
+        #         org=self.ncbi_submission_metadata.get("organization", ""),
+        #     )
 
         self.set_biosample(
             organism_name=self.ncbi_biosample_metadata.get("organism_name", ""),
             org=self.ncbi_submission_metadata.get("organization", ""),
-            bioproject_id=ncbi_project_id,
-            nmdc_biosamples=biosamples_list,
+            bioproject_id=self.ncbi_bioproject_id,
+            nmdc_biosamples=filtered_biosamples_list,
         )
 
+        # Also filter biosample_data_objects_list
+        filtered_data_objects_list = []
+        acceptable_extensions = [".fastq.gz", ".fastq"]
+
+        for entry in biosample_data_objects_list:
+            filtered_entry = {}
+            for biosample_id, data_objects in entry.items():
+                if biosample_id not in biosamples_to_exclude:
+                    # filter data_objects based on acceptable/allowed extensions
+                    # for "url" key in data_object
+                    filtered_objects = []
+                    for data_object in data_objects:
+                        if "url" in data_object:
+                            url = urlparse(data_object["url"])
+                            file_path = os.path.basename(url.path)
+                            if any(
+                                file_path.endswith(ext) for ext in acceptable_extensions
+                            ):
+                                filtered_objects.append(data_object)
+
+                    if filtered_objects:
+                        filtered_entry[biosample_id] = filtered_objects
+
+            if filtered_entry:  # Only add non-empty entries
+                filtered_data_objects_list.append(filtered_entry)
+
+        # Filter library preparation list as well
+        filtered_library_preparation_list = []
+        for lib_prep_dict in biosample_library_preparation_list:
+            filtered_lib_prep = {}
+            for biosample_id, lib_prep in lib_prep_dict.items():
+                if biosample_id not in biosamples_to_exclude:
+                    filtered_lib_prep[biosample_id] = lib_prep
+            if filtered_lib_prep:  # Only add non-empty entries
+                filtered_library_preparation_list.append(filtered_lib_prep)
+
         self.set_fastq(
-            biosample_data_objects=biosample_data_objects_list,
-            bioproject_id=ncbi_project_id,
+            biosample_data_objects=filtered_data_objects_list,
+            bioproject_id=self.ncbi_bioproject_id,
             org=self.ncbi_submission_metadata.get("organization", ""),
-            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing_list,
-            nmdc_biosamples=biosamples_list,
-            nmdc_library_preparation=biosample_library_preparation_list,
+            nmdc_nucleotide_sequencing=filtered_nucleotide_sequencing_list,
+            nmdc_biosamples=filtered_biosamples_list,
+            nmdc_library_preparation=filtered_library_preparation_list,
             all_instruments=instruments_dict,
         )
 
