@@ -66,7 +66,8 @@ def test_load_ontology(mock_ontology_loader, op_context):
         source_ontology="envo",
         output_directory=op_context.op_config["output_directory"],
         generate_reports=False,
-        mongo_client=op_context.resources.mongo.client
+        mongo_client=op_context.resources.mongo.client,
+        db_name=op_context.resources.mongo.db.name
     )
 
     # Verify that run_ontology_loader was called

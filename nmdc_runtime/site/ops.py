@@ -1081,6 +1081,7 @@ def load_ontology(context: OpExecutionContext):
         output_directory=output_directory,
         generate_reports=generate_reports,
         mongo_client=context.resources.mongo.client,
+        db_name=context.resources.mongo.db.name,
     )
 
     loader.run_ontology_loader()
