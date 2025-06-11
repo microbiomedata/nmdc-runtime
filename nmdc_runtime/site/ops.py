@@ -1079,6 +1079,7 @@ def load_ontology(context: OpExecutionContext):
         source_ontology=source_ontology,
         output_directory=output_directory,
         generate_reports=generate_reports,
+        mongo_client = context.resources.mongo.client
     )
 
     loader.run_ontology_loader()

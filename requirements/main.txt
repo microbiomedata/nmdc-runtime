@@ -560,7 +560,7 @@ oaklib==0.6.22
     # via ontology-loader
 ols-client==0.1.4
     # via oaklib
-ontology-loader==0.2.1
+ontology-loader @ git+https://github.com/microbiomedata/ontology-loader.git@accept-fully-configured-mongo-connection
     # via -r requirements/main.in
 ontoportal-client==0.0.4
     # via oaklib

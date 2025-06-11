@@ -57,20 +57,21 @@ def test_load_ontology(mock_ontology_loader, op_context):
     # Setup the mock
     mock_instance = MagicMock()
     mock_ontology_loader.return_value = mock_instance
-    
+
     # Call the function
     result = load_ontology(op_context)
-    
+
     # Verify the correct parameters were used to initialize OntologyLoaderController
     mock_ontology_loader.assert_called_once_with(
         source_ontology="envo",
         output_directory=op_context.op_config["output_directory"],
-        generate_reports=False
+        generate_reports=False,
+        mongo_client=op_context.resources.mongo.client
     )
-    
+
     # Verify that run_ontology_loader was called
     mock_instance.run_ontology_loader.assert_called_once()
-    
+
     # The function doesn't have a return value
     assert result is None
 
