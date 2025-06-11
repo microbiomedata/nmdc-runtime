@@ -683,10 +683,12 @@ class TestNCBISubmissionXML:
 
 class TestNCBIXMLUtils:
     def test_handle_quantity_value(self):
+        # Test numeric value with unit
         assert (
             handle_quantity_value({"has_numeric_value": 10, "has_unit": "mg"})
             == "10 mg"
         )
+        # Test range value with unit
         assert (
             handle_quantity_value(
                 {
@@ -695,9 +697,11 @@ class TestNCBIXMLUtils:
                     "has_unit": "kg",
                 }
             )
-            == "10 kg"
+            == "5 - 15 kg"
         )
+        # Test raw value
         assert handle_quantity_value({"has_raw_value": "20 units"}) == "20 units"
+        # Test unknown format
         assert handle_quantity_value({}) == "Unknown format"
 
     def test_handle_text_value(self):
