@@ -14,7 +14,7 @@ import pytest
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 
-from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.lib import path_segments
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view, validate_json
 from tests.lib.faker import Faker
@@ -269,9 +269,6 @@ def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
 
     # Setup the referential integrity checker.
     references = get_allowed_references()
-    reference_field_names_by_source_class_name = (
-        references.get_reference_field_names_by_source_class_name()
-    )
 
     # Seed the database with two studies, one of which references the other.
     faker = Faker()
@@ -286,10 +283,8 @@ def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
     violations = scan_outgoing_references(
         document=study_a,
         schema_view=nmdc_schema_view(),
-        reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
         references=references,
         finder=Finder(database=db),
-        collection_names=get_collection_names_from_schema(),
         source_collection_name="study_set",
     )
     assert len(violations) == 0
@@ -313,10 +308,8 @@ def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
             violations = scan_outgoing_references(
                 document=study_a,
                 schema_view=nmdc_schema_view(),
-                reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
                 references=references,
                 finder=Finder(database=db),
-                collection_names=get_collection_names_from_schema(),
                 source_collection_name="study_set",
                 client_session=session,  # so the scan happens within the context of this session
             )
