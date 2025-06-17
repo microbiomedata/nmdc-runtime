@@ -122,11 +122,19 @@ def run_query(
     }
     ```
 
-    Rename all biosamples having a given `id`.
+    Rename the first biosample having a given `id`.
     ```
     {
       "update": "biosample_set",
       "updates": [{"q": {"id": "A_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
+    }
+    ```
+
+    Rename all biosamples that are embargoed.
+    ```
+    {
+      "update": "biosample_set",
+      "updates": [{"q": {"embargoed": true}, "u": {"$set": {"name": "A_NEW_NAME"}}, "multi": true}]
     }
     ```
 
