@@ -394,11 +394,12 @@ def find_planned_process_by_id(
         "related to the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
         "This endpoint returns a JSON object that contains "
-        "(a) all the `DataObject`s that are inputs to — or outputs from — the specified `WorkflowExecution`, "
-        "(b) all the `DataGeneration`s that generated those `DataObject`s, "
-        "(c) all the `Biosample`s that were inputs to those `DataGeneration`s, "
-        "(d) all the `Study`s with which those `Biosample`s are associated, and "
-        "(e) all the other `WorkflowExecution`s that are part of the same processing pipeline "
+        "(a) the specified `WorkflowExecution`, "
+        "(b) all the `DataObject`s that are inputs to — or outputs from — the specified `WorkflowExecution`, "
+        "(c) all the `DataGeneration`s that generated those `DataObject`s, "
+        "(d) all the `Biosample`s that were inputs to those `DataGeneration`s, "
+        "(e) all the `Study`s with which those `Biosample`s are associated, and "
+        "(f) all the other `WorkflowExecution`s that are part of the same processing pipeline "
         "as the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
@@ -662,6 +663,7 @@ def find_related_objects_for_workflow_execution(
 
     response = {
         "workflow_execution_id": workflow_execution_id,  # `WorkflowExecution` `id` provided by user
+        "workflow_execution": strip_oid(workflow_execution),  # the specified `WorkflowExecution`
         "data_objects": data_objects,  # related `DataObject`s
         "related_workflow_executions": related_workflow_executions,  # related `WorkflowExecution`s
         "biosamples": biosamples,  # related `Biosample`s
