@@ -663,7 +663,9 @@ def find_related_objects_for_workflow_execution(
 
     response = {
         "workflow_execution_id": workflow_execution_id,  # `WorkflowExecution` `id` provided by user
-        "workflow_execution": strip_oid(workflow_execution),  # the specified `WorkflowExecution`
+        "workflow_execution": strip_oid(
+            workflow_execution
+        ),  # the specified `WorkflowExecution`
         "data_objects": data_objects,  # related `DataObject`s
         "related_workflow_executions": related_workflow_executions,  # related `WorkflowExecution`s
         "biosamples": biosamples,  # related `Biosample`s
