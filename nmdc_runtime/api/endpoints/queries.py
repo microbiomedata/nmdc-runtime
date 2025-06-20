@@ -234,7 +234,11 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     #       some users have expressed that they may need some time to
     #       update some client code to work with the more strict mode.
     #
-    are_broken_references_allowed: bool = False
+    # Note: We set this flag to `True` to work around the following "catch-22" issue,
+    #       which a team member encountered while the flag was set to `False`:
+    #       https://github.com/microbiomedata/nmdc-runtime/issues/1021
+    #
+    are_broken_references_allowed: bool = True
 
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete

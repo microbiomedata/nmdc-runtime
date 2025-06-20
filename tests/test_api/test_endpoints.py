@@ -1259,6 +1259,7 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
+@pytest.mark.skip(reason="We currently allow deletions that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
