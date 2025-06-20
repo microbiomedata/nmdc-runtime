@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in, dissoc
 from refscan.lib.Finder import Finder
-from refscan.scanner import identify_referring_documents
+from refscan.scanner import identify_referring_documents, scan_outgoing_references
 
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
@@ -239,6 +239,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
+            # Note: If the specified collection is described by the schema, but it happens to be
+            #       empty (e.g. in local development), this error message will incorrectly imply
+            #       that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
@@ -355,6 +358,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     elif isinstance(cmd, UpdateCommand):
         collection_name = cmd.update
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
+            # Note: If the specified collection is described by the schema, but it happens to be
+            #       empty (e.g. in local development), this error message will incorrectly imply
+            #       that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
@@ -399,6 +405,212 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
+
+        # TODO: Implement real-time referential integrity checking as described here.
+        #
+        # Note: The endpoint currently allows users to update the `id` and `type` values
+        #       of documents. Given that, here is my plan for doing real-time referential
+        #       integrity checking for "update" commands:
+        #       1. Determine the `id` and `type` values of all documents that the user
+        #          wants to update.
+        #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
+        #          function to get the `_id`s of all documents that contain references
+        #          _to_ any of the documents the user wants to update.
+        #       3. Perform the user-requested updates within a MongoDB transaction and
+        #          leave the transaction in the _pending_ (i.e. not committed) state.
+        #       4. For each referring document identified in step 2, call refscan's
+        #          `scan_outgoing_references` function to determine whether any of its
+        #          outgoing references were broken by the (pending) "updates". If so,
+        #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
+        #          TODO: Account for the possibility that the `id` and/or `type` value
+        #                of a referring document was changed by the update operation.
+        #       5. For each "updated" document, call refscan's `scan_outgoing_references`
+        #          function to determine whether any of its outgoing references are
+        #          broken. If any are, abort the transaction and raise an HTTP 422 error.
+        #          Otherwise, abort the transaction and continue with the endpoint's
+        #          existing routine.
+        #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
+        #       just introducing a validation stage—although we happen to use a
+        #       MongoDB transaction to perform that validation).
+        #
+        #       We can take for granted that the new `type` value will be valid, since
+        #       the endpoint performs schema validation on the updated documents. A new
+        #       type value can, however, change what kinds of documents can reference
+        #       it and what it can reference. Steps 4-5 above account for that.
+        #
+        #       We can also take for granted that the new `id` value will be unique within
+        #       the collection, since MongoDB has a uniqueness index for that field in
+        #       each collection.
+        #
+        #       TODO: Account for upserts.
+        #
+        #       TODO: Add the standard "TODO" comment about this approach being
+        #             susceptible to a race condition, wherein the database gets
+        #             modified between the validation step and the commit step.
+        #
+        pass
+
+        # Make a list of the `_id`, `id`, and `type` values of the documents that
+        # the user wants to update.
+        target_document_descriptors = list(
+            mdb[collection_name].find(
+                filter={"$or": [spec["filter"] for spec in update_specs]},
+                projection={"_id": 1, "id": 1, "type": 1},
+            )
+        )
+
+        # Make a set of the `_id` values of the target documents so that (later) we can
+        # check whether a given _referring_ document is also one of the _target_ documents
+        # (i.e. is among the documents the user wants to update).
+        target_document_object_ids = set(
+            tdd["_id"] for tdd in target_document_descriptors
+        )
+
+        # Identify all documents that reference any of the target documents.
+        all_referring_document_descriptors_pre_update = []
+        finder = Finder(database=mdb)
+        for target_document_descriptor in target_document_descriptors:
+            # If the document descriptor lacks the "id" field, we already know that no
+            # documents reference it (since they would have to _use_ that "id" value to
+            # do so). So, we don't bother trying to identify documents that reference it.
+            if "id" not in target_document_descriptor:
+                continue
+
+            referring_document_descriptors = identify_referring_documents(
+                document=target_document_descriptor,  # expects at least "id" and "type"
+                schema_view=nmdc_schema_view(),
+                references=get_allowed_references(),
+                finder=finder,
+            )
+            all_referring_document_descriptors_pre_update.extend(
+                referring_document_descriptors
+            )
+
+        # Start a "throwaway" MongoDB transaction so we can simulate the updates.
+        with mdb.client.start_session() as session:
+            with session.start_transaction():
+                mdb.command(
+                    # Note: This expression was copied from further down in this function.
+                    # TODO: Document this expression (i.e. the Pydantic->JSON->BSON chain).
+                    bson.json_util.loads(
+                        json.dumps(cmd.model_dump(exclude_unset=True))
+                    ),
+                    session=session,
+                )
+                # For each referring document, check whether any of its outgoing references
+                # is broken (in the context of the transaction).
+                for descriptor in all_referring_document_descriptors_pre_update:
+                    referring_document_oid = descriptor["source_document_object_id"]
+                    referring_document_id = descriptor["source_document_id"]
+                    referring_collection_name = descriptor["source_collection_name"]
+                    # If the referring document is among the documents that the user wants to
+                    # update, we skip it, since we will check its outgoing references later.
+                    if referring_document_oid in target_document_object_ids:
+                        continue
+                    # Get the referring document, so we can check its outgoing references.
+                    # TODO: Consider projecting only necessary fields.
+                    referring_document = mdb[referring_collection_name].find_one(
+                        {"_id": referring_document_oid},
+                        session=session,
+                    )
+                    # If the referring document is not found, we skip it, since it means that it
+                    # was deleted since we identified it.
+                    if referring_document is None:
+                        continue
+                    violations = scan_outgoing_references(
+                        document=referring_document,
+                        source_collection_name=referring_collection_name,
+                        schema_view=nmdc_schema_view(),
+                        references=get_allowed_references(),
+                        finder=finder,
+                        client_session=session,  # so it uses the pending transaction's session
+                    )
+                    # If any of the references emanating from this document is broken,
+                    # we raise an HTTP 422 error and abort the transaction.
+                    #
+                    # TODO: The violation might not involve a reference to one of the
+                    #       target documents. The `scan_outgoing_references` function
+                    #       scans _all_ references emanating from the document.
+                    #
+                    # TODO: Consider (accumulating and) reporting _all_ would-be-broken references
+                    #       instead of only the _first_ one we encounter.
+                    #
+                    if len(violations) > 0:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=(
+                                f"The operation was not performed, because performing it would "
+                                f"have left behind one or more broken references. For example: "
+                                f"The document having 'id'='{referring_document_id}' in "
+                                f"the collection '{referring_collection_name}' has outgoing "
+                                f"references that would be broken by the update operation. "
+                                f"Update or delete referring document(s) and try again."
+                            ),
+                        )
+
+                # For each updated document, check whether any of its outgoing references
+                # is broken (in the context of the transaction).
+                for descriptor in target_document_descriptors:
+                    updated_document_oid = descriptor["_id"]
+                    updated_document_id = descriptor["id"]
+                    updated_collection_name = (
+                        collection_name  # makes a disambiguating alias
+                    )
+                    # Get the updated document, so we can check its outgoing references.
+                    # TODO: Consider projecting only necessary fields.
+                    updated_document = mdb[updated_collection_name].find_one(
+                        {"_id": updated_document_oid},
+                        session=session,
+                    )
+                    # If the updated document is not found, we skip it, since it means that it
+                    # was deleted since we identified it.
+                    #
+                    # TODO: We can prevent this from happening by performing the "identification"
+                    #       step within this transaction. Indeed, since we will be fetching each
+                    #       of the updated documents anyway, we can validate them first (before
+                    #       validating the original referrers), storing their `_id`s for the
+                    #       use when we validate the original referrers.
+                    #
+                    if updated_document is None:
+                        continue
+                    violations = scan_outgoing_references(
+                        document=updated_document,
+                        source_collection_name=updated_collection_name,
+                        schema_view=nmdc_schema_view(),
+                        references=get_allowed_references(),
+                        finder=finder,
+                        client_session=session,  # so it uses the pending transaction's session
+                    )
+                    # If any of the references emanating from this document is broken,
+                    # we raise an HTTP 422 error and abort the transaction.
+                    #
+                    # TODO: As mentioned above, consider (accumulating and) reporting _all_
+                    #       would-be-broken references instead of only the _first_ one we encounter.
+                    #
+                    if len(violations) > 0:
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=(
+                                f"The operation was not performed, because performing it would "
+                                f"have left behind one or more broken references. For example: "
+                                f"The document having 'id'='{updated_document_id}' in "
+                                f"the collection '{updated_collection_name}' has outgoing "
+                                f"references that would be broken by the update operation. "
+                                f"Update or delete referring document(s) and try again."
+                            ),
+                        )
+
+                # Whatever happens, abort the transaction.
+                #
+                # Note: If an exception was raised within this `with` block, the transaction
+                #       will already have been aborted automatically (and execution will not
+                #       have reached this statement). On the other hand, if no exception
+                #       was raised, we explicitly abort the transaction so that the updates
+                #       that we "simulated" in this block do not get applied to the real database.
+                #       Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/client_session.html
+                #
+                session.abort_transaction()
+
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
