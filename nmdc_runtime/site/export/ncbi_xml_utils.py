@@ -99,31 +99,36 @@ def fetch_nucleotide_sequencing_from_biosamples(
     for biosample in biosamples_list:
         current_ids = [biosample["id"]]
         collected_ntseq_objects = []
+        processed_ids = set()  # Track already processed nucleotide sequencing IDs
 
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
-                query = {"has_input": current_id}
-                document = all_docs_collection.find_one(query)
+                # Find all documents with current_id as input instead of just one
+                for document in all_docs_collection.find({"has_input": current_id}):
+                    has_output = document.get("has_output")
+                    if not has_output:
+                        continue
 
-                if not document:
-                    continue
-
-                has_output = document.get("has_output")
-                if not has_output:
-                    continue
-
-                for output_id in has_output:
-                    if get_classname_from_typecode(output_id) == "DataObject":
-                        nucleotide_sequencing_doc = data_generation_set.find_one(
-                            {"id": document["id"]}
-                        )
-                        if nucleotide_sequencing_doc:
-                            collected_ntseq_objects.append(
-                                strip_oid(nucleotide_sequencing_doc)
-                            )
-                    else:
-                        new_current_ids.append(output_id)
+                    for output_id in has_output:
+                        if get_classname_from_typecode(output_id) == "DataObject":
+                            # Only process if we haven't seen this document ID before
+                            if document["id"] not in processed_ids:
+                                nucleotide_sequencing_doc = (
+                                    data_generation_set.find_one(
+                                        {
+                                            "id": document["id"],
+                                            "type": "nmdc:NucleotideSequencing",
+                                        }
+                                    )
+                                )
+                                if nucleotide_sequencing_doc:
+                                    collected_ntseq_objects.append(
+                                        strip_oid(nucleotide_sequencing_doc)
+                                    )
+                                    processed_ids.add(document["id"])
+                        else:
+                            new_current_ids.append(output_id)
 
             current_ids = new_current_ids
 
@@ -187,10 +192,7 @@ def handle_quantity_value(slot_value):
         and "has_minimum_numeric_value" in slot_value
         and "has_unit" in slot_value
     ):
-        range_value = (
-            slot_value["has_maximum_numeric_value"]
-            - slot_value["has_minimum_numeric_value"]
-        )
+        range_value = f"{slot_value['has_minimum_numeric_value']} - {slot_value['has_maximum_numeric_value']}"
         return f"{range_value} {slot_value['has_unit']}"
     elif "has_raw_value" in slot_value:
         return slot_value["has_raw_value"]

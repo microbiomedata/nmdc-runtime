@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import mimetypes
 import os
 import subprocess
@@ -12,7 +13,7 @@ from toolz.dicttoolz import keyfilter
 from typing import Tuple, Set
 from zipfile import ZipFile
 from itertools import chain
-
+from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
 
@@ -26,6 +27,7 @@ from dagster import (
     Failure,
     List,
     MetadataValue,
+    Noneable,
     OpExecutionContext,
     Out,
     Output,
@@ -36,7 +38,8 @@ from dagster import (
     Optional,
     Field,
     Permissive,
-    Bool,
+    In,
+    Nothing,
 )
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
@@ -1046,6 +1049,43 @@ def site_code_mapping() -> dict:
         )
 
 
+@op(
+    required_resource_keys={"mongo"},
+    config_schema={
+        "source_ontology": str,
+        "output_directory": Field(Noneable(str), default_value=None, is_required=False),
+        "generate_reports": Field(bool, default_value=True, is_required=False),
+    },
+)
+def load_ontology(context: OpExecutionContext):
+    cfg = context.op_config
+    source_ontology = cfg["source_ontology"]
+    output_directory = cfg.get("output_directory")
+    generate_reports = cfg.get("generate_reports", True)
+
+    if output_directory is None:
+        output_directory = os.path.join(os.getcwd(), "ontology_reports")
+
+    # Redirect Python logging to Dagster context
+    handler = logging.Handler()
+    handler.emit = lambda record: context.log.info(record.getMessage())
+
+    # Get logger from ontology-loader package
+    controller_logger = logging.getLogger("ontology_loader.ontology_load_controller")
+    controller_logger.setLevel(logging.INFO)
+    controller_logger.addHandler(handler)
+
+    context.log.info(f"Running Ontology Loader for ontology: {source_ontology}")
+    loader = OntologyLoaderController(
+        source_ontology=source_ontology,
+        output_directory=output_directory,
+        generate_reports=generate_reports,
+    )
+
+    loader.run_ontology_loader()
+    context.log.info(f"Ontology load for {source_ontology} completed successfully!")
+
+
 def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ) -> None:
@@ -1216,7 +1256,13 @@ def _add_related_ids_to_alldocs(
     context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
-@op(required_resource_keys={"mongo"})
+# Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
+#       pass an argument to the op (in order to specify the order of the ops in the graph)
+#       while also telling Dagster that this op doesn't need the _value_ of that argument.
+#       This is the approach shown on: https://docs.dagster.io/api/dagster/types#dagster.Nothing
+#       Reference: https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
+#
+@op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
 def materialize_alldocs(context) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
@@ -1305,6 +1351,9 @@ def materialize_alldocs(context) -> int:
                 doc_type
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
+
+            new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # InsertOne is a method on the py-mongo Client class.
             # Get ancestors without the prefix, but add prefix to each one in the output
             ancestors = schema_view.class_ancestors(doc_type)
             new_doc["_type_and_ancestors"] = [
@@ -1316,6 +1365,7 @@ def materialize_alldocs(context) -> int:
                 write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(write_operations) > 0:
+            # here bulk_write is a method on the py-mongo db Client class
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(

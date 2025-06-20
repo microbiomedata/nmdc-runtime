@@ -7,12 +7,15 @@ by issuing the following command from the root directory of the repository withi
     ```
 """
 
+import doctest
+
 import pytest
 
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 
 from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
+from nmdc_runtime.api.endpoints.lib import path_segments
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view, validate_json
 from tests.lib.faker import Faker
 
@@ -328,3 +331,9 @@ def test_referential_integrity_checker_supports_pending_mongo_transactions(db):
 
     # 🧹 Clean up.
     study_set.delete_many({"id": {"$in": study_ids}})
+
+
+def test_path_segments():
+    """Test all doctests in `nmdc_runtime.api.endpoints.lib.path_segments`."""
+    failure_count, test_count = doctest.testmod(path_segments, verbose=True)
+    assert failure_count == 0, f"{failure_count} doctests failed out of {test_count}"

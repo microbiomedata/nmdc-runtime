@@ -1,4 +1,4 @@
-from dagster import graph
+from dagster import graph, GraphIn
 
 from nmdc_runtime.site.ops import (
     build_merged_db,
@@ -51,6 +51,7 @@ from nmdc_runtime.site.ops import (
     get_df_from_url,
     site_code_mapping,
     materialize_alldocs,
+    load_ontology,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
@@ -115,6 +116,16 @@ def ensure_alldocs():
 
 
 @graph
+def run_ontology_load():
+    """
+    A graph for loading ontologies.
+    The source_ontology parameter is provided by the job configuration
+    and passed to the load_ontology op.
+    """
+    load_ontology()
+
+
+@graph
 def ensure_jobs():
     jobs = construct_jobs()
     maybe_post_jobs(jobs)
@@ -122,17 +133,24 @@ def ensure_jobs():
 
 @graph
 def apply_changesheet():
+    # Note: We use `_` as a "placeholder" variable.
+    #       It's a variable to whose value we assign no significance. In this case, we use it to
+    #       tell Dagster that one op depends upon the output of the other (so Dagster runs them
+    #       in that order), without implying to maintainers that its value is significant to us.
+    #       Reference (this strategy): https://docs.dagster.io/api/dagster/types#dagster.Nothing
+    #       Reference (`_` variables): https://stackoverflow.com/a/47599668
     sheet_in = get_changesheet_in()
     outputs = perform_changesheet_updates(sheet_in)
-    add_output_run_event(outputs)
-    materialize_alldocs()
+    _ = add_output_run_event(outputs)
+    materialize_alldocs(waits_for=_)
 
 
 @graph
 def apply_metadata_in():
+    # Note: We use `_` as a "placeholder" variable.
     outputs = perform_mongo_updates(get_json_in())
-    add_output_run_event(outputs)
-    materialize_alldocs()
+    _ = add_output_run_event(outputs)
+    materialize_alldocs(waits_for=_)
 
 
 @graph

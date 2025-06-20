@@ -5,6 +5,8 @@ import bson.json_util
 from fastapi import APIRouter, Depends, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in, dissoc
+from refscan.lib.Finder import Finder
+from refscan.scanner import identify_referring_documents
 
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
@@ -31,7 +33,12 @@ from nmdc_runtime.api.models.query import (
     CursorYieldingCommand,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
-from nmdc_runtime.util import OverlayDB, validate_json
+from nmdc_runtime.util import (
+    OverlayDB,
+    validate_json,
+    get_allowed_references,
+    nmdc_schema_view,
+)
 
 router = APIRouter()
 
@@ -44,6 +51,16 @@ def check_can_update_and_delete(user: User):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue update and delete commands.",
+        )
+
+
+def check_can_aggregate(user: User):
+    if not check_action_permitted(
+        user.username, "/queries:run(query_cmd:AggregateCommand)"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specific users are allowed to issue aggregate commands.",
         )
 
 
@@ -105,13 +122,25 @@ def run_query(
     }
     ```
 
-    Rename all biosamples having a given `id`.
+    Rename the first\* embargoed biosample.
     ```
     {
       "update": "biosample_set",
-      "updates": [{"q": {"id": "A_BIOSAMPLE_ID"}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
+      "updates": [{"q": {"embargoed": true}, "u": {"$set": {"name": "A_NEW_NAME"}}}]
     }
     ```
+
+    \*<small>Updates at most 1 matching document, since `"multi": true` is not present.</small>
+
+    Rename all\* embargoed biosamples.
+    ```
+    {
+      "update": "biosample_set",
+      "updates": [{"q": {"embargoed": true}, "u": {"$set": {"name": "A_NEW_NAME"}}, "multi": true}]
+    }
+    ```
+
+    \*<small>Updates all matching documents, since `"multi": true` is present.</small>
 
     Get all\* biosamples, sorted by the number of studies associated with them (greatest to least).
     ```
@@ -172,6 +201,11 @@ def run_query(
     # Note: The permission-checking function will raise an exception if the user lacks those permissions.
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         check_can_update_and_delete(user)
+
+    # check if the user has permission to run aggregate commands
+    if isinstance(cmd, AggregateCommand):
+        check_can_aggregate(user)
+
     cmd_response = _run_mdb_cmd(cmd)
     return cmd_response
 
@@ -190,6 +224,18 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
+    # Initialize a flag we can use to control whether we will raise an exception
+    # and abort the operation (i.e. we will be "strict") or merely log a warning
+    # to the console (i.e. we will be "lenient"), when we determine that performing
+    # an operation would leave behind a broken reference(s).
+    #
+    # Note: We may eventually remove this flag. We are including it now
+    #       so that we can easily switch between the two modes, since
+    #       some users have expressed that they may need some time to
+    #       update some client code to work with the more strict mode.
+    #
+    are_broken_references_allowed: bool = False
+
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
@@ -201,6 +247,99 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             {"filter": del_statement.q, "limit": del_statement.limit}
             for del_statement in cmd.deletes
         ]
+
+        # Check whether any of the documents the user wants to delete are referenced
+        # by any documents that are _not_ among those documents. If any of them are,
+        # it means that performing the deletion would leave behind a broken reference(s).
+        #
+        # TODO: Consider accounting for the "limit" property of the delete specs.
+        #       Currently, we ignore it and—instead—perform the validation as though
+        #       the user wants to delete _all_ matching documents.
+        #
+        # TODO: Account for the fact that this validation step and the actual deletion
+        #       step do not occur within a transaction; so, the database may change
+        #       between the two events (i.e. there's a race condition).
+        #
+        target_document_descriptors = list(
+            mdb[collection_name].find(
+                filter={"$or": [spec["filter"] for spec in delete_specs]},
+                projection={"_id": 1, "id": 1, "type": 1},
+            )
+        )
+
+        # Make a set of the `_id` values of the target documents so that (later) we can
+        # check whether a given _referring_ document is also one of the _target_ documents
+        # (i.e. is among the documents the user wants to delete).
+        target_document_object_ids = set(
+            tdd["_id"] for tdd in target_document_descriptors
+        )
+
+        # For each document the user wants to delete, check whether it is referenced
+        # by any documents that are _not_ among those that the user wants to delete
+        # (i.e. check whether there are any references that would be broken).
+        finder = Finder(database=mdb)
+        for target_document_descriptor in target_document_descriptors:
+            # If the document descriptor lacks the "id" field, we already know that no
+            # documents reference it (since they would have to _use_ that "id" value to
+            # do so). So, we don't bother trying to identify documents that reference it.
+            if "id" not in target_document_descriptor:
+                continue
+
+            referring_document_descriptors = identify_referring_documents(
+                document=target_document_descriptor,  # expects at least "id" and "type"
+                schema_view=nmdc_schema_view(),
+                references=get_allowed_references(),
+                finder=finder,
+            )
+            # If _any_ referring document is _not_ among the documents the user wants
+            # to delete, then we know that performing the deletion would leave behind a
+            # broken reference(s).
+            #
+            # In that case, we either (a) log a warning to the server console (if broken
+            # references are being allowed) or (b) abort with an HTTP 422 error response
+            # (if broken references are not being allowed).
+            #
+            for referring_document_descriptor in referring_document_descriptors:
+                if (
+                    referring_document_descriptor["source_document_object_id"]
+                    not in target_document_object_ids
+                ):
+                    source_document_id = referring_document_descriptor[
+                        "source_document_id"
+                    ]
+                    source_collection_name = referring_document_descriptor[
+                        "source_collection_name"
+                    ]
+                    target_document_id = target_document_descriptor["id"]
+                    if are_broken_references_allowed:
+                        logging.warning(
+                            f"The document having 'id'='{target_document_id}' in "
+                            f"the collection '{collection_name}' is referenced by "
+                            f"the document having 'id'='{source_document_id}' in "
+                            f"the collection '{source_collection_name}'. "
+                            f"Deleting the former will leave behind a broken reference."
+                        )
+                    else:
+                        # TODO: Consider reporting _all_ would-be-broken references instead of
+                        #       only the _first_ one we encounter. That would make the response
+                        #       more informative to the user in cases where there are multiple
+                        #       such references; but it would also take longer to compute and
+                        #       would increase the response size (consider the case where the
+                        #       user-specified filter matches many, many documents).
+                        raise HTTPException(
+                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=(
+                                f"The operation was not performed, because performing it would "
+                                f"have left behind one or more broken references. For example: "
+                                f"The document having 'id'='{target_document_id}' in "
+                                f"the collection '{collection_name}' is referenced by "
+                                f"the document having 'id'='{source_document_id}' in "
+                                f"the collection '{source_collection_name}'. "
+                                f"Deleting the former would leave behind a broken reference. "
+                                f"Update or delete referring document(s) and try again."
+                            ),
+                        )
+
         for spec in delete_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:

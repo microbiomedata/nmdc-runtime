@@ -158,3 +158,15 @@ quick-blade:
 
 .PHONY: init update-deps update up-dev down-dev follow-fastapi \
 	publish docs
+
+docker-clean:
+	# Down the dev stack with volumes
+	-docker compose down --volumes --remove-orphans
+	# Down the test stack with volumes
+	-docker compose --file docker-compose.test.yml down --volumes --remove-orphans
+	# Remove any dangling images from this project
+	-docker image prune -f
+	# Remove the project-specific networks
+	-docker network rm nmdc-runtime-dev nmdc-runtime-test 2>/dev/null || true
+	# Remove the project-specific volumes
+	-docker volume rm nmdc-runtime-dev_mongo_data nmdc-runtime-dev_postgres_data nmdc-runtime-test_mongo_data nmdc-runtime-test_postgres_data 2>/dev/null || true
