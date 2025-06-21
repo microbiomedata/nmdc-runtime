@@ -59,3 +59,4 @@ data_object_mapping:
     url: http://example.com/data.fastq.gz
     name: Metagenome Raw Reads
     description: Metagenome Raw Reads
+    data_category: instrument_data
