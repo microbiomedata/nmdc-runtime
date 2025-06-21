@@ -264,6 +264,7 @@ def test_update_biosample_ph():
 
 
 def test_ensure_data_object_type():
+    # TODO: Was this test designed to check the data object's `type` field or its `data_object_type` field?
     docs_test = {
         "data_object_set": [
             {
@@ -274,12 +275,14 @@ def test_ensure_data_object_type():
                 "file_size_bytes": 1214244683,
                 "id": "nmdc:87733039aa2ef02667987b398b8df08c",
                 "name": "gold:Gp0116326_Protein FAA",
+                "data_category": "processed_data",
             }
         ]
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
     nmdc_jsonschema = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+    # TODO: Assert our expectation about value on the right-hand side here (e.g., are we expecting it to be `[]`?).
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
 
