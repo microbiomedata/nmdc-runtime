@@ -103,7 +103,7 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    - nmdc-schema==11.7.0
    + nmdc-schema==11.8.0
    ```
-2. Synchronize transitive dependencies with that change to `main.in`, by running:
+2. Synchronize the transitive dependencies by running:
    ```shell
    docker compose run --rm --no-deps fastapi sh -c '\
      make update-deps \
@@ -112,7 +112,12 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    '
    ```
    > Note: That command performs the _minimum_ set of dependency updates to satisfy the new requirement—handy when you're in a hurry. You can omit the `UPDATE_DEPS_MAIN_UPGRADE_OPT=""` and `UPDATE_DEPS_DEV_UPGRADE_OPT=""` in order to perform additional dependency updates. See `Makefile` for details.
-3. Commit the changes to the repository.
+3. Run the tests and confirm they all pass.
+   ```shell
+   make test
+   ```
+   > This step is necessary because schema changes can introduce new constraints on the data processed by the Runtime, and some of the Runtime's tests use example data that may not meet those constraints. If any tests fail, determine the root cause of the failure, address the root cause, and re-run the tests.
+4. Commit the changes to the repository.
    ```sh
    git add requirements/*
    git commit -m 'Bump `nmdc-schema` version'
