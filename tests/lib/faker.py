@@ -257,7 +257,7 @@ class Faker:
         'nmdc:DataObject'
         >>> data_objects[0]['name']
         'my_data_object'
-        >>> 'date_category' in data_objects[0]
+        >>> 'data_category' in data_objects[0]
         True
         >>> 'data_object_type' in data_objects[0]
         True
