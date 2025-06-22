@@ -61,7 +61,7 @@ class Faker:
     def generate_studies(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of schema-compliant `study_set` documents.
-        The documents comply with schema v11.5.1.
+        The documents comply with schema v11.8.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/Study/
 
@@ -96,7 +96,7 @@ class Faker:
     def generate_biosamples(self, quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of schema-compliant `biosample_set` documents.
-        The documents comply with schema v11.5.1.
+        The documents comply with schema v11.8.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/Biosample/
 
@@ -156,7 +156,7 @@ class Faker:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
         which can be stored in the `workflow_execution_set` collection.
-        The documents comply with schema v11.5.1.
+        The documents comply with schema v11.8.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
 
@@ -198,7 +198,7 @@ class Faker:
         """
         Generates the specified number of documents representing `NucleotideSequencing` instances,
         which can be stored in the `data_generation_set` collection.
-        The documents comply with schema v11.5.1.
+        The documents comply with schema v11.8.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/NucleotideSequencing/
 
@@ -238,7 +238,7 @@ class Faker:
         """
         Generates the specified number of documents representing `DataObject` instances,
         which can be stored in the `data_object_set` collection.
-        The documents comply with schema v11.5.1.
+        The documents comply with schema v11.8.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/DataObject/
 
@@ -257,6 +257,10 @@ class Faker:
         'nmdc:DataObject'
         >>> data_objects[0]['name']
         'my_data_object'
+        >>> 'date_category' in data_objects[0]
+        True
+        >>> 'data_object_type' in data_objects[0]
+        True
         """
 
         return [
@@ -265,6 +269,8 @@ class Faker:
                 "type": "nmdc:DataObject",
                 "name": "arbitrary_string",
                 "description": "arbitrary_string",
+                "data_category": "processed_data",  # any `DataCategoryEnum` value
+                "data_object_type": "Annotation Info File",  # any `FileTypeEnum` value
                 **overrides,
             }
             for n in range(1, quantity + 1)
