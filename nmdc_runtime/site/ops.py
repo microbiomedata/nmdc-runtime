@@ -511,7 +511,11 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     temp_collection.insert_many(do_docs)
     temp_collection.create_index("id")
 
-    def fte_matches(fte_filter: str):
+    def fte_matches(fte_filter: str) -> List[dict]:
+        r"""
+        Returns a list of documents—without their `_id` field—that match the specified filter,
+        which is encoded as a JSON string.
+        """
         return [
             dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
         ]
@@ -521,6 +525,17 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
 
     n_docs_with_types_added = 0
 
+    # For each `file_type_enum` document in the database, find all the documents (among the
+    # `data_object_set` documents provided by the caller) that match that `file_type_enum`
+    # document's filter.
+    # 
+    # If any of those documents lacks a `data_object_type` field, update the original
+    # `data_object_set` document so that its `data_object_type` field is set to
+    # the `file_type_enum` document's `id` (why not its `name`?).
+    #
+    # TODO: I don't know why this sets `data_object_type` to `file_type_enum.id`,
+    #       as opposed to `file_type_enum.name`.
+    #
     for fte_doc in mdb.file_type_enum.find():
         fte = FileTypeEnum(**fte_doc)
         docs_matching = fte_matches(fte.filter)
@@ -530,6 +545,11 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
                 n_docs_with_types_added += 1
 
     mdb.drop_collection(temp_collection_name)
+
+    # Returns a tuple. The first item is the original `docs` dictionary, but with the
+    # `data_object_set` list replaced by the list of the documents that are in the
+    # `do_docs_map` dictionary (with their `_id` fields omitted). The second item is
+    # the number of documents to which this function added a `data_object_type` field.
     return (
         assoc(
             docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
