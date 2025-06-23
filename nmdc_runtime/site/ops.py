@@ -484,7 +484,7 @@ def get_json_in(context):
 def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     """
     Does not ensure ordering of `docs`.
-    
+
     TODO: Document this function. What _does_ it do (or what was it designed to do)?
           What does it returns? What did the author expects callers to pass to it?
     """
