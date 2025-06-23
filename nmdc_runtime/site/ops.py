@@ -528,7 +528,7 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     # For each `file_type_enum` document in the database, find all the documents (among the
     # `data_object_set` documents provided by the caller) that match that `file_type_enum`
     # document's filter.
-    # 
+    #
     # If any of those documents lacks a `data_object_type` field, update the original
     # `data_object_set` document so that its `data_object_type` field is set to
     # the `file_type_enum` document's `id` (why not its `name`?).
