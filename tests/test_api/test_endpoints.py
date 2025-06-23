@@ -930,6 +930,8 @@ def test_find_data_objects_for_study_having_one(api_site_client):
         "id": data_object_id,
         "name": "Raw sequencer read data",
         "description": "Metagenome Raw Reads for nmdc:omprc-11-nmtj1g51",
+        "data_object_type": "Metagenome Raw Reads",
+        "data_category": "instrument_data",
         "type": "nmdc:DataObject",
     }
     assert (

@@ -263,7 +263,13 @@ def test_update_biosample_ph():
     )
 
 
+@pytest.mark.skip(reason="This test is obsolete. It relies upon a nonexistent collection.")
 def test_ensure_data_object_type():
+    """
+    TODO: Document this test. Some maintainers don't understand what it was designed to do
+          and think it will be difficult to maintain as the codebase evolves around it,
+          unless it is renamed to something more descriptive and/or comments are added.
+    """
     docs_test = {
         "data_object_set": [
             {
@@ -274,12 +280,23 @@ def test_ensure_data_object_type():
                 "file_size_bytes": 1214244683,
                 "id": "nmdc:87733039aa2ef02667987b398b8df08c",
                 "name": "gold:Gp0116326_Protein FAA",
+                "data_category": "processed_data",
             }
         ]
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
     nmdc_jsonschema = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+
+    # Before we use the `file_type_enum` collection, assert that it exists.
+    #
+    # Note: We added this failing assertion to highlight that this collection
+    #       is not present in the database (rather than leaving it to future
+    #       maintainers to arrive at that conclusion from the validation error
+    #       that a subsequent line in this test would raise).
+    #
+    assert "file_type_enum" in mdb.list_collection_names()
+
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
 
