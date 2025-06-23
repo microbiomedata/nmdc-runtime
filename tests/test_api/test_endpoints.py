@@ -19,8 +19,7 @@ from nmdc_runtime.api.db.mongo import (
     get_collection_names_from_schema,
     mongorestore_collection,
 )
-from nmdc_runtime.api.endpoints.find import find_related_objects_for_workflow_execution
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object, strip_oid
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
@@ -1346,7 +1345,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     assert response.json()["n"] == 2
 
 
-def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
+def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
 ):
     r"""
@@ -1369,7 +1368,7 @@ def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexis
     assert response.status_code == 404
 
 
-def test_find_related_objects_for_workflow_execution__returns_related_objects(
+def test_find_related_resources_for_workflow_execution__returns_related_resources(
     base_url: str,
 ):
     # Generate interrelated documents.
@@ -1430,6 +1429,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     assert response.status_code == 200
     response_payload = response.json()
     assert response_payload["workflow_execution_id"] == workflow_execution["id"]
+    assert response_payload["workflow_execution"] == strip_oid(workflow_execution)
     assert len(response_payload["data_objects"]) == 1
     assert response_payload["data_objects"][0]["id"] == data_object["id"]
     assert len(response_payload["related_workflow_executions"]) == 0
@@ -1450,7 +1450,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_find_related_objects_for_workflow_execution__returns_related_workflow_exections(
+def test_find_related_resources_for_workflow_execution__returns_related_workflow_executions(
     base_url: str,
 ):
     """
@@ -1527,6 +1527,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_workflow_e
     assert response.status_code == 200
     response_payload = response.json()
     assert response_payload["workflow_execution_id"] == workflow_execution_a["id"]
+    assert response_payload["workflow_execution"] == strip_oid(workflow_execution_a)
     assert len(response_payload["data_objects"]) == 2
     returned_data_object_ids = [do["id"] for do in response_payload["data_objects"]]
     assert set(returned_data_object_ids) == {
