@@ -486,7 +486,9 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     Does not ensure ordering of `docs`.
 
     TODO: Document this function. What _does_ it do (or what was it designed to do)?
-          What does it returns? What did the author expects callers to pass to it?
+          What, conceptually, did the author design it to receive (as `docs`); a dict
+          having a `data_object_set` item whose value is a list of documents.
+          What, conceptually, did the author design it to return?
     """
 
     if ("data_object_set" not in docs) or len(docs["data_object_set"]) == 0:
@@ -502,6 +504,8 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
     class FileTypeEnum(FileTypeEnumBase):
         id: str
 
+    # Make a temporary collection (which will be dropped below) and insert the
+    # specified `data_object_set` documents into it.
     temp_collection_name = f"tmp.data_object_set.{ObjectId()}"
     temp_collection = mdb[temp_collection_name]
     temp_collection.insert_many(do_docs)
@@ -512,6 +516,7 @@ def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
             dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
         ]
 
+    # Create a mapping from each document's `id` to the document, itself.
     do_docs_map = {d["id"]: d for d in do_docs}
 
     n_docs_with_types_added = 0
