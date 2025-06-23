@@ -264,7 +264,11 @@ def test_update_biosample_ph():
 
 
 def test_ensure_data_object_type():
-    # TODO: Was this test designed to check the data object's `type` field or its `data_object_type` field?
+    """
+    TODO: Document this test. Some maintainers don't understand what it was designed to do
+          and think it will be difficult to maintain as the codebase evolves around it,
+          unless it is renamed to something more descriptive and/or comments are added.
+    """
     docs_test = {
         "data_object_set": [
             {
