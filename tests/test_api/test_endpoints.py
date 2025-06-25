@@ -736,11 +736,10 @@ def fake_studies_and_biosamples_in_mdb():
     """
     mdb = get_mongo_db()
     faker = Faker()
-    study_a, study_b = faker.generate_studies(2)
-    biosample_a, biosample_b = faker.generate_biosamples(2, associated_studies=[])
-    study_b["part_of"] = [study_a["id"]]
-    biosample_a["associated_studies"] = [study_a["id"]]
-    biosample_b["associated_studies"] = [study_b["id"]]
+    study_a = faker.generate_studies(1)[0]
+    study_b = faker.generate_studies(1, part_of=[study_a["id"]])[0]
+    biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
+    biosample_b = faker.generate_biosamples(1, associated_studies=[study_b["id"]])[0]
     study_ids = [study_a["id"], study_b["id"]]
     biosample_ids = [biosample_a["id"], biosample_b["id"]]
     study_set = mdb.get_collection(name="study_set")
@@ -1475,7 +1474,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
 
     # Create a second `WorkflowExecution` that is related to the first one.
     data_object_b = faker.generate_data_objects(
-        1, has_output=workflow_execution_a["id"]
+        1, was_generated_by=data_generation_a["id"]
     )[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
