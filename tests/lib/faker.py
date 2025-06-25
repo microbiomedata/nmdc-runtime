@@ -1,5 +1,5 @@
 from typing import List
-from nmdc_schema.nmdc import Study, StudyCategoryEnum
+from nmdc_schema.nmdc import Biosample, ControlledIdentifiedTermValue, OntologyClass, Study, StudyCategoryEnum
 
 class Faker:
     r"""
@@ -108,6 +108,10 @@ class Faker:
             #       is, itself, a dict), so we don't dump the `Study` instance to a dictionary and return
             #       that as our study document. :(
             #
+            # Note: Here are some caveats I've noticed so far as I've experimented with this validation:
+            #       1. Pydantic doesn't complain when I populate an `Optional[str]` field with
+            #          a number, a list, or a dict.
+            #
             _ = Study(**document)
             
             # Make the document.
@@ -136,44 +140,65 @@ class Faker:
         'nmdc:bsm-00-000001'
         >>> biosamples[0]['associated_studies']
         ['nmdc:sty-00-000001']
+
+        # Test: Omitting a required parameter.
+        >>> f.generate_biosamples(1)
+        Traceback (most recent call last):
+            ...
+        TypeError: Faker.generate_biosamples() missing 1 required positional argument: 'associated_studies'
+
+        # Test: Generating an invalid biosample.
+        >>> f.generate_biosamples(1, associated_studies=['nmdc:sty-00-000001'], depth=123)
+        Traceback (most recent call last):
+            ...
+        TypeError: nmdc_schema.nmdc.QuantityValue() argument after ** must be a mapping, not int
         """
 
-        return [
-            {
-                "id": self.make_unique_id(f"nmdc:bsm-00-"),
+        documents = []
+        for n in range(1, quantity + 1):
+            # Apply any overrides passed in.
+            document = {
+                "id": self.make_unique_id("nmdc:bsm-00-"),
+                "type": Biosample.class_class_curie,
+                "associated_studies": associated_studies,
                 "env_broad_scale": {
                     "has_raw_value": "ENVO_00000446",
                     "term": {
                         "id": "ENVO:00000446",
                         "name": "terrestrial biome",
-                        "type": "nmdc:OntologyClass",
+                        "type": OntologyClass.class_class_curie,
                     },
-                    "type": "nmdc:ControlledIdentifiedTermValue",
+                    "type": ControlledIdentifiedTermValue.class_class_curie,
                 },
                 "env_local_scale": {
                     "has_raw_value": "ENVO_00005801",
                     "term": {
                         "id": "ENVO:00005801",
                         "name": "rhizosphere",
-                        "type": "nmdc:OntologyClass",
+                        "type": OntologyClass.class_class_curie,
                     },
-                    "type": "nmdc:ControlledIdentifiedTermValue",
+                    "type": ControlledIdentifiedTermValue.class_class_curie,
                 },
                 "env_medium": {
                     "has_raw_value": "ENVO_00001998",
                     "term": {
                         "id": "ENVO:00001998",
                         "name": "soil",
-                        "type": "nmdc:OntologyClass",
+                        "type": OntologyClass.class_class_curie,
                     },
-                    "type": "nmdc:ControlledIdentifiedTermValue",
+                    "type": ControlledIdentifiedTermValue.class_class_curie,
                 },
-                "type": "nmdc:Biosample",
-                "associated_studies": associated_studies,
                 **overrides,
             }
-            for n in range(1, quantity + 1)
-        ]
+
+            # Validate the parameters by attempting to instantiate a `Biosample`.
+            _ = Biosample(**document)
+            
+            # Make the document.
+            documents.append(document)
+
+        return documents
+
 
     def generate_metagenome_annotations(self, quantity: int, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
         """
