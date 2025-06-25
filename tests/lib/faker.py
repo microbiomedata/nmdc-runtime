@@ -1,5 +1,13 @@
 from typing import List
-from nmdc_schema.nmdc import Biosample, ControlledIdentifiedTermValue, OntologyClass, Study, StudyCategoryEnum
+from nmdc_schema.nmdc import (
+    Biosample,
+    ControlledIdentifiedTermValue,
+    ExecutionResourceEnum,
+    MetagenomeAnnotation,
+    OntologyClass,
+    Study,
+    StudyCategoryEnum,
+)
 
 class Faker:
     r"""
@@ -17,6 +25,10 @@ class Faker:
           In the future, instead of only having methods that return
           dictionaries, we may have methods that return the schema class
           instances, themselves.
+
+    TODO: Try to leverage the type hints present on the Pydantic models, for
+          the signatures of the methods of this class (rather than hard-coding
+          type hints in those methods' signatures).
     """
     
     def __init__(self):
@@ -226,21 +238,36 @@ class Faker:
         'nmdc:bsm-00-000001'
         >>> metagenome_annotations[0]['type']
         'nmdc:MetagenomeAnnotation'
+
+        # Test: Omitting required parameters.
+        >>> f.generate_metagenome_annotations(1)
+        Traceback (most recent call last):
+            ...
+        TypeError: Faker.generate_metagenome_annotations() missing 2 required positional arguments: 'was_informed_by' and 'has_input'
         """
 
-        return [
-            {
+        documents = []
+        for n in range(1, quantity + 1):
+            # Apply any overrides passed in.
+            document = {
                 "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
-                "type": "nmdc:MetagenomeAnnotation",
-                "execution_resource": "JGI",
+                "type": MetagenomeAnnotation.class_class_curie,
+                "execution_resource": ExecutionResourceEnum.JGI.text,
                 "git_url": "https://www.example.com",
                 "started_at_time": "2000-01-01 12:00:00",
                 "was_informed_by": was_informed_by,
                 "has_input": has_input,
                 **overrides,
             }
-            for n in range(1, quantity + 1)
-        ]
+
+            # Validate the parameters by attempting to instantiate a `MetagenomeAnnotation`.
+            _ = MetagenomeAnnotation(**document)
+            
+            # Make the document.
+            documents.append(document)
+
+        return documents
+
 
     def generate_nucleotide_sequencings(self, quantity: int, associated_studies: List[str], has_input: List[str], **overrides) -> List[dict]:
         """
