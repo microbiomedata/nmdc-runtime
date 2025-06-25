@@ -4,6 +4,8 @@ from nmdc_schema.nmdc import (
     ControlledIdentifiedTermValue,
     ExecutionResourceEnum,
     MetagenomeAnnotation,
+    NucleotideSequencing,
+    NucleotideSequencingEnum,
     OntologyClass,
     Study,
     StudyCategoryEnum,
@@ -295,19 +297,39 @@ class Faker:
         'nmdc:bsm-00-000001'
         >>> nucleotide_sequencings[0]['type']
         'nmdc:NucleotideSequencing'
+
+        # Test: Omitting required parameters.
+        >>> f.generate_nucleotide_sequencings(1)
+        Traceback (most recent call last):
+            ...
+        TypeError: Faker.generate_nucleotide_sequencings() missing 2 required positional arguments: 'associated_studies' and 'has_input'
+
+        # Test: Generating an invalid nucleotide sequencing.
+        >>> f.generate_nucleotide_sequencings(1, associated_studies=['nmdc:sty-00-000001'], has_input=['nmdc:bsm-00-000001'], analyte_category='no_such_category')
+        Traceback (most recent call last):
+            ...
+        ValueError: Unknown NucleotideSequencingEnum enumeration code: no_such_category
         """
 
-        return [
-            {
+        documents = []
+        for n in range(1, quantity + 1):
+            # Apply any overrides passed in.
+            document = {
                 "id": self.make_unique_id(f"nmdc:dgns-00-"),
-                "type": "nmdc:NucleotideSequencing",
-                "analyte_category": "arbitrary_string",
+                "type": NucleotideSequencing.class_class_curie,
+                "analyte_category": NucleotideSequencingEnum.metagenome.text,
                 "associated_studies": associated_studies,
                 "has_input": has_input,
                 **overrides,
             }
-            for n in range(1, quantity + 1)
-        ]
+
+            # Validate the parameters by attempting to instantiate a `NucleotideSequencing`.
+            _ = NucleotideSequencing(**document)
+            
+            # Make the document.
+            documents.append(document)
+
+        return documents
 
     def generate_data_objects(self, quantity: int, **overrides) -> List[dict]:
         """
