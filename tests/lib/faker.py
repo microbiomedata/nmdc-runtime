@@ -2,7 +2,10 @@ from typing import List
 from nmdc_schema.nmdc import (
     Biosample,
     ControlledIdentifiedTermValue,
+    DataCategoryEnum,
+    DataObject,
     ExecutionResourceEnum,
+    FileTypeEnum,
     MetagenomeAnnotation,
     NucleotideSequencing,
     NucleotideSequencingEnum,
@@ -98,7 +101,7 @@ class Faker:
         >>> f.generate_studies(1, part_of=['nmdc:sty-00-no_such_study'])[0]
         {'id': 'nmdc:sty-00-000004', 'study_category': 'research_study', 'type': 'nmdc:Study', 'part_of': ['nmdc:sty-00-no_such_study']}
         
-        # Test: Generating an invalid study.
+        # Test: Generating an invalid document.
         >>> f.generate_studies(1, study_category='no_such_category')
         Traceback (most recent call last):
             ...
@@ -161,7 +164,7 @@ class Faker:
             ...
         TypeError: Faker.generate_biosamples() missing 1 required positional argument: 'associated_studies'
 
-        # Test: Generating an invalid biosample.
+        # Test: Generating an invalid document.
         >>> f.generate_biosamples(1, associated_studies=['nmdc:sty-00-000001'], depth=123)
         Traceback (most recent call last):
             ...
@@ -304,7 +307,7 @@ class Faker:
             ...
         TypeError: Faker.generate_nucleotide_sequencings() missing 2 required positional arguments: 'associated_studies' and 'has_input'
 
-        # Test: Generating an invalid nucleotide sequencing.
+        # Test: Generating an invalid document.
         >>> f.generate_nucleotide_sequencings(1, associated_studies=['nmdc:sty-00-000001'], has_input=['nmdc:bsm-00-000001'], analyte_category='no_such_category')
         Traceback (most recent call last):
             ...
@@ -358,17 +361,31 @@ class Faker:
         True
         >>> 'data_object_type' in data_objects[0]
         True
+
+        # Test: Generating an invalid document.
+        >>> f.generate_data_objects(1, data_category='no_such_category')
+        Traceback (most recent call last):
+            ...
+        ValueError: Unknown DataCategoryEnum enumeration code: no_such_category
         """
 
-        return [
-            {
+        documents = []
+        for n in range(1, quantity + 1):
+            # Apply any overrides passed in.
+            document = {
                 "id": self.make_unique_id(f"nmdc:dobj-00-"),
                 "type": "nmdc:DataObject",
                 "name": "arbitrary_string",
                 "description": "arbitrary_string",
-                "data_category": "processed_data",  # any `DataCategoryEnum` value
-                "data_object_type": "Annotation Info File",  # any `FileTypeEnum` value
+                "data_category": DataCategoryEnum.processed_data.text,
+                "data_object_type": FileTypeEnum["Protein Report"].text,
                 **overrides,
             }
-            for n in range(1, quantity + 1)
-        ]
+
+            # Validate the parameters by attempting to instantiate a `DataObject`.
+            _ = DataObject(**document)
+            
+            # Make the document.
+            documents.append(document)
+
+        return documents
