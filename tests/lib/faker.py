@@ -1,4 +1,5 @@
 from typing import List
+from nmdc_schema.nmdc import Study, StudyCategoryEnum
 
 class Faker:
     r"""
@@ -15,10 +16,7 @@ class Faker:
           
           In the future, instead of only having methods that return
           dictionaries, we may have methods that return the schema class
-          instances, themselves. As a reminder, `nmdc_schema.nmdc` exports
-          Pydantic classes for schema classes; and Pydantic classes have a
-          `model_dump()` method that can be used to serialize an instance
-          into a dictionary.
+          instances, themselves.
     """
     
     def __init__(self):
@@ -81,17 +79,42 @@ class Faker:
         # Test: Overriding a default value and adding an optional field.
         >>> f.generate_studies(1, study_category='consortium', title='My Study')[0]
         {'id': 'nmdc:sty-00-000003', 'study_category': 'consortium', 'type': 'nmdc:Study', 'title': 'My Study'}
+
+        # Test: Generating a study with a referencing field (referential integrity is not checked).
+        >>> f.generate_studies(1, part_of=['nmdc:sty-00-no_such_study'])[0]
+        {'id': 'nmdc:sty-00-000004', 'study_category': 'research_study', 'type': 'nmdc:Study', 'part_of': ['nmdc:sty-00-no_such_study']}
+        
+        # Test: Generating an invalid study.
+        >>> f.generate_studies(1, study_category='no_such_category')
+        Traceback (most recent call last):
+            ...
+        ValueError: Unknown StudyCategoryEnum enumeration code: no_such_category
         """
 
-        return [
-            {
-                "id": self.make_unique_id(f"nmdc:sty-00-"),
-                "study_category": "research_study",
-                "type": "nmdc:Study",
+        documents = []
+        for n in range(1, quantity + 1):
+            # Apply any overrides passed in.
+            document = {
+                "id": self.make_unique_id("nmdc:sty-00-"),
+                "study_category": StudyCategoryEnum.research_study.text,
+                "type": Study.class_class_curie,
                 **overrides,
             }
-            for n in range(1, quantity + 1)
-        ]
+
+            # Validate the parameters by attempting to instantiate a `Study`.
+            #
+            # Note: The `Study` instance construction process changes the `study_category` value into a
+            #       `StudyCategoryEnum` instance (which, when the `Study` instance is dumped as a dict,
+            #       is, itself, a dict), so we don't dump the `Study` instance to a dictionary and return
+            #       that as our study document. :(
+            #
+            _ = Study(**document)
+            
+            # Make the document.
+            documents.append(document)
+
+        return documents
+
 
     def generate_biosamples(self, quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
         """
