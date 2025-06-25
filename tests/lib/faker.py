@@ -31,7 +31,7 @@ class Faker:
           dictionaries, we may have methods that return the schema class
           instances, themselves.
 
-    TODO: Try to leverage the type hints present on the Pydantic models, for
+    TODO: Try to leverage the type hints defined on the Pydantic models, for
           the signatures of the methods of this class (rather than hard-coding
           type hints in those methods' signatures).
     """
@@ -109,7 +109,7 @@ class Faker:
         """
 
         documents = []
-        for n in range(1, quantity + 1):
+        for i in range(quantity):
             # Apply any overrides passed in.
             document = {
                 "id": self.make_unique_id("nmdc:sty-00-"),
@@ -172,7 +172,7 @@ class Faker:
         """
 
         documents = []
-        for n in range(1, quantity + 1):
+        for i in range(quantity):
             # Apply any overrides passed in.
             document = {
                 "id": self.make_unique_id("nmdc:bsm-00-"),
@@ -252,7 +252,7 @@ class Faker:
         """
 
         documents = []
-        for n in range(1, quantity + 1):
+        for i in range(quantity):
             # Apply any overrides passed in.
             document = {
                 "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
@@ -315,7 +315,7 @@ class Faker:
         """
 
         documents = []
-        for n in range(1, quantity + 1):
+        for i in range(quantity):
             # Apply any overrides passed in.
             document = {
                 "id": self.make_unique_id(f"nmdc:dgns-00-"),
@@ -370,7 +370,7 @@ class Faker:
         """
 
         documents = []
-        for n in range(1, quantity + 1):
+        for i in range(quantity):
             # Apply any overrides passed in.
             document = {
                 "id": self.make_unique_id(f"nmdc:dobj-00-"),
