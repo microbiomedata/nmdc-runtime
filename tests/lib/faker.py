@@ -1,4 +1,6 @@
 from typing import List
+
+from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
     ControlledIdentifiedTermValue,
@@ -89,17 +91,17 @@ class Faker:
         >>> len(studies)
         2
         >>> studies[0]
-        {'id': 'nmdc:sty-00-000001', 'study_category': 'research_study', 'type': 'nmdc:Study'}
+        {'id': 'nmdc:sty-00-000001', 'type': 'nmdc:Study', 'study_category': 'research_study'}
         >>> studies[1]
-        {'id': 'nmdc:sty-00-000002', 'study_category': 'research_study', 'type': 'nmdc:Study'}
+        {'id': 'nmdc:sty-00-000002', 'type': 'nmdc:Study', 'study_category': 'research_study'}
 
         # Test: Overriding a default value and adding an optional field.
         >>> f.generate_studies(1, study_category='consortium', title='My Study')[0]
-        {'id': 'nmdc:sty-00-000003', 'study_category': 'consortium', 'type': 'nmdc:Study', 'title': 'My Study'}
+        {'id': 'nmdc:sty-00-000003', 'type': 'nmdc:Study', 'study_category': 'consortium', 'title': 'My Study'}
 
         # Test: Generating a study with a referencing field (referential integrity is not checked).
         >>> f.generate_studies(1, part_of=['nmdc:sty-00-no_such_study'])[0]
-        {'id': 'nmdc:sty-00-000004', 'study_category': 'research_study', 'type': 'nmdc:Study', 'part_of': ['nmdc:sty-00-no_such_study']}
+        {'id': 'nmdc:sty-00-000004', 'type': 'nmdc:Study', 'study_category': 'research_study', 'part_of': ['nmdc:sty-00-no_such_study']}
         
         # Test: Generating an invalid document.
         >>> f.generate_studies(1, study_category='no_such_category')
@@ -111,7 +113,7 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
-            document = {
+            params = {
                 "id": self.make_unique_id("nmdc:sty-00-"),
                 "study_category": StudyCategoryEnum.research_study.text,
                 "type": Study.class_class_curie,
@@ -120,18 +122,14 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `Study`.
             #
-            # Note: The `Study` instance construction process changes the `study_category` value into a
-            #       `StudyCategoryEnum` instance (which, when the `Study` instance is dumped as a dict,
-            #       is, itself, a dict), so we don't dump the `Study` instance to a dictionary and return
-            #       that as our study document. :(
-            #
             # Note: Here are some caveats I've noticed so far as I've experimented with this validation:
             #       1. Pydantic doesn't complain when I populate an `Optional[str]` field with
             #          a number, a list, or a dict.
             #
-            _ = Study(**document)
-            
-            # Make the document.
+            instance = Study(**params)
+
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
@@ -174,7 +172,7 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
-            document = {
+            params = {
                 "id": self.make_unique_id("nmdc:bsm-00-"),
                 "type": Biosample.class_class_curie,
                 "associated_studies": associated_studies,
@@ -209,9 +207,10 @@ class Faker:
             }
 
             # Validate the parameters by attempting to instantiate a `Biosample`.
-            _ = Biosample(**document)
+            instance = Biosample(**params)
             
-            # Make the document.
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
@@ -254,7 +253,7 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
-            document = {
+            params = {
                 "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
                 "type": MetagenomeAnnotation.class_class_curie,
                 "execution_resource": ExecutionResourceEnum.JGI.text,
@@ -266,9 +265,10 @@ class Faker:
             }
 
             # Validate the parameters by attempting to instantiate a `MetagenomeAnnotation`.
-            _ = MetagenomeAnnotation(**document)
+            instance = MetagenomeAnnotation(**params)
             
-            # Make the document.
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
@@ -317,7 +317,7 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
-            document = {
+            params = {
                 "id": self.make_unique_id(f"nmdc:dgns-00-"),
                 "type": NucleotideSequencing.class_class_curie,
                 "analyte_category": NucleotideSequencingEnum.metagenome.text,
@@ -327,9 +327,10 @@ class Faker:
             }
 
             # Validate the parameters by attempting to instantiate a `NucleotideSequencing`.
-            _ = NucleotideSequencing(**document)
+            instance = NucleotideSequencing(**params)
             
-            # Make the document.
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
@@ -372,7 +373,7 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
-            document = {
+            params = {
                 "id": self.make_unique_id(f"nmdc:dobj-00-"),
                 "type": "nmdc:DataObject",
                 "name": "arbitrary_string",
@@ -383,9 +384,10 @@ class Faker:
             }
 
             # Validate the parameters by attempting to instantiate a `DataObject`.
-            _ = DataObject(**document)
+            instance = DataObject(**params)
             
-            # Make the document.
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
