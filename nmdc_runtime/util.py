@@ -798,7 +798,7 @@ def validate_json(
         return {"result": "errors", "detail": validation_errors}
 
 
-def decorate_if(condition: bool = True) -> Callable:
+def decorate_if(condition: bool = False) -> Callable:
     r"""
     Decorator that applies another decorator only when `condition` is `True`.
 
