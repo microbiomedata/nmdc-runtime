@@ -13,7 +13,11 @@ from nmdc_runtime.api.endpoints.lib.path_segments import (
 from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
 from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import decorate_if, nmdc_database_collection_names, nmdc_schema_view
+from nmdc_runtime.util import (
+    decorate_if,
+    nmdc_database_collection_names,
+    nmdc_schema_view,
+)
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from linkml_runtime.utils.schemaview import SchemaView

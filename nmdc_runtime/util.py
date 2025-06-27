@@ -801,7 +801,7 @@ def validate_json(
 def decorate_if(condition: bool = True) -> Callable:
     r"""
     Decorator that applies another decorator only when `condition` is `True`.
-    
+
     Note: We implemented this so we could conditionally register
           endpoints with FastAPI's `@router`.
 
@@ -819,11 +819,14 @@ def decorate_if(condition: bool = True) -> Callable:
            ...
        ```
     """
+
     def apply_original_decorator(original_decorator: Callable) -> Callable:
         def check_condition(original_function: Callable) -> Callable:
             if condition:
                 return original_decorator(original_function)
             else:
                 return original_function
+
         return check_condition
+
     return apply_original_decorator
