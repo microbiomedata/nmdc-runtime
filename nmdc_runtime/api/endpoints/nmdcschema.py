@@ -11,9 +11,9 @@ from nmdc_runtime.api.endpoints.lib.path_segments import (
     ParsedPathSegment,
 )
 from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
-from nmdc_runtime.config import DATABASE_CLASS_NAME
+from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import nmdc_database_collection_names, nmdc_schema_view
+from nmdc_runtime.util import decorate_if, nmdc_database_collection_names, nmdc_schema_view
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from linkml_runtime.utils.schemaview import SchemaView
@@ -143,10 +143,12 @@ def _parse_postfilter(
     return parse_path_segment("postfilter;" + postfilter)
 
 
-@router.get(
-    "/nmdcschema/related_ids/{prefilter}/{postfilter}",
-    response_model=ListResponse[RelatedIDs],
-    response_model_exclude_unset=True,
+@decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
+    router.get(
+        "/nmdcschema/related_ids/{prefilter}/{postfilter}",
+        response_model=ListResponse[RelatedIDs],
+        response_model_exclude_unset=True,
+    )
 )
 def get_related_ids(
     prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),

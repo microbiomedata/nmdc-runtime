@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 from dagster import build_op_context
+from nmdc_runtime.config import IS_RELATED_IDS_ENDPOINT_ENABLED
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
@@ -666,6 +667,7 @@ def fake_study_nonexistent_in_mdb():
     yield nonexistent_study_id
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
     api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
 ):
@@ -699,6 +701,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         )
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
     api_user_client, fake_study_in_mdb
 ):
@@ -758,6 +761,7 @@ def fake_studies_and_biosamples_in_mdb():
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_related_ids(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):

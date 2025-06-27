@@ -11,7 +11,7 @@ from io import BytesIO
 from itertools import chain
 from pathlib import Path
 from uuid import uuid4
-from typing import List, Optional, Set, Dict
+from typing import Callable, List, Optional, Set, Dict
 
 import fastjsonschema
 import requests
@@ -796,3 +796,34 @@ def validate_json(
         return {"result": "All Okay!"}
     else:
         return {"result": "errors", "detail": validation_errors}
+
+
+def decorate_if(condition: bool = True) -> Callable:
+    r"""
+    Decorator that applies another decorator only when `condition` is `True`.
+    
+    Note: We implemented this so we could conditionally register
+          endpoints with FastAPI's `@router`.
+
+    Example usages:
+    A. Apply the `@router.get` decorator:
+       ```python
+       @decorate_if(True)(router.get("/me"))
+       def get_me(...):
+           ...
+       ```
+    B. Bypass the `@router.get` decorator:
+       ```python
+       @decorate_if(False)(router.get("/me"))
+       def get_me(...):
+           ...
+       ```
+    """
+    def apply_original_decorator(original_decorator: Callable) -> Callable:
+        def check_condition(original_function: Callable) -> Callable:
+            if condition:
+                return original_decorator(original_function)
+            else:
+                return original_function
+        return check_condition
+    return apply_original_decorator
