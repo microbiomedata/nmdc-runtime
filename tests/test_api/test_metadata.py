@@ -42,13 +42,83 @@ def get_study_by_id(id_: str) -> Optional[dict]:
     return load_studies().get(id_.strip())
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_load_changesheet():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    sty_local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + sty_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
     )
     assert isinstance(df, pd.DataFrame)
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + sty_local_id})
+
+
+def test_changesheet_update_slot_with_range_decimal():
+    mdb = get_mongo_db()
+    bsm_local_id = "bsm-11-0pyv7738"
+    remove_tmp_doc = False
+    if mdb.biosample_set.find_one({"id": "nmdc:" + bsm_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{bsm_local_id}.json")
+        ) as f:
+            mdb.biosample_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath("tests", "files", "test_changesheet_decimal_value.tsv"),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.biosample_set.delete_one({"id": "nmdc:" + bsm_local_id})
+
+
+def test_changesheet_update_slot_with_range_bytes():
+    mdb = get_mongo_db()
+    dobj_local_id = "dobj-11-000n1286"
+    remove_tmp_doc = False
+    if mdb.data_object_set.find_one({"id": "nmdc:" + dobj_local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{dobj_local_id}.json")
+        ) as f:
+            mdb.data_object_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath(
+            "tests", "files", "test_changesheet_update_bytes_ranged_slot.tsv"
+        ),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.data_object_set.delete_one({"id": "nmdc:" + dobj_local_id})
+
+
+def test_changesheet_update_slot_with_range_uriorcurie():
+    mdb = get_mongo_db()
+    local_id = "sty-11-pzmd0x14"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{local_id}.json")
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    df = load_changesheet(
+        REPO_ROOT_DIR.joinpath(
+            "tests", "files", "test_changesheet_insert_study_doi.tsv"
+        ),
+        mdb,
+    )
+    _validate_changesheet(df, mdb)
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
 @pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
@@ -89,9 +159,18 @@ def test_update_01():
     assert first_result["validation_errors"] == []
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_changesheet_array_item_nested_attributes():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-r2h77870"
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath(
+                "tests", "files", f"study_no_credit_associations.json"
+            )
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-array-item-nested-attributes.tsv"), mdb
     )
@@ -99,7 +178,7 @@ def test_changesheet_array_item_nested_attributes():
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
 
     credit_info = {
-        "applied_role": "Conceptualization",
+        "applied_roles": ["Conceptualization"],
         "applies_to_person": {
             "name": "CREDIT NAME 1",
             "email": "CREDIT_NAME_1@foo.edu",
@@ -117,11 +196,25 @@ def test_changesheet_array_item_nested_attributes():
     first_doc_after = results[0]["doc_after"]
     assert "has_credit_associations" in first_doc_after
     assert credit_info in first_doc_after.get("has_credit_associations", [])
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
+    local_id = "sty-11-r2h77870"
+    restore_original_doc = False
+    remove_tmp_doc = False
+    if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
+        with open(
+            REPO_ROOT_DIR.joinpath(
+                "tests", "files", f"study_no_credit_associations.json"
+            )
+        ) as f:
+            mdb.study_set.insert_one(json.load(f))
+            remove_tmp_doc = True
+    else:
+        restore_original_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-update-pi-websites.tsv"), mdb
     )
@@ -144,8 +237,13 @@ def test_update_pi_websites():
         update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
     )
     results = update_mongo_db(mdb_scratch, update_cmd)
-    first_result = results[0]
-    assert first_result["doc_after"]["principal_investigator"] == pi_info
+    first_result_pi_info = results[0]["doc_after"]["principal_investigator"]
+    for k, v in pi_info.items():
+        assert first_result_pi_info[k] == v
+    if remove_tmp_doc:
+        mdb.study_set.delete_one({"id": "nmdc:" + local_id})
+    if restore_original_doc:
+        mdb.study_set.replace_one({"id": id_}, study_doc)
 
 
 def test_update_biosample_ph():
@@ -165,22 +263,40 @@ def test_update_biosample_ph():
     )
 
 
+@pytest.mark.skip(reason="This test is obsolete. It relies upon a nonexistent collection.")
 def test_ensure_data_object_type():
+    """
+    TODO: Document this test. Some maintainers don't understand what it was designed to do
+          and think it will be difficult to maintain as the codebase evolves around it,
+          unless it is renamed to something more descriptive and/or comments are added.
+    """
     docs_test = {
         "data_object_set": [
             {
                 "description": "Protein FAA for gold:Gp0116326",
                 "url": "https://data.microbiomedata.org/data/nmdc:mga06z11/annotation/nmdc_mga06z11_proteins.faa",
                 "md5_checksum": "87733039aa2ef02667987b398b8df08c",
+                "type": "nmdc:DataObject",
                 "file_size_bytes": 1214244683,
                 "id": "nmdc:87733039aa2ef02667987b398b8df08c",
                 "name": "gold:Gp0116326_Protein FAA",
+                "data_category": "processed_data",
             }
         ]
     }
     mdb = get_mongo(run_config_frozen__normal_env).db
     docs, _ = ensure_data_object_type(docs_test, mdb)
     nmdc_jsonschema = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
+
+    # Before we use the `file_type_enum` collection, assert that it exists.
+    #
+    # Note: We added this failing assertion to highlight that this collection
+    #       is not present in the database (rather than leaving it to future
+    #       maintainers to arrive at that conclusion from the validation error
+    #       that a subsequent line in this test would raise).
+    #
+    assert "file_type_enum" in mdb.list_collection_names()
+
     nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
     nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
 

@@ -16,50 +16,55 @@
     "name": "Kate Thibault",
     "email": "kthibault@battelleecology.org",
     "orcid": "orcid:0000-0003-3477-6424",
-    "has_raw_value": "Kate Thibault"
+    "has_raw_value": "Kate Thibault",
+    "type": "nmdc:PersonValue"
   },
   "has_credit_associations": [
     {
       "applies_to_person": {
         "name": "Hugh Cross",
         "email": "crossh@battelleecology.org",
-        "orcid": "orcid:0000-0002-6745-9479"
+        "orcid": "orcid:0000-0002-6745-9479",
+        "type": "nmdc:PersonValue"
       },
       "applied_roles": [
         "Methodology",
         "Data curation"
-      ]
+      ],
+      "type": "prov:Association"
     },
     {
       "applies_to_person": {
         "name": "Kate Thibault",
         "email": "kthibault@battelleecology.org",
-        "orcid": "orcid:0000-0003-3477-6424"
+        "orcid": "orcid:0000-0003-3477-6424",
+        "type": "nmdc:PersonValue"
       },
       "applied_roles": [
         "Principal Investigator"
-      ]
+      ],
+      "type": "prov:Association"
     },
     {
       "applies_to_person": {
         "name": "Stephanie Parker",
         "email": "sparker@battelleecology.org",
-        "orcid": "0000-0002-7180-7245"
+        "orcid": "0000-0002-7180-7245",
+        "type": "nmdc:PersonValue"
       },
       "applied_roles": [
         "Methodology",
         "Data curation"
-      ]
+      ],
+      "type": "prov:Association"
     }
   ],
   "study_image": [
     {
-      "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg"
+      "url": "https://portal.nersc.gov/project/m3408/profile_images/nmdc_sty-11-34xj1150.jpg",
+      "type": "nmdc:ImageValue"
     }
   ],
   "gold_study_identifiers": [],
-  "part_of": [
-    "nmdc:sty-11-nxrz9m96"
-  ],
   "study_category": "consortium"
 }

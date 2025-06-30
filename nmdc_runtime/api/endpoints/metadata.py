@@ -6,10 +6,11 @@ import tempfile
 from collections import defaultdict
 from copy import deepcopy
 from io import StringIO
+from typing import Annotated
 
 import requests
 from dagster import ExecuteInProcessResult
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Path
 from gridfs import GridFS, NoFile
 from jsonschema import Draft7Validator
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
@@ -18,7 +19,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
-    permitted,
+    check_action_permitted,
     persist_content_and_get_drs_object,
 )
 from nmdc_runtime.api.models.job import Job
@@ -43,6 +44,10 @@ router = APIRouter()
 
 
 async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
+    """
+    Extract utf8-encoded text from fastapi.UploadFile object, and
+    construct ChangesheetIn object for subsequent processing.
+    """
     content_type = uploaded_file.content_type
     name = uploaded_file.filename
     if name.endswith(".csv"):
@@ -56,14 +61,14 @@ async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
 
 @router.post("/metadata/changesheets:validate")
 async def validate_changesheet(
-    uploaded_file: UploadFile = File(...),
+    uploaded_file: UploadFile = File(
+        ..., description="The changesheet you want the server to validate"
+    ),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-
-    Example changesheet
-    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
+    r"""
+    Validates a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    that is in either CSV or TSV format.
     """
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
     df_change = df_from_sheet_in(sheet_in, mdb)
@@ -72,17 +77,23 @@ async def validate_changesheet(
 
 @router.post("/metadata/changesheets:submit", response_model=DrsObjectWithTypes)
 async def submit_changesheet(
-    uploaded_file: UploadFile = File(...),
+    uploaded_file: UploadFile = File(
+        ..., description="The changesheet you want the server to apply"
+    ),
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
-    """
+    r"""
+    Applies a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    that is in either CSV or TSV format.
 
-    Example changesheet
-    [here](https://github.com/microbiomedata/nmdc-runtime/blob/main/metadata-translation/notebooks/data/changesheet-without-separator3.tsv).
-
+    **Note:** This endpoint is only accessible to users that have been granted access by a Runtime administrator.
     """
-    if not permitted(user.username, "/metadata/changesheets:submit"):
+    # TODO: Allow users to determine whether they have that access (i.e. whether they are allowed to perform the
+    #       `/metadata/changesheets:submit` action), themselves, so that they don't have to contact an admin
+    #       or submit an example changesheet in order to find that out.
+
+    if not check_action_permitted(user.username, "/metadata/changesheets:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -111,11 +122,30 @@ async def submit_changesheet(
     return doc_after
 
 
-@router.get("/metadata/stored_files/{object_id}")
+@router.get("/metadata/stored_files/{object_id}", include_in_schema=False)
 async def get_stored_metadata_object(
-    object_id: str,
+    object_id: Annotated[
+        str,
+        Path(
+            title="Metadata file ObjectId",
+            description="The ObjectId (`_id`) of the metadata file you want to get.\n\n_Example_: `507f1f77bcf86cd799439011`",
+            examples=["507f1f77bcf86cd799439011"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    r"""
+    This endpoint is subservient to our Data Repository Service (DRS) implementation, i.e. the `/objects/*` endpoints.
+    In particular, URLs resolving to this route are generated
+    by the DRS `/objects/{object_id}/access/{access_id}` endpoint if we store the raw object in our MongoDB via GridFS.
+    We currently do this for request bodies for `/metadata/json:submit` and `/metadata/changesheets:submit`.
+    A typical API user would not call this endpoint directly. Rather, it merely forms part of the API surface.
+    Therefore, we do not include it in the OpenAPI schema.
+
+    References:
+    - https://pymongo.readthedocs.io/en/stable/examples/gridfs.html
+    - https://www.mongodb.com/docs/manual/core/gridfs/#use-gridfs
+    """
     mdb_fs = GridFS(mdb)
     try:
         grid_out = mdb_fs.get(object_id)
@@ -136,96 +166,18 @@ async def get_stored_metadata_object(
     )
 
 
-url_pattern = re.compile(r"https?://(?P<domain>[^/]+)/(?P<path>.+)")
-
-
-def url_to_name(url):
-    m = url_pattern.match(url)
-    return f"{'.'.join(reversed(m.group('domain').split('.')))}__{m.group('path').replace('/', '.')}"
-
-
-def result_for_url_to_json_file(data, url, save_dir):
-    with open(os.path.join(save_dir, url_to_name(url)), "w") as f:
-        json.dump(data.json(), f)
-
-
-def fetch_downloaded_json(url, save_dir):
-    with open(os.path.join(save_dir, url_to_name(url))) as f:
-        return json.load(f)
-
-
-@router.post("/metadata/json:validate_urls_file")
-async def validate_json_urls_file(urls_file: UploadFile = File(...)):
-    """
-
-    Given a text file with one URL per line, will try to validate each URL target
-    as a NMDC JSON Schema "nmdc:Database" object.
-
-    """
-    content_type = urls_file.content_type
-    filename = urls_file.filename
-    if content_type != "text/plain":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"file {filename} has content type '{content_type}'. "
-                f"Only 'text/plain' (*.txt) files are permitted."
-            ),
-        )
-    contents: bytes = await urls_file.read()
-    stream = StringIO(contents.decode())  # can e.g. import csv; csv.reader(stream)
-
-    urls = [line.strip() for line in stream if line.strip()]
-
-    def load_url(url, timeout):
-        return requests.get(url, timeout=timeout)
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_url = {executor.submit(load_url, url, 5): url for url in urls}
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    data = future.result()
-                    result_for_url_to_json_file(data, url, temp_dir)
-                except Exception as exc:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"{url} generated an exception: {exc}",
-                    )
-
-        validator = Draft7Validator(get_nmdc_jsonschema_dict())
-        validation_errors = defaultdict(list)
-
-        for url in urls:
-            docs = fetch_downloaded_json(url, temp_dir)
-            docs, validation_errors_for_activity_set = specialize_activity_set_docs(
-                docs
-            )
-
-            validation_errors["activity_set"].extend(
-                validation_errors_for_activity_set["activity_set"]
-            )
-
-            for coll_name, coll_docs in docs.items():
-                errors = list(validator.iter_errors({coll_name: coll_docs}))
-                validation_errors[coll_name].extend([e.message for e in errors])
-
-        if all(len(v) == 0 for v in validation_errors.values()):
-            return {"result": "All Okay!"}
-        else:
-            return {"result": "errors", "detail": validation_errors}
-
-
 @router.post("/metadata/json:validate", name="Validate JSON")
 async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
-    """
-
+    r"""
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
+    This API endpoint validates the JSON payload in two steps. The first step is to check the format of each document
+    (e.g., the presence, name, and value of each field). If it encounters any violations during that step, it will not
+    proceed to the second step. The second step is to check whether all documents referenced by the document exist,
+    whether in the database or the same JSON payload. We call the second step a "referential integrity check."
     """
 
-    return validate_json(docs, mdb)
+    return validate_json(docs, mdb, check_inter_document_references=True)
 
 
 @router.post("/metadata/json:submit", name="Submit JSON")
@@ -239,24 +191,53 @@ async def submit_json_nmdcdb(
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    if not permitted(user.username, "/metadata/json:submit"):
+    if not check_action_permitted(user.username, "/metadata/json:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to submit json at this time.",
         )
-    rv = validate_json(docs, mdb)
+
+    # Validate the JSON payload, both (a) the format of each document and
+    # (b) the integrity of any inter-document references being introduced.
+    rv = validate_json(docs, mdb, check_inter_document_references=True)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(rv),
         )
+
+    extra_run_config_data = _ensure_job__metadata_in(docs, user.username, mdb)
+
+    requested = _request_dagster_run(
+        nmdc_workflow_id="metadata-in-1.0.0",
+        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
+        extra_run_config_data=extra_run_config_data,
+        mdb=mdb,
+        user=user,
+    )
+    if requested["type"] == "success":
+        return requested
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                f"Runtime failed to start metadata-in-1.0.0 job. "
+                f'Detail: {requested["detail"]}'
+            ),
+        )
+
+
+def _ensure_job__metadata_in(
+    docs, username, mdb, client_id=API_SITE_CLIENT_ID, drs_object_exists_ok=False
+):
     drs_obj_doc = persist_content_and_get_drs_object(
         content=json.dumps(docs),
-        username=user.username,
+        username=username,
         filename=None,
         content_type="application/json",
         description="JSON metadata in",
         id_ns="json-metadata-in",
+        exists_ok=drs_object_exists_ok,
     )
     job_spec = {
         "workflow": {"id": "metadata-in-1.0.0"},
@@ -276,9 +257,9 @@ async def submit_json_nmdcdb(
             detail=f'failed to complete metadata-in-1.0.0/{drs_obj_doc["id"]} job',
         )
 
-    site = get_site(mdb, client_id=API_SITE_CLIENT_ID)
+    site = get_site(mdb, client_id=client_id)
     operation = _claim_job(job.id, mdb, site)
-    extra_run_config_data = {
+    return {
         "ops": {
             "get_json_in": {
                 "config": {
@@ -288,21 +269,3 @@ async def submit_json_nmdcdb(
             "perform_mongo_updates": {"config": {"operation_id": operation["id"]}},
         }
     }
-
-    requested = _request_dagster_run(
-        nmdc_workflow_id="metadata-in-1.0.0",
-        nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
-        extra_run_config_data=extra_run_config_data,
-        mdb=mdb,
-        user=user,
-    )
-    if requested["type"] == "success":
-        return requested
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                f"Runtime failed to start metadata-in-1.0.0 job. "
-                f'Detail: {requested["detail"]}'
-            ),
-        )

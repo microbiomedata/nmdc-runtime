@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Annotated
 
 import botocore
 import pymongo.database
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
@@ -74,7 +74,7 @@ def create_site(
     "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
 )
 def list_sites(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "sites")
@@ -193,10 +193,18 @@ def get_site_object_link(
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
 def generate_credentials_for_site_client(
-    site_id: str,
+    site_id: str = Path(
+        ...,
+        description="The ID of the site.",
+    ),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """
+    Generate a client_id and client_secret for the given site.
+
+    You must be authenticated as a user who is registered as an admin of the given site.
+    """
     raise404_if_none(
         mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
     )

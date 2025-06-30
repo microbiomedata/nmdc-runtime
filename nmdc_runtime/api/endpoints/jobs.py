@@ -1,15 +1,17 @@
 import json
-from typing import Optional
+from typing import Optional, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException, Path
+from pymongo.errors import ConnectionFailure, OperationFailure
+from starlette import status
 
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
-from nmdc_runtime.api.models.job import Job
+from nmdc_runtime.api.models.job import Job, JobClaim
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
     Site,
@@ -25,7 +27,7 @@ router = APIRouter()
     "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
 )
 def list_jobs(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):
@@ -57,20 +59,70 @@ def claim_job(
     return _claim_job(job_id, mdb, site)
 
 
-@router.get(
-    "/jobs/{job_id}/executions",
-    description=(
-        "A sub-resource of a job resource, the result of a successful run of that job. "
-        "An execution resource may be retrieved by any site; however, it may be created "
-        "and updated only by the site that ran its job."
-    ),
+@router.post(
+    "/jobs/{job_id}:release", response_model=Job, response_model_exclude_unset=True
 )
-def list_job_executions():
-    # TODO
-    pass
+def release_job(
+    job_id: Annotated[
+        str,
+        Path(
+            title="Job ID",
+            description="The `id` of the job.\n\n_Example_: `nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6`",
+            examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
+        ),
+    ],
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    site: Site = Depends(get_current_client_site),
+):
+    """Cancel all operations registered as claims by `site` for job `job_id`.
 
+    Return the updated job document, reflecting that all of this site's claims are cancelled.
+    """
+    job = Job(**raise404_if_none(mdb.jobs.find_one({"id": job_id})))
+    active_job_claims_by_this_site = list(
+        mdb.operations.find(
+            {
+                "metadata.job.id": job_id,
+                "metadata.site_id": site.id,
+                "done": False,
+            },
+            ["id"],
+        )
+    )
+    job_claims_by_this_site_post_release = [
+        JobClaim(op_id=claim["id"], site_id=site.id, done=True, cancelled=True)
+        for claim in active_job_claims_by_this_site
+    ]
+    job_claims_not_by_this_site = [
+        claim for claim in job.claims if (claim.site_id != site.id)
+    ]
 
-@router.get("/jobs/{job_id}/executions/{exec_id}")
-def get_job_execution():
-    # TODO
-    pass
+    # Execute MongoDB transaction to ensure atomic change of job document plus relevant set of operations documents.
+    def transactional_update(session):
+        mdb.operations.update_many(
+            {"id": {"$in": [claim["id"] for claim in active_job_claims_by_this_site]}},
+            {"$set": {"metadata.cancelled": True, "metadata.done": True}},
+            session=session,
+        )
+        job_claim_subdocuments_post_release = [
+            claim.model_dump(exclude_unset=True)
+            for claim in (
+                job_claims_not_by_this_site + job_claims_by_this_site_post_release
+            )
+        ]
+        mdb.jobs.update_one(
+            {"id": job_id},
+            {"$set": {"claims": job_claim_subdocuments_post_release}},
+            session=session,
+        )
+
+    try:
+        with mdb.client.start_session() as session:
+            with session.start_transaction():
+                transactional_update(session)
+    except (ConnectionFailure, OperationFailure) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transaction failed: {e}",
+        )
+    return mdb.jobs.find_one({"id": job_id})

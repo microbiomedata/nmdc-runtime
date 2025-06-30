@@ -1,0 +1,240 @@
+{
+  "data_generation_set": [
+    {
+      "id": "nmdc:omprc-11-0003fm52",
+      "name": "1000S_WLUP_FTMS_SPE_BTM_1_run2_Fir_22Apr22_300SA_p01_149_1_3506",
+      "description": "High resolution MS spectra only",
+      "has_input": [
+        "nmdc:bsm-11-jht0ty76"
+      ],
+      "has_output": [
+        "nmdc:dobj-11-cp4p5602"
+      ],
+      "processing_institution": "EMSL",
+      "type": "nmdc:MassSpectrometry",
+      "analyte_category": "nom",
+      "associated_studies": [
+        "nmdc:sty-11-28tm5d36"
+      ],
+      "instrument_used": [
+        "nmdc:inst-14-mwrrj632"
+      ]
+    },
+    {
+      "id": "nmdc:omprc-11-0011q207",
+      "name": "Root microbial communities from poplar common garden site in Clatskanie, Oregon, USA - BESC-847-CL1_28_5 endosphere",
+      "has_input": [
+        "nmdc:bsm-11-ta8dt754"
+      ],
+      "add_date": "2021-08-20T00:00:00",
+      "mod_date": "2021-08-20T00:00:00",
+      "ncbi_project_name": "Root microbial communities from poplar common garden site in Clatskanie, Oregon, USA - BESC-847-CL1_28_5 endosphere",
+      "principal_investigator": {
+        "has_raw_value": "Mitchel Doktycz",
+        "email": "doktyczmj@ornl.gov",
+        "name": "Mitchel Doktycz",
+        "type": "nmdc:PersonValue"
+      },
+      "processing_institution": "JGI",
+      "type": "nmdc:NucleotideSequencing",
+      "gold_sequencing_project_identifiers": [
+        "gold:Gp0587799"
+      ],
+      "analyte_category": "metagenome",
+      "associated_studies": [
+        "nmdc:sty-11-r2h77870"
+      ],
+      "instrument_used": [
+        "nmdc:inst-14-mr4r2w09"
+      ]
+    },
+    {
+      "id": "nmdc:omprc-11-00383810",
+      "name": "Brodie_185_H2O_14Mar19_R2_HESI_Neg",
+      "description": "High resolution MS spectra only",
+      "has_input": [
+        "nmdc:bsm-11-4sw8dr23"
+      ],
+      "has_output": [
+        "nmdc:dobj-13-gc7yqf33"
+      ],
+      "processing_institution": "EMSL",
+      "type": "nmdc:MassSpectrometry",
+      "alternative_identifiers": [
+        "emsl:738758"
+      ],
+      "analyte_category": "nom",
+      "associated_studies": [
+        "nmdc:sty-11-dcqce727"
+      ],
+      "instrument_used": [
+        "nmdc:inst-14-nstrhv39"
+      ]
+    }
+  ],
+  "material_processing_set": [
+    {
+      "end_date": "2021-08-19",
+      "has_input": [
+        "nmdc:procsm-11-9gjxns61"
+      ],
+      "has_output": [
+        "nmdc:procsm-11-0wxpzf07"
+      ],
+      "id": "nmdc:extrp-11-00r2pk65",
+      "processing_institution": "Battelle",
+      "start_date": "2020-06-24T22:06Z",
+      "input_mass": {
+        "has_numeric_value": 0.25,
+        "has_unit": "g",
+        "type": "nmdc:QuantityValue"
+      },
+      "qc_status": "pass",
+      "type": "nmdc:Extraction",
+      "extraction_targets": [
+        "DNA"
+      ]
+    },
+    {
+      "end_date": "2020-09-01",
+      "has_input": [
+        "nmdc:procsm-11-rd048144"
+      ],
+      "has_output": [
+        "nmdc:procsm-11-fbbgm243"
+      ],
+      "id": "nmdc:extrp-11-00ykcp41",
+      "processing_institution": "Battelle",
+      "start_date": "2019-08-20T16:21Z",
+      "input_mass": {
+        "has_numeric_value": 0.25,
+        "has_unit": "g",
+        "type": "nmdc:QuantityValue"
+      },
+      "qc_status": "pass",
+      "type": "nmdc:Extraction",
+      "extraction_targets": [
+        "DNA"
+      ]
+    },
+    {
+      "end_date": "2017-11-29",
+      "has_input": [
+        "nmdc:procsm-11-0eq9fn67"
+      ],
+      "has_output": [
+        "nmdc:procsm-11-avhg4c03"
+      ],
+      "id": "nmdc:extrp-11-01hngb04",
+      "processing_institution": "Battelle",
+      "start_date": "2016-08-09T18:27Z",
+      "input_mass": {
+        "has_numeric_value": 0.25,
+        "has_unit": "g",
+        "type": "nmdc:QuantityValue"
+      },
+      "qc_status": "pass",
+      "type": "nmdc:Extraction",
+      "extraction_targets": [
+        "DNA"
+      ]
+    }
+  ],
+  "workflow_execution_set": [
+    {
+      "id": "nmdc:wfmag-11-00jn7876.1",
+      "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.1",
+      "started_at_time": "2023-07-30T21:31:56.387227+00:00",
+      "ended_at_time": "2023-07-30T21:34:32.750008+00:00",
+      "was_informed_by": "nmdc:omprc-11-7yj0jg57",
+      "execution_resource": "NERSC-Perlmutter",
+      "git_url": "https://github.com/microbiomedata/metaMAGs",
+      "has_input": [
+        "nmdc:dobj-11-yjp1xw52",
+        "nmdc:dobj-11-3av14y79",
+        "nmdc:dobj-11-wa5pnq42",
+        "nmdc:dobj-11-nexa9703",
+        "nmdc:dobj-11-j13n8739",
+        "nmdc:dobj-11-116fa706",
+        "nmdc:dobj-11-60d0na51",
+        "nmdc:dobj-11-2vbz7538",
+        "nmdc:dobj-11-1t48mn65",
+        "nmdc:dobj-11-1cvwk224",
+        "nmdc:dobj-11-cdna6f90",
+        "nmdc:dobj-11-4vb3ww76",
+        "nmdc:dobj-11-xv4qd072",
+        "nmdc:dobj-11-m7p3sb10",
+        "nmdc:dobj-11-j0t1rv33"
+      ],
+      "has_output": [
+        "nmdc:dobj-11-k5ad4209",
+        "nmdc:dobj-11-bw8nqt30",
+        "nmdc:dobj-11-199t2777",
+        "nmdc:dobj-11-2qfh8476",
+        "nmdc:dobj-11-fcsvq172"
+      ],
+      "type": "nmdc:MagsAnalysis",
+      "version": "v1.0.6",
+      "mags_list": []
+    },
+    {
+      "id": "nmdc:wfmag-11-00jn7876.2",
+      "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.2",
+      "started_at_time": "2024-03-24T16:04:04.936972+00:00",
+      "ended_at_time": "2024-03-24T17:49:34.756540+00:00",
+      "was_informed_by": "nmdc:omprc-11-7yj0jg57",
+      "execution_resource": "NERSC-Perlmutter",
+      "git_url": "https://github.com/microbiomedata/metaMAGs",
+      "has_input": [
+        "nmdc:dobj-11-yjp1xw52",
+        "nmdc:dobj-11-3av14y79",
+        "nmdc:dobj-11-wa5pnq42",
+        "nmdc:dobj-11-nexa9703",
+        "nmdc:dobj-11-j13n8739",
+        "nmdc:dobj-11-116fa706",
+        "nmdc:dobj-11-60d0na51",
+        "nmdc:dobj-11-2vbz7538",
+        "nmdc:dobj-11-1t48mn65",
+        "nmdc:dobj-11-1cvwk224",
+        "nmdc:dobj-11-cdna6f90",
+        "nmdc:dobj-11-4vb3ww76",
+        "nmdc:dobj-11-xv4qd072",
+        "nmdc:dobj-11-m7p3sb10",
+        "nmdc:dobj-11-j0t1rv33"
+      ],
+      "type": "nmdc:MagsAnalysis",
+      "has_output": [
+        "nmdc:dobj-11-dsh5da11",
+        "nmdc:dobj-11-xgj4wc09",
+        "nmdc:dobj-11-dsfytf22",
+        "nmdc:dobj-11-y87nta16",
+        "nmdc:dobj-11-24xgzf65",
+        "nmdc:dobj-11-3ewrw426",
+        "nmdc:dobj-11-yaqmm448",
+        "nmdc:dobj-11-mkszjm42",
+        "nmdc:dobj-11-net1d451"
+      ],
+      "version": "v1.1.0"
+    },
+    {
+      "id": "nmdc:wfmag-11-0133pz73.1",
+      "name": "MAGs Activity for nmdc:wfmag-11-0133pz73.1",
+      "started_at_time": "2023-03-08T19:46:26.128394+00:00",
+      "ended_at_time": "2023-03-08T19:46:26.128414+00:00",
+      "was_informed_by": "nmdc:omprc-11-7c4mb403",
+      "execution_resource": "JGI",
+      "git_url": "https://github.com/microbiomedata/metaMAGs",
+      "has_input": [
+        "nmdc:dobj-11-49j1ct25",
+        "nmdc:dobj-11-wfagh677",
+        "nmdc:dobj-11-grtefb44"
+      ],
+      "has_output": [
+        "nmdc:dobj-11-y5hatt16"
+      ],
+      "type": "nmdc:MagsAnalysis",
+      "version": "v1.0.5-beta",
+      "mags_list": []
+    }
+  ]
+}

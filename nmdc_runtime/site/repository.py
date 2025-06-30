@@ -14,6 +14,7 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
+    in_process_executor,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -25,6 +26,7 @@ from nmdc_runtime.api.models.run import _add_run_fail_event
 from nmdc_runtime.api.models.trigger import Trigger
 from nmdc_runtime.site.export.study_metadata import export_study_biosamples_metadata
 from nmdc_runtime.site.graphs import (
+    generate_biosample_set_from_samples_in_gold,
     translate_metadata_submission_to_nmdc_schema_database,
     ingest_metadata_submission,
     gold_study_to_database,
@@ -42,6 +44,11 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_soil_metadata,
     ingest_neon_benthic_metadata,
     ingest_neon_surface_water_metadata,
+    ensure_alldocs,
+    run_ontology_load,
+    nmdc_study_to_ncbi_submission_export,
+    generate_data_generation_set_for_biosamples_in_nmdc_study,
+    generate_update_script_for_insdc_biosample_identifiers,
 )
 from nmdc_runtime.site.resources import (
     get_mongo,
@@ -50,7 +57,6 @@ from nmdc_runtime.site.resources import (
     nmdc_portal_api_client_resource,
     gold_api_client_resource,
     neon_api_client_resource,
-    terminus_resource,
     mongo_resource,
 )
 from nmdc_runtime.site.resources import (
@@ -68,7 +74,6 @@ resource_defs = {
     "nmdc_portal_api_client": nmdc_portal_api_client_resource,
     "gold_api_client": gold_api_client_resource,
     "neon_api_client": neon_api_client_resource,
-    "terminus": terminus_resource,
     "mongo": mongo_resource,
 }
 
@@ -111,6 +116,62 @@ housekeeping_weekly = ScheduleDefinition(
     cron_schedule="45 6 * * 1",
     execution_timezone="America/New_York",
     job=housekeeping.to_job(**preset_normal),
+)
+
+ensure_alldocs_daily = ScheduleDefinition(
+    name="daily_ensure_alldocs",
+    cron_schedule="0 3 * * *",
+    execution_timezone="America/New_York",
+    job=ensure_alldocs.to_job(**preset_normal),
+)
+
+
+load_envo_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_envo_ontology",
+    cron_schedule="0 7 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_envo_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
+load_uberon_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_uberon_ontology",
+    cron_schedule="0 8 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_uberon_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
+load_po_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_po_ontology",
+    cron_schedule="0 9 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_po_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
 )
 
 
@@ -451,8 +512,15 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
+        ensure_alldocs.to_job(**preset_normal),
     ]
-    schedules = [housekeeping_weekly]
+    schedules = [
+        housekeeping_weekly,
+        ensure_alldocs_daily,
+        load_envo_ontology_weekly,
+        load_uberon_ontology_weekly,
+        load_po_ontology_weekly,
+    ]
     sensors = [
         done_object_put_ops,
         ensure_gold_translation_job,
@@ -500,7 +568,14 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
-                    "get_gold_study_pipeline_inputs": {"config": {"study_id": ""}},
+                    "get_gold_study_pipeline_inputs": {
+                        "config": {
+                            "study_id": "",
+                            "study_type": "research_study",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
+                        },
+                    },
                     "export_json_to_drs": {"config": {"username": ""}},
                 },
             },
@@ -515,8 +590,8 @@ def biosample_submission_ingest():
                         "nmdc_portal_api_client": {
                             "config": {
                                 "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                                "session_cookie": {
-                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                "refresh_token": {
+                                    "env": "NMDC_PORTAL_API_REFRESH_TOKEN"
                                 },
                             }
                         }
@@ -527,7 +602,7 @@ def biosample_submission_ingest():
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": None,
+                            "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
@@ -535,10 +610,7 @@ def biosample_submission_ingest():
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
-                            "study_category": None,
-                            "study_doi_category": None,
-                            "study_doi_provider": None,
-                            "study_funding_sources": None,
+                            "study_category": "research_study",
                             "study_pi_image_url": None,
                         }
                     },
@@ -555,8 +627,8 @@ def biosample_submission_ingest():
                         "nmdc_portal_api_client": {
                             "config": {
                                 "base_url": {"env": "NMDC_PORTAL_API_BASE_URL"},
-                                "session_cookie": {
-                                    "env": "NMDC_PORTAL_API_SESSION_COOKIE"
+                                "refresh_token": {
+                                    "env": "NMDC_PORTAL_API_REFRESH_TOKEN"
                                 },
                             }
                         }
@@ -566,7 +638,7 @@ def biosample_submission_ingest():
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
-                            "omics_processing_mapping_file_url": None,
+                            "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
@@ -575,9 +647,6 @@ def biosample_submission_ingest():
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
                             "study_category": None,
-                            "study_doi_category": None,
-                            "study_doi_provider": None,
-                            "study_funding_sources": None,
                             "study_pi_image_url": None,
                         }
                     },
@@ -637,6 +706,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -678,6 +748,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -720,13 +791,14 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                     "get_neon_pipeline_benthic_data_product": {
                         "config": {
                             "benthic_data_product": {
                                 "product_id": "DP1.20279.001",
-                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
+                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent, mms_mms_benthicRawDataFiles",
                             }
                         }
                     },
@@ -753,7 +825,7 @@ def biosample_submission_ingest():
                         "config": {
                             "benthic_data_product": {
                                 "product_id": "DP1.20279.001",
-                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent",
+                                "product_tables": "mms_benthicMetagenomeSequencing, mms_benthicMetagenomeDnaExtraction, mms_benthicRawDataFiles, amb_fieldParent, mms_mms_benthicRawDataFiles",
                             }
                         }
                     },
@@ -761,6 +833,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },
@@ -803,13 +876,14 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                     "get_neon_pipeline_surface_water_data_product": {
                         "config": {
                             "surface_water_data_product": {
                                 "product_id": "DP1.20281.001",
-                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent, mms_swRawDataFiles",
                             }
                         }
                     },
@@ -836,7 +910,7 @@ def biosample_submission_ingest():
                         "config": {
                             "surface_water_data_product": {
                                 "product_id": "DP1.20281.001",
-                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent",
+                                "product_tables": "mms_swMetagenomeSequencing, mms_swMetagenomeDnaExtraction, amc_fieldGenetic, amc_fieldSuperParent, mms_swRawDataFiles",
                             }
                         }
                     },
@@ -844,6 +918,190 @@ def biosample_submission_ingest():
                         "inputs": {
                             "neon_envo_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/neon_mixs_env_triad_mappings/neon-nlcd-local-broad-mappings.tsv",
                             "neon_raw_data_file_mappings_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/main/assets/misc/neon_raw_data_file_mappings.tsv",
+                            "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
+                        }
+                    },
+                },
+            },
+        ),
+    ]
+
+
+@repository
+def biosample_export():
+    normal_resources = run_config_frozen__normal_env["resources"]
+    return [
+        nmdc_study_to_ncbi_submission_export.to_job(
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "mongo": {
+                            "config": {
+                                "host": {"env": "MONGO_HOST"},
+                                "username": {"env": "MONGO_USERNAME"},
+                                "password": {"env": "MONGO_PASSWORD"},
+                                "dbname": {"env": "MONGO_DBNAME"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_ncbi_export_pipeline_study": {
+                        "config": {
+                            "nmdc_study_id": "",
+                        }
+                    },
+                    "get_ncbi_export_pipeline_inputs": {
+                        "config": {
+                            "nmdc_ncbi_attribute_mapping_file_url": "",
+                            "ncbi_submission_metadata": {
+                                "organization": "",
+                            },
+                            "ncbi_biosample_metadata": {
+                                "organism_name": "",
+                            },
+                        }
+                    },
+                },
+            },
+        ),
+    ]
+
+
+@repository
+def database_records_stitching():
+    normal_resources = run_config_frozen__normal_env["resources"]
+    return [
+        generate_data_generation_set_for_biosamples_in_nmdc_study.to_job(
+            description="This job can be used to create a data_generation_set JSON for biosamples that are already present in the NMDC database.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_user_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "username": {"env": "API_ADMIN_USER"},
+                                "password": {"env": "API_ADMIN_PASS"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_database_updater_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        ),
+        generate_biosample_set_from_samples_in_gold.to_job(
+            description="This job can be used to create a biosample_set JSON from samples in GOLD for a given study in NMDC.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_user_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "username": {"env": "API_ADMIN_USER"},
+                                "password": {"env": "API_ADMIN_PASS"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_database_updater_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                        }
+                    },
+                    "export_json_to_drs": {"config": {"username": ""}},
+                },
+            },
+        ),
+        generate_update_script_for_insdc_biosample_identifiers.to_job(
+            description="This job generates a MongoDB update script to add INSDC biosample identifiers to biosamples based on GOLD data.",
+            resource_defs=resource_defs,
+            config={
+                "resources": merge(
+                    unfreeze(normal_resources),
+                    {
+                        "runtime_api_user_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "username": {"env": "API_ADMIN_USER"},
+                                "password": {"env": "API_ADMIN_PASS"},
+                            },
+                        },
+                        "runtime_api_site_client": {
+                            "config": {
+                                "base_url": {"env": "API_HOST"},
+                                "client_id": {"env": "API_SITE_CLIENT_ID"},
+                                "client_secret": {"env": "API_SITE_CLIENT_SECRET"},
+                                "site_id": {"env": "API_SITE_ID"},
+                            },
+                        },
+                        "gold_api_client": {
+                            "config": {
+                                "base_url": {"env": "GOLD_API_BASE_URL"},
+                                "username": {"env": "GOLD_API_USERNAME"},
+                                "password": {"env": "GOLD_API_PASSWORD"},
+                            },
+                        },
+                    },
+                ),
+                "ops": {
+                    "get_database_updater_inputs": {
+                        "config": {
+                            "nmdc_study_id": "",
+                            "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
                 },

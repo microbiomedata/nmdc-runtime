@@ -1,3 +1,4 @@
+import builtins
 import inspect
 import json
 from collections import defaultdict, namedtuple
@@ -201,15 +202,22 @@ def load_changesheet(
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
-        # TODO make this way more robust,
-        #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
-        # TODO mongo BSON has a decimal type. Should use this for decimals!
-        if (
-            ranges.endswith("float")
-            or ranges.endswith("double")
-            or ranges.endswith("decimal degree")
-        ):
-            df.at[ix, "value"] = float(value)
+        # Infer python builtin type for coercion via <https://w3id.org/linkml/base>.
+        # If base is member of builtins module, e.g. `int` or `float`, coercion will succeed.
+        # Otherwise, keep value as is (as a `str`).
+        # Note: Mongo BSON has a decimal type,
+        # but e.g. <https://w3id.org/nmdc/DecimalDegree> has a specified `base` of `float`
+        # and I think it's best to not "re-interpret" what LinkML specifies. Can revisit this decision
+        # by e.g. overriding `base` when `uri` is a "known" type (`xsd:decimal` in the case of DecimalDegree).
+        try:
+            base_type = view.induced_type(ranges.rsplit("|", maxsplit=1)[-1]).base
+            if base_type == "Decimal":
+                # Note: Use of bson.decimal128.Decimal128 here would require changing JSON encoding/decoding.
+                # Choosing to use `float` to preserve existing (expected) behavior.
+                df.at[ix, "value"] = float(value)
+            df.at[ix, "value"] = getattr(builtins, base_type)(value)
+        except:
+            continue
     return df
 
 

@@ -1,3 +1,5 @@
+import os
+import tarfile
 from copy import deepcopy
 
 import json
@@ -13,6 +15,7 @@ from jsonschema import ValidationError, Draft7Validator
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from pymongo.write_concern import WriteConcern
+import requests
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
@@ -131,6 +134,44 @@ def test_multiple_errors():
             print(str(exception))
 
     print(validation_errors)
+
+
+def download_to(url, path):
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        with open(path, "wb") as file:
+            chunk_size = 8192
+            print(f"Downloading file using stream {chunk_size=}")
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                file.write(chunk)
+        print(f"Downloaded {url} to {path}")
+    else:
+        print(f"Failed to download {url}. Status code: {response.status_code}")
+
+
+def download_and_extract_tar(url, extract_to="."):
+    # Download the file
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        tar_path = os.path.join(extract_to, "downloaded_file.tar")
+        os.makedirs(extract_to, exist_ok=True)
+        with open(tar_path, "wb") as file:
+            chunk_size = 8192
+            print(f"Downloading tar file using stream {chunk_size=}")
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                file.write(chunk)
+        print(f"Downloaded tar file to {tar_path}")
+
+        # Extract the tar file
+        with tarfile.open(tar_path, "r") as tar:
+            tar.extractall(path=extract_to)
+            print(f"Extracted tar file to {extract_to}")
+
+        # Optionally, remove the tar file after extraction
+        os.remove(tar_path)
+        print(f"Removed tar file {tar_path}")
+    else:
+        print(f"Failed to download file. Status code: {response.status_code}")
 
 
 if __name__ == "__main__":

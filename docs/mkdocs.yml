@@ -1,0 +1,125 @@
+site_name: NMDC Runtime Documentation
+site_author: National Microbiome Data Collaborative
+site_description: Documentation for the National Microbiome Data Collaborative (NMDC) Runtime System and API
+site_url: https://microbiomedata.github.io/nmdc-runtime/
+repo_url: https://github.com/microbiomedata/nmdc-runtime/
+edit_uri_template: 'blob/main/docs/content/{path}'
+
+# This is the path (relative to this configuration file) to the directory containing the documentation source files.
+# Docs: https://www.mkdocs.org/user-guide/configuration/#docs_dir
+docs_dir: content
+
+# Docs: https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/?h=copyright#copyright-notice
+copyright: "&copy; Copyright 2025, National Microbiome Data Collaborative"
+
+extra_css:
+  - stylesheets/extra.css
+
+# There are the links that will appear in the left-hand navigation sidebar.
+nav:
+  - index.md
+  - Tutorials:
+    - tutorials/auth.md
+    - tutorials/json.md
+    - tutorials/metadata-in.md
+    - tutorials/translators.md
+    - tutorials/exporters.md
+    - nb/api_access_via_python.ipynb
+  - How-to guides:
+    - howto-guides/author-changesheets.md
+    - howto-guides/create-triggers.md
+    - howto-guides/claim-and-run-jobs.md
+    - howto-guides/update-sensors-ops.md
+    - howto-guides/minting-ids.md
+    - howto-guides/release-process.md
+    - howto-guides/improving-search-api.md
+    - nb/get_data.ipynb
+    - nb/queue_and_trigger_data_jobs.ipynb
+    - nb/wf_automation.ipynb
+    - Specific Jobs:
+      - howto-guides/jobs/gold-translation-etl.md
+  - Reference:
+    - contributing-docs.md
+    - admin.md
+  - Explanation:
+    - explanation/journeys.md
+    - explanation/identifiers.md
+
+theme:
+  name: material
+
+  # These are paths to the logo and favicon.
+  #
+  # Note: The logo appears on the left side of the navigation bar,
+  #       and the favicon appears in the browser tab. The paths are
+  #       relative to the directory containing the documentation
+  #       source files (i.e. the `content` directory).
+  #
+  # Docs: https://squidfunk.github.io/mkdocs-material/setup/changing-the-logo-and-icons/#favicon
+  logo: img/nmdc-logo-bg-white.png
+  favicon: img/favicon.ico
+
+  # This is the path (relative to this configuration file) to the directory containing files that override the default theme files.
+  # Docs:
+  # - https://www.mkdocs.org/user-guide/configuration/#custom_dir
+  # - https://www.mkdocs.org/user-guide/customizing-your-theme/#using-the-theme-custom_dir
+  custom_dir: mkdocs_overrides
+
+  # Note: The "nmdc" color scheme, and customizations to the "slate"
+  #       color scheme, are defined in the `stylesheets/extra.css` file.
+  #
+  # Docs: https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#custom-color-schemes
+  # Docs: https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#color-palette-toggle
+  palette:
+    - scheme: nmdc  # light
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - scheme: slate  # dark
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to light mode
+
+extra:
+  # This configures the social links in the footer.
+  # Docs: https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/#social-links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/microbiomedata
+      name: NMDC on GitHub
+    - icon: fontawesome/brands/bluesky
+      link: https://bsky.app/profile/microbiomedata.org
+      name: NMDC on Bluesky
+    - icon: fontawesome/brands/instagram
+      link: https://www.instagram.com/microbiomedata
+      name: NMDC on Instagram
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/channel/UCyBqKc46NQZ_YgZlKGYegIw/featured
+      name: NMDC on YouTube
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/microbiomedata/
+      name: NMDC on LinkedIn
+    - icon: fontawesome/brands/x-twitter
+      link: https://twitter.com/microbiomedata
+      name: NMDC on X (Twitter)
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - search
+  - mermaid2:
+      arguments:
+        securityLevel: 'loose'
+  - mkdocs-jupyter

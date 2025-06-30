@@ -9,7 +9,7 @@ on:
     paths:
       - '.github/workflows/build-and-release-to-spin.yml'
       - 'Makefile'
-      - '**.Dockerfile'
+      - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
 
@@ -50,6 +50,7 @@ jobs:
         with:
           images: |
             microbiomedata/nmdc-runtime-${{ matrix.image }}
+            ghcr.io/microbiomedata/nmdc-runtime-${{ matrix.image }}
           flavor: |
             latest=false
           tags: |
@@ -63,12 +64,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Reference: https://docs.docker.com/build/ci/github-actions/push-multi-registries/
+      # Reference: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: ${{ env.IS_ORIGINAL_REPO }}
-          file: nmdc_runtime/${{ matrix.image }}.Dockerfile
+          file: nmdc_runtime/Dockerfile
+          # Note: Since our `Dockerfile` describes multiple stages, we use the `target` option to specify a stage.
+          #       Reference: https://github.com/marketplace/actions/build-and-push-docker-images#inputs
+          target: ${{ matrix.image }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 

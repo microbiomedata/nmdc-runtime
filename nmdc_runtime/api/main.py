@@ -1,6 +1,7 @@
 import os
 import re
 from contextlib import asynccontextmanager
+from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -19,10 +20,15 @@ from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.util import (
+    get_allowed_references,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
 )
-from nmdc_runtime.api.core.auth import get_password_hash, ORCID_NMDC_CLIENT_ID
+from nmdc_runtime.api.core.auth import (
+    get_password_hash,
+    ORCID_NMDC_CLIENT_ID,
+    ORCID_BASE_URL,
+)
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
 )
@@ -218,68 +224,30 @@ issue an update query).
     {
         "name": "metadata",
         "description": """
-The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from 
-collection set types (including [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html)).<br/>
+The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter metadata from collection set types (including 
+[studies](https://w3id.org/nmdc/Study/), 
+[biosamples](https://w3id.org/nmdc/Biosample/), 
+[planned processes](https://w3id.org/nmdc/PlannedProcess/), and 
+[data objects](https://w3id.org/nmdc/DataObject/) 
+as discussed in the __find__ section).
+<br/>
  
 The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various GET endpoints 
-that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__  endpoints, 
+that are slightly different than the __find__ endpoints, but some can be used similarly. As with the __find__ endpoints, 
 parameters for the __metadata__ endpoints that do not have a red ___* required___ next to them are optional. <br/>
 
 Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of the metadata endpoints 
-uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/). 
-The applicable parameters of the __metadata__ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details>
-<summary>More Details</summary>
-
-| Parameter | Description | Syntax | Example |
-| :---: | :-----------: | :-------: | :---: | 
-| collection_name | The name of the collection to be queried. For a list of collection names please see the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/) of the NMDC Schema | String | `biosample_set` |
-| filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | [MongoDB-like query language](https://www.mongodb.com/docs/manual/tutorial/query-documents/). All strings should be in double quotation marks. | `{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}` | 
-| max_page_size | Specifies the maximum number of documents returned at a time | Integer | `25`
-| page_token | Specifies the token of the page to return. If unspecified, the first page is returned. To retrieve a subsequent page, the value received as the `next_page_token` from the bottom of the previous results can be provided as a `page_token`. ![next_page_token](../_static/images/howto_guides/api_gui/metadata_page_token_param.png) | String | `nmdc:sys0ae1sh583`
-| projection | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ecosystem_type` |
-| doc_id | The unique identifier of the item being requested. For example, the identifier of a biosample or an extraction | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-ha3vfb58` |<br/>
-<br/>
-</details>        
+uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/).
         """,
     },
     {
         "name": "find",
         "description": """
-The [find endpoints](https://api.microbiomedata.org/docs#/find:~:text=Find%20NMDC-,metadata,-entities.) are provided with 
-NMDC metadata entities already specified - where metadata about [studies](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Study.html), 
-[biosamples](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Biosample.html), 
-[data objects](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/DataObject.html), and 
-[activities](https://nmdc-documentation.readthedocs.io/en/latest/reference/metadata/Activity.html) can be retrieved using GET requests. 
+The [find endpoints](https://api.microbiomedata.org/docs#/find) are provided with NMDC metadata entities already specified - where metadata about [studies](https://w3id.org/nmdc/Study), [biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/), and [planned processes](https://w3id.org/nmdc/PlannedProcess/) can be retrieved using GET requests. 
+<br/>
 
 Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query in a meaningful way. 
-Please note that endpoints with parameters that do not have a red ___* required___ label next to them are optional.<br/>
-
-The applicable parameters of the ___find___ endpoints, with acceptable syntax and examples, are in the table below.
-
-<details><summary>More Details</summary>
-
-| Parameter | Description | Syntax | Example |
-| :---: | :-----------: | :-------: | :---: |
-| filter | Allows conditions to be set as part of the query, returning only results that satisfy the conditions | Comma separated string of attribute:value pairs. Can include comparison operators like >=, <=, <, and >. May use a `.search` after the attribute name to conduct a full text search of the field that are of type string. e.g. `attribute:value,attribute.search:value` | `ecosystem_category:Plants, lat_lon.latitude:>35.0` |
-| search | Not yet implemented | Coming Soon | Not yet implemented |
-| sort | Specifies the order in which the query returns the matching documents | Comma separated string of attribute:value pairs, where the value can be empty, `asc`, or `desc` (for ascending or descending order) e.g. `attribute` or `attribute:asc` or `attribute:desc`| `depth.has_numeric_value:desc, ecosystem_type` |
-| page | Specifies the desired page number among the paginated results | Integer | `3` |
-| per_page | Specifies the number of results returned per page. Maximum allowed is 2,000 | Integer | `50` |
-| cursor | A bookmark for where a query can pick up where it has left off. To use cursor paging, set the `cursor` parameter to `*`. The results will include a `next_cursor` value in the response's `meta` object that can be used in the `cursor` parameter to retrieve the subsequent results ![next_cursor](../_static/images/howto_guides/api_gui/find_cursor.png) | String | `*` or `nmdc:sys0zr0fbt71` |
-| group_by | Not yet implemented | Coming Soon | Not yet implemented |
-| fields | Indicates the desired attributes to be included in the response. Helpful for trimming down the returned results | Comma-separated list of attributes that belong to the documents in the collection being queried | `name, ess_dive_datasets` |
-| study_id | The unique identifier of a study | Curie e.g. `prefix:identifier` | `nmdc:sty-11-34xj1150` |
-| sample_id | The unique identifier of a biosample | Curie e.g. `prefix:identifier` | `nmdc:bsm-11-w43vsm21` |
-| data_object_id | The unique identifier of a data object | Curie e.g. `prefix:identifier` | `nmdc:dobj-11-7c6np651` |
-| activity_id | The unique identifier for an NMDC workflow execution activity | Curie e.g. `prefix:identifier` | `nmdc:wfmgan-11-hvcnga50.1`|<br/>
-<br/>
-</details>
-
+Parameters that do not have a red ___* required___ label next to them are optional.
 """,
     },
     {
@@ -351,6 +319,20 @@ def ensure_initial_resources_on_boot():
 
 
 def ensure_attribute_indexes():
+    r"""
+    Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
+    `entity_attributes_to_index` dictionary, has an index on each field identified by the value
+    (i.e. set of field names) associated with that key.
+
+    Example dictionary (notice each item's value is a _set_, not a _dict_):
+    ```
+    {
+        "coll_name_1": {"field_name_1"},
+        "coll_name_2": {"field_name_1", "field_name_2"},
+    }
+    ```
+    """
+
     mdb = get_mongo_db()
     for collection_name, index_specs in entity_attributes_to_index.items():
         for spec in index_specs:
@@ -390,9 +372,23 @@ def ensure_default_api_perms():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    r"""
+    Prepares the application to receive requests.
+
+    From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
+    > You can define logic (code) that should be executed before the application starts up. This means that
+    > this code will be executed once, before the application starts receiving requests.
+
+    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
+          but not before that (i.e. not when the application is idle before any requests start coming in).
+    """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_default_api_perms()
+
+    # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
+    get_allowed_references()  # we ignore the return value here
+
     yield
 
 
@@ -420,13 +416,13 @@ app = FastAPI(
         "The NMDC Runtime API, via on-demand functions "
         "and via schedule-based and sensor-based automation, "
         "supports validation and submission of metadata, as well as "
-        "orchestration of workflow execution activities."
+        "orchestration of workflow executions."
         "\n\n"
         "Dependency versions:\n\n"
         f'nmdc-schema={version("nmdc_schema")}\n\n'
         "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
         '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
-        f'<a href="https://orcid.org/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
+        f'<a href="{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
         "&response_type=code&scope=openid&"
         f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
         " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
@@ -441,7 +437,8 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)",
+    # Allow requests from client-side web apps hosted in local development environments, on microbiomedata.org, and on GitHub Pages.
+    allow_origin_regex=r"(http://localhost:\d+)|(https://.+?\.microbiomedata\.org)|(https://microbiomedata\.github\.io)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -486,14 +483,45 @@ def custom_swagger_ui_html(
     swagger_ui_parameters = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""ui.preauthorizeApiKey(<double-quote>bearerAuth</double-quote>, <double-quote>{access_token}</double-quote>); """
+        onComplete += f"""
+            ui.preauthorizeApiKey('bearerAuth', '{access_token}');
+            
+            token_info = document.createElement('section');
+            token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
+            token_info.innerHTML = <double-quote>
+                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
+                <p>
+                    <code>
+                        <span>Authorization: Bearer </span>
+                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>
+                    </code>
+                </p>
+                <p>
+                    <button id='token-mask-toggler'>Show token</button>
+                    <button id='token-copier'>Copy token</button>
+                    <span id='token-copier-message'></span>
+                </p>
+            </double-quote>;
+            document.querySelector('.information-container').append(token_info);
+        """.replace(
+            "\n", " "
+        )
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
-        onComplete += f"""banner = document.createElement(<double-quote>section</double-quote>); banner.classList.add(<double-quote>nmdc-info-banner</double-quote>); banner.classList.add(<double-quote>block</double-quote>); banner.classList.add(<double-quote>col-12</double-quote>); banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`; document.querySelector(<double-quote>.information-container</double-quote>).prepend(banner); """
+        onComplete += f"""
+            banner = document.createElement('section');
+            banner.classList.add('nmdc-info', 'nmdc-info-banner', 'block', 'col-12');
+            banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
+            document.querySelector('.information-container').prepend(banner);
+        """.replace(
+            "\n", " "
+        )
     if onComplete:
+        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
         swagger_ui_parameters.update(
             {
-                "onComplete": f"""<unquote-safe>() => {{ {onComplete} }}</unquote-safe>""",
+                "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
             }
         )
     response = get_swagger_ui_html(
@@ -511,9 +539,74 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Inject a style element immediately before the closing `</head>` tag.
         .replace(
             "</head>",
-            "<style>.nmdc-info-banner { padding: 1em; background-color: #448aff1a; border: .075rem solid #448aff; }</style></head>",
+            f"""
+                <style>
+                    .nmdc-info {{
+                        padding: 1em;
+                        background-color: #448aff1a;
+                        border: .075rem solid #448aff;
+                    }}
+                    .nmdc-info-token code {{
+                        font-size: x-small;
+                    }}
+                    .nmdc-success {{
+                        color: green;
+                    }}
+                    .nmdc-error {{
+                        color: red;
+                    }}
+                </style>
+            </head>""",
+        )
+        # Inject a JavaScript script immediately before the closing `</body>` tag.
+        .replace(
+            "</body>",
+            f"""
+                <script>
+                    console.debug("Listening for event: nmdcInit");
+                    window.addEventListener("nmdcInit", (event) => {{
+                        // Get the DOM elements we'll be referencing below. 
+                        const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
+                        const tokenEl = document.getElementById("token");
+                        const tokenCopierEl = document.getElementById("token-copier");
+                        const tokenCopierMessageEl = document.getElementById("token-copier-message");
+                        
+                        // Set up the token visibility toggler.
+                        console.debug("Setting up token visibility toggler");
+                        tokenMaskTogglerEl.addEventListener("click", (event) => {{
+                            if (tokenEl.dataset.state == "masked") {{
+                                console.debug("Unmasking token");
+                                tokenEl.dataset.state = "unmasked";
+                                tokenEl.innerHTML = tokenEl.dataset.tokenValue;
+                                event.target.innerHTML = "Hide token";
+                            }} else {{
+                                console.debug("Masking token");
+                                tokenEl.dataset.state = "masked";
+                                tokenEl.innerHTML = "***";
+                                event.target.innerHTML = "Show token";
+                            }}
+                        }});
+
+                        // Set up the token copier.
+                        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
+                        console.debug("Setting up token copier");
+                        tokenCopierEl.addEventListener("click", async (event) => {{
+                            tokenCopierMessageEl.innerHTML = "";
+                            try {{                            
+                                await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
+                            }} catch (error) {{
+                                console.error(error.message);
+                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
+                            }}
+                        }})
+                    }});
+                </script>
+            </body>
+            """,
         )
     )
     return HTMLResponse(content=content)

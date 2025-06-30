@@ -6,43 +6,50 @@
     "NEON"
   ],
   "collection_date": {
-    "has_raw_value": "2014-07-15T18:00Z"
+    "has_raw_value": "2014-07-15T18:00Z",
+    "type": "nmdc:TimestampValue"
   },
   "depth": {
     "has_maximum_numeric_value": 1,
     "has_minimum_numeric_value": 0,
-    "has_unit": "meters"
+    "has_unit": "meters",
+    "type": "nmdc:QuantityValue"
   },
   "elev": 1179.5,
   "env_broad_scale": {
+    "type": "nmdc:ControlledIdentifiedTermValue",
     "term": {
       "id": "ENVO:01000253",
-      "name": "freshwater river biome"
+      "name": "freshwater river biome",
+      "type": "nmdc:OntologyClass"
     }
   },
   "env_local_scale": {
+    "type": "nmdc:ControlledIdentifiedTermValue",
     "term": {
       "id": "ENVO:03600095",
-      "name": "stream run"
+      "name": "stream run",
+      "type": "nmdc:OntologyClass"
     }
   },
   "env_medium": {
+    "type": "nmdc:ControlledIdentifiedTermValue",
     "term": {
       "id": "ENVO:01001057",
-      "name": "environment associated with a plant part or small plant"
+      "name": "environment associated with a plant part or small plant",
+      "type": "nmdc:OntologyClass"
     }
   },
   "geo_loc_name": {
-    "has_raw_value": "USA: Colorado, Arikaree River"
+    "has_raw_value": "USA: Colorado, Arikaree River",
+    "type": "nmdc:TextValue"
   },
   "id": "nmdc:bsm-12-7mysck21",
   "lat_lon": {
     "latitude": 39.758206,
-    "longitude": -102.447148
+    "longitude": -102.447148,
+    "type": "nmdc:GeolocationValue"
   },
   "name": "ARIK.20140715.AMC.EPIPHYTON.5",
-  "part_of": [
-    "nmdc:sty-11-34xj1150"
-  ],
   "type": "nmdc:Biosample"
 }

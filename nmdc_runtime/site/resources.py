@@ -19,7 +19,6 @@ from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
 from pydantic import BaseModel, AnyUrl
 from pymongo import MongoClient, ReplaceOne, InsertOne
-from terminusdb_client import WOQLClient
 from toolz import get_in
 from toolz import merge
 
@@ -130,16 +129,36 @@ class RuntimeApiUserClient(RuntimeApiClient):
         return response.json()["cursor"]["firstBatch"]
 
     def get_biosamples_for_study(self, study_id: str):
+        # TODO: 10000 is an arbitrarily large number that has been chosen for the max_page_size param.
+        # The /nmdcschema/{collection-name} endpoint implements pagination via the page_token mechanism,
+        # but the tradeoff there is that we would need to make multiple requests to step through the
+        # each of the pages. By picking a large number for max_page_size, we can get all the results
+        # in a single request.
+        # This method previously used the /queries:run endpoint but the problem with that was that
+        # it used to truncate the number of results returned to 100.
         response = self.request(
-            "POST",
-            f"/queries:run",
+            "GET",
+            f"/nmdcschema/biosample_set",
             {
-                "find": "biosample_set",
-                "filter": {"part_of": {"$elemMatch": {"$eq": study_id}}},
+                "filter": json.dumps({"associated_studies": study_id}),
+                "max_page_size": 10000,
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["resources"]
+
+    def get_data_generation_records_for_study(self, study_id: str):
+        # TODO: same as above, we are using a large max_page_size to avoid pagination.
+        response = self.request(
+            "GET",
+            f"/nmdcschema/data_generation_set",
+            {
+                "filter": json.dumps({"associated_studies": study_id}),
+                "max_page_size": 10000,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
 
     def get_omics_processing_by_name(self, name: str):
         response = self.request(
@@ -148,6 +167,18 @@ class RuntimeApiUserClient(RuntimeApiClient):
             {
                 "find": "omics_processing_set",
                 "filter": {"name": {"$regex": name, "$options": "i"}},
+            },
+        )
+        response.raise_for_status()
+        return response.json()["cursor"]["firstBatch"]
+
+    def get_study(self, study_id: str):
+        response = self.request(
+            "POST",
+            f"/queries:run",
+            {
+                "find": "study_set",
+                "filter": {"id": study_id},
             },
         )
         response.raise_for_status()
@@ -332,9 +363,26 @@ class GoldApiClient(BasicAuthClient):
         """
         return id.replace("gold:", "")
 
-    def fetch_biosamples_by_study(self, study_id: str) -> List[Dict[str, Any]]:
+    def fetch_biosamples_by_study(
+        self, study_id: str, include_project=True
+    ) -> List[Dict[str, Any]]:
         id = self._normalize_id(study_id)
         results = self.request("/biosamples", params={"studyGoldId": id})
+        if include_project:
+            projects = self.fetch_projects_by_study(id)
+            biosamples_by_id = {
+                biosample["biosampleGoldId"]: biosample for biosample in results
+            }
+            for project in projects:
+                sample_id = project.get("biosampleGoldId")
+                if not sample_id:
+                    continue
+                if sample_id not in biosamples_by_id:
+                    continue
+                biosample = biosamples_by_id[sample_id]
+                if "projects" not in biosample:
+                    biosample["projects"] = []
+                biosample["projects"].append(project)
         return results
 
     def fetch_projects_by_study(self, study_id: str) -> List[Dict[str, Any]]:
@@ -354,6 +402,18 @@ class GoldApiClient(BasicAuthClient):
             return None
         return results[0]
 
+    def fetch_projects_by_biosample(self, biosample_id: str) -> List[Dict[str, Any]]:
+        id = self._normalize_id(biosample_id)
+        results = self.request("/projects", params={"biosampleGoldId": id})
+        return results
+
+    def fetch_biosample_by_biosample_id(
+        self, biosample_id: str
+    ) -> List[Dict[str, Any]]:
+        id = self._normalize_id(biosample_id)
+        results = self.request("/biosamples", params={"biosampleGoldId": id})
+        return results
+
 
 @resource(
     config_schema={
@@ -372,16 +432,37 @@ def gold_api_client_resource(context: InitResourceContext):
 
 @dataclass
 class NmdcPortalApiClient:
+
     base_url: str
-    # Using a cookie for authentication is not ideal and should be replaced
-    # when this API has an another authentication method
-    session_cookie: str
+    refresh_token: str
+    access_token: Optional[str] = None
+    access_token_expires_at: Optional[datetime] = None
+
+    def _request(self, method: str, endpoint: str, **kwargs):
+        r"""
+        Submits a request to the specified API endpoint;
+        after refreshing the access token, if necessary.
+        """
+        if self.access_token is None or datetime.now() > self.access_token_expires_at:
+            refresh_response = requests.post(
+                f"{self.base_url}/auth/refresh",
+                json={"refresh_token": self.refresh_token},
+            )
+            refresh_response.raise_for_status()
+            refresh_body = refresh_response.json()
+            self.access_token_expires_at = datetime.now() + timedelta(
+                seconds=refresh_body["expires_in"]
+            )
+            self.access_token = refresh_body["access_token"]
+
+        headers = kwargs.get("headers", {})
+        headers["Authorization"] = f"Bearer {self.access_token}"
+        return requests.request(
+            method, f"{self.base_url}{endpoint}", **kwargs, headers=headers
+        )
 
     def fetch_metadata_submission(self, id: str) -> Dict[str, Any]:
-        response = requests.get(
-            f"{self.base_url}/api/metadata_submission/{id}",
-            cookies={"session": self.session_cookie},
-        )
+        response = self._request("GET", f"/api/metadata_submission/{id}")
         response.raise_for_status()
         return response.json()
 
@@ -389,13 +470,13 @@ class NmdcPortalApiClient:
 @resource(
     config_schema={
         "base_url": StringSource,
-        "session_cookie": StringSource,
+        "refresh_token": StringSource,
     }
 )
 def nmdc_portal_api_client_resource(context: InitResourceContext):
     return NmdcPortalApiClient(
         base_url=context.resource_config["base_url"],
-        session_cookie=context.resource_config["session_cookie"],
+        refresh_token=context.resource_config["refresh_token"],
     )
 
 
@@ -512,33 +593,3 @@ def get_mongo(run_config: frozendict):
         )
     )
     return mongo_resource(resource_context)
-
-
-class TerminusDB:
-    def __init__(self, server_url, user, key, account, dbid):
-        self.client = WOQLClient(server_url=server_url)
-        self.client.connect(user=user, key=key, account=account)
-        db_info = self.client.get_database(dbid=dbid, account=account)
-        if db_info is None:
-            self.client.create_database(dbid=dbid, accountid=account, label=dbid)
-            self.client.create_graph(graph_type="inference", graph_id="main")
-        self.client.connect(user=user, key=key, account=account, db=dbid)
-
-
-@resource(
-    config_schema={
-        "server_url": StringSource,
-        "user": StringSource,
-        "key": StringSource,
-        "account": StringSource,
-        "dbid": StringSource,
-    }
-)
-def terminus_resource(context):
-    return TerminusDB(
-        server_url=context.resource_config["server_url"],
-        user=context.resource_config["user"],
-        key=context.resource_config["key"],
-        account=context.resource_config["account"],
-        dbid=context.resource_config["dbid"],
-    )

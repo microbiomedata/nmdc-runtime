@@ -1,0 +1,6 @@
+id	action	attribute	value
+nmdc:sty-11-pzmd0x14	insert	associated_dois	d1
+d1	insert	doi_value	doi:10.25345/C5CG8S
+d1	insert	doi_category	dataset_doi
+d1	insert 	doi_provider	massive
+d1	insert	type	nmdc:Doi

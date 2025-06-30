@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import pandas as pd
 import requests
@@ -36,6 +36,7 @@ SURFACE_WATER_LOCAL_SCALE_MAPPINGS = {
             "term_id": "ENVO:01000409",
             "term_name": "freshwater littoral zone",
         },
+        "inflow": {"term_id": "ENVO:00000476", "term_name": "lake inlet"},
     },
     "river": {"term_id": "ENVO:01000297", "term_name": "freshwater river"},
     "stream": {"term_id": "ENVO:03605007", "term_name": "freshwater stream"},
@@ -58,6 +59,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
         site_code_mapping: dict,
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
+        neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         *args,
         **kwargs,
     ) -> None:
@@ -69,6 +71,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
         neon_amb_data_tables = (
             "mms_swMetagenomeSequencing",
             "mms_swMetagenomeDnaExtraction",
+            "mms_swRawDataFiles",
             "amc_fieldGenetic",
             "amc_fieldSuperParent",
         )
@@ -86,6 +89,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 if_exists="replace",
                 index=False,
             )
+            surface_water_data["mms_swRawDataFiles"].to_sql(
+                "mms_swRawDataFiles", self.conn, if_exists="replace", index=False
+            )
             surface_water_data["amc_fieldGenetic"].to_sql(
                 "amc_fieldGenetic", self.conn, if_exists="replace", index=False
             )
@@ -101,12 +107,11 @@ class NeonSurfaceWaterDataTranslator(Translator):
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
 
-        self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
-        self.neon_raw_data_file_mappings_df.to_sql(
-            "neonRawDataFile", self.conn, if_exists="replace", index=False
-        )
+        self.neon_raw_data_file_mappings_df = surface_water_data["mms_swRawDataFiles"]
 
         self.site_code_mapping = site_code_mapping
+
+        self.neon_nmdc_instrument_map_df = neon_nmdc_instrument_map_df
 
     def _translate_biosample(
         self, neon_id: str, nmdc_id: str, biosample_row: pd.DataFrame
@@ -136,16 +141,17 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     has_minimum_numeric_value=nmdc.Float(minimum_depth),
                     has_maximum_numeric_value=nmdc.Float(maximum_depth),
                     has_unit="m",
+                    type="nmdc:QuantityValue",
                 )
             else:
                 depth = nmdc.QuantityValue(
                     has_numeric_value=nmdc.Float(minimum_depth),
                     has_unit="m",
+                    type="nmdc:QuantityValue",
                 )
 
         return nmdc.Biosample(
             id=nmdc_id,
-            part_of="nmdc:sty-11-hht5sb92",
             env_broad_scale=_create_controlled_identified_term_value(
                 SURFACE_WATER_BROAD_SCALE_MAPPINGS.get(
                     biosample_row["aquaticSiteType"].values[0]
@@ -201,7 +207,8 @@ class NeonSurfaceWaterDataTranslator(Translator):
             samp_size=_create_quantity_value(
                 biosample_row["geneticFilteredSampleVolume"].values[0], "mL"
             ),
-            env_package=nmdc.TextValue(has_raw_value="water"),
+            env_package=nmdc.TextValue(has_raw_value="water", type="nmdc:TextValue"),
+            associated_studies=["nmdc:sty-11-hht5sb92"],
         )
 
     def _translate_extraction_process(
@@ -243,6 +250,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
                 _get_value_or_none(extraction_row, "extrQaqcStatus")
             ),
             processing_institution=processing_institution,
+            type="nmdc:Extraction",
         )
 
     def _translate_library_preparation(
@@ -255,13 +263,13 @@ class NeonSurfaceWaterDataTranslator(Translator):
         """
         Create LibraryPreparation process object. The input to LibraryPreparation process
         is the output ProcessedSample from an Extraction process. The output of LibraryPreparation
-        process is fed as input to an OmicsProcessing object.
+        process is fed as input to an NucleotideSequencing object.
 
         :param library_preparation_id: Minted id for LibraryPreparation process.
         :param library_preparation_input: Input to LibraryPreparation process is output from
         Extraction process.
         :param processed_sample_id: Minted ProcessedSample id which is output of LibraryPreparation
-        is also input to OmicsProcessing.
+        is also input to NucleotideSequencing.
         :param library_preparation_row: Metadata required to populate LibraryPreparation.
         :return: Object that using LibraryPreparation process model.
         """
@@ -280,31 +288,47 @@ class NeonSurfaceWaterDataTranslator(Translator):
             start_date=_get_value_or_none(library_preparation_row, "seqCollectDate"),
             end_date=_get_value_or_none(library_preparation_row, "seqProcessedDate"),
             processing_institution=processing_institution,
+            type="nmdc:LibraryPreparation",
         )
 
-    def _translate_omics_processing(
+    def _get_instrument_id(self, instrument_model: Union[str | None]) -> str:
+        if not instrument_model:
+            raise ValueError(
+                f"instrument_model '{instrument_model}' could not be found in the NEON-NMDC instrument mapping TSV file."
+            )
+
+        df = self.neon_nmdc_instrument_map_df
+        matching_row = df[
+            df["NEON sequencingMethod"].str.contains(instrument_model, case=False)
+        ]
+
+        if not matching_row.empty:
+            nmdc_instrument_id = matching_row["NMDC instrument_set id"].values[0]
+            return nmdc_instrument_id
+
+    def _translate_nucleotide_sequencing(
         self,
-        omics_processing_id: str,
+        nucleotide_sequencing_id: str,
         processed_sample_id: str,
         raw_data_file_data: str,
-        omics_processing_row: pd.DataFrame,
-    ) -> nmdc.OmicsProcessing:
-        """Create nmdc OmicsProcessing object. This class typically models the run of a
-        Bioinformatics workflow on sequence data from a biosample. The input to an OmicsProcessing
-        process is the output from a LibraryPreparation process, and the output of OmicsProcessing
+        nucleotide_sequencing_row: pd.DataFrame,
+    ):
+        """Create nmdc NucleotideSequencing object. This class typically models the run of a
+        Bioinformatics workflow on sequence data from a biosample. The input to an NucleotideSequencing
+        process is the output from a LibraryPreparation process, and the output of NucleotideSequencing
         is a DataObject which has the FASTQ sequence file URLs embedded in them.
 
-        :param omics_processing_id: Minted id for an OmicsProcessing process.
+        :param nucleotide_sequencing_id: Minted id for an NucleotideSequencing process.
         :param processed_sample_id: ProcessedSample that is the output of LibraryPreparation.
         :param raw_data_file_data: R1/R2 DataObjects which have links to workflow processed output
         files embedded in them.
-        :param omics_processing_row: DataFrame with metadata for an OmicsProcessing workflow
+        :param nucleotide_sequencing_row: DataFrame with metadata for an NucleotideSequencing workflow
         process/run.
-        :return: OmicsProcessing object that models a Bioinformatics workflow process/run.
+        :return: NucleotideSequencing object that models a Bioinformatics workflow process/run.
         """
         processing_institution = None
         sequencing_facility = _get_value_or_none(
-            omics_processing_row, "sequencingFacilityID"
+            nucleotide_sequencing_row, "sequencingFacilityID"
         )
         if sequencing_facility is not None:
             if re.search("Battelle", sequencing_facility, re.IGNORECASE):
@@ -312,19 +336,21 @@ class NeonSurfaceWaterDataTranslator(Translator):
             elif re.search("Argonne", sequencing_facility, re.IGNORECASE):
                 processing_institution = "ANL"
 
-        return nmdc.OmicsProcessing(
-            id=omics_processing_id,
+        return nmdc.NucleotideSequencing(
+            id=nucleotide_sequencing_id,
             has_input=processed_sample_id,
             has_output=raw_data_file_data,
             processing_institution=processing_institution,
-            ncbi_project_name=_get_value_or_none(omics_processing_row, "ncbiProjectID"),
-            omics_type=_create_controlled_term_value(
-                omics_processing_row["investigation_type"].values[0]
+            ncbi_project_name=_get_value_or_none(
+                nucleotide_sequencing_row, "ncbiProjectID"
             ),
-            instrument_name=f"{_get_value_or_none(omics_processing_row, 'sequencingMethod')} {_get_value_or_none(omics_processing_row, 'instrument_model')}",
-            part_of="nmdc:sty-11-hht5sb92",
-            name=f"Surface water microbial communities - {_get_value_or_none(omics_processing_row, 'dnaSampleID')}",
-            type="nmdc:OmicsProcessing",
+            instrument_used=self._get_instrument_id(
+                _get_value_or_none(nucleotide_sequencing_row, "instrument_model")
+            ),
+            name=f"Surface water microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
+            type="nmdc:NucleotideSequencing",
+            associated_studies=["nmdc:sty-11-hht5sb92"],
+            analyte_category="metagenome",
         )
 
     def _translate_processed_sample(
@@ -341,12 +367,14 @@ class NeonSurfaceWaterDataTranslator(Translator):
         :param sample_id: Value from `genomicsSampleID` or `dnaSampleID` column.
         :return: ProcessedSample objects to be stored in `processed_sample_set`.
         """
-        return nmdc.ProcessedSample(id=processed_sample_id, name=sample_id)
+        return nmdc.ProcessedSample(
+            id=processed_sample_id, name=sample_id, type="nmdc:ProcessedSample"
+        )
 
     def _translate_data_object(
-        self, do_id: str, url: str, do_type: str, checksum: str
+        self, do_id: str, url: str, do_type: str, manifest_id: str
     ) -> nmdc.DataObject:
-        """Create nmdc DataObject which is the output of an OmicsProcessing process. This
+        """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
         the result of running a Bioinformatics workflow on a certain ProcessedSample, which
         is the result of a LibraryPreparation process.
@@ -368,8 +396,16 @@ class NeonSurfaceWaterDataTranslator(Translator):
             url=url,
             description=f"sequencing results for {basename}",
             type="nmdc:DataObject",
-            md5_checksum=checksum,
             data_object_type=do_type,
+            data_category=nmdc.DataCategoryEnum.instrument_data.text,
+            in_manifest=manifest_id,
+        )
+
+    def _translate_manifest(self, manifest_id: str) -> nmdc.Manifest:
+        return nmdc.Manifest(
+            id=manifest_id,
+            manifest_category=nmdc.ManifestCategoryEnum.poolable_replicates,
+            type="nmdc:Manifest",
         )
 
     def get_database(self):
@@ -450,6 +486,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
         """
         surface_water_samples = pd.read_sql_query(query, self.conn)
 
+        # --------------------------------------------------
+        # Create mappings for minted NMDC IDs
+        # --------------------------------------------------
         neon_biosample_ids = surface_water_samples["parentSampleID"]
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(neon_biosample_ids))
         neon_to_nmdc_biosample_ids = dict(zip(neon_biosample_ids, nmdc_biosample_ids))
@@ -484,28 +523,20 @@ class NeonSurfaceWaterDataTranslator(Translator):
             zip(neon_lib_prep_processed_ids, nmdc_lib_prep_processed_ids)
         )
 
-        neon_omprc_ids = surface_water_samples["parentSampleID"]
-        nmdc_omprc_ids = self._id_minter("nmdc:OmicsProcessing", len(neon_omprc_ids))
-        neon_to_nmdc_omprc_ids = dict(zip(neon_omprc_ids, nmdc_omprc_ids))
-
-        neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
-        neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
-        nmdc_data_object_ids = self._id_minter(
-            "nmdc:DataObject", len(neon_raw_file_paths)
-        )
-        neon_to_nmdc_data_object_ids = dict(
-            zip(neon_raw_file_paths, nmdc_data_object_ids)
-        )
-
+        # --------------------------------------------------
+        # STEP 1: Insert Biosamples
+        # --------------------------------------------------
         for neon_id, nmdc_id in neon_to_nmdc_biosample_ids.items():
             biosample_row = surface_water_samples[
                 surface_water_samples["parentSampleID"] == neon_id
             ]
+            # database.biosample_set.append(
+            #     self._translate_biosample(neon_id, nmdc_id, biosample_row)
+            # )
 
-            database.biosample_set.append(
-                self._translate_biosample(neon_id, nmdc_id, biosample_row)
-            )
-
+        # --------------------------------------------------
+        # STEP 2: Insert Extraction Processes
+        # --------------------------------------------------
         for neon_id, nmdc_id in neon_to_nmdc_extraction_ids.items():
             extraction_row = surface_water_samples[
                 surface_water_samples["parentSampleID"] == neon_id
@@ -515,7 +546,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             processed_sample_id = neon_to_nmdc_extraction_processed_ids.get(neon_id)
 
             if extraction_input is not None and processed_sample_id is not None:
-                database.extraction_set.append(
+                database.material_processing_set.append(
                     self._translate_extraction_process(
                         nmdc_id,
                         extraction_input,
@@ -528,6 +559,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     extraction_row, "genomicsSampleID"
                 )
 
+                # Each Extraction process output => ProcessedSample
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
                         processed_sample_id,
@@ -535,23 +567,9 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     )
                 )
 
-        query = """
-            SELECT dnaSampleID, GROUP_CONCAT(rawDataFilePath, '|') AS rawDataFilePaths
-            FROM neonRawDataFile
-            GROUP BY dnaSampleID
-        """
-        neon_raw_data_files = pd.read_sql_query(query, self.conn)
-        neon_raw_data_files_dict = (
-            neon_raw_data_files.set_index("dnaSampleID")["rawDataFilePaths"]
-            .str.split("|")
-            .to_dict()
-        )
-        filtered_neon_raw_data_files_dict = {
-            key: value
-            for key, value in neon_raw_data_files_dict.items()
-            if len(value) <= 2
-        }
-
+        # --------------------------------------------------
+        # STEP 3: Insert LibraryPreparation Processes
+        # --------------------------------------------------
         for neon_id, nmdc_id in neon_to_nmdc_lib_prep_ids.items():
             lib_prep_row = surface_water_samples[
                 surface_water_samples["parentSampleID"] == neon_id
@@ -561,7 +579,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(neon_id)
 
             if lib_prep_input is not None and processed_sample_id is not None:
-                database.library_preparation_set.append(
+                database.material_processing_set.append(
                     self._translate_library_preparation(
                         nmdc_id,
                         lib_prep_input,
@@ -572,6 +590,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
 
                 dna_sample_id = _get_value_or_none(lib_prep_row, "dnaSampleID")
 
+                # Each LibraryPreparation process output => ProcessedSample
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
                         processed_sample_id,
@@ -579,42 +598,103 @@ class NeonSurfaceWaterDataTranslator(Translator):
                     )
                 )
 
-                has_output = None
-                has_output_do_ids = []
+        # --------------------------------------------------
+        # STEP 4: Group raw files by (dnaSampleID, sequencerRunID)
+        #         and insert DataObjects + DataGeneration processes
+        # --------------------------------------------------
+        raw_query = """
+            SELECT dnaSampleID, sequencerRunID, rawDataFilePath
+            FROM mms_swRawDataFiles
+        """
+        neon_raw_data_files_df = pd.read_sql_query(raw_query, self.conn)
 
-                if dna_sample_id in filtered_neon_raw_data_files_dict:
-                    has_output = filtered_neon_raw_data_files_dict[dna_sample_id]
-                    for item in has_output:
-                        if item in neon_to_nmdc_data_object_ids:
-                            has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
+        for neon_id, nmdc_libprep_id in neon_to_nmdc_lib_prep_ids.items():
+            # 1) Pull out the row that corresponds to this parentSampleID
+            lib_prep_row = surface_water_samples[
+                surface_water_samples["parentSampleID"] == neon_id
+            ]
 
-                        checksum = None
-                        do_type = None
+            # 2) Grab the dnaSampleID from that row
+            dna_sample_id = _get_value_or_none(lib_prep_row, "dnaSampleID")
+            if not dna_sample_id:
+                # No dnaSampleID => skip
+                continue
 
-                        checksum = neon_raw_data_file_mappings_df[
-                            neon_raw_data_file_mappings_df["rawDataFilePath"] == item
-                        ]["checkSum"].values[0]
-                        if "_R1.fastq.gz" in item:
-                            do_type = "Metagenome Raw Read 1"
-                        elif "_R2.fastq.gz" in item:
-                            do_type = "Metagenome Raw Read 2"
+            # 3) Find all raw files for that dnaSampleID
+            dna_files = neon_raw_data_files_df[
+                neon_raw_data_files_df["dnaSampleID"] == dna_sample_id
+            ]
+            if dna_files.empty:
+                # No raw files => skip
+                continue
 
-                        database.data_object_set.append(
-                            self._translate_data_object(
-                                neon_to_nmdc_data_object_ids.get(item),
-                                item,
-                                do_type,
-                                checksum,
-                            )
-                        )
+            # -----------------------------------------
+            # LOOKUP DICT: get "has_input" for this neon_id
+            # -----------------------------------------
+            has_input_value = self.samp_procsm_dict.get(neon_id)
+            # If some neon_id isn't in the dictionary, handle it as needed
+            if not has_input_value:
+                # Could skip, or raise an error, or set a default
+                continue
 
-                    database.omics_processing_set.append(
-                        self._translate_omics_processing(
-                            neon_to_nmdc_omprc_ids.get(neon_id),
-                            processed_sample_id,
-                            has_output_do_ids,
-                            lib_prep_row,
-                        )
+            # -------------------------------------------
+            # 4) CREATE A MANIFEST IF MULTIPLE RAW FILES
+            #    for this row's dnaSampleID
+            # -------------------------------------------
+            manifest_id = None
+            if len(dna_files) > 2:
+                # For each row that references a dnaSampleID with multiple raw files,
+                # mint exactly one new manifest record
+                manifest_id = self._id_minter("nmdc:Manifest", 1)[0]
+                new_manifest = self._translate_manifest(manifest_id)
+                # Add to the database
+                database.manifest_set.append(new_manifest)
+
+            # -------------------------------------------
+            # 5) NOW GROUP FILES BY sequencerRunID
+            #    => one data_generation record per run
+            # -------------------------------------------
+            lib_prep_processed_sample_id = neon_to_nmdc_lib_prep_processed_ids.get(
+                neon_id
+            )
+            if not lib_prep_processed_sample_id:
+                # If we don't have a ProcessedSample for some reason, skip
+                continue
+
+            for run_id, group_df in dna_files.groupby("sequencerRunID"):
+                # a) Mint new data_generation (NucleotideSequencing) ID for this run
+                data_generation_id = self._id_minter("nmdc:NucleotideSequencing", 1)[0]
+
+                # b) Create DataObjects for each raw file in this run
+                data_object_ids = []
+                for raw_fp in group_df["rawDataFilePath"]:
+                    do_id = self._id_minter("nmdc:DataObject", 1)[0]
+
+                    # Distinguish read type
+                    do_type = None
+                    if "_R1.fastq.gz" in raw_fp:
+                        do_type = "Metagenome Raw Read 1"
+                    elif "_R2.fastq.gz" in raw_fp:
+                        do_type = "Metagenome Raw Read 2"
+
+                    # Create the DataObject
+                    data_obj = self._translate_data_object(
+                        do_id=do_id,
+                        url=raw_fp,
+                        do_type=do_type,
+                        manifest_id=manifest_id,  # link to the new Manifest if it exists
                     )
+                    database.data_object_set.append(data_obj)
+                    data_object_ids.append(do_id)
+
+                # c) Finally, create the data generation record for this run
+                database.data_generation_set.append(
+                    self._translate_nucleotide_sequencing(
+                        nucleotide_sequencing_id=data_generation_id,
+                        processed_sample_id=has_input_value,
+                        raw_data_file_data=data_object_ids,
+                        nucleotide_sequencing_row=lib_prep_row,
+                    )
+                )
 
         return database

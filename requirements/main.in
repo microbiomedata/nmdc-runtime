@@ -1,3 +1,20 @@
+# This file contains a list of the direct (as opposed to transitive) production dependencies of
+# the `nmdc_runtime` package. We use `pip-compile` (typically via `$ make update-deps`) to derive
+# the "requirements.txt" file from this file.
+#
+# Reference: https://github.com/jazzband/pip-tools?tab=readme-ov-file#requirements-from-requirementsin
+#
+# Note: To specify that a Python package be built from the contents of a GitHub repository (which can
+#       be useful for integration testing before that Python package gets published to PyPI), you can
+#       use the following syntax in this file:
+#       ```
+#       {package_name} @ git+https://github.com/{owner}/{repo}.git@{commit}
+#       ```
+#       For example:
+#       ```
+#       refscan @ git+https://github.com/microbiomedata/refscan.git@b4f6bab138d2158ece7ea2423a27d8b8493d02f5
+#       ```
+#
 base32-lib
 beautifulsoup4
 beanie>=1.16.0
@@ -9,7 +26,7 @@ dagster-graphql
 dagster-postgres
 dependency-injector
 dotted-dict
-fastapi>=0.104.1 # Pins Swagger UI version to 5.9.0 temporarily to handle a bug crashing it in 5.9.1
+fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
 fnc
 frozendict
@@ -20,11 +37,13 @@ jupyter
 jupyterlab
 linkml
 linkml-runtime
+lxml
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==10.3.0
+nmdc-schema==11.8.0
+ontology-loader>=0.2.1
 openpyxl
 pandas
 passlib[bcrypt]
@@ -32,13 +51,17 @@ pymongo
 pydantic[email]>=1.10.0
 python-dotenv
 python-jose[cryptography]
-python-multipart
+# Note: python-multipart version `0.0.18` introduced a patch for a security issue (CVE-2024-53981).
+#       Reference: https://github.com/microbiomedata/nmdc-runtime/security/dependabot/8
+python-multipart>=0.0.18
 pyyaml
+# Note: We use `refscan` to get information about inter-document references from the schema and database.
+#       Reference: https://pypi.org/project/refscan/
+refscan==0.2.5
 requests
 semver
 setuptools-scm
 tenacity
-terminusdb-client
 toolz
 tqdm
 uvicorn[standard]

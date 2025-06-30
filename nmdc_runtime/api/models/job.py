@@ -16,6 +16,8 @@ class JobBase(BaseModel):
 class JobClaim(BaseModel):
     op_id: str
     site_id: str
+    done: Optional[bool] = None
+    cancelled: Optional[bool] = None
 
 
 class Job(JobBase):

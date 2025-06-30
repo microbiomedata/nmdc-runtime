@@ -1,37 +1,28 @@
 id	action	attribute	value
-gold:Gs0114663	update	name	NEW STUDY NAME 1
+nmdc:sty-11-pzmd0x14	update	name	NEW STUDY NAME 1
 	update	ecosystem	NEW ECOSYSTEM 1
 	update	ecosystem_type	NEW ECOSYSTEM_TYPE 1
 	update	ecosystem_subtype	NEW ECOSYSTEM_SUBTYPE 1
-	update	doi	v1
-v1	update	has_raw_value	NEW DOI 1
+	update	associated_dois	v1
+v1	insert	doi_value	doi:10.25345/C5Q23RB6B
+v1	insert	doi_provider	massive
+v1	insert	doi_category	dataset_doi
+v1	insert	type	nmdc:Doi
 	update	principal_investigator	v2
 v2		name	NEW PI NAME 1
 v2		has_raw_value	NEW RAW NAME 1
+v2		type	nmdc:PersonValue
 	update	description	NEW DESCRIPTION 1
 	update	websites	HTTP://TEST1.EXAMPLE.COM
 	update	websites	HTTP://TEST2.EXAMPLE.COM
-	update	has_credit_associations	v3
+	insert	has_credit_associations	v3
 v3		applied_roles	Investigation
+v3		type	prov:Association
 v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME 1
-	update	has_credit_associations	v4
+v3		applies_to_person.type	nmdc:PersonValue
+	insert	has_credit_associations	v4
 v4		applied_roles	Investigation
 v4		applies_to_person.name	NEW CURATOR NAME 1
-gold:Gs0103573	update	name	NEW STUDY NAME 2
-	update	ecosystem	NEW ECOSYSTEM 2
-	update	ecosystem_type	NEW ECOSYSTEM_TYPE 2
-	update	ecosystem_subtype	NEW ECOSYSTEM_SUBTYPE 2
-	update	doi	v1
-v1	update	has_raw_value	NEW DOI 2
-	update	principal_investigator	v2
-v2		name	NEW PI NAME 2
-v2		has_raw_value	NEW RAW NAME 2
-	update	description	NEW DESCRIPTION 2
-	update	websites	HTTP://TEST3.EXAMPLE.COM
-	update	websites	HTTP://TEST4.EXAMPLE.COM
-	update	has_credit_associations	v3
-v3		applied_roles	Investigation
-v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME 2
-	update	has_credit_associations	v4
-v4		applied_roles	Investigation
-v4		applies_to_person.name	NEW CURATOR NAME 2
+v4		applies_to_person.type	nmdc:PersonValue
+v4		type	prov:Association
+nmdc:sty-11-pzmd0x14	insert	funding_sources	United States National Science Foundation Microbial Observatories program (MCB-0702395)|Long-Term Ecological Research Program (NTL–LTER DEB-1440297)|INSPIRE award (DEB-1344254)

@@ -1,0 +1,93 @@
+# This GitHub Actions workflow builds a website file tree and deploys it to GitHub Pages.
+# Reference: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
+name: Deploy redirects to GitHub Pages
+
+on:
+  push: { branches: [ main ] }
+  workflow_dispatch: { }
+
+# Reference: https://docs.github.com/en/actions/using-jobs/using-concurrency
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build website
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out commit
+        uses: actions/checkout@v4
+      - name: Create website file tree
+        run: |
+          # Define helper function.
+          make_redirect() { 
+            # This function prints the HTML markup for a web page that redirects the client.
+            local url="https://docs.microbiomedata.org/runtime/${1}"
+            echo "<html><head><meta http-equiv=\"refresh\" content=\"0; url=${url}\" /></head><body>Redirecting to <a href=\"${url}\">${url}</a>...</body></html>"
+          }          
+          
+          # Create directories.
+          mkdir -p \
+            _build/html \
+            _build/html/explanation \
+            _build/html/howto-guides \
+            _build/html/howto-guides/jobs \
+            _build/html/tutorials \
+            _build/html/nb
+          
+          # Create HTML files containing redirects.
+          #
+          # Note: These HTML files will be accessible at the same URLs at which _original_ Runtime documentation pages
+          #       had been accessible (on the https://microbiomedata.github.io/nmdc-runtime/ website) prior to the
+          #       launch of the new, NMDC-wide documentation website (i.e., https://docs.microbiomedata.org).
+          #
+          #       For documents added to the Runtime repo's `docs/` directory _after_ the launch of the latter website,
+          #       creating redirects for those documents' URLs is unnecessary, since there was nothing at those URLs
+          #       before (presumably, nobody has expects anything other than an "HTTP 404 Not Found" error at them).
+          #
+          cd _build/html
+          make_redirect index.html                                          > index.html
+          make_redirect admin.html                                          > admin.html
+          make_redirect draft.html                                          > draft.html
+          make_redirect contributing-docs.html                              > contributing-docs.html
+          make_redirect explanation/domain-vision-statement.html            > explanation/domain-vision-statement.html
+          make_redirect explanation/identifiers.html                        > explanation/identifiers.html
+          make_redirect explanation/journeys.html                           > explanation/journeys.html
+          make_redirect howto-guides/update-sensors-ops.html                > howto-guides/update-sensors-ops.html
+          make_redirect howto-guides/create-triggers.html                   > howto-guides/create-triggers.html
+          make_redirect howto-guides/improving-search-api.html              > howto-guides/improving-search-api.html
+          make_redirect howto-guides/release-process.html                   > howto-guides/release-process.html
+          make_redirect howto-guides/author-changesheets.html               > howto-guides/author-changesheets.html
+          make_redirect howto-guides/claim-and-run-jobs.html                > howto-guides/claim-and-run-jobs.html
+          make_redirect howto-guides/jobs/gold-translation-etl.html         > howto-guides/jobs/gold-translation-etl.html
+          make_redirect tutorials/json.html                                 > tutorials/json.html
+          make_redirect tutorials/exporters.html                            > tutorials/exporters.html
+          make_redirect tutorials/metadata-in.html                          > tutorials/metadata-in.html
+          make_redirect tutorials/auth.html                                 > tutorials/auth.html
+          make_redirect tutorials/translators.html                          > tutorials/translators.html
+          make_redirect nb/bulk_validation_referential_integrity_check.html > nb/bulk_validation_referential_integrity_check.html
+          make_redirect nb/get_data.html                                    > nb/get_data.html
+          make_redirect nb/queue_and_trigger_data_jobs.html                 > nb/queue_and_trigger_data_jobs.html
+          make_redirect nb/wf_automation.html                               > nb/wf_automation.html
+      - name: Save the result for publishing to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/html
+  deploy:
+    name: Deploy website
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
