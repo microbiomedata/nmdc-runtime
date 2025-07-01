@@ -495,7 +495,14 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Not okay? Early return.
     if not cmd_response.ok:
         return cmd_response
-
+    
+    if cmd_response.writeErrors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=cmd_response.writeErrors,
+        )
+    # can we know whether the query is semantically invalid? (not valid mongo syntax?) try the operation, if it fails we need to see 
+    
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         # TODO `_request_dagster_run` of `ensure_alldocs`?
         if cmd_response.n == 0:

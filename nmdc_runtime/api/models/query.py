@@ -96,6 +96,7 @@ class GetMoreCommand(CommandBase):
 
 
 class CommandResponse(BaseModel):
+    # TODO: what about writeErrors?
     ok: OneOrZero
 
 

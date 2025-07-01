@@ -218,17 +218,30 @@ def test_create_user():
         )
 
 def test_queries_run_invalid_update(api_user_client):
-    # FIXME I know this isn't right, but I wanted to paste an example request-reponse pair. -DW
+    # Seed the database
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    faker = Faker()
+    study_set = mdb.get_collection("study_set")
+    study = faker.generate_studies(1)[0]
+    assert study_set.count_documents({"id": study["id"]}) == 0
+    study_set.insert_one(study)
+
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
             "/queries:run",
             {
-                "update": "omics_processing_set",
+                "update": "study_set",
                 "updates": [
                     {
-                        "q": {"id": "nmdc:omprc-11-hhkbcg72"},
-                        "u": {"$unset": "has_output"},
+                        "q": {"id": "nmdc:sty-11-hhkbcg72"},
+                        "u": {"$unset": "notes"},
                     }
                 ],
             },
@@ -238,11 +251,16 @@ def test_queries_run_invalid_update(api_user_client):
             {
                 "index": 0,
                 "code": 9,
-                "errmsg": 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "has_output"}',
+                "errmsg": 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "notes"}',
             }
         ]
     }
-    assert exc_info.value == expected_response
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+
+    # 🧹 Clean up.
+    allowances_collection.delete_many(allow_spec)
+    study_set.delete_many({"id": study["id"]})
 
 
 def test_update_user():
