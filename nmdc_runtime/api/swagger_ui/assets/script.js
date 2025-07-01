@@ -12,13 +12,13 @@ window.addEventListener("nmdcInit", (event) => {{
         if (tokenEl.dataset.state == "masked") {{
             console.debug("Unmasking token");
             tokenEl.dataset.state = "unmasked";
-            tokenEl.innerHTML = tokenEl.dataset.tokenValue;
-            event.target.innerHTML = "Hide token";
+            tokenEl.textContent = tokenEl.dataset.tokenValue;
+            event.target.textContent = "Hide token";
         }} else {{
             console.debug("Masking token");
             tokenEl.dataset.state = "masked";
-            tokenEl.innerHTML = "***";
-            event.target.innerHTML = "Show token";
+            tokenEl.textContent = "***";
+            event.target.textContent = "Show token";
         }}
     }});
 
@@ -26,7 +26,7 @@ window.addEventListener("nmdcInit", (event) => {{
     // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
     console.debug("Setting up token copier");
     tokenCopierEl.addEventListener("click", async (event) => {{
-        tokenCopierMessageEl.innerHTML = "";
+        tokenCopierMessageEl.textContent = "";
         try {{                            
             await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
             tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
