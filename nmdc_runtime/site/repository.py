@@ -463,11 +463,6 @@ def claim_and_run_apply_changesheet_jobs(_context):
         yield SkipReason("; ".join(skip_notes))
 
 
-# TODO ensure data_object_type values from file_type_enum
-#    see /metadata-translation/notebooks/202106_curation_updates.ipynb
-#    for details ("Create file_type_enum collection" section).
-
-
 @sensor(job=create_objects_from_site_object_puts.to_job(**preset_normal))
 def done_object_put_ops(_context):
     client = get_runtime_api_site_client(run_config_frozen__normal_env)
