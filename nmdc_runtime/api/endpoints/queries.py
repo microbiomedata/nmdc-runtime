@@ -502,8 +502,13 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # If the command response is of a kind that has a `writeErrors` attribute, and the value of that
     # attribute is a list, and that list is non-empty, we know that some errors occurred.
     # In that case, we respond with an HTTP 422 status code and the list of those errors.
-    if isinstance(cmd_response, DeleteCommandResponse) or isinstance(cmd_response, UpdateCommandResponse):
-        if isinstance(cmd_response.writeErrors, list) and len(cmd_response.writeErrors) > 0:
+    if isinstance(cmd_response, DeleteCommandResponse) or isinstance(
+        cmd_response, UpdateCommandResponse
+    ):
+        if (
+            isinstance(cmd_response.writeErrors, list)
+            and len(cmd_response.writeErrors) > 0
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=cmd_response.writeErrors,
