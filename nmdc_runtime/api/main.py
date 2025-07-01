@@ -5,6 +5,7 @@ from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
+from pathlib import Path
 
 import fastapi
 import requests
@@ -337,81 +338,19 @@ def custom_swagger_ui_html(
         swagger_favicon_url="/static/favicon.ico",
         swagger_ui_parameters=swagger_ui_parameters,
     )
+    assets_dir_path = Path(__file__).parent / "swagger_ui" / "assets"
+    style_css: str = Path(assets_dir_path / "style.css").read_text()
+    script_js: str = Path(assets_dir_path / "script.js").read_text()
     content = (
         response.body.decode()
         .replace('"<unquote-safe>', "")
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # Inject a style element immediately before the closing `</head>` tag.
-        .replace(
-            "</head>",
-            f"""
-                <style>
-                    .nmdc-info {{
-                        padding: 1em;
-                        background-color: #448aff1a;
-                        border: .075rem solid #448aff;
-                    }}
-                    .nmdc-info-token code {{
-                        font-size: x-small;
-                    }}
-                    .nmdc-success {{
-                        color: green;
-                    }}
-                    .nmdc-error {{
-                        color: red;
-                    }}
-                </style>
-            </head>""",
-        )
-        # Inject a JavaScript script immediately before the closing `</body>` tag.
-        .replace(
-            "</body>",
-            f"""
-                <script>
-                    console.debug("Listening for event: nmdcInit");
-                    window.addEventListener("nmdcInit", (event) => {{
-                        // Get the DOM elements we'll be referencing below. 
-                        const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
-                        const tokenEl = document.getElementById("token");
-                        const tokenCopierEl = document.getElementById("token-copier");
-                        const tokenCopierMessageEl = document.getElementById("token-copier-message");
-                        
-                        // Set up the token visibility toggler.
-                        console.debug("Setting up token visibility toggler");
-                        tokenMaskTogglerEl.addEventListener("click", (event) => {{
-                            if (tokenEl.dataset.state == "masked") {{
-                                console.debug("Unmasking token");
-                                tokenEl.dataset.state = "unmasked";
-                                tokenEl.innerHTML = tokenEl.dataset.tokenValue;
-                                event.target.innerHTML = "Hide token";
-                            }} else {{
-                                console.debug("Masking token");
-                                tokenEl.dataset.state = "masked";
-                                tokenEl.innerHTML = "***";
-                                event.target.innerHTML = "Show token";
-                            }}
-                        }});
-
-                        // Set up the token copier.
-                        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
-                        console.debug("Setting up token copier");
-                        tokenCopierEl.addEventListener("click", async (event) => {{
-                            tokenCopierMessageEl.innerHTML = "";
-                            try {{                            
-                                await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
-                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
-                            }} catch (error) {{
-                                console.error(error.message);
-                                tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
-                            }}
-                        }})
-                    }});
-                </script>
-            </body>
-            """,
-        )
+        # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
+        .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
+        # Inject a custom JavaScript script immediately before the closing `</body>` tag.
+        .replace("</body>", f"<script>\n{script_js}\n</script>\n</body>")
     )
     return HTMLResponse(content=content)
 
