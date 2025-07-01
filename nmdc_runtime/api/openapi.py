@@ -212,6 +212,7 @@ ordered_tag_descriptors: List[Dict[str, str]] = [
     {"name": "runs", "description": tag_descriptions["runs"]},
 ]
 
+
 def make_api_description(schema_version: str, orcid_login_url: str) -> str:
     r"""
     Returns an API description into which the specified schema version and
