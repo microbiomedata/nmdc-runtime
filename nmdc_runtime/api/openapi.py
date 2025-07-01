@@ -15,7 +15,9 @@ from typing import List, Dict
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
 
-tag_descriptions["sites"] = r"""
+tag_descriptions[
+    "sites"
+] = r"""
 A site corresponds to a physical place that may participate in job execution.
 
 A site may register data objects and capabilities with NMDC. It may claim jobs to execute, and it may
@@ -28,7 +30,9 @@ operation to upload an object to the site and have the site register that object
 system.
 """
 
-tag_descriptions["workflows"] = r"""
+tag_descriptions[
+    "workflows"
+] = r"""
 A workflow is a template for creating jobs.
 
 Workflow jobs are typically created by the system via trigger associations between
@@ -36,13 +40,17 @@ workflows and object types. A workflow may also require certain capabilities of 
 in order for those sites to claim workflow jobs.
 """
 
-tag_descriptions["users"] = r"""
+tag_descriptions[
+    "users"
+] = r"""
 Endpoints for user identification.
 
 Currently, accounts for use with the Runtime API are created manually by system administrators.
 """
 
-tag_descriptions["capabilities"] = r"""
+tag_descriptions[
+    "capabilities"
+] = r"""
 A workflow may require an executing site to have particular capabilities.
 
 These capabilities go beyond the simple ability to access the data object resources registered with
@@ -50,7 +58,9 @@ the runtime system. Sites register their capabilities, and sites are only able t
 jobs if they are known to have the capabilities required by the workflow.
 """
 
-tag_descriptions["object types"] = r"""
+tag_descriptions[
+    "object types"
+] = r"""
 An object type is an object annotation that is useful for triggering workflows.
 
 A data object may be annotated with one or more types, which in turn can be associated with
@@ -62,14 +72,18 @@ occasion, annotating the subset of data objects with that type, and registering 
 object type to workflow via a trigger resource.
 """
 
-tag_descriptions["triggers"] = r"""
+tag_descriptions[
+    "triggers"
+] = r"""
 A trigger is an association between a workflow and a data object type.
 
 When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
 Runtime will check, via trigger associations, for potential new jobs to create for any workflows.
 """
 
-tag_descriptions["jobs"] = r"""
+tag_descriptions[
+    "jobs"
+] = r"""
 A job is a resource that isolates workflow configuration from execution.
 
 Rather than directly creating a workflow operation by supplying a workflow ID along with
@@ -85,7 +99,9 @@ object inputs for the job without the risk of the runtime system creating a clai
 pre-claimed type.
 """
 
-tag_descriptions["objects"] = r"""
+tag_descriptions[
+    "objects"
+] = r"""
 A [Data Repository Service (DRS)
 object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes)
 represents content necessary for a workflow job to execute, and/or output from a job execution.
@@ -96,7 +112,9 @@ objects, and sites must ensure that these objects are accessible to the NMDC dat
 An object may be associated with one or more object types, useful for triggering workflows.
 """
 
-tag_descriptions["operations"] = r"""
+tag_descriptions[
+    "operations"
+] = r"""
 An operation is a resource for tracking the execution of a job.
 
 When a job is claimed by a site for execution, an operation resource is created.
@@ -114,7 +132,9 @@ execution resources have longer lifetimes / not expire, so that information abou
 of operations are available.
 """
 
-tag_descriptions["queries"] = r"""
+tag_descriptions[
+    "queries"
+] = r"""
 A query is an operation (find, update, etc.) against the metadata store.
 
 Metadata -- for studies, biosamples, omics processing, etc. -- is used by sites to execute jobs,
@@ -127,7 +147,9 @@ as an update query (if the latter is not done, the runtime system will sense the
 issue an update query).
 """
 
-tag_descriptions["metadata"] = r"""
+tag_descriptions[
+    "metadata"
+] = r"""
 The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter
 metadata from collection set types (including 
 [studies](https://w3id.org/nmdc/Study/), 
@@ -147,7 +169,9 @@ the metadata endpoints
 uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/).
 """
 
-tag_descriptions["find"] = r"""
+tag_descriptions[
+    "find"
+] = r"""
 The [find endpoints](https://api.microbiomedata.org/docs#/find) are provided with NMDC metadata entities
 already specified - where metadata about [studies](https://w3id.org/nmdc/Study),
 [biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/),
@@ -158,7 +182,9 @@ Each endpoint is unique and requires the applicable attribute names to be known 
 in a meaningful way.  Parameters that do not have a red ___* required___ label next to them are optional.
 """
 
-tag_descriptions["runs"] = r"""
+tag_descriptions[
+    "runs"
+] = r"""
 **WORK IN PROGRESS**
 
 Run simple jobs.
