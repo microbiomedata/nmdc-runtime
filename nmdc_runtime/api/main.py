@@ -52,7 +52,7 @@ from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.openapi import ordered_tag_descriptors
+from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
@@ -228,21 +228,9 @@ async def get_versions():
 app = FastAPI(
     title="NMDC Runtime API",
     version=get_version(),
-    description=(
-        "The NMDC Runtime API, via on-demand functions "
-        "and via schedule-based and sensor-based automation, "
-        "supports validation and submission of metadata, as well as "
-        "orchestration of workflow executions."
-        "\n\n"
-        "Dependency versions:\n\n"
-        f'nmdc-schema={version("nmdc_schema")}\n\n'
-        "<a href='https://microbiomedata.github.io/nmdc-runtime/'>Documentation</a>\n\n"
-        '<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/> '
-        f'<a href="{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}'
-        "&response_type=code&scope=openid&"
-        f'redirect_uri={BASE_URL_EXTERNAL}/orcid_code">Login with ORCiD</a>'
-        " (note: this link is static; if you are logged in, you will see a 'locked' lock icon"
-        " in the below-right 'Authorized' button.)"
+    description=make_api_description(
+        schema_version=version("nmdc_schema"),
+        orcid_login_url=f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code",
     ),
     openapi_tags=ordered_tag_descriptors,
     lifespan=lifespan,

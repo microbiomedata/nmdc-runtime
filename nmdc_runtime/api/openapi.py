@@ -211,3 +211,29 @@ ordered_tag_descriptors: List[Dict[str, str]] = [
     {"name": "find", "description": tag_descriptions["find"]},
     {"name": "runs", "description": tag_descriptions["runs"]},
 ]
+
+def make_api_description(schema_version: str, orcid_login_url: str) -> str:
+    r"""
+    Returns an API description into which the specified schema version and
+    ORCID login URL have been incorporated.
+
+    Args:
+        schema_version (str): The version of `nmdc-schema` the Runtime is using.
+        orcid_login_url (str): The URL at which a user could login via ORCID.
+
+    Returns:
+        str: The Markdown-formatted API description.
+    """
+    result = f"""
+The NMDC Runtime API, via on-demand functions and via schedule-based and sensor-based automation, 
+supports validation and submission of metadata, as well as orchestration of workflow executions.
+
+[NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
+
+[Documentation](https://docs.microbiomedata.org/runtime/)
+
+<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/>
+[Login with ORCID]({orcid_login_url}) (if you are logged in, you will see a _closed_ padlock icon
+in the below-right "Authorized" button.)
+""".strip()
+    return result
