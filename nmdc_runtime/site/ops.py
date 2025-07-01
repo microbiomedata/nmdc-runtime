@@ -481,83 +481,6 @@ def get_json_in(context):
     return rv.json()
 
 
-def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
-    """
-    Does not ensure ordering of `docs`.
-
-    TODO: Document this function. What _does_ it do (or what was it designed to do)?
-          What, conceptually, did the author design it to receive (as `docs`); a dict
-          having a `data_object_set` item whose value is a list of documents.
-          What, conceptually, did the author design it to return?
-    """
-
-    if ("data_object_set" not in docs) or len(docs["data_object_set"]) == 0:
-        return docs, 0
-
-    do_docs = docs["data_object_set"]
-
-    class FileTypeEnumBase(BaseModel):
-        name: str
-        description: str
-        filter: str  # JSON-encoded data_object_set mongo collection filter document
-
-    class FileTypeEnum(FileTypeEnumBase):
-        id: str
-
-    # Make a temporary collection (which will be dropped below) and insert the
-    # specified `data_object_set` documents into it.
-    temp_collection_name = f"tmp.data_object_set.{ObjectId()}"
-    temp_collection = mdb[temp_collection_name]
-    temp_collection.insert_many(do_docs)
-    temp_collection.create_index("id")
-
-    def fte_matches(fte_filter: str) -> List[dict]:
-        r"""
-        Returns a list of documents—without their `_id` field—that match the specified filter,
-        which is encoded as a JSON string.
-        """
-        return [
-            dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
-        ]
-
-    # Create a mapping from each document's `id` to the document, itself.
-    do_docs_map = {d["id"]: d for d in do_docs}
-
-    n_docs_with_types_added = 0
-
-    # For each `file_type_enum` document in the database, find all the documents (among the
-    # `data_object_set` documents provided by the caller) that match that `file_type_enum`
-    # document's filter.
-    #
-    # If any of those documents lacks a `data_object_type` field, update the original
-    # `data_object_set` document so that its `data_object_type` field is set to
-    # the `file_type_enum` document's `id` (why not its `name`?).
-    #
-    # TODO: I don't know why this sets `data_object_type` to `file_type_enum.id`,
-    #       as opposed to `file_type_enum.name`.
-    #
-    for fte_doc in mdb.file_type_enum.find():
-        fte = FileTypeEnum(**fte_doc)
-        docs_matching = fte_matches(fte.filter)
-        for doc in docs_matching:
-            if "data_object_type" not in doc:
-                do_docs_map[doc["id"]] = assoc(doc, "data_object_type", fte.id)
-                n_docs_with_types_added += 1
-
-    mdb.drop_collection(temp_collection_name)
-
-    # Returns a tuple. The first item is the original `docs` dictionary, but with the
-    # `data_object_set` list replaced by the list of the documents that are in the
-    # `do_docs_map` dictionary (with their `_id` fields omitted). The second item is
-    # the number of documents to which this function added a `data_object_type` field.
-    return (
-        assoc(
-            docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
-        ),
-        n_docs_with_types_added,
-    )
-
-
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
@@ -566,8 +489,6 @@ def perform_mongo_updates(context, json_in):
 
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
-    docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
-    context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
     context.log.debug(f"{docs}")
 
     rv = validate_json(
