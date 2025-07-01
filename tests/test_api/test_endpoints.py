@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 from dagster import build_op_context
+from nmdc_runtime.config import IS_RELATED_IDS_ENDPOINT_ENABLED
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
@@ -19,8 +20,7 @@ from nmdc_runtime.api.db.mongo import (
     get_collection_names_from_schema,
     mongorestore_collection,
 )
-from nmdc_runtime.api.endpoints.find import find_related_objects_for_workflow_execution
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
+from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object, strip_oid
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
@@ -667,6 +667,7 @@ def fake_study_nonexistent_in_mdb():
     yield nonexistent_study_id
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
     api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
 ):
@@ -700,6 +701,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         )
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
     api_user_client, fake_study_in_mdb
 ):
@@ -737,11 +739,10 @@ def fake_studies_and_biosamples_in_mdb():
     """
     mdb = get_mongo_db()
     faker = Faker()
-    study_a, study_b = faker.generate_studies(2)
-    biosample_a, biosample_b = faker.generate_biosamples(2, associated_studies=[])
-    study_b["part_of"] = [study_a["id"]]
-    biosample_a["associated_studies"] = [study_a["id"]]
-    biosample_b["associated_studies"] = [study_b["id"]]
+    study_a = faker.generate_studies(1)[0]
+    study_b = faker.generate_studies(1, part_of=[study_a["id"]])[0]
+    biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
+    biosample_b = faker.generate_biosamples(1, associated_studies=[study_b["id"]])[0]
     study_ids = [study_a["id"], study_b["id"]]
     biosample_ids = [biosample_a["id"], biosample_b["id"]]
     study_set = mdb.get_collection(name="study_set")
@@ -760,6 +761,7 @@ def fake_studies_and_biosamples_in_mdb():
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
 
+@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
 def test_get_related_ids_returns_related_ids(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
@@ -931,6 +933,8 @@ def test_find_data_objects_for_study_having_one(api_site_client):
         "id": data_object_id,
         "name": "Raw sequencer read data",
         "description": "Metagenome Raw Reads for nmdc:omprc-11-nmtj1g51",
+        "data_object_type": "Metagenome Raw Reads",
+        "data_category": "instrument_data",
         "type": "nmdc:DataObject",
     }
     assert (
@@ -1259,6 +1263,7 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
+@pytest.mark.skip(reason="We currently allow deletions that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1345,7 +1350,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     assert response.json()["n"] == 2
 
 
-def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexistent(
+def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
 ):
     r"""
@@ -1368,7 +1373,7 @@ def test_find_related_objects_for_workflow_execution__returns_404_if_wfe_nonexis
     assert response.status_code == 404
 
 
-def test_find_related_objects_for_workflow_execution__returns_related_objects(
+def test_find_related_resources_for_workflow_execution__returns_related_resources(
     base_url: str,
 ):
     # Generate interrelated documents.
@@ -1429,6 +1434,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     assert response.status_code == 200
     response_payload = response.json()
     assert response_payload["workflow_execution_id"] == workflow_execution["id"]
+    assert response_payload["workflow_execution"] == strip_oid(workflow_execution)
     assert len(response_payload["data_objects"]) == 1
     assert response_payload["data_objects"][0]["id"] == data_object["id"]
     assert len(response_payload["related_workflow_executions"]) == 0
@@ -1449,7 +1455,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_objects(
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_find_related_objects_for_workflow_execution__returns_related_workflow_exections(
+def test_find_related_resources_for_workflow_execution__returns_related_workflow_executions(
     base_url: str,
 ):
     """
@@ -1472,7 +1478,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_workflow_e
 
     # Create a second `WorkflowExecution` that is related to the first one.
     data_object_b = faker.generate_data_objects(
-        1, has_output=workflow_execution_a["id"]
+        1, was_generated_by=data_generation_a["id"]
     )[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
@@ -1526,6 +1532,7 @@ def test_find_related_objects_for_workflow_execution__returns_related_workflow_e
     assert response.status_code == 200
     response_payload = response.json()
     assert response_payload["workflow_execution_id"] == workflow_execution_a["id"]
+    assert response_payload["workflow_execution"] == strip_oid(workflow_execution_a)
     assert len(response_payload["data_objects"]) == 2
     returned_data_object_ids = [do["id"] for do in response_payload["data_objects"]]
     assert set(returned_data_object_ids) == {
