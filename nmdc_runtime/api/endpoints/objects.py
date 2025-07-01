@@ -122,7 +122,7 @@ def get_object_info(
             "https://microbiomedata.github.io/nmdc-schema",
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
-    if object_id.startswith("sty"):
+    if object_id.startswith("sty-"):
         url_to_try = f"https://data.microbiomedata.org/api/study/nmdc:{object_id}"
         rv = requests.get(
             url_to_try, allow_redirects=True
@@ -132,7 +132,7 @@ def get_object_info(
                 f"https://data.microbiomedata.org/details/study/nmdc:{object_id}",
                 status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             )
-    elif object_id.startswith("bsm"):
+    elif object_id.startswith("bsm-"):
         url_to_try = f"https://data.microbiomedata.org/api/biosample/nmdc:{object_id}"
         rv = requests.get(
             url_to_try, allow_redirects=True
@@ -144,7 +144,7 @@ def get_object_info(
             )
 
     # If "sty" or "bsm" ID doesn't have preferred landing page (above), try for JSON payload
-    if any(object_id.startswith(t["name"]) for t in typecodes()):
+    if any(object_id.startswith(f'{t["name"]}-') for t in typecodes()):
         url_to_try = f"{BASE_URL_EXTERNAL}/nmdcschema/ids/nmdc:{object_id}"
         rv = requests.head(url_to_try, allow_redirects=True)
         if rv.status_code != 404:
