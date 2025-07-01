@@ -20,10 +20,12 @@ from nmdc_runtime.api.endpoints.util import (
 import nmdc_runtime.api.models.query_continuation as qc
 from nmdc_runtime.api.models.query import (
     DeleteCommand,
+    DeleteCommandResponse,
     CommandResponse,
     command_response_for,
     QueryCmd,
     UpdateCommand,
+    UpdateCommandResponse,
     AggregateCommand,
     FindCommand,
     GetMoreCommand,
@@ -474,6 +476,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Send a command to the database and get the raw response. If the command was a
     # cursor-yielding command, make a new response object in which the raw response's
     # `cursor.firstBatch`/`cursor.nextBatch` value is in a field named `cursor.batch`.
+    # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.command
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
@@ -496,11 +499,15 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     if not cmd_response.ok:
         return cmd_response
 
-    if cmd_response.writeErrors:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=cmd_response.writeErrors,
-        )
+    # If the command response is of a kind that has a `writeErrors` attribute, and the value of that
+    # attribute is a list, and that list is non-empty, we know that some errors occurred.
+    # In that case, we respond with an HTTP 422 status code and the list of those errors.
+    if isinstance(cmd_response, DeleteCommandResponse) or isinstance(cmd_response, UpdateCommandResponse):
+        if isinstance(cmd_response.writeErrors, list) and len(cmd_response.writeErrors) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=cmd_response.writeErrors,
+            )
     # can we know whether the query is semantically invalid? (not valid mongo syntax?) try the operation, if it fails we need to see
 
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):

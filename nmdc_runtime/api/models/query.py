@@ -96,7 +96,6 @@ class GetMoreCommand(CommandBase):
 
 
 class CommandResponse(BaseModel):
-    # TODO: what about writeErrors?
     ok: OneOrZero
 
 
@@ -226,6 +225,9 @@ CommandResponseOptions = Union[
 
 
 def command_response_for(type_):
+    r"""
+    TODO: Add a docstring and type hints to this function.
+    """
     if issubclass(type_, CursorYieldingCommand):
         return CursorYieldingCommandResponse
 
