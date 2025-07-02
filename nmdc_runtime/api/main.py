@@ -264,9 +264,7 @@ async def favicon():
     return FileResponse("static/favicon.ico")
 
 
-@decorate_if(condition=IS_SCALAR_ENABLED)(
-    app.get("/scalar", include_in_schema=False)
-)
+@decorate_if(condition=IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
 async def get_scalar_html():
     r"""
     Returns the HTML markup for an interactive API docs web page
