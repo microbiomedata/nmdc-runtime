@@ -410,47 +410,24 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
 
-        # TODO: Implement real-time referential integrity checking as described here.
+        # Perform referential integrity checking.
         #
-        # Note: The endpoint currently allows users to update the `id` and `type` values
-        #       of documents. Given that, here is my plan for doing real-time referential
-        #       integrity checking for "update" commands:
-        #       1. Determine the `id` and `type` values of all documents that the user
-        #          wants to update.
-        #       2. Before _doing_ any updates, use refscan's `identify_referring_documents`
-        #          function to get the `_id`s of all documents that contain references
-        #          _to_ any of the documents the user wants to update.
-        #       3. Perform the user-requested updates within a MongoDB transaction and
-        #          leave the transaction in the _pending_ (i.e. not committed) state.
-        #       4. For each referring document identified in step 2, call refscan's
-        #          `scan_outgoing_references` function to determine whether any of its
-        #          outgoing references were broken by the (pending) "updates". If so,
-        #          abort the transaction and raise an HTTP 422 error. Otherwise, continue.
-        #          TODO: Account for the possibility that the `id` and/or `type` value
-        #                of a referring document was changed by the update operation.
-        #       5. For each "updated" document, call refscan's `scan_outgoing_references`
-        #          function to determine whether any of its outgoing references are
-        #          broken. If any are, abort the transaction and raise an HTTP 422 error.
-        #          Otherwise, abort the transaction and continue with the endpoint's
-        #          existing routine.
-        #       Regardless of the outcome, we abort the transaction (in PR#1007, we are
-        #       just introducing a validation stage—although we happen to use a
-        #       MongoDB transaction to perform that validation).
+        # Here, we check whether—if we were to perform the updates—each of the following
+        # things would be true after the updates are performed:
+        # 1. Outgoing references: The documents that were updated do not contain any
+        #    broken references (i.e. all the documents they contain references to,
+        #    exist in collections allowed by the schema).
+        # 2. Incoming references: The documents that referenced the documents that
+        #    were updated do not contain any broken references. This is necessary
+        #    because update operations can currently change `id` and `type` values.
         #
-        #       We can take for granted that the new `type` value will be valid, since
-        #       the endpoint performs schema validation on the updated documents. A new
-        #       type value can, however, change what kinds of documents can reference
-        #       it and what it can reference. Steps 4-5 above account for that.
+        # We do this by performing the updates within a MongoDB transaction, leaving
+        # the transaction in the _pending_ (i.e. not committed) state, and then
+        # performing various checks on the database in that tentative state.
         #
-        #       We can also take for granted that the new `id` value will be unique within
-        #       the collection, since MongoDB has a uniqueness index for that field in
-        #       each collection.
-        #
-        #       TODO: Account for upserts.
-        #
-        #       TODO: Add the standard "TODO" comment about this approach being
-        #             susceptible to a race condition, wherein the database gets
-        #             modified between the validation step and the commit step.
+        # TODO: As usual with this endpoint, the operation is susceptible to a race
+        #       condition, wherein the database gets modified between the validation
+        #       step and the commit step.
         #
         pass
 
