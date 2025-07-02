@@ -264,6 +264,7 @@ class NeonSoilDataTranslator(Translator):
             description=f"sequencing results for {basename}",
             type="nmdc:DataObject",
             md5_checksum=checksum,
+            data_category=nmdc.DataCategoryEnum.instrument_data.text,
             data_object_type=do_type,
         )
 
