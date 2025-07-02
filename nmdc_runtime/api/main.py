@@ -329,14 +329,17 @@ def custom_swagger_ui_html(
                 "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
             }
         )
+
+    # Note: You can check whether a newer version of Swagger UI is available, by visiting:
+    #       https://github.com/swagger-api/swagger-ui/releases
+    SWAGGER_UI_VERSION = "5.25.4"
+
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        # Note: You can check whether a newer version of Swagger UI is available, by visiting:
-        #       https://github.com/swagger-api/swagger-ui/releases
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.25.4/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.25.4/swagger-ui.css",
+        swagger_js_url=f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{SWAGGER_UI_VERSION}/swagger-ui-bundle.js",
+        swagger_css_url=f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{SWAGGER_UI_VERSION}/swagger-ui.css",
         swagger_favicon_url="/static/favicon.ico",
         swagger_ui_parameters=swagger_ui_parameters,
     )
