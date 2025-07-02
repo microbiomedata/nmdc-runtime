@@ -54,4 +54,6 @@ IS_RELATED_IDS_ENDPOINT_ENABLED = is_env_var_true(
 )
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.
-IS_SCALAR_ENABLED = True
+IS_SCALAR_ENABLED = is_env_var_true(
+    "IS_SCALAR_ENABLED", default="true"
+)
