@@ -19,4 +19,7 @@ DATABASE_CLASS_NAME: str = "Database"
 
 # Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
 # endpoint and the tests that target it. The value is read from the environment.
-IS_RELATED_IDS_ENDPOINT_ENABLED: bool = os.environ.get("IS_RELATED_IDS_ENDPOINT_ENABLED", "true").lower() in lowercase_true_strings
+IS_RELATED_IDS_ENDPOINT_ENABLED: bool = (
+    os.environ.get("IS_RELATED_IDS_ENDPOINT_ENABLED", "true").lower()
+    in lowercase_true_strings
+)
