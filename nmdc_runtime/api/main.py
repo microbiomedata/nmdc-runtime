@@ -21,7 +21,9 @@ from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from scalar_fastapi import get_scalar_api_reference
 
 from nmdc_runtime.api.analytics import Analytics
+from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
+    decorate_if,
     get_allowed_references,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
@@ -262,7 +264,9 @@ async def favicon():
     return FileResponse("static/favicon.ico")
 
 
-@app.get("/scalar", include_in_schema=False)
+@decorate_if(condition=IS_SCALAR_ENABLED)(
+    app.get("/scalar", include_in_schema=False)
+)
 async def get_scalar_html():
     r"""
     Returns the HTML markup for an interactive API docs web page
