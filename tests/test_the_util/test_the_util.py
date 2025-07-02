@@ -10,13 +10,17 @@ by issuing the following command from the root directory of the repository withi
 import doctest
 
 import pytest
-
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.lib import path_segments
-from nmdc_runtime.util import get_allowed_references, nmdc_schema_view, validate_json
+from nmdc_runtime.util import (
+    decorate_if,
+    get_allowed_references,
+    nmdc_schema_view,
+    validate_json,
+)
 from tests.lib.faker import Faker
 
 # Define a reusable dictionary that matches the value the `validate_json` function
@@ -330,3 +334,35 @@ def test_path_segments():
     """Test all doctests in `nmdc_runtime.api.endpoints.lib.path_segments`."""
     failure_count, test_count = doctest.testmod(path_segments, verbose=True)
     assert failure_count == 0, f"{failure_count} doctests failed out of {test_count}"
+
+
+def test_decorate_if():
+    """Demonstrates usages of the `@decorate_if` decorator."""
+
+    def parenthesize(func):
+        """Decorator that wraps the function's output in parentheses."""
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            return f"({result})"
+        return wrapper
+
+    @parenthesize  # regular decoration
+    def get_apple() -> str:
+        return "apple"
+    
+    @decorate_if()(parenthesize)  # condition defaults to `False`
+    def get_banana() -> str:
+        return "banana"
+    
+    @decorate_if(True)(parenthesize)
+    def get_carrot() -> str:
+        return "carrot"
+    
+    @decorate_if(False)(parenthesize)
+    def get_daikon() -> str:
+        return "daikon"
+
+    assert get_apple() == "(apple)"
+    assert get_banana() == "banana"
+    assert get_carrot() == "(carrot)"
+    assert get_daikon() == "daikon"

@@ -38,7 +38,8 @@ from dagster import (
     Optional,
     Field,
     Permissive,
-    Bool,
+    In,
+    Nothing,
 )
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
@@ -480,53 +481,6 @@ def get_json_in(context):
     return rv.json()
 
 
-def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
-    """Does not ensure ordering of `docs`."""
-
-    if ("data_object_set" not in docs) or len(docs["data_object_set"]) == 0:
-        return docs, 0
-
-    do_docs = docs["data_object_set"]
-
-    class FileTypeEnumBase(BaseModel):
-        name: str
-        description: str
-        filter: str  # JSON-encoded data_object_set mongo collection filter document
-
-    class FileTypeEnum(FileTypeEnumBase):
-        id: str
-
-    temp_collection_name = f"tmp.data_object_set.{ObjectId()}"
-    temp_collection = mdb[temp_collection_name]
-    temp_collection.insert_many(do_docs)
-    temp_collection.create_index("id")
-
-    def fte_matches(fte_filter: str):
-        return [
-            dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
-        ]
-
-    do_docs_map = {d["id"]: d for d in do_docs}
-
-    n_docs_with_types_added = 0
-
-    for fte_doc in mdb.file_type_enum.find():
-        fte = FileTypeEnum(**fte_doc)
-        docs_matching = fte_matches(fte.filter)
-        for doc in docs_matching:
-            if "data_object_type" not in doc:
-                do_docs_map[doc["id"]] = assoc(doc, "data_object_type", fte.id)
-                n_docs_with_types_added += 1
-
-    mdb.drop_collection(temp_collection_name)
-    return (
-        assoc(
-            docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
-        ),
-        n_docs_with_types_added,
-    )
-
-
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
@@ -535,8 +489,6 @@ def perform_mongo_updates(context, json_in):
 
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
-    docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
-    context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
     context.log.debug(f"{docs}")
 
     rv = validate_json(
@@ -1255,7 +1207,13 @@ def _add_related_ids_to_alldocs(
     context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
 
 
-@op(required_resource_keys={"mongo"})
+# Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
+#       pass an argument to the op (in order to specify the order of the ops in the graph)
+#       while also telling Dagster that this op doesn't need the _value_ of that argument.
+#       This is the approach shown on: https://docs.dagster.io/api/dagster/types#dagster.Nothing
+#       Reference: https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
+#
+@op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
 def materialize_alldocs(context) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:

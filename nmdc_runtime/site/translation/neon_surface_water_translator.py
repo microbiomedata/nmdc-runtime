@@ -397,6 +397,7 @@ class NeonSurfaceWaterDataTranslator(Translator):
             description=f"sequencing results for {basename}",
             type="nmdc:DataObject",
             data_object_type=do_type,
+            data_category=nmdc.DataCategoryEnum.instrument_data.text,
             in_manifest=manifest_id,
         )
 
