@@ -93,14 +93,14 @@ services:
       - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
     depends_on:
       mongo: { condition: service_started }
-    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=29017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 29017 admin root
+    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
 
   # MongoDB server used by the FastAPI application.
   # TODO: Why does this service (which is in the dev—not test—stack), mount descendants of `./tests` — is that intentional?
   mongo:
     image: mongo:8.0.4
     ports:
-      - "${DEV_STACK_HOST_MACHINE_PORT_MONGO}:29017"
+      - "${DEV_STACK_HOST_MACHINE_PORT_MONGO}:27017"
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
