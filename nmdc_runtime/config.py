@@ -10,8 +10,38 @@ from typing import Set
 import os
 
 
-# Define some helper variables.
-lowercase_true_strings: Set[str] = {"true"}
+def is_env_var_true(name: str, default: str = "false") -> bool:
+    r"""
+    Checks whether the value of the specified environment variable
+    meets our criteria for true-ness.
+
+    Reference: https://docs.python.org/3/library/os.html#os.environ
+
+    Run doctests via: $ python -m doctest nmdc_runtime/config.py
+
+    >>> import os
+    >>> name = "EXAMPLE_ENV_VAR"
+    >>> os.unsetenv(name)  # Undefined
+    >>> is_env_var_true(name)
+    False
+    >>> is_env_var_true(name, "true")  # Undefined, overridden default
+    True
+    >>> os.environ[name] = "false"  # Defined as false
+    >>> is_env_var_true(name)
+    False
+    >>> os.environ[name] = "true"  # Defined as true
+    >>> is_env_var_true(name)
+    True
+    >>> os.environ[name] = "TRUE"  # Case-insensitive
+    >>> is_env_var_true(name)
+    True
+    >>> os.environ[name] = "potato"  # Non-boolean string
+    >>> is_env_var_true(name)
+    False
+    """
+    lowercase_true_strings: Set[str] = {"true"}
+    return os.environ.get(name, default).lower() in lowercase_true_strings
+
 
 # The name of the schema class representing the database. We don't bother to
 # make this customizable via the environment, as we expect it to never change.
@@ -19,7 +49,6 @@ DATABASE_CLASS_NAME: str = "Database"
 
 # Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
 # endpoint and the tests that target it. The value is read from the environment.
-IS_RELATED_IDS_ENDPOINT_ENABLED: bool = (
-    os.environ.get("IS_RELATED_IDS_ENDPOINT_ENABLED", "true").lower()
-    in lowercase_true_strings
+IS_RELATED_IDS_ENDPOINT_ENABLED = is_env_var_true(
+    "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
 )
