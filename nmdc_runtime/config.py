@@ -48,7 +48,7 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
 DATABASE_CLASS_NAME: str = "Database"
 
 # Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
-# endpoint and the tests that target it. The value is read from the environment.
+# endpoint and the tests that target it.
 IS_RELATED_IDS_ENDPOINT_ENABLED = is_env_var_true(
     "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
 )
