@@ -42,8 +42,8 @@ mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
 motor
-nmdc-schema==11.7.0
 ontology-loader==0.2.2
+nmdc-schema==11.8.0
 openpyxl
 pandas
 passlib[bcrypt]

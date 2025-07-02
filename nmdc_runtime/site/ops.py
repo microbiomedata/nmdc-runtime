@@ -481,53 +481,6 @@ def get_json_in(context):
     return rv.json()
 
 
-def ensure_data_object_type(docs: Dict[str, list], mdb: MongoDatabase):
-    """Does not ensure ordering of `docs`."""
-
-    if ("data_object_set" not in docs) or len(docs["data_object_set"]) == 0:
-        return docs, 0
-
-    do_docs = docs["data_object_set"]
-
-    class FileTypeEnumBase(BaseModel):
-        name: str
-        description: str
-        filter: str  # JSON-encoded data_object_set mongo collection filter document
-
-    class FileTypeEnum(FileTypeEnumBase):
-        id: str
-
-    temp_collection_name = f"tmp.data_object_set.{ObjectId()}"
-    temp_collection = mdb[temp_collection_name]
-    temp_collection.insert_many(do_docs)
-    temp_collection.create_index("id")
-
-    def fte_matches(fte_filter: str):
-        return [
-            dissoc(d, "_id") for d in mdb.temp_collection.find(json.loads(fte_filter))
-        ]
-
-    do_docs_map = {d["id"]: d for d in do_docs}
-
-    n_docs_with_types_added = 0
-
-    for fte_doc in mdb.file_type_enum.find():
-        fte = FileTypeEnum(**fte_doc)
-        docs_matching = fte_matches(fte.filter)
-        for doc in docs_matching:
-            if "data_object_type" not in doc:
-                do_docs_map[doc["id"]] = assoc(doc, "data_object_type", fte.id)
-                n_docs_with_types_added += 1
-
-    mdb.drop_collection(temp_collection_name)
-    return (
-        assoc(
-            docs, "data_object_set", [dissoc(v, "_id") for v in do_docs_map.values()]
-        ),
-        n_docs_with_types_added,
-    )
-
-
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
     mongo = context.resources.mongo
@@ -536,8 +489,6 @@ def perform_mongo_updates(context, json_in):
 
     docs = json_in
     docs, _ = specialize_activity_set_docs(docs)
-    docs, n_docs_with_types_added = ensure_data_object_type(docs, mongo.db)
-    context.log.info(f"added `data_object_type` to {n_docs_with_types_added} docs")
     context.log.debug(f"{docs}")
 
     rv = validate_json(
