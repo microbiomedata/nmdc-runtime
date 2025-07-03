@@ -533,6 +533,8 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
                     raise
 
 
+# TODO: Check whether this class definition is redundant with the definition
+#       of an `UpdateStatement` class in `nmdc_runtime/api/models/query.py`.
 class UpdateStatement(BaseModel):
     q: dict
     u: dict
@@ -540,6 +542,8 @@ class UpdateStatement(BaseModel):
     multi: bool = False
 
 
+# TODO: Check whether this class definition is redundant with the definition
+#       of a `DeleteStatement` class in `nmdc_runtime/api/models/query.py`.
 class DeleteStatement(BaseModel):
     q: dict
     limit: Annotated[int, Field(ge=0, le=1)] = 1
