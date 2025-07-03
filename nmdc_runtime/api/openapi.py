@@ -10,6 +10,7 @@ Notes:
   Now that they are in a separate module, we will be able to edit them more easily.
 """
 
+from html import escape
 from typing import List, Dict
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
@@ -234,7 +235,8 @@ supports validation and submission of metadata, as well as orchestration of work
 [Documentation](https://docs.microbiomedata.org/runtime/)
 
 <img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/>
-[Login with ORCID]({orcid_login_url}) (if you are logged in, you will see a _closed_ padlock icon
-in the below-right "Authorized" button.)
+<a href="{escape(orcid_login_url)}" title="Login with ORCID">
+    Login with ORCID
+</a>
 """.strip()
     return result
