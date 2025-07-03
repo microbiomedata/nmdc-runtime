@@ -11,7 +11,9 @@ from nmdc_runtime.api.models.query import UpdateCommand, UpdateSpecs
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 
-def simulate_updates_and_check_references(db: Database, update_cmd: UpdateCommand) -> None:
+def simulate_updates_and_check_references(
+    db: Database, update_cmd: UpdateCommand
+) -> None:
     r"""
     Checks whether—if we were to perform the specified updates—each
     of the following things would be true after the updates were performed:
