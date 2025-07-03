@@ -11,13 +11,9 @@ from nmdc_runtime.api.models.query import UpdateCommand, UpdateSpecs
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 
-def simulate_updates_and_check_references(
-    db: Database,
-    collection_name: str,
-    update_cmd: UpdateCommand,
-) -> None:
+def simulate_updates_and_check_references(db: Database, update_cmd: UpdateCommand) -> None:
     r"""
-    Checks whether—if we were to perform the specified updates on the specified collection—each
+    Checks whether—if we were to perform the specified updates—each
     of the following things would be true after the updates were performed:
     1. Outgoing references: The documents that were updated do not contain any
        broken references (i.e. all the documents they contain references to,
@@ -30,12 +26,14 @@ def simulate_updates_and_check_references(
     leaving the transaction in the _pending_ (i.e. not committed) state, and then
     performing various checks on the database in that tentative state.
 
-    :param db: The database being updated
-    :param collection_name: The name of the collection being updated
-    :param update_cmd: The command that specifies the updates to be performed
+    :param db: The database on which to simulate performing the updates
+    :param update_cmd: The command that specifies the updates
     """
 
     finder = Finder(database=db)
+
+    # Extract the collection name from the command.
+    collection_name = update_cmd.update
 
     # Derive the update specifications from the command.
     update_specs: UpdateSpecs = derive_update_specs(update_cmd)

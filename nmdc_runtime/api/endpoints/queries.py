@@ -417,11 +417,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       condition, wherein the database gets modified between this validation
         #       step and the eventual "apply" step.
         #
-        simulate_updates_and_check_references(
-            db=mdb,
-            collection_name=collection_name,
-            update_cmd=cmd,
-        )
+        simulate_updates_and_check_references(db=mdb, update_cmd=cmd)
 
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
