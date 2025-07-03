@@ -50,9 +50,6 @@ def seeded_db():
 
 
 class TestSimulateUpdatesAndCheckReferences:
-    r"""
-    TODO: Add tests covering the multiple other scenarios that could arise.
-    """
     def test_it_returns_none_when_operation_is_ok(self, seeded_db):
         assert simulate_updates_and_check_references(
             db=seeded_db,
