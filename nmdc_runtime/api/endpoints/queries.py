@@ -34,6 +34,7 @@ from nmdc_runtime.api.models.query import (
     DeleteSpecs,
     UpdateSpecs,
 )
+from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.util import (
     OverlayDB,
@@ -252,10 +253,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
             )
-        delete_specs: DeleteSpecs = [
-            {"filter": del_statement.q, "limit": del_statement.limit}
-            for del_statement in cmd.deletes
-        ]
+        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
 
         # Check whether any of the documents the user wants to delete are referenced
         # by any documents that are _not_ among those documents. If any of them are,
@@ -371,10 +369,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
             )
-        update_specs: UpdateSpecs = [
-            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
-            for up_statement in cmd.updates
-        ]
+        update_specs: UpdateSpecs = derive_update_specs(update_command=cmd)
         # Execute this "update" command on a temporary "overlay" database so we can
         # validate its outcome before executing it on the real database. If its outcome
         # is invalid, we will abort and raise an "HTTP 422" exception.
