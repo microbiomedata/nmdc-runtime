@@ -175,6 +175,7 @@ class DeleteCommandResponse(CommandResponse):
 DeleteSpec = TypedDict("DeleteSpec", {"filter": Document, "limit": OneOrZero})
 DeleteSpecs = List[DeleteSpec]
 
+
 # If `multi==True` all documents that meet the query criteria will be updated.
 # Else only a single document that meets the query criteria will be updated.
 class UpdateStatement(BaseModel):
@@ -188,6 +189,7 @@ class UpdateStatement(BaseModel):
 # Custom types for the `update_specs` derived from `UpdateStatement`s.
 UpdateSpec = TypedDict("UpdateSpec", {"filter": Document, "limit": OneOrZero})
 UpdateSpecs = List[UpdateSpec]
+
 
 class UpdateCommand(CommandBase):
     update: str
