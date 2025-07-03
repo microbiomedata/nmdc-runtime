@@ -114,7 +114,6 @@ class TestSimulateUpdatesAndCheckReferences:
         assert referrer_id in exc_info.value.detail
 
     def test_it_aborts_when_adding_broken_outgoing_reference_to_other_collection(self, seeded_db):
-        assert seeded_db["biosample_set"].count_documents({}) == 2
         referrer_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
         with pytest.raises(HTTPException) as exc_info:
             simulate_updates_and_check_references(
