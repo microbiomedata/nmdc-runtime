@@ -12,10 +12,10 @@ from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 
 def simulate_updates_and_check_references(
-        db: Database,
-        collection_name: str,
-        update_cmd: UpdateCommand,
-    ) -> None:
+    db: Database,
+    collection_name: str,
+    update_cmd: UpdateCommand,
+) -> None:
     r"""
     Checks whether—if we were to perform the specified updates on the specified collection—each
     of the following things would be true after the updates were performed:
@@ -25,7 +25,7 @@ def simulate_updates_and_check_references(
     2. Incoming references: The documents that referenced any documents that
        were updated do not contain any broken references. This is necessary
        because update operations can currently change `id` and `type` values.
-    
+
     This function does that by performing the updates within a MongoDB transaction,
     leaving the transaction in the _pending_ (i.e. not committed) state, and then
     performing various checks on the database in that tentative state.
@@ -52,9 +52,7 @@ def simulate_updates_and_check_references(
     # Make a set of the `_id` values of the target documents so that (later) we can
     # check whether a given _referring_ document is also one of the _target_ documents
     # (i.e. is among the documents the user wants to update).
-    target_document_object_ids = set(
-        tdd["_id"] for tdd in target_document_descriptors
-    )
+    target_document_object_ids = set(tdd["_id"] for tdd in target_document_descriptors)
 
     # Identify all documents that reference any of the target documents.
     all_referring_document_descriptors_pre_update = []
