@@ -31,6 +31,8 @@ from nmdc_runtime.api.models.query import (
     Cmd,
     CursorYieldingCommandResponse,
     CursorYieldingCommand,
+    DeleteSpecs,
+    UpdateSpecs,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.util import (
@@ -250,7 +252,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
             )
-        delete_specs = [
+        delete_specs: DeleteSpecs = [
             {"filter": del_statement.q, "limit": del_statement.limit}
             for del_statement in cmd.deletes
         ]
@@ -369,7 +371,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
             )
-        update_specs = [
+        update_specs: UpdateSpecs = [
             {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
             for up_statement in cmd.updates
         ]
