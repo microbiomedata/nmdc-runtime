@@ -8,9 +8,10 @@ from starlette import status
 from tests.lib.faker import Faker
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def seeded_db():
     r"""Pytest fixture that yields a seeded database."""
+
     # Seed the database with the following interrelated documents (represented
     # here as a Mermaid graph/flowchart within a Markdown fenced code block):
     # Docs: https://mermaid.js.org/syntax/flowchart.html
@@ -97,4 +98,37 @@ class TestSimulateUpdatesAndCheckReferences:
             )
         assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "study_set" in exc_info.value.detail
+        assert referrer_id in exc_info.value.detail
+
+    def test_it_aborts_when_adding_broken_outgoing_reference_to_same_collection(self, seeded_db):
+        referrer_id = seeded_db["study_set"].find_one({"name": "Study A"})["id"]
+        with pytest.raises(HTTPException) as exc_info:
+            simulate_updates_and_check_references(
+                db=seeded_db,
+                update_cmd=UpdateCommand(
+                    update="study_set",
+                    updates=[
+                        UpdateStatement(q={"name": "Study A"}, u={"$set": {"part_of": "nmdc:sty-00-000099"}}),
+                    ],
+                ),
+            )
+        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "study_set" in exc_info.value.detail
+        assert referrer_id in exc_info.value.detail
+
+    def test_it_aborts_when_adding_broken_outgoing_reference_to_other_collection(self, seeded_db):
+        assert seeded_db["biosample_set"].count_documents({}) == 2
+        referrer_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
+        with pytest.raises(HTTPException) as exc_info:
+            simulate_updates_and_check_references(
+                db=seeded_db,
+                update_cmd=UpdateCommand(
+                    update="biosample_set",
+                    updates=[
+                        UpdateStatement(q={"name": "Biosample A"}, u={"$set": {"associated_studies": ["nmdc:sty-00-000099"]}}),
+                    ],
+                ),
+            )
+        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert "biosample_set" in exc_info.value.detail
         assert referrer_id in exc_info.value.detail
