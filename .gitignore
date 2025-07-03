@@ -17,6 +17,7 @@ eggs/
 lib/
 !/tests/lib/
 !/nmdc_runtime/api/endpoints/lib/
+!/nmdc_runtime/api/models/lib/
 lib64/
 parts/
 sdist/
