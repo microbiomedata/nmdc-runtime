@@ -59,7 +59,7 @@ def simulate_updates_and_check_references(
             # Make a list of the `_id`, `id`, and `type` values of the documents that
             # the user wants to update.
             projection = {"_id": 1, "id": 1, "type": 1}
-            target_document_descriptors = list(
+            subject_document_descriptors = list(
                 db[collection_name].find(
                     filter={"$or": [spec["filter"] for spec in update_specs]},
                     projection=projection,
@@ -67,24 +67,24 @@ def simulate_updates_and_check_references(
                 )
             )
 
-            # Make a set of the `_id` values of the target documents so that (later) we can
-            # check whether a given _referring_ document is also one of the _target_
+            # Make a set of the `_id` values of the subject documents so that (later) we can
+            # check whether a given _referring_ document is also one of the _subject_
             # documents (i.e. is among the documents the user wants to update).
-            target_document_object_ids = set(
-                tdd["_id"] for tdd in target_document_descriptors
+            subject_document_object_ids = set(
+                tdd["_id"] for tdd in subject_document_descriptors
             )
 
-            # Identify _all_ documents that reference any of the target documents.
+            # Identify _all_ documents that reference any of the subject documents.
             all_referring_document_descriptors_pre_update = []
-            for target_document_descriptor in target_document_descriptors:
+            for subject_document_descriptor in subject_document_descriptors:
                 # If the document descriptor lacks the "id" field, we already know that no
                 # documents reference it (since they would have to _use_ that "id" value to
                 # do so). So, we don't bother trying to identify documents that reference it.
-                if "id" not in target_document_descriptor:
+                if "id" not in subject_document_descriptor:
                     continue
 
                 referring_document_descriptors = identify_referring_documents(
-                    document=target_document_descriptor,  # expects at least "id" and "type"
+                    document=subject_document_descriptor,  # expects at least "id" and "type"
                     schema_view=schema_view,
                     references=legal_references,
                     finder=finder,
@@ -112,7 +112,7 @@ def simulate_updates_and_check_references(
                 # If the referring document is among the documents that the user wanted to
                 # update, we skip it for now. We will check its outgoing references later
                 # (i.e. when we check the outgoing references of _all_ updated documents).
-                if referring_document_oid in target_document_object_ids:
+                if referring_document_oid in subject_document_object_ids:
                     continue
                 # Get the referring document, so we can check its outgoing references.
                 # Note: We project only the fields that can legally contain references,
@@ -151,7 +151,7 @@ def simulate_updates_and_check_references(
                 # we raise an HTTP 422 error and abort the transaction.
                 #
                 # TODO: The violation might not involve a reference to one of the
-                #       target documents. The `scan_outgoing_references` function
+                #       subject documents. The `scan_outgoing_references` function
                 #       scans _all_ references emanating from the document.
                 #
                 # TODO: Consider (accumulating and) reporting _all_ would-be-broken references
@@ -172,7 +172,7 @@ def simulate_updates_and_check_references(
 
             # For each updated document, check whether any of its outgoing references
             # is broken (in the context of the transaction).
-            for descriptor in target_document_descriptors:
+            for descriptor in subject_document_descriptors:
                 updated_document_oid = descriptor["_id"]
                 updated_document_id = descriptor["id"]
                 updated_document_class_name = derive_schema_class_name_from_document(
