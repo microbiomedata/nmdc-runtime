@@ -220,7 +220,7 @@ _mdb = get_mongo_db()
 def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     r"""
     TODO: Document this function.
-    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~220 lines.
+    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
     """
     ran_at = now()
@@ -247,9 +247,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
-            # Note: If the specified collection is described by the schema, but it happens to be
-            #       empty (e.g. in local development), this error message will incorrectly imply
-            #       that the specified collection is not described by the schema.
+            # FIXME: If the specified collection is described by the schema, but it happens to be
+            #        empty (e.g. in local development), this error message will incorrectly imply
+            #        that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only delete documents in nmdc-schema collections.",
@@ -363,9 +363,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     elif isinstance(cmd, UpdateCommand):
         collection_name = cmd.update
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
-            # Note: If the specified collection is described by the schema, but it happens to be
-            #       empty (e.g. in local development), this error message will incorrectly imply
-            #       that the specified collection is not described by the schema.
+            # FIXME: If the specified collection is described by the schema, but it happens to be
+            #        empty (e.g. in local development), this error message will incorrectly imply
+            #        that the specified collection is not described by the schema.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Can only update documents in nmdc-schema collections.",
@@ -418,14 +418,19 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             db=mdb, update_cmd=cmd
         )
         if len(violation_messages) > 0:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    "The operation was not performed, because performing it would "
-                    "have left behind one or more broken references. Details: "
-                    f"{', '.join(violation_messages)}"
-                ),
+            detail = (
+                "The operation was not performed, because performing it would "
+                "have left behind one or more broken references. Details: "
+                f"{', '.join(violation_messages)}"
             )
+            if are_broken_references_allowed:
+                logging.warning(detail)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=detail,
+                )
+
 
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
