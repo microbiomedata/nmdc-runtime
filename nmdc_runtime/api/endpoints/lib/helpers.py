@@ -57,7 +57,9 @@ def simulate_updates_and_check_references(
             # Make a set of the `_id` values of the target documents so that (later) we can
             # check whether a given _referring_ document is also one of the _target_ documents
             # (i.e. is among the documents the user wants to update).
-            target_document_object_ids = set(tdd["_id"] for tdd in target_document_descriptors)
+            target_document_object_ids = set(
+                tdd["_id"] for tdd in target_document_descriptors
+            )
 
             # Identify all documents that reference any of the target documents.
             all_referring_document_descriptors_pre_update = []
