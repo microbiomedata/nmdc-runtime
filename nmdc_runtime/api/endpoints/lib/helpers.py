@@ -118,19 +118,28 @@ def simulate_updates_and_check_references(
                 # Note: We project only the fields that can legally contain references,
                 #       plus other fields involved in referential integrity checking.
                 referring_document_reference_field_names = (
-                    reference_field_names_by_source_class_name[descriptor["source_class_name"]]
+                    reference_field_names_by_source_class_name[
+                        descriptor["source_class_name"]
+                    ]
                 )
                 projection = {
-                    field_name: 1 for field_name in referring_document_reference_field_names
+                    field_name: 1
+                    for field_name in referring_document_reference_field_names
                 }
-                projection |= {"_id": 1, "id": 1, "type": 1}  # note: `|=` unions the dicts
+                projection |= {
+                    "_id": 1,
+                    "id": 1,
+                    "type": 1,
+                }  # note: `|=` unions the dicts
                 referring_document = db[referring_collection_name].find_one(
                     {"_id": referring_document_oid},
                     projection=projection,
                     session=session,
                 )
                 # Note: We assert that the referring document exists (to satisfy the type checker).
-                assert referring_document is not None, "A referring document has vanished."
+                assert (
+                    referring_document is not None
+                ), "A referring document has vanished."
                 violations = scan_outgoing_references(
                     document=referring_document,
                     source_collection_name=referring_collection_name,
@@ -167,15 +176,13 @@ def simulate_updates_and_check_references(
             for descriptor in target_document_descriptors:
                 updated_document_oid = descriptor["_id"]
                 updated_document_id = descriptor["id"]
-                updated_document_class_name = (
-                    derive_schema_class_name_from_document(
-                        document=descriptor,
-                        schema_view=schema_view,
-                    )
+                updated_document_class_name = derive_schema_class_name_from_document(
+                    document=descriptor,
+                    schema_view=schema_view,
                 )
-                assert updated_document_class_name is not None, (
-                    "The updated document does not represent a valid schema class instance."
-                )
+                assert (
+                    updated_document_class_name is not None
+                ), "The updated document does not represent a valid schema class instance."
                 updated_collection_name = (
                     collection_name  # makes a disambiguating alias
                 )
@@ -183,12 +190,19 @@ def simulate_updates_and_check_references(
                 # Note: We project only the fields that can legally contain references,
                 #       plus other fields involved in referential integrity checking.
                 updated_document_reference_field_names = (
-                    reference_field_names_by_source_class_name[updated_document_class_name]
+                    reference_field_names_by_source_class_name[
+                        updated_document_class_name
+                    ]
                 )
                 projection = {
-                    field_name: 1 for field_name in updated_document_reference_field_names
+                    field_name: 1
+                    for field_name in updated_document_reference_field_names
                 }
-                projection |= {"_id": 1, "id": 1, "type": 1}  # note: `|=` unions the dicts
+                projection |= {
+                    "_id": 1,
+                    "id": 1,
+                    "type": 1,
+                }  # note: `|=` unions the dicts
                 updated_document = db[updated_collection_name].find_one(
                     {"_id": updated_document_oid},
                     projection=projection,
