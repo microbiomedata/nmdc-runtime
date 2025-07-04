@@ -125,12 +125,11 @@ def simulate_updates_and_check_references(
                 projection = {
                     field_name: 1
                     for field_name in referring_document_reference_field_names
-                }
-                projection |= {
+                } | {
                     "_id": 1,
                     "id": 1,
                     "type": 1,
-                }  # note: `|=` unions the dicts
+                }  # note: `|` unions the dicts
                 referring_document = db[referring_collection_name].find_one(
                     {"_id": referring_document_oid},
                     projection=projection,
@@ -197,12 +196,11 @@ def simulate_updates_and_check_references(
                 projection = {
                     field_name: 1
                     for field_name in updated_document_reference_field_names
-                }
-                projection |= {
+                } | {
                     "_id": 1,
                     "id": 1,
                     "type": 1,
-                }  # note: `|=` unions the dicts
+                }  # note: `|` unions the dicts
                 updated_document = db[updated_collection_name].find_one(
                     {"_id": updated_document_oid},
                     projection=projection,
