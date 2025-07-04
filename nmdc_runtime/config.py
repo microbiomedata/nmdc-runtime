@@ -52,3 +52,6 @@ DATABASE_CLASS_NAME: str = "Database"
 IS_RELATED_IDS_ENDPOINT_ENABLED = is_env_var_true(
     "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
 )
+
+# Feature flag that can be used to enable/disable the `/scalar` endpoint.
+IS_SCALAR_ENABLED = is_env_var_true("IS_SCALAR_ENABLED", default="true")
