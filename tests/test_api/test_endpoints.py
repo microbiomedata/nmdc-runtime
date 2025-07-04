@@ -1,8 +1,6 @@
 import json
 import os
 import re
-from typing import List
-from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -15,11 +13,7 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
-    get_collection_names_from_schema,
-    mongorestore_collection,
-)
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object, strip_oid
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
@@ -34,11 +28,7 @@ from nmdc_runtime.site.resources import (
     RuntimeApiUserClient,
 )
 from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
-from tests.test_util import download_to
 from tests.lib.faker import Faker
-
-
-# TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
 
 def ensure_alldocs_collection_has_been_materialized(
