@@ -410,14 +410,20 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
 
         # Perform referential integrity checking.
         #
-        # Note: `simulate_updates_and_check_references` will raise an exception if it
-        #       finds that performing the updates would leave behind broken references.
-        #
         # TODO: As usual with this endpoint, the operation is susceptible to a race
         #       condition, wherein the database gets modified between this validation
         #       step and the eventual "apply" step.
         #
-        simulate_updates_and_check_references(db=mdb, update_cmd=cmd)
+        violation_messages = simulate_updates_and_check_references(db=mdb, update_cmd=cmd)
+        if len(violation_messages) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "The operation was not performed, because performing it would "
+                    "have left behind one or more broken references. Details: "
+                    f"{', '.join(violation_messages)}"
+                ),
+            )
 
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))

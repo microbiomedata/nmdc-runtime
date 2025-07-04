@@ -32,13 +32,13 @@ def simulate_updates_and_check_references(
     :param db: The database on which to simulate performing the updates
     :param update_cmd: The command that specifies the updates
 
-    :return: List of 0 or more error messages. If the list is empty, it means
-             that—if the updates had been performed (instead of only simulated)
-             here—they would not have left behind any broken references.
+    :return: List of violation messages. If the list is empty, it means that—if
+             the updates had been performed (instead of only simulated) here—they
+             would not have left behind any broken references.
     """
 
-    # Initialize the list of error messages that we will return.
-    error_messages: List[str] = []
+    # Initialize the list of violation messages that we will return.
+    violation_messages: List[str] = []
 
     # Instantiate a `Finder` bound to the Mongo database. This will be
     # used later, to identify and check inter-document references.
@@ -156,8 +156,8 @@ def simulate_updates_and_check_references(
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # For each violation (i.e. broken reference) that exists, add an error message
-                # to the list of error messages.
+                # For each violation (i.e. broken reference) that exists, add a violation message
+                # to the list of violation messages.
                 #
                 # TODO: The violation might not involve a reference to one of the
                 #       subject documents. The `scan_outgoing_references` function
@@ -166,7 +166,7 @@ def simulate_updates_and_check_references(
                 for violation in violations:
                     source_field_name = violation.source_field_name
                     target_id = violation.target_id
-                    error_messages.append(
+                    violation_messages.append(
                         (
                             f"The document having 'id'='{referring_document_id}' in "
                             f"the collection '{referring_collection_name}' contains a "
@@ -222,12 +222,12 @@ def simulate_updates_and_check_references(
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # For each violation (i.e. broken reference) that exists, add an error message
-                # to the list of error messages.
+                # For each violation (i.e. broken reference) that exists, add a violation message
+                # to the list of violation messages.
                 for violation in violations:
                     source_field_name = violation.source_field_name
                     target_id = violation.target_id
-                    error_messages.append(
+                    violation_messages.append(
                         (
                             f"The document having 'id'='{updated_document_id}' in "
                             f"the collection '{updated_collection_name}' contains a "
@@ -248,4 +248,4 @@ def simulate_updates_and_check_references(
             #
             session.abort_transaction()
 
-    return error_messages
+    return violation_messages
