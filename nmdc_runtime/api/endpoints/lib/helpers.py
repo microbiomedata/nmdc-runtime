@@ -38,7 +38,7 @@ def simulate_updates_and_check_references(
     """
 
     # Initialize the list of error messages that we will return.
-    error_messages: List[str] = []    
+    error_messages: List[str] = []
 
     # Instantiate a `Finder` bound to the Mongo database. This will be
     # used later, to identify and check inter-document references.
