@@ -40,42 +40,45 @@ def simulate_updates_and_check_references(
     # Derive the update specifications from the command.
     update_specs: UpdateSpecs = derive_update_specs(update_cmd)
 
-    # Make a list of the `_id`, `id`, and `type` values of the documents that
-    # the user wants to update.
-    target_document_descriptors = list(
-        db[collection_name].find(
-            filter={"$or": [spec["filter"] for spec in update_specs]},
-            projection={"_id": 1, "id": 1, "type": 1},
-        )
-    )
-
-    # Make a set of the `_id` values of the target documents so that (later) we can
-    # check whether a given _referring_ document is also one of the _target_ documents
-    # (i.e. is among the documents the user wants to update).
-    target_document_object_ids = set(tdd["_id"] for tdd in target_document_descriptors)
-
-    # Identify all documents that reference any of the target documents.
-    all_referring_document_descriptors_pre_update = []
-    for target_document_descriptor in target_document_descriptors:
-        # If the document descriptor lacks the "id" field, we already know that no
-        # documents reference it (since they would have to _use_ that "id" value to
-        # do so). So, we don't bother trying to identify documents that reference it.
-        if "id" not in target_document_descriptor:
-            continue
-
-        referring_document_descriptors = identify_referring_documents(
-            document=target_document_descriptor,  # expects at least "id" and "type"
-            schema_view=nmdc_schema_view(),
-            references=get_allowed_references(),
-            finder=finder,
-        )
-        all_referring_document_descriptors_pre_update.extend(
-            referring_document_descriptors
-        )
-
     # Start a "throwaway" MongoDB transaction so we can simulate the updates.
     with db.client.start_session() as session:
         with session.start_transaction():
+
+            # Make a list of the `_id`, `id`, and `type` values of the documents that
+            # the user wants to update.
+            target_document_descriptors = list(
+                db[collection_name].find(
+                    filter={"$or": [spec["filter"] for spec in update_specs]},
+                    projection={"_id": 1, "id": 1, "type": 1},
+                    session=session,
+                )
+            )
+
+            # Make a set of the `_id` values of the target documents so that (later) we can
+            # check whether a given _referring_ document is also one of the _target_ documents
+            # (i.e. is among the documents the user wants to update).
+            target_document_object_ids = set(tdd["_id"] for tdd in target_document_descriptors)
+
+            # Identify all documents that reference any of the target documents.
+            all_referring_document_descriptors_pre_update = []
+            for target_document_descriptor in target_document_descriptors:
+                # If the document descriptor lacks the "id" field, we already know that no
+                # documents reference it (since they would have to _use_ that "id" value to
+                # do so). So, we don't bother trying to identify documents that reference it.
+                if "id" not in target_document_descriptor:
+                    continue
+
+                referring_document_descriptors = identify_referring_documents(
+                    document=target_document_descriptor,  # expects at least "id" and "type"
+                    schema_view=nmdc_schema_view(),
+                    references=get_allowed_references(),
+                    finder=finder,
+                    client_session=session,
+                )
+                all_referring_document_descriptors_pre_update.extend(
+                    referring_document_descriptors
+                )
+
             db.command(
                 # Note: This expression was copied from the `_run_mdb_cmd` function in `queries.py`.
                 # TODO: Document this expression (i.e. the Pydantic->JSON->BSON chain).
