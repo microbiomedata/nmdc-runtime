@@ -431,7 +431,6 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     detail=detail,
                 )
 
-
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
