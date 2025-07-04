@@ -1,18 +1,14 @@
-import json
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import AfterValidator
 
-from nmdc_runtime.api.endpoints.lib.path_segments import (
-    parse_path_segment,
-    ParsedPathSegment,
-)
-from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
 from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
+from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
     nmdc_database_collection_names,
@@ -117,125 +113,27 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-def _parse_prefilter(
-    prefilter: Annotated[
-        str,
-        Path(
-            description="Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.",
-            examples=["ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("prefilter;" + prefilter)
-
-
-def _parse_postfilter(
-    postfilter: Annotated[
-        str,
-        Path(
-            description=(
-                "Example: `types=nmdc:DataObject,nmdc:PlannedProcess`."
-                + '\n\nUse `types=nmdc:NamedThing` to return "all" types'
-            ),
-            examples=[
-                "types=nmdc:NamedThing",
-                "types=nmdc:DataObject,nmdc:PlannedProcess",
-            ],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("postfilter;" + postfilter)
-
-
 @decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
     router.get(
-        "/nmdcschema/related_ids/{prefilter}/{postfilter}",
-        response_model=ListResponse[RelatedIDs],
+        "/nmdcschema/related_resources",
+        response_model=ListResponse,
         response_model_exclude_unset=True,
     )
 )
-def get_related_ids(
-    prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),
-    postfilter_parsed: ParsedPathSegment = Depends(_parse_postfilter),
+def get_related_resources(
+    ids: Annotated[list[str], Query(), AfterValidator(check_valid_ids)],
+    types: Annotated[list[str] | None, Query()] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """From entity IDs captured by `prefilter`, retrieve `postfilter`ed metadata for all related entities.
-
-    Use `postfilter` to control:
-    - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
-    - what metadata are returned for them (default: `id` and `type`).
-
-    Prefilters:
-    - `ids` : one or more (comma-delimited) IDs.
-        Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.
-    - `from` : `nmdc:Database` collection from which to retrieve related entities.
-        Example: `from=biosample_set`.
-    - `match` : MongoDB `filter` to apply to `from` collection. Must be proceeded by `from`.
-        Example: `from=study_set;match={"name": {"$regex": "National Ecological Observatory Network"}}`.
-
-    Postfilters:
-    - `types=nmdc:DataObject`
-
-    This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
-
-    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
-       each given entity, returning them in the "was_influenced_by" field.
-
-    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
-       by each given entity, returning them in the "influenced" field.
-    """
-    prefilter = {}
-    for param, value in prefilter_parsed.segment_parameters.items():
-        if param == "ids":
-            prefilter["ids"] = value if isinstance(value, list) else [value]
-        if param == "from":
-            prefilter["from"] = value
-        if param == "match":
-            prefilter["match"] = value
-
-    if "ids" in prefilter:
-        if ("from" in prefilter) or ("match" in prefilter):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `ids` prefilter parameter with {`from`,`match`} prefilter parameters.",
-            )
-        ids_found = [
-            d["id"]
-            for d in mdb.alldocs.find({"id": {"$in": prefilter["ids"]}}, {"id": 1})
-        ]
-        ids_not_found = list(set(prefilter["ids"]) - set(ids_found))
-        if ids_not_found:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Some IDs not found: {ids_not_found}.",
-            )
-    if "from" in prefilter:
-        if prefilter["from"] not in get_collection_names_from_schema():
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"`from` parameter {prefilter['from']} is not a known schema collection name."
-                    f" Known names: {get_collection_names_from_schema()}."
-                ),
-            )
-    if "match" in prefilter:
-        if "from" not in prefilter:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `match` prefilter parameter without `from` prefilter parameter.",
-            )
-        try:
-            prefilter["match"] = json.loads(prefilter["match"])
-            assert mdb[prefilter["from"]].count_documents(prefilter["match"]) > 0
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
-            )
-
-    types = ["nmdc:NamedThing"]
-    for param, value in postfilter_parsed.segment_parameters.items():
-        if param == "types":
-            types = value if isinstance(value, list) else [value]
+    """# TODO docstring"""
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types = types or ["nmdc:NamedThing"]
     types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
     types_not_found = list(set(types) - types_possible)
     if types_not_found:
@@ -243,20 +141,11 @@ def get_related_ids(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
                 f"Some types not found: {types_not_found}. "
-                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+                "You may need to prefix with `nmdc:`. "
+                "If you don't supply any types, the set {'nmdc:NamedThing'} will be used. "
+                "Types possible: {types_possible}"
             ),
         )
-
-    # Prepare `ids` for the `was_influenced_by` and `influenced` aggregation pipelines.
-    if "from" in prefilter:
-        ids = [
-            d["id"]
-            for d in mdb[prefilter["from"]].find(
-                filter=prefilter.get("match", {}), projection={"id": 1}
-            )
-        ]
-    else:
-        ids = prefilter["ids"]
 
     # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
     # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
