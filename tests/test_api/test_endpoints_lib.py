@@ -50,13 +50,41 @@ def seeded_db():
 
 
 class TestSimulateUpdatesAndCheckReferences:
-    def test_it_returns_none_when_operation_is_ok(self, seeded_db):
+    def test_it_returns_none_when_operation_does_not_break_any_references(self, seeded_db):
         assert simulate_updates_and_check_references(
             db=seeded_db,
             update_cmd=UpdateCommand(
                 update="study_set",
                 updates=[
                     UpdateStatement(q={"name": "Study A"}, u={"$set": {"name": "Study Alpha"}}),
+                ],
+            ),
+        ) is None
+
+    def test_it_returns_none_when_operation_repairs_the_references_it_breaks(self, seeded_db):
+        r"""
+        In this test, we break a reference (by updating the referee's `id`) and then
+        fix that newly-broken reference (by updating the reference accordingly), all
+        within the context of a single command.
+        """
+        # Remind the reader about the initial state of things.
+        new_study_id = "nmdc:sty-00-000099"
+        assert seeded_db["study_set"].count_documents({"id": new_study_id}) == 0
+        study_a = seeded_db["study_set"].find_one({"name": "Study A"})
+        study_b = seeded_db["study_set"].find_one({"name": "Study B"})
+        assert study_a["id"] in study_b["part_of"]
+
+        # Delete the referring biosample, so its breaking doesn't interfere with our assertion.
+        seeded_db["biosample_set"].delete_many({"associated_studies": study_a["id"]})        
+
+        # Submit an update command that breaks the reference and then repairs it.
+        assert simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="study_set",
+                updates=[
+                    UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": new_study_id}}),
+                    UpdateStatement(q={"name": "Study B"}, u={"$set": {"part_of": new_study_id}}),
                 ],
             ),
         ) is None
@@ -128,3 +156,4 @@ class TestSimulateUpdatesAndCheckReferences:
         assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "biosample_set" in exc_info.value.detail
         assert referrer_id in exc_info.value.detail
+
