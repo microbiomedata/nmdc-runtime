@@ -414,7 +414,9 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         #       condition, wherein the database gets modified between this validation
         #       step and the eventual "apply" step.
         #
-        violation_messages = simulate_updates_and_check_references(db=mdb, update_cmd=cmd)
+        violation_messages = simulate_updates_and_check_references(
+            db=mdb, update_cmd=cmd
+        )
         if len(violation_messages) > 0:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
