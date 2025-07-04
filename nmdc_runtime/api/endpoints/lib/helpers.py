@@ -1,7 +1,7 @@
 import json
 import bson.json_util
+from typing import List
 
-from fastapi import status, HTTPException
 from pymongo.database import Database
 from refscan.lib.Finder import Finder
 from refscan.lib.helpers import derive_schema_class_name_from_document
@@ -14,7 +14,7 @@ from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 def simulate_updates_and_check_references(
     db: Database, update_cmd: UpdateCommand
-) -> None:
+) -> List[str]:
     r"""
     Checks whether—if we were to perform the specified updates—each
     of the following things would be true after the updates were performed:
@@ -31,8 +31,17 @@ def simulate_updates_and_check_references(
 
     :param db: The database on which to simulate performing the updates
     :param update_cmd: The command that specifies the updates
+
+    :return: List of 0 or more error messages. If the list is empty, it means
+             that—if the updates had been performed (instead of only simulated)
+             here—they would not have left behind any broken references.
     """
 
+    # Initialize the list of error messages that we will return.
+    error_messages: List[str] = []    
+
+    # Instantiate a `Finder` bound to the Mongo database. This will be
+    # used later, to identify and check inter-document references.
     finder = Finder(database=db)
 
     # Extract the collection name from the command.
@@ -147,27 +156,24 @@ def simulate_updates_and_check_references(
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # If any of the references emanating from this document are broken,
-                # we raise an HTTP 422 error and abort the transaction.
+                # For each violation (i.e. broken reference) that exists, add an error message
+                # to the list of error messages.
                 #
                 # TODO: The violation might not involve a reference to one of the
                 #       subject documents. The `scan_outgoing_references` function
                 #       scans _all_ references emanating from the document.
                 #
-                # TODO: Consider (accumulating and) reporting _all_ would-be-broken references
-                #       instead of only the _first_ one we encounter.
-                #
-                if len(violations) > 0:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=(
-                            f"The operation was not performed, because performing it would "
-                            f"have left behind one or more broken references. For example: "
+                for violation in violations:
+                    source_field_name = violation.source_field_name
+                    target_id = violation.target_id
+                    error_messages.append(
+                        (
                             f"The document having 'id'='{referring_document_id}' in "
-                            f"the collection '{referring_collection_name}' has outgoing "
-                            f"references that would be broken by the update operation. "
-                            f"Update or delete referring document(s) and try again."
-                        ),
+                            f"the collection '{referring_collection_name}' contains a "
+                            f"reference (in its '{source_field_name}' field, "
+                            f"referring to the document having id='{target_id}') "
+                            f"which would be broken."
+                        )
                     )
 
             # For each updated document, check whether any of its outgoing references
@@ -216,26 +222,22 @@ def simulate_updates_and_check_references(
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # If any of the references emanating from this document are broken,
-                # we raise an HTTP 422 error and abort the transaction.
-                #
-                # TODO: As mentioned above, consider (accumulating and) reporting _all_
-                #       would-be-broken references instead of only the _first_ one we encounter.
-                #
-                if len(violations) > 0:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=(
-                            f"The operation was not performed, because performing it would "
-                            f"have left behind one or more broken references. For example: "
+                # For each violation (i.e. broken reference) that exists, add an error message
+                # to the list of error messages.
+                for violation in violations:
+                    source_field_name = violation.source_field_name
+                    target_id = violation.target_id
+                    error_messages.append(
+                        (
                             f"The document having 'id'='{updated_document_id}' in "
-                            f"the collection '{updated_collection_name}' has outgoing "
-                            f"references that would be broken by the update operation. "
-                            f"Update or delete referring document(s) and try again."
-                        ),
+                            f"the collection '{updated_collection_name}' contains a "
+                            f"reference (in its '{source_field_name}' field, "
+                            f"referring to the document having id='{target_id}') "
+                            f"which would be broken."
+                        )
                     )
 
-            # Whatever happens, abort the transaction.
+            # Whatever happens (i.e. whether there are violations or not), abort the transaction.
             #
             # Note: If an exception was raised within this `with` block, the transaction
             #       will already have been aborted automatically (and execution will not
@@ -246,4 +248,4 @@ def simulate_updates_and_check_references(
             #
             session.abort_transaction()
 
-    pass  # TODO: Return something (maybe instead of raising exceptions in this function).
+    return error_messages

@@ -50,7 +50,7 @@ def seeded_db():
 
 
 class TestSimulateUpdatesAndCheckReferences:
-    def test_it_returns_none_when_operation_does_not_break_any_references(self, seeded_db):
+    def test_it_returns_empty_list_when_operation_does_not_break_any_references(self, seeded_db):
         assert simulate_updates_and_check_references(
             db=seeded_db,
             update_cmd=UpdateCommand(
@@ -59,9 +59,9 @@ class TestSimulateUpdatesAndCheckReferences:
                     UpdateStatement(q={"name": "Study A"}, u={"$set": {"name": "Study Alpha"}}),
                 ],
             ),
-        ) is None
+        ) == []
 
-    def test_it_returns_none_when_operation_repairs_the_references_it_breaks(self, seeded_db):
+    def test_it_returns_empty_list_when_operation_repairs_the_references_it_breaks(self, seeded_db):
         r"""
         In this test, we break a reference (by updating the referee's `id`) and then
         fix that newly-broken reference (by updating the reference accordingly), all
@@ -87,73 +87,88 @@ class TestSimulateUpdatesAndCheckReferences:
                     UpdateStatement(q={"name": "Study B"}, u={"$set": {"part_of": new_study_id}}),
                 ],
             ),
-        ) is None
+        ) == []
 
-    def test_it_aborts_when_breaking_incoming_reference_from_other_collection(self, seeded_db):
+    def test_it_returns_error_messages_when_breaking_incoming_references(self, seeded_db):
         referrer_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
-        with pytest.raises(HTTPException) as exc_info:
-            simulate_updates_and_check_references(
-                db=seeded_db,
-                update_cmd=UpdateCommand(
-                    update="study_set",
-                    updates=[
-                        UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": "nmdc:sty-00-000099"}}),
-                    ],
-                ),
-            )
-        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert "biosample_set" in exc_info.value.detail
-        assert referrer_id in exc_info.value.detail
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="study_set",
+                updates=[
+                    UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": "nmdc:sty-00-000099"}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 2
+        assert "biosample_set" in error_messages[0]
+        assert referrer_id in error_messages[0]
 
-    def test_it_aborts_when_breaking_incoming_reference_from_same_collection(self, seeded_db):
-        # Delete the referring biosample, so its breaking doesn't interfere with our assertion.
+    def test_it_returns_error_messages_when_breaking_incoming_reference_from_other_collection_only(self, seeded_db):
+        # Delete the referring study, so we can focus on other-collection references.
+        referee_id = seeded_db["study_set"].find_one({"name": "Study A"})["id"]
+        seeded_db["study_set"].delete_many({"part_of": referee_id})
+
+        referrer_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="study_set",
+                updates=[
+                    UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": "nmdc:sty-00-000099"}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 1
+        assert "biosample_set" in error_messages[0]
+        assert referrer_id in error_messages[0]
+
+    def test_it_returns_error_messages_when_breaking_incoming_reference_from_same_collection_only(self, seeded_db):
+        # Delete the referring biosample, so we can focus on same-collection references.
         referee_id = seeded_db["study_set"].find_one({"name": "Study A"})["id"]
         seeded_db["biosample_set"].delete_many({"associated_studies": referee_id})
 
         referrer_id = seeded_db["study_set"].find_one({"name": "Study B"})["id"]
-        with pytest.raises(HTTPException) as exc_info:
-            simulate_updates_and_check_references(
-                db=seeded_db,
-                update_cmd=UpdateCommand(
-                    update="study_set",
-                    updates=[
-                        UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": "nmdc:sty-00-000099"}}),
-                    ],
-                ),
-            )
-        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert "study_set" in exc_info.value.detail
-        assert referrer_id in exc_info.value.detail
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="study_set",
+                updates=[
+                    UpdateStatement(q={"name": "Study A"}, u={"$set": {"id": "nmdc:sty-00-000099"}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 1
+        assert "study_set" in error_messages[0]
+        assert referrer_id in error_messages[0]
 
-    def test_it_aborts_when_adding_broken_outgoing_reference_to_same_collection(self, seeded_db):
+    def test_it_returns_error_messages_when_adding_broken_outgoing_reference_to_same_collection(self, seeded_db):
         referrer_id = seeded_db["study_set"].find_one({"name": "Study A"})["id"]
-        with pytest.raises(HTTPException) as exc_info:
-            simulate_updates_and_check_references(
-                db=seeded_db,
-                update_cmd=UpdateCommand(
-                    update="study_set",
-                    updates=[
-                        UpdateStatement(q={"name": "Study A"}, u={"$set": {"part_of": "nmdc:sty-00-000099"}}),
-                    ],
-                ),
-            )
-        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert "study_set" in exc_info.value.detail
-        assert referrer_id in exc_info.value.detail
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="study_set",
+                updates=[
+                    UpdateStatement(q={"name": "Study A"}, u={"$set": {"part_of": "nmdc:sty-00-000099"}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 1
+        assert "study_set" in error_messages[0]
+        assert referrer_id in error_messages[0]
 
-    def test_it_aborts_when_adding_broken_outgoing_reference_to_other_collection(self, seeded_db):
+    def test_it_returns_error_messages_when_adding_broken_outgoing_reference_to_other_collection(self, seeded_db):
         referrer_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
-        with pytest.raises(HTTPException) as exc_info:
-            simulate_updates_and_check_references(
-                db=seeded_db,
-                update_cmd=UpdateCommand(
-                    update="biosample_set",
-                    updates=[
-                        UpdateStatement(q={"name": "Biosample A"}, u={"$set": {"associated_studies": ["nmdc:sty-00-000099"]}}),
-                    ],
-                ),
-            )
-        assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        assert "biosample_set" in exc_info.value.detail
-        assert referrer_id in exc_info.value.detail
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="biosample_set",
+                updates=[
+                    UpdateStatement(q={"name": "Biosample A"}, u={"$set": {"associated_studies": ["nmdc:sty-00-000099"]}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 1
+        assert "biosample_set" in error_messages[0]
+        assert referrer_id in error_messages[0]
 
