@@ -4,6 +4,7 @@ import bson.json_util
 from fastapi import status, HTTPException
 from pymongo.database import Database
 from refscan.lib.Finder import Finder
+from refscan.lib.helpers import derive_schema_class_name_from_document
 from refscan.scanner import identify_referring_documents, scan_outgoing_references
 
 from nmdc_runtime.api.models.lib.helpers import derive_update_specs
@@ -17,11 +18,11 @@ def simulate_updates_and_check_references(
     r"""
     Checks whether—if we were to perform the specified updates—each
     of the following things would be true after the updates were performed:
-    1. Outgoing references: The documents that were updated do not contain any
-       broken references (i.e. all the documents they contain references to,
-       exist in collections allowed by the schema).
-    2. Incoming references: The documents that referenced any documents that
-       were updated do not contain any broken references. This is necessary
+    1. Outgoing references: The documents that were _updated_ do not contain any
+       broken references (i.e. all the documents to which they contain references,
+       _exist_ in collections allowed by the schema).
+    2. Incoming references: The documents that originally _referenced_ any documents
+       that were updated do not contain any broken references. This is necessary
        because update operations can currently change `id` and `type` values.
 
     This function does that by performing the updates within a MongoDB transaction,
@@ -40,28 +41,40 @@ def simulate_updates_and_check_references(
     # Derive the update specifications from the command.
     update_specs: UpdateSpecs = derive_update_specs(update_cmd)
 
+    # Get a reference to a `SchemaView` bound to the NMDC schema, so we can
+    # use it to, for example, map `type` field values to schema class names.
+    schema_view = nmdc_schema_view()
+
+    # Get some data structures that indicate which fields of which documents
+    # can legally contain references, according to the NMDC schema.
+    legal_references = get_allowed_references()
+    reference_field_names_by_source_class_name = (
+        legal_references.get_reference_field_names_by_source_class_name()
+    )
+
     # Start a "throwaway" MongoDB transaction so we can simulate the updates.
     with db.client.start_session() as session:
         with session.start_transaction():
 
             # Make a list of the `_id`, `id`, and `type` values of the documents that
             # the user wants to update.
+            projection = {"_id": 1, "id": 1, "type": 1}
             target_document_descriptors = list(
                 db[collection_name].find(
                     filter={"$or": [spec["filter"] for spec in update_specs]},
-                    projection={"_id": 1, "id": 1, "type": 1},
+                    projection=projection,
                     session=session,
                 )
             )
 
             # Make a set of the `_id` values of the target documents so that (later) we can
-            # check whether a given _referring_ document is also one of the _target_ documents
-            # (i.e. is among the documents the user wants to update).
+            # check whether a given _referring_ document is also one of the _target_
+            # documents (i.e. is among the documents the user wants to update).
             target_document_object_ids = set(
                 tdd["_id"] for tdd in target_document_descriptors
             )
 
-            # Identify all documents that reference any of the target documents.
+            # Identify _all_ documents that reference any of the target documents.
             all_referring_document_descriptors_pre_update = []
             for target_document_descriptor in target_document_descriptors:
                 # If the document descriptor lacks the "id" field, we already know that no
@@ -72,8 +85,8 @@ def simulate_updates_and_check_references(
 
                 referring_document_descriptors = identify_referring_documents(
                     document=target_document_descriptor,  # expects at least "id" and "type"
-                    schema_view=nmdc_schema_view(),
-                    references=get_allowed_references(),
+                    schema_view=schema_view,
+                    references=legal_references,
                     finder=finder,
                     client_session=session,
                 )
@@ -81,6 +94,7 @@ def simulate_updates_and_check_references(
                     referring_document_descriptors
                 )
 
+            # Simulate the updates (i.e. apply them within the context of the transaction).
             db.command(
                 # Note: This expression was copied from the `_run_mdb_cmd` function in `queries.py`.
                 # TODO: Document this expression (i.e. the Pydantic->JSON->BSON chain).
@@ -95,29 +109,37 @@ def simulate_updates_and_check_references(
                 referring_document_oid = descriptor["source_document_object_id"]
                 referring_document_id = descriptor["source_document_id"]
                 referring_collection_name = descriptor["source_collection_name"]
-                # If the referring document is among the documents that the user wants to
-                # update, we skip it, since we will check its outgoing references later.
+                # If the referring document is among the documents that the user wanted to
+                # update, we skip it for now. We will check its outgoing references later
+                # (i.e. when we check the outgoing references of _all_ updated documents).
                 if referring_document_oid in target_document_object_ids:
                     continue
                 # Get the referring document, so we can check its outgoing references.
-                # TODO: Consider projecting only necessary fields.
+                # Note: We project only the fields that can legally contain references,
+                #       plus other fields involved in referential integrity checking.
+                referring_document_reference_field_names = (
+                    reference_field_names_by_source_class_name[descriptor["source_class_name"]]
+                )
+                projection = {
+                    field_name: 1 for field_name in referring_document_reference_field_names
+                }
+                projection |= {"_id": 1, "id": 1, "type": 1}  # note: `|=` unions the dicts
                 referring_document = db[referring_collection_name].find_one(
                     {"_id": referring_document_oid},
+                    projection=projection,
                     session=session,
                 )
-                # If the referring document is not found, we skip it, since it means that it
-                # was deleted since we identified it.
-                if referring_document is None:
-                    continue
+                # Note: We assert that the referring document exists (to satisfy the type checker).
+                assert referring_document is not None, "A referring document has vanished."
                 violations = scan_outgoing_references(
                     document=referring_document,
                     source_collection_name=referring_collection_name,
-                    schema_view=nmdc_schema_view(),
-                    references=get_allowed_references(),
+                    schema_view=schema_view,
+                    references=legal_references,
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # If any of the references emanating from this document is broken,
+                # If any of the references emanating from this document are broken,
                 # we raise an HTTP 422 error and abort the transaction.
                 #
                 # TODO: The violation might not involve a reference to one of the
@@ -145,35 +167,44 @@ def simulate_updates_and_check_references(
             for descriptor in target_document_descriptors:
                 updated_document_oid = descriptor["_id"]
                 updated_document_id = descriptor["id"]
+                updated_document_class_name = (
+                    derive_schema_class_name_from_document(
+                        document=descriptor,
+                        schema_view=schema_view,
+                    )
+                )
+                assert updated_document_class_name is not None, (
+                    "The updated document does not represent a valid schema class instance."
+                )
                 updated_collection_name = (
                     collection_name  # makes a disambiguating alias
                 )
                 # Get the updated document, so we can check its outgoing references.
-                # TODO: Consider projecting only necessary fields.
+                # Note: We project only the fields that can legally contain references,
+                #       plus other fields involved in referential integrity checking.
+                updated_document_reference_field_names = (
+                    reference_field_names_by_source_class_name[updated_document_class_name]
+                )
+                projection = {
+                    field_name: 1 for field_name in updated_document_reference_field_names
+                }
+                projection |= {"_id": 1, "id": 1, "type": 1}  # note: `|=` unions the dicts
                 updated_document = db[updated_collection_name].find_one(
                     {"_id": updated_document_oid},
+                    projection=projection,
                     session=session,
                 )
-                # If the updated document is not found, we skip it, since it means that it
-                # was deleted since we identified it.
-                #
-                # TODO: We can prevent this from happening by performing the "identification"
-                #       step within this transaction. Indeed, since we will be fetching each
-                #       of the updated documents anyway, we can validate them first (before
-                #       validating the original referrers), storing their `_id`s for the
-                #       use when we validate the original referrers.
-                #
-                if updated_document is None:
-                    continue
+                # Note: We assert that the updated document exists (to satisfy the type checker).
+                assert updated_document is not None, "An updated document has vanished."
                 violations = scan_outgoing_references(
                     document=updated_document,
                     source_collection_name=updated_collection_name,
-                    schema_view=nmdc_schema_view(),
-                    references=get_allowed_references(),
+                    schema_view=schema_view,
+                    references=legal_references,
                     finder=finder,
                     client_session=session,  # so it uses the pending transaction's session
                 )
-                # If any of the references emanating from this document is broken,
+                # If any of the references emanating from this document are broken,
                 # we raise an HTTP 422 error and abort the transaction.
                 #
                 # TODO: As mentioned above, consider (accumulating and) reporting _all_
