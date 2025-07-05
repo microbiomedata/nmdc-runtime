@@ -12,6 +12,28 @@ from nmdc_runtime.api.models.query import UpdateCommand, UpdateSpecs
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 
+def make_violation_message(
+    collection_name: str, source_document_id: str, source_field_name: str, target_document_id: str
+) -> str:
+    r"""
+    Constructs a violation message that indicates that a document contains a broken reference.
+
+    :param collection_name: The name of the collection containing the document containing the broken reference
+    :param source_document_id: The `id` of the document containing the broken reference
+    :param source_field_name: The name of the field containing the broken reference
+    :param target_document_id: The `id` of the document that is being referenced
+
+    :return: A formatted string describing the violation
+    """
+    return (
+        f"The document having 'id'='{source_document_id}' in "
+        f"the collection '{collection_name}' contains a "
+        f"reference (in its '{source_field_name}' field, "
+        f"referring to the document having id='{target_document_id}') "
+        f"which would be broken."
+    )
+
+
 def simulate_updates_and_check_references(
     db: Database, update_cmd: UpdateCommand
 ) -> List[str]:
@@ -167,12 +189,11 @@ def simulate_updates_and_check_references(
                     source_field_name = violation.source_field_name
                     target_id = violation.target_id
                     violation_messages.append(
-                        (
-                            f"The document having 'id'='{referring_document_id}' in "
-                            f"the collection '{referring_collection_name}' contains a "
-                            f"reference (in its '{source_field_name}' field, "
-                            f"referring to the document having id='{target_id}') "
-                            f"which would be broken."
+                        make_violation_message(
+                            collection_name=referring_collection_name,
+                            source_document_id=referring_document_id,
+                            source_field_name=source_field_name,
+                            target_document_id=target_id,
                         )
                     )
 
@@ -188,7 +209,7 @@ def simulate_updates_and_check_references(
                 assert (
                     subject_document_class_name is not None
                 ), "The updated document does not represent a valid schema class instance."
-                updated_collection_name = (
+                subject_collection_name = (
                     collection_name  # makes a disambiguating alias
                 )
                 # Get the updated document, so we can check its outgoing references.
@@ -207,7 +228,7 @@ def simulate_updates_and_check_references(
                     "id": 1,
                     "type": 1,
                 }  # note: `|` unions the dicts
-                updated_document = db[updated_collection_name].find_one(
+                updated_document = db[subject_collection_name].find_one(
                     {"_id": subject_document_oid},
                     projection=projection,
                     session=session,
@@ -216,7 +237,7 @@ def simulate_updates_and_check_references(
                 assert updated_document is not None, "An updated document has vanished."
                 violations = scan_outgoing_references(
                     document=updated_document,
-                    source_collection_name=updated_collection_name,
+                    source_collection_name=subject_collection_name,
                     schema_view=schema_view,
                     references=legal_references,
                     finder=finder,
@@ -228,12 +249,11 @@ def simulate_updates_and_check_references(
                     source_field_name = violation.source_field_name
                     target_id = violation.target_id
                     violation_messages.append(
-                        (
-                            f"The document having 'id'='{subject_document_id}' in "
-                            f"the collection '{updated_collection_name}' contains a "
-                            f"reference (in its '{source_field_name}' field, "
-                            f"referring to the document having id='{target_id}') "
-                            f"which would be broken."
+                        make_violation_message(
+                            collection_name=subject_collection_name,
+                            source_document_id=subject_document_id,
+                            source_field_name=source_field_name,
+                            target_document_id=target_id,
                         )
                     )
 
