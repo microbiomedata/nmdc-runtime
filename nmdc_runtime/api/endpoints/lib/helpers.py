@@ -16,18 +16,18 @@ def simulate_updates_and_check_references(
     db: Database, update_cmd: UpdateCommand
 ) -> List[str]:
     r"""
-    Checks whether—if we were to perform the specified updates—each
-    of the following things would be true after the updates were performed:
-    1. Outgoing references: The documents that were _updated_ do not contain any
-       broken references (i.e. all the documents to which they contain references,
-       _exist_ in collections allowed by the schema).
-    2. Incoming references: The documents that originally _referenced_ any documents
-       that were updated do not contain any broken references. This is necessary
-       because update operations can currently change `id` and `type` values.
+    Checks whether, if the specified updates were performed on the specified database,
+    both of the following things would be true afterward:
+    1. (Regarding outgoing references): The updated documents do not contain any
+       broken references.
+    2. (Regarding incoming references): The documents that originally _referenced_
+       any of the updated documents do not contain any broken references.
+       This check is necessary because update operations can currently change `id`
+       and `type` values, which can affect what can legally reference those documents.
 
-    This function does that by performing the updates within a MongoDB transaction,
-    leaving the transaction in the _pending_ (i.e. not committed) state, and then
-    performing various checks on the database in that tentative state.
+    This function checks those things by performing the updates within a MongoDB
+    transaction, leaving the transaction in the _pending_ (i.e. not committed) state,
+    and then performing various checks on the database in that _pending_ state.
 
     :param db: The database on which to simulate performing the updates
     :param update_cmd: The command that specifies the updates
@@ -68,7 +68,7 @@ def simulate_updates_and_check_references(
             # Make a list of the `_id`, `id`, and `type` values of the documents that
             # the user wants to update.
             projection = {"_id": 1, "id": 1, "type": 1}
-            subject_document_descriptors = list(
+            subject_document_summaries_pre_update = list(
                 db[collection_name].find(
                     filter={"$or": [spec["filter"] for spec in update_specs]},
                     projection=projection,
@@ -80,20 +80,20 @@ def simulate_updates_and_check_references(
             # check whether a given _referring_ document is also one of the _subject_
             # documents (i.e. is among the documents the user wants to update).
             subject_document_object_ids = set(
-                tdd["_id"] for tdd in subject_document_descriptors
+                tdd["_id"] for tdd in subject_document_summaries_pre_update
             )
 
             # Identify _all_ documents that reference any of the subject documents.
             all_referring_document_descriptors_pre_update = []
-            for subject_document_descriptor in subject_document_descriptors:
-                # If the document descriptor lacks the "id" field, we already know that no
+            for subject_document_summary in subject_document_summaries_pre_update:
+                # If the document summary lacks the "id" field, we already know that no
                 # documents reference it (since they would have to _use_ that "id" value to
-                # do so). So, we don't bother trying to identify documents that reference it.
-                if "id" not in subject_document_descriptor:
+                # do so); so, we abort this iteration and move on to the next subject document.
+                if "id" not in subject_document_summary:
                     continue
 
                 referring_document_descriptors = identify_referring_documents(
-                    document=subject_document_descriptor,  # expects at least "id" and "type"
+                    document=subject_document_summary,  # expects at least "id" and "type"
                     schema_view=schema_view,
                     references=legal_references,
                     finder=finder,
@@ -178,15 +178,15 @@ def simulate_updates_and_check_references(
 
             # For each updated document, check whether any of its outgoing references
             # is broken (in the context of the transaction).
-            for descriptor in subject_document_descriptors:
-                updated_document_oid = descriptor["_id"]
-                updated_document_id = descriptor["id"]
-                updated_document_class_name = derive_schema_class_name_from_document(
-                    document=descriptor,
+            for subject_document_summary in subject_document_summaries_pre_update:
+                subject_document_oid = subject_document_summary["_id"]
+                subject_document_id = subject_document_summary["id"]
+                subject_document_class_name = derive_schema_class_name_from_document(
+                    document=subject_document_summary,
                     schema_view=schema_view,
                 )
                 assert (
-                    updated_document_class_name is not None
+                    subject_document_class_name is not None
                 ), "The updated document does not represent a valid schema class instance."
                 updated_collection_name = (
                     collection_name  # makes a disambiguating alias
@@ -196,7 +196,7 @@ def simulate_updates_and_check_references(
                 #       plus other fields involved in referential integrity checking.
                 updated_document_reference_field_names = (
                     reference_field_names_by_source_class_name[
-                        updated_document_class_name
+                        subject_document_class_name
                     ]
                 )
                 projection = {
@@ -208,7 +208,7 @@ def simulate_updates_and_check_references(
                     "type": 1,
                 }  # note: `|` unions the dicts
                 updated_document = db[updated_collection_name].find_one(
-                    {"_id": updated_document_oid},
+                    {"_id": subject_document_oid},
                     projection=projection,
                     session=session,
                 )
@@ -229,7 +229,7 @@ def simulate_updates_and_check_references(
                     target_id = violation.target_id
                     violation_messages.append(
                         (
-                            f"The document having 'id'='{updated_document_id}' in "
+                            f"The document having 'id'='{subject_document_id}' in "
                             f"the collection '{updated_collection_name}' contains a "
                             f"reference (in its '{source_field_name}' field, "
                             f"referring to the document having id='{target_id}') "
