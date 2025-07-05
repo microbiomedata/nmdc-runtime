@@ -8,11 +8,13 @@ from toolz import assoc_in, dissoc
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
+from nmdc_runtime.config import IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
 )
+from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
@@ -31,7 +33,10 @@ from nmdc_runtime.api.models.query import (
     Cmd,
     CursorYieldingCommandResponse,
     CursorYieldingCommand,
+    DeleteSpecs,
+    UpdateSpecs,
 )
+from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.util import (
     OverlayDB,
@@ -216,7 +221,7 @@ _mdb = get_mongo_db()
 def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     r"""
     TODO: Document this function.
-    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~220 lines.
+    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
     """
     ran_at = now()
@@ -224,33 +229,17 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
-    # Initialize a flag we can use to control whether we will raise an exception
-    # and abort the operation (i.e. we will be "strict") or merely log a warning
-    # to the console (i.e. we will be "lenient"), when we determine that performing
-    # an operation would leave behind a broken reference(s).
-    #
-    # Note: We may eventually remove this flag. We are including it now
-    #       so that we can easily switch between the two modes, since
-    #       some users have expressed that they may need some time to
-    #       update some client code to work with the more strict mode.
-    #
-    # Note: We set this flag to `True` to work around the following "catch-22" issue,
-    #       which a team member encountered while the flag was set to `False`:
-    #       https://github.com/microbiomedata/nmdc-runtime/issues/1021
-    #
-    are_broken_references_allowed: bool = True
-
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Can only delete documents in nmdc-schema collections.",
+                detail=(
+                    "Can only delete documents from collections that are "
+                    "not empty and are described by the NMDC schema."
+                ),
             )
-        delete_specs = [
-            {"filter": del_statement.q, "limit": del_statement.limit}
-            for del_statement in cmd.deletes
-        ]
+        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
 
         # Check whether any of the documents the user wants to delete are referenced
         # by any documents that are _not_ among those documents. If any of them are,
@@ -315,7 +304,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         "source_collection_name"
                     ]
                     target_document_id = target_document_descriptor["id"]
-                    if are_broken_references_allowed:
+                    if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
                         logging.warning(
                             f"The document having 'id'='{target_document_id}' in "
                             f"the collection '{collection_name}' is referenced by "
@@ -361,12 +350,12 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Can only update documents in nmdc-schema collections.",
+                detail=(
+                    "Can only update documents in collections that are "
+                    "not empty and are described by the NMDC schema."
+                ),
             )
-        update_specs = [
-            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
-            for up_statement in cmd.updates
-        ]
+        update_specs: UpdateSpecs = derive_update_specs(update_command=cmd)
         # Execute this "update" command on a temporary "overlay" database so we can
         # validate its outcome before executing it on the real database. If its outcome
         # is invalid, we will abort and raise an "HTTP 422" exception.
@@ -403,6 +392,30 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
+
+        # Perform referential integrity checking.
+        #
+        # TODO: As usual with this endpoint, the operation is susceptible to a race
+        #       condition, wherein the database gets modified between this validation
+        #       step and the eventual "apply" step.
+        #
+        violation_messages = simulate_updates_and_check_references(
+            db=mdb, update_cmd=cmd
+        )
+        if len(violation_messages) > 0:
+            detail = (
+                "The operation was not performed, because performing it would "
+                "have left behind one or more broken references. Details: "
+                f"{', '.join(violation_messages)}"
+            )
+            if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
+                logging.warning(detail)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=detail,
+                )
+
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:

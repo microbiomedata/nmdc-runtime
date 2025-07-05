@@ -533,6 +533,8 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
                     raise
 
 
+# TODO: Check whether this class definition is redundant with the definition
+#       of an `UpdateStatement` class in `nmdc_runtime/api/models/query.py`.
 class UpdateStatement(BaseModel):
     q: dict
     u: dict
@@ -540,6 +542,8 @@ class UpdateStatement(BaseModel):
     multi: bool = False
 
 
+# TODO: Check whether this class definition is redundant with the definition
+#       of a `DeleteStatement` class in `nmdc_runtime/api/models/query.py`.
 class DeleteStatement(BaseModel):
     q: dict
     limit: Annotated[int, Field(ge=0, le=1)] = 1
@@ -735,9 +739,6 @@ def validate_json(
             #
             finder = Finder(database=mdb)
             references = get_allowed_references()
-            reference_field_names_by_source_class_name = (
-                references.get_reference_field_names_by_source_class_name()
-            )
 
             # Iterate over the collections in the JSON payload.
             for source_collection_name, documents in in_docs.items():
@@ -747,10 +748,8 @@ def validate_json(
                     violations = scan_outgoing_references(
                         document=source_document,
                         schema_view=nmdc_schema_view(),
-                        reference_field_names_by_source_class_name=reference_field_names_by_source_class_name,
                         references=references,
                         finder=finder,
-                        collection_names=nmdc_database_collection_names(),
                         source_collection_name=source_collection_name,
                         user_wants_to_locate_misplaced_documents=False,
                     )
