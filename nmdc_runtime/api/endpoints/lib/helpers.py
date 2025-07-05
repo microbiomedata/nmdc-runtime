@@ -13,7 +13,10 @@ from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
 
 def make_violation_message(
-    collection_name: str, source_document_id: str, source_field_name: str, target_document_id: str
+    collection_name: str,
+    source_document_id: str,
+    source_field_name: str,
+    target_document_id: str,
 ) -> str:
     r"""
     Constructs a violation message that indicates that a document contains a broken reference.
