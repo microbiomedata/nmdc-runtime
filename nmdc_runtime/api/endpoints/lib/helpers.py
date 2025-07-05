@@ -19,7 +19,7 @@ def make_violation_message(
     target_document_id: str,
 ) -> str:
     r"""
-    Constructs a violation message that indicates that a document contains a broken reference.
+    Constructs a violation message that indicates that a document would contain a broken reference.
 
     :param collection_name: The name of the collection containing the document containing the broken reference
     :param source_document_id: The `id` of the document containing the broken reference
@@ -29,7 +29,7 @@ def make_violation_message(
     :return: A formatted string describing the violation
     """
     return (
-        f"The document having 'id'='{source_document_id}' in "
+        f"The document having id='{source_document_id}' in "
         f"the collection '{collection_name}' contains a "
         f"reference (in its '{source_field_name}' field, "
         f"referring to the document having id='{target_document_id}') "
