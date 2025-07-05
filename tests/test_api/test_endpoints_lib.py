@@ -172,3 +172,26 @@ class TestSimulateUpdatesAndCheckReferences:
         assert "biosample_set" in error_messages[0]
         assert referrer_id in error_messages[0]
 
+    def test_it_returns_error_messages_when_document_having_new_id_has_broken_reference(self, seeded_db):
+        r"""
+        In this test, we update the `id` of a document _and_ give it a broken outgoing reference.
+        This is to demonstrate that the function checks the referential integrity of documents whose
+        `id`s have been updated (as of today, the function uses the document's `_id` value to keep track
+        of the document across the update).
+        """
+        old_bsm_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
+        new_bsm_id = "nmdc:bsm-00-000099"
+        nonexistent_study_id = "nmdc:sty-00-000099"
+        error_messages = simulate_updates_and_check_references(
+            db=seeded_db,
+            update_cmd=UpdateCommand(
+                update="biosample_set",
+                updates=[
+                    UpdateStatement(q={"name": "Biosample A"}, u={"$set": {"associated_studies": [nonexistent_study_id]}}),
+                    UpdateStatement(q={"name": "Biosample A"}, u={"$set": {"id": new_bsm_id}}),
+                ],
+            ),
+        )
+        assert len(error_messages) == 1
+        assert "biosample_set" in error_messages[0]
+        assert old_bsm_id in error_messages[0]
