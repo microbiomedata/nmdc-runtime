@@ -5,7 +5,10 @@ import re
 import pytest
 import requests
 from dagster import build_op_context
-from nmdc_runtime.config import IS_RELATED_IDS_ENDPOINT_ENABLED
+from nmdc_runtime.config import (
+    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
+    IS_RELATED_IDS_ENDPOINT_ENABLED,
+)
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
@@ -1253,7 +1256,10 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
-@pytest.mark.skip(reason="We currently allow operations that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
+@pytest.mark.skipif(
+    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
+    reason="The endpoint-under-test currently allows operations that leave behind broken references.",
+)
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1340,7 +1346,10 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     assert response.json()["n"] == 2
 
 
-@pytest.mark.skip(reason="We currently allow operations that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
+@pytest.mark.skipif(
+    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
+    reason="The endpoint-under-test currently allows operations that leave behind broken references.",
+)
 def test_queries_run_rejects_updates_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,

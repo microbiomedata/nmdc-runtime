@@ -49,9 +49,27 @@ DATABASE_CLASS_NAME: str = "Database"
 
 # Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
 # endpoint and the tests that target it.
-IS_RELATED_IDS_ENDPOINT_ENABLED = is_env_var_true(
+IS_RELATED_IDS_ENDPOINT_ENABLED: bool = is_env_var_true(
     "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
 )
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.
-IS_SCALAR_ENABLED = is_env_var_true("IS_SCALAR_ENABLED", default="true")
+IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
+
+# Feature flag that can be used to enable/disable whether the `/queries:run`
+# endpoint will perform operations that would leave behind broken references
+# (i.e. the endpoint will be "lenient") or it will reject such operations
+# (i.e. the endpoint will be "strict").
+#
+# Note: We may eventually remove this flag. We are including it now so that
+#       we can easily switch between "lenient" and "strict" modes, given that
+#       (a) some users expressed that they may need some time to update
+#       client code to work with the "strict" mode, and (b) some users
+#       encountered a "catch-22" scenario in "strict" mode, in which they
+#       could not delete the documents they wanted to, due to the presence
+#       of reciprocal references across collections, as described in:
+#       https://github.com/microbiomedata/nmdc-runtime/issues/1021
+#
+IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES: bool = is_env_var_true(
+    "IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES", default="false"
+)

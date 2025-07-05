@@ -8,6 +8,7 @@ from toolz import assoc_in, dissoc
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
+from nmdc_runtime.config import IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
@@ -228,22 +229,6 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
-    # Initialize a flag we can use to control whether we will raise an exception
-    # and abort the operation (i.e. we will be "strict") or merely log a warning
-    # to the console (i.e. we will be "lenient"), when we determine that performing
-    # an operation would leave behind a broken reference(s).
-    #
-    # Note: We may eventually remove this flag. We are including it now
-    #       so that we can easily switch between the two modes, since
-    #       some users have expressed that they may need some time to
-    #       update some client code to work with the more strict mode.
-    #
-    # Note: We set this flag to `True` to work around the following "catch-22" issue,
-    #       which a team member encountered while the flag was set to `False`:
-    #       https://github.com/microbiomedata/nmdc-runtime/issues/1021
-    #
-    are_broken_references_allowed: bool = True
-
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
@@ -319,7 +304,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         "source_collection_name"
                     ]
                     target_document_id = target_document_descriptor["id"]
-                    if are_broken_references_allowed:
+                    if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
                         logging.warning(
                             f"The document having 'id'='{target_document_id}' in "
                             f"the collection '{collection_name}' is referenced by "
@@ -423,7 +408,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 "have left behind one or more broken references. Details: "
                 f"{', '.join(violation_messages)}"
             )
-            if are_broken_references_allowed:
+            if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
                 logging.warning(detail)
             else:
                 raise HTTPException(
