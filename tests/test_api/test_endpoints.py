@@ -1253,7 +1253,7 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
-@pytest.mark.skip(reason="We currently allow deletions that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
+@pytest.mark.skip(reason="We currently allow operations that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1338,6 +1338,49 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["n"] == 2
+
+
+@pytest.mark.skip(reason="We currently allow operations that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
+def test_queries_run_rejects_updates_that_would_leave_broken_references(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    r"""
+    This test focuses on the general behavior of the API _endpoint_ when the update
+    would leave behind broken references. We have a different set of tests, in
+    `tests/test_api/test_endpoints_lib.py`, focused on specific scenarios.
+    """
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
 
 
 def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(
