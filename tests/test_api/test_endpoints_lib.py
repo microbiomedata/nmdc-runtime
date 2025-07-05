@@ -182,6 +182,8 @@ class TestSimulateUpdatesAndCheckReferences:
         old_bsm_id = seeded_db["biosample_set"].find_one({"name": "Biosample A"})["id"]
         new_bsm_id = "nmdc:bsm-00-000099"
         nonexistent_study_id = "nmdc:sty-00-000099"
+        assert seeded_db["biosample_set"].count_documents({"id": new_bsm_id}) == 0  # no such document
+        assert seeded_db["study_set"].count_documents({"id": nonexistent_study_id}) == 0  # no such document
         error_messages = simulate_updates_and_check_references(
             db=seeded_db,
             update_cmd=UpdateCommand(
