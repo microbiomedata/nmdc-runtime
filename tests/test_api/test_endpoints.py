@@ -923,6 +923,80 @@ class TestFindDataObjectsForStudy:
         workflow_execution_set.delete_many({"id": workflow_execution["id"]})
         alldocs.delete_many({})
 
+    def test_it_returns_data_objects_for_study_having_multiple(self, api_site_client):
+        # Seed the database with the following interrelated documents (represented
+        # here as a Mermaid graph/flowchart within a Markdown fenced code block):
+        # Docs: https://mermaid.js.org/syntax/flowchart.html
+        # TODO: Move this seeding to a test fixture that cleans up after itself.
+        r"""
+        ```mermaid
+        graph BT
+            study
+            biosample --> |associated_studies| study
+            data_generation --> |associated_studies| study
+            data_generation --> |has_input| biosample
+            data_object_a
+            data_object_b
+            workflow_execution --> |has_input| biosample
+            workflow_execution --> |has_output| data_object_a
+            workflow_execution --> |has_output| data_object_b
+            workflow_execution --> |was_informed_by| data_generation
+        ```
+        """
+        faker = Faker()
+        study = faker.generate_studies(quantity=1)[0]
+        biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
+        data_generation = faker.generate_nucleotide_sequencings(quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+        data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
+        data_object_a["data_category"] = "instrument_data"
+        data_object_b["data_category"] = "processed_data"
+        workflow_execution = faker.generate_metagenome_annotations(
+            quantity=1,
+            has_input=[biosample["id"]],
+            has_output=[data_object_a["id"], data_object_b["id"]],
+            was_informed_by=data_generation["id"]
+        )[0]
+        
+        mdb = get_mongo_db()
+        study_set = mdb.get_collection(name="study_set")
+        biosample_set = mdb.get_collection(name="biosample_set")
+        data_generation_set = mdb.get_collection(name="data_generation_set")
+        data_object_set = mdb.get_collection(name="data_object_set")
+        workflow_execution_set = mdb.get_collection(name="workflow_execution_set")
+        alldocs = mdb.get_collection(name="alldocs")
+        assert study_set.count_documents({"id": study["id"]}) == 0
+        assert biosample_set.count_documents({"id": biosample["id"]}) == 0
+        assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
+        assert data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
+        assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+        study_set.insert_many([study])
+        biosample_set.insert_many([biosample])
+        data_generation_set.insert_many([data_generation])
+        data_object_set.insert_many([data_object_a, data_object_b])
+        workflow_execution_set.insert_many([workflow_execution])
+
+        # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+        # Confirm the endpoint responds with the data object we inserted above.
+        response = api_site_client.request("GET", f"/data_objects/study/{study['id']}")
+        assert response.status_code == 200
+        data_objects_by_biosample = response.json()
+        assert len(data_objects_by_biosample) == 1
+        received_biosample = data_objects_by_biosample[0]
+        assert received_biosample["biosample_id"] == biosample["id"]
+        assert len(received_biosample["data_objects"]) == 2
+        received_data_objects = received_biosample["data_objects"]
+        assert set((data_object_a["id"], data_object_b["id"])) == set([dobj["id"] for dobj in received_data_objects])
+
+        # Clean up: Delete the documents we created within this test, from the database.
+        study_set.delete_many({"id": study["id"]})
+        biosample_set.delete_many({"id": biosample["id"]})
+        data_generation_set.delete_many({"id": data_generation["id"]})
+        data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+        workflow_execution_set.delete_many({"id": workflow_execution["id"]})
+        alldocs.delete_many({})
+
 
 def test_find_planned_processes(api_site_client):
     mdb = get_mongo_db()
