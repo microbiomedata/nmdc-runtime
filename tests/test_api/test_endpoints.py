@@ -856,159 +856,69 @@ def test_find_data_objects_for_study_having_none(api_site_client):
 
 
 def test_find_data_objects_for_study_having_one(api_site_client):
-    # Seed the test database with a study having one associated data object.
+    # Seed the database with the following interrelated documents (represented
+    # here as a Mermaid graph/flowchart within a Markdown fenced code block):
+    # Docs: https://mermaid.js.org/syntax/flowchart.html
+    # TODO: Move this seeding to a test fixture that cleans up after itself.
+    r"""
+    ```mermaid
+    graph BT
+        study
+        biosample --> |associated_studies| study
+        data_generation --> |associated_studies| study
+        data_generation --> |has_input| biosample
+        data_object
+        workflow_execution --> |has_input| biosample
+        workflow_execution --> |has_output| data_object
+        workflow_execution --> |was_informed_by| data_generation
+    ```
+    """
+    faker = Faker()
+    study = faker.generate_studies(quantity=1)[0]
+    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
+    data_generation = faker.generate_nucleotide_sequencings(quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+    data_object = faker.generate_data_objects(quantity=1)[0]
+    workflow_execution = faker.generate_metagenome_annotations(quantity=1, has_input=[biosample["id"]], has_output=[data_object["id"]], was_informed_by=data_generation["id"])[0]
+    
     mdb = get_mongo_db()
-    study_id = "nmdc:sty-11-r2h77870"
-    study_dict = {
-        "id": study_id,
-        "type": "nmdc:Study",
-        "study_category": "research_study",
-    }
-    fakes = set()
-    assert validate_json({"study_set": [study_dict]}, mdb)["result"] != "errors"
-    if mdb.get_collection(name="study_set").find_one({"id": study_id}) is None:
-        mdb.get_collection(name="study_set").insert_one(study_dict)
-        fakes.add("study")
-    biosample_id = "nmdc:bsm-11-6zd5nb38"
-    biosample_dict = {
-        "id": biosample_id,
-        "env_broad_scale": {
-            "has_raw_value": "ENVO_00000446",
-            "term": {
-                "id": "ENVO:00000446",
-                "name": "terrestrial biome",
-                "type": "nmdc:OntologyClass",
-            },
-            "type": "nmdc:ControlledIdentifiedTermValue",
-        },
-        "env_local_scale": {
-            "has_raw_value": "ENVO_00005801",
-            "term": {
-                "id": "ENVO:00005801",
-                "name": "rhizosphere",
-                "type": "nmdc:OntologyClass",
-            },
-            "type": "nmdc:ControlledIdentifiedTermValue",
-        },
-        "env_medium": {
-            "has_raw_value": "ENVO_00001998",
-            "term": {
-                "id": "ENVO:00001998",
-                "name": "soil",
-                "type": "nmdc:OntologyClass",
-            },
-            "type": "nmdc:ControlledIdentifiedTermValue",
-        },
-        "type": "nmdc:Biosample",
-        "associated_studies": [study_id],
-    }
-    assert validate_json({"biosample_set": [biosample_dict]}, mdb)["result"] != "errors"
-    if mdb.get_collection(name="biosample_set").find_one({"id": biosample_id}) is None:
-        mdb.get_collection(name="biosample_set").insert_one(biosample_dict)
-        fakes.add("biosample")
-
-    data_generation_id = "nmdc:omprc-11-nmtj1g51"
-    data_generation_dict = {
-        "id": data_generation_id,
-        "has_input": [biosample_id],
-        "type": "nmdc:NucleotideSequencing",
-        "analyte_category": "metagenome",
-        "associated_studies": [study_id],
-    }
-    assert (
-        validate_json({"data_generation_set": [data_generation_dict]}, mdb)["result"]
-        != "errors"
-    )
-    if (
-        mdb.get_collection(name="data_generation_set").find_one(
-            {"id": data_generation_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="data_generation_set").insert_one(data_generation_dict)
-        fakes.add("data_generation")
-
-    data_object_id = "nmdc:dobj-11-cpv4y420"
-    data_object_dict = {
-        "id": data_object_id,
-        "name": "Raw sequencer read data",
-        "description": "Metagenome Raw Reads for nmdc:omprc-11-nmtj1g51",
-        "data_object_type": "Metagenome Raw Reads",
-        "data_category": "instrument_data",
-        "type": "nmdc:DataObject",
-    }
-    assert (
-        validate_json({"data_object_set": [data_object_dict]}, mdb)["result"]
-        != "errors"
-    )
-    if (
-        mdb.get_collection(name="data_object_set").find_one({"id": data_object_id})
-        is None
-    ):
-        mdb.get_collection(name="data_object_set").insert_one(data_object_dict)
-        fakes.add("data_object")
-
-    workflow_execution_id = "nmdc:wfmsa-11-fqq66x60.1"
-    workflow_execution_dict = {
-        "id": workflow_execution_id,
-        "started_at_time": "2023-03-24T02:02:59.479107+00:00",
-        "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
-        "was_informed_by": data_generation_id,
-        "execution_resource": "JGI",
-        "git_url": "https://github.com/microbiomedata/RawSequencingData",
-        "has_input": [biosample_id],
-        "has_output": [data_object_id],
-        "type": "nmdc:MetagenomeSequencing",
-    }
-    assert (
-        validate_json({"workflow_execution_set": [workflow_execution_dict]}, mdb)[
-            "result"
-        ]
-        != "errors"
-    )
-    if (
-        mdb.get_collection(name="workflow_execution_set").find_one(
-            {"id": workflow_execution_id}
-        )
-        is None
-    ):
-        mdb.get_collection(name="workflow_execution_set").insert_one(
-            workflow_execution_dict
-        )
-        fakes.add("workflow_execution")
+    study_set = mdb.get_collection(name="study_set")
+    biosample_set = mdb.get_collection(name="biosample_set")
+    data_generation_set = mdb.get_collection(name="data_generation_set")
+    data_object_set = mdb.get_collection(name="data_object_set")
+    workflow_execution_set = mdb.get_collection(name="workflow_execution_set")
+    alldocs = mdb.get_collection(name="alldocs")
+    assert study_set.count_documents({"id": study["id"]}) == 0
+    assert biosample_set.count_documents({"id": biosample["id"]}) == 0
+    assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
+    assert data_object_set.count_documents({"id": data_object["id"]}) == 0
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+    study_set.insert_many([study])
+    biosample_set.insert_many([biosample])
+    data_generation_set.insert_many([data_generation])
+    data_object_set.insert_many([data_object])
+    workflow_execution_set.insert_many([workflow_execution])
 
     # Update the `alldocs` collection, which is a cache used by the endpoint under test.
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     # Confirm the endpoint responds with the data object we inserted above.
-    response = api_site_client.request("GET", f"/data_objects/study/{study_id}")
+    response = api_site_client.request("GET", f"/data_objects/study/{study['id']}")
     assert response.status_code == 200
     data_objects_by_biosample = response.json()
-    assert any(
-        biosample_data_objects["biosample_id"] == biosample_id
-        and any(
-            do["id"] == data_object_id for do in biosample_data_objects["data_objects"]
-        )
-        for biosample_data_objects in data_objects_by_biosample
-    )
+    assert len(data_objects_by_biosample) == 1
+    received_biosample = data_objects_by_biosample[0]
+    assert received_biosample["biosample_id"] == biosample["id"]
+    assert len(received_biosample["data_objects"]) == 1
+    received_data_object = received_biosample["data_objects"][0]
+    assert received_data_object["id"] == data_object["id"]
 
     # Clean up: Delete the documents we created within this test, from the database.
-    if "study" in fakes:
-        mdb.get_collection(name="study_set").delete_one({"id": study_id})
-    if "biosample" in fakes:
-        mdb.get_collection(name="biosample_set").delete_one({"id": biosample_id})
-    if "data_generation":
-        mdb.get_collection(name="data_generation_set").delete_one(
-            {"id": data_generation_id}
-        )
-    if "data_object" in fakes:
-        mdb.get_collection(name="data_object_set").delete_one({"id": data_object_id})
-    if "workflow_execution" in fakes:
-        mdb.get_collection(name="workflow_execution_set").delete_one(
-            {"id": workflow_execution_id}
-        )
-
-    mdb.get_collection(name="alldocs").delete_many({})
+    study_set.delete_many({"id": study["id"]})
+    biosample_set.delete_many({"id": biosample["id"]})
+    data_generation_set.delete_many({"id": data_generation["id"]})
+    data_object_set.delete_many({"id": data_object["id"]})
+    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
+    alldocs.delete_many({})
 
 
 def test_find_planned_processes(api_site_client):
