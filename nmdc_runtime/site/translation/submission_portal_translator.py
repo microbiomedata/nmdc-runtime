@@ -666,6 +666,11 @@ class SubmissionPortalTranslator(Translator):
                 logging.warning(f"No slot '{slot_name}' on class '{class_name}'")
                 continue
 
+            # This step handles cases where the submission portal/schema instructs a user to
+            # provide a value in a specific unit. The unit cannot be parsed out of the raw value
+            # in these cases, so we have to manually set it via UNIT_OVERRIDES. This part can
+            # go away once units are encoded in the schema itself.
+            # See: https://github.com/microbiomedata/nmdc-schema/issues/2517
             if class_name in UNIT_OVERRIDES:
                 # If the class has unit overrides, check if the slot is in the overrides
                 unit_overrides = UNIT_OVERRIDES[class_name]
