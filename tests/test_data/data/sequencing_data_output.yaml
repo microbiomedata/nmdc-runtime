@@ -60,6 +60,11 @@ biosample_set:
     has_raw_value: frozen
   analysis_type:
   - metagenomics
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: '8%'
+    has_numeric_value: 8
+    has_unit: '%'
 - id: nmdc:bsm-00-q8jtgev4
   type: nmdc:Biosample
   name: '002'
@@ -122,6 +127,11 @@ biosample_set:
   analysis_type:
   - metagenomics
   - metatranscriptomics
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: '0%'
+    has_numeric_value: 0
+    has_unit: '%'
 - id: nmdc:bsm-00-9gw1un94
   type: nmdc:Biosample
   name: '003'
@@ -183,6 +193,11 @@ biosample_set:
     has_raw_value: frozen
   analysis_type:
   - metatranscriptomics
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: '0.5%'
+    has_numeric_value: 0.5
+    has_unit: '%'
 data_generation_set:
 - id: nmdc:dgns-00-27qd9afz
   type: nmdc:NucleotideSequencing
