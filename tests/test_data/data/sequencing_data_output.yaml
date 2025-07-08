@@ -34,6 +34,7 @@ biosample_set:
     has_raw_value: 0 - 0.1
     has_maximum_numeric_value: 0.1
     has_minimum_numeric_value: 0.0
+    has_unit: m
   elev: 1325.0
   env_package:
     type: nmdc:TextValue
@@ -94,6 +95,7 @@ biosample_set:
     has_raw_value: 0 - 0.1
     has_maximum_numeric_value: 0.1
     has_minimum_numeric_value: 0.0
+    has_unit: m
   elev: 1325.0
   env_package:
     type: nmdc:TextValue
@@ -155,6 +157,7 @@ biosample_set:
     has_raw_value: 0 - 0.1
     has_maximum_numeric_value: 0.1
     has_minimum_numeric_value: 0.0
+    has_unit: m
   elev: 1325.0
   env_package:
     type: nmdc:TextValue
