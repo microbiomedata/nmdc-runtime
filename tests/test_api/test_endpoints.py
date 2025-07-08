@@ -859,6 +859,8 @@ class TestFindDataObjectsForStudy:
         data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
         data_object_a["id"] = self.data_object_ids[0]
         data_object_b["id"] = self.data_object_ids[1]
+        data_object_a["data_category"] = "instrument_data"
+        data_object_b["data_category"] = "processed_data"
         workflow_execution = faker.generate_metagenome_annotations(quantity=1, id=self.workflow_execution_id, has_input=[biosample["id"]], has_output=[data_object_a["id"], data_object_b["id"]], was_informed_by=data_generation["id"])[0]
         
         mdb = get_mongo_db()
@@ -947,7 +949,7 @@ class TestFindDataObjectsForStudy:
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
-        # Confirm the endpoint responds with the data object we inserted above.
+        # Confirm the endpoint responds with the data object we expect.
         response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
@@ -959,7 +961,7 @@ class TestFindDataObjectsForStudy:
         assert received_data_object["id"] == self.data_object_ids[0]
 
     def test_it_returns_data_objects_for_study_having_multiple(self, api_site_client, seeded_db):
-        # Confirm the endpoint responds with the data object we inserted above.
+        # Confirm the endpoint responds with the data objects we expect.
         response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
