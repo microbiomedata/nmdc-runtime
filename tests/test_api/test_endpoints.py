@@ -815,16 +815,12 @@ class TestFindDataObjectsForStudy:
     Tests targeting the `/data_objects/study/{study_id}` API endpoint.
     """
 
-    def __init__(self):
-        r"""
-        Defines some constant IDs that the seeder can use and that seeded
-        database-dependent tests can "expect."
-        """
-        self.study_id = "nmdc:sty-00-000001"
-        self.biosample_id = "nmdc:bsm-00-000001"
-        self.data_generation_id = "nmdc:dgns-00-000001"
-        self.data_object_ids = ["nmdc:dobj-00-000001", "nmdc:dobj-00-000002"]
-        self.workflow_execution_id = "nmdc:wfmgan-00-000001"
+    # Constant IDs that the seeder can use and that seeded database-dependent tests can "expect."
+    study_id = "nmdc:sty-00-000001"
+    biosample_id = "nmdc:bsm-00-000001"
+    data_generation_id = "nmdc:dgns-00-000001"
+    data_object_ids = ["nmdc:dobj-00-000001", "nmdc:dobj-00-000002", "nmdc:dobj-00-000003"]
+    workflow_execution_id = "nmdc:wfmgan-00-000001"
 
     @pytest.fixture()
     def seeded_db(self):
@@ -970,7 +966,10 @@ class TestFindDataObjectsForStudy:
         assert received_biosample["biosample_id"] == self.biosample_id
         assert len(received_biosample["data_objects"]) == 2
         received_data_objects = received_biosample["data_objects"]
-        assert set(self.data_object_ids) == set([dobj["id"] for dobj in received_data_objects])
+        assert set([
+            self.data_object_ids[0],
+            self.data_object_ids[1],
+        ]) == set([dobj["id"] for dobj in received_data_objects])
 
 
 def test_find_planned_processes(api_site_client):
