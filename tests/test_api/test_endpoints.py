@@ -820,7 +820,7 @@ class TestFindDataObjectsForStudy:
     biosample_id = "nmdc:bsm-00-000001"
     data_generation_id = "nmdc:dgns-00-000001"
     data_object_ids = ["nmdc:dobj-00-000001", "nmdc:dobj-00-000002", "nmdc:dobj-00-000003"]
-    workflow_execution_id = "nmdc:wfmgan-00-000001"
+    workflow_execution_ids = ["nmdc:wfmgan-00-000001", "nmdc:wfmgan-00-000002"]
 
     @pytest.fixture()
     def seeded_db(self):
@@ -857,7 +857,7 @@ class TestFindDataObjectsForStudy:
         data_object_b["id"] = self.data_object_ids[1]
         data_object_a["data_category"] = "instrument_data"
         data_object_b["data_category"] = "processed_data"
-        workflow_execution = faker.generate_metagenome_annotations(quantity=1, id=self.workflow_execution_id, has_input=[biosample["id"]], has_output=[data_object_a["id"], data_object_b["id"]], was_informed_by=data_generation["id"])[0]
+        workflow_execution = faker.generate_metagenome_annotations(quantity=1, id=self.workflow_execution_ids[0], has_input=[biosample["id"]], has_output=[data_object_a["id"], data_object_b["id"]], was_informed_by=data_generation["id"])[0]
         
         mdb = get_mongo_db()
         study_set = mdb.get_collection(name="study_set")
@@ -938,7 +938,7 @@ class TestFindDataObjectsForStudy:
         # Dissociate all but one of the data objects from the workflow execution.
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         workflow_execution_set.update_one(
-            {"id": self.workflow_execution_id},
+            {"id": self.workflow_execution_ids[0]},
             {"$set": {"has_output": [self.data_object_ids[0]]}},
         )
 
@@ -970,6 +970,72 @@ class TestFindDataObjectsForStudy:
             self.data_object_ids[0],
             self.data_object_ids[1],
         ]) == set([dobj["id"] for dobj in received_data_objects])
+
+    @pytest.fixture()
+    def seeded_db_with_multi_stage_wfe(self, seeded_db):
+        r"""
+        Fixture that seeds the database with a second `WorkflowExecution`, which takes the output
+        of the first `WorkflowExecution` as its input, and outputs a new `DataObject`.
+
+        ```mermaid
+        graph
+            workflow_execution_b --> |has_input| (existing data object)
+            workflow_execution_b --> |has_output| data_object_c
+        ```
+        """
+        faker = Faker()
+        data_object_c = faker.generate_data_objects(quantity=1, id=self.data_object_ids[2])[0]
+        workflow_execution_b = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=self.workflow_execution_ids[1],
+            has_input=[self.data_object_ids[0]],  # the output of the first `WorkflowExecution`
+            has_output=[data_object_c["id"]],  # the new `DataObject`
+            was_informed_by=self.data_generation_id,
+        )[0]
+        workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
+        assert workflow_execution_set.count_documents({"id": workflow_execution_b["id"]}) == 0
+        workflow_execution_set.insert_many([workflow_execution_b])
+        data_object_set = seeded_db.get_collection(name="data_object_set")
+        assert data_object_set.count_documents({"id": data_object_c["id"]}) == 0
+        data_object_set.insert_many([data_object_c])
+
+        # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+        yield seeded_db
+
+        # Clean up: Delete the documents we created within this fixture, from the database.
+        workflow_execution_set.delete_many({"id": workflow_execution_b["id"]})
+        data_object_set.delete_many({"id": data_object_c["id"]})
+
+    def test_it_traverses_multiple_stages_of_workflow_executions(
+        self,
+        api_site_client,
+        seeded_db_with_multi_stage_wfe
+    ):
+        # Confirm the database is seeded the way we expect.
+        db = seeded_db_with_multi_stage_wfe  # concise alias
+        workflow_execution_set = db.get_collection(name="workflow_execution_set")
+        data_object_set = db.get_collection(name="data_object_set")
+        assert workflow_execution_set.count_documents({"id": self.workflow_execution_ids[0]}) == 1
+        assert workflow_execution_set.count_documents({"id": self.workflow_execution_ids[1]}) == 1
+        assert data_object_set.count_documents({"id": self.data_object_ids[0]}) == 1
+        assert data_object_set.count_documents({"id": self.data_object_ids[1]}) == 1
+        assert data_object_set.count_documents({"id": self.data_object_ids[2]}) == 1
+
+        # Confirm the endpoint responds with the data objects we expect.
+        response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
+        assert response.status_code == 200
+        data_objects_by_biosample = response.json()
+        assert len(data_objects_by_biosample) == 1
+        received_biosample = data_objects_by_biosample[0]
+        assert received_biosample["biosample_id"] == self.biosample_id
+        assert len(received_biosample["data_objects"]) == 3
+        received_data_objects = received_biosample["data_objects"]
+        received_data_object_ids = [dobj["id"] for dobj in received_data_objects]
+        assert self.data_object_ids[0] in received_data_object_ids
+        assert self.data_object_ids[1] in received_data_object_ids
+        assert self.data_object_ids[2] in received_data_object_ids
 
 
 def test_find_planned_processes(api_site_client):
