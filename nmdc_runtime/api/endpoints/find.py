@@ -3,7 +3,6 @@ from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, Form, Path, Query
 from jinja2 import Environment, PackageLoader, select_autoescape
-from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
 from starlette.responses import HTMLResponse
@@ -128,21 +127,6 @@ def find_data_objects(
     return find_resources(req, mdb, "data_object_set")
 
 
-def get_classname_from_typecode(doc_id: str) -> str:
-    r"""
-    Returns the name of the schema class of which an instance could have the specified `id`.
-
-    >>> get_classname_from_typecode("nmdc:sty-11-r2h77870")
-    'Study'
-    """
-    typecode = doc_id.split(":")[1].split("-")[0]
-    class_map_data = typecodes()
-    class_map = {
-        entry["name"]: entry["schema_class"].split(":")[1] for entry in class_map_data
-    }
-    return class_map.get(typecode)
-
-
 @router.get(
     "/data_objects/study/{study_id}",
     response_model_exclude_unset=True,
@@ -206,13 +190,19 @@ def find_data_objects_for_study(
     # SchemaView interface to NMDC Schema
     nmdc_view = ViewGetter()
     nmdc_sv = nmdc_view.get_view()
-    dg_descendants = nmdc_sv.class_descendants("DataGeneration")
+    dg_descendants = [
+        (f"nmdc:{t}" if ":" not in t else t)
+        for t in nmdc_sv.class_descendants("DataGeneration")
+    ]
 
     def collect_data_objects(doc_ids, collected_objects, unique_ids):
         """Helper function to collect data objects from `has_input` and `has_output` references."""
         for doc_id in doc_ids:
+            # Check if this is a DataObject by looking at the document's type directly
+            doc = mdb.alldocs.find_one({"id": doc_id}, {"type": 1})
             if (
-                get_classname_from_typecode(doc_id) == "DataObject"
+                doc
+                and doc.get("type") == "nmdc:DataObject"
                 and doc_id not in unique_ids
             ):
                 data_obj = mdb.data_object_set.find_one({"id": doc_id})
@@ -269,11 +259,11 @@ def find_data_objects_for_study(
                         continue
 
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
-                    new_current_ids.extend(
-                        op
-                        for op in has_output
-                        if get_classname_from_typecode(op) != "DataObject"
-                    )
+                    # Add non-DataObject outputs to continue the chain
+                    for op in has_output:
+                        doc = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                        if doc and doc.get("type") != "nmdc:DataObject":
+                            new_current_ids.append(op)
 
                     if any(
                         t in dg_descendants for t in doc.get("_type_and_ancestors", [])
@@ -464,10 +454,11 @@ def find_related_objects_for_workflow_execution(
         Helper function that adds the `DataObject` having the specified `id`
         to our list of `DataObjects`, if it isn't already in there.
         """
-        # TODO: Consider deriving the class name from the document's `type` value,
-        #       instead of its `id` value. Seems more "direct" to me.
+        # Check if this is a DataObject by looking at the document's type directly
+        doc = mdb.alldocs.find_one({"id": doc_id}, {"type": 1})
         if (
-            get_classname_from_typecode(doc_id) == "DataObject"
+            doc
+            and doc.get("type") == "nmdc:DataObject"
             and doc_id not in unique_data_object_ids
         ):
             data_obj = mdb.data_object_set.find_one({"id": doc_id})
@@ -567,7 +558,8 @@ def find_related_objects_for_workflow_execution(
             processed_ids.add(current_id)
 
             # If it's a `Biosample`, i.e., "type" == "nmdc:Biosample"
-            if get_classname_from_typecode(current_id) == "Biosample":
+            doc = mdb.alldocs.find_one({"id": current_id}, {"type": 1})
+            if doc and doc.get("type") == "nmdc:Biosample":
                 add_biosample(current_id)
                 return
 
