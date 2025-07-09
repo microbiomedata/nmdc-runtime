@@ -147,34 +147,35 @@ def get_related_resources(
             ),
         )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
-    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
-    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
-    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
-    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
-    was_influenced_by = list(
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following upstream
+    # relationships (_upstream.id) to discover upstream documents for entities that originated, or helped produce,
+    # the entities with documents identified by `ids`. It unwinds the collected (via `$graphLookup`) upstream docs,
+    # filters them by given `types` of interest, projects only essential fields to reduce response latency and size,
+    # and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed upstream docs into an array for each
+    # given ID.
+    upstream_docs = list(
         mdb.alldocs.aggregate(
             [
                 {"$match": {"id": {"$in": ids}}},
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_inbound.id",
-                        "connectFromField": "_inbound.id",
+                        "startWith": "$_upstream.id",
+                        "connectFromField": "_upstream.id",
                         "connectToField": "id",
-                        "as": "was_influenced_by",
+                        "as": "upstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$was_influenced_by"}},
-                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
-                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
+                {"$unwind": {"path": "$upstream_docs"}},
+                {"$match": {"upstream_docs._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "upstream_docs": "$upstream_docs"}},
                 {
                     "$group": {
                         "_id": "$id",
-                        "was_influenced_by": {
+                        "upstream_docs": {
                             "$addToSet": {
-                                "id": "$was_influenced_by.id",
-                                "type": "$was_influenced_by.type",
+                                "id": "$upstream_docs.id",
+                                "type": "$upstream_docs.type",
                             }
                         },
                     }
@@ -191,7 +192,7 @@ def get_related_resources(
                     "$project": {
                         "_id": 0,
                         "id": "$_id",
-                        "was_influenced_by": 1,
+                        "upstream_docs": 1,
                         "type": {"$arrayElemAt": ["$selves.type", 0]},
                     }
                 },
@@ -200,33 +201,34 @@ def get_related_resources(
         )
     )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
-    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
-    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
-    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
-    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
-    influenced = list(
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following downstream
+    # relationships (_downstream.id) to discover downstream documents for entities that originated from,
+    # or are considered part of, the entities with documents identified by `ids`. It unwinds the collected (via
+    # `$graphLookup`) downstream docs, filters them by given `types` of interest, projects only essential fields to
+    # reduce response latency and size, and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed
+    # downstream docs into an array for each given ID.
+    downstream_docs = list(
         mdb.alldocs.aggregate(
             [
                 {"$match": {"id": {"$in": ids}}},
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_outbound.id",
-                        "connectFromField": "_outbound.id",
+                        "startWith": "$_downstream.id",
+                        "connectFromField": "_downstream.id",
                         "connectToField": "id",
-                        "as": "influenced",
+                        "as": "downstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$influenced"}},
-                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {"$unwind": {"path": "$downstream_docs"}},
+                {"$match": {"downstream_docs._type_and_ancestors": {"$in": types}}},
                 {
                     "$group": {
                         "_id": "$id",
-                        "influenced": {
+                        "downstream_docs": {
                             "$addToSet": {
-                                "id": "$influenced.id",
-                                "type": "$influenced.type",
+                                "id": "$downstream_docs.id",
+                                "type": "$downstream_docs.type",
                             }
                         },
                     }
@@ -243,7 +245,7 @@ def get_related_resources(
                     "$project": {
                         "_id": 0,
                         "id": "$_id",
-                        "influenced": 1,
+                        "downstream_docs": 1,
                         "type": {"$arrayElemAt": ["$selves.type", 0]},
                     }
                 },
@@ -255,19 +257,19 @@ def get_related_resources(
     relations_by_id = {
         id_: {
             "id": id_,
-            "was_influenced_by": [],
-            "influenced": [],
+            "upstream_docs": [],
+            "downstream_docs": [],
         }
         for id_ in ids
     }
 
-    # For each subject document that "was influenced by" or "influenced" any documents, create a dictionary
+    # For each subject document that was upstream of or downstream of any documents, create a dictionary
     # containing that subject document's `id`, its `type`, and the list of `id`s of the
-    # documents that it "was influenced by" and "influenced".
-    for d in was_influenced_by + influenced:
+    # documents that it for upstream or or downstream of.
+    for d in upstream_docs + downstream_docs:
         relations_by_id[d["id"]]["type"] = d["type"]
-        relations_by_id[d["id"]]["was_influenced_by"] += d.get("was_influenced_by", [])
-        relations_by_id[d["id"]]["influenced"] += d.get("influenced", [])
+        relations_by_id[d["id"]]["upstream_docs"] += d.get("upstream_docs", [])
+        relations_by_id[d["id"]]["downstream_docs"] += d.get("downstream_docs", [])
 
     return {"resources": list(relations_by_id.values())}
 

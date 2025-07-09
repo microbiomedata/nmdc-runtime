@@ -1043,11 +1043,15 @@ def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ) -> None:
     """
-    Adds {`_inbound`,`_outbound`} fields to each document in the temporary alldocs collection.
+    # TODO inbound->upstream and outbound->downstream
+    # TODO a Study is upstream of a Biosample
+    Adds {`_upstream`,`_downstream`} fields to each document in the temporary alldocs collection.
 
-    The {`_inbound`,`_outbound`} fields each contain an array of subdocuments, each with fields `id` and `type`.
-    Each subdocument represents a link to any other document that either links to or is linked from
-    the document via document-reference-ranged slots.
+    The {`_upstream`,`_downstream`} fields each contain an array of subdocuments, each with fields `id` and `type`.
+    Each subdocument represents a link to another document that either links to or is linked from the document via
+    document-reference-ranged slots. If document A links to document B, document A is not necessarily "upstream of"
+    document B. Rather, "upstream" and "downstream" are defined by domain semantics. For example, a Study is
+    considered upstream of a Biosample even though the link `associated_studies` goes from a Biosample to a Study.
 
     Args:
         temp_collection: The temporary MongoDB collection to process
@@ -1059,7 +1063,7 @@ def _add_related_ids_to_alldocs(
     """
 
     context.log.info(
-        "Building relationships and adding `_inbound` and `_outbound` fields..."
+        "Building relationships and adding `_upstream` and `_downstream` fields..."
     )
 
     # document ID -> type (with "nmdc:" prefix preserved)
@@ -1074,6 +1078,7 @@ def _add_related_ids_to_alldocs(
         # Store the full type with prefix intact
         doc_type = doc["type"]
         # For looking up reference slots, we still need the type without prefix
+        # FIXME `document_reference_ranged_slots_by_type` should key on `doc_type`
         doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
 
         # Record ID to type mapping - preserve the original type with prefix
@@ -1099,34 +1104,32 @@ def _add_related_ids_to_alldocs(
         f"{len({d for (d, _, _) in relationship_triples})} containing references"
     )
 
-    # The bifurcation of document-reference-ranged slots as "inbound" and "outbound" is essential
+    # The bifurcation of document-reference-ranged slots as "upstream" and "downstream" is essential
     # in order to perform graph traversal and collect all entities "related" to a given entity without
     # recursion "exploding".
     #
     # Note: We are hard-coding this "direction" information here in the Runtime
     #       because the NMDC schema does not currently contain or expose it.
     #
-    # An "inbound" slot is one for which an entity in the domain "was influenced by" (formally,
-    # <https://www.w3.org/ns/prov#wasInfluencedBy>, with typical CURIE prov:wasInfluencedBy) an entity in the range.
-    inbound_document_reference_ranged_slots = [
-        "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
-        "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
-        "has_input",  # a `nmdc:PlannedProcess` was influenced by a `nmdc:NamedThing`.
-        "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
-        "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
-        "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
-        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy .
-        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+    # An "upstream" slot is such that the range entity originated, or helped produce, the domain entity.
+    upstream_document_reference_ranged_slots = [
+        "associated_studies",  # when a `nmdc:Study` is upstream of a `nmdc:Biosample`.
+        "collected_from",  # when a `nmdc:Site` is upstream of a `nmdc:Biosample`.
+        "has_chromatography_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
+        "has_input",  # when a `nmdc:NamedThing` is upstream of a `nmdc:PlannedProcess`.
+        "has_mass_spectrometry_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
+        "instrument_used",  # when a `nmdc:Instrument` is upstream of a `nmdc:PlannedProcess`.
+        "uses_calibration",  # when a `nmdc:CalibrationInformation`is upstream of a `nmdc:PlannedProcess`.
+        "was_generated_by",  # when a `nmdc:DataEmitterProcess` is upstream of a `nmdc:DataObject`.
+        "was_informed_by",  # when a  `nmdc:DataGeneration` is upstream of a `nmdc:WorkflowExecution`.
     ]
-    # An "outbound" slot is one for which an entity in the domain "influences"
-    # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
-    outbound_document_reference_ranged_slots = [
-        "associated_studies",  # a `nmdc:Biosample` influences a `nmdc:Study`.
-        "calibration_object",  # `nmdc:CalibrationInformation` generates a `nmdc:DataObject`.
-        "generates_calibration",  # a `nmdc:PlannedProcess` generates `nmdc:CalibrationInformation`.
-        "has_output",  # a `nmdc:PlannedProcess` generates a `nmdc:NamedThing`.
-        "in_manifest",  # a `nmdc:DataObject` becomes associated with `nmdc:Manifest`.
-        "part_of",  # a "contained" `nmdc:NamedThing` influences its "container" `nmdc:NamedThing`,
+    # A "downstream" slot is such that the range entity originated from, or is considered part of, the domain entity.
+    downstream_document_reference_ranged_slots = [
+        "calibration_object",  # when a `nmdc:DataObject` is downstream of a `nmdc:CalibrationInformation`.
+        "generates_calibration",  # when a `nmdc:CalibrationInformation` is downstream of a `nmdc:PlannedProcess`.
+        "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
+        "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
+        "part_of",  # when a `nmdc:NamedThing` is downstream of a `nmdc:NamedThing`.
     ]
 
     unique_document_reference_ranged_slot_names = set()
@@ -1134,15 +1137,15 @@ def _add_related_ids_to_alldocs(
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
     context.log.info(f"{unique_document_reference_ranged_slot_names=}")
-    if len(inbound_document_reference_ranged_slots) + len(
-        outbound_document_reference_ranged_slots
+    if len(upstream_document_reference_ranged_slots) + len(
+        downstream_document_reference_ranged_slots
     ) != len(unique_document_reference_ranged_slot_names):
         raise Failure(
             "Number of detected unique document-reference-ranged slot names does not match "
             "sum of accounted-for inbound and outbound document-reference-ranged slot names."
         )
 
-    # Construct, and update documents with, `_incoming` and `_outgoing` field values.
+    # Construct, and update documents with, `_upstream` and `_downstream` field values.
     #
     # manage batching of MongoDB `bulk_write` operations
     bulk_operations, update_count = [], 0
@@ -1150,10 +1153,10 @@ def _add_related_ids_to_alldocs(
 
         # Determine in which respective fields to push this relationship
         # for the subject (doc) and object (ref) of this triple.
-        if slot in inbound_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_inbound", "_outbound"
-        elif slot in outbound_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_outbound", "_inbound"
+        if slot in upstream_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_upstream", "_downstream"
+        elif slot in downstream_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_upstream", "_downstream"
         else:
             raise Failure(f"Unknown slot {slot} for document {doc_id}")
 
@@ -1200,14 +1203,6 @@ def _add_related_ids_to_alldocs(
 
     context.log.info(f"Pushed {update_count} updates in total")
 
-    context.log.info("Creating {`_inbound`,`_outbound`} indexes...")
-    temp_collection.create_index("_inbound.id")
-    temp_collection.create_index("_outbound.id")
-    # Create compound indexes to ensure index-covered queries
-    temp_collection.create_index([("_inbound.type", 1), ("_inbound.id", 1)])
-    temp_collection.create_index([("_outbound.type", 1), ("_outbound.id", 1)])
-    context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
-
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
 #       pass an argument to the op (in order to specify the order of the ops in the graph)
@@ -1224,8 +1219,8 @@ def materialize_alldocs(context) -> int:
     2. Create a temporary collection to build the new alldocs collection.
     3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
-    5. Add special `_inbound` and `_outbound` fields with subdocuments containing ID and type of related entities.
-    6. Add indexes for `id`, relationship fields, and `{_inbound,_outbound}.type`/`.id` compound indexes.
+    5. Add special `_upstream` and `_downstream` fields with subdocuments containing ID and type of related entities.
+    6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
@@ -1236,7 +1231,7 @@ def materialize_alldocs(context) -> int:
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
     related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
 
-    The {`_inbound`,`_outbound`} fields enable efficient index-covered queries to find all entities of specific types
+    The {`_upstream`,`_downstream`} fields enable efficient index-covered queries to find all entities of specific types
     that are related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype
     expansions.
     """
@@ -1267,6 +1262,9 @@ def materialize_alldocs(context) -> int:
         )
     )
 
+    # FIXME rename to `document_reference_ranged_slots_by_type`
+    # FIXME key on CURIE, e.g. `nmdc:Study`
+    #  (here, not upstream in `cls_slot_map`/`document_referenceable_ranges`, b/c `schema_view` used directly in those)
     document_reference_ranged_slots = defaultdict(list)
     for cls_name, slot_map in cls_slot_map.items():
         for slot_name, slot in slot_map.items():
@@ -1306,12 +1304,12 @@ def materialize_alldocs(context) -> int:
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
 
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
-            # InsertOne is a method on the py-mongo Client class.
             # Get ancestors without the prefix, but add prefix to each one in the output
             ancestors = schema_view.class_ancestors(doc_type)
             new_doc["_type_and_ancestors"] = [
                 "nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors
             ]
+            # InsertOne is a pymongo representation of a mongo command.
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
@@ -1335,6 +1333,7 @@ def materialize_alldocs(context) -> int:
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
     # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
+    # TODO add indexes on each of `set(document_reference_ranged_slots.values())`.
     slots_to_index = ["has_input", "has_output", "was_informed_by"]
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
@@ -1344,10 +1343,18 @@ def materialize_alldocs(context) -> int:
     _add_related_ids_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots
     )
+    context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
+    temp_alldocs_collection.create_index("_upstream.id")
+    temp_alldocs_collection.create_index("_downstream.id")
+    # Create compound indexes to ensure index-covered queries
+    temp_alldocs_collection.create_index([("_upstream.type", 1), ("_upstream.id", 1)])
+    temp_alldocs_collection.create_index(
+        [("_downstream.type", 1), ("_downstream.id", 1)]
+    )
+    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
 
     context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
-
     n_alldocs_documents = mdb.alldocs.estimated_document_count()
     context.log.info(
         f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
