@@ -47,6 +47,12 @@ DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] 
     (INTERLEAVED, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Reads",
 }
 
+UNIT_OVERRIDES: dict[str, dict[str, str]] = {
+    "Biosample": {
+        "depth": "m",
+    }
+}
+
 
 class EnvironmentPackage(Enum):
     r"""
@@ -659,6 +665,17 @@ class SubmissionPortalTranslator(Translator):
             if slot_name not in slot_names:
                 logging.warning(f"No slot '{slot_name}' on class '{class_name}'")
                 continue
+
+            # This step handles cases where the submission portal/schema instructs a user to
+            # provide a value in a specific unit. The unit cannot be parsed out of the raw value
+            # in these cases, so we have to manually set it via UNIT_OVERRIDES. This part can
+            # go away once units are encoded in the schema itself.
+            # See: https://github.com/microbiomedata/nmdc-schema/issues/2517
+            if class_name in UNIT_OVERRIDES:
+                # If the class has unit overrides, check if the slot is in the overrides
+                unit_overrides = UNIT_OVERRIDES[class_name]
+                if slot_name in unit_overrides:
+                    unit = unit_overrides[slot_name]
 
             slot_definition = self.schema_view.induced_slot(slot_name, class_name)
             if slot_definition.multivalued:
