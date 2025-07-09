@@ -1007,6 +1007,7 @@ class TestFindDataObjectsForStudy:
         # Clean up: Delete the documents we created within this fixture, from the database.
         workflow_execution_set.delete_many({"id": workflow_execution_b["id"]})
         data_object_set.delete_many({"id": data_object_c["id"]})
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)        
 
     def test_it_traverses_multiple_stages_of_workflow_executions(
         self,
