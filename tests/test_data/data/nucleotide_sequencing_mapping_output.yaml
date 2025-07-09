@@ -32,6 +32,7 @@ biosample_set:
     depth:
       has_raw_value: '0'
       has_numeric_value: 0.0
+      has_unit: m
       type: nmdc:QuantityValue
     ecosystem: Environmental
     ecosystem_category: Terrestrial
