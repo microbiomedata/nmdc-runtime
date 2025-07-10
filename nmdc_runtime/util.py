@@ -34,6 +34,8 @@ from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
 from typing_extensions import Annotated
 
+from nmdc_runtime.config import DATABASE_CLASS_NAME
+
 
 def get_names_of_classes_in_effective_range_of_slot(
     schema_view: SchemaView, slot_definition: linkml_model.SlotDefinition
@@ -830,3 +832,28 @@ def decorate_if(condition: bool = False) -> Callable:
         return check_condition
 
     return apply_original_decorator
+
+
+@lru_cache
+def get_collection_names_from_schema() -> list[str]:
+    """
+    Returns the names of the slots of the `Database` class that describe database collections.
+
+    Source: https://github.com/microbiomedata/refscan/blob/af092b0e068b671849fe0f323fac2ed54b81d574/refscan/lib/helpers.py#L31
+    """
+    collection_names = []
+
+    schema_view = nmdc_schema_view()
+    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
+        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
+
+        # Filter out any hypothetical (future) slots that don't correspond to a collection (e.g. `db_version`).
+        if slot_definition.multivalued and slot_definition.inlined_as_list:
+            collection_names.append(slot_name)
+
+        # Filter out duplicate names. This is to work around the following issues in the schema:
+        # - https://github.com/microbiomedata/nmdc-schema/issues/1954
+        # - https://github.com/microbiomedata/nmdc-schema/issues/1955
+        collection_names = list(set(collection_names))
+
+    return collection_names

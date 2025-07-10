@@ -8,11 +8,11 @@ from pymongo.errors import AutoReconnect
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
 
-from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.mongo_util import SessionBoundDatabase
 from nmdc_runtime.util import (
     nmdc_schema_view,
     collection_name_to_class_names,
+    get_collection_names_from_schema,
 )
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
@@ -81,31 +81,6 @@ def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
     """Returns the names of schema collections in the database that have at least one document."""
     names = set(mdb.list_collection_names()) & set(get_collection_names_from_schema())
     return {name for name in names if mdb[name].estimated_document_count() > 0}
-
-
-@lru_cache
-def get_collection_names_from_schema() -> list[str]:
-    """
-    Returns the names of the slots of the `Database` class that describe database collections.
-
-    Source: https://github.com/microbiomedata/refscan/blob/af092b0e068b671849fe0f323fac2ed54b81d574/refscan/lib/helpers.py#L31
-    """
-    collection_names = []
-
-    schema_view = nmdc_schema_view()
-    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
-        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
-
-        # Filter out any hypothetical (future) slots that don't correspond to a collection (e.g. `db_version`).
-        if slot_definition.multivalued and slot_definition.inlined_as_list:
-            collection_names.append(slot_name)
-
-        # Filter out duplicate names. This is to work around the following issues in the schema:
-        # - https://github.com/microbiomedata/nmdc-schema/issues/1954
-        # - https://github.com/microbiomedata/nmdc-schema/issues/1955
-        collection_names = list(set(collection_names))
-
-    return collection_names
 
 
 @lru_cache

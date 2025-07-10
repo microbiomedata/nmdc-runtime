@@ -6,13 +6,18 @@ import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
 
-from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
+from nmdc_runtime.api.models.nmdc_schema import SimplifiedNMDCDatabase
+from nmdc_runtime.config import (
+    DATABASE_CLASS_NAME,
+    IS_RELATED_RESOURCES_ENDPOINT_ENABLED,
+)
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
     nmdc_database_collection_names,
     nmdc_schema_view,
+    get_collection_names_from_schema,
 )
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -23,7 +28,6 @@ from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    get_collection_names_from_schema,
 )
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
@@ -113,10 +117,10 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-@decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
+@decorate_if(condition=IS_RELATED_RESOURCES_ENDPOINT_ENABLED)(
     router.get(
         "/nmdcschema/related_resources",
-        response_model=ListResponse,
+        response_model=ListResponse[SimplifiedNMDCDatabase],
         response_model_exclude_unset=True,
     )
 )
@@ -126,6 +130,8 @@ def get_related_resources(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """# TODO docstring"""
+    # TODO move logic from endpoint to unit-testable handler
+    # TODO ensure pagination for responses
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
     if ids_not_found:

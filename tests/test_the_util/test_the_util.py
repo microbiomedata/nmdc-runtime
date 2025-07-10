@@ -13,13 +13,14 @@ import pytest
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 
-from nmdc_runtime.api.db.mongo import get_collection_names_from_schema, get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.lib import path_segments
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
     nmdc_schema_view,
     validate_json,
+    get_collection_names_from_schema,
 )
 from tests.lib.faker import Faker
 
@@ -348,23 +349,25 @@ def test_decorate_if():
 
     def parenthesize(func):
         """Decorator that wraps the function's output in parentheses."""
+
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
             return f"({result})"
+
         return wrapper
 
     @parenthesize  # regular decoration
     def get_apple() -> str:
         return "apple"
-    
+
     @decorate_if()(parenthesize)  # condition defaults to `False`
     def get_banana() -> str:
         return "banana"
-    
+
     @decorate_if(True)(parenthesize)
     def get_carrot() -> str:
         return "carrot"
-    
+
     @decorate_if(False)(parenthesize)
     def get_daikon() -> str:
         return "daikon"
