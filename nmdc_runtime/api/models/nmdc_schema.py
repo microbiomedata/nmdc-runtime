@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 
 from pydantic import BaseModel, Field, create_model
 
@@ -138,7 +138,7 @@ SimplifiedDocument = Dict[str, Any]
 SimplifiedNMDCDatabase = create_model(
     "NMDCDatabase",
     **{
-        coll_name: list[SimplifiedDocument]
+        coll_name: Optional[list[SimplifiedDocument]]
         for coll_name in get_collection_names_from_schema()
     },
 )

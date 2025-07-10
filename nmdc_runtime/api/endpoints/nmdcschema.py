@@ -120,7 +120,7 @@ def get_nmdc_database_collection_stats(
 @decorate_if(condition=IS_RELATED_RESOURCES_ENDPOINT_ENABLED)(
     router.get(
         "/nmdcschema/related_resources",
-        response_model=ListResponse[SimplifiedNMDCDatabase],
+        response_model=ListResponse,
         response_model_exclude_unset=True,
     )
 )
@@ -131,6 +131,7 @@ def get_related_resources(
 ):
     """# TODO docstring"""
     # TODO move logic from endpoint to unit-testable handler
+    # TODO ListResponse[SimplifiedNMDCDatabase]
     # TODO ensure pagination for responses
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))

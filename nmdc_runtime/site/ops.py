@@ -1043,8 +1043,6 @@ def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ) -> None:
     """
-    # TODO inbound->upstream and outbound->downstream
-    # TODO a Study is upstream of a Biosample
     Adds {`_upstream`,`_downstream`} fields to each document in the temporary alldocs collection.
 
     The {`_upstream`,`_downstream`} fields each contain an array of subdocuments, each with fields `id` and `type`.
@@ -1119,6 +1117,7 @@ def _add_related_ids_to_alldocs(
         "has_input",  # when a `nmdc:NamedThing` is upstream of a `nmdc:PlannedProcess`.
         "has_mass_spectrometry_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
         "instrument_used",  # when a `nmdc:Instrument` is upstream of a `nmdc:PlannedProcess`.
+        "part_of",  # when a `nmdc:NamedThing` is upstream of a `nmdc:NamedThing`.
         "uses_calibration",  # when a `nmdc:CalibrationInformation`is upstream of a `nmdc:PlannedProcess`.
         "was_generated_by",  # when a `nmdc:DataEmitterProcess` is upstream of a `nmdc:DataObject`.
         "was_informed_by",  # when a  `nmdc:DataGeneration` is upstream of a `nmdc:WorkflowExecution`.
@@ -1129,7 +1128,6 @@ def _add_related_ids_to_alldocs(
         "generates_calibration",  # when a `nmdc:CalibrationInformation` is downstream of a `nmdc:PlannedProcess`.
         "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
         "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
-        "part_of",  # when a `nmdc:NamedThing` is downstream of a `nmdc:NamedThing`.
     ]
 
     unique_document_reference_ranged_slot_names = set()
@@ -1156,10 +1154,13 @@ def _add_related_ids_to_alldocs(
         if slot in upstream_document_reference_ranged_slots:
             field_for_doc, field_for_ref = "_upstream", "_downstream"
         elif slot in downstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_upstream", "_downstream"
+            field_for_doc, field_for_ref = "_downstream", "_upstream"
         else:
             raise Failure(f"Unknown slot {slot} for document {doc_id}")
 
+        context.log.debug(f"pushing: given {doc_id=} {slot=} {ref_id=}")
+        context.log.debug(f"pushing: {doc_id=} {field_for_doc=} {ref_id=} to alldocs")
+        context.log.debug(f"pushing: {ref_id=} {field_for_ref=} {doc_id=} to alldocs")
         updates = [
             {
                 "filter": {"id": doc_id},

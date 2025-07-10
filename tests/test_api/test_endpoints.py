@@ -799,8 +799,8 @@ def test_get_related_resources_returns_related_resources(
     )
     assert len(response_resource["upstream_docs"]) == 0
 
-    # Request the documents related to `study_b`, which is downstream of
-    # `biosample_b`, and which is upstream of `study_a`.
+    # Request the documents related to `study_b`, which is upstream of
+    # `biosample_b` and downstream of `study_a`.
     response = api_user_client.request(
         "GET",
         f'/nmdcschema/related_resources?ids={study_b["id"]}',
@@ -809,14 +809,12 @@ def test_get_related_resources_returns_related_resources(
     response_resource = response.json()["resources"][0]
     assert study_b["id"] == response_resource["id"]
     assert {biosample_b["id"]} == set(
-        [r["id"] for r in response_resource["upstream_docs"]]
-    )
-    assert {study_a["id"]} == set(
         [r["id"] for r in response_resource["downstream_docs"]]
     )
+    assert {study_a["id"]} == set([r["id"] for r in response_resource["upstream_docs"]])
 
-    # Request the documents related to `biosample_a`, which is upstream of `study_a`,
-    # and is not downstream of anything.
+    # Request the documents related to `biosample_a`, which is downstream of `study_a`,
+    # and is not upstream of anything.
     response = api_user_client.request(
         "GET",
         f'/nmdcschema/related_resources?ids={biosample_a["id"]}',
@@ -824,10 +822,8 @@ def test_get_related_resources_returns_related_resources(
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]
     assert biosample_a["id"] == response_resource["id"]
-    assert len(response_resource["upstream_docs"]) == 0
-    assert {study_a["id"]} == set(
-        [r["id"] for r in response_resource["downstream_docs"]]
-    )
+    assert len(response_resource["downstream_docs"]) == 0
+    assert {study_a["id"]} == set([r["id"] for r in response_resource["upstream_docs"]])
 
 
 class TestFindDataObjectsForStudy:
