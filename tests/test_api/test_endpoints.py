@@ -5,10 +5,7 @@ import re
 import pytest
 import requests
 from dagster import build_op_context
-from nmdc_runtime.config import (
-    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
-    IS_RELATED_IDS_ENDPOINT_ENABLED,
-)
+from nmdc_runtime.config import IS_RELATED_IDS_ENDPOINT_ENABLED
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
 from toolz import get_in
@@ -1256,10 +1253,6 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
-@pytest.mark.skipif(
-    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
-    reason="The endpoint-under-test currently allows operations that leave behind broken references.",
-)
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1346,10 +1339,56 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     assert response.json()["n"] == 2
 
 
-@pytest.mark.skipif(
-    IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES,
-    reason="The endpoint-under-test currently allows operations that leave behind broken references.",
-)
+def test_queries_run_allows_ref_breaking_deletions_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "delete" commands via the `/queries:run` API endpoint.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Case 1: We cannot delete Study A because Biosample A and Study B are referencing it.
+    # Reference: https://docs.pytest.org/en/6.2.x/reference.html#pytest-raises
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "limit": 0,
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Case 2: We can do it if we opt out of the referential integrity checks.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "delete": "study_set",
+            "deletes": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "limit": 0,
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["n"] == 1
+
+
 def test_queries_run_rejects_updates_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1390,6 +1429,60 @@ def test_queries_run_rejects_updates_that_would_leave_broken_references(
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     response_body = exc_info.value.response.json()
     assert "study_set" in response_body["detail"]
+
+
+def test_queries_run_allows_ref_breaking_updates_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
+
+    # Now, confirm the endpoint allows us to introduce a reference to a nonexistent document
+    # if we tell it to allow broken references.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "update": "study_set",
+            "updates": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
 
 
 def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(

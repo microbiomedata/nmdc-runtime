@@ -1,14 +1,14 @@
 import json
 import logging
+from typing import Annotated
 
 import bson.json_util
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in, dissoc
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
-from nmdc_runtime.config import IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
@@ -81,6 +81,12 @@ def run_query(
     cmd: Cmd,
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
+    allow_broken_refs: Annotated[
+        bool,
+        Query(
+            description="When `true`, the server will allow operations that leave behind broken references."
+        )
+    ] = False,
 ):
     """
     Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
@@ -211,18 +217,27 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
-    cmd_response = _run_mdb_cmd(cmd)
+    cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
     return cmd_response
 
 
 _mdb = get_mongo_db()
 
 
-def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
+def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False) -> CommandResponse:
     r"""
     TODO: Document this function.
     TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
+
+    :param cmd: Undocumented. TODO: Document this parameter.
+    :param mdb: Undocumented. TODO: Document this parameter.
+    :param allow_broken_refs: Under normal circumstances, if this function determines that performing
+                              the specified command would leave behind broken references, this function
+                              will reject the command (i.e. raise an HTTP 422). In contrast, when the
+                              `allow_broken_refs` parameter is set to `true`, this function will not
+                              reject the command for that reason (however, it may reject the command
+                              for other reasons).
     """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
@@ -304,7 +319,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         "source_collection_name"
                     ]
                     target_document_id = target_document_descriptor["id"]
-                    if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
+                    if allow_broken_refs:
                         logging.warning(
                             f"The document having 'id'='{target_document_id}' in "
                             f"the collection '{collection_name}' is referenced by "
@@ -408,7 +423,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 "have left behind one or more broken references. Details: "
                 f"{', '.join(violation_messages)}"
             )
-            if IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES:
+            if allow_broken_refs:
                 logging.warning(detail)
             else:
                 raise HTTPException(

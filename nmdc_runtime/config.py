@@ -55,21 +55,3 @@ IS_RELATED_IDS_ENDPOINT_ENABLED: bool = is_env_var_true(
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.
 IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
-
-# Feature flag that can be used to switch the `/queries:run` endpoint between
-# "lenient" mode (`true`) and "strict" mode (`false`), in terms of referential
-# integrity checking. Unless this is set to `true`, the endpoint will reject
-# operations that would leave behind broken references.
-#
-# Note: We may eventually remove this flag. We are including it now so that
-#       we can easily switch between "lenient" and "strict" modes, given that
-#       (a) some users expressed that they may need some time to update
-#       client code to work with the "strict" mode, and (b) some users
-#       encountered a "catch-22" scenario in "strict" mode, in which they
-#       could not delete the documents they wanted to, due to the presence
-#       of reciprocal references across collections, as described in:
-#       https://github.com/microbiomedata/nmdc-runtime/issues/1021
-#
-IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES: bool = is_env_var_true(
-    "IS_QUERIES_RUN_ENDPOINT_ALLOWING_BROKEN_REFERENCES", default="false"
-)
