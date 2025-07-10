@@ -85,7 +85,7 @@ def run_query(
         bool,
         Query(
             description="When `true`, the server will allow operations that leave behind broken references."
-        )
+        ),
     ] = False,
 ):
     """
@@ -224,7 +224,9 @@ def run_query(
 _mdb = get_mongo_db()
 
 
-def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False) -> CommandResponse:
+def _run_mdb_cmd(
+    cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False
+) -> CommandResponse:
     r"""
     TODO: Document this function.
     TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
