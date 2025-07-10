@@ -234,7 +234,6 @@ def find_data_objects_for_study(
         current_ids = [biosample_id]
         collected_data_objects = []
         unique_ids = set()
-        processed_ids = set()
 
         # Iterate over records in the `alldocs` collection. Look for
         # records that have the given biosample_id as value on the
@@ -245,9 +244,6 @@ def find_data_objects_for_study(
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
-                if current_id in processed_ids:
-                    continue
-                processed_ids.add(current_id)
                 # Query to find all documents with current_id as the value on
                 # `has_input` slot
                 for doc in mdb.alldocs.find({"has_input": current_id}):
@@ -263,11 +259,10 @@ def find_data_objects_for_study(
                         continue
 
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
-                    # Add both DataObject and non-DataObject outputs to continue the chain
+                    # Add non-DataObject outputs to continue the chain
                     for op in has_output:
-                        doc = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                        if doc and op not in processed_ids:
-                            # Include DataObjects in the chain as they can be inputs to other DataObjects
+                        doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                        if doc_check and doc_check.get("type") != "nmdc:DataObject":
                             new_current_ids.append(op)
 
                     if any(
@@ -276,6 +271,25 @@ def find_data_objects_for_study(
                         process_informed_by_docs(
                             doc, collected_data_objects, unique_ids
                         )
+
+                # Also check if current_id is a DataObject that serves as input to other processes
+                current_doc_type = mdb.alldocs.find_one({"id": current_id}, {"type": 1})
+                if (
+                    current_doc_type
+                    and current_doc_type.get("type") == "nmdc:DataObject"
+                ):
+                    # Find all documents in alldocs that have this DataObject as input
+                    for doc in mdb.alldocs.find({"has_input": current_id}):
+                        has_output = doc.get("has_output", [])
+                        # Process outputs from these documents
+                        collect_data_objects(
+                            has_output, collected_data_objects, unique_ids
+                        )
+                        # Add non-DataObject outputs to continue the chain
+                        for op in has_output:
+                            doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                            if doc_check and doc_check.get("type") != "nmdc:DataObject":
+                                new_current_ids.append(op)
 
             current_ids = new_current_ids
 
