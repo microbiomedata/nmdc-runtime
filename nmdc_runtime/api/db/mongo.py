@@ -275,7 +275,7 @@ class OverlayDB(AbstractContextManager):
         assert all(DeleteStatement(**us) for us in deletes)
         for delete_spec in deletes:
             for bottom_doc in self._bottom_db[coll_name].find(
-                delete_spec["q"], limit=delete_spec.get("limit", 1)
+                delete_spec["q"], limit=delete_spec["limit"]
             ):
                 bottom_doc["_deleted"] = True
                 self._top_db[coll_name].insert_one(bottom_doc)
