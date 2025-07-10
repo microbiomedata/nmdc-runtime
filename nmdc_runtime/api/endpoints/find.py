@@ -234,6 +234,7 @@ def find_data_objects_for_study(
         current_ids = [biosample_id]
         collected_data_objects = []
         unique_ids = set()
+        processed_ids = set()
 
         # Iterate over records in the `alldocs` collection. Look for
         # records that have the given biosample_id as value on the
@@ -244,6 +245,9 @@ def find_data_objects_for_study(
         while current_ids:
             new_current_ids = []
             for current_id in current_ids:
+                if current_id in processed_ids:
+                    continue
+                processed_ids.add(current_id)
                 # Query to find all documents with current_id as the value on
                 # `has_input` slot
                 for doc in mdb.alldocs.find({"has_input": current_id}):
@@ -259,10 +263,11 @@ def find_data_objects_for_study(
                         continue
 
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
-                    # Add non-DataObject outputs to continue the chain
+                    # Add both DataObject and non-DataObject outputs to continue the chain
                     for op in has_output:
                         doc = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                        if doc and doc.get("type") != "nmdc:DataObject":
+                        if doc and op not in processed_ids:
+                            # Include DataObjects in the chain as they can be inputs to other DataObjects
                             new_current_ids.append(op)
 
                     if any(
