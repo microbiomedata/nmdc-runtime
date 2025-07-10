@@ -16,7 +16,7 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
 
-from nmdc_runtime.util import validate_json
+from nmdc_runtime.api.db.mongo import validate_json
 from tests.conftest import get_mongo_test_db
 
 

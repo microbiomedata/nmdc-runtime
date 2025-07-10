@@ -6,11 +6,11 @@ from toolz import dissoc
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_mongo_client,
+    OverlayDBError,
+    OverlayDB,
 )
 from nmdc_runtime.util import (
     all_docs_have_unique_id,
-    OverlayDB,
-    OverlayDBError,
 )
 
 
@@ -103,7 +103,7 @@ def test_overlaydb_delete(test_db):
             dissoc(d, "_id") for d in odb.merge_find(coll.name, {"filter": {"id": 0}})
         ]
         assert rv[0] == {"id": 0}
-        odb.delete(coll.name, [{"q": {"id": 0}}])
+        odb.delete(coll.name, [{"q": {"id": 0}, "limit": 1}])
         rv = [
             dissoc(d, "_id") for d in odb.merge_find(coll.name, {"filter": {"id": 0}})
         ]
@@ -157,17 +157,37 @@ def test_mongo_client_supports_transactions(mongo_client):
     with mongo_client.start_session() as session:
 
         # Modify the document while using the _session_ and confirm the real database _is_ affected.
-        collection.update_one({"food": "apple"}, {"$set": {"food": "donut"}}, session=session)
-        assert set(collection.distinct("food", session=session)) == {"donut", "banana", "carrot"}
-        assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}  # immediately says "donut"
+        collection.update_one(
+            {"food": "apple"}, {"$set": {"food": "donut"}}, session=session
+        )
+        assert set(collection.distinct("food", session=session)) == {
+            "donut",
+            "banana",
+            "carrot",
+        }
+        assert set(collection.distinct("food")) == {
+            "donut",
+            "banana",
+            "carrot",
+        }  # immediately says "donut"
 
         # Start a transaction.
         with session.start_transaction():
 
             # Modify the document within the _transaction_ and confirm the real database is _not_ affected.
-            collection.update_one({"food": "banana"}, {"$set": {"food": "egg"}}, session=session)
-            assert set(collection.distinct("food", session=session)) == {"donut", "egg", "carrot"}  # says "egg"
-            assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}  # still says "banana"
+            collection.update_one(
+                {"food": "banana"}, {"$set": {"food": "egg"}}, session=session
+            )
+            assert set(collection.distinct("food", session=session)) == {
+                "donut",
+                "egg",
+                "carrot",
+            }  # says "egg"
+            assert set(collection.distinct("food")) == {
+                "donut",
+                "banana",
+                "carrot",
+            }  # still says "banana"
 
             # Abort the transaction.
             #
@@ -178,7 +198,11 @@ def test_mongo_client_supports_transactions(mongo_client):
 
         # Confirm the real database—whether using or not using the session—does _not_ reflect the changes that were
         # made within the aborted transaction.
-        assert set(collection.distinct("food", session=session)) == {"donut", "banana", "carrot"}  # back to "banana"
+        assert set(collection.distinct("food", session=session)) == {
+            "donut",
+            "banana",
+            "carrot",
+        }  # back to "banana"
         assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}
 
     # Confirm the real database _does_ reflect the changes that were made using the now-ended session.
