@@ -44,7 +44,7 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -106,7 +106,6 @@ from nmdc_runtime.util import (
     get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
-    validate_json,
     specialize_activity_set_docs,
     collection_name_to_class_names,
     class_hierarchy_as_list,

@@ -13,6 +13,8 @@ from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
+    OverlayDB,
+    validate_json,
 )
 from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
 from nmdc_runtime.api.endpoints.util import (
@@ -39,8 +41,6 @@ from nmdc_runtime.api.models.query import (
 from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.util import (
-    OverlayDB,
-    validate_json,
     get_allowed_references,
     nmdc_schema_view,
 )

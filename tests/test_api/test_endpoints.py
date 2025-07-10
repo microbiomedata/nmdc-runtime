@@ -13,8 +13,11 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object, strip_oid
+from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.endpoints.util import (
+    persist_content_and_get_drs_object,
+    strip_oid,
+)
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
@@ -27,7 +30,7 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 from tests.lib.faker import Faker
 
 
@@ -65,6 +68,7 @@ def ensure_alldocs_collection_has_been_materialized(
             }
         )
     )
+
 
 def ensure_test_resources(mdb):
     username = "testuser"
@@ -657,7 +661,9 @@ def fake_study_nonexistent_in_mdb():
     yield nonexistent_study_id
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
     api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
 ):
@@ -691,7 +697,9 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         )
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
     api_user_client, fake_study_in_mdb
 ):
@@ -751,7 +759,9 @@ def fake_studies_and_biosamples_in_mdb():
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_related_ids(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
@@ -1180,6 +1190,7 @@ def test_run_query_update_as_user(api_user_client):
                 ],
             },
         )
+
 
 def test_run_query_aggregate_as_user(api_user_client):
     """
@@ -2489,7 +2500,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
-    
+
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,
