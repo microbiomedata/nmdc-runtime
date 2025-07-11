@@ -1109,14 +1109,14 @@ class TestFindDataObjectsForStudy:
         r"""
         Fixture that seeds the database with a chain where DataObjects serve as input to other processes.
         Based on real-world pattern where NucleotideSequencing produces DataObjects that are then used
-        by NomAnalysis workflows.
+        by MetagenomeAnnotation workflows.
 
         ```mermaid
         graph
             biosample --> |has_input| nucleotide_sequencing_process
             nucleotide_sequencing_process --> |has_output| raw_data_object
-            raw_data_object --> |has_input| nom_analysis_workflow
-            nom_analysis_workflow --> |has_output| processed_data_object
+            raw_data_object --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| processed_data_object
         ```
         """
         faker = Faker()
@@ -1136,27 +1136,26 @@ class TestFindDataObjectsForStudy:
             associated_studies=[self.study_id],
         )[0]
 
-        # Create a NomAnalysis workflow that takes the raw data object as input
+        # Create a MetagenomeAnnotation workflow that takes the raw data object as input
         processed_data_object = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000005"
         )[0]
         processed_data_object["data_category"] = "processed_data"
 
-        nom_analysis_workflow = faker.generate_workflow_executions(
+        metagenome_annotation_workflow = faker.generate_metagenome_annotations(
             quantity=1,
-            id="nmdc:wfnom-00-000001",
             has_input=[raw_data_object["id"]],
-            has_output=[processed_data_object["id"]],
             was_informed_by=nucleotide_sequencing_id,
+            id="nmdc:wfmgan-00-000001.1",
+            has_output=[processed_data_object["id"]],
         )[0]
-        nom_analysis_workflow["type"] = "nmdc:NomAnalysis"
 
         data_generation_set = seeded_db.get_collection(name="data_generation_set")
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         data_object_set = seeded_db.get_collection(name="data_object_set")
 
         data_generation_set.insert_many([nucleotide_sequencing_process])
-        workflow_execution_set.insert_many([nom_analysis_workflow])
+        workflow_execution_set.insert_many([metagenome_annotation_workflow])
         data_object_set.insert_many([raw_data_object, processed_data_object])
 
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
@@ -1166,7 +1165,7 @@ class TestFindDataObjectsForStudy:
 
         # Clean up: Delete the documents we created within this fixture, from the database.
         data_generation_set.delete_many({"id": nucleotide_sequencing_process["id"]})
-        workflow_execution_set.delete_many({"id": nom_analysis_workflow["id"]})
+        workflow_execution_set.delete_many({"id": metagenome_annotation_workflow["id"]})
         data_object_set.delete_many(
             {"id": {"$in": [raw_data_object["id"], processed_data_object["id"]]}}
         )
@@ -1213,15 +1212,15 @@ class TestFindDataObjectsForStudy:
         r"""
         Fixture that seeds the database with workflow executions linked by was_informed_by
         to DataGeneration records, following the real-world pattern where NucleotideSequencing
-        produces raw data that is then processed by NomAnalysis workflows.
+        produces raw data that is then processed by MetagenomeAnnotation workflows.
 
         ```mermaid
         graph
             biosample --> |has_input| nucleotide_sequencing_b
             nucleotide_sequencing_b --> |has_output| raw_data_object_b
-            raw_data_object_b --> |has_input| nom_analysis_b
-            nom_analysis_b --> |was_informed_by| nucleotide_sequencing_b
-            nom_analysis_b --> |has_output| processed_data_object_b
+            raw_data_object_b --> |has_input| metagenome_annotation_b
+            metagenome_annotation_b --> |was_informed_by| nucleotide_sequencing_b
+            metagenome_annotation_b --> |has_output| processed_data_object_b
         ```
         """
         faker = Faker()
@@ -1247,22 +1246,21 @@ class TestFindDataObjectsForStudy:
         )[0]
         processed_data_object_b["data_category"] = "processed_data"
 
-        # Create NomAnalysis workflow informed by the NucleotideSequencing
-        nom_analysis_b = faker.generate_workflow_executions(
+        # Create MetagenomeAnnotation workflow informed by the NucleotideSequencing
+        metagenome_annotation_b = faker.generate_metagenome_annotations(
             quantity=1,
-            id="nmdc:wfnom-00-000002",
             has_input=[raw_data_object_b["id"]],
-            has_output=[processed_data_object_b["id"]],
             was_informed_by=nucleotide_sequencing_b_id,
+            id="nmdc:wfmgan-00-000002.1",
+            has_output=[processed_data_object_b["id"]],
         )[0]
-        nom_analysis_b["type"] = "nmdc:NomAnalysis"
 
         data_generation_set = seeded_db.get_collection(name="data_generation_set")
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         data_object_set = seeded_db.get_collection(name="data_object_set")
 
         data_generation_set.insert_many([nucleotide_sequencing_b])
-        workflow_execution_set.insert_many([nom_analysis_b])
+        workflow_execution_set.insert_many([metagenome_annotation_b])
         data_object_set.insert_many([raw_data_object_b, processed_data_object_b])
 
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
@@ -1272,7 +1270,7 @@ class TestFindDataObjectsForStudy:
 
         # Clean up: Delete the documents we created within this fixture, from the database.
         data_generation_set.delete_many({"id": nucleotide_sequencing_b["id"]})
-        workflow_execution_set.delete_many({"id": nom_analysis_b["id"]})
+        workflow_execution_set.delete_many({"id": metagenome_annotation_b["id"]})
         data_object_set.delete_many(
             {"id": {"$in": [raw_data_object_b["id"], processed_data_object_b["id"]]}}
         )
