@@ -1108,34 +1108,33 @@ class TestFindDataObjectsForStudy:
     def seeded_db_with_data_object_chain(self, seeded_db):
         r"""
         Fixture that seeds the database with a chain where DataObjects serve as input to other processes.
-        Based on real-world pattern where MassSpectrometry produces DataObjects that are then used
+        Based on real-world pattern where NucleotideSequencing produces DataObjects that are then used
         by NomAnalysis workflows.
 
         ```mermaid
         graph
-            biosample --> |has_input| mass_spec_process
-            mass_spec_process --> |has_output| raw_data_object
+            biosample --> |has_input| nucleotide_sequencing_process
+            nucleotide_sequencing_process --> |has_output| raw_data_object
             raw_data_object --> |has_input| nom_analysis_workflow
             nom_analysis_workflow --> |has_output| processed_data_object
         ```
         """
         faker = Faker()
 
-        # Create a MassSpectrometry DataGeneration that produces a raw data object
-        mass_spec_id = "nmdc:omprc-00-000001"
+        # Create a NucleotideSequencing DataGeneration that produces a raw data object
+        nucleotide_sequencing_id = "nmdc:omprc-00-000001"
         raw_data_object = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000004"
         )[0]
         raw_data_object["data_category"] = "raw_data"
 
-        mass_spec_process = faker.generate_data_generations(
+        nucleotide_sequencing_process = faker.generate_nucleotide_sequencings(
             quantity=1,
-            id=mass_spec_id,
+            id=nucleotide_sequencing_id,
             has_input=[self.biosample_id],
             has_output=[raw_data_object["id"]],
             associated_studies=[self.study_id],
         )[0]
-        mass_spec_process["type"] = "nmdc:MassSpectrometry"
 
         # Create a NomAnalysis workflow that takes the raw data object as input
         processed_data_object = faker.generate_data_objects(
@@ -1148,7 +1147,7 @@ class TestFindDataObjectsForStudy:
             id="nmdc:wfnom-00-000001",
             has_input=[raw_data_object["id"]],
             has_output=[processed_data_object["id"]],
-            was_informed_by=mass_spec_id,
+            was_informed_by=nucleotide_sequencing_id,
         )[0]
         nom_analysis_workflow["type"] = "nmdc:NomAnalysis"
 
@@ -1156,7 +1155,7 @@ class TestFindDataObjectsForStudy:
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         data_object_set = seeded_db.get_collection(name="data_object_set")
 
-        data_generation_set.insert_many([mass_spec_process])
+        data_generation_set.insert_many([nucleotide_sequencing_process])
         workflow_execution_set.insert_many([nom_analysis_workflow])
         data_object_set.insert_many([raw_data_object, processed_data_object])
 
@@ -1166,7 +1165,7 @@ class TestFindDataObjectsForStudy:
         yield seeded_db
 
         # Clean up: Delete the documents we created within this fixture, from the database.
-        data_generation_set.delete_many({"id": mass_spec_process["id"]})
+        data_generation_set.delete_many({"id": nucleotide_sequencing_process["id"]})
         workflow_execution_set.delete_many({"id": nom_analysis_workflow["id"]})
         data_object_set.delete_many(
             {"id": {"$in": [raw_data_object["id"], processed_data_object["id"]]}}
@@ -1194,7 +1193,7 @@ class TestFindDataObjectsForStudy:
         received_biosample = data_objects_by_biosample[0]
         assert received_biosample["biosample_id"] == self.biosample_id
 
-        # Should find all 4 data objects: original 2, plus 2 from the mass spec -> nom analysis chain
+        # Should find all 4 data objects: original 2, plus 2 from the nucleotide sequencing -> nom analysis chain
         assert len(received_biosample["data_objects"]) == 4
         received_data_objects = received_biosample["data_objects"]
         received_data_object_ids = [dobj["id"] for dobj in received_data_objects]
@@ -1203,7 +1202,7 @@ class TestFindDataObjectsForStudy:
         expected_ids = [
             self.data_object_ids[0],  # original data_object_a
             self.data_object_ids[1],  # original data_object_b
-            "nmdc:dobj-00-000004",  # raw_data_object from mass spec
+            "nmdc:dobj-00-000004",  # raw_data_object from nucleotide sequencing
             "nmdc:dobj-00-000005",  # processed_data_object from nom analysis
         ]
         for expected_id in expected_ids:
@@ -1213,35 +1212,34 @@ class TestFindDataObjectsForStudy:
     def seeded_db_with_informed_by_workflow(self, seeded_db):
         r"""
         Fixture that seeds the database with workflow executions linked by was_informed_by
-        to DataGeneration records, following the real-world pattern where MassSpectrometry
+        to DataGeneration records, following the real-world pattern where NucleotideSequencing
         produces raw data that is then processed by NomAnalysis workflows.
 
         ```mermaid
         graph
-            biosample --> |has_input| mass_spec_b
-            mass_spec_b --> |has_output| raw_data_object_b
+            biosample --> |has_input| nucleotide_sequencing_b
+            nucleotide_sequencing_b --> |has_output| raw_data_object_b
             raw_data_object_b --> |has_input| nom_analysis_b
-            nom_analysis_b --> |was_informed_by| mass_spec_b
+            nom_analysis_b --> |was_informed_by| nucleotide_sequencing_b
             nom_analysis_b --> |has_output| processed_data_object_b
         ```
         """
         faker = Faker()
 
-        # Create a MassSpectrometry DataGeneration that produces raw data
-        mass_spec_b_id = "nmdc:omprc-00-000002"
+        # Create a NucleotideSequencing DataGeneration that produces raw data
+        nucleotide_sequencing_b_id = "nmdc:omprc-00-000002"
         raw_data_object_b = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000006"
         )[0]
         raw_data_object_b["data_category"] = "raw_data"
 
-        mass_spec_b = faker.generate_data_generations(
+        nucleotide_sequencing_b = faker.generate_nucleotide_sequencings(
             quantity=1,
-            id=mass_spec_b_id,
+            id=nucleotide_sequencing_b_id,
             has_input=[self.biosample_id],
             has_output=[raw_data_object_b["id"]],
             associated_studies=[self.study_id],
         )[0]
-        mass_spec_b["type"] = "nmdc:MassSpectrometry"
 
         # Create processed data object
         processed_data_object_b = faker.generate_data_objects(
@@ -1249,13 +1247,13 @@ class TestFindDataObjectsForStudy:
         )[0]
         processed_data_object_b["data_category"] = "processed_data"
 
-        # Create NomAnalysis workflow informed by the MassSpectrometry
+        # Create NomAnalysis workflow informed by the NucleotideSequencing
         nom_analysis_b = faker.generate_workflow_executions(
             quantity=1,
             id="nmdc:wfnom-00-000002",
             has_input=[raw_data_object_b["id"]],
             has_output=[processed_data_object_b["id"]],
-            was_informed_by=mass_spec_b_id,
+            was_informed_by=nucleotide_sequencing_b_id,
         )[0]
         nom_analysis_b["type"] = "nmdc:NomAnalysis"
 
@@ -1263,7 +1261,7 @@ class TestFindDataObjectsForStudy:
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         data_object_set = seeded_db.get_collection(name="data_object_set")
 
-        data_generation_set.insert_many([mass_spec_b])
+        data_generation_set.insert_many([nucleotide_sequencing_b])
         workflow_execution_set.insert_many([nom_analysis_b])
         data_object_set.insert_many([raw_data_object_b, processed_data_object_b])
 
@@ -1273,7 +1271,7 @@ class TestFindDataObjectsForStudy:
         yield seeded_db
 
         # Clean up: Delete the documents we created within this fixture, from the database.
-        data_generation_set.delete_many({"id": mass_spec_b["id"]})
+        data_generation_set.delete_many({"id": nucleotide_sequencing_b["id"]})
         workflow_execution_set.delete_many({"id": nom_analysis_b["id"]})
         data_object_set.delete_many(
             {"id": {"$in": [raw_data_object_b["id"], processed_data_object_b["id"]]}}
@@ -1310,7 +1308,7 @@ class TestFindDataObjectsForStudy:
         expected_ids = [
             self.data_object_ids[0],  # original data_object_a
             self.data_object_ids[1],  # original data_object_b
-            "nmdc:dobj-00-000006",  # raw_data_object_b from mass spec
+            "nmdc:dobj-00-000006",  # raw_data_object_b from nucleotide sequencing
             "nmdc:dobj-00-000007",  # processed_data_object_b from nom analysis
         ]
         for expected_id in expected_ids:
