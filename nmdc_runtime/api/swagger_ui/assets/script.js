@@ -35,4 +35,19 @@ window.addEventListener("nmdcInit", (event) => {{
             tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
         }}
     }})
+
+    // Simplify authentication field header text
+    console.debug("Simplifying authentication field header text");
+    // Wait a short moment for Swagger UI to fully render
+    setTimeout(() => {{
+        // Look for the authorization button or text that contains the technical OAuth2 name
+        const authElements = document.querySelectorAll('button, span, div');
+        authElements.forEach(element => {{
+            if (element.textContent && element.textContent.includes('OAuth2PasswordOrClientCredentialsBearer')) {{
+                console.debug("Found OAuth2 authentication element, replacing text");
+                element.textContent = element.textContent.replace('OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)', 'User Login');
+                element.textContent = element.textContent.replace('OAuth2PasswordOrClientCredentialsBearer', 'User Login');
+            }}
+        }});
+    }}, 500);
 }});
