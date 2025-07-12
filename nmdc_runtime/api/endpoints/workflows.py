@@ -154,24 +154,32 @@ async def delete_workflow_execution(
 
     try:
         # Check if workflow execution exists
-        workflow_execution = mdb.workflow_execution_set.find_one({"id": workflow_execution_id})
+        workflow_execution = mdb.workflow_execution_set.find_one(
+            {"id": workflow_execution_id}
+        )
         if not workflow_execution:
-            raise HTTPException(status_code=404, detail=f"Workflow execution {workflow_execution_id} not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Workflow execution {workflow_execution_id} not found",
+            )
 
         # Track what we've deleted to avoid cycles and provide summary
         deleted_workflow_executions: Set[str] = set()
         deleted_data_objects: Set[str] = set()
         deleted_functional_annotation_agg_ids: Set[str] = set()
 
-        def find_downstream_workflow_executions(data_object_ids: List[str]) -> List[str]:
+        def find_downstream_workflow_executions(
+            data_object_ids: List[str],
+        ) -> List[str]:
             """Find workflow executions that use any of the given data objects as inputs."""
             if not data_object_ids:
                 return []
 
-            downstream_wfes = list(mdb.workflow_execution_set.find(
-                {"has_input": {"$in": data_object_ids}},
-                {"id": 1}
-            ))
+            downstream_wfes = list(
+                mdb.workflow_execution_set.find(
+                    {"has_input": {"$in": data_object_ids}}, {"id": 1}
+                )
+            )
             return [wfe["id"] for wfe in downstream_wfes]
 
         def recursive_delete_workflow_execution(wfe_id: str) -> None:
@@ -195,11 +203,13 @@ async def delete_workflow_execution(
             wfe_type = wfe.get("type", "")
             is_annotating_workflow = wfe_type in [
                 "nmdc:MetagenomeAnnotation",
-                "nmdc:MetagenomeAnnotationActivity"
+                "nmdc:MetagenomeAnnotationActivity",
             ]
 
             # Find downstream workflow executions that use these data objects as inputs
-            downstream_wfe_ids = find_downstream_workflow_executions(output_data_object_ids)
+            downstream_wfe_ids = find_downstream_workflow_executions(
+                output_data_object_ids
+            )
 
             # Recursively delete downstream workflow executions first
             for downstream_wfe_id in downstream_wfe_ids:
@@ -208,16 +218,19 @@ async def delete_workflow_execution(
 
             # Add data objects to deletion set
             deleted_data_objects.update(output_data_object_ids)
-            
+
             # If this is an AnnotatingWorkflow, mark functional annotation records for deletion
             if is_annotating_workflow:
-                func_annotation_records = list(mdb.functional_annotation_agg.find(
-                    {"was_generated_by": wfe_id},
-                    {"_id": 1}
-                ))
+                func_annotation_records = list(
+                    mdb.functional_annotation_agg.find(
+                        {"was_generated_by": wfe_id}, {"_id": 1}
+                    )
+                )
                 if func_annotation_records:
                     # Store the ObjectIds for deletion from functional_annotation_agg
-                    deleted_functional_annotation_agg_ids.update([str(record["_id"]) for record in func_annotation_records])
+                    deleted_functional_annotation_agg_ids.update(
+                        [str(record["_id"]) for record in func_annotation_records]
+                    )
 
         # Start recursive deletion from the target workflow execution
         recursive_delete_workflow_execution(workflow_execution_id)
@@ -229,15 +242,17 @@ async def delete_workflow_execution(
         if deleted_data_objects:
             docs_to_delete["data_object_set"] = list(deleted_data_objects)
         if deleted_functional_annotation_agg_ids:
-            docs_to_delete["functional_annotation_agg"] = list(deleted_functional_annotation_agg_ids)
+            docs_to_delete["functional_annotation_agg"] = list(
+                deleted_functional_annotation_agg_ids
+            )
 
         # Perform the actual deletion using _run_mdb_cmd for consistency
         deletion_results = {}
-        
+
         for collection_name, doc_ids in docs_to_delete.items():
             if not doc_ids:
                 continue
-                
+
             # Handle special case for functional_annotation_agg which uses _id instead of id
             if collection_name == "functional_annotation_agg":
                 # Convert string ObjectIds back to ObjectId instances for the filter
@@ -246,31 +261,35 @@ async def delete_workflow_execution(
             else:
                 # Standard case - use id field
                 filter_dict = {"id": {"$in": doc_ids}}
-            
+
             # Create delete command
             delete_cmd = DeleteCommand(
                 delete=collection_name,
-                deletes=[DeleteStatement(q=filter_dict, limit=0)]  # limit=0 means delete all matching
+                deletes=[
+                    DeleteStatement(q=filter_dict, limit=0)
+                ],  # limit=0 means delete all matching
             )
-            
+
             # Execute the delete command
             response = _run_mdb_cmd(delete_cmd, mdb)
-            
+
             # Store the result
             deletion_results[collection_name] = {
                 "deleted_count": response.n,
-                "doc_ids": doc_ids
+                "doc_ids": doc_ids,
             }
 
         return {
             "message": "Workflow execution and dependencies deleted successfully",
             "deleted_workflow_executions": list(deleted_workflow_executions),
             "deleted_data_objects": list(deleted_data_objects),
-            "deletion_summary": deletion_results
+            "deletion_summary": deletion_results,
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error during workflow execution deletion: {str(e)}", exc_info=True)
+        logging.error(
+            f"Error during workflow execution deletion: {str(e)}", exc_info=True
+        )
         raise HTTPException(status_code=500, detail=f"Error during deletion: {str(e)}")
