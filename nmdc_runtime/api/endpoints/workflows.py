@@ -20,6 +20,7 @@ from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
 from nmdc_runtime.util import validate_json
+import logging
 
 router = APIRouter()
 
@@ -271,4 +272,5 @@ async def delete_workflow_execution(
     except HTTPException:
         raise
     except Exception as e:
+        logging.error(f"Error during workflow execution deletion: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error during deletion: {str(e)}")

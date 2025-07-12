@@ -286,9 +286,10 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
             # If the document descriptor lacks the "id" field, we already know that no
             # documents reference it (since they would have to _use_ that "id" value to
             # do so). So, we don't bother trying to identify documents that reference it.
+            logging.info(f"target_document_descriptor: {target_document_descriptor}")
+
             if "id" not in target_document_descriptor:
                 continue
-
             referring_document_descriptors = identify_referring_documents(
                 document=target_document_descriptor,  # expects at least "id" and "type"
                 schema_view=nmdc_schema_view(),
