@@ -71,7 +71,6 @@ MOCK_PORTAL_SUBMISSION = {
 }
 
 
-@pytest.mark.xfail(reason="ValueError from schema migration.")
 def test_translate_metadata_submission_to_nmdc_schema_database():
     """Smoke test for translate_metadata_submission_to_nmdc_schema_database job"""
 
@@ -87,7 +86,7 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                 "config": {"username": "test"},
             },
             "get_submission_portal_pipeline_inputs": {
-                "inputs": {
+                "config": {
                     "submission_id": MOCK_PORTAL_SUBMISSION_ID,
                     "biosample_extras_file_url": None,
                     "biosample_extras_slot_mapping_file_url": None,
@@ -96,7 +95,7 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                 }
             },
             "translate_portal_submission_to_nmdc_schema_database": {
-                "inputs": {
+                "config": {
                     "study_category": "research_study",
                     "study_pi_image_url": "http://www.example.com/test.png",
                 }
