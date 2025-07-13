@@ -67,7 +67,11 @@ span.term {
     background-color: var(--md-default-bg-color);
 }
 
-/* Ensure Mermaid text is visible in dark mode */
+/* General text visibility fixes for dark mode */
+[data-md-color-scheme="slate"] .mermaid text {
+    fill: var(--md-default-fg-color) !important;
+}
+
 [data-md-color-scheme="slate"] .mermaid .actor {
     fill: var(--md-default-fg-color);
 }
@@ -89,11 +93,14 @@ span.term {
     fill: var(--md-default-fg-color);
 }
 
+/* Journey diagram specific fixes */
 [data-md-color-scheme="slate"] .mermaid .section0,
 [data-md-color-scheme="slate"] .mermaid .section1,
 [data-md-color-scheme="slate"] .mermaid .section2,
 [data-md-color-scheme="slate"] .mermaid .section3 {
     fill: var(--md-default-bg-color);
+    stroke: var(--md-default-fg-color);
+    stroke-width: 1px;
     opacity: 0.8;
 }
 
@@ -102,6 +109,8 @@ span.term {
 [data-md-color-scheme="slate"] .mermaid .task2,
 [data-md-color-scheme="slate"] .mermaid .task3 {
     fill: var(--md-accent-fg-color);
+    stroke: var(--md-accent-fg-color);
+    stroke-width: 1px;
     opacity: 0.8;
 }
 
@@ -117,6 +126,8 @@ span.term {
 [data-md-color-scheme="slate"] .mermaid .active2,
 [data-md-color-scheme="slate"] .mermaid .active3 {
     fill: var(--md-primary-fg-color);
+    stroke: var(--md-primary-fg-color);
+    stroke-width: 1px;
     opacity: 0.8;
 }
 
@@ -132,6 +143,8 @@ span.term {
 [data-md-color-scheme="slate"] .mermaid .done2,
 [data-md-color-scheme="slate"] .mermaid .done3 {
     fill: var(--md-default-fg-color);
+    stroke: var(--md-default-fg-color);
+    stroke-width: 1px;
     opacity: 0.6;
 }
 
@@ -140,4 +153,13 @@ span.term {
 [data-md-color-scheme="slate"] .mermaid .doneText2,
 [data-md-color-scheme="slate"] .mermaid .doneText3 {
     fill: var(--md-default-bg-color);
+}
+
+/* Additional text elements that might need fixing */
+[data-md-color-scheme="slate"] .mermaid .titleText {
+    fill: var(--md-default-fg-color);
+}
+
+[data-md-color-scheme="slate"] .mermaid .sectionTitle {
+    fill: var(--md-default-fg-color);
 }
