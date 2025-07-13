@@ -645,31 +645,20 @@ def nmdc_schema_database_from_gold_study(
         "biosample_extras_file_url": Out(Optional[str]),
         "biosample_extras_slot_mapping_file_url": Out(Optional[str]),
     },
-    config_schema={
-        "submission_id": Field(str),
-        "nucleotide_sequencing_mapping_file_url": Field(
-            Noneable(str), default_value=None, is_required=False
-        ),
-        "data_object_mapping_file_url": Field(
-            Noneable(str), default_value=None, is_required=False
-        ),
-        "biosample_extras_file_url": Field(
-            Noneable(str), default_value=None, is_required=False
-        ),
-        "biosample_extras_slot_mapping_file_url": Field(
-            Noneable(str), default_value=None, is_required=False
-        ),
-    },
 )
 def get_submission_portal_pipeline_inputs(
-    context: OpExecutionContext,
+    submission_id: str,
+    nucleotide_sequencing_mapping_file_url: Optional[str],
+    data_object_mapping_file_url: Optional[str],
+    biosample_extras_file_url: Optional[str],
+    biosample_extras_slot_mapping_file_url: Optional[str],
 ) -> Tuple[str, str | None, str | None, str | None, str | None]:
     return (
-        context.op_config["submission_id"],
-        context.op_config.get("nucleotide_sequencing_mapping_file_url"),
-        context.op_config.get("data_object_mapping_file_url"),
-        context.op_config.get("biosample_extras_file_url"),
-        context.op_config.get("biosample_extras_slot_mapping_file_url"),
+        submission_id,
+        nucleotide_sequencing_mapping_file_url,
+        data_object_mapping_file_url,
+        biosample_extras_file_url,
+        biosample_extras_slot_mapping_file_url,
     )
 
 
@@ -683,21 +672,15 @@ def fetch_nmdc_portal_submission_by_id(
     return client.fetch_metadata_submission(submission_id)
 
 
-@op(
-    required_resource_keys={"runtime_api_site_client"},
-    config_schema={
-        "study_category": Field(Noneable(str), default_value=None, is_required=False),
-        "study_pi_image_url": Field(
-            Noneable(str), default_value=None, is_required=False
-        ),
-    },
-)
+@op(required_resource_keys={"runtime_api_site_client"})
 def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any],
     nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
     instrument_mapping: Dict[str, str],
+    study_category: Optional[str],
+    study_pi_image_url: Optional[str],
     biosample_extras: Optional[list[dict]],
     biosample_extras_slot_mapping: Optional[list[dict]],
 ) -> nmdc.Database:
@@ -706,9 +689,6 @@ def translate_portal_submission_to_nmdc_schema_database(
     def id_minter(*args, **kwargs):
         response = client.mint_id(*args, **kwargs)
         return response.json()
-
-    study_category = context.op_config.get("study_category")
-    study_pi_image_url = context.op_config.get("study_pi_image_url")
 
     translator = SubmissionPortalTranslator(
         metadata_submission,
