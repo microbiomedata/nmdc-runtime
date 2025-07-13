@@ -647,10 +647,18 @@ def nmdc_schema_database_from_gold_study(
     },
     config_schema={
         "submission_id": Field(str),
-        "nucleotide_sequencing_mapping_file_url": Field(Noneable(str), default_value=None, is_required=False),
-        "data_object_mapping_file_url": Field(Noneable(str), default_value=None, is_required=False),
-        "biosample_extras_file_url": Field(Noneable(str), default_value=None, is_required=False),
-        "biosample_extras_slot_mapping_file_url": Field(Noneable(str), default_value=None, is_required=False),
+        "nucleotide_sequencing_mapping_file_url": Field(
+            Noneable(str), default_value=None, is_required=False
+        ),
+        "data_object_mapping_file_url": Field(
+            Noneable(str), default_value=None, is_required=False
+        ),
+        "biosample_extras_file_url": Field(
+            Noneable(str), default_value=None, is_required=False
+        ),
+        "biosample_extras_slot_mapping_file_url": Field(
+            Noneable(str), default_value=None, is_required=False
+        ),
     },
 )
 def get_submission_portal_pipeline_inputs(
@@ -679,7 +687,9 @@ def fetch_nmdc_portal_submission_by_id(
     required_resource_keys={"runtime_api_site_client"},
     config_schema={
         "study_category": Field(Noneable(str), default_value=None, is_required=False),
-        "study_pi_image_url": Field(Noneable(str), default_value=None, is_required=False),
+        "study_pi_image_url": Field(
+            Noneable(str), default_value=None, is_required=False
+        ),
     },
 )
 def translate_portal_submission_to_nmdc_schema_database(
