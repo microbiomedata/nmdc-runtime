@@ -231,7 +231,8 @@ def test_queries_run_invalid_update(api_user_client):
     study = faker.generate_studies(1)[0]
     assert study_set.count_documents({"id": study["id"]}) == 0
     study_set.insert_one(study)
-
+    
+    # test incorrect update
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
@@ -257,7 +258,34 @@ def test_queries_run_invalid_update(api_user_client):
     }
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
+    
+    # test incorrect delete
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]
 
+            },
+        )
+    expected_response = {'detail': [{'type': 'missing', 'loc': ['body', 'FindCommand', 'find'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'aggregate'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'pipeline'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'GetMoreCommand', 'getMore'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CollStatsCommand', 'collStats'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CountCommand', 'count'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'q'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'limit'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'update'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'updates'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}]}
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+    
+    # test initial command syntax that brought this issue to light
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {"update": "study_set", "updates": [{"q": {"id": "nmdc:sty-11-hhkbcg72"}, "u": {"$unset": "has_output"}}]}
+        )
+    expected_response = {'detail': [{'index': 0, 'code': 9, 'errmsg': 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "has_output"}'}]}
+
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    print(exc_info.value.response.json())
+    assert exc_info.value.response.json() == expected_response
     # 🧹 Clean up.
     allowances_collection.delete_many(allow_spec)
     study_set.delete_many({"id": study["id"]})
