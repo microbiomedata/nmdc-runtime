@@ -113,11 +113,18 @@ The following command could be useful to you, either directly or as a template (
 make nersc-mongo-tunnels
 ```
 
-Finally, spin up the Docker Compose stack.
+Finally, spin up the Docker Compose stack.*
 
 ```bash
 make up-dev
 ```
+
+\* Note: repeated runs of `make up-dev` or `make up-test` will rebuild containers, but not the underlying volumes.  This
+means mongodb data will persist across runs.  `make down-dev` or `make down-test` will stop the containers, 
+and remove the volumes.  Alternatively, run `docker compose down --volumes` to remove the mongodb. 
+
+\** Note: `make up-dev` and `make up-test` will create empty mongodb databases in accordance with the schema
+specified in 
 
 Docker Compose is used to start local MongoDB and PostgresSQL (used by Dagster) instances, as well
 as a Dagster web server (dagit) and daemon (dagster-daemon).
@@ -128,7 +135,7 @@ The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered docu
 http://127.0.0.1:8000/redoc/.
 
 
-*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
+\* Note: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
 ```
 pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
 ```
@@ -152,6 +159,9 @@ make test
 make test ARGS="tests/test_api/test_endpoints.py"
 ```
 docker compose --file docker-compose.test.yml run test
+
+\* Note: The `make test` command will bring down the containers AND remove the volumes associated with them.  This 
+means that the MongoDB database will be reset to an empty state, and any data in it will be lost.
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
