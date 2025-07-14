@@ -284,7 +284,6 @@ def test_queries_run_invalid_update(api_user_client):
     expected_response = {'detail': [{'index': 0, 'code': 9, 'errmsg': 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "has_output"}'}]}
 
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    print(exc_info.value.response.json())
     assert exc_info.value.response.json() == expected_response
     # 🧹 Clean up.
     allowances_collection.delete_many(allow_spec)
