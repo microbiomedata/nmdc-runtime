@@ -232,7 +232,7 @@ def test_queries_run_invalid_update(api_user_client):
     assert study_set.count_documents({"id": study["id"]}) == 0
     study_set.insert_one(study)
     
-    # test incorrect update
+    # test incorrect update - initial command syntax that brought this issue to light
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
@@ -274,17 +274,6 @@ def test_queries_run_invalid_update(api_user_client):
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
     
-    # test initial command syntax that brought this issue to light
-    with pytest.raises(requests.HTTPError) as exc_info:
-        api_user_client.request(
-            "POST",
-            "/queries:run",
-            {"update": "study_set", "updates": [{"q": {"id": "nmdc:sty-11-hhkbcg72"}, "u": {"$unset": "has_output"}}]}
-        )
-    expected_response = {'detail': [{'index': 0, 'code': 9, 'errmsg': 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "has_output"}'}]}
-
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert exc_info.value.response.json() == expected_response
     # 🧹 Clean up.
     allowances_collection.delete_many(allow_spec)
     study_set.delete_many({"id": study["id"]})
