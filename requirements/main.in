@@ -57,7 +57,7 @@ python-multipart>=0.0.18
 pyyaml
 # Note: We use `refscan` to get information about inter-document references from the schema and database.
 #       Reference: https://pypi.org/project/refscan/
-refscan==0.2.5
+refscan==0.3.0
 requests
 # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
 # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
