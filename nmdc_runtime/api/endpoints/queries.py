@@ -513,7 +513,15 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=cmd_response.writeErrors,
             )
-    # can we know whether the query is semantically invalid? (not valid mongo syntax?) try the operation, if it fails we need to see
+    # Check if the query is semantically valid by attempting to parse it.
+    try:
+        # Assuming `cmd` contains the query, validate it using MongoDB's query validation.
+        db.command({"explain": cmd.dict()})
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid query syntax: {str(e)}",
+        )
 
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         # TODO `_request_dagster_run` of `ensure_alldocs`?
