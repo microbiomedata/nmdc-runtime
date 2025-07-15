@@ -1107,47 +1107,49 @@ class TestFindDataObjectsForStudy:
     @pytest.fixture()
     def seeded_db_with_data_object_chain(self, seeded_db):
         r"""
-        Fixture that seeds the database with a chain where DataObjects serve as input to other processes.
-        Based on real-world pattern where NucleotideSequencing produces DataObjects that are then used
-        by MetagenomeAnnotation workflows.
+        Fixture that seeds the database with a chain where a Biosample is fed as input
+        (`has_input` slot) to a NucleotideSequencing process, which produces a DataObject
+        as output (`has_output` slot). Then this DataObject is used as input into a
+        MetagenomeAnnotation workflow, which produces another DataObject as output.
 
         ```mermaid
         graph
             biosample --> |has_input| nucleotide_sequencing_process
-            nucleotide_sequencing_process --> |has_output| raw_data_object
-            raw_data_object --> |has_input| metagenome_annotation_workflow
-            metagenome_annotation_workflow --> |has_output| processed_data_object
+            nucleotide_sequencing_process --> |has_output| data_object
+            data_object --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| data_object
         ```
         """
         faker = Faker()
 
         # Create a NucleotideSequencing DataGeneration that produces a raw data object
-        nucleotide_sequencing_id = "nmdc:omprc-00-000001"
-        raw_data_object = faker.generate_data_objects(
-            quantity=1, id="nmdc:dobj-00-000004"
-        )[0]
-        raw_data_object["data_category"] = "raw_data"
+        nucleotide_sequencing_id = "nmdc:ntseq-00-000001"
+        ntseq_dobj = faker.generate_data_objects(quantity=1, id="nmdc:dobj-00-000004")[
+            0
+        ]
+        ntseq_dobj["data_category"] = "instrument_data"
 
         nucleotide_sequencing_process = faker.generate_nucleotide_sequencings(
             quantity=1,
             id=nucleotide_sequencing_id,
             has_input=[self.biosample_id],
-            has_output=[raw_data_object["id"]],
+            has_output=[ntseq_dobj["id"]],
             associated_studies=[self.study_id],
         )[0]
 
-        # Create a MetagenomeAnnotation workflow that takes the raw data object as input
-        processed_data_object = faker.generate_data_objects(
-            quantity=1, id="nmdc:dobj-00-000005"
-        )[0]
-        processed_data_object["data_category"] = "processed_data"
+        # Create a MetagenomeAnnotation workflow that takes the
+        # NucleotideSequencing DataObject as input
+        wfmgan_dobj = faker.generate_data_objects(quantity=1, id="nmdc:dobj-00-000005")[
+            0
+        ]
+        wfmgan_dobj["data_category"] = "processed_data"
 
         metagenome_annotation_workflow = faker.generate_metagenome_annotations(
             quantity=1,
-            has_input=[raw_data_object["id"]],
+            has_input=[wfmgan_dobj["id"]],
             was_informed_by=nucleotide_sequencing_id,
             id="nmdc:wfmgan-00-000001.1",
-            has_output=[processed_data_object["id"]],
+            has_output=[wfmgan_dobj["id"]],
         )[0]
 
         data_generation_set = seeded_db.get_collection(name="data_generation_set")
@@ -1156,7 +1158,7 @@ class TestFindDataObjectsForStudy:
 
         data_generation_set.insert_many([nucleotide_sequencing_process])
         workflow_execution_set.insert_many([metagenome_annotation_workflow])
-        data_object_set.insert_many([raw_data_object, processed_data_object])
+        data_object_set.insert_many([ntseq_dobj, wfmgan_dobj])
 
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
@@ -1167,7 +1169,7 @@ class TestFindDataObjectsForStudy:
         data_generation_set.delete_many({"id": nucleotide_sequencing_process["id"]})
         workflow_execution_set.delete_many({"id": metagenome_annotation_workflow["id"]})
         data_object_set.delete_many(
-            {"id": {"$in": [raw_data_object["id"], processed_data_object["id"]]}}
+            {"id": {"$in": [ntseq_dobj["id"], wfmgan_dobj["id"]]}}
         )
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
@@ -1176,8 +1178,8 @@ class TestFindDataObjectsForStudy:
     ):
         r"""
         Test that the endpoint finds DataObjects that are part of a chain where DataObjects
-        serve as input to other processes, validating the new functionality that allows
-        DataObjects to be connected through has_input/has_output relationships.
+        serve as input to other processes (WorkflowExecution processes), validating functionality
+        that allows DataObjects to be connected through has_input/has_output relationships.
         """
         # Use the fixture to ensure the database is properly seeded
         db = seeded_db_with_data_object_chain
@@ -1201,8 +1203,8 @@ class TestFindDataObjectsForStudy:
         expected_ids = [
             self.data_object_ids[0],  # original data_object_a
             self.data_object_ids[1],  # original data_object_b
-            "nmdc:dobj-00-000004",  # raw_data_object from nucleotide sequencing
-            "nmdc:dobj-00-000005",  # processed_data_object from nom analysis
+            "nmdc:dobj-00-000004",  # data_object from nucleotide sequencing process
+            "nmdc:dobj-00-000005",  # data_object from metagenome annotation workflow
         ]
         for expected_id in expected_ids:
             assert expected_id in received_data_object_ids
@@ -1210,49 +1212,52 @@ class TestFindDataObjectsForStudy:
     @pytest.fixture()
     def seeded_db_with_informed_by_workflow(self, seeded_db):
         r"""
-        Fixture that seeds the database with workflow executions linked by was_informed_by
-        to DataGeneration records, following the real-world pattern where NucleotideSequencing
-        produces raw data that is then processed by MetagenomeAnnotation workflows.
+        Fixture that seeds the database with a chain where a Biosample is fed as input
+        (`has_input` slot) to a NucleotideSequencing process, which produces a DataObject
+        as output (`has_output` slot). Similar to the way in which the database is seeded above,
+        the DataObject is used as input into a  MetagenomeAnnotation workflow, which produces
+        another DataObject as output. In addition, the NucleotideSequencing process is also
+        linked to the MetagenomeAnnotation workflow via the `was_informed_by` slot.
 
         ```mermaid
         graph
-            biosample --> |has_input| nucleotide_sequencing_b
-            nucleotide_sequencing_b --> |has_output| raw_data_object_b
-            raw_data_object_b --> |has_input| metagenome_annotation_b
-            metagenome_annotation_b --> |was_informed_by| nucleotide_sequencing_b
-            metagenome_annotation_b --> |has_output| processed_data_object_b
+            biosample --> |has_input| nucleotide_sequencing_process
+            nucleotide_sequencing_process --> |has_output| data_object
+            data_object --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| data_object
+            metagenome_annotation_workflow --> |was_informed_by| nucleotide_sequencing_process
         ```
         """
         faker = Faker()
 
         # Create a NucleotideSequencing DataGeneration that produces raw data
-        nucleotide_sequencing_b_id = "nmdc:omprc-00-000002"
-        raw_data_object_b = faker.generate_data_objects(
+        nucleotide_sequencing_b_id = "nmdc:ntseq-00-000002"
+        data_object_b = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000006"
         )[0]
-        raw_data_object_b["data_category"] = "raw_data"
+        data_object_b["data_category"] = "instrument_data"
 
         nucleotide_sequencing_b = faker.generate_nucleotide_sequencings(
             quantity=1,
             id=nucleotide_sequencing_b_id,
             has_input=[self.biosample_id],
-            has_output=[raw_data_object_b["id"]],
+            has_output=[data_object_b["id"]],
             associated_studies=[self.study_id],
         )[0]
 
         # Create processed data object
-        processed_data_object_b = faker.generate_data_objects(
+        data_object_b = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000007"
         )[0]
-        processed_data_object_b["data_category"] = "processed_data"
+        data_object_b["data_category"] = "processed_data"
 
         # Create MetagenomeAnnotation workflow informed by the NucleotideSequencing
         metagenome_annotation_b = faker.generate_metagenome_annotations(
             quantity=1,
-            has_input=[raw_data_object_b["id"]],
+            has_input=[data_object_b["id"]],
             was_informed_by=nucleotide_sequencing_b_id,
             id="nmdc:wfmgan-00-000002.1",
-            has_output=[processed_data_object_b["id"]],
+            has_output=[data_object_b["id"]],
         )[0]
 
         data_generation_set = seeded_db.get_collection(name="data_generation_set")
@@ -1261,7 +1266,7 @@ class TestFindDataObjectsForStudy:
 
         data_generation_set.insert_many([nucleotide_sequencing_b])
         workflow_execution_set.insert_many([metagenome_annotation_b])
-        data_object_set.insert_many([raw_data_object_b, processed_data_object_b])
+        data_object_set.insert_many([data_object_b, data_object_b])
 
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
@@ -1272,7 +1277,7 @@ class TestFindDataObjectsForStudy:
         data_generation_set.delete_many({"id": nucleotide_sequencing_b["id"]})
         workflow_execution_set.delete_many({"id": metagenome_annotation_b["id"]})
         data_object_set.delete_many(
-            {"id": {"$in": [raw_data_object_b["id"], processed_data_object_b["id"]]}}
+            {"id": {"$in": [data_object_b["id"], data_object_b["id"]]}}
         )
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
@@ -1280,8 +1285,8 @@ class TestFindDataObjectsForStudy:
         self, api_site_client, seeded_db_with_informed_by_workflow
     ):
         r"""
-        Test that the endpoint finds DataObjects through workflow executions that are
-        linked to DataGeneration records via was_informed_by, validating the new
+        Test that the endpoint finds DataObjects through WorkflowExecutions that are
+        linked to DataGeneration records via the `was_informed_by` slot, validating
         functionality that processes DataGeneration descendants.
         """
         # Use the fixture to ensure the database is properly seeded
@@ -1306,8 +1311,8 @@ class TestFindDataObjectsForStudy:
         expected_ids = [
             self.data_object_ids[0],  # original data_object_a
             self.data_object_ids[1],  # original data_object_b
-            "nmdc:dobj-00-000006",  # raw_data_object_b from nucleotide sequencing
-            "nmdc:dobj-00-000007",  # processed_data_object_b from nom analysis
+            "nmdc:dobj-00-000006",  # data_object_b from nucleotide sequencing
+            "nmdc:dobj-00-000007",  # data_object_b from nom analysis
         ]
         for expected_id in expected_ids:
             assert expected_id in received_data_object_ids
