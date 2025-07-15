@@ -90,6 +90,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
     )[0]
     
     # Create some functional annotation records for the primary workflow (AnnotatingWorkflow)
+    # TODO: Implement a `Faker` method that generates `FunctionalAnnotationAggMember` documents.
     functional_annotation_records = [
         {
             "gene_function_id": "PFAM:PF12705",
