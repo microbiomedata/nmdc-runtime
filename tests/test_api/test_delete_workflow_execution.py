@@ -222,7 +222,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         
         # Clean up functional annotation records
         functional_annotation_agg.delete_many({
-            "_id": {"$in": [record["_id"] for record in functional_annotation_records]}
+            "gene_function_id": {"$in": [record["gene_function_id"] for record in functional_annotation_records]}
         })
         
         # Clean up permissions
