@@ -217,7 +217,8 @@ async def delete_workflow_execution(
             wfe_type = wfe.get("type", "")
             is_annotating_workflow = wfe_type in [
                 "nmdc:MetagenomeAnnotation",
-                "nmdc:MetagenomeAnnotationActivity",
+                "nmdc:MetatranscriptomeAnnotation",
+                "nmdc:MetaproteomicsAnalysis"
             ]
 
             # Find downstream workflow executions that use these data objects as inputs
