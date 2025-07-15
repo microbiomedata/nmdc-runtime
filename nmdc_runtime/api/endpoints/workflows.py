@@ -269,7 +269,9 @@ async def delete_workflow_execution(
                 ],  # limit=0 means delete all matching
             )
 
-            logging.warning(f"Executing cascading delete command for {collection_name} - you may temporarily encounter broken references.")
+            logging.warning(
+                f"Executing cascading delete command for {collection_name} - you may temporarily encounter broken references."
+            )
             # Execute the delete command
             response = _run_mdb_cmd(delete_cmd, mdb, allow_broken_refs=True)
 
