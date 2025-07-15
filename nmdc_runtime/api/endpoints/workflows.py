@@ -141,7 +141,7 @@ async def delete_workflow_execution(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Delete a workflow execution and cascade to downstream workflow executions and data objects.
+    Delete a given workflow execution and its downstream workflow executions and data objects.
 
     This endpoint performs recursive deletion of:
     1. The specified workflow execution
