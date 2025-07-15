@@ -1,8 +1,6 @@
 import json
 import os
 import re
-from typing import List
-from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -15,10 +13,10 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
-    get_collection_names_from_schema,
-    mongorestore_collection,
+from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.endpoints.util import (
+    persist_content_and_get_drs_object,
+    strip_oid,
 )
 from nmdc_runtime.api.endpoints.util import (
     persist_content_and_get_drs_object,
@@ -36,12 +34,8 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
-from tests.test_util import download_to
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 from tests.lib.faker import Faker
-
-
-# TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
 
 def ensure_alldocs_collection_has_been_materialized(
@@ -221,6 +215,67 @@ def test_create_user():
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
 
+def test_queries_run_invalid_update(api_user_client):
+    # Seed the database
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    faker = Faker()
+    study_set = mdb.get_collection("study_set")
+    study = faker.generate_studies(1)[0]
+    assert study_set.count_documents({"id": study["id"]}) == 0
+    study_set.insert_one(study)
+    
+    # test incorrect update - initial command syntax that brought this issue to light
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": "nmdc:sty-11-hhkbcg72"},
+                        "u": {"$unset": "notes"},
+                    }
+                ],
+            },
+        )
+    expected_response = {
+        "detail": [
+            {
+                "index": 0,
+                "code": 9,
+                "errmsg": 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "notes"}',
+            }
+        ]
+    }
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+    
+    # test incorrect delete
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]
+
+            },
+        )
+    expected_response = {'detail': [{'type': 'missing', 'loc': ['body', 'FindCommand', 'find'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'aggregate'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'pipeline'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'GetMoreCommand', 'getMore'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CollStatsCommand', 'collStats'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CountCommand', 'count'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'q'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'limit'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'update'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'updates'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}]}
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+    
+    # 🧹 Clean up.
+    allowances_collection.delete_many(allow_spec)
+    study_set.delete_many({"id": study["id"]})
+
 
 def test_update_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
@@ -285,13 +340,6 @@ def test_update_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 
 
 def test_metadata_validate_json_0(api_site_client):
@@ -1571,9 +1619,6 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
-@pytest.mark.skip(
-    reason="We currently allow deletions that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test."
-)
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1658,6 +1703,152 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["n"] == 2
+
+
+def test_queries_run_allows_ref_breaking_deletions_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "delete" commands via the `/queries:run` API endpoint.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Case 1: We cannot delete Study A because Biosample A and Study B are referencing it.
+    # Reference: https://docs.pytest.org/en/6.2.x/reference.html#pytest-raises
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "limit": 0,
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Case 2: We can do it if we opt out of the referential integrity checks.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "delete": "study_set",
+            "deletes": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "limit": 0,
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["n"] == 1
+
+
+def test_queries_run_rejects_updates_that_would_leave_broken_references(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    r"""
+    This test focuses on the general behavior of the API _endpoint_ when the update
+    would leave behind broken references. We have a different set of tests, in
+    `tests/test_api/test_endpoints_lib.py`, focused on specific scenarios.
+    """
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
+
+
+def test_queries_run_allows_ref_breaking_updates_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
+
+    # Now, confirm the endpoint allows us to introduce a reference to a nonexistent document
+    # if we tell it to allow broken references.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "update": "study_set",
+            "updates": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
 
 
 def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(
