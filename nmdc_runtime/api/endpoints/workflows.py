@@ -125,7 +125,7 @@ async def post_workflow_execution(
     description="Delete a workflow execution and cascade to downstream workflow executions and data objects. "
     "This endpoint performs recursive deletion of the specified workflow execution, "
     "all downstream workflow executions that depend on this workflow execution's outputs, "
-    "and all data objects that are outputs of deleted workflow executions. "
+    "and all data objects that are outputs of deleted workflow executions. ",
 )
 async def delete_workflow_execution(
     workflow_execution_id: Annotated[
