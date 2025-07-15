@@ -220,13 +220,11 @@ async def delete_workflow_execution(
             is_annotating_workflow = wfe_type in [
                 "nmdc:MetagenomeAnnotation",
                 "nmdc:MetatranscriptomeAnnotation",
-                "nmdc:MetaproteomicsAnalysis"
+                "nmdc:MetaproteomicsAnalysis",
             ]
 
             # Find linked workflow executions that use these data objects as inputs
-            linked_wfe_ids = find_linked_workflow_executions(
-                output_data_object_ids
-            )
+            linked_wfe_ids = find_linked_workflow_executions(output_data_object_ids)
 
             # Recursively delete linked workflow executions first
             for linked_wfe_id in linked_wfe_ids:
@@ -255,7 +253,9 @@ async def delete_workflow_execution(
         # Prepare deletion payload
         docs_to_delete = {}
         if deleted_workflow_execution_ids:
-            docs_to_delete["workflow_execution_set"] = list(deleted_workflow_execution_ids)
+            docs_to_delete["workflow_execution_set"] = list(
+                deleted_workflow_execution_ids
+            )
         if deleted_data_object_ids:
             docs_to_delete["data_object_set"] = list(deleted_data_object_ids)
         if deleted_functional_annotation_agg_oids:
@@ -304,7 +304,9 @@ async def delete_workflow_execution(
             "message": "Workflow execution and dependencies deleted successfully",
             "deleted_workflow_execution_ids": list(deleted_workflow_execution_ids),
             "deleted_data_object_ids": list(deleted_data_object_ids),
-            "deleted_functional_annotation_agg_oids": [str(oid) for oid in deleted_functional_annotation_agg_oids],
+            "deleted_functional_annotation_agg_oids": [
+                str(oid) for oid in deleted_functional_annotation_agg_oids
+            ],
         }
 
     except HTTPException:

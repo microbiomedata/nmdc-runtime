@@ -185,7 +185,10 @@ class DeleteResponse(BaseModel):
     """
     Response model for delete operations that provides detailed deletion information.
     """
-    message: str = Field(description="Success message describing the deletion operation")
+
+    message: str = Field(
+        description="Success message describing the deletion operation"
+    )
     deleted_workflow_execution_ids: List[str] = Field(
         description="List of workflow execution IDs that were deleted"
     )
@@ -195,7 +198,7 @@ class DeleteResponse(BaseModel):
     deleted_functional_annotation_agg_oids: List[str] = Field(
         # sets default to an empty list because the field is optional (not everything has functional annotations)
         default_factory=list,
-        description="List of functional annotation aggregate ObjectIds that were deleted"
+        description="List of functional annotation aggregate ObjectIds that were deleted",
     )
 
 
