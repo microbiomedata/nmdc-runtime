@@ -1,4 +1,5 @@
 import pytest
+import requests
 from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
@@ -14,7 +15,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
     1. Delete the target workflow execution
     2. Delete all downstream workflow executions that depend on its outputs
     3. Delete all data objects that are outputs of deleted workflow executions
-    4. Preserve input data objects that are not outputs of deleted workflow executions
+    4. Preserve `has_input` data objects that are not outputs of deleted workflow executions
     """
     faker = Faker()
     mdb: MongoDatabase = get_mongo_db()
@@ -150,12 +151,11 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert response.status_code == 200
         response_data = response.json()
         assert "message" in response_data
-        assert "deleted_workflow_executions" in response_data
-        assert "deleted_data_objects" in response_data
-        assert "deletion_summary" in response_data
+        assert "deleted_workflow_execution_ids" in response_data
+        assert "deleted_data_object_ids" in response_data
         
         # Verify all 3 workflow executions were deleted
-        deleted_wfe_ids = set(response_data["deleted_workflow_executions"])
+        deleted_wfe_ids = set(response_data["deleted_workflow_execution_ids"])
         expected_deleted_wfe_ids = {
             primary_workflow_execution["id"],
             dependent_workflow_execution_1["id"],
@@ -164,7 +164,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert deleted_wfe_ids == expected_deleted_wfe_ids
         
         # Verify all output data objects were deleted
-        deleted_data_object_ids = set(response_data["deleted_data_objects"])
+        deleted_data_object_ids = set(response_data["deleted_data_object_ids"])
         expected_deleted_data_object_ids = set(
             [obj["id"] for obj in primary_output_data_objects] +
             [obj["id"] for obj in dependent1_output_data_objects] +
@@ -192,16 +192,6 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert functional_annotation_agg.count_documents(
             {"was_generated_by": primary_workflow_execution["id"]}
         ) == 0
-        
-        # Verify deletion summary contains expected collections
-        deletion_summary = response_data["deletion_summary"]
-        assert "workflow_execution_set" in deletion_summary
-        assert "data_object_set" in deletion_summary
-        assert "functional_annotation_agg" in deletion_summary
-        
-        assert deletion_summary["workflow_execution_set"]["deleted_count"] == 3
-        assert deletion_summary["data_object_set"]["deleted_count"] == 7  # 3+2+2 output objects
-        assert deletion_summary["functional_annotation_agg"]["deleted_count"] == 2
         
     finally:
         # Clean up any remaining test data
@@ -246,18 +236,19 @@ def test_delete_workflow_execution_not_found(api_user_client):
     
     non_existent_id = "nmdc:wfmgan-00-nonexistent.1"
     
-    # Import the requests library to catch the HTTPError
-    import requests
-    
+    # Verify that the non-existent ID doesn't exist in the workflow_execution_set collection
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    assert workflow_execution_set.count_documents({"id": non_existent_id}) == 0, f"ID {non_existent_id} should not exist in database"
+        
     try:
-        response = api_user_client.request(
-            "DELETE",
-            f"/workflows/workflow_executions/{non_existent_id}"
-        )
-        # If we get here, the request unexpectedly succeeded
-        assert False, "Expected 404 error but request succeeded"
-    except requests.exceptions.HTTPError as e:
-        response = e.response
+        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+            api_user_client.request(
+                "DELETE",
+                f"/workflows/workflow_executions/{non_existent_id}"
+            )
+        
+        # Verify the exception details
+        response = exc_info.value.response
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
     finally:
@@ -328,9 +319,9 @@ def test_delete_workflow_execution_simple_case(api_user_client):
         assert response.status_code == 200
         response_data = response.json()
         
-        # Verify the target workflow execution and its output data object were both deleted.
-        assert response_data["deleted_workflow_executions"] == [workflow_execution["id"]]
-        assert response_data["deleted_data_objects"] == [output_data_object["id"]]
+        # Verify only the target workflow execution was deleted
+        assert response_data["deleted_workflow_execution_ids"] == [workflow_execution["id"]]
+        assert response_data["deleted_data_object_ids"] == [output_data_object["id"]]
         
         # Verify actual deletion from database
         assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
@@ -360,6 +351,14 @@ def test_delete_workflow_execution_unauthorized_user(api_user_client):
     
     # DON'T set up user permissions - this user should be unauthorized
     # This is the key difference from other tests
+    
+    # Verify that the allowances collection doesn't have delete permissions for this user
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    delete_permission = allowances_collection.find_one({
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)"
+    })
+    assert delete_permission is None, "User should not have delete permissions for this test"
     
     # Create a simple workflow execution to attempt to delete
     study = faker.generate_studies(quantity=1)[0]
@@ -393,21 +392,17 @@ def test_delete_workflow_execution_unauthorized_user(api_user_client):
         data_generation_set.insert_one(data_generation)
         data_object_set.insert_many([input_data_object, output_data_object])
         workflow_execution_set.insert_one(workflow_execution)
-        
-        # Import the requests library to catch the HTTPError
-        import requests
-        
+                
         # Attempt to delete workflow execution without permissions
-        try:
-            response = api_user_client.request(
+        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+            api_user_client.request(
                 "DELETE",
                 f"/workflows/workflow_executions/{workflow_execution['id']}"
             )
-            # If we get here, the request unexpectedly succeeded
-            assert False, "Expected 403 Forbidden error but request succeeded"
-        except requests.exceptions.HTTPError as e:
-            response = e.response
-            assert response.status_code == 403
+        
+        # Verify the exception details
+        response = exc_info.value.response
+        assert response.status_code == 403
         
         # Verify that nothing was actually deleted (workflow execution should still exist)
         assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 1

@@ -181,6 +181,24 @@ class FindResponse(BaseModel):
     group_by: List[dict]
 
 
+class DeleteResponse(BaseModel):
+    """
+    Response model for delete operations that provides detailed deletion information.
+    """
+    message: str = Field(description="Success message describing the deletion operation")
+    deleted_workflow_execution_ids: List[str] = Field(
+        description="List of workflow execution IDs that were deleted"
+    )
+    deleted_data_object_ids: List[str] = Field(
+        description="List of data object IDs that were deleted"
+    )
+    deleted_functional_annotation_agg_oids: List[str] = Field(
+        # sets default to an empty list because the field is optional (not everything has functional annotations)
+        default_factory=list,
+        description="List of functional annotation aggregate ObjectIds that were deleted"
+    )
+
+
 # Note: For MongoDB, a single collection can have no more than 64 indexes
 # Note: Each collection has a unique index set on "id" elsewhere.
 entity_attributes_to_index = {

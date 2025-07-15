@@ -431,6 +431,7 @@ class Faker:
             elif workflow_type == "nmdc:ReadQcAnalysis":
                 id_prefix = "nmdc:wfrqc-00-"
                 # TODO: Add support for other workflow types as needed
+                # TODO: Can we get a list of valid types via a SchemaView?
             else:
                 # Generic workflow execution ID
                 raise ValueError(f"Unsupported workflow type {workflow_type}")

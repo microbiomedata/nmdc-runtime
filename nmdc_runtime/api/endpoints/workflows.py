@@ -16,6 +16,7 @@ from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.query import DeleteCommand, DeleteStatement
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.util import DeleteResponse
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
 import logging
@@ -122,6 +123,7 @@ async def post_workflow_execution(
 
 @router.delete(
     "/workflows/workflow_executions/{workflow_execution_id}",
+    response_model=DeleteResponse,
     description="Delete a workflow execution and cascade to downstream workflow executions and data objects. "
     "This endpoint performs recursive deletion of the specified workflow execution, "
     "all downstream workflow executions that depend on this workflow execution's outputs, "
@@ -178,27 +180,27 @@ async def delete_workflow_execution(
             )
 
         # Track what we've deleted to avoid cycles and provide summary
-        deleted_workflow_executions: Set[str] = set()
-        deleted_data_objects: Set[str] = set()
-        deleted_functional_annotation_agg_ids: Set[str] = set()
+        deleted_workflow_execution_ids: Set[str] = set()
+        deleted_data_object_ids: Set[str] = set()
+        deleted_functional_annotation_agg_oids: Set[str] = set()
 
-        def find_downstream_workflow_executions(
+        def find_linked_workflow_executions(
             data_object_ids: List[str],
         ) -> List[str]:
             """Find workflow executions that use any of the given data objects as inputs."""
             if not data_object_ids:
                 return []
 
-            downstream_wfes = list(
+            linked_wfes = list(
                 mdb.workflow_execution_set.find(
                     {"has_input": {"$in": data_object_ids}}, {"id": 1}
                 )
             )
-            return [wfe["id"] for wfe in downstream_wfes]
+            return [wfe["id"] for wfe in linked_wfes]
 
         def recursive_delete_workflow_execution(wfe_id: str) -> None:
             """Recursively delete a workflow execution and all its downstream dependencies."""
-            if wfe_id in deleted_workflow_executions:
+            if wfe_id in deleted_workflow_execution_ids:
                 return  # Already deleted or in progress
 
             # Get the workflow execution
@@ -207,7 +209,7 @@ async def delete_workflow_execution(
                 return  # Already deleted or doesn't exist
 
             # Mark as being processed to prevent cycles
-            deleted_workflow_executions.add(wfe_id)
+            deleted_workflow_execution_ids.add(wfe_id)
 
             # Get output data objects from this workflow execution
             output_data_object_ids = wfe.get("has_output", [])
@@ -221,18 +223,18 @@ async def delete_workflow_execution(
                 "nmdc:MetaproteomicsAnalysis"
             ]
 
-            # Find downstream workflow executions that use these data objects as inputs
-            downstream_wfe_ids = find_downstream_workflow_executions(
+            # Find linked workflow executions that use these data objects as inputs
+            linked_wfe_ids = find_linked_workflow_executions(
                 output_data_object_ids
             )
 
-            # Recursively delete downstream workflow executions first
-            for downstream_wfe_id in downstream_wfe_ids:
-                if downstream_wfe_id not in deleted_workflow_executions:
-                    recursive_delete_workflow_execution(downstream_wfe_id)
+            # Recursively delete linked workflow executions first
+            for linked_wfe_id in linked_wfe_ids:
+                if linked_wfe_id not in deleted_workflow_execution_ids:
+                    recursive_delete_workflow_execution(linked_wfe_id)
 
             # Add data objects to deletion set
-            deleted_data_objects.update(output_data_object_ids)
+            deleted_data_object_ids.update(output_data_object_ids)
 
             # If this is an AnnotatingWorkflow, mark functional annotation records for deletion
             if is_annotating_workflow:
@@ -243,7 +245,7 @@ async def delete_workflow_execution(
                 )
                 if func_annotation_records:
                     # Store the ObjectIds for deletion from functional_annotation_agg
-                    deleted_functional_annotation_agg_ids.update(
+                    deleted_functional_annotation_agg_oids.update(
                         [str(record["_id"]) for record in func_annotation_records]
                     )
 
@@ -252,13 +254,13 @@ async def delete_workflow_execution(
 
         # Prepare deletion payload
         docs_to_delete = {}
-        if deleted_workflow_executions:
-            docs_to_delete["workflow_execution_set"] = list(deleted_workflow_executions)
-        if deleted_data_objects:
-            docs_to_delete["data_object_set"] = list(deleted_data_objects)
-        if deleted_functional_annotation_agg_ids:
+        if deleted_workflow_execution_ids:
+            docs_to_delete["workflow_execution_set"] = list(deleted_workflow_execution_ids)
+        if deleted_data_object_ids:
+            docs_to_delete["data_object_set"] = list(deleted_data_object_ids)
+        if deleted_functional_annotation_agg_oids:
             docs_to_delete["functional_annotation_agg"] = list(
-                deleted_functional_annotation_agg_ids
+                deleted_functional_annotation_agg_oids
             )
 
         # Perform the actual deletion using `_run_mdb_cmd`, so the operations
@@ -300,9 +302,9 @@ async def delete_workflow_execution(
 
         return {
             "message": "Workflow execution and dependencies deleted successfully",
-            "deleted_workflow_executions": list(deleted_workflow_executions),
-            "deleted_data_objects": list(deleted_data_objects),
-            "deletion_summary": deletion_results,
+            "deleted_workflow_execution_ids": list(deleted_workflow_execution_ids),
+            "deleted_data_object_ids": list(deleted_data_object_ids),
+            "deleted_functional_annotation_agg_oids": [str(oid) for oid in deleted_functional_annotation_agg_oids],
         }
 
     except HTTPException:
