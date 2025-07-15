@@ -1,10 +1,10 @@
 # Removed unused imports `datetime` and `timezone`.
-from typing import Any, List, Set
+from typing import Any, List, Set, Annotated
 
 import pymongo
 from bson import ObjectId
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import BulkWriteError
 from starlette import status
@@ -119,9 +119,23 @@ async def post_workflow_execution(
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@router.delete("/workflows/workflow_executions/{workflow_execution_id}")
+@router.delete(
+    "/workflows/workflow_executions/{workflow_execution_id}",
+    description="Delete a workflow execution and cascade to downstream workflow executions and data objects. "
+                "This endpoint performs recursive deletion of the specified workflow execution, "
+                "all downstream workflow executions that depend on this execution's outputs, "
+                "and all data objects that are outputs of deleted workflow executions. "
+                "Input data objects are preserved as they may be used by other workflow executions."
+)
 async def delete_workflow_execution(
-    workflow_execution_id: str,
+    workflow_execution_id: Annotated[
+        str,
+        Path(
+            title="Workflow Execution ID",
+            description="The `id` of the `WorkflowExecution` you want to delete.\n\n_Example_: `nmdc:wfmgan-11-abc123.1`",
+            examples=["nmdc:wfmgan-11-abc123.1"],
+        ),
+    ],
     user: User = Depends(get_current_active_user),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
