@@ -1270,9 +1270,9 @@ class TestFindDataObjectsForStudy:
         ```mermaid
         graph
             biosample --> |has_input| nucleotide_sequencing_process
-            nucleotide_sequencing_process --> |has_output| data_object
-            data_object --> |has_input| metagenome_annotation_workflow
-            metagenome_annotation_workflow --> |has_output| data_object
+            nucleotide_sequencing_process --> |has_output| data_object_a
+            data_object_a --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| data_object_b
             metagenome_annotation_workflow --> |was_informed_by| nucleotide_sequencing_process
         ```
         """
@@ -1280,16 +1280,16 @@ class TestFindDataObjectsForStudy:
 
         # Create a NucleotideSequencing DataGeneration that produces raw data
         nucleotide_sequencing_b_id = "nmdc:ntseq-00-000002"
-        data_object_b = faker.generate_data_objects(
+        data_object_a = faker.generate_data_objects(
             quantity=1, id="nmdc:dobj-00-000006"
         )[0]
-        data_object_b["data_category"] = "instrument_data"
+        data_object_a["data_category"] = "instrument_data"
 
         nucleotide_sequencing_b = faker.generate_nucleotide_sequencings(
             quantity=1,
             id=nucleotide_sequencing_b_id,
             has_input=[self.biosample_id],
-            has_output=[data_object_b["id"]],
+            has_output=[data_object_a["id"]],
             associated_studies=[self.study_id],
         )[0]
 
@@ -1302,7 +1302,7 @@ class TestFindDataObjectsForStudy:
         # Create MetagenomeAnnotation workflow informed by the NucleotideSequencing
         metagenome_annotation_b = faker.generate_metagenome_annotations(
             quantity=1,
-            has_input=[data_object_b["id"]],
+            has_input=[data_object_a["id"]],
             was_informed_by=nucleotide_sequencing_b_id,
             id="nmdc:wfmgan-00-000002.1",
             has_output=[data_object_b["id"]],
@@ -1314,7 +1314,7 @@ class TestFindDataObjectsForStudy:
 
         data_generation_set.insert_many([nucleotide_sequencing_b])
         workflow_execution_set.insert_many([metagenome_annotation_b])
-        data_object_set.insert_many([data_object_b, data_object_b])
+        data_object_set.insert_many([data_object_a, data_object_b])
 
         # Update the `alldocs` collection, which is a cache used by the endpoint under test.
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
@@ -1325,7 +1325,7 @@ class TestFindDataObjectsForStudy:
         data_generation_set.delete_many({"id": nucleotide_sequencing_b["id"]})
         workflow_execution_set.delete_many({"id": metagenome_annotation_b["id"]})
         data_object_set.delete_many(
-            {"id": {"$in": [data_object_b["id"], data_object_b["id"]]}}
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
         )
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
