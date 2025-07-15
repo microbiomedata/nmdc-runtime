@@ -86,7 +86,6 @@ def test_delete_workflow_execution_cascade_deletion(api_site_client):
         {
             "gene_function_id": "PFAM:PF12705",
             "count": 4,
-            "id": "nmdc:fa-agg-00-0001",
             "type": "nmdc:FunctionalAnnotationAggMember",
             "was_generated_by": primary_workflow_execution["id"]
         },
@@ -94,7 +93,6 @@ def test_delete_workflow_execution_cascade_deletion(api_site_client):
             "gene_function_id": "PFAM:PF00001",
             "count": 2,
             "type": "nmdc:FunctionalAnnotationAggMember",
-            "id": "nmdc:fa-agg-00-0002",
             "was_generated_by": primary_workflow_execution["id"]
         }
     ]

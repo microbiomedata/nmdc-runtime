@@ -11,15 +11,14 @@ from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.queries import _run_mdb_cmd
+from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.query import DeleteCommand, DeleteStatement
 from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
-from nmdc_runtime.util import validate_json
 import logging
 
 router = APIRouter()
@@ -270,8 +269,9 @@ async def delete_workflow_execution(
                 ],  # limit=0 means delete all matching
             )
 
+            logging.warning(f"Executing cascading delete command for {collection_name} - you may temporarily encounter broken references.")
             # Execute the delete command
-            response = _run_mdb_cmd(delete_cmd, mdb)
+            response = _run_mdb_cmd(delete_cmd, mdb, allow_broken_refs=True)
 
             # Store the result
             deletion_results[collection_name] = {
