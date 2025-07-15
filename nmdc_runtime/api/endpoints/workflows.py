@@ -160,7 +160,7 @@ async def delete_workflow_execution(
         )
         if not workflow_execution:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Workflow execution {workflow_execution_id} not found",
             )
 
