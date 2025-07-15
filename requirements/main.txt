@@ -816,7 +816,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-specifications
     #   jupyter-events
-refscan==0.3.0
+refscan==0.3.2
     # via -r requirements/main.in
 regex==2024.11.6
     # via tiktoken
