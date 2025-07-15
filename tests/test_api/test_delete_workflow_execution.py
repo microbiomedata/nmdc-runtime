@@ -3,10 +3,10 @@ from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
-from tests.test_api.test_endpoints import api_site_client
+from tests.test_api.test_endpoints import api_user_client
 
 
-def test_delete_workflow_execution_cascade_deletion(api_site_client):
+def test_delete_workflow_execution_cascade_deletion(api_user_client):
     """
     Test the DELETE /workflows/workflow_executions/{workflow_execution_id} endpoint.
     
@@ -18,6 +18,14 @@ def test_delete_workflow_execution_cascade_deletion(api_site_client):
     """
     faker = Faker()
     mdb: MongoDatabase = get_mongo_db()
+    
+    # Set up user permissions for delete operations
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     
     # Collections we'll work with
     study_set = mdb.get_collection("study_set")
@@ -132,7 +140,7 @@ def test_delete_workflow_execution_cascade_deletion(api_site_client):
         ) == 2
         
         # Execute the DELETE request
-        response = api_site_client.request(
+        response = api_user_client.request(
             "DELETE",
             f"/workflows/workflow_executions/{primary_workflow_execution['id']}"
         )
@@ -216,19 +224,32 @@ def test_delete_workflow_execution_cascade_deletion(api_site_client):
         functional_annotation_agg.delete_many({
             "_id": {"$in": [record["_id"] for record in functional_annotation_records]}
         })
+        
+        # Clean up permissions
+        allowances_collection.delete_one(allow_spec)
 
 
-def test_delete_workflow_execution_not_found(api_site_client):
+def test_delete_workflow_execution_not_found(api_user_client):
     """
     Test that deleting a non-existent workflow execution returns 404.
     """
+    mdb: MongoDatabase = get_mongo_db()
+    
+    # Set up user permissions for delete operations
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    
     non_existent_id = "nmdc:wfmgan-00-nonexistent.1"
     
     # Import the requests library to catch the HTTPError
     import requests
     
     try:
-        response = api_site_client.request(
+        response = api_user_client.request(
             "DELETE",
             f"/workflows/workflow_executions/{non_existent_id}"
         )
@@ -238,14 +259,25 @@ def test_delete_workflow_execution_not_found(api_site_client):
         response = e.response
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+    finally:
+        # Clean up permissions
+        allowances_collection.delete_one(allow_spec)
 
 
-def test_delete_workflow_execution_simple_case(api_site_client):
+def test_delete_workflow_execution_simple_case(api_user_client):
     """
     Test deleting a workflow execution with no dependencies.
     """
     faker = Faker()
     mdb: MongoDatabase = get_mongo_db()
+    
+    # Set up user permissions for delete operations
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     
     # Collections we'll work with
     study_set = mdb.get_collection("study_set")
@@ -286,7 +318,7 @@ def test_delete_workflow_execution_simple_case(api_site_client):
         assert data_object_set.count_documents({"id": output_data_object["id"]}) == 1
         
         # Execute the DELETE request
-        response = api_site_client.request(
+        response = api_user_client.request(
             "DELETE",
             f"/workflows/workflow_executions/{workflow_execution['id']}"
         )
@@ -308,6 +340,81 @@ def test_delete_workflow_execution_simple_case(api_site_client):
         
     finally:
         # Clean up
+        study_set.delete_many({"id": study["id"]})
+        biosample_set.delete_many({"id": biosample["id"]})
+        data_generation_set.delete_many({"id": data_generation["id"]})
+        workflow_execution_set.delete_many({"id": workflow_execution["id"]})
+        data_object_set.delete_many({"id": {"$in": [input_data_object["id"], output_data_object["id"]]}})
+        
+        # Clean up permissions
+        allowances_collection.delete_one(allow_spec)
+
+
+def test_delete_workflow_execution_unauthorized_user(api_user_client):
+    """
+    Test that deleting a workflow execution without proper permissions returns 403 Forbidden.
+    """
+    mdb: MongoDatabase = get_mongo_db()
+    faker = Faker()
+    
+    # DON'T set up user permissions - this user should be unauthorized
+    # This is the key difference from other tests
+    
+    # Create a simple workflow execution to attempt to delete
+    study = faker.generate_studies(quantity=1)[0]
+    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
+    data_generation = faker.generate_nucleotide_sequencings(
+        quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]]
+    )[0]
+    
+    input_data_object = faker.generate_data_objects(quantity=1, name="input_data")[0]
+    output_data_object = faker.generate_data_objects(quantity=1, name="output_data")[0]
+    
+    workflow_execution = faker.generate_workflow_executions(
+        quantity=1,
+        workflow_type="nmdc:MetagenomeAssembly",
+        has_input=[input_data_object["id"]],
+        has_output=[output_data_object["id"]],
+        was_informed_by=data_generation["id"]
+    )[0]
+    
+    # Collections for setup and cleanup
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    
+    try:
+        # Insert test data
+        study_set.insert_one(study)
+        biosample_set.insert_one(biosample)
+        data_generation_set.insert_one(data_generation)
+        data_object_set.insert_many([input_data_object, output_data_object])
+        workflow_execution_set.insert_one(workflow_execution)
+        
+        # Import the requests library to catch the HTTPError
+        import requests
+        
+        # Attempt to delete workflow execution without permissions
+        try:
+            response = api_user_client.request(
+                "DELETE",
+                f"/workflows/workflow_executions/{workflow_execution['id']}"
+            )
+            # If we get here, the request unexpectedly succeeded
+            assert False, "Expected 403 Forbidden error but request succeeded"
+        except requests.exceptions.HTTPError as e:
+            response = e.response
+            assert response.status_code == 403
+        
+        # Verify that nothing was actually deleted (workflow execution should still exist)
+        assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 1
+        assert data_object_set.count_documents({"id": input_data_object["id"]}) == 1
+        assert data_object_set.count_documents({"id": output_data_object["id"]}) == 1
+        
+    finally:
+        # Clean up test data
         study_set.delete_many({"id": study["id"]})
         biosample_set.delete_many({"id": biosample["id"]})
         data_generation_set.delete_many({"id": data_generation["id"]})

@@ -11,12 +11,13 @@ from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.endpoints.queries import _run_mdb_cmd
+from nmdc_runtime.api.endpoints.queries import _run_mdb_cmd, check_can_update_and_delete
 from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.query import DeleteCommand, DeleteStatement
 from nmdc_runtime.api.models.site import Site, get_current_client_site
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
 import logging
@@ -122,7 +123,7 @@ async def post_workflow_execution(
 @router.delete("/workflows/workflow_executions/{workflow_execution_id}")
 async def delete_workflow_execution(
     workflow_execution_id: str,
-    site: Site = Depends(get_current_client_site),
+    user: User = Depends(get_current_active_user),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -139,8 +140,8 @@ async def delete_workflow_execution(
     ----------
     workflow_execution_id : str
         ID of the workflow execution to delete
-    site : Site
-        Authenticated site (required)
+    user : User
+        Authenticated user (required)
     mdb : MongoDatabase
         MongoDB database connection
 
@@ -149,7 +150,8 @@ async def delete_workflow_execution(
     dict
         Summary of deleted workflow executions and data objects
     """
-    _ = site  # must be authenticated
+    # Check user permissions for delete operations
+    check_can_update_and_delete(user)
 
     try:
         # Check if workflow execution exists
