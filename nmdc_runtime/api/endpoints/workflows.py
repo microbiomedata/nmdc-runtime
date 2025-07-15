@@ -260,7 +260,8 @@ async def delete_workflow_execution(
                 deleted_functional_annotation_agg_ids
             )
 
-        # Perform the actual deletion using _run_mdb_cmd for consistency
+        # Perform the actual deletion using `_run_mdb_cmd`, so the operations
+        # undergo schema validation and referential integrity checking.
         deletion_results = {}
 
         for collection_name, doc_ids in docs_to_delete.items():
