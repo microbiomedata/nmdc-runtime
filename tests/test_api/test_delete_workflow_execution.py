@@ -327,7 +327,7 @@ def test_delete_workflow_execution_simple_case(api_user_client):
         assert response.status_code == 200
         response_data = response.json()
         
-        # Verify only the target workflow execution was deleted
+        # Verify the target workflow execution and its output data object were both deleted.
         assert response_data["deleted_workflow_executions"] == [workflow_execution["id"]]
         assert response_data["deleted_data_objects"] == [output_data_object["id"]]
         
