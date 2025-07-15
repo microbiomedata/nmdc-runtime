@@ -416,6 +416,9 @@ class Faker:
         'nmdc:dgns-00-000001'
         >>> workflow_executions[0]['has_input'][0]
         'nmdc:dobj-00-000001'
+        
+        TODO: Update the existing `generate_metagenome_annotations` method
+              to invoke this one under the hood (i.e. to make things more DRY).
         """
 
         documents = []
