@@ -21,6 +21,12 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
     mdb: MongoDatabase = get_mongo_db()
     
     # Set up user permissions for delete operations
+    #
+    # TODO: Consider updating the `api_user_client` fixture to automatically grant
+    #       this allowance to the test user. Tests can then revoke it if they happen
+    #       to be testing unauthorized access (I think fewer tests need that
+    #       allowance revoked than need it granted).
+    #
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
