@@ -1190,7 +1190,7 @@ class TestFindDataObjectsForStudy:
 
         metagenome_annotation_workflow = faker.generate_metagenome_annotations(
             quantity=1,
-            has_input=[wfmgan_dobj["id"]],
+            has_input=[ntseq_dobj["id"]],
             was_informed_by=nucleotide_sequencing_id,
             id="nmdc:wfmgan-00-000001.1",
             has_output=[wfmgan_dobj["id"]],
