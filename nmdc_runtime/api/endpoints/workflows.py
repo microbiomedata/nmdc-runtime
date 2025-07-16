@@ -1,8 +1,9 @@
+import logging
+import os
 from typing import Any, List, Set, Annotated
 
 import pymongo
 from bson import ObjectId
-
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import BulkWriteError
@@ -19,8 +20,6 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import DeleteResponse
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
-import logging
-import os
 
 
 router = APIRouter()
