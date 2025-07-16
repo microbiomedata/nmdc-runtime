@@ -182,23 +182,26 @@ class FindResponse(BaseModel):
 
 
 class DeleteResponse(BaseModel):
-    """
-    Response model for delete operations that provides detailed deletion information.
+    r"""
+    Response model for "delete" operations. It summarizes the result of the
+    operation and it lists identifiers of the documents that were deleted.
     """
 
     message: str = Field(
         description="Success message describing the deletion operation"
     )
     deleted_workflow_execution_ids: List[str] = Field(
-        description="List of workflow execution IDs that were deleted"
+        # Note: `default_factory=list` sets this to an empty list by default.
+        default_factory=list,
+        description="The `id`s of the `WorkflowExecution`s that were deleted"
     )
     deleted_data_object_ids: List[str] = Field(
-        description="List of data object IDs that were deleted"
+        default_factory=list,
+        description="The `id`s of the `DataObject`s that were deleted"
     )
     deleted_functional_annotation_agg_oids: List[str] = Field(
-        # sets default to an empty list because the field is optional (not everything has functional annotations)
         default_factory=list,
-        description="List of functional annotation aggregate ObjectIds that were deleted",
+        description="The internal MongoDB `ObjectId`s of the `FunctionalAnnotationAggMember`s that were deleted",
     )
 
 
