@@ -9,9 +9,11 @@ from nmdc_schema.nmdc import (
     ExecutionResourceEnum,
     FileTypeEnum,
     MetagenomeAnnotation,
+    MetagenomeAssembly,
     NucleotideSequencing,
     NucleotideSequencingEnum,
     OntologyClass,
+    ReadQcAnalysis,
     Study,
     StudyCategoryEnum,
 )
@@ -375,7 +377,7 @@ class Faker:
             # Apply any overrides passed in.
             params = {
                 "id": self.make_unique_id(f"nmdc:dobj-00-"),
-                "type": "nmdc:DataObject",
+                "type": DataObject.class_class_curie,
                 "name": "arbitrary_string",
                 "description": "arbitrary_string",
                 "data_category": DataCategoryEnum.processed_data.text,
@@ -424,17 +426,16 @@ class Faker:
         documents = []
         for i in range(quantity):
             # Generate appropriate ID prefix based on workflow type
-            if workflow_type == "nmdc:MetagenomeAnnotation":
+            # TODO: Add support for other workflow types as needed
+            if workflow_type == MetagenomeAnnotation.class_class_curie:
                 id_prefix = "nmdc:wfmgan-00-"
-            elif workflow_type == "nmdc:MetagenomeAssembly":
+            elif workflow_type == MetagenomeAssembly.class_class_curie:
                 id_prefix = "nmdc:wfmgas-00-"
-            elif workflow_type == "nmdc:ReadQcAnalysis":
+            elif workflow_type == ReadQcAnalysis.class_class_curie:
                 id_prefix = "nmdc:wfrqc-00-"
-                # TODO: Add support for other workflow types as needed
-                # TODO: Can we get a list of valid types via a SchemaView?
             else:
                 # Generic workflow execution ID
-                raise ValueError(f"Unsupported workflow type {workflow_type}")
+                raise ValueError(f"Unsupported workflow type: {workflow_type}")
             
             # Apply any overrides passed in.
             params = {
