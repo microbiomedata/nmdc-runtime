@@ -75,6 +75,48 @@ def test_get_pi():
     assert pi_person_value.profile_image_url == "http://www.example.org/image.jpg"
 
 
+def test_get_study_dois():
+    translator = SubmissionPortalTranslator()
+    dois = translator._get_study_dois(
+        {
+            "studyForm": {
+                "dataDois": {
+                    [
+                        "doi1": {
+                        "provider": "EMSL",
+                        "value" : "10.12345/6789",
+                        },
+                    ]
+                },
+            },
+            "multiOmicsForm": {
+                "awardDois": {
+                    [
+                        "doi1": {
+                        "provider": "JGI",
+                        "value" : "doi:10.11121314/15161718",
+                        },
+                    ]
+                },
+            }
+        }
+    )
+    assert dois is not None
+    assert len(dois) == 2
+    assert dois[0].doi_value == "doi:10.12345/6789"
+    assert dois[0].doi_provider == "EMSL"
+    assert dois[0].type == "nmdc:Doi"
+    assert dois[0].doi_category == "dataset_doi"
+
+    assert dois[1].doi_value == "doi:10.11121314/15161718"
+    assert dois[1].doi_provider == "JGI"
+    assert dois[1].type == "nmdc:Doi"
+    assert dois[1].doi_category == "award_doi"
+
+    empty_doi = translator._get_study_dois({})
+    assert empty_doi is None
+
+
 def test_get_has_credit_associations():
     translator = SubmissionPortalTranslator()
     credit_associations = translator._get_has_credit_associations(
