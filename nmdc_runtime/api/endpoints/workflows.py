@@ -59,7 +59,7 @@ def list_workflow_capabilities(
     return list(mdb.capabilities.find({"id": {"$in": doc.get("capability_ids", [])}}))
 
 
-@router.post("/workflows/activities", status_code=410, deprecated=True)
+@router.post("/workflows/activities", status_code=status.HTTP_410_GONE, deprecated=True)
 async def post_activity(
     activity_set: dict[str, Any],
     site: Site = Depends(get_current_client_site),
@@ -116,9 +116,9 @@ async def post_workflow_execution(
         mongo_resource.add_docs(workflow_execution_set, validate=False, replace=True)
         return {"message": "jobs accepted"}
     except BulkWriteError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
 @router.delete(
@@ -316,4 +316,4 @@ async def delete_workflow_execution(
         logging.error(
             f"Error during workflow execution deletion: {str(e)}", exc_info=True
         )
-        raise HTTPException(status_code=500, detail=f"Error during deletion: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error during deletion: {str(e)}")
