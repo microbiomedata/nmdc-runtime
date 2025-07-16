@@ -20,6 +20,11 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import DeleteResponse
 from nmdc_runtime.api.models.workflow import Workflow
 from nmdc_runtime.site.resources import MongoDB
+from nmdc_schema.nmdc import (
+    MetagenomeAnnotation,
+    MetaproteomicsAnalysis,
+    MetatranscriptomeAnnotation,
+)
 
 
 router = APIRouter()
@@ -226,9 +231,9 @@ async def delete_workflow_execution(
             # If so, we need to also delete functional_annotation_agg records
             wfe_type = wfe.get("type", "")
             is_annotating_workflow = wfe_type in [
-                "nmdc:MetagenomeAnnotation",
-                "nmdc:MetatranscriptomeAnnotation",
-                "nmdc:MetaproteomicsAnalysis",
+                MetagenomeAnnotation.class_class_curie,
+                MetatranscriptomeAnnotation.class_class_curie,
+                MetaproteomicsAnalysis.class_class_curie,
             ]
 
             # Find linked workflow executions that use these data objects as inputs
