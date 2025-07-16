@@ -1,7 +1,7 @@
 """
 Utility functions for handling fields that can be single-valued or multivalued.
 
-This module provides functions to handle the transition of schema fields from 
+This module provides functions to handle the transition of schema fields from
 single-valued to multivalued, ensuring backward compatibility.
 """
 
@@ -11,13 +11,13 @@ from typing import Union, List, Any, Iterable
 def normalize_to_list(value: Union[str, List[str], None]) -> List[str]:
     """
     Normalize a single value or list of values to a list.
-    
+
     Args:
         value: A single string, list of strings, or None
-        
+
     Returns:
         A list of strings. Empty list if value is None.
-        
+
     Examples:
         >>> normalize_to_list("single_value")
         ['single_value']
@@ -44,10 +44,10 @@ def normalize_to_list(value: Union[str, List[str], None]) -> List[str]:
 def get_was_informed_by_values(doc: dict) -> List[str]:
     """
     Extract was_informed_by values from a document, handling both single and multivalued cases.
-    
+
     Args:
         doc: Document that may contain was_informed_by field
-        
+
     Returns:
         List of was_informed_by values, empty if field is not present
     """
@@ -57,13 +57,13 @@ def get_was_informed_by_values(doc: dict) -> List[str]:
 def create_was_informed_by_query(values: Union[str, List[str], None]) -> dict:
     """
     Create a MongoDB query for was_informed_by field that works with both single and multivalued data.
-    
+
     Args:
         values: Single value, list of values, or None to query for
-        
+
     Returns:
         MongoDB query dict
-        
+
     Examples:
         >>> create_was_informed_by_query("single_value")
         {'was_informed_by': 'single_value'}
@@ -71,7 +71,7 @@ def create_was_informed_by_query(values: Union[str, List[str], None]) -> dict:
         {'was_informed_by': {'$in': ['value1', 'value2']}}
     """
     normalized_values = normalize_to_list(values)
-    
+
     if not normalized_values:
         return {}
     elif len(normalized_values) == 1:
@@ -86,10 +86,10 @@ def create_was_informed_by_reverse_query(target_id: str) -> dict:
     """
     Create a MongoDB query to find documents where was_informed_by contains the target_id.
     This works for both single-valued and multivalued was_informed_by fields.
-    
+
     Args:
         target_id: The ID to search for in was_informed_by fields
-        
+
     Returns:
         MongoDB query dict that works for both single and multivalued fields
     """
