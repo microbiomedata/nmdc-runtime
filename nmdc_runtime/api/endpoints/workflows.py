@@ -141,7 +141,8 @@ async def delete_workflow_execution(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
-    Delete a given workflow execution and its downstream workflow executions and data objects.
+    Delete a given workflow execution and its downstream workflow executions, data objects,
+    and functional annotation aggregation members.
 
     This endpoint performs recursive deletion of:
     1. The specified workflow execution
@@ -162,9 +163,12 @@ async def delete_workflow_execution(
     Returns
     -------
     dict
-        Summary of deleted workflow executions and data objects
+        Catalog of deleted workflow executions, data objects, and functional annotation aggregation members
     """
+
     # Check user permissions for delete operations
+    # TODO: Decouple this endpoint's authorization criteria from that of the `/queries:run` endpoint.
+    #       Currently, both endpoints rely on the "/queries:run(query_cmd:DeleteCommand)" allowance.
     check_can_update_and_delete(user)
 
     try:
