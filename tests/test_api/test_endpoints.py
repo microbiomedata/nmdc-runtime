@@ -18,10 +18,6 @@ from nmdc_runtime.api.endpoints.util import (
     persist_content_and_get_drs_object,
     strip_oid,
 )
-from nmdc_runtime.api.endpoints.util import (
-    persist_content_and_get_drs_object,
-    strip_oid,
-)
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
