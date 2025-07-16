@@ -480,6 +480,24 @@ class SubmissionPortalTranslator(Translator):
             value = sanitize(value)
 
         return value
+    
+    def _get_study_dois(self, metadata_submission):
+        data_dois = self._get_from(
+                metadata_submission, ["studyForm", "dataDois"]
+            )
+        award_dois = self._get_from(
+                metadata_submission, ["multiOmicsForm", "awardDois"]
+            )
+        if len(data_dois) > 0:
+            updated_data_dois = [ nmdc.Doi(doi_category='dataset_doi',doi_provider=doi['provider'],doi_value=doi['value'] if doi['value'].startswith('doi:') else 'doi:' + doi['value'],type='nmdc:Doi') for doi in data_dois]
+        else: 
+            updated_data_dois = []
+
+        if len(award_dois) > 0:
+            updated_award_dois = [ nmdc.Doi(doi_category='award_doi',doi_provider=doi['provider'],doi_value=doi['value'] if doi['value'].startswith('doi:') else 'doi:' + doi['value'],type='nmdc:Doi') for doi in award_dois]
+        else:
+            updated_award_dois = []
+        return updated_data_dois + updated_award_dois
 
     def _get_data_objects_from_fields(
         self,
@@ -597,6 +615,8 @@ class SubmissionPortalTranslator(Translator):
             websites=self._get_from(
                 metadata_submission, ["studyForm", "linkOutWebpage"]
             ),
+            associated_dois=self._get_study_dois(metadata_submission
+            )
         )
 
     def _transform_value_for_slot(
