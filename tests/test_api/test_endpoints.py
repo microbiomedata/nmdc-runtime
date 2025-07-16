@@ -1250,8 +1250,7 @@ class TestFindDataObjectsForStudy:
             "nmdc:dobj-00-000004",  # data_object from nucleotide sequencing process
             "nmdc:dobj-00-000005",  # data_object from metagenome annotation workflow
         ]
-        for expected_id in expected_ids:
-            assert expected_id in received_data_object_ids
+        assert set(expected_ids) == set(received_data_object_ids)
 
     @pytest.fixture()
     def seeded_db_with_informed_by_workflow(self, seeded_db):
@@ -1358,8 +1357,7 @@ class TestFindDataObjectsForStudy:
             "nmdc:dobj-00-000006",  # data_object_b from nucleotide sequencing
             "nmdc:dobj-00-000007",  # data_object_b from nom analysis
         ]
-        for expected_id in expected_ids:
-            assert expected_id in received_data_object_ids
+        assert set(expected_ids) == set(received_data_object_ids)
 
 
 def test_find_planned_processes(api_site_client):
