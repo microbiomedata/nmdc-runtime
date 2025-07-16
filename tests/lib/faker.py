@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List
 
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
@@ -216,7 +216,7 @@ class Faker:
         return documents
 
 
-    def generate_metagenome_annotations(self, quantity: int, was_informed_by: Union[str, List[str]], has_input: List[str], **overrides) -> List[dict]:
+    def generate_metagenome_annotations(self, quantity: int, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
         which can be stored in the `workflow_execution_set` collection.
@@ -225,7 +225,7 @@ class Faker:
         Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
 
         :param quantity: Number of documents to create
-        :param was_informed_by: The `id` of a `DataGeneration` instance, or list of IDs for multivalued support
+        :param was_informed_by: The `id` of a `DataGeneration` instance
         :param has_input: The `id`s of one or more `NamedThing` instances
         :param overrides: Fields, if any, to add or override in each document
         :return: The generated documents
@@ -242,11 +242,6 @@ class Faker:
         'nmdc:bsm-00-000001'
         >>> metagenome_annotations[0]['type']
         'nmdc:MetagenomeAnnotation'
-
-        # Test: Using multivalued was_informed_by.
-        >>> multivalued_annotations = f.generate_metagenome_annotations(1, was_informed_by=['nmdc:dgns-00-000001', 'nmdc:dgns-00-000002'], has_input=['nmdc:bsm-00-000001'])
-        >>> multivalued_annotations[0]['was_informed_by']
-        ['nmdc:dgns-00-000001', 'nmdc:dgns-00-000002']
 
         # Test: Omitting required parameters.
         >>> f.generate_metagenome_annotations(1)

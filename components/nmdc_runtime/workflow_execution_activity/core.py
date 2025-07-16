@@ -10,12 +10,6 @@ from components.nmdc_runtime.workflow import Workflow, WorkflowModel, get_all_wo
 from .store import MongoDatabase, insert_activities
 from .spec import ActivityTree
 
-# Import relative path to utility functions - adjust path as needed
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-from nmdc_runtime.api.core.util_multivalued import get_was_informed_by_values
-
 
 class ActiveActivities(TypedDict):
     activities: list[WorkflowExecutionActivity]
@@ -89,14 +83,10 @@ def find_next_workflows(trees: dict[str, ActivityTree]) -> list[Workflow]:
             if workflow.predecessor == tree.spec.name and not is_child_p(
                 workflow, tree.children
             ):
-                # Handle both single and multivalued was_informed_by
-                was_informed_by_values = get_was_informed_by_values(tree.data.__dict__)
-                # For backward compatibility, use first value if multivalued, or None if empty
-                informed_by_value = was_informed_by_values[0] if was_informed_by_values else None
-                
                 workflow_copy = workflow.copy()
                 workflow_copy.inputs.proj = tree.data.id
-                workflow_copy.inputs.informed_by = informed_by_value
+                # was_informed_by is now a list, take the first element for compatibility
+                workflow_copy.inputs.informed_by = tree.data.was_informed_by[0] if tree.data.was_informed_by else ""
                 next_workflows.append(workflow_copy)
     return next_workflows
 

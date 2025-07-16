@@ -10,10 +10,6 @@ from toolz import merge, assoc_in
 
 from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.core.util_multivalued import (
-    get_was_informed_by_values,
-    create_was_informed_by_reverse_query,
-)
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     activity_collection_names,
@@ -222,7 +218,7 @@ def find_data_objects_for_study(
     def process_informed_by_docs(doc, collected_objects, unique_ids):
         """Process documents linked by `was_informed_by` and collect relevant data objects."""
         informed_by_docs = mdb.workflow_execution_set.find(
-            create_was_informed_by_reverse_query(doc["id"])
+            {"was_informed_by": doc["id"]}
         )
         for informed_doc in informed_by_docs:
             collect_data_objects(
@@ -612,10 +608,10 @@ def find_related_objects_for_workflow_execution(
     # Find WorkflowExecutions whose `was_informed_by` value matches that of the user-specified WorkflowExecution.
     # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
-        was_informed_by_values = get_was_informed_by_values(workflow_execution)
-        for was_informed_by_value in was_informed_by_values:
+        was_informed_by_list = workflow_execution["was_informed_by"]
+        for was_informed_by_value in was_informed_by_list:
             related_wfes = mdb.workflow_execution_set.find(
-                create_was_informed_by_reverse_query(was_informed_by_value)
+                {"was_informed_by": was_informed_by_value}
             )
             for wfe in related_wfes:
                 if wfe["id"] != workflow_execution_id:
