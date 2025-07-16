@@ -264,7 +264,8 @@ async def delete_workflow_execution(
             )
 
         # Perform the actual deletion using `_run_mdb_cmd`, so the operations
-        # undergo schema validation and referential integrity checking.
+        # undergo schema, validation and referential integrity checking, and
+        # deleted documents are backed up to the `nmdc_deleted` database.
         deletion_results = {}
 
         for collection_name, doc_ids in docs_to_delete.items():
