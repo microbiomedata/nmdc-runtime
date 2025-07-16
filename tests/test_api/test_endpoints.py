@@ -1159,9 +1159,9 @@ class TestFindDataObjectsForStudy:
         ```mermaid
         graph
             biosample --> |has_input| nucleotide_sequencing_process
-            nucleotide_sequencing_process --> |has_output| data_object
-            data_object --> |has_input| metagenome_annotation_workflow
-            metagenome_annotation_workflow --> |has_output| data_object
+            nucleotide_sequencing_process --> |has_output| ntseq_dobj
+            ntseq_dobj --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| wfmgan_dobj
         ```
         """
         faker = Faker()
