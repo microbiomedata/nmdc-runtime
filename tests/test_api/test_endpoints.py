@@ -1225,8 +1225,8 @@ class TestFindDataObjectsForStudy:
         serve as input to other processes (WorkflowExecution processes), validating functionality
         that allows DataObjects to be connected through has_input/has_output relationships.
         """
-        # Use the fixture to ensure the database is properly seeded
-        db = seeded_db_with_data_object_chain
+        # Access the fixture so my IDE doesn't warn about unused function parameters
+        _ = seeded_db_with_data_object_chain
 
         # Confirm the endpoint responds with all data objects in the chain
         response = api_site_client.request(
@@ -1333,8 +1333,8 @@ class TestFindDataObjectsForStudy:
         linked to DataGeneration records via the `was_informed_by` slot, validating
         functionality that processes DataGeneration descendants.
         """
-        # Use the fixture to ensure the database is properly seeded
-        db = seeded_db_with_informed_by_workflow
+        # Access the fixture so my IDE doesn't warn about unused function parameters
+        _ = seeded_db_with_informed_by_workflow
 
         # Confirm the endpoint responds with data objects found via informed_by linking
         response = api_site_client.request(
