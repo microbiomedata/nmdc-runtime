@@ -193,11 +193,11 @@ class DeleteResponse(BaseModel):
     deleted_workflow_execution_ids: List[str] = Field(
         # Note: `default_factory=list` sets this to an empty list by default.
         default_factory=list,
-        description="The `id`s of the `WorkflowExecution`s that were deleted"
+        description="The `id`s of the `WorkflowExecution`s that were deleted",
     )
     deleted_data_object_ids: List[str] = Field(
         default_factory=list,
-        description="The `id`s of the `DataObject`s that were deleted"
+        description="The `id`s of the `DataObject`s that were deleted",
     )
     deleted_functional_annotation_agg_oids: List[str] = Field(
         default_factory=list,
