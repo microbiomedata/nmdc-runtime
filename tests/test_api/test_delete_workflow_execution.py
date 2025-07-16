@@ -244,8 +244,10 @@ def test_delete_workflow_execution_not_found(api_user_client):
     
     # Verify that the non-existent ID doesn't exist in the workflow_execution_set collection
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    assert workflow_execution_set.count_documents({"id": non_existent_id}) == 0, f"ID {non_existent_id} should not exist in database"
-        
+    assert (
+        workflow_execution_set.count_documents({"id": non_existent_id}) == 0
+    ), f"workflow_execution_set collection contains document having id='{non_existent_id}'"
+
     try:
         with pytest.raises(requests.exceptions.HTTPError) as exc_info:
             api_user_client.request(
