@@ -424,6 +424,12 @@ class Faker:
         True
         >>> workflow_executions[0]['has_output'][0]
         'nmdc:dobj-00-000002'
+
+        # Demonstrate that unsupported workflow types raise an error.
+        >>> f.generate_workflow_executions(1, 'nmdc:NoSuchWorkflowType', was_informed_by='nmdc:dgns-00-000001', has_input=['nmdc:dobj-00-000001'])
+        Traceback (most recent call last):
+            ...
+        ValueError: Unsupported workflow type: 'nmdc:NoSuchWorkflowType'
         """
 
         documents = []
@@ -438,7 +444,7 @@ class Faker:
                 id_prefix = "nmdc:wfrqc-00-"
             else:
                 # Generic workflow execution ID
-                raise ValueError(f"Unsupported workflow type: {workflow_type}")
+                raise ValueError(f"Unsupported workflow type: '{workflow_type}'")
             
             # Apply any overrides passed in.
             params = {
@@ -452,10 +458,17 @@ class Faker:
                 **overrides,
             }
 
-            # Create a basic workflow execution document without strict validation
-            # since we don't have all schema classes imported
-            # TODO: Perform validation like other faker methods do.
-            document = params
+            # Validate the parameters by attempting to instantiate the relevant subclass of `WorkflowExecution`.
+            wfe_type_to_schema_class_map = {
+                MetagenomeAnnotation.class_class_curie: MetagenomeAnnotation,
+                MetagenomeAssembly.class_class_curie: MetagenomeAssembly,
+                ReadQcAnalysis.class_class_curie: ReadQcAnalysis,
+            }
+            schema_class = wfe_type_to_schema_class_map[workflow_type]
+            instance = schema_class(**params)
+            
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
