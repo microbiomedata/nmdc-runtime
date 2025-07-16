@@ -159,6 +159,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert "message" in response_data
         assert "deleted_workflow_execution_ids" in response_data
         assert "deleted_data_object_ids" in response_data
+        assert "deleted_functional_annotation_agg_oids" in response_data
         
         # Verify all 3 workflow executions were deleted
         deleted_wfe_ids = set(response_data["deleted_workflow_execution_ids"])
@@ -178,6 +179,10 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         )
         assert deleted_data_object_ids == expected_deleted_data_object_ids
         
+        # TODO: Verify the response accounts for any `functional_annotation_agg` documents
+        #       that we expected to be deleted.
+        assert isinstance(response_data["deleted_functional_annotation_agg_oids"], list)
+
         # Verify workflow executions are actually deleted from database
         for wfe_id in deleted_wfe_ids:
             assert workflow_execution_set.count_documents({"id": wfe_id}) == 0
@@ -330,6 +335,7 @@ def test_delete_workflow_execution_simple_case(api_user_client):
         # Verify only the target workflow execution was deleted
         assert response_data["deleted_workflow_execution_ids"] == [workflow_execution["id"]]
         assert response_data["deleted_data_object_ids"] == [output_data_object["id"]]
+        assert response_data["deleted_functional_annotation_agg_oids"] == []
         
         # Verify actual deletion from database
         assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
