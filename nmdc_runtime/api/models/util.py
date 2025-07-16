@@ -181,6 +181,30 @@ class FindResponse(BaseModel):
     group_by: List[dict]
 
 
+class DeleteResponse(BaseModel):
+    r"""
+    Response model for "delete" operations. It summarizes the result of the
+    operation and it lists identifiers of the documents that were deleted.
+    """
+
+    message: str = Field(
+        description="Success message describing the deletion operation"
+    )
+    deleted_workflow_execution_ids: List[str] = Field(
+        # Note: `default_factory=list` sets this to an empty list by default.
+        default_factory=list,
+        description="The `id`s of the `WorkflowExecution`s that were deleted",
+    )
+    deleted_data_object_ids: List[str] = Field(
+        default_factory=list,
+        description="The `id`s of the `DataObject`s that were deleted",
+    )
+    deleted_functional_annotation_agg_oids: List[str] = Field(
+        default_factory=list,
+        description="The internal MongoDB `ObjectId`s of the `FunctionalAnnotationAggMember`s that were deleted",
+    )
+
+
 # Note: For MongoDB, a single collection can have no more than 64 indexes
 # Note: Each collection has a unique index set on "id" elsewhere.
 entity_attributes_to_index = {
