@@ -316,4 +316,7 @@ async def delete_workflow_execution(
         logging.error(
             f"Error during workflow execution deletion: {str(e)}", exc_info=True
         )
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error during deletion: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during deletion: {str(e)}",
+        )
