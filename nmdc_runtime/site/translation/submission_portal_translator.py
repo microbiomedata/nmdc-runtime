@@ -486,7 +486,7 @@ class SubmissionPortalTranslator(Translator):
         award_dois = self._get_from(
             metadata_submission, ["multiOmicsForm", "awardDois"]
         )
-        if len(data_dois) > 0:
+        if data_dois and len(data_dois) > 0:
             updated_data_dois = [
                 nmdc.Doi(
                     doi_category="dataset_doi",
@@ -503,7 +503,7 @@ class SubmissionPortalTranslator(Translator):
         else:
             updated_data_dois = []
 
-        if len(award_dois) > 0:
+        if award_dois and len(award_dois) > 0:
             updated_award_dois = [
                 nmdc.Doi(
                     doi_category="award_doi",
