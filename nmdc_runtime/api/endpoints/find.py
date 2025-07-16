@@ -261,8 +261,8 @@ def find_data_objects_for_study(
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
                     # Add non-DataObject outputs to continue the chain
                     for op in has_output:
-                        doc = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                        if doc and doc.get("type") != "nmdc:DataObject":
+                        doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                        if doc_check and doc_check.get("type") != "nmdc:DataObject":
                             new_current_ids.append(op)
 
                     if any(
@@ -271,6 +271,25 @@ def find_data_objects_for_study(
                         process_informed_by_docs(
                             doc, collected_data_objects, unique_ids
                         )
+
+                # Also check if current_id is a DataObject that serves as input to other processes
+                current_doc_type = mdb.alldocs.find_one({"id": current_id}, {"type": 1})
+                if (
+                    current_doc_type
+                    and current_doc_type.get("type") == "nmdc:DataObject"
+                ):
+                    # Find all documents in alldocs that have this DataObject as input
+                    for doc in mdb.alldocs.find({"has_input": current_id}):
+                        has_output = doc.get("has_output", [])
+                        # Process outputs from these documents
+                        collect_data_objects(
+                            has_output, collected_data_objects, unique_ids
+                        )
+                        # Add non-DataObject outputs to continue the chain
+                        for op in has_output:
+                            doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                            if doc_check and doc_check.get("type") != "nmdc:DataObject":
+                                new_current_ids.append(op)
 
             current_ids = new_current_ids
 
