@@ -114,7 +114,7 @@ def test_get_study_dois():
     assert dois[1].doi_category == DoiCategoryEnum("award_doi")
 
     empty_doi = translator._get_study_dois({})
-    assert empty_doi is []
+    assert empty_doi == []
 
 
 def test_get_has_credit_associations():
