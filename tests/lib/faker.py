@@ -394,7 +394,7 @@ class Faker:
 
         return documents
 
-    def generate_workflow_executions(self, quantity: int, workflow_type: str, was_informed_by: str, has_input: List[str], has_output: List[str] = None, **overrides) -> List[dict]:
+    def generate_workflow_executions(self, quantity: int, workflow_type: str, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing generic workflow execution instances,
         which can be stored in the `workflow_execution_set` collection.
@@ -404,7 +404,6 @@ class Faker:
         :param workflow_type: The type of workflow (e.g., 'nmdc:MetagenomeAnnotation', 'nmdc:MetagenomeAssembly')
         :param was_informed_by: The `id` of a `DataGeneration` instance
         :param has_input: The `id`s of one or more `NamedThing` instances
-        :param has_output: The `id`s of one or more output data objects (optional)
         :param overrides: Fields, if any, to add or override in each document
         :return: The generated documents
 
@@ -418,9 +417,13 @@ class Faker:
         'nmdc:dgns-00-000001'
         >>> workflow_executions[0]['has_input'][0]
         'nmdc:dobj-00-000001'
-        
-        TODO: Update the existing `generate_metagenome_annotations` method
-              to invoke this one under the hood (i.e. to make things more DRY).
+
+        # Demonstrate that `has_output` will be set if provided.
+        >>> workflow_executions = f.generate_workflow_executions(1, 'nmdc:MetagenomeAnnotation', was_informed_by='nmdc:dgns-00-000001', has_input=['nmdc:dobj-00-000001'], has_output=['nmdc:dobj-00-000002'])
+        >>> 'has_output' in workflow_executions[0]
+        True
+        >>> workflow_executions[0]['has_output'][0]
+        'nmdc:dobj-00-000002'
         """
 
         documents = []
@@ -448,10 +451,6 @@ class Faker:
                 "has_input": has_input,
                 **overrides,
             }
-            
-            # Add has_output if provided
-            if has_output:
-                params["has_output"] = has_output
 
             # Create a basic workflow execution document without strict validation
             # since we don't have all schema classes imported
