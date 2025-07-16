@@ -153,6 +153,8 @@ async def delete_workflow_execution(
     4. All data objects that are outputs of deleted workflow executions
 
     Input data objects (has_input) are preserved as they may be used by other workflow executions.
+    TODO: Consider deleting input data objects that are _not_ used by other workflow executions
+          (otherwise, they may accumulate in the database as so-called "orphaned documents").
 
     Parameters
     ----------
