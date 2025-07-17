@@ -1114,8 +1114,8 @@ def _add_related_ids_to_alldocs(
         "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
         "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
         "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
-        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy .
-        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy.
+        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy.
     ]
     # An "outbound" slot is one for which an entity in the domain "influences"
     # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
