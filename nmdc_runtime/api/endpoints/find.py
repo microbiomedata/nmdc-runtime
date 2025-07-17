@@ -633,15 +633,24 @@ def find_related_objects_for_workflow_execution(
     # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
         was_informed_by = workflow_execution["was_informed_by"]
-        if isinstance(was_informed_by, list):
-            # Get all WorkflowExecutions that were informed by any of the
-            # things that informed the user-specified WorkflowExecution.
-            related_wfes = mdb.workflow_execution_set.find(
-                {"was_informed_by": {"$in": was_informed_by}}
-            )
-            for wfe in related_wfes:
-                if wfe["id"] != workflow_execution_id:
-                    add_workflow_execution(wfe)
+
+        # Note: We added this assertion in an attempt to facilitate debugging
+        #       the system in the situation where a `WorkflowExecution` document
+        #       has a `was_informed_by` field whose value is not a list (which
+        #       would be a violation of NMDC schema 11.9.0).
+        assert isinstance(was_informed_by, list), (
+            "A WorkflowExecution's `was_informed_by` field contained "
+            f"a {type(was_informed_by)} instead of a list."
+        )
+
+        # Get all WorkflowExecutions that were informed by any of the
+        # things that informed the user-specified WorkflowExecution.
+        related_wfes = mdb.workflow_execution_set.find(
+            {"was_informed_by": {"$in": was_informed_by}}
+        )
+        for wfe in related_wfes:
+            if wfe["id"] != workflow_execution_id:
+                add_workflow_execution(wfe)
 
         # Look for a DataGeneration in the `alldocs` collection.
         # We'll use that DataGeneration to get to related Biosamples.
