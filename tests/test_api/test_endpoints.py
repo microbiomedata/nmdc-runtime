@@ -525,7 +525,7 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=data_generation["id"],
+        was_informed_by=[data_generation["id"]],
     )[0]
 
     # Make sure the `study_set`, `biosample_set`, `data_object_set`, `data_generation_set`, and
@@ -595,7 +595,7 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=nonexistent_data_generation_id,  # intentionally-broken reference
+        was_informed_by=[nonexistent_data_generation_id],  # intentionally-broken reference
     )[0]
 
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
@@ -927,7 +927,7 @@ class TestFindDataObjectsForStudy:
             id=self.workflow_execution_ids[0],
             has_input=[biosample["id"]],
             has_output=[data_object_a["id"], data_object_b["id"]],
-            was_informed_by=data_generation["id"],
+            was_informed_by=[data_generation["id"]],
         )[0]
 
         mdb = get_mongo_db()
@@ -1087,7 +1087,7 @@ class TestFindDataObjectsForStudy:
                 self.data_object_ids[0]
             ],  # the output of the first `WorkflowExecution`
             has_output=[data_object_c["id"]],  # the new `DataObject`
-            was_informed_by=self.data_generation_id,
+            was_informed_by=[self.data_generation_id],
         )[0]
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         assert (
@@ -1191,7 +1191,7 @@ class TestFindDataObjectsForStudy:
         metagenome_annotation_workflow = faker.generate_metagenome_annotations(
             quantity=1,
             has_input=[ntseq_dobj["id"]],
-            was_informed_by=nucleotide_sequencing_id,
+            was_informed_by=[nucleotide_sequencing_id],
             id="nmdc:wfmgan-00-000001.1",
             has_output=[wfmgan_dobj["id"]],
         )[0]
@@ -1298,7 +1298,7 @@ class TestFindDataObjectsForStudy:
         metagenome_annotation_b = faker.generate_metagenome_annotations(
             quantity=1,
             has_input=[data_object_a["id"]],
-            was_informed_by=nucleotide_sequencing_b_id,
+            was_informed_by=[nucleotide_sequencing_b_id],
             id="nmdc:wfmgan-00-000002.1",
             has_output=[data_object_b["id"]],
         )[0]
@@ -1886,7 +1886,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_resource
         1, was_generated_by=data_generation["id"]
     )[0]
     workflow_execution = faker.generate_metagenome_annotations(
-        1, was_informed_by=data_generation["id"], has_input=[data_object["id"]]
+        1, was_informed_by=[data_generation["id"]], has_input=[data_object["id"]]
     )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
@@ -1968,7 +1968,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
         1, was_generated_by=data_generation_a["id"]
     )[0]
     workflow_execution_a = faker.generate_metagenome_annotations(
-        1, was_informed_by=data_generation_a["id"], has_input=[data_object_a["id"]]
+        1, was_informed_by=[data_generation_a["id"]], has_input=[data_object_a["id"]]
     )[0]
 
     # Create a second `WorkflowExecution` that is related to the first one.
@@ -1977,7 +1977,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
     )[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
-        was_informed_by=data_generation_a["id"],
+        was_informed_by=[data_generation_a["id"]],
         has_input=[data_object_b["id"]],
     )[0]
 
