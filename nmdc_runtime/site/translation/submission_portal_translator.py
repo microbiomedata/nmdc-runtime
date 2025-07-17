@@ -481,7 +481,7 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
-    def _get_study_dois(self, metadata_submission) -> Union[List[nmdc.Doi],None]:
+    def _get_study_dois(self, metadata_submission) -> Union[List[nmdc.Doi], None]:
         """Collect and format DOIs from submission portal schema in nmdc format DOIs
 
         If there were no DOIs, None is returned.
@@ -498,7 +498,7 @@ class SubmissionPortalTranslator(Translator):
                 nmdc.Doi(
                     doi_category="dataset_doi",
                     doi_provider=doi["provider"],
-                    doi_value=self._ensure_curie(doi['value'], default_prefix="doi"),
+                    doi_value=self._ensure_curie(doi["value"], default_prefix="doi"),
                     type="nmdc:Doi",
                 )
                 for doi in data_dois
@@ -511,14 +511,14 @@ class SubmissionPortalTranslator(Translator):
                 nmdc.Doi(
                     doi_category="award_doi",
                     doi_provider=doi["provider"],
-                    doi_value=self._ensure_curie(doi['value'], default_prefix="doi"),
+                    doi_value=self._ensure_curie(doi["value"], default_prefix="doi"),
                     type="nmdc:Doi",
                 )
                 for doi in award_dois
             ]
         else:
             updated_award_dois = []
-        
+
         return_val = updated_data_dois + updated_award_dois
         if len(return_val) == 0:
             return_val = None
