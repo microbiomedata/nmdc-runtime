@@ -481,7 +481,14 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
-    def _get_study_dois(self, metadata_submission):
+    def _get_study_dois(self, metadata_submission) -> Union[List[nmdc.Doi],None]:
+        """Collect and format DOIs from submission portal schema in nmdc format DOIs
+
+        If there were no DOIs, None is returned.
+
+        :param metadata_submission: submission portal entry
+        :return: list of nmdc.DOI objects
+        """
         data_dois = self._get_from(metadata_submission, ["studyForm", "dataDois"])
         award_dois = self._get_from(
             metadata_submission, ["multiOmicsForm", "awardDois"]
@@ -491,11 +498,7 @@ class SubmissionPortalTranslator(Translator):
                 nmdc.Doi(
                     doi_category="dataset_doi",
                     doi_provider=doi["provider"],
-                    doi_value=(
-                        doi["value"]
-                        if doi["value"].startswith("doi:")
-                        else "doi:" + doi["value"]
-                    ),
+                    doi_value=self._ensure_curie(doi['value'], default_prefix="doi"),
                     type="nmdc:Doi",
                 )
                 for doi in data_dois
@@ -508,18 +511,19 @@ class SubmissionPortalTranslator(Translator):
                 nmdc.Doi(
                     doi_category="award_doi",
                     doi_provider=doi["provider"],
-                    doi_value=(
-                        doi["value"]
-                        if doi["value"].startswith("doi:")
-                        else "doi:" + doi["value"]
-                    ),
+                    doi_value=self._ensure_curie(doi['value'], default_prefix="doi"),
                     type="nmdc:Doi",
                 )
                 for doi in award_dois
             ]
         else:
             updated_award_dois = []
-        return updated_data_dois + updated_award_dois
+        
+        return_val = updated_data_dois + updated_award_dois
+        if len(return_val) == 0:
+            return_val = None
+
+        return return_val
 
     def _get_data_objects_from_fields(
         self,
