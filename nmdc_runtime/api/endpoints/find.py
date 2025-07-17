@@ -210,13 +210,18 @@ def find_data_objects_for_study(
                     collected_objects.append(strip_oid(data_obj))
                     unique_ids.add(doc_id)
 
-    # Another way in which DataObjects can be related to Biosamples is through the
-    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
+    # Another way in which DataObjects can be related to Biosamples is through the former's
+    # `was_informed_by` slot. We need to link records from the `workflow_execution_set`
     # collection that are "informed" by the same DataGeneration records that created
     # the outputs above. Then we need to get additional DataObject records that are
     # created by this linkage.
     def process_informed_by_docs(doc, collected_objects, unique_ids):
         """Process documents linked by `was_informed_by` and collect relevant data objects."""
+        # Note: As of nmdc-schema 11.9.0, the `was_informed_by` field, if defined,
+        #       will contain a list of strings. In MongoDB, the `{k: v}` filter
+        #       can be used to check whether either (a) the value of field `f` is
+        #       an array containing `v` as one of its elements, or (b) the value
+        #       of field `f` is exactly equal to `v`. We rely on behavior (a) here.
         informed_by_docs = mdb.workflow_execution_set.find(
             {"was_informed_by": doc["id"]}
         )
@@ -624,20 +629,23 @@ def find_related_objects_for_workflow_execution(
         for wfe in related_wfes:
             add_workflow_execution(wfe)
 
-    # Find WorkflowExecutions whose `was_informed_by` value matches that of the user-specified WorkflowExecution.
+    # Find WorkflowExecutions whose `was_informed_by` list contains that of the user-specified WorkflowExecution.
     # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
         was_informed_by = workflow_execution["was_informed_by"]
-        related_wfes = mdb.workflow_execution_set.find(
-            {"was_informed_by": was_informed_by}
-        )
-        for wfe in related_wfes:
-            if wfe["id"] != workflow_execution_id:
-                add_workflow_execution(wfe)
+        if isinstance(was_informed_by, list):
+            # Get all WorkflowExecutions that were informed by any of the
+            # things that informed the user-specified WorkflowExecution.
+            related_wfes = mdb.workflow_execution_set.find(
+                {"was_informed_by": {"$in": was_informed_by}}
+            )
+            for wfe in related_wfes:
+                if wfe["id"] != workflow_execution_id:
+                    add_workflow_execution(wfe)
 
         # Look for a DataGeneration in the `alldocs` collection.
         # We'll use that DataGeneration to get to related Biosamples.
-        dg_doc = mdb.alldocs.find_one({"id": was_informed_by})
+        dg_doc = mdb.alldocs.find_one({"id": {"$in": was_informed_by}})
         if dg_doc and any(
             t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
         ):
