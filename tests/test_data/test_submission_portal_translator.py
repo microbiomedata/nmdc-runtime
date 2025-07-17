@@ -10,6 +10,8 @@ from nmdc_schema.nmdc import (
     InstrumentVendorEnum,
     Database,
     FileTypeEnum,
+    DoiProviderEnum,
+    DoiCategoryEnum,
 )
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
@@ -73,6 +75,46 @@ def test_get_pi():
     assert pi_person_value.email == "MariaDMcDonald@example.edu"
     assert pi_person_value.orcid == "0000-0000-0000-0001"
     assert pi_person_value.profile_image_url == "http://www.example.org/image.jpg"
+
+
+def test_get_study_dois():
+    translator = SubmissionPortalTranslator()
+    dois = translator._get_study_dois(
+        {
+            "studyForm": {
+                "dataDois": 
+                    [
+                        {
+                        "provider": "emsl",
+                        "value" : "10.12345/6789",
+                        },
+                    ],
+            },
+            "multiOmicsForm": {
+                "awardDois":
+                    [
+                        {
+                        "provider": "jgi",
+                        "value" : "doi:10.11121314/15161718",
+                        },
+                    ]
+            }
+        }
+    )
+    assert dois is not None
+    assert len(dois) == 2
+    assert dois[0].doi_value == "doi:10.12345/6789"
+    assert dois[0].doi_provider == DoiProviderEnum("emsl")
+    assert dois[0].type == "nmdc:Doi"
+    assert dois[0].doi_category == DoiCategoryEnum("dataset_doi")
+
+    assert dois[1].doi_value == "doi:10.11121314/15161718"
+    assert dois[1].doi_provider == DoiProviderEnum('jgi')
+    assert dois[1].type == "nmdc:Doi"
+    assert dois[1].doi_category == DoiCategoryEnum("award_doi")
+
+    empty_doi = translator._get_study_dois({})
+    assert empty_doi == None
 
 
 def test_get_has_credit_associations():
