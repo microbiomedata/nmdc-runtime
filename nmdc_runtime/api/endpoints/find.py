@@ -210,8 +210,8 @@ def find_data_objects_for_study(
                     collected_objects.append(strip_oid(data_obj))
                     unique_ids.add(doc_id)
 
-    # Another way in which DataObjects can be related to Biosamples is through the former's
-    # `was_informed_by` slot. We need to link records from the `workflow_execution_set`
+    # Another way in which DataObjects can be related to Biosamples is through the
+    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
     # collection that are "informed" by the same DataGeneration records that created
     # the outputs above. Then we need to get additional DataObject records that are
     # created by this linkage.
