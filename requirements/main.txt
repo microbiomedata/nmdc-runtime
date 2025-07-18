@@ -545,7 +545,7 @@ networkx==3.4.2
     #   oaklib
     #   pronto
     #   sssom
-nmdc-schema==11.8.0
+nmdc-schema==11.9.1
     # via
     #   -r requirements/main.in
     #   ontology-loader

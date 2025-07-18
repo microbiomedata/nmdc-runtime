@@ -201,7 +201,7 @@ _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
             "id": "nmdc:wfmsa-11-fqq66x60.1",
             "started_at_time": "2023-03-24T02:02:59.479107+00:00",
             "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
-            "was_informed_by": "nmdc:omprc-11-nmtj1g51",
+            "was_informed_by": ["nmdc:omprc-11-nmtj1g51"],
             "execution_resource": "JGI",
             "git_url": "https://github.com/microbiomedata/RawSequencingData",
             "has_input": ["nmdc:bsm-11-6zd5nb38"],
