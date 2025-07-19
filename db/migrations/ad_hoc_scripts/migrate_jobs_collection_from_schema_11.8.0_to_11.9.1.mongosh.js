@@ -1,3 +1,5 @@
+// Note: The `use("nmdc");` syntax works in MongoDB Compass, but not in Studio 3T.
+//       The `use nmdc;` syntax works in Studio 3T, but not in MongoDB Compass.
 use("nmdc");
 
 /**
