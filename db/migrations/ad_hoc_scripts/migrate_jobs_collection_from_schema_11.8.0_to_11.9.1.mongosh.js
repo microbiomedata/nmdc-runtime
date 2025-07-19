@@ -1,4 +1,4 @@
-use nmdc;
+use("nmdc");
 
 /**
  * This MongoDB shell script updates the `jobs` collection so that any
