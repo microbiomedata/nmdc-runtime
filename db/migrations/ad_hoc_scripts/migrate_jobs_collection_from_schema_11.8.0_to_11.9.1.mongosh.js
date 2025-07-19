@@ -1,4 +1,6 @@
-use nmdc;
+// Note: The `use("nmdc");` syntax works in MongoDB Compass, but not in Studio 3T.
+//       The `use nmdc;` syntax works in Studio 3T, but not in MongoDB Compass.
+use("nmdc");
 
 /**
  * This MongoDB shell script updates the `jobs` collection so that any
