@@ -652,28 +652,37 @@ def find_related_objects_for_workflow_execution(
             if wfe["id"] != workflow_execution_id:
                 add_workflow_execution(wfe)
 
-        # Look for a DataGeneration in the `alldocs` collection.
-        # We'll use that DataGeneration to get to related Biosamples.
-        dg_doc = mdb.alldocs.find_one({"id": {"$in": was_informed_by}})
-        if dg_doc and any(
-            t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
-        ):
-            # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
-            # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
-            for input_id in dg_doc.get("has_input", []):
-                find_biosamples_recursively(input_id)
+        # Look for ALL DataGenerations in the `alldocs` collection.
+        # We'll use those DataGenerations to get to related Biosamples.
+        # Note: Changed from find_one() to find() to process ALL DataGenerations
+        # that are referenced in the was_informed_by list, not just the first one.
+        dg_docs = mdb.alldocs.find({"id": {"$in": was_informed_by}})
+        
+        # Track whether any DataGeneration had associated studies
+        any_dg_has_studies = False
+        
+        for dg_doc in dg_docs:
+            if dg_doc and any(
+                t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
+            ):
+                # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
+                # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
+                for input_id in dg_doc.get("has_input", []):
+                    find_biosamples_recursively(input_id)
 
-            # Get Studies associated with the DataGeneration,
-            # and add them to our list of Studies.
-            for study_id in dg_doc.get("associated_studies", []):
-                add_study(study_id)
-
-            # If the DataGeneration has no associated Studies, but has related Biosamples,
-            # add the Studies associated with those Biosamples to our list of Studies.
-            if not dg_doc.get("associated_studies") and len(biosamples) > 0:
-                for bs in biosamples:
-                    for study_id in bs.get("associated_studies", []):
+                # Get Studies associated with the DataGeneration,
+                # and add them to our list of Studies.
+                if dg_doc.get("associated_studies"):
+                    any_dg_has_studies = True
+                    for study_id in dg_doc.get("associated_studies", []):
                         add_study(study_id)
+
+        # If no DataGeneration had associated Studies, but we have related Biosamples,
+        # add the Studies associated with those Biosamples to our list of Studies.
+        if not any_dg_has_studies and len(biosamples) > 0:
+            for bs in biosamples:
+                for study_id in bs.get("associated_studies", []):
+                    add_study(study_id)
 
     # For all data objects we collected, check if they have a `was_generated_by` reference
     # This is a supplementary path to find more relationships
