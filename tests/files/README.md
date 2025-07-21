@@ -2,7 +2,7 @@
 
 This directory contains files used by the test suite.
 
-The following files were moved from `metadata-translation/notebooks/data/` as part of an effort to retire the top-level `metadata-translation/` directory in July, 2025:
+The following files were moved from `metadata-translation/notebooks/data/` as part of an effort to retire the top-level `metadata-translation/` directory in July, 2025 (via commit `dfd86ade`):
 
 - `changesheet-array-item-nested-attributes.tsv`
 - `changesheet-update-pi-websites.tsv`
@@ -11,7 +11,7 @@ The following files were moved from `metadata-translation/notebooks/data/` as pa
 - `study-data2.json`
 - `study-data3.json`
 
-The following files were moved from `metadata-translation/examples` as part of that same effort:
+The following files were moved from `metadata-translation/examples` as part of that same effort (via commit `dfd86ade`):
 
 - `study_test.json`
 
