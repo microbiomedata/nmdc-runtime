@@ -657,10 +657,10 @@ def find_related_objects_for_workflow_execution(
         # Note: Changed from find_one() to find() to process ALL DataGenerations
         # that are referenced in the was_informed_by list, not just the first one.
         dg_docs = mdb.alldocs.find({"id": {"$in": was_informed_by}})
-        
+
         # Track whether any DataGeneration had associated studies
         any_dg_has_studies = False
-        
+
         for dg_doc in dg_docs:
             if dg_doc and any(
                 t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
