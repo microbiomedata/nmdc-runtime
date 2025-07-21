@@ -165,15 +165,25 @@ def ensure_attribute_indexes():
 
 
 def ensure_default_api_perms():
+    """
+    Ensures that specific users (currently only "admin") are allowed to perform
+    specific actions, and creates MongoDB indexes to speed up allowance queries.
+
+    Note: If a MongoDB index already exists, the call to `create_index` does nothing.
+    """
+    
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
 
-    allowed = {
+    allowances = {
         "/metadata/changesheets:submit": [
             "admin",
         ],
         "/queries:run(query_cmd:DeleteCommand)": [
+            "admin",
+        ],
+        "/queries:run(query_cmd:AggregateCommand)": [
             "admin",
         ],
         "/metadata/json:submit": [
@@ -182,7 +192,7 @@ def ensure_default_api_perms():
     }
     for doc in [
         {"username": username, "action": action}
-        for action, usernames in allowed.items()
+        for action, usernames in allowances.items()
         for username in usernames
     ]:
         db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
