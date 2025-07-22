@@ -1,5 +1,3 @@
-import pytest
-import os
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.main import ensure_default_api_perms
 
