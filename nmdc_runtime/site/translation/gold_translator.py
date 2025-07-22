@@ -178,7 +178,7 @@ class GoldStudyTranslator(Translator):
                 project["ncbiBioSampleAccession"], default_prefix="biosample"
             )
             for project in biosample_projects
-            if project["ncbiBioSampleAccession"]
+            if project.get("ncbiBioSampleAccession")
         ]
 
     def _get_samp_taxon_id(

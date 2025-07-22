@@ -529,11 +529,23 @@ def test_include_field_site_info(test_minter):
             "biosampleGoldId": "Gb0000001",
             "biosampleName": "Test study - site_1_sample_001",
             "projects": [{"sequencingStrategy": "Metagenome"}],
+            "envoBroadScale": {
+                "id": "ENVO_01000253",
+                "label": "freshwater river biome",
+            },
+            "envoLocalScale": {"id": "ENVO_00000022", "label": "river"},
+            "envoMedium": {"id": "ENVO_00002006", "label": "water"},
         },
         {
             "biosampleGoldId": "Gb0000002",
             "biosampleName": "Test study - site_2_sample_002",
             "projects": [{"sequencingStrategy": "Metagenome"}],
+            "envoBroadScale": {
+                "id": "ENVO_01000253",
+                "label": "freshwater river biome",
+            },
+            "envoLocalScale": {"id": "ENVO_00000022", "label": "river"},
+            "envoMedium": {"id": "ENVO_00002006", "label": "water"},
         },
     ]
 
@@ -580,11 +592,11 @@ def test_include_field_site_info(test_minter):
     assert db_with_sites.field_research_site_set is not None
     assert (
         len(db_with_sites.field_research_site_set) == 2
-    )  # two unique field sites: "site_1" and "site_2"
+    )  # two unique field sites: "site_1_sample_001" and "site_2_sample_002"
 
     field_site_names = {site.name for site in db_with_sites.field_research_site_set}
-    assert "site_1" in field_site_names
-    assert "site_2" in field_site_names
+    assert "site_1_sample_001" in field_site_names
+    assert "site_2_sample_002" in field_site_names
 
     for site in db_with_sites.field_research_site_set:
         assert site.type == "nmdc:FieldResearchSite"
