@@ -171,7 +171,7 @@ def ensure_default_api_perms():
 
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
-    
+
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
