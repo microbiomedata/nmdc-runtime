@@ -211,6 +211,7 @@ def test_create_user():
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
 
+
 def test_queries_run_invalid_update(api_user_client):
     # Seed the database
     mdb = get_mongo_db()
@@ -225,7 +226,7 @@ def test_queries_run_invalid_update(api_user_client):
     study = faker.generate_studies(1)[0]
     assert study_set.count_documents({"id": study["id"]}) == 0
     study_set.insert_one(study)
-    
+
     # test incorrect update - initial command syntax that brought this issue to light
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
@@ -252,22 +253,107 @@ def test_queries_run_invalid_update(api_user_client):
     }
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
-    
+
     # test incorrect delete
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
             "/queries:run",
-            {
-                "delete": "study_set",
-                "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]
-
-            },
+            {"delete": "study_set", "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]},
         )
-    expected_response = {'detail': [{'type': 'missing', 'loc': ['body', 'FindCommand', 'find'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'aggregate'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'pipeline'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'GetMoreCommand', 'getMore'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CollStatsCommand', 'collStats'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CountCommand', 'count'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'q'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'limit'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'update'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'updates'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}]}
+    expected_response = {
+        "detail": [
+            {
+                "type": "missing",
+                "loc": ["body", "FindCommand", "find"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "AggregateCommand", "aggregate"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                    "cursor": {"batchSize": 25},
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "AggregateCommand", "pipeline"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                    "cursor": {"batchSize": 25},
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "GetMoreCommand", "getMore"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "CollStatsCommand", "collStats"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "CountCommand", "count"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "DeleteCommand", "deletes", 0, "q"],
+                "msg": "Field required",
+                "input": {"id": "nmdc:sty-11-hhkbcg72"},
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "DeleteCommand", "deletes", 0, "limit"],
+                "msg": "Field required",
+                "input": {"id": "nmdc:sty-11-hhkbcg72"},
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "UpdateCommand", "update"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "UpdateCommand", "updates"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+        ]
+    }
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
-    
+
     # 🧹 Clean up.
     allowances_collection.delete_many(allow_spec)
     study_set.delete_many({"id": study["id"]})
@@ -595,7 +681,9 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=[nonexistent_data_generation_id],  # intentionally-broken reference
+        was_informed_by=[
+            nonexistent_data_generation_id
+        ],  # intentionally-broken reference
     )[0]
 
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
@@ -2062,21 +2150,75 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
     """
     Test the case where a WorkflowExecution was informed by multiple DataGenerations.
     This test verifies that ALL DataGenerations are processed, not just the first one.
-    
+
     This addresses the issue where the `was_informed_by` field changed from single-valued
     to multivalued in NMDC Schema 11.9.0.
+
+    Test document structure and relationships:
+
+    ```mermaid
+    flowchart TD
+        %% Study A chain
+        StudyA[Study A]
+        BiosampleA[Biosample A]
+        DataGenA[DataGeneration A]
+        DataObjA[DataObject A]
+
+        %% Study B chain
+        StudyB[Study B]
+        BiosampleB[Biosample B]
+        DataGenB[DataGeneration B]
+        DataObjB[DataObject B]
+
+        %% Workflow execution
+        WorkflowExec[WorkflowExecution]
+
+        %% Chain A relationships
+        StudyA -.->|associated_studies| BiosampleA
+        BiosampleA -->|has_input| DataGenA
+        DataGenA -->|was_generated_by| DataObjA
+
+        %% Chain B relationships
+        StudyB -.->|associated_studies| BiosampleB
+        BiosampleB -->|has_input| DataGenB
+        DataGenB -->|was_generated_by| DataObjB
+
+        %% Convergence at WorkflowExecution
+        DataGenA -->|was_informed_by| WorkflowExec
+        DataGenB -->|was_informed_by| WorkflowExec
+        DataObjA -->|has_input| WorkflowExec
+        DataObjB -->|has_input| WorkflowExec
+
+        %% Styling
+        classDef study fill:#e1f5fe
+        classDef biosample fill:#f3e5f5
+        classDef dataGen fill:#e8f5e8
+        classDef dataObj fill:#fff3e0
+        classDef workflow fill:#ffebee
+
+        class StudyA,StudyB study
+        class BiosampleA,BiosampleB biosample
+        class DataGenA,DataGenB dataGen
+        class DataObjA,DataObjB dataObj
+        class WorkflowExec workflow
+    ```
+
+    The test verifies that the related_resources endpoint returns ALL resources from both chains:
+    - Both studies (Study A and Study B)
+    - Both biosamples (Biosample A and Biosample B)
+    - Both data objects (DataObject A and DataObject B)
     """
     # Generate interrelated documents with two separate data generation chains.
     faker = Faker()
-    
+
     # Create two separate studies
     study_a = faker.generate_studies(1)[0]
     study_b = faker.generate_studies(1)[0]
-    
-    # Create biosamples associated with different studies  
+
+    # Create biosamples associated with different studies
     biosample_a = faker.generate_biosamples(1, associated_studies=[study_a["id"]])[0]
     biosample_b = faker.generate_biosamples(1, associated_studies=[study_b["id"]])[0]
-    
+
     # Create two DataGenerations, each with different inputs and studies
     data_generation_a = faker.generate_nucleotide_sequencings(
         1,
@@ -2088,7 +2230,7 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
         associated_studies=[study_b["id"]],
         has_input=[biosample_b["id"]],
     )[0]
-    
+
     # Create data objects generated by each DataGeneration
     data_object_a = faker.generate_data_objects(
         1, was_generated_by=data_generation_a["id"]
@@ -2096,13 +2238,13 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
     data_object_b = faker.generate_data_objects(
         1, was_generated_by=data_generation_b["id"]
     )[0]
-    
+
     # Create a WorkflowExecution that was informed by BOTH DataGenerations
     # This is the key test case - multiple data generations in was_informed_by
     workflow_execution = faker.generate_metagenome_annotations(
         1,
         was_informed_by=[data_generation_a["id"], data_generation_b["id"]],
-        has_input=[data_object_a["id"], data_object_b["id"]]
+        has_input=[data_object_a["id"], data_object_b["id"]],
     )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
@@ -2112,12 +2254,16 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
     data_generation_set = mdb.get_collection("data_generation_set")
     data_object_set = mdb.get_collection("data_object_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    
+
     # Clean up any existing documents
     study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
     biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
-    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}})
-    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_generation_set.delete_many(
+        {"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}
+    )
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
     # Insert the documents.
@@ -2140,18 +2286,18 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
     response_payload = response.json()
     assert response_payload["workflow_execution_id"] == workflow_execution["id"]
     assert response_payload["workflow_execution"] == strip_oid(workflow_execution)
-    
+
     # Verify that data objects from both data generations are included
     assert len(response_payload["data_objects"]) == 2
     returned_data_object_ids = [do["id"] for do in response_payload["data_objects"]]
     assert set(returned_data_object_ids) == {data_object_a["id"], data_object_b["id"]}
-    
+
     # The critical test: verify that biosamples from BOTH data generations are included
     # This will fail with the current implementation that only processes one DataGeneration
     assert len(response_payload["biosamples"]) == 2
     returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
     assert set(returned_biosample_ids) == {biosample_a["id"], biosample_b["id"]}
-    
+
     # The critical test: verify that studies from BOTH data generations are included
     # This will fail with the current implementation that only processes one DataGeneration
     assert len(response_payload["studies"]) == 2
@@ -2161,8 +2307,12 @@ def test_find_related_resources_for_workflow_execution__multiple_data_generation
     # 🧹 Clean up.
     study_set.delete_many({"id": {"$in": [study_a["id"], study_b["id"]]}})
     biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
-    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}})
-    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_generation_set.delete_many(
+        {"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}
+    )
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
