@@ -122,6 +122,9 @@ class GoldStudyTranslator(Translator):
         :param gold_entity: GOLD entity object
         :return: PersonValue corresponding to the first PI in the `contacts` field
         """
+        if "contacts" not in gold_entity:
+            return None
+
         pi_dict = next(
             (
                 contact
