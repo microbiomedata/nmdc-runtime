@@ -652,7 +652,7 @@ def find_related_objects_for_workflow_execution(
             if wfe["id"] != workflow_execution_id:
                 add_workflow_execution(wfe)
 
-        # Look for ALL DataGenerations in the `alldocs` collection.
+        # Find all `DataGeneration`s by which the user-specified `WorkflowExecution` was informed.
         # We'll use those DataGenerations to get to related Biosamples.
         # Note: Changed from find_one() to find() to process ALL DataGenerations
         # that are referenced in the was_informed_by list, not just the first one.
