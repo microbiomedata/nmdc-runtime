@@ -522,6 +522,205 @@ def test_get_field_site_name():
     assert field_site_name == "Mackenzie"
 
 
+def test_include_field_site_info(test_minter):
+    study = {"studyGoldId": "Gs0000001", "studyName": "Test Study"}
+    biosamples = [
+        {
+            "biosampleGoldId": "Gb0000001",
+            "biosampleName": "Test study - site_1_sample_001",
+            "projects": [{"sequencingStrategy": "Metagenome"}],
+        },
+        {
+            "biosampleGoldId": "Gb0000002",
+            "biosampleName": "Test study - site_2_sample_002",
+            "projects": [{"sequencingStrategy": "Metagenome"}],
+        },
+    ]
+
+    projects = [
+        {
+            "projectGoldId": "Gp0000001",
+            "biosampleGoldId": "Gb0000001",
+            "sequencingStrategy": "Metagenome",
+        },
+        {
+            "projectGoldId": "Gp0000002",
+            "biosampleGoldId": "Gb0000002",
+            "sequencingStrategy": "Metagenome",
+        },
+    ]
+
+    # include_field_site_info=True has been enabled (set to `True`)
+    translator_with_sites = GoldStudyTranslator(
+        study=study,
+        biosamples=biosamples,
+        projects=projects,
+        include_field_site_info=True,
+        id_minter=test_minter,
+    )
+
+    # include_field_site_info=False has been enabled (set to `False`)
+    translator_without_sites = GoldStudyTranslator(
+        study=study,
+        biosamples=biosamples,
+        projects=projects,
+        include_field_site_info=False,
+        id_minter=test_minter,
+    )
+
+    # check that the include_field_site_info class variables are set correctly
+    assert translator_with_sites.include_field_site_info is True
+    assert translator_without_sites.include_field_site_info is False
+
+    db_with_sites = translator_with_sites.get_database()
+    db_without_sites = translator_without_sites.get_database()
+
+    # if include_field_site_info has been enabled (True), field_research_site_set should not be
+    # None, and should be populated with the correct number of nmdc:FieldResearchSite objects
+    assert db_with_sites.field_research_site_set is not None
+    assert (
+        len(db_with_sites.field_research_site_set) == 2
+    )  # two unique field sites: "site_1" and "site_2"
+
+    field_site_names = {site.name for site in db_with_sites.field_research_site_set}
+    assert "site_1" in field_site_names
+    assert "site_2" in field_site_names
+
+    for site in db_with_sites.field_research_site_set:
+        assert site.type == "nmdc:FieldResearchSite"
+        assert site.id.startswith("nmdc:")
+
+    # if include_field_site_info has been disabled (False), field_research_site_set should be None
+    # or empty, and no nmdc:FieldResearchSite objects should be created
+    assert (
+        db_without_sites.field_research_site_set is None
+        or len(db_without_sites.field_research_site_set) == 0
+    )
+
+    # biosamples should have `collected_from` slot set when field sites are included
+    for biosample in db_with_sites.biosample_set:
+        assert biosample.collected_from is not None
+
+    # biosamples should have `collected_from` slot to None when field research sites are
+    # not included
+    for biosample in db_without_sites.biosample_set:
+        assert biosample.collected_from is None
+
+
+def test_enable_biosample_filtering():
+    biosamples = [
+        {
+            "biosampleGoldId": "Gb0000001",
+            "projects": [{"sequencingStrategy": "Metagenome"}],  # valid
+        },
+        {
+            "biosampleGoldId": "Gb0000002",
+            "projects": [{"sequencingStrategy": "Amplicon"}],  # invalid
+        },
+        {
+            "biosampleGoldId": "Gb0000003",
+            "projects": [{"sequencingStrategy": "Metatranscriptome"}],  # valid
+        },
+    ]
+
+    projects = [
+        {
+            "projectGoldId": "Gp0000001",
+            "biosampleGoldId": "Gb0000001",
+            "sequencingStrategy": "Metagenome",
+        },
+        {
+            "projectGoldId": "Gp0000002",
+            "biosampleGoldId": "Gb0000002",
+            "sequencingStrategy": "Amplicon",
+        },
+        {
+            "projectGoldId": "Gp0000003",
+            "biosampleGoldId": "Gb0000003",
+            "sequencingStrategy": "Metatranscriptome",
+        },
+    ]
+
+    # enable_biosample_filtering is set to True
+    translator_with_filtering = GoldStudyTranslator(
+        biosamples=biosamples, projects=projects, enable_biosample_filtering=True
+    )
+
+    # enable_biosample_filtering is set to False
+    translator_without_filtering = GoldStudyTranslator(
+        biosamples=biosamples, projects=projects, enable_biosample_filtering=False
+    )
+
+    assert translator_with_filtering.enable_biosample_filtering is True
+    assert translator_without_filtering.enable_biosample_filtering is False
+
+    # when enable_biosample_filtering is True, only valid biosamples should be included
+    assert len(translator_with_filtering.biosamples) == 2
+    valid_biosample_ids = {
+        bs["biosampleGoldId"] for bs in translator_with_filtering.biosamples
+    }
+    assert "Gb0000001" in valid_biosample_ids  # Metagenome
+    assert "Gb0000002" not in valid_biosample_ids  # Amplicon (filtered out)
+    assert "Gb0000003" in valid_biosample_ids  # Metatranscriptome
+
+    # when enable_biosample_filtering is False, all biosamples should be included
+    assert len(translator_without_filtering.biosamples) == 3  # All biosamples
+    all_biosample_ids = {
+        bs["biosampleGoldId"] for bs in translator_without_filtering.biosamples
+    }
+    assert "Gb0000001" in all_biosample_ids
+    assert "Gb0000002" in all_biosample_ids  # Amplicon (not filtered)
+    assert "Gb0000003" in all_biosample_ids
+
+
+def test_enable_biosample_filtering_affects_projects():
+    biosamples = [
+        {
+            "biosampleGoldId": "Gb0000001",
+            "projects": [{"sequencingStrategy": "Metagenome"}],  # Valid
+        },
+        {
+            "biosampleGoldId": "Gb0000002",
+            "projects": [{"sequencingStrategy": "Amplicon"}],  # Invalid
+        },
+    ]
+
+    projects = [
+        {
+            "projectGoldId": "Gp0000001",
+            "biosampleGoldId": "Gb0000001",
+            "sequencingStrategy": "Metagenome",
+        },
+        {
+            "projectGoldId": "Gp0000002",
+            "biosampleGoldId": "Gb0000002",
+            "sequencingStrategy": "Amplicon",
+        },
+    ]
+
+    # with biosample filtering enabled
+    translator_with_filtering = GoldStudyTranslator(
+        biosamples=biosamples, projects=projects, enable_biosample_filtering=True
+    )
+
+    # with biosample filtering disabled
+    translator_without_filtering = GoldStudyTranslator(
+        biosamples=biosamples, projects=projects, enable_biosample_filtering=False
+    )
+
+    # with biosample filtering enabled, only valid projects should remain
+    assert len(translator_with_filtering.projects) == 1
+    assert translator_with_filtering.projects[0]["projectGoldId"] == "Gp0000001"
+
+    # with biosample filtering disabled, both projects should remain
+    # (though the invalid one may still be filtered by project validation)
+    # Note: projects are still subject to `_is_valid_project()` filtering regardless
+    # of enable_biosample_filtering
+    assert (
+        len(translator_without_filtering.projects) == 1
+    )  # still filtered by `_is_valid_project()`
+
+
 @pytest.mark.xfail(reason="ValueError: term must be supplied")
 def test_get_dataset(test_minter):
     random.seed(0)
