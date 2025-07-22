@@ -1,17 +1,31 @@
+import pytest
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.main import ensure_default_api_perms
 
-def test_admin_user_perms():
-    """Test that the admin user has all the expected allowances."""
-    
+@pytest.fixture
+def test_db():
     mdb = get_mongo_db()
-    # get the collection
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     # dump into a list
     original_allowances = list(allowances_collection.find({}))
     # empty the collection
     allowances_collection.delete_many({})
-    assert allowances_collection.count_documents({}) == 0, "Allowances collection should be empty"
+    
+    yield mdb
+
+    # empty the collection
+    allowances_collection.delete_many({})
+
+    allowances_collection.insert_many(original_allowances)
+
+
+def test_admin_user_perms(test_db):
+    """Test that the admin user has all the expected allowances."""
+    
+    mdb = test_db
+    # get the collection
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    
     # call the function to ensure default API permissions
     ensure_default_api_perms()
     # assert that the admin user has the expected allowances
@@ -24,6 +38,3 @@ def test_admin_user_perms():
         allowance["action"] for allowance in allowances_after if allowance["username"] == "admin"
     )
     assert actual_allowances == expected_allowances, "Admin user should have the expected allowances"
-
-    # restore the original contents of the collection
-    allowances_collection.insert_many(original_allowances)
