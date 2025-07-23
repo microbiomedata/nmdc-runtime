@@ -556,22 +556,25 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         "study_type": str,
         "gold_nmdc_instrument_mapping_file_url": str,
         "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "study_id": Out(str),
         "study_type": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
         "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
 def get_gold_study_pipeline_inputs(
     context: OpExecutionContext,
-) -> Tuple[str, str, str, bool]:
+) -> Tuple[str, str, str, bool, bool]:
     return (
         context.op_config["study_id"],
         context.op_config["study_type"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
         context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -615,6 +618,7 @@ def nmdc_schema_database_from_gold_study(
     analysis_projects: List[Dict[str, Any]],
     gold_nmdc_instrument_map_df: pd.DataFrame,
     include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -630,6 +634,7 @@ def nmdc_schema_database_from_gold_study(
         analysis_projects,
         gold_nmdc_instrument_map_df,
         include_field_site_info,
+        enable_biosample_filtering,
         id_minter=id_minter,
     )
     database = translator.get_database()
@@ -1494,16 +1499,24 @@ def post_submission_portal_biosample_ingest_record_stitching_filename(
     config_schema={
         "nmdc_study_id": str,
         "gold_nmdc_instrument_mapping_file_url": str,
+        "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "nmdc_study_id": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
+        "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
-def get_database_updater_inputs(context: OpExecutionContext) -> Tuple[str, str]:
+def get_database_updater_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, bool, bool]:
     return (
         context.op_config["nmdc_study_id"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
+        context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -1518,6 +1531,8 @@ def generate_data_generation_set_post_biosample_ingest(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1533,6 +1548,8 @@ def generate_data_generation_set_post_biosample_ingest(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = (
         database_updater.generate_data_generation_set_records_from_gold_api_for_study()
@@ -1552,6 +1569,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool = False,
+    enable_biosample_filtering: bool = False,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1567,6 +1586,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
@@ -1584,6 +1605,8 @@ def run_script_to_update_insdc_biosample_identifiers(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> Dict[str, Any]:
     """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
 
@@ -1612,6 +1635,8 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
 

@@ -569,6 +569,7 @@ def biosample_submission_ingest():
                             "study_type": "research_study",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/berkeley-schema-fy24/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
                             "include_field_site_info": False,
+                            "enable_biosample_filtering": True,
                         },
                     },
                     "export_json_to_drs": {"config": {"username": ""}},
@@ -1013,6 +1014,8 @@ def database_records_stitching():
                         "config": {
                             "nmdc_study_id": "",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
+                            "enable_biosample_filtering": True,
                         }
                     },
                     "export_json_to_drs": {"config": {"username": ""}},
@@ -1055,6 +1058,8 @@ def database_records_stitching():
                         "config": {
                             "nmdc_study_id": "",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
+                            "enable_biosample_filtering": True,
                         }
                     },
                     "export_json_to_drs": {"config": {"username": ""}},
@@ -1097,6 +1102,8 @@ def database_records_stitching():
                         "config": {
                             "nmdc_study_id": "",
                             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
+                            "include_field_site_info": False,
+                            "enable_biosample_filtering": True,
                         }
                     },
                 },
