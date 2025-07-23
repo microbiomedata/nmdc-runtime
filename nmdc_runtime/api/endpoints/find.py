@@ -410,10 +410,9 @@ def find_planned_process_by_id(
         "This endpoint returns a JSON object that contains "
         "(a) the specified `WorkflowExecution`, "
         "(b) all the `DataObject`s that are inputs to — or outputs from — the specified `WorkflowExecution`, "
-        "(c) all the `DataGeneration`s that generated those `DataObject`s, "
-        "(d) all the `Biosample`s that were inputs to those `DataGeneration`s, "
-        "(e) all the `Study`s with which those `Biosample`s are associated, and "
-        "(f) all the other `WorkflowExecution`s that are part of the same processing pipeline "
+        "(c) all the `Biosample`s that were inputs to those `DataGeneration`s, "
+        "(d) all the `Study`s with which those `Biosample`s are associated, and "
+        "(e) all the other `WorkflowExecution`s that are part of the same processing pipeline "
         "as the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
