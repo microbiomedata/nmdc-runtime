@@ -655,9 +655,7 @@ def find_related_objects_for_workflow_execution(
         # get all `Biosample`s and `Study`s associated with each of those `DataGeneration`s.
         dg_docs = mdb.alldocs.find({"id": {"$in": was_informed_by}})
         for dg_doc in dg_docs:
-            if any(
-                t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
-            ):
+            if any(t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])):
                 # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
                 # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
                 for input_id in dg_doc.get("has_input", []):
