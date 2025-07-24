@@ -34,6 +34,7 @@ from nmdc_runtime.api.core.auth import (
     ORCID_BASE_URL,
 )
 from nmdc_runtime.api.db.mongo import (
+    get_collection_names_from_schema,
     get_mongo_db,
 )
 from nmdc_runtime.api.endpoints import (
@@ -138,6 +139,16 @@ def ensure_initial_resources_on_boot():
     minter_bootstrap()
 
 
+def ensure_type_field_is_indexed():
+    r"""
+    Ensures that each schema-described collection has an index on its `type` field.
+    """
+
+    mdb = get_mongo_db()
+    for collection_name in get_collection_names_from_schema():
+        mdb.get_collection(collection_name).create_index("type", background=True)
+
+
 def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
@@ -214,6 +225,7 @@ async def lifespan(app: FastAPI):
     """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
+    ensure_type_field_is_indexed()
     ensure_default_api_perms()
 
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
