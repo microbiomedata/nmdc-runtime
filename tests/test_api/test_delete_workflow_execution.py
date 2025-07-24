@@ -41,6 +41,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
     data_generation_set = mdb.get_collection("data_generation_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
     functional_annotation_agg = mdb.get_collection("functional_annotation_agg")
+    jobs = mdb.get_collection("jobs")
     
     # Generate foundational documents
     study = faker.generate_studies(quantity=1)[0]
@@ -113,6 +114,40 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         }
     ]
     
+    # Create job records that reference the workflow executions via config.activity_id
+    job_records = [
+        {
+            "id": "nmdc:job-primary-test-1",
+            "workflow": {"id": "Metagenome Assembly: v1.0.3"},
+            "config": {"activity_id": primary_workflow_execution["id"]},
+            "claims": []
+        },
+        {
+            "id": "nmdc:job-primary-test-2",
+            "workflow": {"id": "Metagenome Assembly: v1.0.3"},
+            "config": {"activity_id": primary_workflow_execution["id"]},
+            "claims": []
+        },
+        {
+            "id": "nmdc:job-dependent1-test",
+            "workflow": {"id": "Metagenome Annotation: v1.0.4"},
+            "config": {"activity_id": dependent_workflow_execution_1["id"]},
+            "claims": []
+        },
+        {
+            "id": "nmdc:job-dependent2-test",
+            "workflow": {"id": "Metagenome Annotation: v1.0.5"},
+            "config": {"activity_id": dependent_workflow_execution_2["id"]},
+            "claims": []
+        },
+        {
+            "id": "nmdc:job-unrelated-test",
+            "workflow": {"id": "Metagenome Annotation: v1.1.5"},
+            "config": {"activity_id": "nmdc:wfrbt-11-unrelated.1"},  # Different activity_id, should not be deleted
+            "claims": []
+        }
+    ]
+    
     # Insert all documents into database
     try:
         # Insert foundational documents
@@ -140,11 +175,18 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         # Insert functional annotation records
         functional_annotation_agg.insert_many(functional_annotation_records)
         
+        # Insert job records
+        jobs.insert_many(job_records)
+        
         # Verify initial state
         assert workflow_execution_set.count_documents({}) >= 3
         assert data_object_set.count_documents({}) >= 8
         assert functional_annotation_agg.count_documents(
             {"was_generated_by": primary_workflow_execution["id"]}
+        ) == 2
+        assert jobs.count_documents({}) >= 5
+        assert jobs.count_documents(
+            {"config.activity_id": primary_workflow_execution["id"]}
         ) == 2
         
         # Execute the DELETE request
@@ -160,6 +202,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert "deleted_workflow_execution_ids" in response_data
         assert "deleted_data_object_ids" in response_data
         assert "deleted_functional_annotation_agg_oids" in response_data
+        assert "deleted_job_ids" in response_data
         
         # Verify all 3 workflow executions were deleted
         deleted_wfe_ids = set(response_data["deleted_workflow_execution_ids"])
@@ -179,6 +222,16 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         )
         assert deleted_data_object_ids == expected_deleted_data_object_ids
         
+        # Verify all expected job records were deleted
+        deleted_job_ids = set(response_data["deleted_job_ids"])
+        expected_deleted_job_ids = {
+            "nmdc:job-primary-test-1",
+            "nmdc:job-primary-test-2",
+            "nmdc:job-dependent1-test",
+            "nmdc:job-dependent2-test"
+        }
+        assert deleted_job_ids == expected_deleted_job_ids
+
         # TODO: Verify the response accounts for any `functional_annotation_agg` documents
         #       that we expected to be deleted.
         assert isinstance(response_data["deleted_functional_annotation_agg_oids"], list)
@@ -199,6 +252,13 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         for data_obj_id in preserved_data_object_ids:
             assert data_object_set.count_documents({"id": data_obj_id}) == 1
         
+        # Verify job records are actually deleted from database
+        for job_id in deleted_job_ids:
+            assert jobs.count_documents({"id": job_id}) == 0
+        
+        # Verify unrelated job record is preserved
+        assert jobs.count_documents({"id": "nmdc:job-unrelated-test"}) == 1
+
         # Verify functional annotation records were deleted
         assert functional_annotation_agg.count_documents(
             {"was_generated_by": primary_workflow_execution["id"]}
@@ -226,6 +286,10 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         functional_annotation_agg.delete_many({
             "gene_function_id": {"$in": [record["gene_function_id"] for record in functional_annotation_records]}
         })
+        
+        # Clean up job records
+        all_job_ids = [job["id"] for job in job_records]
+        jobs.delete_many({"id": {"$in": all_job_ids}})
         
         # Clean up permissions
         allowances_collection.delete_one(allow_spec)
@@ -336,6 +400,7 @@ def test_delete_workflow_execution_simple_case(api_user_client):
         assert response_data["deleted_workflow_execution_ids"] == [workflow_execution["id"]]
         assert response_data["deleted_data_object_ids"] == [output_data_object["id"]]
         assert response_data["deleted_functional_annotation_agg_oids"] == []
+        assert response_data["deleted_job_ids"] == []
         
         # Verify actual deletion from database
         assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
