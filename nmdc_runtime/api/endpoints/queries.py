@@ -613,8 +613,8 @@ def _run_delete_nonschema(
     cmd: DeleteCommand, mdb: MongoDatabase = _mdb
 ) -> DeleteCommandResponse:
     """
-    Performs deletion operations similar to _run_mdb_cmd but skips the target_document
-    descriptor code that handles referential integrity checking.
+    Performs deletion operations similarly to `_run_mdb_cmd`, but skips
+    performing referential integrity checking.
 
     This function is intended for deleting documents from non-schema collections
     where referential integrity checking is not required or desired.
