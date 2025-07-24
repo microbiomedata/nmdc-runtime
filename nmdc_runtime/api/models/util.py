@@ -203,6 +203,10 @@ class DeleteResponse(BaseModel):
         default_factory=list,
         description="The internal MongoDB `ObjectId`s of the `FunctionalAnnotationAggMember`s that were deleted",
     )
+    deleted_job_ids: List[str] = Field(
+        default_factory=list,
+        description="The `id`s of the `jobs` documents that were deleted",
+    )
 
 
 # Note: For MongoDB, a single collection can have no more than 64 indexes
