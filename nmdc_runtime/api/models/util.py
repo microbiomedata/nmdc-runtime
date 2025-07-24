@@ -243,7 +243,10 @@ entity_attributes_to_index = {
         "instrument_name",
         "alternative_identifiers",
     },
-    "functional_annotation_agg": {"was_generated_by"},
+    "functional_annotation_agg": {
+        "type",
+        "was_generated_by",
+    },
     "workflow_execution_set": {
         "has_input",
         "has_output",
