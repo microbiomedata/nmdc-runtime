@@ -615,59 +615,56 @@ def _run_delete_nonschema(
     """
     Performs deletion operations similar to _run_mdb_cmd but skips the target_document
     descriptor code that handles referential integrity checking.
-    
+
     This function is intended for deleting documents from non-schema collections
     where referential integrity checking is not required or desired.
-    
+
     :param cmd: DeleteCommand to execute
     :param mdb: MongoDB database instance
     :return: DeleteCommandResponse with the result of the deletion operation
     """
     ran_at = now()
     collection_name = cmd.delete
-    
+
     # Derive delete specifications from the command
     delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
-    
+
     # Skip the target_document descriptor code and referential integrity checking
     # that exists in _run_mdb_cmd (lines 276-357)
-    
+
     # Perform the actual deletion operations
     for spec in delete_specs:
         docs = list(mdb[collection_name].find(**spec))
         if not docs:
             continue
-        insert_many_result = mdb.client["nmdc_deleted"][
-            collection_name
-        ].insert_many({"doc": d, "deleted_at": ran_at} for d in docs)
+        insert_many_result = mdb.client["nmdc_deleted"][collection_name].insert_many(
+            {"doc": d, "deleted_at": ran_at} for d in docs
+        )
         if len(insert_many_result.inserted_ids) != len(docs):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to back up to-be-deleted documents. operation aborted.",
             )
-    
+
     # Issue the delete command to the database
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
-    
+
     # Create the command response object (assume DeleteCommandResponse type)
     cmd_response = DeleteCommandResponse(**cmd_response_raw)
-    
+
     # Check if the command was successful
     if not cmd_response.ok:
         return cmd_response
-    
+
     # Handle write errors if any occurred
-    if (
-        isinstance(cmd_response.writeErrors, list)
-        and len(cmd_response.writeErrors) > 0
-    ):
+    if isinstance(cmd_response.writeErrors, list) and len(cmd_response.writeErrors) > 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=cmd_response.writeErrors,
         )
-    
+
     # Check if any documents were actually deleted
     if cmd_response.n == 0:
         raise HTTPException(
@@ -678,5 +675,5 @@ def _run_delete_nonschema(
                 " But what do I know? I'm just a teapot.",
             ),
         )
-    
+
     return cmd_response

@@ -10,7 +10,11 @@ from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.endpoints.queries import _run_mdb_cmd, check_can_update_and_delete, _run_delete_nonschema 
+from nmdc_runtime.api.endpoints.queries import (
+    _run_mdb_cmd,
+    check_can_update_and_delete,
+    _run_delete_nonschema,
+)
 from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
@@ -264,11 +268,7 @@ async def delete_workflow_execution(
                     )
 
             # Find and mark job records for deletion that have this workflow execution as activity_id
-            job_records = list(
-                mdb.jobs.find(
-                    {"config.activity_id": wfe_id}, {"id": 1}
-                )
-            )
+            job_records = list(mdb.jobs.find({"config.activity_id": wfe_id}, {"id": 1}))
             if job_records:
                 deleted_job_ids.update([job["id"] for job in job_records])
 
