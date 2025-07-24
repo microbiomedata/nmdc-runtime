@@ -20,8 +20,8 @@ on:
       - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
-      # Every file in the `data` directory or in any of its subdirectories:
-      - 'metadata-translation/notebooks/data/**'
+      # Every file in the `metadata-translation` directory or in any of its subdirectories:
+      - 'metadata-translation/**'
   pull_request:
     paths:
       - '.github/workflows/python-app.yml'
@@ -29,7 +29,7 @@ on:
       - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
-      - 'metadata-translation/notebooks/data/**'
+      - 'metadata-translation/**'
   # Allow developers to trigger this workflow manually via the "Actions" page on GitHub.
   # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: { }
