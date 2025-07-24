@@ -643,7 +643,7 @@ def _run_delete_nonschema(
         if len(insert_many_result.inserted_ids) != len(docs):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to back up to-be-deleted documents. operation aborted.",
+                detail="Failed to back up to-be-deleted documents. Operation aborted.",
             )
 
     # Issue the delete command to the database
