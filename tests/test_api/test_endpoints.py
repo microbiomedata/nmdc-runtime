@@ -2056,6 +2056,90 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
     )
 
 
+def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generations(api_user_client):
+    r"""
+    This test is focused on the case where the specified `WorkflowExecution` is
+    informed by multiple `DataGeneration`s, each having a `Biosample` as input
+    that the other `DataGeneration` does not have as input. We want to ensure
+    the endpoint returns all of those `Biosamples`.
+
+    Here is a Mermaid graph/flowchart showing the documents that this test inserts into
+    the database, and the relationships between those documents.
+    Reference: https://mermaid.js.org/syntax/flowchart.html
+    ```mermaid
+    graph BT
+        biosample_a --> |associated_studies| study
+        biosample_b --> |associated_studies| study
+        data_generation_a --> |associated_studies| study
+        data_generation_b --> |associated_studies| study
+        data_generation_a --> |has_input| biosample_a
+        data_generation_b --> |has_input| biosample_b
+        data_generation_a --> |has_output| data_object_a
+        data_generation_b --> |has_output| data_object_b
+        workflow_execution --> |has_input| data_object_a
+        workflow_execution --> |has_input| data_object_b
+        workflow_execution --> |was_informed_by| data_generation_a
+        workflow_execution --> |was_informed_by| data_generation_b
+    ```
+    """
+    # Generate interrelated documents.
+    faker = Faker()
+    study = faker.generate_studies(1)[0]
+    biosamples = faker.generate_biosamples(2, associated_studies=[study["id"]])
+    biosample_a, biosample_b = biosamples
+    data_objects = faker.generate_data_objects(2)
+    data_object_a, data_object_b = data_objects
+    data_generation_a = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_a["id"]], has_output=[data_object_a["id"]])[0]
+    data_generation_b = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_b["id"]], has_output=[data_object_b["id"]])[0]
+    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=[data_generation_a["id"], data_generation_b["id"], data_generation_b["id"]], has_input=[data_object_a["id"], data_object_b["id"]])[0]
+
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    assert get_mongo_db().study_set.count_documents({"id": study["id"]}) == 0
+    assert get_mongo_db().biosample_set.count_documents({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}) == 0
+    assert get_mongo_db().data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
+    assert get_mongo_db().data_generation_set.count_documents({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}) == 0
+    assert get_mongo_db().workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # Insert the documents.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    study_set.insert_many([study])
+    biosample_set.insert_many([biosample_a, biosample_b])
+    data_object_set.insert_many([data_object_a, data_object_b])
+    data_generation_set.insert_many([data_generation_a, data_generation_b])
+    workflow_execution_set.insert_one(workflow_execution)
+
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Submit the API request.
+    response = api_user_client.request(
+        "GET",
+        f"/workflow_executions/{workflow_execution['id']}/related_resources",
+    )
+    assert response.status_code == 200
+
+    # Verify the response payload contains all the `Biosample`s that are related to
+    # the `WorkflowExecution`, through _any_ of the `DataGeneration`s that the
+    # `WorkflowExecution` was informed by.
+    response_payload = response.json()
+    assert len(response_payload["biosamples"]) == 2
+    returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
+    assert set(returned_biosample_ids) == {biosample_a["id"], biosample_b["id"]}
+
+    # Clean up.
+    study_set.delete_many({"id": study["id"]})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}})
+    workflow_execution_set.delete_one({"id": workflow_execution["id"]})
+
+
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
     r"""
     Note: In this test, we seed the database, then we use the "find" command to fetch a single
