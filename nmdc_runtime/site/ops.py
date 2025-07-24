@@ -1641,9 +1641,9 @@ def run_script_to_update_insdc_biosample_identifiers(
     update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
 
     if isinstance(update_script, list):
-        total_updates = sum(len(item.get( "updates", [])) for item in update_script)
+        total_updates = sum(len(item.get("updates", [])) for item in update_script)
     else:
-        total_updates = len(update_script.get('updates', []))
+        total_updates = len(update_script.get("updates", []))
     context.log.info(
         f"Generated update script for study {nmdc_study_id} with {total_updates} updates"
     )
