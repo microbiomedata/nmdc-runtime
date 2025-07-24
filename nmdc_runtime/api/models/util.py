@@ -205,7 +205,7 @@ class DeleteResponse(BaseModel):
     )
     deleted_job_ids: List[str] = Field(
         default_factory=list,
-        description="The `id`s of the `Job`s that were deleted",
+        description="The `id`s of the `jobs` documents that were deleted",
     )
 
 
