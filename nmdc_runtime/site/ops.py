@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from io import BytesIO, StringIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
-from typing import Tuple, Set
+from typing import Tuple, Set, Union
 from zipfile import ZipFile
 from itertools import chain
 from ontology_loader.ontology_load_controller import OntologyLoaderController
@@ -1599,7 +1599,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         "runtime_api_user_client",
         "runtime_api_site_client",
         "gold_api_client",
-    }
+    },
+    out=Out(Any),
 )
 def run_script_to_update_insdc_biosample_identifiers(
     context: OpExecutionContext,
@@ -1607,7 +1608,7 @@ def run_script_to_update_insdc_biosample_identifiers(
     gold_nmdc_instrument_map_df: pd.DataFrame,
     include_field_site_info: bool,
     enable_biosample_filtering: bool,
-) -> Dict[str, Any]:
+):
     """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
 
     This op uses the DatabaseUpdater to generate a script that can be used to update biosample
@@ -1619,7 +1620,7 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_nmdc_instrument_map_df: A dataframe mapping GOLD instrument IDs to NMDC instrument set records
 
     Returns:
-        A dictionary containing the MongoDB update script
+        A dictionary or list of dictionaries containing the MongoDB update script(s)
     """
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
