@@ -62,9 +62,6 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
-from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
-from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
-from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
@@ -527,20 +524,6 @@ def repo():
     ]
 
     return graph_jobs + schedules + sensors
-
-
-@repository
-def translation():
-    graph_jobs = [jgi_job, gold_job, emsl_job]
-
-    return graph_jobs
-
-
-@repository
-def test_translation():
-    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
-
-    return graph_jobs
 
 
 @repository
