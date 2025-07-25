@@ -68,14 +68,6 @@ from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
 
 @graph()
-def gold_translation_curation():
-    # TODO
-    #   - have produce_curated_db do actual curation (see notebook), persisting to db.
-    #   - more steps in pipeline? Or handoff via run_status_sensor on DagsterRunStatus.SUCCESS.
-    produce_curated_db(get_operation())
-
-
-@graph()
 def create_objects_from_site_object_puts():
     delete_operations(
         create_objects_from_ops(list_operations(filter_ops_done_object_puts()))
