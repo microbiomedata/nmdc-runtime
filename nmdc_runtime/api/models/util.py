@@ -252,4 +252,8 @@ entity_attributes_to_index = {
         "has_input",
         "has_output",
     },
+    # Note: The `jobs` collection is not described by the NMDC schema.
+    "jobs": {
+        "config.activity_id",
+    },
 }
