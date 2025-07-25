@@ -491,6 +491,11 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
 
 def ensure_unique_id_indexes(mdb: MongoDatabase):
     """Ensure that any collections with an "id" field have an index on "id"."""
+
+    # Note: The pipe (i.e. `|`) operator performs a union of the two sets. In this case,
+    #       it creates a set (i.e. `candidate_names`) consisting of the names of both
+    #       (a) all collections in the real database, and (b) all collections that
+    #       the NMDC schema says can contain instances of classes that have an "id" slot.
     candidate_names = (
         set(mdb.list_collection_names()) | schema_collection_names_with_id_field()
     )
