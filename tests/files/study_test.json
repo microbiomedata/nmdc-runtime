@@ -1,0 +1,49 @@
+{
+  "study_set": [
+    {
+      "id": "gold:Gs0103573",
+      "name": "Populus root and rhizosphere microbial communities from Tennessee, USA",
+      "description": "Defining the functional diversity of the Populus root microbiome",
+      "ecosystem": "Host-associated",
+      "ecosystem_category": "Plants",
+      "ecosystem_type": "Unclassified",
+      "ecosystem_subtype": "Unclassified",
+      "specific_ecosystem": "Unclassified",
+      "principal_investigator": {
+        "has_raw_value": "Dale Pelletier"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0110138",
+      "name": "Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes",
+      "description": "Peatland ecosystems represent 3-5% of the land surface, but sequester 12-30% of soil organic carbon. However, this very large pool of carbon is vulnerable to oxidation as a function of climate change. Increased temperatures and lowered water tables with climate change or anthropogenic drainage can shift peatlands from being net carbon sinks to net carbon sources, but the rate of carbon loss from peatlands subjected to climate change treatments varies widely. The net effects of increased temperature and decreased water availability in peatlands could drive significant changes in peatland carbon balance and methane efflux directly by accelerating peat oxidation or net primary production, and indirectly by altering plant community composition.  \n \nMicrobial communities involved in C cycling in peatlands have been characterized piecemeal via a variety of approaches, making a comprehensive understanding of community organization and comparison of communities among peatlands impossible. In particular, the relative importance of fungi, bacteria and archaea in peatlands, and the relative importance of free-living heterotrophs vs. mycorrhizal fungi, are poorly understood, but are likely to vary depending on a variety of factors, including dominance of mycorrhizal and non-mycorrhizal hosts, pH, redox potential, carbon quality, phenolic concentrations and nutrient availability. These communities of fungi and bacteria are likely to differ in their expression of extracellular enzymes for mobilization of C. In particular, ericoid mycorrhizal fungi (ErMF), because they receive a labile carbon subsidy from their host plants, may inhibit lignolytic fungi and bacteria in their mycorrhizospheres. However, these ErMF themselves have a broad range of enzyme activity in vitro, producing extracellular enzymes capable of cellulytic and partial lignolytic activity. The in vivo potential and complete suite of extracellular enzymes produced by these fungi is poorly known. Discovery of the potential suite of extracellular enzymes for these organisms will provide the basis for understanding community potential for regulating C cycling. Metatranscriptome analyses will provide us with a foundation for characterizing the functional potential of different microbial communities as they interact with the contrasting environments created by roots of different plant functional groups in interaction with changing temperature and water table. This will serve as the jumping off point for enhanced models of peatland C cycling that incorporate microbial community structure and function. The large scale microbial profiling will be linked to measures of C cycling (CO2 and CH4 flux at a minimum, plus ecosystem C balance, enzyme assays, DOC quantity and quality at some sites) and environmental conditions (pH, Eh, water table height, plant communities, temperature) in order to understand the factors that structure these communities, and test hypotheses and develop models for microbial community regulation of peatland C cycling.  \n \nThe diverse redox conditions experienced by the organisms in these systems generate complex microbial consortia involved in use of a wide array of substrates and electron acceptors. As redox and substrate quality decline with depth generally gradients from aerobic heterotrophs and plant associated organisms at the surface, to organisms using lower energy substrates through fermentative pathways, and methanogens prevail at depth. The organisms along such gradients represent key but poorly understood players in the global balance of C and balance of trace gas fluxes (e.g. CO2 vs CH4) that prevail under changing conditions. Using single cell sequencing techniques we can target taxa active over these steep gradients to improve our understanding of the microbial players and processes that regulate trace gas flux. Of particular interest are those microbes specifically associated with the steep redox gradients associated with plant roots.",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Aquatic",
+      "ecosystem_type": "Freshwater",
+      "ecosystem_subtype": "Wetlands",
+      "specific_ecosystem": "Unclassified",
+      "principal_investigator": {
+        "has_raw_value": "Erik Lilleskov"
+      },
+      "type": "nmdc:Study"
+    },
+    {
+      "id": "gold:Gs0114663",
+      "name": "Riverbed sediment microbial communities from the Columbia River, Washington, USA",
+      "description": "A metagenomic study to couple microbial communities to carbon and contaminant biogeochemistry in the groundwater-surface water interaction zone (hyporheic zone).",
+      "ecosystem": "Environmental",
+      "ecosystem_category": "Aquatic",
+      "ecosystem_type": "Freshwater",
+      "ecosystem_subtype": "River",
+      "specific_ecosystem": "Sediment",
+      "principal_investigator": {
+        "has_raw_value": "James Stegen"
+      },
+      "doi": {
+        "has_raw_value": "10.25585/1487765"
+      },
+      "type": "nmdc:Study"
+    }
+  ]
+}

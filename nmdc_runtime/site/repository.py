@@ -30,8 +30,6 @@ from nmdc_runtime.site.graphs import (
     translate_metadata_submission_to_nmdc_schema_database,
     ingest_metadata_submission,
     gold_study_to_database,
-    gold_translation,
-    gold_translation_curation,
     create_objects_from_site_object_puts,
     housekeeping,
     ensure_jobs,
@@ -62,9 +60,6 @@ from nmdc_runtime.site.resources import (
 from nmdc_runtime.site.resources import (
     get_runtime_api_site_client,
 )
-from nmdc_runtime.site.translation.emsl import emsl_job, test_emsl_job
-from nmdc_runtime.site.translation.gold import gold_job, test_gold_job
-from nmdc_runtime.site.translation.jgi import jgi_job, test_jgi_job
 from nmdc_runtime.util import freeze
 from nmdc_runtime.util import unfreeze
 
@@ -249,82 +244,6 @@ def process_workflow_job_triggers(_context):
         yield SkipReason("No new jobs required")
 
 
-@asset_sensor(
-    asset_key=AssetKey(["object", "nmdc_database.json.zip"]),
-    job=ensure_jobs.to_job(name="ensure_gold_translation", **preset_normal),
-)
-def ensure_gold_translation_job(_context, asset_event):
-    mdb = get_mongo(run_config_frozen__normal_env).db
-    gold_etl_latest = mdb.objects.find_one(
-        {"name": "nmdc_database.json.zip"}, sort=[("created_time", -1)]
-    )
-    sensed_object_id = asset_materialization_metadata(asset_event, "object_id").text
-    if gold_etl_latest is None:
-        yield SkipReason("can't find sensed asset object_id in database")
-        return
-    elif gold_etl_latest["id"] != sensed_object_id:
-        yield SkipReason("later object than sensed materialization")
-        return
-
-    run_config = merge(
-        run_config_frozen__normal_env,
-        {
-            "solids": {
-                "construct_jobs": {
-                    "config": {
-                        "base_jobs": [
-                            {
-                                "workflow": {"id": "gold-translation-1.0.0"},
-                                "config": {"object_id": gold_etl_latest["id"]},
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-    )
-    yield RunRequest(run_key=sensed_object_id, run_config=unfreeze(run_config))
-
-
-@asset_sensor(
-    asset_key=AssetKey(["job", "gold-translation-1.0.0"]),
-    job=gold_translation_curation.to_job(**preset_normal),
-)
-def claim_and_run_gold_translation_curation(_context, asset_event):
-    client = get_runtime_api_site_client(run_config_frozen__normal_env)
-    mdb = get_mongo(run_config_frozen__normal_env).db
-    object_id_latest = asset_materialization_metadata(
-        asset_event, "object_id_latest"
-    ).text
-    job = mdb.jobs.find_one(
-        {
-            "workflow.id": "gold-translation-1.0.0",
-            "config.object_id_latest": object_id_latest,
-        }
-    )
-    if job is not None:
-        rv = client.claim_job(job["id"])
-        if rv.status_code == status.HTTP_200_OK:
-            operation = rv.json()
-            run_config = merge(
-                run_config_frozen__normal_env,
-                {
-                    "ops": {
-                        "get_operation": {
-                            "config": {
-                                "operation_id": operation["id"],
-                            }
-                        }
-                    }
-                },
-            )
-            yield RunRequest(run_key=operation["id"], run_config=unfreeze(run_config))
-        else:
-            yield SkipReason("Job found, but already claimed by this site")
-    else:
-        yield SkipReason("No job found")
-
-
 @sensor(
     job=apply_metadata_in.to_job(name="apply_metadata_in_sensed", **preset_normal),
     default_status=DefaultSensorStatus.RUNNING,
@@ -502,7 +421,6 @@ def on_run_fail(context: RunStatusSensorContext):
 @repository
 def repo():
     graph_jobs = [
-        gold_translation.to_job(**preset_normal),
         hello_graph.to_job(name="hello_job"),
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
@@ -518,8 +436,6 @@ def repo():
     ]
     sensors = [
         done_object_put_ops,
-        ensure_gold_translation_job,
-        claim_and_run_gold_translation_curation,
         process_workflow_job_triggers,
         claim_and_run_apply_changesheet_jobs,
         claim_and_run_metadata_in_jobs,
@@ -527,20 +443,6 @@ def repo():
     ]
 
     return graph_jobs + schedules + sensors
-
-
-@repository
-def translation():
-    graph_jobs = [jgi_job, gold_job, emsl_job]
-
-    return graph_jobs
-
-
-@repository
-def test_translation():
-    graph_jobs = [test_jgi_job, test_gold_job, test_emsl_job]
-
-    return graph_jobs
 
 
 @repository

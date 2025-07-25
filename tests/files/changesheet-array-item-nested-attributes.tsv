@@ -1,0 +1,6 @@
+id	action	attribute	value
+nmdc:sty-11-r2h77870	update	has_credit_associations	ca1
+ca1	update	applied_roles	Conceptualization
+ca1	update	applies_to_person.name	CREDIT NAME 1
+ca1	update	applies_to_person.email	CREDIT_NAME_1@foo.edu
+ca1	update	applies_to_person.orcid	orcid:0000-0000-0000-0001

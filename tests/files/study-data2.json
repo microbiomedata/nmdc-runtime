@@ -1,0 +1,17 @@
+{
+	 "id": "gold:Gs0112340",
+	 "name": "Thawing permafrost microbial communities from the Arctic, studying carbon transformations",
+	 "description": "A fundamental challenge of microbial environmental science is ...",
+	 "ecosystem": "Environmental",
+	 "ecosystem_category": "Terrestrial",
+	 "ecosystem_type": "Soil",
+	 "ecosystem_subtype": "Wetlands",
+	 "specific_ecosystem": "Permafrost",
+	 "principal_investigator": {
+		 "has_raw_value": "Virginia Rich"
+	 },
+	 "doi": {
+		 "has_raw_value": "10.25585/1487764"
+	 },
+	 "type": "nmdc:Study"
+}

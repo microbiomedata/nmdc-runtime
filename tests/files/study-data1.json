@@ -1,0 +1,16 @@
+{
+	 "id": "gold:Gs0110115",
+	 "name": "Avena fatua rhizosphere microbial communities from ...",
+	 "ecosystem": "Host-associated",
+	 "ecosystem_category": "Plants",
+	 "ecosystem_type": "Rhizosphere",
+	 "ecosystem_subtype": "Soil",
+	 "specific_ecosystem": "Unclassified",
+	 "principal_investigator": {
+		 "has_raw_value": "Mary Firestone"
+	 },
+	 "doi": {
+		 "has_raw_value": "10.25585/1487760"
+	 },
+	 "type": "nmdc:Study"
+}

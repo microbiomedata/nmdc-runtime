@@ -20,7 +20,8 @@ successfully, has failed, or has been aborted, the `done` field for the operatio
 
 Example [sensors](https://docs.dagster.io/concepts/partitions-schedules-sensors/sensors) that claim
 and run jobs are available in the codebase in
-[`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py):
+[
+`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py):
 
 * `claim_and_run_metadata_in_jobs` senses new jobs to ingest NMDC-Schema-compliant metadata. Users
   submit metadata as Objects and associate them with the `metadata-in` Object Type. This in turn
@@ -35,19 +36,13 @@ and run jobs are available in the codebase in
   Type. A registered trigger then creates a corresponding `apply-changesheet-1.0.0` job, which this
   sensor senses, allowing the Runtime Site to claim and run the job.
 
-* `claim_and_run_gold_translation_curation` is another example. The jobs that this sensor claims and
-  runs are created not by a conventionally registered Trigger, but instead by another sensor,
-  `ensure_gold_translation_job`. This pattern may be appropriate if the logic to trigger job creation
-  is more nuanced and would benefit from being expressed using Python code rather than as a simple
-  data structure as in
-  [`nmdc_runtime.api.boot.triggers`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/api/boot/triggers.py).
-
 If your workflow is neither data- nor resource-intensive, you may opt to implement it as a Dagster
 [Graph](https://docs.dagster.io/concepts/ops-jobs-graphs/jobs-graphs) of [Ops
 (Operations)](https://docs.dagster.io/concepts/ops-jobs-graphs/ops) within a Runtime Site
 [Repository](https://docs.dagster.io/concepts/repositories-workspaces/repositories), e.g. to include
 it in the
-[`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
+[
+`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
 module with the above examples. Otherwise, NMDC workflow jobs are generally run at Sites that have
 access to more expensive and specialized resources, with job execution state and outputs
 communicated and delivered to the Runtime via the API.
