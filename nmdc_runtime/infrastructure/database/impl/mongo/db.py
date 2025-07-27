@@ -2,8 +2,6 @@
 Database initialization
 """
 
-
-
 # async def mongo_init(app):
 #     """Initialize database service"""
 #     app.db = AsyncIOMotorClient(
