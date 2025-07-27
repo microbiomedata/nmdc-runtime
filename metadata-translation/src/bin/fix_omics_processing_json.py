@@ -1,5 +1,5 @@
 # add ./lib directory to sys.path so that local modules can be found
-import os, sys, git_root
+import os, sys
 
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))

@@ -4,7 +4,6 @@
 # add ./lib directory to sys.path so that local modules can be found
 import os, sys
 
-from pandas.core.dtypes.missing import notnull
 
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath("./lib"))
@@ -12,12 +11,9 @@ sys.path.append(os.path.abspath("./lib"))
 
 # system level modules
 import pandas as pds
-import jsonasobj
-import json
 import zipfile
 import yaml
-from yaml import CLoader as Loader, CDumper as Dumper
-from dotted_dict import DottedDict
+from yaml import CLoader as Loader
 from collections import namedtuple
 
 

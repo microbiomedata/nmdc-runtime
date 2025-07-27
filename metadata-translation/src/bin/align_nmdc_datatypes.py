@@ -4,22 +4,13 @@ sys.path.append(
     os.path.abspath("../../../schema")
 )  # add path nmdc schema files and modules
 
-import yaml
 import json
-from yaml import CLoader as Loader, CDumper as Dumper
-from collections import namedtuple
-from pprint import pprint
-import pandas as pds
 import jsonasobj
 from nmdc import (
-    Biosample,
-    GeolocationValue,
     ControlledTermValue,
     QuantityValue,
-    Activity,
     OntologyClass,
 )
-import lib.data_operations as dop
 
 # TODO: convert triad value in complex object; convert depth the measurement unit ("meters")
 

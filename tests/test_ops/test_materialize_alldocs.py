@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 
 import pytest
-from toolz import assoc, dissoc
+from toolz import assoc
 
 from dagster import build_op_context
 

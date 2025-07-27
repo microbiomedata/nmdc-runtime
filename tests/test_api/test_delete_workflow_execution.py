@@ -4,7 +4,6 @@ from pymongo.database import Database as MongoDatabase
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
-from tests.test_api.test_endpoints import api_user_client
 
 
 def test_delete_workflow_execution_cascade_deletion(api_user_client):

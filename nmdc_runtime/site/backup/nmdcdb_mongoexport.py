@@ -16,9 +16,7 @@ from toolz import assoc
 
 from nmdc_runtime.api.core.util import pick
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from nmdc_runtime.site.resources import get_mongo
-from nmdc_runtime.util import nmdc_jsonschema, schema_collection_names_with_id_field
+from nmdc_runtime.util import schema_collection_names_with_id_field
 
 
 def collection_stats(mdb: MongoDatabase):

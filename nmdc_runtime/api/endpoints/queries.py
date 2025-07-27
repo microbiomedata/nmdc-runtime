@@ -5,7 +5,7 @@ from typing import Annotated
 import bson.json_util
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
-from toolz import assoc_in, dissoc
+from toolz import assoc_in
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 

@@ -1,9 +1,6 @@
 import json
 from dataclasses import asdict, fields
-from datetime import datetime
-from typing import Dict, List, Literal, TypedDict, Union, cast
 
-import attrs
 from nmdc_schema.nmdc import Database
 from pymongo.database import Database as MongoDatabase
 

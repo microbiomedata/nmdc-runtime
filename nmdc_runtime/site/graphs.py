@@ -1,4 +1,4 @@
-from dagster import graph, GraphIn
+from dagster import graph
 
 from nmdc_runtime.site.ops import (
     build_merged_db,

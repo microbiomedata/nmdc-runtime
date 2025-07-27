@@ -1,7 +1,5 @@
 import os
-import re
 from contextlib import asynccontextmanager
-from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -10,7 +8,6 @@ from pathlib import Path
 import fastapi
 import requests
 import uvicorn
-from bs4 import BeautifulSoup
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html

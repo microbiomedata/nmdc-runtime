@@ -1,6 +1,5 @@
 import json
 
-from typing import Any
 
 from dagster import (
     repository,
@@ -14,7 +13,6 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
-    in_process_executor,
 )
 from starlette import status
 from toolz import merge, get_in
