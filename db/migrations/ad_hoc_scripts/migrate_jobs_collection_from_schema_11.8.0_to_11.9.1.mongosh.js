@@ -9,7 +9,15 @@ use("nmdc");
  */
 
 // 🔍 Define the filter for the documents we will be updating.
-const filter = { "config.was_informed_by": { $type: "string" } };
+//
+//    Note: The condition — `{ $type: "string" }` — will match documents where either
+//          (a) the value of `config.was_informed_by` is a string, or
+//          (b) the value is an array that contains a string.
+//          Since we don't want to match documents in (b), we include
+//          the additional condition — `$not: { $type: "array" } }`.
+//          Reference: https://www.mongodb.com/docs/manual/reference/operator/query/type/#querying-by-data-type
+//
+const filter = { "config.was_informed_by": { $type: "string", $not: { $type: "array" } } };
 
 // 🧮 Before: Print the total number of documents.
 let numDocsTotal = db.getCollection("jobs").countDocuments({});
