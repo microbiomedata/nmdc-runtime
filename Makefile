@@ -77,12 +77,6 @@ reset-db-test:
 #      $ make test ARGS="-k 'test_find_data_objects_for_study_having_one'"
 #      ```
 #
-# Note: The `--ignore=<PATH>` option is used to skip tests and doctests defined within modules
-#       or directories at `<PATH>`. Without ignoring the paths we are ignoring, when we include
-#       the `--doctest-modules` option, pytest raises tangential errors stemming from modules
-#       at those paths.
-#       TODO: Resolve the issues preventing us from omitting the `--ignore=<PATH>` option.
-#
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
