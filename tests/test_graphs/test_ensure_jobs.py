@@ -5,7 +5,7 @@ from nmdc_runtime.site.graphs import ensure_jobs
 from nmdc_runtime.site.repository import preset_normal
 
 
-@pytest.skip("Needs supplied state")
+@pytest.mark.skip("Needs supplied state")
 def test_ensure_jobs():
     job = ensure_jobs.to_job(name="test_ensure_jobs", **preset_normal)
     run_config = merge({}, preset_normal["config"])
