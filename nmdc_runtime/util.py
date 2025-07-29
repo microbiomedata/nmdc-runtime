@@ -324,9 +324,9 @@ def find_one(k_v: dict, entities: Iterable[dict]):
     """Find the first entity with key-value pair k_v, if any?
 
     >>> find_one({"id": "foo"}, [{"id": "foo"}])
+    {'id': 'foo'}
+    >>> find_one({"id": "foo"}, [{"id": "bar"}]) is None
     True
-    >>> find_one({"id": "foo"}, [{"id": "bar"}])
-    False
     """
     if len(k_v) > 1:
         raise Exception("Supports only one key-value pair")
