@@ -48,7 +48,7 @@ def test_nmdc_jsonschema_using_new_id_scheme():
 
 @pytest.mark.skip(reason="Skipping failed tests to restore automated pipeline")
 def test_nmdc_jsonschema_validator():
-    with open(REPO_ROOT.joinpath("metadata-translation/examples/study_test.json")) as f:
+    with open(REPO_ROOT.joinpath("tests/files/study_test.json")) as f:
         study_test = json.load(f)
         try:
             _ = nmdc_jsonschema_validator(study_test)
@@ -78,7 +78,7 @@ def test_mongo_validate():
     collection = db[collection_name]
 
     # print("db:", db.collection_names())
-    with open(REPO_ROOT.joinpath("metadata-translation/examples/study_test.json")) as f:
+    with open(REPO_ROOT.joinpath("tests/files/study_test.json")) as f:
         study_test = json.load(f)
         collection.insert_many(study_test["study_set"])
         # collection.insert_one({"foo": "bar"})

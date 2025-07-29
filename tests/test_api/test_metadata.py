@@ -19,7 +19,7 @@ from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import REPO_ROOT_DIR
 
-TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("metadata-translation", "notebooks", "data")
+TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("tests", "files")
 
 
 @lru_cache
