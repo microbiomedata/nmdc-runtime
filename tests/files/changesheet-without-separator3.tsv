@@ -1,0 +1,28 @@
+id	action	attribute	value
+nmdc:sty-11-pzmd0x14	update	name	NEW STUDY NAME 1
+	update	ecosystem	NEW ECOSYSTEM 1
+	update	ecosystem_type	NEW ECOSYSTEM_TYPE 1
+	update	ecosystem_subtype	NEW ECOSYSTEM_SUBTYPE 1
+	update	associated_dois	v1
+v1	insert	doi_value	doi:10.25345/C5Q23RB6B
+v1	insert	doi_provider	massive
+v1	insert	doi_category	dataset_doi
+v1	insert	type	nmdc:Doi
+	update	principal_investigator	v2
+v2		name	NEW PI NAME 1
+v2		has_raw_value	NEW RAW NAME 1
+v2		type	nmdc:PersonValue
+	update	description	NEW DESCRIPTION 1
+	update	websites	HTTP://TEST1.EXAMPLE.COM
+	update	websites	HTTP://TEST2.EXAMPLE.COM
+	insert	has_credit_associations	v3
+v3		applied_roles	Investigation
+v3		type	prov:Association
+v3		applies_to_person.name	NEW CO-INVESTIGATOR NAME 1
+v3		applies_to_person.type	nmdc:PersonValue
+	insert	has_credit_associations	v4
+v4		applied_roles	Investigation
+v4		applies_to_person.name	NEW CURATOR NAME 1
+v4		applies_to_person.type	nmdc:PersonValue
+v4		type	prov:Association
+nmdc:sty-11-pzmd0x14	insert	funding_sources	United States National Science Foundation Microbial Observatories program (MCB-0702395)|Long-Term Ecological Research Program (NTL–LTER DEB-1440297)|INSPIRE award (DEB-1344254)

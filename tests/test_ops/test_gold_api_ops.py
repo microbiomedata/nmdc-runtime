@@ -33,6 +33,7 @@ def op_context(client_config):
             "study_type": "research_study",
             "gold_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/gold_seqMethod_to_nmdc_instrument_set.tsv",
             "include_field_site_info": False,
+            "enable_biosample_filtering": True,
         },
     )
 
@@ -56,7 +57,7 @@ def test_gold_biosamples_by_study(client_config, op_context):
             ],
         )
 
-        (study_id, _, _, _) = get_gold_study_pipeline_inputs(op_context)
+        (study_id, _, _, _, _) = get_gold_study_pipeline_inputs(op_context)
         gold_biosamples_by_study(op_context, study_id)
 
         assert (
@@ -73,7 +74,7 @@ def test_gold_projects_by_study(client_config, op_context):
             json=[{"projectGoldId": "Gp123456789"}],
         )
 
-        (study_id, _, _, _) = get_gold_study_pipeline_inputs(op_context)
+        (study_id, _, _, _, _) = get_gold_study_pipeline_inputs(op_context)
         gold_projects_by_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
@@ -88,7 +89,7 @@ def test_gold_analysis_projects_by_study(client_config, op_context):
             json=[{"apGoldId": "Ga0499994"}],
         )
 
-        (study_id, _, _, _) = get_gold_study_pipeline_inputs(op_context)
+        (study_id, _, _, _, _) = get_gold_study_pipeline_inputs(op_context)
         gold_analysis_projects_by_study(op_context, study_id)
 
         assert len(mock.request_history) == 1
@@ -102,7 +103,7 @@ def test_gold_study(client_config, op_context):
             f'{client_config["base_url"]}/studies', json=[{"studyGoldId": "Gs0149396"}]
         )
 
-        (study_id, _, _, _) = get_gold_study_pipeline_inputs(op_context)
+        (study_id, _, _, _, _) = get_gold_study_pipeline_inputs(op_context)
         gold_study(op_context, study_id)
 
         assert len(mock.request_history) == 1

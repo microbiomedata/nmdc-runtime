@@ -1,10 +1,11 @@
 import json
 import logging
+from typing import Annotated
 
 import bson.json_util
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
-from toolz import assoc_in, dissoc
+from toolz import assoc_in
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
@@ -12,7 +13,10 @@ from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
+    OverlayDB,
+    validate_json,
 )
+from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
@@ -20,10 +24,12 @@ from nmdc_runtime.api.endpoints.util import (
 import nmdc_runtime.api.models.query_continuation as qc
 from nmdc_runtime.api.models.query import (
     DeleteCommand,
+    DeleteCommandResponse,
     CommandResponse,
     command_response_for,
     QueryCmd,
     UpdateCommand,
+    UpdateCommandResponse,
     AggregateCommand,
     FindCommand,
     GetMoreCommand,
@@ -31,11 +37,12 @@ from nmdc_runtime.api.models.query import (
     Cmd,
     CursorYieldingCommandResponse,
     CursorYieldingCommand,
+    DeleteSpecs,
+    UpdateSpecs,
 )
+from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.util import (
-    OverlayDB,
-    validate_json,
     get_allowed_references,
     nmdc_schema_view,
 )
@@ -76,6 +83,12 @@ def run_query(
     cmd: Cmd,
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
+    allow_broken_refs: Annotated[
+        bool,
+        Query(
+            description="When `true`, the server will allow operations that leave behind broken references."
+        ),
+    ] = False,
 ):
     """
     Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
@@ -206,51 +219,46 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
-    cmd_response = _run_mdb_cmd(cmd)
+    cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
     return cmd_response
 
 
 _mdb = get_mongo_db()
 
 
-def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
+def _run_mdb_cmd(
+    cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False
+) -> CommandResponse:
     r"""
     TODO: Document this function.
-    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~220 lines.
+    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
+
+    :param cmd: Undocumented. TODO: Document this parameter.
+    :param mdb: Undocumented. TODO: Document this parameter.
+    :param allow_broken_refs: Under normal circumstances, if this function determines that performing
+                              the specified command would leave behind broken references, this function
+                              will reject the command (i.e. raise an HTTP 422). In contrast, when the
+                              `allow_broken_refs` parameter is set to `true`, this function will not
+                              reject the command for that reason (however, it may reject the command
+                              for other reasons).
     """
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
-    # Initialize a flag we can use to control whether we will raise an exception
-    # and abort the operation (i.e. we will be "strict") or merely log a warning
-    # to the console (i.e. we will be "lenient"), when we determine that performing
-    # an operation would leave behind a broken reference(s).
-    #
-    # Note: We may eventually remove this flag. We are including it now
-    #       so that we can easily switch between the two modes, since
-    #       some users have expressed that they may need some time to
-    #       update some client code to work with the more strict mode.
-    #
-    # Note: We set this flag to `True` to work around the following "catch-22" issue,
-    #       which a team member encountered while the flag was set to `False`:
-    #       https://github.com/microbiomedata/nmdc-runtime/issues/1021
-    #
-    are_broken_references_allowed: bool = True
-
     if isinstance(cmd, DeleteCommand):
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Can only delete documents in nmdc-schema collections.",
+                detail=(
+                    "Can only delete documents from collections that are "
+                    "not empty and are described by the NMDC schema."
+                ),
             )
-        delete_specs = [
-            {"filter": del_statement.q, "limit": del_statement.limit}
-            for del_statement in cmd.deletes
-        ]
+        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
 
         # Check whether any of the documents the user wants to delete are referenced
         # by any documents that are _not_ among those documents. If any of them are,
@@ -315,7 +323,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                         "source_collection_name"
                     ]
                     target_document_id = target_document_descriptor["id"]
-                    if are_broken_references_allowed:
+                    if allow_broken_refs:
                         logging.warning(
                             f"The document having 'id'='{target_document_id}' in "
                             f"the collection '{collection_name}' is referenced by "
@@ -361,12 +369,12 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Can only update documents in nmdc-schema collections.",
+                detail=(
+                    "Can only update documents in collections that are "
+                    "not empty and are described by the NMDC schema."
+                ),
             )
-        update_specs = [
-            {"filter": up_statement.q, "limit": 0 if up_statement.multi else 1}
-            for up_statement in cmd.updates
-        ]
+        update_specs: UpdateSpecs = derive_update_specs(update_command=cmd)
         # Execute this "update" command on a temporary "overlay" database so we can
         # validate its outcome before executing it on the real database. If its outcome
         # is invalid, we will abort and raise an "HTTP 422" exception.
@@ -403,6 +411,30 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
+
+        # Perform referential integrity checking.
+        #
+        # TODO: As usual with this endpoint, the operation is susceptible to a race
+        #       condition, wherein the database gets modified between this validation
+        #       step and the eventual "apply" step.
+        #
+        violation_messages = simulate_updates_and_check_references(
+            db=mdb, update_cmd=cmd
+        )
+        if len(violation_messages) > 0:
+            detail = (
+                "The operation was not performed, because performing it would "
+                "have left behind one or more broken references. Details: "
+                f"{', '.join(violation_messages)}"
+            )
+            if allow_broken_refs:
+                logging.warning(detail)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=detail,
+                )
+
         for spec in update_specs:
             docs = list(mdb[collection_name].find(**spec))
             if not docs:
@@ -474,6 +506,7 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Send a command to the database and get the raw response. If the command was a
     # cursor-yielding command, make a new response object in which the raw response's
     # `cursor.firstBatch`/`cursor.nextBatch` value is in a field named `cursor.batch`.
+    # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.command
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
@@ -495,6 +528,21 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
     # Not okay? Early return.
     if not cmd_response.ok:
         return cmd_response
+
+    # If the command response is of a kind that has a `writeErrors` attribute, and the value of that
+    # attribute is a list, and that list is non-empty, we know that some errors occurred.
+    # In that case, we respond with an HTTP 422 status code and the list of those errors.
+    if isinstance(cmd_response, DeleteCommandResponse) or isinstance(
+        cmd_response, UpdateCommandResponse
+    ):
+        if (
+            isinstance(cmd_response.writeErrors, list)
+            and len(cmd_response.writeErrors) > 0
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=cmd_response.writeErrors,
+            )
 
     if isinstance(cmd, (DeleteCommand, UpdateCommand)):
         # TODO `_request_dagster_run` of `ensure_alldocs`?
@@ -556,6 +604,76 @@ def _run_mdb_cmd(cmd: Cmd, mdb: MongoDatabase = _mdb) -> CommandResponse:
         )
         cmd_response.cursor.id = (
             None if cmd_response.cursor.id == "0" else query_continuation.id
+        )
+
+    return cmd_response
+
+
+def _run_delete_nonschema(
+    cmd: DeleteCommand, mdb: MongoDatabase = _mdb
+) -> DeleteCommandResponse:
+    """
+    Performs deletion operations similarly to `_run_mdb_cmd`, but skips
+    performing referential integrity checking.
+
+    This function is intended for deleting documents from non-schema collections
+    where referential integrity checking is not required or desired.
+
+    :param cmd: DeleteCommand to execute
+    :param mdb: MongoDB database instance
+    :return: DeleteCommandResponse with the result of the deletion operation
+    """
+    ran_at = now()
+    collection_name = cmd.delete
+
+    # Derive delete specifications from the command
+    delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
+
+    # Skip the target_document descriptor code and referential integrity checking
+    # that exists in _run_mdb_cmd (lines 276-357)
+
+    # Perform the actual deletion operations
+    for spec in delete_specs:
+        docs = list(mdb[collection_name].find(**spec))
+        if not docs:
+            continue
+        insert_many_result = mdb.client["nmdc_deleted"][collection_name].insert_many(
+            {"doc": d, "deleted_at": ran_at} for d in docs
+        )
+        if len(insert_many_result.inserted_ids) != len(docs):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to back up to-be-deleted documents. Operation aborted.",
+            )
+
+    # Issue the delete command to the database
+    cmd_response_raw: dict = mdb.command(
+        bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
+    )
+
+    # Create the command response object (assume DeleteCommandResponse type)
+    cmd_response = DeleteCommandResponse(**cmd_response_raw)
+
+    # Check if the command was successful
+    if not cmd_response.ok:
+        return cmd_response
+
+    # Handle write errors if any occurred
+    if isinstance(cmd_response.writeErrors, list) and len(cmd_response.writeErrors) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=cmd_response.writeErrors,
+        )
+
+    # Check if any documents were actually deleted
+    if cmd_response.n == 0:
+        raise HTTPException(
+            status_code=status.HTTP_418_IM_A_TEAPOT,
+            detail=(
+                "delete command modified zero documents."
+                " I'm guessing that's not what you expected. Check the syntax of your request."
+                " But what do I know? I'm just a teapot.",
+            ),
         )
 
     return cmd_response

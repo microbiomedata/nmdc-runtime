@@ -1,7 +1,5 @@
 import os
-import re
 from contextlib import asynccontextmanager
-from functools import cache
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -10,7 +8,6 @@ from pathlib import Path
 import fastapi
 import requests
 import uvicorn
-from bs4 import BeautifulSoup
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -34,6 +31,7 @@ from nmdc_runtime.api.core.auth import (
     ORCID_BASE_URL,
 )
 from nmdc_runtime.api.db.mongo import (
+    get_collection_names_from_schema,
     get_mongo_db,
 )
 from nmdc_runtime.api.endpoints import (
@@ -138,6 +136,16 @@ def ensure_initial_resources_on_boot():
     minter_bootstrap()
 
 
+def ensure_type_field_is_indexed():
+    r"""
+    Ensures that each schema-described collection has an index on its `type` field.
+    """
+
+    mdb = get_mongo_db()
+    for collection_name in get_collection_names_from_schema():
+        mdb.get_collection(collection_name).create_index("type", background=True)
+
+
 def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
@@ -165,15 +173,25 @@ def ensure_attribute_indexes():
 
 
 def ensure_default_api_perms():
+    """
+    Ensures that specific users (currently only "admin") are allowed to perform
+    specific actions, and creates MongoDB indexes to speed up allowance queries.
+
+    Note: If a MongoDB index already exists, the call to `create_index` does nothing.
+    """
+
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
 
-    allowed = {
+    allowances = {
         "/metadata/changesheets:submit": [
             "admin",
         ],
         "/queries:run(query_cmd:DeleteCommand)": [
+            "admin",
+        ],
+        "/queries:run(query_cmd:AggregateCommand)": [
             "admin",
         ],
         "/metadata/json:submit": [
@@ -182,7 +200,7 @@ def ensure_default_api_perms():
     }
     for doc in [
         {"username": username, "action": action}
-        for action, usernames in allowed.items()
+        for action, usernames in allowances.items()
         for username in usernames
     ]:
         db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
@@ -204,6 +222,7 @@ async def lifespan(app: FastAPI):
     """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
+    ensure_type_field_is_indexed()
     ensure_default_api_perms()
 
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.

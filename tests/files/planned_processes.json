@@ -146,7 +146,7 @@
       "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.1",
       "started_at_time": "2023-07-30T21:31:56.387227+00:00",
       "ended_at_time": "2023-07-30T21:34:32.750008+00:00",
-      "was_informed_by": "nmdc:omprc-11-7yj0jg57",
+      "was_informed_by": ["nmdc:omprc-11-7yj0jg57"],
       "execution_resource": "NERSC-Perlmutter",
       "git_url": "https://github.com/microbiomedata/metaMAGs",
       "has_input": [
@@ -182,7 +182,7 @@
       "name": "Metagenome Assembled Genomes Analysis Activity for nmdc:wfmag-11-00jn7876.2",
       "started_at_time": "2024-03-24T16:04:04.936972+00:00",
       "ended_at_time": "2024-03-24T17:49:34.756540+00:00",
-      "was_informed_by": "nmdc:omprc-11-7yj0jg57",
+      "was_informed_by": ["nmdc:omprc-11-7yj0jg57"],
       "execution_resource": "NERSC-Perlmutter",
       "git_url": "https://github.com/microbiomedata/metaMAGs",
       "has_input": [
@@ -221,7 +221,7 @@
       "name": "MAGs Activity for nmdc:wfmag-11-0133pz73.1",
       "started_at_time": "2023-03-08T19:46:26.128394+00:00",
       "ended_at_time": "2023-03-08T19:46:26.128414+00:00",
-      "was_informed_by": "nmdc:omprc-11-7c4mb403",
+      "was_informed_by": ["nmdc:omprc-11-7c4mb403"],
       "execution_resource": "JGI",
       "git_url": "https://github.com/microbiomedata/metaMAGs",
       "has_input": [

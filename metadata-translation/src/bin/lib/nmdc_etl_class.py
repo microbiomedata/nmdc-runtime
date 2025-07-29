@@ -21,14 +21,8 @@ from nmdc_schema import nmdc
 
 # system level modules
 import pandas as pds
-import jq
-import jsonasobj
-import json
-import zipfile
 import yaml
-from yaml import CLoader as Loader, CDumper as Dumper
-from dotted_dict import DottedDict
-from collections import namedtuple
+from yaml import CLoader as Loader
 
 
 class NMDC_ETL:

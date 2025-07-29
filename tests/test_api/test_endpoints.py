@@ -1,8 +1,6 @@
 import json
 import os
 import re
-from typing import List
-from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -15,12 +13,11 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
-    get_collection_names_from_schema,
-    mongorestore_collection,
+from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.util import (
+    persist_content_and_get_drs_object,
+    strip_oid,
 )
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object, strip_oid
 from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
@@ -33,12 +30,8 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, validate_json
-from tests.test_util import download_to
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
 from tests.lib.faker import Faker
-
-
-# TODO: Is the 43 MB `tests/nmdcdb.test.archive.gz` file in the repository obsolete? If so, delete it.
 
 
 def ensure_alldocs_collection_has_been_materialized(
@@ -75,6 +68,7 @@ def ensure_alldocs_collection_has_been_materialized(
             }
         )
     )
+
 
 def ensure_test_resources(mdb):
     username = "testuser"
@@ -124,29 +118,6 @@ def ensure_test_resources(mdb):
         "user": {"username": username, "password": password},
         "job": job.model_dump(exclude_unset=True),
     }
-
-
-@pytest.fixture
-def base_url() -> str:
-    r"""Returns the base URL of the API."""
-
-    base_url = os.getenv("API_HOST")
-    assert isinstance(base_url, str), "Base URL is not defined"
-    return base_url
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-
-
-@pytest.fixture
-def api_user_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 @pytest.mark.skip(reason="Skipping because test causes suite to hang")
@@ -217,6 +188,67 @@ def test_create_user():
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
 
+def test_queries_run_invalid_update(api_user_client):
+    # Seed the database
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    faker = Faker()
+    study_set = mdb.get_collection("study_set")
+    study = faker.generate_studies(1)[0]
+    assert study_set.count_documents({"id": study["id"]}) == 0
+    study_set.insert_one(study)
+    
+    # test incorrect update - initial command syntax that brought this issue to light
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": "nmdc:sty-11-hhkbcg72"},
+                        "u": {"$unset": "notes"},
+                    }
+                ],
+            },
+        )
+    expected_response = {
+        "detail": [
+            {
+                "index": 0,
+                "code": 9,
+                "errmsg": 'Modifiers operate on fields but we found type string instead. For example: {$mod: {<field>: ...}} not {$unset: "notes"}',
+            }
+        ]
+    }
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+    
+    # test incorrect delete
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]
+
+            },
+        )
+    expected_response = {'detail': [{'type': 'missing', 'loc': ['body', 'FindCommand', 'find'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'aggregate'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'pipeline'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'GetMoreCommand', 'getMore'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CollStatsCommand', 'collStats'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CountCommand', 'count'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'q'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'limit'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'update'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'updates'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}]}
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.json() == expected_response
+    
+    # 🧹 Clean up.
+    allowances_collection.delete_many(allow_spec)
+    study_set.delete_many({"id": study["id"]})
+
 
 def test_update_user():
     mdb = get_mongo(run_config_frozen__normal_env).db
@@ -281,13 +313,6 @@ def test_update_user():
             {"username": rs["user"]["username"]},
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
 
 
 def test_metadata_validate_json_0(api_site_client):
@@ -477,7 +502,7 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=data_generation["id"],
+        was_informed_by=[data_generation["id"]],
     )[0]
 
     # Make sure the `study_set`, `biosample_set`, `data_object_set`, `data_generation_set`, and
@@ -547,7 +572,7 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=nonexistent_data_generation_id,  # intentionally-broken reference
+        was_informed_by=[nonexistent_data_generation_id],  # intentionally-broken reference
     )[0]
 
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
@@ -667,7 +692,9 @@ def fake_study_nonexistent_in_mdb():
     yield nonexistent_study_id
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
     api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
 ):
@@ -701,7 +728,9 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         )
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
     api_user_client, fake_study_in_mdb
 ):
@@ -761,7 +790,9 @@ def fake_studies_and_biosamples_in_mdb():
     ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
 
-@pytest.mark.skipif(not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled")
+@pytest.mark.skipif(
+    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
 def test_get_related_ids_returns_related_ids(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
@@ -819,7 +850,11 @@ class TestFindDataObjectsForStudy:
     study_id = "nmdc:sty-00-000001"
     biosample_id = "nmdc:bsm-00-000001"
     data_generation_id = "nmdc:dgns-00-000001"
-    data_object_ids = ["nmdc:dobj-00-000001", "nmdc:dobj-00-000002", "nmdc:dobj-00-000003"]
+    data_object_ids = [
+        "nmdc:dobj-00-000001",
+        "nmdc:dobj-00-000002",
+        "nmdc:dobj-00-000003",
+    ]
     workflow_execution_ids = ["nmdc:wfmgan-00-000001", "nmdc:wfmgan-00-000002"]
 
     @pytest.fixture()
@@ -850,15 +885,28 @@ class TestFindDataObjectsForStudy:
 
         faker = Faker()
         study = faker.generate_studies(quantity=1, id=self.study_id)[0]
-        biosample = faker.generate_biosamples(quantity=1, id=self.biosample_id, associated_studies=[study["id"]])[0]
-        data_generation = faker.generate_nucleotide_sequencings(quantity=1, id=self.data_generation_id, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+        biosample = faker.generate_biosamples(
+            quantity=1, id=self.biosample_id, associated_studies=[study["id"]]
+        )[0]
+        data_generation = faker.generate_nucleotide_sequencings(
+            quantity=1,
+            id=self.data_generation_id,
+            associated_studies=[study["id"]],
+            has_input=[biosample["id"]],
+        )[0]
         data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
         data_object_a["id"] = self.data_object_ids[0]
         data_object_b["id"] = self.data_object_ids[1]
         data_object_a["data_category"] = "instrument_data"
         data_object_b["data_category"] = "processed_data"
-        workflow_execution = faker.generate_metagenome_annotations(quantity=1, id=self.workflow_execution_ids[0], has_input=[biosample["id"]], has_output=[data_object_a["id"], data_object_b["id"]], was_informed_by=data_generation["id"])[0]
-        
+        workflow_execution = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=self.workflow_execution_ids[0],
+            has_input=[biosample["id"]],
+            has_output=[data_object_a["id"], data_object_b["id"]],
+            was_informed_by=[data_generation["id"]],
+        )[0]
+
         mdb = get_mongo_db()
         study_set = mdb.get_collection(name="study_set")
         biosample_set = mdb.get_collection(name="biosample_set")
@@ -869,8 +917,16 @@ class TestFindDataObjectsForStudy:
         assert study_set.count_documents({"id": study["id"]}) == 0
         assert biosample_set.count_documents({"id": biosample["id"]}) == 0
         assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
-        assert data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
-        assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+        assert (
+            data_object_set.count_documents(
+                {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+            )
+            == 0
+        )
+        assert (
+            workflow_execution_set.count_documents({"id": workflow_execution["id"]})
+            == 0
+        )
 
         study_set.insert_many([study])
         biosample_set.insert_many([biosample])
@@ -887,7 +943,9 @@ class TestFindDataObjectsForStudy:
         study_set.delete_many({"id": study["id"]})
         biosample_set.delete_many({"id": biosample["id"]})
         data_generation_set.delete_many({"id": data_generation["id"]})
-        data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+        data_object_set.delete_many(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
         workflow_execution_set.delete_many({"id": workflow_execution["id"]})
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
@@ -911,7 +969,9 @@ class TestFindDataObjectsForStudy:
             )
         assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_it_returns_empty_list_for_study_having_no_data_objects(self, api_site_client):
+    def test_it_returns_empty_list_for_study_having_no_data_objects(
+        self, api_site_client
+    ):
         # Seed the test database with a study having no associated data objects.
         mdb = get_mongo_db()
         study_set = mdb.get_collection(name="study_set")
@@ -934,7 +994,9 @@ class TestFindDataObjectsForStudy:
         study_set.delete_many({"id": study["id"]})
         alldocs.delete_many({})
 
-    def test_it_returns_one_data_object_for_study_having_one(self, api_site_client, seeded_db):
+    def test_it_returns_one_data_object_for_study_having_one(
+        self, api_site_client, seeded_db
+    ):
         # Dissociate all but one of the data objects from the workflow execution.
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         workflow_execution_set.update_one(
@@ -946,7 +1008,9 @@ class TestFindDataObjectsForStudy:
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
         # Confirm the endpoint responds with the data object we expect.
-        response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
         assert len(data_objects_by_biosample) == 1
@@ -956,9 +1020,13 @@ class TestFindDataObjectsForStudy:
         received_data_object = received_biosample["data_objects"][0]
         assert received_data_object["id"] == self.data_object_ids[0]
 
-    def test_it_returns_data_objects_for_study_having_multiple(self, api_site_client, seeded_db):
+    def test_it_returns_data_objects_for_study_having_multiple(
+        self, api_site_client, seeded_db
+    ):
         # Confirm the endpoint responds with the data objects we expect.
-        response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
         assert len(data_objects_by_biosample) == 1
@@ -966,10 +1034,12 @@ class TestFindDataObjectsForStudy:
         assert received_biosample["biosample_id"] == self.biosample_id
         assert len(received_biosample["data_objects"]) == 2
         received_data_objects = received_biosample["data_objects"]
-        assert set([
-            self.data_object_ids[0],
-            self.data_object_ids[1],
-        ]) == set([dobj["id"] for dobj in received_data_objects])
+        assert set(
+            [
+                self.data_object_ids[0],
+                self.data_object_ids[1],
+            ]
+        ) == set([dobj["id"] for dobj in received_data_objects])
 
     @pytest.fixture()
     def seeded_db_with_multi_stage_wfe(self, seeded_db):
@@ -984,16 +1054,23 @@ class TestFindDataObjectsForStudy:
         ```
         """
         faker = Faker()
-        data_object_c = faker.generate_data_objects(quantity=1, id=self.data_object_ids[2])[0]
+        data_object_c = faker.generate_data_objects(
+            quantity=1, id=self.data_object_ids[2]
+        )[0]
         workflow_execution_b = faker.generate_metagenome_annotations(
             quantity=1,
             id=self.workflow_execution_ids[1],
-            has_input=[self.data_object_ids[0]],  # the output of the first `WorkflowExecution`
+            has_input=[
+                self.data_object_ids[0]
+            ],  # the output of the first `WorkflowExecution`
             has_output=[data_object_c["id"]],  # the new `DataObject`
-            was_informed_by=self.data_generation_id,
+            was_informed_by=[self.data_generation_id],
         )[0]
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
-        assert workflow_execution_set.count_documents({"id": workflow_execution_b["id"]}) == 0
+        assert (
+            workflow_execution_set.count_documents({"id": workflow_execution_b["id"]})
+            == 0
+        )
         workflow_execution_set.insert_many([workflow_execution_b])
         data_object_set = seeded_db.get_collection(name="data_object_set")
         assert data_object_set.count_documents({"id": data_object_c["id"]}) == 0
@@ -1007,25 +1084,35 @@ class TestFindDataObjectsForStudy:
         # Clean up: Delete the documents we created within this fixture, from the database.
         workflow_execution_set.delete_many({"id": workflow_execution_b["id"]})
         data_object_set.delete_many({"id": data_object_c["id"]})
-        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)        
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     def test_it_traverses_multiple_stages_of_workflow_executions(
-        self,
-        api_site_client,
-        seeded_db_with_multi_stage_wfe
+        self, api_site_client, seeded_db_with_multi_stage_wfe
     ):
         # Confirm the database is seeded the way we expect.
         db = seeded_db_with_multi_stage_wfe  # concise alias
         workflow_execution_set = db.get_collection(name="workflow_execution_set")
         data_object_set = db.get_collection(name="data_object_set")
-        assert workflow_execution_set.count_documents({"id": self.workflow_execution_ids[0]}) == 1
-        assert workflow_execution_set.count_documents({"id": self.workflow_execution_ids[1]}) == 1
+        assert (
+            workflow_execution_set.count_documents(
+                {"id": self.workflow_execution_ids[0]}
+            )
+            == 1
+        )
+        assert (
+            workflow_execution_set.count_documents(
+                {"id": self.workflow_execution_ids[1]}
+            )
+            == 1
+        )
         assert data_object_set.count_documents({"id": self.data_object_ids[0]}) == 1
         assert data_object_set.count_documents({"id": self.data_object_ids[1]}) == 1
         assert data_object_set.count_documents({"id": self.data_object_ids[2]}) == 1
 
         # Confirm the endpoint responds with the data objects we expect.
-        response = api_site_client.request("GET", f"/data_objects/study/{self.study_id}")
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
         assert len(data_objects_by_biosample) == 1
@@ -1037,6 +1124,217 @@ class TestFindDataObjectsForStudy:
         assert self.data_object_ids[0] in received_data_object_ids
         assert self.data_object_ids[1] in received_data_object_ids
         assert self.data_object_ids[2] in received_data_object_ids
+
+    @pytest.fixture()
+    def seeded_db_with_data_object_chain(self, seeded_db):
+        r"""
+        Fixture that seeds the database with a chain where a Biosample is fed as input
+        (`has_input` slot) to a NucleotideSequencing process, which produces a DataObject
+        as output (`has_output` slot). Then this DataObject is used as input into a
+        MetagenomeAnnotation workflow, which produces another DataObject as output.
+
+        ```mermaid
+        graph
+            biosample --> |has_input| nucleotide_sequencing_process
+            nucleotide_sequencing_process --> |has_output| ntseq_dobj
+            ntseq_dobj --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| wfmgan_dobj
+        ```
+        """
+        faker = Faker()
+
+        # Create a NucleotideSequencing DataGeneration that produces a raw data object
+        nucleotide_sequencing_id = "nmdc:ntseq-00-000001"
+        ntseq_dobj = faker.generate_data_objects(quantity=1, id="nmdc:dobj-00-000004")[
+            0
+        ]
+        ntseq_dobj["data_category"] = "instrument_data"
+
+        nucleotide_sequencing_process = faker.generate_nucleotide_sequencings(
+            quantity=1,
+            id=nucleotide_sequencing_id,
+            has_input=[self.biosample_id],
+            has_output=[ntseq_dobj["id"]],
+            associated_studies=[self.study_id],
+        )[0]
+
+        # Create a MetagenomeAnnotation workflow that takes the
+        # NucleotideSequencing DataObject as input
+        wfmgan_dobj = faker.generate_data_objects(quantity=1, id="nmdc:dobj-00-000005")[
+            0
+        ]
+        wfmgan_dobj["data_category"] = "processed_data"
+
+        metagenome_annotation_workflow = faker.generate_metagenome_annotations(
+            quantity=1,
+            has_input=[ntseq_dobj["id"]],
+            was_informed_by=[nucleotide_sequencing_id],
+            id="nmdc:wfmgan-00-000001.1",
+            has_output=[wfmgan_dobj["id"]],
+        )[0]
+
+        data_generation_set = seeded_db.get_collection(name="data_generation_set")
+        workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
+        data_object_set = seeded_db.get_collection(name="data_object_set")
+
+        data_generation_set.insert_many([nucleotide_sequencing_process])
+        workflow_execution_set.insert_many([metagenome_annotation_workflow])
+        data_object_set.insert_many([ntseq_dobj, wfmgan_dobj])
+
+        # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+        yield seeded_db
+
+        # Clean up: Delete the documents we created within this fixture, from the database.
+        data_generation_set.delete_many({"id": nucleotide_sequencing_process["id"]})
+        workflow_execution_set.delete_many({"id": metagenome_annotation_workflow["id"]})
+        data_object_set.delete_many(
+            {"id": {"$in": [ntseq_dobj["id"], wfmgan_dobj["id"]]}}
+        )
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    def test_it_finds_data_objects_in_chain_where_data_objects_are_inputs(
+        self, api_site_client, seeded_db_with_data_object_chain
+    ):
+        r"""
+        Test that the endpoint finds DataObjects that are part of a chain where DataObjects
+        serve as input to other processes (WorkflowExecution processes), validating functionality
+        that allows DataObjects to be connected through has_input/has_output relationships.
+        """
+        # Access the fixture so my IDE doesn't warn about unused function parameters
+        _ = seeded_db_with_data_object_chain
+
+        # Confirm the endpoint responds with all data objects in the chain
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
+        assert response.status_code == 200
+        data_objects_by_biosample = response.json()
+        assert len(data_objects_by_biosample) == 1
+        received_biosample = data_objects_by_biosample[0]
+        assert received_biosample["biosample_id"] == self.biosample_id
+
+        # Should find all 4 data objects: original 2, plus 2 from the nucleotide sequencing -> nom analysis chain
+        assert len(received_biosample["data_objects"]) == 4
+        received_data_objects = received_biosample["data_objects"]
+        received_data_object_ids = [dobj["id"] for dobj in received_data_objects]
+
+        # Verify all expected data objects are present
+        expected_ids = [
+            self.data_object_ids[0],  # original data_object_a
+            self.data_object_ids[1],  # original data_object_b
+            "nmdc:dobj-00-000004",  # data_object from nucleotide sequencing process
+            "nmdc:dobj-00-000005",  # data_object from metagenome annotation workflow
+        ]
+        assert set(expected_ids) == set(received_data_object_ids)
+
+    @pytest.fixture()
+    def seeded_db_with_informed_by_workflow(self, seeded_db):
+        r"""
+        Fixture that seeds the database with a chain where a Biosample is fed as input
+        (`has_input` slot) to a NucleotideSequencing process, which produces a DataObject
+        as output (`has_output` slot). Similar to the way in which the database is seeded above,
+        the DataObject is used as input into a  MetagenomeAnnotation workflow, which produces
+        another DataObject as output. In addition, the NucleotideSequencing process is also
+        linked to the MetagenomeAnnotation workflow via the `was_informed_by` slot.
+
+        ```mermaid
+        graph
+            biosample --> |has_input| nucleotide_sequencing_process
+            nucleotide_sequencing_process --> |has_output| data_object_a
+            data_object_a --> |has_input| metagenome_annotation_workflow
+            metagenome_annotation_workflow --> |has_output| data_object_b
+            metagenome_annotation_workflow --> |was_informed_by| nucleotide_sequencing_process
+        ```
+        """
+        faker = Faker()
+
+        # Create a NucleotideSequencing DataGeneration that produces raw data
+        nucleotide_sequencing_b_id = "nmdc:ntseq-00-000002"
+        data_object_a = faker.generate_data_objects(
+            quantity=1, id="nmdc:dobj-00-000006"
+        )[0]
+        data_object_a["data_category"] = "instrument_data"
+
+        nucleotide_sequencing_b = faker.generate_nucleotide_sequencings(
+            quantity=1,
+            id=nucleotide_sequencing_b_id,
+            has_input=[self.biosample_id],
+            has_output=[data_object_a["id"]],
+            associated_studies=[self.study_id],
+        )[0]
+
+        # Create processed data object
+        data_object_b = faker.generate_data_objects(
+            quantity=1, id="nmdc:dobj-00-000007"
+        )[0]
+        data_object_b["data_category"] = "processed_data"
+
+        # Create MetagenomeAnnotation workflow informed by the NucleotideSequencing
+        metagenome_annotation_b = faker.generate_metagenome_annotations(
+            quantity=1,
+            has_input=[data_object_a["id"]],
+            was_informed_by=[nucleotide_sequencing_b_id],
+            id="nmdc:wfmgan-00-000002.1",
+            has_output=[data_object_b["id"]],
+        )[0]
+
+        data_generation_set = seeded_db.get_collection(name="data_generation_set")
+        workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
+        data_object_set = seeded_db.get_collection(name="data_object_set")
+
+        data_generation_set.insert_many([nucleotide_sequencing_b])
+        workflow_execution_set.insert_many([metagenome_annotation_b])
+        data_object_set.insert_many([data_object_a, data_object_b])
+
+        # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+        yield seeded_db
+
+        # Clean up: Delete the documents we created within this fixture, from the database.
+        data_generation_set.delete_many({"id": nucleotide_sequencing_b["id"]})
+        workflow_execution_set.delete_many({"id": metagenome_annotation_b["id"]})
+        data_object_set.delete_many(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    def test_it_finds_data_objects_via_informed_by_workflow_linking(
+        self, api_site_client, seeded_db_with_informed_by_workflow
+    ):
+        r"""
+        Test that the endpoint finds DataObjects through WorkflowExecutions that are
+        linked to DataGeneration records via the `was_informed_by` slot, validating
+        functionality that processes DataGeneration descendants.
+        """
+        # Access the fixture so my IDE doesn't warn about unused function parameters
+        _ = seeded_db_with_informed_by_workflow
+
+        # Confirm the endpoint responds with data objects found via informed_by linking
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
+        assert response.status_code == 200
+        data_objects_by_biosample = response.json()
+        assert len(data_objects_by_biosample) == 1
+        received_biosample = data_objects_by_biosample[0]
+        assert received_biosample["biosample_id"] == self.biosample_id
+
+        # Should find original 2 data objects plus 2 from informed_by workflow chain
+        assert len(received_biosample["data_objects"]) == 4
+        received_data_objects = received_biosample["data_objects"]
+        received_data_object_ids = [dobj["id"] for dobj in received_data_objects]
+
+        # Verify all expected data objects are present
+        expected_ids = [
+            self.data_object_ids[0],  # original data_object_a
+            self.data_object_ids[1],  # original data_object_b
+            "nmdc:dobj-00-000006",  # data_object_b from nucleotide sequencing
+            "nmdc:dobj-00-000007",  # data_object_b from nom analysis
+        ]
+        assert set(expected_ids) == set(received_data_object_ids)
 
 
 def test_find_planned_processes(api_site_client):
@@ -1219,6 +1517,7 @@ def test_run_query_update_as_user(api_user_client):
             },
         )
 
+
 def test_run_query_aggregate_as_user(api_user_client):
     """
     Submit a request to aggregate data without the correct permissions. Then add the permissions
@@ -1291,7 +1590,6 @@ def test_run_query_aggregate_as_user(api_user_client):
     allowances_collection.delete_many(allow_spec)
 
 
-@pytest.mark.skip(reason="We currently allow deletions that leave behind broken references. See boolean flag `are_broken_references_allowed` in the endpoint under test.")
 def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     api_user_client,
     fake_studies_and_biosamples_in_mdb,
@@ -1378,6 +1676,152 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
     assert response.json()["n"] == 2
 
 
+def test_queries_run_allows_ref_breaking_deletions_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "delete" commands via the `/queries:run` API endpoint.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Case 1: We cannot delete Study A because Biosample A and Study B are referencing it.
+    # Reference: https://docs.pytest.org/en/6.2.x/reference.html#pytest-raises
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "delete": "study_set",
+                "deletes": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "limit": 0,
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Case 2: We can do it if we opt out of the referential integrity checks.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "delete": "study_set",
+            "deletes": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "limit": 0,
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["n"] == 1
+
+
+def test_queries_run_rejects_updates_that_would_leave_broken_references(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    r"""
+    This test focuses on the general behavior of the API _endpoint_ when the update
+    would leave behind broken references. We have a different set of tests, in
+    `tests/test_api/test_endpoints_lib.py`, focused on specific scenarios.
+    """
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
+
+
+def test_queries_run_allows_ref_breaking_updates_when_user_opts_to_allow_broken_refs(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+
+    # Ensure the user has permission to issue "update" commands via the `/queries:run` API endpoint.
+    # Note: The same "allowance" document is used for both "update" and "delete" commands.
+    mdb = get_mongo_db()
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    mdb["_runtime.api.allow"].replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Confirm the endpoint doesn't allow us to introduce a reference to a nonexistent document.
+    nonexistent_study_id = "nmdc:sty-00-000099"
+    assert mdb.study_set.count_documents({"id": nonexistent_study_id}) == 0
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/queries:run",
+            {
+                "update": "study_set",
+                "updates": [
+                    {
+                        "q": {"id": study_a["id"]},
+                        "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                    }
+                ],
+            },
+        )
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_body = exc_info.value.response.json()
+    assert "study_set" in response_body["detail"]
+
+    # Now, confirm the endpoint allows us to introduce a reference to a nonexistent document
+    # if we tell it to allow broken references.
+    response = api_user_client.request(
+        "POST",
+        "/queries:run?allow_broken_refs=true",
+        {
+            "update": "study_set",
+            "updates": [
+                {
+                    "q": {"id": study_a["id"]},
+                    "u": {"$set": {"part_of": [nonexistent_study_id]}},
+                }
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_find_related_resources_for_workflow_execution__returns_404_if_wfe_nonexistent(
     base_url: str,
 ):
@@ -1419,7 +1863,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_resource
         1, was_generated_by=data_generation["id"]
     )[0]
     workflow_execution = faker.generate_metagenome_annotations(
-        1, was_informed_by=data_generation["id"], has_input=[data_object["id"]]
+        1, was_informed_by=[data_generation["id"]], has_input=[data_object["id"]]
     )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
@@ -1501,7 +1945,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
         1, was_generated_by=data_generation_a["id"]
     )[0]
     workflow_execution_a = faker.generate_metagenome_annotations(
-        1, was_informed_by=data_generation_a["id"], has_input=[data_object_a["id"]]
+        1, was_informed_by=[data_generation_a["id"]], has_input=[data_object_a["id"]]
     )[0]
 
     # Create a second `WorkflowExecution` that is related to the first one.
@@ -1510,7 +1954,7 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
     )[0]
     workflow_execution_b = faker.generate_metagenome_annotations(
         1,
-        was_informed_by=data_generation_a["id"],
+        was_informed_by=[data_generation_a["id"]],
         has_input=[data_object_b["id"]],
     )[0]
 
@@ -1587,6 +2031,90 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
     workflow_execution_set.delete_many(
         {"id": {"$in": [workflow_execution_a["id"], workflow_execution_b["id"]]}}
     )
+
+
+def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generations(api_user_client):
+    r"""
+    This test is focused on the case where the specified `WorkflowExecution` is
+    informed by multiple `DataGeneration`s, each having a `Biosample` as input
+    that the other `DataGeneration` does not have as input. We want to ensure
+    the endpoint returns all of those `Biosamples`.
+
+    Here is a Mermaid graph/flowchart showing the documents that this test inserts into
+    the database, and the relationships between those documents.
+    Reference: https://mermaid.js.org/syntax/flowchart.html
+    ```mermaid
+    graph BT
+        biosample_a --> |associated_studies| study
+        biosample_b --> |associated_studies| study
+        data_generation_a --> |associated_studies| study
+        data_generation_b --> |associated_studies| study
+        data_generation_a --> |has_input| biosample_a
+        data_generation_b --> |has_input| biosample_b
+        data_generation_a --> |has_output| data_object_a
+        data_generation_b --> |has_output| data_object_b
+        workflow_execution --> |has_input| data_object_a
+        workflow_execution --> |has_input| data_object_b
+        workflow_execution --> |was_informed_by| data_generation_a
+        workflow_execution --> |was_informed_by| data_generation_b
+    ```
+    """
+    # Generate interrelated documents.
+    faker = Faker()
+    study = faker.generate_studies(1)[0]
+    biosamples = faker.generate_biosamples(2, associated_studies=[study["id"]])
+    biosample_a, biosample_b = biosamples
+    data_objects = faker.generate_data_objects(2)
+    data_object_a, data_object_b = data_objects
+    data_generation_a = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_a["id"]], has_output=[data_object_a["id"]])[0]
+    data_generation_b = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_b["id"]], has_output=[data_object_b["id"]])[0]
+    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=[data_generation_a["id"], data_generation_b["id"], data_generation_b["id"]], has_input=[data_object_a["id"], data_object_b["id"]])[0]
+
+    # Confirm documents having the above-generated IDs don't already exist in the database.
+    assert get_mongo_db().study_set.count_documents({"id": study["id"]}) == 0
+    assert get_mongo_db().biosample_set.count_documents({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}) == 0
+    assert get_mongo_db().data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
+    assert get_mongo_db().data_generation_set.count_documents({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}) == 0
+    assert get_mongo_db().workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+
+    # Insert the documents.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    biosample_set = mdb.get_collection("biosample_set")
+    data_object_set = mdb.get_collection("data_object_set")
+    data_generation_set = mdb.get_collection("data_generation_set")
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    study_set.insert_many([study])
+    biosample_set.insert_many([biosample_a, biosample_b])
+    data_object_set.insert_many([data_object_a, data_object_b])
+    data_generation_set.insert_many([data_generation_a, data_generation_b])
+    workflow_execution_set.insert_one(workflow_execution)
+
+    # Since we know the API endpoint depends upon the "alldocs" cache (collection),
+    # refresh that cache since we just now updated the source of truth collections.
+    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    # Submit the API request.
+    response = api_user_client.request(
+        "GET",
+        f"/workflow_executions/{workflow_execution['id']}/related_resources",
+    )
+    assert response.status_code == 200
+
+    # Verify the response payload contains all the `Biosample`s that are related to
+    # the `WorkflowExecution`, through _any_ of the `DataGeneration`s that the
+    # `WorkflowExecution` was informed by.
+    response_payload = response.json()
+    assert len(response_payload["biosamples"]) == 2
+    returned_biosample_ids = [b["id"] for b in response_payload["biosamples"]]
+    assert set(returned_biosample_ids) == {biosample_a["id"], biosample_b["id"]}
+
+    # Clean up.
+    study_set.delete_many({"id": study["id"]})
+    biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
+    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
+    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}})
+    workflow_execution_set.delete_one({"id": workflow_execution["id"]})
 
 
 def test_run_query_find__first_batch_and_its_cursor_id(api_user_client):
@@ -2382,7 +2910,7 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
     faker = Faker()
     studies = faker.generate_studies(6, title=study_title)
     study_set.insert_many(studies)
-    
+
     # give user permission to run aggregate queries
     allow_spec = {
         "username": api_user_client.username,

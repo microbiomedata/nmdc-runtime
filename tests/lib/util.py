@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-from pymongo.database import Database as MongoDatabase
 import pytest
 
 from nmdc_runtime.api.db.mongo import get_session_bound_mongo_db

@@ -5,7 +5,6 @@ from copy import deepcopy
 import json
 import sys
 from pathlib import Path
-from subprocess import run
 
 import fastjsonschema
 import pytest

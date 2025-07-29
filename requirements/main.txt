@@ -545,7 +545,7 @@ networkx==3.4.2
     #   oaklib
     #   pronto
     #   sssom
-nmdc-schema==11.8.0
+nmdc-schema==11.9.1
     # via
     #   -r requirements/main.in
     #   ontology-loader
@@ -816,7 +816,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-specifications
     #   jupyter-events
-refscan==0.2.5
+refscan==0.3.2
     # via -r requirements/main.in
 regex==2024.11.6
     # via tiktoken

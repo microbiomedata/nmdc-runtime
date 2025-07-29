@@ -1,7 +1,6 @@
-from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.collection import Collection
-from typing import Any, Mapping, Optional, Type, Callable
+from typing import Any, Optional
 from pymongo.client_session import ClientSession
 import inspect
 

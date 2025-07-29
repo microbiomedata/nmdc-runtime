@@ -4,10 +4,9 @@ import logging
 import mimetypes
 import os
 import subprocess
-import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from io import BytesIO, StringIO
+from io import BytesIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
 from typing import Tuple, Set
@@ -44,7 +43,7 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -106,20 +105,16 @@ from nmdc_runtime.util import (
     get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
-    validate_json,
     specialize_activity_set_docs,
     collection_name_to_class_names,
-    class_hierarchy_as_list,
     nmdc_schema_view,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
-from nmdc_schema.nmdc import Database as NMDCDatabase
-from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import assoc, dissoc, get_in, valfilter, identity
+from toolz import get_in, valfilter, identity
 
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000
@@ -152,99 +147,6 @@ def mongo_stats(context) -> List[str]:
     collection_names = db.list_collection_names()
     context.log.info(str(collection_names))
     return collection_names
-
-
-@op(
-    required_resource_keys={"mongo", "runtime_api_site_client"},
-    retry_policy=RetryPolicy(max_retries=2),
-)
-def local_file_to_api_object(context, file_info):
-    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
-    storage_path: str = file_info["storage_path"]
-    mime_type = file_info.get("mime_type")
-    if mime_type is None:
-        mime_type = mimetypes.guess_type(storage_path)[0]
-    rv = client.put_object_in_site(
-        {"mime_type": mime_type, "name": storage_path.rpartition("/")[-1]}
-    )
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description=f"put_object_in_site failed: {rv.content}")
-    op = rv.json()
-    context.log.info(f"put_object_in_site: {op}")
-    rv = put_object(storage_path, op["metadata"]["url"])
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description=f"put_object failed: {rv.content}")
-    op_patch = {"done": True, "result": drs_object_in_for(storage_path, op)}
-    rv = client.update_operation(op["id"], op_patch)
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description="update_operation failed")
-    op = rv.json()
-    context.log.info(f"update_operation: {op}")
-    rv = client.create_object_from_op(op)
-    if rv.status_code != status.HTTP_201_CREATED:
-        raise Failure("create_object_from_op failed")
-    obj = rv.json()
-    context.log.info(f'Created /objects/{obj["id"]}')
-    mdb = context.resources.mongo.db
-    rv = mdb.operations.delete_one({"id": op["id"]})
-    if rv.deleted_count != 1:
-        context.log.error("deleting op failed")
-    yield AssetMaterialization(
-        asset_key=AssetKey(["object", obj["name"]]),
-        description="output of metadata-translation run_etl",
-        metadata={"object_id": MetadataValue.text(obj["id"])},
-    )
-    yield Output(obj)
-
-
-@op(
-    out={
-        "merged_data_path": Out(
-            str,
-            description="path to TSV merging of source metadata",
-        )
-    }
-)
-def build_merged_db(context) -> str:
-    context.log.info("metadata-translation: running `make build-merged-db`")
-    run_and_log(
-        "cd /opt/dagster/lib/metadata-translation/ && make build-merged-db", context
-    )
-    storage_path = (
-        "/opt/dagster/lib/metadata-translation/src/data/nmdc_merged_data.tsv.zip"
-    )
-    yield AssetMaterialization(
-        asset_key=AssetKey(["gold_translation", "merged_data.tsv.zip"]),
-        description="input to metadata-translation run_etl",
-        metadata={"path": MetadataValue.path(storage_path)},
-    )
-    yield Output(storage_path, "merged_data_path")
-
-
-@op(
-    required_resource_keys={"runtime_api_site_client"},
-)
-def run_etl(context, merged_data_path: str):
-    context.log.info("metadata-translation: running `make run-etl`")
-    if not os.path.exists(merged_data_path):
-        raise Failure(description=f"merged_db not present at {merged_data_path}")
-    run_and_log("cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
-    storage_path = (
-        "/opt/dagster/lib/metadata-translation/src/data/nmdc_database.json.zip"
-    )
-    with ZipFile(storage_path) as zf:
-        name = zf.namelist()[0]
-        with zf.open(name) as f:
-            rv = json.load(f)
-    context.log.info(f"nmdc_database.json keys: {list(rv.keys())}")
-    yield AssetMaterialization(
-        asset_key=AssetKey(["gold_translation", "database.json.zip"]),
-        description="output of metadata-translation run_etl",
-        metadata={
-            "path": MetadataValue.path(storage_path),
-        },
-    )
-    yield Output({"storage_path": storage_path})
 
 
 @op(required_resource_keys={"mongo"})
@@ -557,22 +459,25 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         "study_type": str,
         "gold_nmdc_instrument_mapping_file_url": str,
         "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "study_id": Out(str),
         "study_type": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
         "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
 def get_gold_study_pipeline_inputs(
     context: OpExecutionContext,
-) -> Tuple[str, str, str, bool]:
+) -> Tuple[str, str, str, bool, bool]:
     return (
         context.op_config["study_id"],
         context.op_config["study_type"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
         context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -616,6 +521,7 @@ def nmdc_schema_database_from_gold_study(
     analysis_projects: List[Dict[str, Any]],
     gold_nmdc_instrument_map_df: pd.DataFrame,
     include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -631,6 +537,7 @@ def nmdc_schema_database_from_gold_study(
         analysis_projects,
         gold_nmdc_instrument_map_df,
         include_field_site_info,
+        enable_biosample_filtering,
         id_minter=id_minter,
     )
     database = translator.get_database()
@@ -1115,8 +1022,8 @@ def _add_related_ids_to_alldocs(
         "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
         "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
         "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
-        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy .
-        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy .
+        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy.
+        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy.
     ]
     # An "outbound" slot is one for which an entity in the domain "influences"
     # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
@@ -1495,16 +1402,24 @@ def post_submission_portal_biosample_ingest_record_stitching_filename(
     config_schema={
         "nmdc_study_id": str,
         "gold_nmdc_instrument_mapping_file_url": str,
+        "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "nmdc_study_id": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
+        "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
-def get_database_updater_inputs(context: OpExecutionContext) -> Tuple[str, str]:
+def get_database_updater_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, bool, bool]:
     return (
         context.op_config["nmdc_study_id"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
+        context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -1519,6 +1434,8 @@ def generate_data_generation_set_post_biosample_ingest(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1534,6 +1451,8 @@ def generate_data_generation_set_post_biosample_ingest(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = (
         database_updater.generate_data_generation_set_records_from_gold_api_for_study()
@@ -1553,6 +1472,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool = False,
+    enable_biosample_filtering: bool = False,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1568,6 +1489,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
@@ -1579,13 +1502,16 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         "runtime_api_user_client",
         "runtime_api_site_client",
         "gold_api_client",
-    }
+    },
+    out=Out(Any),
 )
 def run_script_to_update_insdc_biosample_identifiers(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
-) -> Dict[str, Any]:
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
+):
     """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
 
     This op uses the DatabaseUpdater to generate a script that can be used to update biosample
@@ -1597,7 +1523,7 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_nmdc_instrument_map_df: A dataframe mapping GOLD instrument IDs to NMDC instrument set records
 
     Returns:
-        A dictionary containing the MongoDB update script
+        A dictionary or list of dictionaries containing the MongoDB update script(s)
     """
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1613,11 +1539,17 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
 
+    if isinstance(update_script, list):
+        total_updates = sum(len(item.get("updates", [])) for item in update_script)
+    else:
+        total_updates = len(update_script.get("updates", []))
     context.log.info(
-        f"Generated update script for study {nmdc_study_id} with {len(update_script.get('updates', []))} updates"
+        f"Generated update script for study {nmdc_study_id} with {total_updates} updates"
     )
 
     return update_script

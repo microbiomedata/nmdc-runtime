@@ -4,7 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from typing import Any, List, Union
+from typing import Any, List
 from urllib.parse import urlparse
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
@@ -16,7 +16,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_float_value,
     handle_string_value,
     load_mappings,
-    validate_xml,
 )
 
 

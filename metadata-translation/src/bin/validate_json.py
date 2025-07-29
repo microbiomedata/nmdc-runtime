@@ -1,4 +1,3 @@
-import jsonschema
 from jsonschema import Draft7Validator
 import json
 

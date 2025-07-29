@@ -1,7 +1,7 @@
 from operator import itemgetter
 from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, Form, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 from jinja2 import Environment, PackageLoader, select_autoescape
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
@@ -217,6 +217,11 @@ def find_data_objects_for_study(
     # created by this linkage.
     def process_informed_by_docs(doc, collected_objects, unique_ids):
         """Process documents linked by `was_informed_by` and collect relevant data objects."""
+        # Note: As of nmdc-schema 11.9.0, the `was_informed_by` field, if defined,
+        #       will contain a list of strings. In MongoDB, the `{k: v}` filter
+        #       can be used to check whether either (a) the value of field `f` is
+        #       an array containing `v` as one of its elements, or (b) the value
+        #       of field `f` is exactly equal to `v`. We rely on behavior (a) here.
         informed_by_docs = mdb.workflow_execution_set.find(
             {"was_informed_by": doc["id"]}
         )
@@ -261,8 +266,8 @@ def find_data_objects_for_study(
                     collect_data_objects(has_output, collected_data_objects, unique_ids)
                     # Add non-DataObject outputs to continue the chain
                     for op in has_output:
-                        doc = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                        if doc and doc.get("type") != "nmdc:DataObject":
+                        doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                        if doc_check and doc_check.get("type") != "nmdc:DataObject":
                             new_current_ids.append(op)
 
                     if any(
@@ -271,6 +276,25 @@ def find_data_objects_for_study(
                         process_informed_by_docs(
                             doc, collected_data_objects, unique_ids
                         )
+
+                # Also check if current_id is a DataObject that serves as input to other processes
+                current_doc_type = mdb.alldocs.find_one({"id": current_id}, {"type": 1})
+                if (
+                    current_doc_type
+                    and current_doc_type.get("type") == "nmdc:DataObject"
+                ):
+                    # Find all documents in alldocs that have this DataObject as input
+                    for doc in mdb.alldocs.find({"has_input": current_id}):
+                        has_output = doc.get("has_output", [])
+                        # Process outputs from these documents
+                        collect_data_objects(
+                            has_output, collected_data_objects, unique_ids
+                        )
+                        # Add non-DataObject outputs to continue the chain
+                        for op in has_output:
+                            doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
+                            if doc_check and doc_check.get("type") != "nmdc:DataObject":
+                                new_current_ids.append(op)
 
             current_ids = new_current_ids
 
@@ -386,10 +410,9 @@ def find_planned_process_by_id(
         "This endpoint returns a JSON object that contains "
         "(a) the specified `WorkflowExecution`, "
         "(b) all the `DataObject`s that are inputs to — or outputs from — the specified `WorkflowExecution`, "
-        "(c) all the `DataGeneration`s that generated those `DataObject`s, "
-        "(d) all the `Biosample`s that were inputs to those `DataGeneration`s, "
-        "(e) all the `Study`s with which those `Biosample`s are associated, and "
-        "(f) all the other `WorkflowExecution`s that are part of the same processing pipeline "
+        "(c) all the `Biosample`s that were inputs to those `DataGeneration`s, "
+        "(d) all the `Study`s with which those `Biosample`s are associated, and "
+        "(e) all the other `WorkflowExecution`s that are part of the same processing pipeline "
         "as the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
@@ -605,39 +628,50 @@ def find_related_objects_for_workflow_execution(
         for wfe in related_wfes:
             add_workflow_execution(wfe)
 
-    # Find WorkflowExecutions whose `was_informed_by` value matches that of the user-specified WorkflowExecution.
+    # Find WorkflowExecutions whose `was_informed_by` list contains that of the user-specified WorkflowExecution.
     # Add those, too, to our list of related WorkflowExecutions.
     if "was_informed_by" in workflow_execution:
         was_informed_by = workflow_execution["was_informed_by"]
+
+        # Note: We added this assertion in an attempt to facilitate debugging
+        #       the system in the situation where a `WorkflowExecution` document
+        #       has a `was_informed_by` field whose value is not a list (which
+        #       would be a violation of NMDC schema 11.9.0).
+        assert isinstance(was_informed_by, list), (
+            "A WorkflowExecution's `was_informed_by` field contained "
+            f"a {type(was_informed_by)} instead of a list."
+        )
+
+        # Get all WorkflowExecutions that were informed by any of the
+        # things that informed the user-specified WorkflowExecution.
         related_wfes = mdb.workflow_execution_set.find(
-            {"was_informed_by": was_informed_by}
+            {"was_informed_by": {"$in": was_informed_by}}
         )
         for wfe in related_wfes:
             if wfe["id"] != workflow_execution_id:
                 add_workflow_execution(wfe)
 
-        # Look for a DataGeneration in the `alldocs` collection.
-        # We'll use that DataGeneration to get to related Biosamples.
-        dg_doc = mdb.alldocs.find_one({"id": was_informed_by})
-        if dg_doc and any(
-            t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])
-        ):
-            # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
-            # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
-            for input_id in dg_doc.get("has_input", []):
-                find_biosamples_recursively(input_id)
+        # Get all `DataGeneration`s that informed the user-specified `WorkflowExecution`, then
+        # get all `Biosample`s and `Study`s associated with each of those `DataGeneration`s.
+        dg_docs = mdb.alldocs.find({"id": {"$in": was_informed_by}})
+        for dg_doc in dg_docs:
+            if any(t in dg_descendants for t in dg_doc.get("_type_and_ancestors", [])):
+                # Get Biosamples from the DataGeneration's `has_input` field by recursively walking up the chain.
+                # While we recursively walk up the chain, we'll add those Biosamples to our list of Biosamples.
+                for input_id in dg_doc.get("has_input", []):
+                    find_biosamples_recursively(input_id)
 
-            # Get Studies associated with the DataGeneration,
-            # and add them to our list of Studies.
-            for study_id in dg_doc.get("associated_studies", []):
-                add_study(study_id)
+                # Get Studies associated with the DataGeneration,
+                # and add them to our list of Studies.
+                for study_id in dg_doc.get("associated_studies", []):
+                    add_study(study_id)
 
-            # If the DataGeneration has no associated Studies, but has related Biosamples,
-            # add the Studies associated with those Biosamples to our list of Studies.
-            if not dg_doc.get("associated_studies") and len(biosamples) > 0:
-                for bs in biosamples:
-                    for study_id in bs.get("associated_studies", []):
-                        add_study(study_id)
+                # If the DataGeneration has no associated Studies, but has related Biosamples,
+                # add the Studies associated with those Biosamples to our list of Studies.
+                if not dg_doc.get("associated_studies") and len(biosamples) > 0:
+                    for bs in biosamples:
+                        for study_id in bs.get("associated_studies", []):
+                            add_study(study_id)
 
     # For all data objects we collected, check if they have a `was_generated_by` reference
     # This is a supplementary path to find more relationships

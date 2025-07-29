@@ -9,9 +9,11 @@ from nmdc_schema.nmdc import (
     ExecutionResourceEnum,
     FileTypeEnum,
     MetagenomeAnnotation,
+    MetagenomeAssembly,
     NucleotideSequencing,
     NucleotideSequencingEnum,
     OntologyClass,
+    ReadQcAnalysis,
     Study,
     StudyCategoryEnum,
 )
@@ -216,27 +218,27 @@ class Faker:
         return documents
 
 
-    def generate_metagenome_annotations(self, quantity: int, was_informed_by: str, has_input: List[str], **overrides) -> List[dict]:
+    def generate_metagenome_annotations(self, quantity: int, was_informed_by: List[str], has_input: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
         which can be stored in the `workflow_execution_set` collection.
-        The documents comply with schema v11.8.0.
+        The documents comply with schema v11.9.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
 
         :param quantity: Number of documents to create
-        :param was_informed_by: The `id` of a `DataGeneration` instance
+        :param was_informed_by: The `id`s of `DataGeneration` instances
         :param has_input: The `id`s of one or more `NamedThing` instances
         :param overrides: Fields, if any, to add or override in each document
         :return: The generated documents
 
         >>> f = Faker()
-        >>> metagenome_annotations = f.generate_metagenome_annotations(1, was_informed_by='nmdc:dgns-00-000001', has_input=['nmdc:bsm-00-000001'])
+        >>> metagenome_annotations = f.generate_metagenome_annotations(1, was_informed_by=['nmdc:dgns-00-000001'], has_input=['nmdc:bsm-00-000001'])
         >>> len(metagenome_annotations)
         1
         >>> metagenome_annotations[0]['id']
         'nmdc:wfmgan-00-000001.1'
-        >>> metagenome_annotations[0]['was_informed_by']
+        >>> metagenome_annotations[0]['was_informed_by'][0]
         'nmdc:dgns-00-000001'
         >>> metagenome_annotations[0]['has_input'][0]
         'nmdc:bsm-00-000001'
@@ -375,7 +377,7 @@ class Faker:
             # Apply any overrides passed in.
             params = {
                 "id": self.make_unique_id(f"nmdc:dobj-00-"),
-                "type": "nmdc:DataObject",
+                "type": DataObject.class_class_curie,
                 "name": "arbitrary_string",
                 "description": "arbitrary_string",
                 "data_category": DataCategoryEnum.processed_data.text,
@@ -385,6 +387,85 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `DataObject`.
             instance = DataObject(**params)
+            
+            # Dump the instance to a `dict` (technically, to a `JsonObj`).
+            document = json_dumper.to_dict(instance)
+            documents.append(document)
+
+        return documents
+
+    def generate_workflow_executions(self, quantity: int, workflow_type: str, was_informed_by: List[str], has_input: List[str], **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing generic workflow execution instances,
+        which can be stored in the `workflow_execution_set` collection.
+        The documents comply with schema v11.8.0.
+
+        :param quantity: Number of documents to create
+        :param workflow_type: The type of workflow (e.g., 'nmdc:MetagenomeAnnotation', 'nmdc:MetagenomeAssembly')
+        :param was_informed_by: The `id`s of `DataGeneration` instances
+        :param has_input: The `id`s of one or more `NamedThing` instances
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> workflow_executions = f.generate_workflow_executions(1, 'nmdc:MetagenomeAnnotation', was_informed_by=['nmdc:dgns-00-000001'], has_input=['nmdc:dobj-00-000001'], has_output=['nmdc:dobj-00-000002'])
+        >>> len(workflow_executions)
+        1
+        >>> workflow_executions[0]['type']
+        'nmdc:MetagenomeAnnotation'
+        >>> workflow_executions[0]['was_informed_by'][0]
+        'nmdc:dgns-00-000001'
+        >>> workflow_executions[0]['has_input'][0]
+        'nmdc:dobj-00-000001'
+
+        # Demonstrate that `has_output` will be set if provided.
+        >>> workflow_executions = f.generate_workflow_executions(1, 'nmdc:MetagenomeAnnotation', was_informed_by=['nmdc:dgns-00-000001'], has_input=['nmdc:dobj-00-000001'], has_output=['nmdc:dobj-00-000002'])
+        >>> 'has_output' in workflow_executions[0]
+        True
+        >>> workflow_executions[0]['has_output'][0]
+        'nmdc:dobj-00-000002'
+
+        # Demonstrate that unsupported workflow types raise an error.
+        >>> f.generate_workflow_executions(1, 'nmdc:NoSuchWorkflowType', was_informed_by=['nmdc:dgns-00-000001'], has_input=['nmdc:dobj-00-000001'])
+        Traceback (most recent call last):
+            ...
+        ValueError: Unsupported workflow type: 'nmdc:NoSuchWorkflowType'
+        """
+
+        documents = []
+        for i in range(quantity):
+            # Generate appropriate ID prefix based on workflow type
+            # TODO: Add support for other workflow types as needed
+            if workflow_type == MetagenomeAnnotation.class_class_curie:
+                id_prefix = "nmdc:wfmgan-00-"
+            elif workflow_type == MetagenomeAssembly.class_class_curie:
+                id_prefix = "nmdc:wfmgas-00-"
+            elif workflow_type == ReadQcAnalysis.class_class_curie:
+                id_prefix = "nmdc:wfrqc-00-"
+            else:
+                # Generic workflow execution ID
+                raise ValueError(f"Unsupported workflow type: '{workflow_type}'")
+            
+            # Apply any overrides passed in.
+            params = {
+                "id": self.make_unique_id(id_prefix) + ".1",
+                "type": workflow_type,
+                "execution_resource": ExecutionResourceEnum.JGI.text,
+                "git_url": "https://www.example.com",
+                "started_at_time": "2000-01-01 12:00:00",
+                "was_informed_by": was_informed_by,
+                "has_input": has_input,
+                **overrides,
+            }
+
+            # Validate the parameters by attempting to instantiate the relevant subclass of `WorkflowExecution`.
+            wfe_type_to_schema_class_map = {
+                MetagenomeAnnotation.class_class_curie: MetagenomeAnnotation,
+                MetagenomeAssembly.class_class_curie: MetagenomeAssembly,
+                ReadQcAnalysis.class_class_curie: ReadQcAnalysis,
+            }
+            schema_class = wfe_type_to_schema_class_map[workflow_type]
+            instance = schema_class(**params)
             
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)

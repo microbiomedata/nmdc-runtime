@@ -43,7 +43,7 @@ mkdocs-material
 mkdocs-mermaid2-plugin
 motor
 ontology-loader==0.2.2
-nmdc-schema==11.8.0
+nmdc-schema==11.9.1
 openpyxl
 pandas
 passlib[bcrypt]
@@ -57,7 +57,7 @@ python-multipart>=0.0.18
 pyyaml
 # Note: We use `refscan` to get information about inter-document references from the schema and database.
 #       Reference: https://pypi.org/project/refscan/
-refscan==0.2.5
+refscan==0.3.2
 requests
 # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
 # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar

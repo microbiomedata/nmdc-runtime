@@ -1,7 +1,6 @@
-from dagster import graph, GraphIn
+from dagster import graph
 
 from nmdc_runtime.site.ops import (
-    build_merged_db,
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
@@ -12,8 +11,6 @@ from nmdc_runtime.site.ops import (
     gold_projects_by_study,
     gold_study,
     poll_for_run_completion,
-    run_etl,
-    local_file_to_api_object,
     get_operation,
     produce_curated_db,
     delete_operations,
@@ -68,24 +65,6 @@ from nmdc_runtime.site.ops import (
     log_database_ids,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
-
-
-@graph
-def gold_translation():
-    """
-    Translating an export of the JGI GOLD [1] SQL database to the NMDC database JSON schema.
-
-    [1] Genomes OnLine Database (GOLD) <https://gold.jgi.doe.gov/>.
-    """
-    local_file_to_api_object(run_etl(build_merged_db()))
-
-
-@graph()
-def gold_translation_curation():
-    # TODO
-    #   - have produce_curated_db do actual curation (see notebook), persisting to db.
-    #   - more steps in pipeline? Or handoff via run_status_sensor on DagsterRunStatus.SUCCESS.
-    produce_curated_db(get_operation())
 
 
 @graph()
@@ -160,6 +139,7 @@ def gold_study_to_database():
         study_type,
         gold_nmdc_instrument_mapping_file_url,
         include_field_site_info,
+        enable_biosample_filtering,
     ) = get_gold_study_pipeline_inputs()
 
     projects = gold_projects_by_study(study_id)
@@ -176,6 +156,7 @@ def gold_study_to_database():
         analysis_projects,
         gold_nmdc_instrument_map_df,
         include_field_site_info,
+        enable_biosample_filtering,
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = nmdc_schema_database_export_filename(study)
@@ -506,11 +487,19 @@ def nmdc_study_to_ncbi_submission_export():
 
 @graph
 def generate_data_generation_set_for_biosamples_in_nmdc_study():
-    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    (
+        study_id,
+        gold_nmdc_instrument_mapping_file_url,
+        include_field_site_info,
+        enable_biosample_filtering,
+    ) = get_database_updater_inputs()
     gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
 
     database = generate_data_generation_set_post_biosample_ingest(
-        study_id, gold_nmdc_instrument_map_df
+        study_id,
+        gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -523,11 +512,19 @@ def generate_data_generation_set_for_biosamples_in_nmdc_study():
 
 @graph
 def generate_biosample_set_from_samples_in_gold():
-    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    (
+        study_id,
+        gold_nmdc_instrument_mapping_file_url,
+        include_field_site_info,
+        enable_biosample_filtering,
+    ) = get_database_updater_inputs()
     gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
 
     database = generate_biosample_set_for_nmdc_study_from_gold(
-        study_id, gold_nmdc_instrument_map_df
+        study_id,
+        gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database_dict = nmdc_schema_object_to_dict(database)
     filename = post_submission_portal_biosample_ingest_record_stitching_filename(
@@ -545,10 +542,18 @@ def generate_update_script_for_insdc_biosample_identifiers():
     to generate a script for updating biosample records with INSDC identifiers obtained from GOLD.
     The script is returned as a dictionary that can be executed against MongoDB.
     """
-    (study_id, gold_nmdc_instrument_mapping_file_url) = get_database_updater_inputs()
+    (
+        study_id,
+        gold_nmdc_instrument_mapping_file_url,
+        include_field_site_info,
+        enable_biosample_filtering,
+    ) = get_database_updater_inputs()
     gold_nmdc_instrument_map_df = get_df_from_url(gold_nmdc_instrument_mapping_file_url)
 
     update_script = run_script_to_update_insdc_biosample_identifiers(
-        study_id, gold_nmdc_instrument_map_df
+        study_id,
+        gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     render_text(update_script)
