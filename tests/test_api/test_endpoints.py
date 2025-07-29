@@ -120,29 +120,6 @@ def ensure_test_resources(mdb):
     }
 
 
-@pytest.fixture
-def base_url() -> str:
-    r"""Returns the base URL of the API."""
-
-    base_url = os.getenv("API_HOST")
-    assert isinstance(base_url, str), "Base URL is not defined"
-    return base_url
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-
-
-@pytest.fixture
-def api_user_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
-
-
 @pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_update_operation():
     mdb = get_mongo(run_config_frozen__normal_env).db
