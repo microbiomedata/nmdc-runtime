@@ -1,4 +1,4 @@
-from dagster import op, AssetMaterialization, AssetKey, EventMetadata
+from dagster import op, AssetMaterialization, AssetKey, MetadataValue
 from jsonschema import Draft7Validator
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from toolz import dissoc
@@ -92,10 +92,15 @@ def announce_validation_report(context, report, api_object):
         asset_key=AssetKey(["validation", f"{collection_name}_validation"]),
         description=f"{collection_name} translation validation",
         metadata={
-            # https://docs.dagster.io/_apidocs/solids#event-metadata
-            # also .json, .md, .path, .url, .python_artifact, ...
-            "n_errors": EventMetadata.int(len(report["errors"])),
-            "object_id": EventMetadata.text(api_object["id"]),
+            # Note: When this code was originally written, it used Dagster's `EventMetadata` class,
+            #       which has since been replaced by Dagster's `MetadataValue` class.
+            #       
+            #       Reference:
+            #       - https://docs.dagster.io/api/dagster/ops#dagster.MetadataValue
+            #       - https://docs.dagster.io/api/dagster/metadata#dagster.MetadataValue
+            #
+            "n_errors": MetadataValue.int(len(report["errors"])),
+            "object_id": MetadataValue.text(api_object["id"]),
         },
     )
 
