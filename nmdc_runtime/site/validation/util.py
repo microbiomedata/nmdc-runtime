@@ -94,7 +94,7 @@ def announce_validation_report(context, report, api_object):
         metadata={
             # Note: When this code was originally written, it used Dagster's `EventMetadata` class,
             #       which has since been replaced by Dagster's `MetadataValue` class.
-            #       
+            #
             #       Reference:
             #       - https://docs.dagster.io/api/dagster/ops#dagster.MetadataValue
             #       - https://docs.dagster.io/api/dagster/metadata#dagster.MetadataValue
