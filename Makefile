@@ -87,10 +87,10 @@ run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
 			pytest --cov=nmdc_runtime \
-				   --doctest-modules \
-				   --ignore=nmdc_runtime/api/db/mongo.py \
-				   --ignore=nmdc_runtime/api/db/s3.py \
-				   $(ARGS)
+			       --doctest-modules \
+			       --ignore=nmdc_runtime/api/db/mongo.py \
+			       --ignore=nmdc_runtime/api/db/s3.py \
+			       $(ARGS)
 
 # Uses Docker Compose to
 # 1. Ensure the `test` stack is torn down, including data volumes such as that of the test MongoDB database.
