@@ -1,7 +1,6 @@
 from dagster import graph, GraphIn
 
 from nmdc_runtime.site.ops import (
-    build_merged_db,
     generate_biosample_set_for_nmdc_study_from_gold,
     nmdc_schema_database_export_filename,
     nmdc_schema_database_from_gold_study,
@@ -12,8 +11,6 @@ from nmdc_runtime.site.ops import (
     gold_projects_by_study,
     gold_study,
     poll_for_run_completion,
-    run_etl,
-    local_file_to_api_object,
     get_operation,
     produce_curated_db,
     delete_operations,
@@ -68,24 +65,6 @@ from nmdc_runtime.site.ops import (
     log_database_ids,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
-
-
-@graph
-def gold_translation():
-    """
-    Translating an export of the JGI GOLD [1] SQL database to the NMDC database JSON schema.
-
-    [1] Genomes OnLine Database (GOLD) <https://gold.jgi.doe.gov/>.
-    """
-    local_file_to_api_object(run_etl(build_merged_db()))
-
-
-@graph()
-def gold_translation_curation():
-    # TODO
-    #   - have produce_curated_db do actual curation (see notebook), persisting to db.
-    #   - more steps in pipeline? Or handoff via run_status_sensor on DagsterRunStatus.SUCCESS.
-    produce_curated_db(get_operation())
 
 
 @graph()
