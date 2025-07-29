@@ -3,7 +3,6 @@ import sqlite3
 from typing import Dict, Optional, Union
 
 import pandas as pd
-import requests
 import requests_cache
 
 from nmdc_schema import nmdc
@@ -12,7 +11,6 @@ from nmdc_runtime.site.util import get_basename
 from nmdc_runtime.site.translation.neon_utils import (
     _get_value_or_none,
     _create_controlled_identified_term_value,
-    _create_controlled_term_value,
     _create_geolocation_value,
     _create_quantity_value,
     _create_timestamp_value,

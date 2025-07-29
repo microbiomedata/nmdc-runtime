@@ -4,13 +4,12 @@ import logging
 import mimetypes
 import os
 import subprocess
-import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from io import BytesIO, StringIO
+from io import BytesIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
-from typing import Tuple, Set, Union
+from typing import Tuple, Set
 from zipfile import ZipFile
 from itertools import chain
 from ontology_loader.ontology_load_controller import OntologyLoaderController
@@ -44,7 +43,7 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -108,17 +107,14 @@ from nmdc_runtime.util import (
     put_object,
     specialize_activity_set_docs,
     collection_name_to_class_names,
-    class_hierarchy_as_list,
     nmdc_schema_view,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
-from nmdc_schema.nmdc import Database as NMDCDatabase
-from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import assoc, dissoc, get_in, valfilter, identity
+from toolz import get_in, valfilter, identity
 
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000

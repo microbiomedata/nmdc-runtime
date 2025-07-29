@@ -1,7 +1,13 @@
-## author: Bill Duncan
-## summary: Contains methods for extracting data for the NMDC ETL pipeline.
+# author: Bill Duncan
+# summary: Contians methods for extracting data for the NMDC ETL pipeline.
 
-## system level modules
+# add ./lib directory to sys.path so that local modules can be found
+import os, sys
+
+sys.path.append(os.path.abspath("."))
+# print(sys.path)
+
+# system level modules
 import pandas as pds
 
 
@@ -17,8 +23,8 @@ def unpivot_dataframe(
     value="value",
     splice=["nmdc_record_id", "attribute", "value"],
 ):
-    ## reshape eav structure to row-column structure
-    ## see: https://www.journaldev.com/33398/pandas-melt-unmelt-pivot-function
+    # reshape eav structure to row-column structure
+    # see: https://www.journaldev.com/33398/pandas-melt-unmelt-pivot-function
     if len(splice) > 0:
         df = df[splice].pivot(index=index, columns=columns)
     else:

@@ -2,7 +2,6 @@ import os
 from functools import lru_cache
 
 from nmdc_runtime.api.core.util import import_via_dotted_path
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
 

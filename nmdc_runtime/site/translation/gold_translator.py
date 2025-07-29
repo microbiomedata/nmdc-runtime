@@ -1,5 +1,4 @@
 import collections
-import csv
 import re
 from typing import List, Tuple, Union
 from nmdc_schema import nmdc

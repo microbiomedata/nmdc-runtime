@@ -5,10 +5,9 @@ from typing import Annotated
 import pymongo.database
 import requests
 from fastapi import Depends, APIRouter, HTTPException, status, Cookie
-from fastapi.openapi.docs import get_swagger_ui_html
 from jose import jws, JWTError
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse, PlainTextResponse
+from starlette.responses import RedirectResponse, PlainTextResponse
 
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,

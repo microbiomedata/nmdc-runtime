@@ -1,10 +1,8 @@
 import pytest
 
-from fastapi.exceptions import HTTPException
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
 from nmdc_runtime.api.models.query import UpdateCommand, UpdateStatement
-from starlette import status
 from tests.lib.faker import Faker
 
 

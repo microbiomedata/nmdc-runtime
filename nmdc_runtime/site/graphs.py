@@ -1,4 +1,4 @@
-from dagster import graph, GraphIn
+from dagster import graph
 
 from nmdc_runtime.site.ops import (
     generate_biosample_set_for_nmdc_study_from_gold,

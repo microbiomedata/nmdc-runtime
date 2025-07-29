@@ -13,7 +13,7 @@ from toolz import get_in
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
 from nmdc_runtime.api.core.util import generate_secret, dotted_path_for
-from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import (
     persist_content_and_get_drs_object,
     strip_oid,
@@ -118,29 +118,6 @@ def ensure_test_resources(mdb):
         "user": {"username": username, "password": password},
         "job": job.model_dump(exclude_unset=True),
     }
-
-
-@pytest.fixture
-def base_url() -> str:
-    r"""Returns the base URL of the API."""
-
-    base_url = os.getenv("API_HOST")
-    assert isinstance(base_url, str), "Base URL is not defined"
-    return base_url
-
-
-@pytest.fixture
-def api_site_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
-
-
-@pytest.fixture
-def api_user_client():
-    mdb = get_mongo_db()
-    rs = ensure_test_resources(mdb)
-    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 @pytest.mark.skip(reason="Skipping because test causes suite to hang")

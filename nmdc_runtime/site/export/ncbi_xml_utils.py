@@ -1,5 +1,5 @@
 from io import BytesIO, StringIO
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 from nmdc_runtime.api.endpoints.util import strip_oid
 from nmdc_runtime.minter.config import typecodes
