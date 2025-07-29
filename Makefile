@@ -77,10 +77,19 @@ reset-db-test:
 #      $ make test ARGS="-k 'test_find_data_objects_for_study_having_one'"
 #      ```
 #
+# Note: The `--ignore=<DIR>` option is used to skip tests and doctests defined within `<DIR>`.
+#       Without ignoring the directories we are ignoring, when we include the `--doctest-modules`
+#       option, pytest raises tangential errors stemming from files in those directories.
+#       TODO: Resolve the issues preventing us from omitting the `--ignore=<DIR>` option.
+#
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
-		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- pytest --cov=nmdc_runtime \
-		$(ARGS)
+		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
+			pytest --cov=nmdc_runtime \
+				   --doctest-modules \
+				   --ignore=nmdc_runtime/api/db/ \
+				   --ignore=components/ \
+				   $(ARGS)
 
 # Uses Docker Compose to
 # 1. Ensure the `test` stack is torn down, including data volumes such as that of the test MongoDB database.
