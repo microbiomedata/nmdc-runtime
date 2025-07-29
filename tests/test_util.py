@@ -46,45 +46,6 @@ def test_nmdc_jsonschema_using_new_id_scheme():
                     pytest.fail(f"{class_name}.id: {defn['properties']['id']}")
 
 
-@pytest.mark.skip(reason="Skipping failed tests to restore automated pipeline")
-def test_nmdc_jsonschema_validator():
-    with open(REPO_ROOT.joinpath("tests/files/study_test.json")) as f:
-        study_test = json.load(f)
-        try:
-            _ = nmdc_jsonschema_validator(study_test)
-        except JsonSchemaValueException as e:
-            pytest.fail(str(e))
-
-
-def test_mongo_validate():
-    # schema = get_nmdc_jsonschema_dict()
-    # schema["bsonType"] = "object"
-    # schema.pop("$id", None)
-    # schema.pop("$schema", None)
-    # schema["$defs"] = schema.pop("definitions")
-    # schema = {"$jsonSchema": schema}
-    # print(type(schema))
-    # return
-    mongo = get_mongo(run_config_frozen__normal_env)
-    db = MongoDatabase(
-        mongo.client, name="nmdc_etl_staging", write_concern=WriteConcern(fsync=True)
-    )
-    collection_name = "test.study_test"
-
-    db.drop_collection(collection_name)
-    # db.create_collection(collection_name, validator=schema)
-    db.create_collection(collection_name)
-    # db.command({"collMod": collection_name, "validator": schema})
-    collection = db[collection_name]
-
-    # print("db:", db.collection_names())
-    with open(REPO_ROOT.joinpath("tests/files/study_test.json")) as f:
-        study_test = json.load(f)
-        collection.insert_many(study_test["study_set"])
-        # collection.insert_one({"foo": "bar"})
-        # print(db.validate_collection(collection))
-
-
 def test_iterate_collection():
     mongo = get_mongo(run_config_frozen__normal_env)
     db = mongo.client["nmdc_etl_staging"]
@@ -177,6 +138,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         eval(f"{sys.argv[1]}()")
     else:
-        # test_mongo_validate()
         # test_iterate_collection()
         test_multiple_errors()

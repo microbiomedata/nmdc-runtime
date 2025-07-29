@@ -11,7 +11,7 @@ The following files were moved from `metadata-translation/notebooks/data/` as pa
 - `study-data2.json`
 - `study-data3.json`
 
-The following files were moved from `metadata-translation/examples` as part of that same effort (via commit `dfd86ade`):
+The following files were moved from `metadata-translation/examples` as part of that same effort (via commit `dfd86ade`), and then subsequently deleted altogether as part of a related effort—also in July, 2025 (via commit `c31199f0`)
 
 - `study_test.json`
 
