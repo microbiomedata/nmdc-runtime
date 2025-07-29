@@ -1,3 +1,4 @@
+import json
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated
@@ -5,12 +6,20 @@ from typing import List, Dict, Annotated
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
-from nmdc_runtime.config import DATABASE_CLASS_NAME
+from nmdc_runtime.api.endpoints.lib.path_segments import (
+    parse_path_segment,
+    ParsedPathSegment,
+)
+from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
+from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
-from nmdc_runtime.util import nmdc_database_collection_names
+from nmdc_runtime.util import (
+    decorate_if,
+    nmdc_database_collection_names,
+    nmdc_schema_view,
+)
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import dissoc
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
@@ -18,7 +27,6 @@ from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    get_nonempty_nmdc_schema_collection_names,
     get_collection_names_from_schema,
 )
 from nmdc_runtime.api.endpoints.util import (
@@ -40,7 +48,7 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Collection name must be one of {names}",
+            detail=f"Collection name must be one of {sorted(names)}",
         )
 
 
@@ -109,53 +117,270 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-@router.get(
-    "/nmdcschema/{collection_name}",
-    response_model=ListResponse[Doc],
-    response_model_exclude_unset=True,
-)
-def list_from_collection(
-    collection_name: Annotated[
+def _parse_prefilter(
+    prefilter: Annotated[
         str,
         Path(
-            title="Collection name",
-            description="The name of the collection.\n\n_Example_: `biosample_set`",
-            examples=["biosample_set"],
+            description="Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.",
+            examples=["ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
         ),
     ],
-    req: Annotated[ListRequest, Query()],
+) -> ParsedPathSegment:
+    return parse_path_segment("prefilter;" + prefilter)
+
+
+def _parse_postfilter(
+    postfilter: Annotated[
+        str,
+        Path(
+            description=(
+                "Example: `types=nmdc:DataObject,nmdc:PlannedProcess`."
+                + '\n\nUse `types=nmdc:NamedThing` to return "all" types'
+            ),
+            examples=[
+                "types=nmdc:NamedThing",
+                "types=nmdc:DataObject,nmdc:PlannedProcess",
+            ],
+        ),
+    ],
+) -> ParsedPathSegment:
+    return parse_path_segment("postfilter;" + postfilter)
+
+
+@decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
+    router.get(
+        "/nmdcschema/related_ids/{prefilter}/{postfilter}",
+        response_model=ListResponse[RelatedIDs],
+        response_model_exclude_unset=True,
+    )
+)
+def get_related_ids(
+    prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),
+    postfilter_parsed: ParsedPathSegment = Depends(_parse_postfilter),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    r"""
-    Retrieves resources that match the specified filter criteria and reside in the specified collection.
+    """From entity IDs captured by `prefilter`, retrieve `postfilter`ed metadata for all related entities.
 
-    Searches the specified collection for documents matching the specified `filter` criteria.
-    If the `projection` parameter is used, each document in the response will only include
-    the fields specified by that parameter (plus the `id` field).
+    Use `postfilter` to control:
+    - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
+    - what metadata are returned for them (default: `id` and `type`).
 
-    You can get all the valid collection names from the [Database class](https://microbiomedata.github.io/nmdc-schema/Database/)
-    page of the NMDC Schema documentation.
+    Prefilters:
+    - `ids` : one or more (comma-delimited) IDs.
+        Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.
+    - `from` : `nmdc:Database` collection from which to retrieve related entities.
+        Example: `from=biosample_set`.
+    - `match` : MongoDB `filter` to apply to `from` collection. Must be proceeded by `from`.
+        Example: `from=study_set;match={"name": {"$regex": "National Ecological Observatory Network"}}`.
 
-    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
-          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
-          a long time—especially for collections that contain a lot of documents (e.g. millions).
+    Postfilters:
+    - `types=nmdc:DataObject`
 
-    **Tips:**
-    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
-       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
-       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
+    This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
+
+    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
+       each given entity, returning them in the "was_influenced_by" field.
+
+    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
+       by each given entity, returning them in the "influenced" field.
     """
+    prefilter = {}
+    for param, value in prefilter_parsed.segment_parameters.items():
+        if param == "ids":
+            prefilter["ids"] = value if isinstance(value, list) else [value]
+        if param == "from":
+            prefilter["from"] = value
+        if param == "match":
+            prefilter["match"] = value
 
-    # TODO: The note about collection names above is currently accurate, but will not necessarily always be accurate,
-    #       since the `Database` class could eventually have slots that aren't `multivalued` and `inlined_as_list`,
-    #       which are traits a `Database` slot must have in order for it to represent a MongoDB collection.
-    #
-    # TODO: Implement an API endpoint that returns all valid collection names (it can get them via a `SchemaView`),
-    #       Then replace the note above with a suggestion that the user access that API endpoint.
+    if "ids" in prefilter:
+        if ("from" in prefilter) or ("match" in prefilter):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot use `ids` prefilter parameter with {`from`,`match`} prefilter parameters.",
+            )
+        ids_found = [
+            d["id"]
+            for d in mdb.alldocs.find({"id": {"$in": prefilter["ids"]}}, {"id": 1})
+        ]
+        ids_not_found = list(set(prefilter["ids"]) - set(ids_found))
+        if ids_not_found:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Some IDs not found: {ids_not_found}.",
+            )
+    if "from" in prefilter:
+        if prefilter["from"] not in get_collection_names_from_schema():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"`from` parameter {prefilter['from']} is not a known schema collection name."
+                    f" Known names: {get_collection_names_from_schema()}."
+                ),
+            )
+    if "match" in prefilter:
+        if "from" not in prefilter:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot use `match` prefilter parameter without `from` prefilter parameter.",
+            )
+        try:
+            prefilter["match"] = json.loads(prefilter["match"])
+            assert mdb[prefilter["from"]].count_documents(prefilter["match"]) > 0
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+            )
 
-    rv = list_resources(req, mdb, collection_name)
-    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
-    return rv
+    types = ["nmdc:NamedThing"]
+    for param, value in postfilter_parsed.segment_parameters.items():
+        if param == "types":
+            types = value if isinstance(value, list) else [value]
+    types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
+    types_not_found = list(set(types) - types_possible)
+    if types_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Some types not found: {types_not_found}. "
+                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+            ),
+        )
+
+    # Prepare `ids` for the `was_influenced_by` and `influenced` aggregation pipelines.
+    if "from" in prefilter:
+        ids = [
+            d["id"]
+            for d in mdb[prefilter["from"]].find(
+                filter=prefilter.get("match", {}), projection={"id": 1}
+            )
+        ]
+    else:
+        ids = prefilter["ids"]
+
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
+    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
+    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
+    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
+    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
+    was_influenced_by = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_inbound.id",
+                        "connectFromField": "_inbound.id",
+                        "connectToField": "id",
+                        "as": "was_influenced_by",
+                    }
+                },
+                {"$unwind": {"path": "$was_influenced_by"}},
+                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "was_influenced_by": {
+                            "$addToSet": {
+                                "id": "$was_influenced_by.id",
+                                "type": "$was_influenced_by.type",
+                            }
+                        },
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "was_influenced_by": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
+            ],
+            allowDiskUse=True,
+        )
+    )
+
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
+    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
+    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
+    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
+    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
+    influenced = list(
+        mdb.alldocs.aggregate(
+            [
+                {"$match": {"id": {"$in": ids}}},
+                {
+                    "$graphLookup": {
+                        "from": "alldocs",
+                        "startWith": "$_outbound.id",
+                        "connectFromField": "_outbound.id",
+                        "connectToField": "id",
+                        "as": "influenced",
+                    }
+                },
+                {"$unwind": {"path": "$influenced"}},
+                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {
+                    "$group": {
+                        "_id": "$id",
+                        "influenced": {
+                            "$addToSet": {
+                                "id": "$influenced.id",
+                                "type": "$influenced.type",
+                            }
+                        },
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "alldocs",
+                        "localField": "_id",
+                        "foreignField": "id",
+                        "as": "selves",
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "influenced": 1,
+                        "type": {"$arrayElemAt": ["$selves.type", 0]},
+                    }
+                },
+            ],
+            allowDiskUse=True,
+        )
+    )
+
+    relations_by_id = {
+        id_: {
+            "id": id_,
+            "was_influenced_by": [],
+            "influenced": [],
+        }
+        for id_ in ids
+    }
+
+    # For each subject document that "was influenced by" or "influenced" any documents, create a dictionary
+    # containing that subject document's `id`, its `type`, and the list of `id`s of the
+    # documents that it "was influenced by" and "influenced".
+    for d in was_influenced_by + influenced:
+        relations_by_id[d["id"]]["type"] = d["type"]
+        relations_by_id[d["id"]]["was_influenced_by"] += d.get("was_influenced_by", [])
+        relations_by_id[d["id"]]["influenced"] += d.get("influenced", [])
+
+    return {"resources": list(relations_by_id.values())}
 
 
 @router.get(
@@ -290,6 +515,65 @@ def get_collection_name_by_doc_id(
 
 
 @router.get(
+    "/nmdcschema/collection_names",
+    response_model=List[str],
+    status_code=status.HTTP_200_OK,
+)
+def get_collection_names():
+    """
+    Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
+    https://w3id.org/nmdc/Database/) that describe database collections.
+    """
+    return sorted(get_collection_names_from_schema())
+
+
+@router.get(
+    "/nmdcschema/{collection_name}",
+    response_model=ListResponse[Doc],
+    response_model_exclude_unset=True,
+)
+def list_from_collection(
+    collection_name: Annotated[
+        str,
+        Path(
+            title="Collection name",
+            description="The name of the collection.\n\n_Example_: `biosample_set`",
+            examples=["biosample_set"],
+        ),
+    ],
+    req: Annotated[ListRequest, Query()],
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
+    r"""
+    Retrieves resources that match the specified filter criteria and reside in the specified collection.
+
+    Searches the specified collection for documents matching the specified `filter` criteria.
+    If the `projection` parameter is used, each document in the response will only include
+    the fields specified by that parameter (plus the `id` field).
+
+    Use the [`GET /nmdcschema/collection_names`](/nmdcschema/collection_names) API endpoint to return all valid
+    collection names, i.e. the names of the slots of [the nmdc:Database class](https://w3id.org/nmdc/Database/) that
+    describe database collections.
+
+    Note: If the specified maximum page size is a number greater than zero, and _more than that number of resources_
+          in the collection match the filter criteria, this endpoint will paginate the resources. Pagination can take
+          a long time—especially for collections that contain a lot of documents (e.g. millions).
+
+    **Tips:**
+    1. When the filter includes a regex and you're using that regex to match the beginning of a string, try to ensure
+       the regex is a [prefix expression](https://www.mongodb.com/docs/manual/reference/operator/query/regex/#index-use),
+       That will allow MongoDB to optimize the way it uses the regex, making this API endpoint respond faster.
+    """
+
+    # raise HTTP_400_BAD_REQUEST on invalid collection_name
+    ensure_collection_name_is_known_to_schema(collection_name)
+
+    rv = list_resources(req, mdb, collection_name)
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
+
+
+@router.get(
     "/nmdcschema/{collection_name}/{doc_id}",
     response_model=Doc,
     response_model_exclude_unset=True,
@@ -328,7 +612,7 @@ def get_from_collection_by_id(
     Retrieves the document having the specified `id`, from the specified collection; optionally, including only the
     fields specified via the `projection` parameter.
     """
-    # Note: This helper function will raise an exception if the collection name is invalid.
+    # raise HTTP_400_BAD_REQUEST on invalid collection_name
     ensure_collection_name_is_known_to_schema(collection_name)
 
     projection = comma_separated_values(projection) if projection else None

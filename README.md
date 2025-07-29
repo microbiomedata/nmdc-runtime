@@ -15,8 +15,7 @@ houses the LinkML schema specification, as well as generated artifacts (e.g. JSO
 * [nmdc-server](https://github.com/microbiomedata/nmdc-server)
 houses code specific to the data portal -- its database, back-end API, and front-end application.
 
-* [workflow_documentation](https://nmdc-workflow-documentation.readthedocs.io/en/latest/index.html)
-references workflow code spread across several repositories, that take source data and produce computed data.
+* Workflows — documented in the [workflows](https://docs.microbiomedata.org/workflows/) section of the NMDC documentation website — take source data and produce computed data.
 
 * This repo (nmdc-runtime)
    * houses code that takes source data and computed data, and transforms it
@@ -84,10 +83,10 @@ docker compose version
 docker info
 ```
 
-Ensure the permissions of `./mongoKeyFile` are such that only the file's owner can read or write the file.
+Ensure the permissions of `./.docker/mongoKeyFile` are such that only the file's owner can read or write the file.
 
 ```shell
-chmod 600 ./mongoKeyFile
+chmod 600 ./.docker/mongoKeyFile
 ```
 
 Ensure you have a `.env` file for the Docker services to source from. You may copy `.env.example` to
@@ -105,7 +104,8 @@ source .env
 set +a
 ```
 
-If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on the NERSC network—set up the SSH tunnel.
+If you are connecting to resources that require an SSH tunnel—for example, a MongoDB server that is only accessible on 
+the NERSC network—set up the SSH tunnel.
 
 The following command could be useful to you, either directly or as a template (see `Makefile`).
 
@@ -127,6 +127,19 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+
+*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
+```
+pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
+```
+to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
+of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
+versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
+final requirements.txt file and import the dependencies into the Docker image.
+
+
+```bash
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following commands:
@@ -134,13 +147,27 @@ Tests can be found in `tests` and are run with the following commands:
 ```bash
 make up-test
 make test
+
+# Run a Specific test file eg. tests/test_api/test_endpoints.py
+make test ARGS="tests/test_api/test_endpoints.py"
 ```
+docker compose --file docker-compose.test.yml run test
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
-tutorial on Testing](https://docs.dagster.io/tutorial/testable).
+tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
+
+### RAM usage
+
+The `dagster-daemon` and `dagster-dagit` containers can consume a lot of RAM. If tests are failing and the console of
+the `test` container shows "Error 137," here is something you can try as a workaround: In Docker Desktop, go to 
+"Settings > Resources > Advanced," and increase the memory limit. One of our team members has
+found **12 GB** to be sufficient for running the tests.
+
+> Dedicating 12 GB of RAM to Docker may be prohibitive for some prospective developers.
+> There is an open [issue](https://github.com/microbiomedata/nmdc-runtime/issues/928) about the memory requirement.
 
 ## Publish to PyPI
 

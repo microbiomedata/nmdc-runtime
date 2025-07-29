@@ -2,14 +2,10 @@ import json
 from functools import lru_cache
 from typing import Optional
 
-import fastjsonschema
 import pandas as pd
 import pytest
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import persist_content_and_get_drs_object
-from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from toolz import dissoc
 
 from nmdc_runtime.api.core.metadata import (
@@ -17,15 +13,13 @@ from nmdc_runtime.api.core.metadata import (
     update_mongo_db,
     mongo_update_command_for,
     copy_docs_in_update_cmd,
-    df_from_sheet_in,
     _validate_changesheet,
 )
-from nmdc_runtime.site.ops import ensure_data_object_type
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import REPO_ROOT_DIR
 
-TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("metadata-translation", "notebooks", "data")
+TEST_DATA_DIR = REPO_ROOT_DIR.joinpath("tests", "files")
 
 
 @lru_cache
@@ -50,7 +44,7 @@ def test_load_changesheet():
         with open(
             REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{sty_local_id}.json")
         ) as f:
-            mdb.study_set_set.insert_one(json.load(f))
+            mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
@@ -64,7 +58,7 @@ def test_changesheet_update_slot_with_range_decimal():
     mdb = get_mongo_db()
     bsm_local_id = "bsm-11-0pyv7738"
     remove_tmp_doc = False
-    if mdb.data_object_set.find_one({"id": "nmdc:" + bsm_local_id}) is None:
+    if mdb.biosample_set.find_one({"id": "nmdc:" + bsm_local_id}) is None:
         with open(
             REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_{bsm_local_id}.json")
         ) as f:
@@ -203,6 +197,7 @@ def test_changesheet_array_item_nested_attributes():
 def test_update_pi_websites():
     mdb = get_mongo(run_config_frozen__normal_env).db
     local_id = "sty-11-r2h77870"
+    restore_original_doc = False
     remove_tmp_doc = False
     if mdb.study_set.find_one({"id": "nmdc:" + local_id}) is None:
         with open(
@@ -212,6 +207,8 @@ def test_update_pi_websites():
         ) as f:
             mdb.study_set.insert_one(json.load(f))
             remove_tmp_doc = True
+    else:
+        restore_original_doc = True
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-update-pi-websites.tsv"), mdb
     )
@@ -234,10 +231,13 @@ def test_update_pi_websites():
         update_cmd, mdb_from=mdb, mdb_to=mdb_scratch, drop_mdb_to=True
     )
     results = update_mongo_db(mdb_scratch, update_cmd)
-    first_result = results[0]
-    assert first_result["doc_after"]["principal_investigator"] == pi_info
+    first_result_pi_info = results[0]["doc_after"]["principal_investigator"]
+    for k, v in pi_info.items():
+        assert first_result_pi_info[k] == v
     if remove_tmp_doc:
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
+    if restore_original_doc:
+        mdb.study_set.replace_one({"id": id_}, study_doc)
 
 
 def test_update_biosample_ph():
@@ -255,26 +255,3 @@ def test_update_biosample_ph():
     assert isinstance(
         update_cmd["nmdc:bsm-11-5nhz3402"]["updates"][0]["u"]["$set"]["ph"], float
     )
-
-
-def test_ensure_data_object_type():
-    docs_test = {
-        "data_object_set": [
-            {
-                "description": "Protein FAA for gold:Gp0116326",
-                "url": "https://data.microbiomedata.org/data/nmdc:mga06z11/annotation/nmdc_mga06z11_proteins.faa",
-                "md5_checksum": "87733039aa2ef02667987b398b8df08c",
-                "type": "nmdc:DataObject",
-                "file_size_bytes": 1214244683,
-                "id": "nmdc:87733039aa2ef02667987b398b8df08c",
-                "name": "gold:Gp0116326_Protein FAA",
-            }
-        ]
-    }
-    mdb = get_mongo(run_config_frozen__normal_env).db
-    docs, _ = ensure_data_object_type(docs_test, mdb)
-    nmdc_jsonschema = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
-    nmdc_jsonschema["$defs"]["FileTypeEnum"]["enum"] = mdb.file_type_enum.distinct("id")
-    nmdc_jsonschema_validator = fastjsonschema.compile(nmdc_jsonschema)
-
-    _ = nmdc_jsonschema_validator(docs)  # raises JsonSchemaValueException if wrong

@@ -1,0 +1,62 @@
+metadata_submission:
+  id: 00000000-0000-0000-0000-000000000000,
+  metadata_submission:
+    packageName: plant-associated
+    sampleData:
+      plant_associated_data:
+        - analysis_type:
+            - metagenomics
+          collection_date: '2016-05-09'
+          depth: '0'
+          ecosystem: Environmental
+          ecosystem_category: Terrestrial
+          ecosystem_subtype: Leaf
+          ecosystem_type: Plant-associated
+          elev: '286'
+          env_broad_scale: agricultural biome [ENVO:01001442]
+          env_local_scale: phyllosphere biome [ENVO:01001442]
+          env_medium: plant-associated biome [ENVO:01001001]
+          geo_loc_name: 'USA: Kellogg Biological Station, Michigan'
+          growth_facil: field
+          lat_lon: 42.39 -85.37
+          samp_name: G5R1_MAIN_09MAY2016
+          samp_store_temp: -80 Celsius
+          source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+          specific_ecosystem: Phyllosphere
+    studyForm:
+      GOLDStudyId: ''
+      alternativeNames: [ ]
+      NCBIBioProjectId: ''
+      contributors:
+        - name: Test Testerson
+          type: nmdc:PersonValue
+          orcid: 0000-0000-0000-0000
+          roles:
+            - Principal Investigator
+      description: This is a test submission
+      fundingSources:
+        - Some award ABC
+        - Some award XYZ
+      linkOutWebpage:
+        - http://www.example.com/submission-test
+      piEmail: test.testerson@example.com
+      piName: Test Testerson
+      piOrcid: 0000-0000-0000-0000
+      studyName: A test submission
+    multiOmicsForm:
+      JGIStudyId: ''
+      studyNumber: ''
+    templates:
+      - plant-associated
+nucleotide_sequencing_mapping:
+  - __biosample_samp_name: G5R1_MAIN_09MAY2016
+    processing_institution: JGI
+    instrument_used: nmdc:inst-00-00000000
+    analyte_category: metagenome
+data_object_mapping:
+  - __biosample_samp_name: G5R1_MAIN_09MAY2016
+    data_object_type: Metagenome Raw Reads
+    url: http://example.com/data.fastq.gz
+    name: Metagenome Raw Reads
+    description: Metagenome Raw Reads
+    data_category: instrument_data

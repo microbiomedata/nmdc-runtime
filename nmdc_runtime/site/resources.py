@@ -109,7 +109,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["cursor"]["batch"]
 
     def get_omics_processing_records_by_gold_project_id(self, gold_project_id: str):
         gold_project_id = normalize_gold_id(gold_project_id)
@@ -126,7 +126,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["cursor"]["batch"]
 
     def get_biosamples_for_study(self, study_id: str):
         # TODO: 10000 is an arbitrarily large number that has been chosen for the max_page_size param.
@@ -147,6 +147,19 @@ class RuntimeApiUserClient(RuntimeApiClient):
         response.raise_for_status()
         return response.json()["resources"]
 
+    def get_data_generation_records_for_study(self, study_id: str):
+        # TODO: same as above, we are using a large max_page_size to avoid pagination.
+        response = self.request(
+            "GET",
+            f"/nmdcschema/data_generation_set",
+            {
+                "filter": json.dumps({"associated_studies": study_id}),
+                "max_page_size": 10000,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
+
     def get_omics_processing_by_name(self, name: str):
         response = self.request(
             "POST",
@@ -157,7 +170,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["cursor"]["batch"]
 
     def get_study(self, study_id: str):
         response = self.request(
@@ -169,7 +182,7 @@ class RuntimeApiUserClient(RuntimeApiClient):
             },
         )
         response.raise_for_status()
-        return response.json()["cursor"]["firstBatch"]
+        return response.json()["cursor"]["batch"]
 
 
 class RuntimeApiSiteClient(RuntimeApiClient):

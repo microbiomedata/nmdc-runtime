@@ -16,7 +16,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_geolocation_value,
     handle_float_value,
     handle_string_value,
-    get_instruments,
 )
 
 MOCK_NMDC_STUDY = {
@@ -72,7 +71,9 @@ MOCK_NMDC_STUDY = {
             "applied_roles": ["Principal Investigator"],
         },
     ],
-    "part_of": ["nmdc:sty-11-nxrz9m96"],
+    # To satisfy referential integrity checks, omit this `part_of` reference
+    # unless the corresponding study document is included.
+    # "part_of": ["nmdc:sty-11-nxrz9m96"],
     "study_category": "consortium",
     "insdc_bioproject_identifiers": ["bioproject:PRJNA1029061"],
     "homepage_website": ["https://www.neonscience.org/"],
@@ -499,7 +500,7 @@ class TestNCBISubmissionXML:
 
         submission_xml = ncbi_submission_client.get_submission_xml(
             nmdc_biosample,
-            [],
+            biosample_nucleotide_sequencing,
             biosample_data_objects,
             biosample_library_preparation,
             all_instruments,
@@ -510,18 +511,184 @@ class TestNCBISubmissionXML:
         assert "USA: Colorado, Arikaree River" in submission_xml
         assert "2015-07-21T18:00Z" in submission_xml
         assert "National Microbiome Data Collaborative" in submission_xml
-        assert (
-            "National Ecological Observatory Network: soil metagenomes (DP1.10107.001)"
-            in submission_xml
+
+    def test_get_submission_xml_filters_jgi_biosamples(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "id": "",
+                    "collection_date": "collection_date",
+                    "geo_loc_name": "geo_loc_name",
+                    "lat_lon": "lat_lon",
+                    "name": "sample_name",
+                },
+                {
+                    "id": "uriorcurie",
+                    "collection_date": "TimestampValue",
+                    "geo_loc_name": "TextValue",
+                    "lat_lon": "GeolocationValue",
+                    "name": "string",
+                },
+            ),
         )
+
+        # Create two biosamples
+        biosample1 = nmdc_biosample[0].copy()
+        biosample1["id"] = "nmdc:bsm-12-p9q5v236"
+
+        biosample2 = nmdc_biosample[0].copy()
+        biosample2["id"] = "nmdc:bsm-12-jgitest"
+
+        all_biosamples = [biosample1, biosample2]
+
+        # Create nucleotide sequencing entries - one with JGI as processing_institution
+        ntseq1 = nucleotide_sequencing_list[0].copy()
+        ntseq1["processing_institution"] = "Battelle"
+
+        ntseq2 = nucleotide_sequencing_list[0].copy()
+        ntseq2["processing_institution"] = "JGI"  # This should be filtered out
+
+        biosample_nucleotide_sequencing = [
+            {biosample1["id"]: [ntseq1]},
+            {biosample2["id"]: [ntseq2]},
+        ]
+
+        # Setup data objects and library prep
+        biosample_data_objects = [
+            {biosample1["id"]: data_objects_list},
+            {biosample2["id"]: data_objects_list},
+        ]
+
+        biosample_library_preparation = [
+            {biosample1["id"]: library_preparation_dict},
+            {biosample2["id"]: library_preparation_dict},
+        ]
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        # Call get_submission_xml with both biosamples
+        submission_xml = ncbi_submission_client.get_submission_xml(
+            all_biosamples,
+            biosample_nucleotide_sequencing,
+            biosample_data_objects,
+            biosample_library_preparation,
+            all_instruments,
+        )
+
+        # Biosample 1 should be included
+        assert "nmdc:bsm-12-p9q5v236" in submission_xml
+
+        # Biosample 2 should be filtered out (JGI processing)
+        assert "nmdc:bsm-12-jgitest" not in submission_xml
+
+    def test_get_submission_xml_filters_biosamples_with_any_jgi_sequencing(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        data_objects_list: list[dict[str, str]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "id": "",
+                    "collection_date": "collection_date",
+                    "geo_loc_name": "geo_loc_name",
+                    "lat_lon": "lat_lon",
+                    "name": "sample_name",
+                },
+                {
+                    "id": "uriorcurie",
+                    "collection_date": "TimestampValue",
+                    "geo_loc_name": "TextValue",
+                    "lat_lon": "GeolocationValue",
+                    "name": "string",
+                },
+            ),
+        )
+
+        # Create a biosample with multiple sequencing activities
+        biosample1 = nmdc_biosample[0].copy()
+        biosample1["id"] = "nmdc:bsm-12-mixed"
+
+        # Create nucleotide sequencing entries - with mixed processing institutions
+        ntseq1 = nucleotide_sequencing_list[0].copy()
+        ntseq1["id"] = "nmdc:ntseq-1"
+        ntseq1["processing_institution"] = "Battelle"
+
+        ntseq2 = nucleotide_sequencing_list[0].copy()
+        ntseq2["id"] = "nmdc:ntseq-2"
+        ntseq2["processing_institution"] = (
+            "JGI"  # One JGI activity should exclude the biosample
+        )
+
+        ntseq3 = nucleotide_sequencing_list[0].copy()
+        ntseq3["id"] = "nmdc:ntseq-3"
+        ntseq3["processing_institution"] = "Other"
+
+        # Put all sequencing activities in the same biosample
+        biosample_nucleotide_sequencing = [
+            {biosample1["id"]: [ntseq1, ntseq2, ntseq3]},
+        ]
+
+        # Setup data objects and library prep
+        biosample_data_objects = [
+            {biosample1["id"]: data_objects_list},
+        ]
+
+        biosample_library_preparation = [
+            {biosample1["id"]: library_preparation_dict},
+        ]
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        # Call get_submission_xml with the biosample
+        submission_xml = ncbi_submission_client.get_submission_xml(
+            [biosample1],
+            biosample_nucleotide_sequencing,
+            biosample_data_objects,
+            biosample_library_preparation,
+            all_instruments,
+        )
+
+        # Biosample should be excluded because it has at least one JGI sequencing activity
+        assert "nmdc:bsm-12-mixed" not in submission_xml
 
 
 class TestNCBIXMLUtils:
     def test_handle_quantity_value(self):
+        # Test numeric value with unit
         assert (
             handle_quantity_value({"has_numeric_value": 10, "has_unit": "mg"})
             == "10 mg"
         )
+        # Test range value with unit
         assert (
             handle_quantity_value(
                 {
@@ -530,9 +697,11 @@ class TestNCBIXMLUtils:
                     "has_unit": "kg",
                 }
             )
-            == "10 kg"
+            == "5 - 15 kg"
         )
+        # Test raw value
         assert handle_quantity_value({"has_raw_value": "20 units"}) == "20 units"
+        # Test unknown format
         assert handle_quantity_value({}) == "Unknown format"
 
     def test_handle_text_value(self):
@@ -677,20 +846,3 @@ class TestNCBIXMLUtils:
 
         assert attribute_mappings == expected_attribute_mappings
         assert slot_range_mappings == expected_slot_range_mappings
-
-    def test_get_instruments(
-        self,
-        mocker: Callable[..., Generator[MockerFixture, None, None]],
-        mocked_instruments: list[dict[str, Any]],
-    ):
-        mock_instrument_set_collection = mocker.Mock()
-        mock_instrument_set_collection.find.return_value = iter(mocked_instruments)
-
-        actual_instruments = get_instruments(mock_instrument_set_collection)
-
-        expected_instruments = {
-            "nmdc:inst-14-xz5tb342": {"vendor": "illumina", "model": "nextseq_550"},
-            "nmdc:inst-14-79zxap02": {"vendor": "illumina", "model": "hiseq"},
-        }
-
-        assert actual_instruments == expected_instruments

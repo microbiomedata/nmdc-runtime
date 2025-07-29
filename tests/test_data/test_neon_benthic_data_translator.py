@@ -127,6 +127,48 @@ benthic_data = {
             }
         ]
     ),
+    "mms_benthicRawDataFiles": pd.DataFrame(
+        [
+            {
+                "uid": "74cfedfb-b369-43f2-81e8-035dadaabd34",
+                "domainID": "D13",
+                "siteID": "WLOU",
+                "namedLocation": "WLOU.AOS.reach",
+                "laboratoryName": "Battelle Applied Genomics",
+                "sequencingFacilityID": "Battelle Memorial Institute",
+                "setDate": "2018-07-26T15:51Z",
+                "collectDate": "2018-07-26T15:51Z",
+                "sequencerRunID": "HWVWKBGX7",
+                "dnaSampleID": "WLOU.20180726.AMC.EPILITHON.1-DNA1",
+                "dnaSampleCode": "LV7005092900",
+                "internalLabID": "BMI_AquaticPlate6WellA5",
+                "rawDataFileName": "BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz",
+                "rawDataFileDescription": "R2 metagenomic archive of fastq files",
+                "rawDataFilePath": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R2/BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz",
+                "remarks": "",
+                "dataQF": "",
+            },
+            {
+                "uid": "6dfc7444-3878-4db1-85da-b4430f52a023",
+                "domainID": "D13",
+                "siteID": "WLOU",
+                "namedLocation": "WLOU.AOS.reach",
+                "laboratoryName": "Battelle Applied Genomics",
+                "sequencingFacilityID": "Battelle Memorial Institute",
+                "setDate": "2018-07-26T15:51Z",
+                "collectDate": "2018-07-26T15:51Z",
+                "sequencerRunID": "HWVWKBGX7",
+                "dnaSampleID": "WLOU.20180726.AMC.EPILITHON.1-DNA1",
+                "dnaSampleCode": "LV7005092900",
+                "internalLabID": "BMI_AquaticPlate6WellA5",
+                "rawDataFileName": "BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz",
+                "rawDataFileDescription": "R1 metagenomic archive of fastq files",
+                "rawDataFilePath": "https://storage.neonscience.org/neon-microbial-raw-seq-files/2023/BMI_HWVWKBGX7_mms_R1/BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz",
+                "remarks": "",
+                "dataQF": "",
+            },
+        ]
+    ),
 }
 
 
@@ -176,55 +218,87 @@ class TestNeonBenthicDataTranslator:
         )
 
     def test_get_database(self, translator):
+        """Full end-to-end test for get_database() method in NeonBenthicDataTranslator.
+        This test checks that the objects created for the various classes connected in
+        the MaterialEntity/PlannedProcess bipartite graph represented in the schema have
+        the correct inputs and outputs (`has_input`, `has_output`) between them.
+        """
+        translator.samp_procsm_dict = {
+            "WLOU.20180726.AMC.EPILITHON.1": "nmdc:procsm-11-x1y2z3"
+        }
+
         database = translator.get_database()
 
-        # verify lengths of all collections in database
         assert len(database.biosample_set) == 1
         assert len(database.material_processing_set) == 2
         assert len(database.data_generation_set) == 1
         assert len(database.processed_sample_set) == 2
+        assert len(database.data_object_set) == 2
 
-        # verify contents of biosample_set
         biosample_list = database.biosample_set
-        expected_biosample_names = [
-            "WLOU.20180726.AMC.EPILITHON.1",
+        biosample = biosample_list[0]
+        assert biosample.name == "WLOU.20180726.AMC.EPILITHON.1"
+
+        extraction_list = [
+            proc
+            for proc in database.material_processing_set
+            if proc.type == "nmdc:Extraction"
         ]
-        for biosample in biosample_list:
-            actual_biosample_name = biosample["name"]
-            assert actual_biosample_name in expected_biosample_names
-
-        # verify contents of data_generation_set
-        data_generation_list = database.data_generation_set
-        expected_nucleotide_sequencing = [
-            "Benthic microbial communities - WLOU.20180726.AMC.EPILITHON.1-DNA1"
+        library_prep_list = [
+            proc
+            for proc in database.material_processing_set
+            if proc.type == "nmdc:LibraryPreparation"
         ]
-        for data_generation in data_generation_list:
-            if data_generation["type"] == "nmdc:NucleotideSequencing":
-                actual_nucleotide_sequencing = data_generation["name"]
-                assert actual_nucleotide_sequencing in expected_nucleotide_sequencing
+        ntseq_list = [
+            proc
+            for proc in database.data_generation_set
+            if proc.type == "nmdc:NucleotideSequencing"
+        ]
 
-        extraction_list = []
-        library_preparation_list = []
-        nucleotide_sequencing_list = []
-        for data_generation_obj in database.data_generation_set:
-            if data_generation_obj["type"] == "nmdc:Extraction":
-                extraction_list.append(data_generation_obj)
-            elif data_generation_obj["type"] == "nmdc:LibraryPreparation":
-                library_preparation_list.append(data_generation_obj)
-            elif data_generation_obj["type"] == "nmdc:NucleotideSequencing":
-                nucleotide_sequencing_list.append(data_generation_obj)
+        assert len(extraction_list) == 1
+        assert len(library_prep_list) == 1
+        assert len(ntseq_list) == 1
 
-        biosample_id = [bsm["id"] for bsm in biosample_list]
-        for extraction in extraction_list:
-            extraction_input = extraction.has_input
-            extraction_output = extraction.has_output
-            assert extraction_input == biosample_id
+        extraction = extraction_list[0]
+        libprep = library_prep_list[0]
+        ntseq = ntseq_list[0]
 
-            for lib_prep in library_preparation_list:
-                lib_prep_input = lib_prep.has_input
-                lib_prep_output = lib_prep.has_output
-                assert lib_prep_input == extraction_output
+        ext_input_list = extraction.has_input
+        ext_output_list = extraction.has_output
+        assert len(ext_input_list) == 1
+        assert len(ext_output_list) == 1
 
-                for omics_processing in nucleotide_sequencing_list:
-                    omics_processing_input = omics_processing.has_input
-                    assert omics_processing_input == lib_prep_output
+        biosample_ids = [b.id for b in database.biosample_set]
+        assert ext_input_list[0] in biosample_ids
+
+        processed_sample_ids = [ps.id for ps in database.processed_sample_set]
+        assert ext_output_list[0] in processed_sample_ids
+
+        lp_input_list = libprep.has_input
+        lp_output_list = libprep.has_output
+        assert len(lp_input_list) == 1
+        assert len(lp_output_list) == 1
+
+        assert lp_input_list == ext_output_list
+        assert lp_output_list[0] in processed_sample_ids
+
+        ntseq_input_list = ntseq.has_input
+        ntseq_output_list = ntseq.has_output
+
+        assert len(ntseq_input_list) == 1
+        assert ntseq_input_list[0] == "nmdc:procsm-11-x1y2z3"
+
+        assert len(ntseq_output_list) == 2
+        data_object_ids = [obj.id for obj in database.data_object_set]
+        for do_id in ntseq_output_list:
+            assert do_id in data_object_ids
+
+        for do_id in ntseq_output_list:
+            matching_dobj = [x for x in database.data_object_set if x.id == do_id]
+            assert len(matching_dobj) == 1
+            dobj = matching_dobj[0]
+            assert dobj.type == "nmdc:DataObject"
+            assert dobj.name in [
+                "BMI_HWVWKBGX7_AquaticPlate6WellA5_R1.fastq.gz",
+                "BMI_HWVWKBGX7_AquaticPlate6WellA5_R2.fastq.gz",
+            ]

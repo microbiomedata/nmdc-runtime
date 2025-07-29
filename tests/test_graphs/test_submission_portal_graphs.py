@@ -14,7 +14,6 @@ MOCK_PORTAL_SUBMISSION = {
     "id": MOCK_PORTAL_SUBMISSION_ID,
     "metadata_submission": {
         "packageName": "plant-associated",
-        "contextForm": {"datasetDoi": "doi:10.12345/10.12345/00000000"},
         "templates": ["plant-associated"],
         "studyForm": {
             "studyName": "A test submission",
@@ -99,8 +98,6 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
             "translate_portal_submission_to_nmdc_schema_database": {
                 "inputs": {
                     "study_category": "research_study",
-                    "study_doi_category": "dataset_doi",
-                    "study_doi_provider": "jgi",
                     "study_pi_image_url": "http://www.example.com/test.png",
                 }
             },

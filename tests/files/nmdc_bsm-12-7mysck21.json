@@ -51,8 +51,5 @@
     "type": "nmdc:GeolocationValue"
   },
   "name": "ARIK.20140715.AMC.EPIPHYTON.5",
-  "associated_studies": [
-    "nmdc:sty-11-34xj1150"
-  ],
   "type": "nmdc:Biosample"
 }

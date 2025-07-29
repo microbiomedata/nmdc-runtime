@@ -1,7 +1,9 @@
-import datetime
-from typing import Optional, Any, Dict, List, Union
+import json
+import logging
+from typing import Optional, Any, Dict, List, Union, TypedDict
 
-from bson import ObjectId
+import bson
+import bson.json_util
 from pydantic import (
     model_validator,
     Field,
@@ -9,12 +11,20 @@ from pydantic import (
     PositiveInt,
     NonNegativeInt,
     field_validator,
-    ConfigDict,
+    WrapSerializer,
 )
-from toolz import assoc
+from toolz import assoc, assoc_in
 from typing_extensions import Annotated
 
-Document = Dict[str, Any]
+from nmdc_runtime.api.core.util import pick
+
+
+def bson_to_json(doc: Any, handler) -> dict:
+    """Ensure a dict with e.g. mongo ObjectIds will serialize as JSON."""
+    return json.loads(bson.json_util.dumps(doc))
+
+
+Document = Annotated[Dict[str, Any], WrapSerializer(bson_to_json)]
 
 OneOrZero = Annotated[int, Field(ge=0, le=1)]
 One = Annotated[int, Field(ge=1, le=1)]
@@ -49,6 +59,7 @@ class FindCommand(CommandBase):
 class AggregateCommand(CommandBase):
     aggregate: str
     pipeline: List[Document]
+    allowDiskUse: Optional[bool] = False
     cursor: Optional[Document] = None
 
     @field_validator("pipeline")
@@ -73,6 +84,12 @@ class AggregateCommand(CommandBase):
         return data
 
 
+class GetMoreCommand(CommandBase):
+    # Note: No `collection` field. See `QueryContinuation` for inter-API-request "sessions" are modeled.
+    getMore: str  # Note: runtime uses a `str` id, not an `int` like mongo's native session cursors.
+    batchSize: Optional[PositiveInt] = None
+
+
 class CommandResponse(BaseModel):
     ok: OneOrZero
 
@@ -93,23 +110,48 @@ class CountCommandResponse(CommandResponse):
 
 
 class CommandResponseCursor(BaseModel):
-    firstBatch: List[Document]
-    partialResultsReturned: Optional[bool] = None
-    id: Optional[int] = None
-    ns: str
+    # Note: No `ns` field, `id` is a `str`, and `partialResultsReturned` aliased to `queriedShardsUnavailable` to be
+    # less confusing to Runtime API clients. See `QueryContinuation` for inter-API-request "sessions" are modeled.
+    batch: List[Document]
+    partialResultsReturned: Optional[bool] = Field(
+        None, alias="queriedShardsUnavailable"
+    )
+    id: Optional[str] = None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_int_to_str(cls, value: Any) -> Any:
+        if isinstance(value, int):
+            return str(value)
+        else:
+            return value
 
 
-class FindCommandResponse(CommandResponse):
+class CursorYieldingCommandResponse(CommandResponse):
     cursor: CommandResponseCursor
 
+    @classmethod
+    def slimmed(cls, cmd_response) -> Optional["CursorYieldingCommandResponse"]:
+        """Create a new response object that retains only the `_id` for each cursor batch document."""
+        dump: dict = cmd_response.model_dump(exclude_unset=True)
 
-class AggregateCommandResponse(CommandResponse):
-    # model_config = ConfigDict(extra="allow")
-    cursor: CommandResponseCursor
+        # If any dictionary in this batch lacks an `_id` key, log a warning and return `None`.`
+        id_list = [pick(["_id"], batch_doc) for batch_doc in dump["cursor"]["batch"]]
+        if any("_id" not in doc for doc in id_list):
+            logging.warning("Some documents in the batch lack an `_id` field.")
+            return None
+
+        dump = assoc_in(
+            dump,
+            ["cursor", "batch"],
+            id_list,
+        )
+        return cls(**dump)
 
 
 class DeleteStatement(BaseModel):
     q: Document
+    # `limit` is required: https://www.mongodb.com/docs/manual/reference/command/delete/#std-label-deletes-array-limit
     limit: OneOrZero
     hint: Optional[Dict[str, OneOrMinusOne]] = None
 
@@ -125,6 +167,11 @@ class DeleteCommandResponse(CommandResponse):
     writeErrors: Optional[List[Document]] = None
 
 
+# Custom types for the `delete_specs` derived from `DeleteStatement`s.
+DeleteSpec = TypedDict("DeleteSpec", {"filter": Document, "limit": OneOrZero})
+DeleteSpecs = List[DeleteSpec]
+
+
 # If `multi==True` all documents that meet the query criteria will be updated.
 # Else only a single document that meets the query criteria will be updated.
 class UpdateStatement(BaseModel):
@@ -135,6 +182,11 @@ class UpdateStatement(BaseModel):
     hint: Optional[Dict[str, OneOrMinusOne]] = None
 
 
+# Custom types for the `update_specs` derived from `UpdateStatement`s.
+UpdateSpec = TypedDict("UpdateSpec", {"filter": Document, "limit": OneOrZero})
+UpdateSpecs = List[UpdateSpec]
+
+
 class UpdateCommand(CommandBase):
     update: str
     updates: List[UpdateStatement]
@@ -142,7 +194,7 @@ class UpdateCommand(CommandBase):
 
 class DocumentUpserted(BaseModel):
     index: NonNegativeInt
-    _id: ObjectId
+    _id: bson.ObjectId
 
 
 class UpdateCommandResponse(CommandResponse):
@@ -153,74 +205,42 @@ class UpdateCommandResponse(CommandResponse):
     writeErrors: Optional[List[Document]] = None
 
 
-class GetMoreCommand(CommandBase):
-    getMore: int
-    collection: str
-    batchSize: Optional[PositiveInt] = None
+QueryCmd = Union[FindCommand, AggregateCommand]
 
-
-class GetMoreCommandResponseCursor(BaseModel):
-    nextBatch: List[Document]
-    partialResultsReturned: Optional[bool] = None
-    id: Optional[int] = None
-    ns: str
-
-
-class GetMoreCommandResponse(CommandResponse):
-    cursor: GetMoreCommandResponseCursor
-
-
-QueryCmd = Union[
-    CollStatsCommand,
-    CountCommand,
-    FindCommand,
+CursorYieldingCommand = Union[
+    QueryCmd,
     GetMoreCommand,
-    DeleteCommand,
-    UpdateCommand,
-    AggregateCommand,
 ]
 
-QueryResponseOptions = Union[
+
+Cmd = Union[
+    CursorYieldingCommand,
+    CollStatsCommand,
+    CountCommand,
+    DeleteCommand,
+    UpdateCommand,
+]
+
+CommandResponseOptions = Union[
+    CursorYieldingCommandResponse,
     CollStatsCommandResponse,
     CountCommandResponse,
-    FindCommandResponse,
-    GetMoreCommandResponse,
     DeleteCommandResponse,
     UpdateCommandResponse,
-    AggregateCommandResponse,
 ]
 
 
 def command_response_for(type_):
+    r"""
+    TODO: Add a docstring and type hints to this function.
+    """
+    if issubclass(type_, CursorYieldingCommand):
+        return CursorYieldingCommandResponse
+
     d = {
         CollStatsCommand: CollStatsCommandResponse,
         CountCommand: CountCommandResponse,
-        FindCommand: FindCommandResponse,
-        GetMoreCommand: GetMoreCommandResponse,
         DeleteCommand: DeleteCommandResponse,
         UpdateCommand: UpdateCommandResponse,
-        AggregateCommand: AggregateCommandResponse,
     }
     return d.get(type_)
-
-
-class Query(BaseModel):
-    id: str
-    saved_at: datetime.datetime
-    cmd: QueryCmd
-
-
-class QueryRun(BaseModel):
-    qid: str
-    ran_at: datetime.datetime
-    result: Optional[Any] = None
-    error: Optional[Any] = None
-
-    @model_validator(mode="before")
-    def result_xor_error(cls, values):
-        result, error = values.get("result"), values.get("error")
-        if result is None and error is None:
-            raise ValueError("At least one of result and error must be provided.")
-        if result is not None and error is not None:
-            raise ValueError("Only one of result or error must be provided.")
-        return values

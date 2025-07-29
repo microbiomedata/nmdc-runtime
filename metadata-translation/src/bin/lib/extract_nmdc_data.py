@@ -9,14 +9,6 @@ sys.path.append(os.path.abspath("."))
 
 # system level modules
 import pandas as pds
-import jq
-import jsonasobj
-import json
-import zipfile
-import yaml
-from yaml import CLoader as Loader, CDumper as Dumper
-from dotted_dict import DottedDict
-from collections import namedtuple
 
 
 def extract_table(merged_df, table_name):

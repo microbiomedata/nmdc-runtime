@@ -1,21 +1,13 @@
-import concurrent.futures
 import json
-import os.path
 import re
-import tempfile
-from collections import defaultdict
-from copy import deepcopy
-from io import StringIO
 from typing import Annotated
 
-import requests
 from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Path
 from gridfs import GridFS, NoFile
-from jsonschema import Draft7Validator
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
 from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
@@ -30,10 +22,7 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.site.repository import repo, run_config_frozen__normal_env
 from nmdc_runtime.util import (
     unfreeze,
-    validate_json,
-    specialize_activity_set_docs,
 )
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -196,7 +185,10 @@ async def submit_json_nmdcdb(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to submit json at this time.",
         )
-    rv = validate_json(docs, mdb)
+
+    # Validate the JSON payload, both (a) the format of each document and
+    # (b) the integrity of any inter-document references being introduced.
+    rv = validate_json(docs, mdb, check_inter_document_references=True)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

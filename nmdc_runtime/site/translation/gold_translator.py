@@ -1,5 +1,4 @@
 import collections
-import csv
 import re
 from typing import List, Tuple, Union
 from nmdc_schema import nmdc
@@ -45,6 +44,7 @@ class GoldStudyTranslator(Translator):
         analysis_projects: List[JSON_OBJECT] = [],
         gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         include_field_site_info: bool = False,
+        enable_biosample_filtering: bool = True,
         *args,
         **kwargs,
     ) -> None:
@@ -53,15 +53,20 @@ class GoldStudyTranslator(Translator):
         self.study = study
         self.study_type = nmdc.StudyCategoryEnum(study_type)
         self.include_field_site_info = include_field_site_info
+        self.enable_biosample_filtering = enable_biosample_filtering
         # Filter biosamples to only those with `sequencingStrategy` of
-        # "Metagenome" or "Metatranscriptome"
-        self.biosamples = [
-            biosample
-            for biosample in biosamples
-            if any(
-                _is_valid_project(project) for project in biosample.get("projects", [])
-            )
-        ]
+        # "Metagenome" or "Metatranscriptome" if filtering is enabled
+        if enable_biosample_filtering:
+            self.biosamples = [
+                biosample
+                for biosample in biosamples
+                if any(
+                    _is_valid_project(project)
+                    for project in biosample.get("projects", [])
+                )
+            ]
+        else:
+            self.biosamples = biosamples
         # Fetch the valid projectGoldIds that are associated with filtered
         # biosamples on their `projects` field
         valid_project_ids = {
@@ -116,6 +121,9 @@ class GoldStudyTranslator(Translator):
         :param gold_entity: GOLD entity object
         :return: PersonValue corresponding to the first PI in the `contacts` field
         """
+        if "contacts" not in gold_entity:
+            return None
+
         pi_dict = next(
             (
                 contact
@@ -169,7 +177,7 @@ class GoldStudyTranslator(Translator):
                 project["ncbiBioSampleAccession"], default_prefix="biosample"
             )
             for project in biosample_projects
-            if project["ncbiBioSampleAccession"]
+            if project.get("ncbiBioSampleAccession")
         ]
 
     def _get_samp_taxon_id(
@@ -639,6 +647,16 @@ class GoldStudyTranslator(Translator):
         :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
+        ncbi_bioproject_identifier = gold_project.get("ncbiBioProjectAccession")
+        insdc_bioproject_identifiers = []
+        if ncbi_bioproject_identifier:
+            insdc_bioproject_identifiers.append(
+                self._ensure_curie(
+                    ncbi_bioproject_identifier,
+                    default_prefix="bioproject",
+                )
+            )
+
         return nmdc.NucleotideSequencing(
             id=nmdc_nucleotide_sequencing_id,
             name=gold_project.get("projectName"),
@@ -650,6 +668,7 @@ class GoldStudyTranslator(Translator):
             has_input=nmdc_biosample_id,
             add_date=gold_project.get("addDate"),
             mod_date=self._get_mod_date(gold_project),
+            insdc_bioproject_identifiers=insdc_bioproject_identifiers,
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
             instrument_used=self._get_instrument(gold_project),
