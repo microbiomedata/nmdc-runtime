@@ -73,10 +73,14 @@ def release_job(
     ],
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
-):
-    """Cancel all operations registered as claims by `site` for job `job_id`.
+) -> Optional[Job]:
+    r"""
+    Release the specified job.
+    
+    Releasing a job cancels all the unfinished operations (of that job)
+    claimed by the `site` associated with the logged-in site client.
 
-    Return the updated job document, reflecting that all of this site's claims are cancelled.
+    Return the updated job, reflecting that the aforementioned operations have been cancelled.
     """
     job = Job(**raise404_if_none(mdb.jobs.find_one({"id": job_id})))
     active_job_claims_by_this_site = list(
@@ -125,4 +129,17 @@ def release_job(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Transaction failed: {e}",
         )
-    return mdb.jobs.find_one({"id": job_id})
+    
+    # Return the updated `jobs` document.
+    #
+    # TODO: Consider retrieving the document within the transaction
+    #       to ensure it still exists.
+    #
+    updated_job = mdb.jobs.find_one({"id": job_id})
+    if updated_job is None:
+        # Note: We return `None` in this case because that's what the
+        #       endpoint originally did in this case, and we don't want
+        #       to introduce a breaking change as part of this refactor.
+        return None
+    else:
+        return Job(**updated_job)
