@@ -76,7 +76,7 @@ def release_job(
 ) -> Optional[Job]:
     r"""
     Release the specified job.
-    
+
     Releasing a job cancels all the unfinished operations (of that job)
     claimed by the `site` associated with the logged-in site client.
 
@@ -129,7 +129,7 @@ def release_job(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Transaction failed: {e}",
         )
-    
+
     # Return the updated `jobs` document.
     #
     # TODO: Consider retrieving the document within the transaction
