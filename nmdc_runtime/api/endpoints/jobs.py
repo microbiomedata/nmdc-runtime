@@ -59,9 +59,7 @@ def claim_job(
     return _claim_job(job_id, mdb, site)
 
 
-@router.post(
-    "/jobs/{job_id}:release", response_model=Job, response_model_exclude_unset=True
-)
+@router.post("/jobs/{job_id}:release")
 def release_job(
     job_id: Annotated[
         str,
