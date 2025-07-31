@@ -295,6 +295,7 @@ def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
             allowDiskUse=True,
         )
     )
+    print(f"{related_data_objects=}")
 
     assert ids_for["data_object_set"][0] in [d["id"] for d in related_data_objects]
 
