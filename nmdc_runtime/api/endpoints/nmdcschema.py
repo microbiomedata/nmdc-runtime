@@ -150,7 +150,7 @@ def get_related_resources(
                 f"Some types not found: {types_not_found}. "
                 "You may need to prefix with `nmdc:`. "
                 "If you don't supply any types, the set {'nmdc:NamedThing'} will be used. "
-                "Types possible: {types_possible}"
+                f"Types possible: {types_possible}"
             ),
         )
 
