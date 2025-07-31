@@ -881,8 +881,8 @@ def test_get_linked_instances_returns_linked_instances(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
     study_a, study_b, biosample_a, biosample_b = fake_studies_and_biosamples_in_mdb
-    # Request the `id`s of the documents related to `study_a`, which is influenced by
-    # `study_b`, `biosample_a`, and `biosample_b`, and which influences nothing.
+    # Request the `id`s of the documents related to `study_a`, which is upstream of
+    # `study_b`, `biosample_a`, and `biosample_b`, and which is downstream of nothing.
     #
     # Note: The API doesn't advertise that the related `id`s will be in any particular order.
     #
@@ -898,8 +898,8 @@ def test_get_linked_instances_returns_linked_instances(
     )
     assert len(response_resource["upstream_docs"]) == 0
 
-    # Request the `id`s of the documents related to `study_b`, which is influenced by
-    # `biosample_b`, and which influences `study_a`.
+    # Request the `id`s of the documents related to `study_b`, which is upstream of
+    # `biosample_b`, and which is downstream of `study_a`.
     response = api_user_client.request(
         "GET",
         f'/nmdcschema/linked_instances?ids={study_b["id"]}',
@@ -912,8 +912,8 @@ def test_get_linked_instances_returns_linked_instances(
     )
     assert {study_a["id"]} == set([r["id"] for r in response_resource["upstream_docs"]])
 
-    # Request the `id`s of the documents related to `biosample_a`, which influences `study_a`,
-    # and is not influenced by anything.
+    # Request the `id`s of the documents related to `biosample_a`, which is downstream of `study_a`,
+    # and is not upstream of anything.
     response = api_user_client.request(
         "GET",
         f'/nmdcschema/linked_instances?ids={biosample_a["id"]}',
