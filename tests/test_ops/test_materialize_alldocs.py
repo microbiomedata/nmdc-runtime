@@ -214,7 +214,7 @@ _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
 }
 
 
-def test_alldocs_related_resources_with_type_and_ancestors(op_context):
+def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
     """
     Test that the {_upstream,_downstream} fields, in conjunction with the _type_and_ancestors field, can be used to find
     all nmdc:DataObjects related to a given nmdc:Biosample using an index-covered query.

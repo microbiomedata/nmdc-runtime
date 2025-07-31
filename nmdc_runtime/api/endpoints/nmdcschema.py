@@ -9,7 +9,7 @@ from pydantic import AfterValidator
 from nmdc_runtime.api.models.nmdc_schema import SimplifiedNMDCDatabase
 from nmdc_runtime.config import (
     DATABASE_CLASS_NAME,
-    IS_RELATED_RESOURCES_ENDPOINT_ENABLED,
+    IS_LINKED_INSTANCES_ENDPOINT_ENABLED,
 )
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
@@ -117,14 +117,14 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-@decorate_if(condition=IS_RELATED_RESOURCES_ENDPOINT_ENABLED)(
+@decorate_if(condition=IS_LINKED_INSTANCES_ENDPOINT_ENABLED)(
     router.get(
-        "/nmdcschema/related_resources",
+        "/nmdcschema/linked_instances",
         response_model=ListResponse,
         response_model_exclude_unset=True,
     )
 )
-def get_related_resources(
+def get_linked_instances(
     ids: Annotated[list[str], Query(), AfterValidator(check_valid_ids)],
     types: Annotated[list[str] | None, Query()] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
