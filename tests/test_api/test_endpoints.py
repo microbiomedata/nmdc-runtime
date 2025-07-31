@@ -695,11 +695,11 @@ def fake_study_nonexistent_in_mdb():
 @pytest.mark.skipif(
     not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
+def test_get_linked_instances_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
     api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
 ):
     r"""
-    This test demonstrates that the `/nmdcschema/related_ids` API endpoint returns an
+    This test demonstrates that the `/nmdcschema/linked_instances` API endpoint returns an
     unsuccessful status code when the request contains an `id` that does not exist in the
     database; and that that is the case whether that `id` is submitted on its own or as
     part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
@@ -713,7 +713,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
     with pytest.raises(requests.exceptions.HTTPError):
         api_user_client.request(
             "GET",
-            f"/nmdcschema/related_ids/ids={fake_study_nonexistent_in_mdb}/types=nmdc:NamedThing",
+            f"/nmdcschema/linked_instances/ids={fake_study_nonexistent_in_mdb}/types=nmdc:NamedThing",
         )
 
     # Submit the same request, but specify _both_ the existing study's `id`
@@ -722,7 +722,7 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
         api_user_client.request(
             "GET",
             (
-                f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]},{fake_study_nonexistent_in_mdb}'
+                f'/nmdcschema/linked_instances/ids={fake_study_in_mdb["id"]},{fake_study_nonexistent_in_mdb}'
                 + "/types=nmdc:NamedThing"
             ),  # two ids
         )
@@ -731,13 +731,13 @@ def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_
 @pytest.mark.skipif(
     not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
+def test_get_linked_instances_returns_empty_resources_list_for_isolated_subject(
     api_user_client, fake_study_in_mdb
 ):
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances/ids={fake_study_in_mdb["id"]}/types=nmdc:NamedThing',
     )
     # Assert that the response contains an empty "resources" list.
     assert response.status_code == 200
@@ -793,7 +793,7 @@ def fake_studies_and_biosamples_in_mdb():
 @pytest.mark.skipif(
     not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_related_ids(
+def test_get_linked_instances_returns_linked_instances(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
     study_a, study_b, biosample_a, biosample_b = fake_studies_and_biosamples_in_mdb
@@ -804,7 +804,7 @@ def test_get_related_ids_returns_related_ids(
     #
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={study_a["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances/ids={study_a["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]
@@ -818,7 +818,7 @@ def test_get_related_ids_returns_related_ids(
     # `biosample_b`, and which influences `study_a`.
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={study_b["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances/ids={study_b["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]
@@ -832,7 +832,7 @@ def test_get_related_ids_returns_related_ids(
     # and is not influenced by anything.
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={biosample_a["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances/ids={biosample_a["id"]}/types=nmdc:NamedThing',
     )
     assert response.status_code == 200
     response_resource = response.json()["resources"][0]

@@ -946,7 +946,7 @@ def load_ontology(context: OpExecutionContext):
     context.log.info(f"Ontology load for {source_ontology} completed successfully!")
 
 
-def _add_related_ids_to_alldocs(
+def _add_linked_instances_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ) -> None:
     """
@@ -1248,7 +1248,7 @@ def materialize_alldocs(context) -> int:
 
     # Add related-ids fields to enable efficient relationship traversal
     context.log.info("Adding fields for related ids to documents...")
-    _add_related_ids_to_alldocs(
+    _add_linked_instances_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots
     )
 
