@@ -25,7 +25,6 @@ from nmdc_runtime.api.db.s3 import (
     S3_ID_NS,
 )
 from nmdc_runtime.api.endpoints.util import exists, list_resources
-from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import (
     AccessMethod,
     AccessURL,

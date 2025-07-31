@@ -4,10 +4,9 @@ import logging
 import mimetypes
 import os
 import subprocess
-import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
-from io import BytesIO, StringIO
+from io import BytesIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
 from typing import Tuple, Set
@@ -44,7 +43,7 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
     _validate_changesheet,
@@ -106,20 +105,16 @@ from nmdc_runtime.util import (
     get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
-    validate_json,
     specialize_activity_set_docs,
     collection_name_to_class_names,
-    class_hierarchy_as_list,
     nmdc_schema_view,
     populated_schema_collection_names_with_id_field,
 )
 from nmdc_schema import nmdc
-from nmdc_schema.nmdc import Database as NMDCDatabase
-from pydantic import BaseModel
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from toolz import assoc, dissoc, get_in, valfilter, identity
+from toolz import get_in, valfilter, identity
 
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000
@@ -152,99 +147,6 @@ def mongo_stats(context) -> List[str]:
     collection_names = db.list_collection_names()
     context.log.info(str(collection_names))
     return collection_names
-
-
-@op(
-    required_resource_keys={"mongo", "runtime_api_site_client"},
-    retry_policy=RetryPolicy(max_retries=2),
-)
-def local_file_to_api_object(context, file_info):
-    client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
-    storage_path: str = file_info["storage_path"]
-    mime_type = file_info.get("mime_type")
-    if mime_type is None:
-        mime_type = mimetypes.guess_type(storage_path)[0]
-    rv = client.put_object_in_site(
-        {"mime_type": mime_type, "name": storage_path.rpartition("/")[-1]}
-    )
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description=f"put_object_in_site failed: {rv.content}")
-    op = rv.json()
-    context.log.info(f"put_object_in_site: {op}")
-    rv = put_object(storage_path, op["metadata"]["url"])
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description=f"put_object failed: {rv.content}")
-    op_patch = {"done": True, "result": drs_object_in_for(storage_path, op)}
-    rv = client.update_operation(op["id"], op_patch)
-    if not rv.status_code == status.HTTP_200_OK:
-        raise Failure(description="update_operation failed")
-    op = rv.json()
-    context.log.info(f"update_operation: {op}")
-    rv = client.create_object_from_op(op)
-    if rv.status_code != status.HTTP_201_CREATED:
-        raise Failure("create_object_from_op failed")
-    obj = rv.json()
-    context.log.info(f'Created /objects/{obj["id"]}')
-    mdb = context.resources.mongo.db
-    rv = mdb.operations.delete_one({"id": op["id"]})
-    if rv.deleted_count != 1:
-        context.log.error("deleting op failed")
-    yield AssetMaterialization(
-        asset_key=AssetKey(["object", obj["name"]]),
-        description="output of metadata-translation run_etl",
-        metadata={"object_id": MetadataValue.text(obj["id"])},
-    )
-    yield Output(obj)
-
-
-@op(
-    out={
-        "merged_data_path": Out(
-            str,
-            description="path to TSV merging of source metadata",
-        )
-    }
-)
-def build_merged_db(context) -> str:
-    context.log.info("metadata-translation: running `make build-merged-db`")
-    run_and_log(
-        "cd /opt/dagster/lib/metadata-translation/ && make build-merged-db", context
-    )
-    storage_path = (
-        "/opt/dagster/lib/metadata-translation/src/data/nmdc_merged_data.tsv.zip"
-    )
-    yield AssetMaterialization(
-        asset_key=AssetKey(["gold_translation", "merged_data.tsv.zip"]),
-        description="input to metadata-translation run_etl",
-        metadata={"path": MetadataValue.path(storage_path)},
-    )
-    yield Output(storage_path, "merged_data_path")
-
-
-@op(
-    required_resource_keys={"runtime_api_site_client"},
-)
-def run_etl(context, merged_data_path: str):
-    context.log.info("metadata-translation: running `make run-etl`")
-    if not os.path.exists(merged_data_path):
-        raise Failure(description=f"merged_db not present at {merged_data_path}")
-    run_and_log("cd /opt/dagster/lib/metadata-translation/ && make run-etl", context)
-    storage_path = (
-        "/opt/dagster/lib/metadata-translation/src/data/nmdc_database.json.zip"
-    )
-    with ZipFile(storage_path) as zf:
-        name = zf.namelist()[0]
-        with zf.open(name) as f:
-            rv = json.load(f)
-    context.log.info(f"nmdc_database.json keys: {list(rv.keys())}")
-    yield AssetMaterialization(
-        asset_key=AssetKey(["gold_translation", "database.json.zip"]),
-        description="output of metadata-translation run_etl",
-        metadata={
-            "path": MetadataValue.path(storage_path),
-        },
-    )
-    yield Output({"storage_path": storage_path})
 
 
 @op(required_resource_keys={"mongo"})
@@ -557,22 +459,25 @@ def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
         "study_type": str,
         "gold_nmdc_instrument_mapping_file_url": str,
         "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "study_id": Out(str),
         "study_type": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
         "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
 def get_gold_study_pipeline_inputs(
     context: OpExecutionContext,
-) -> Tuple[str, str, str, bool]:
+) -> Tuple[str, str, str, bool, bool]:
     return (
         context.op_config["study_id"],
         context.op_config["study_type"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
         context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -616,6 +521,7 @@ def nmdc_schema_database_from_gold_study(
     analysis_projects: List[Dict[str, Any]],
     gold_nmdc_instrument_map_df: pd.DataFrame,
     include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -631,6 +537,7 @@ def nmdc_schema_database_from_gold_study(
         analysis_projects,
         gold_nmdc_instrument_map_df,
         include_field_site_info,
+        enable_biosample_filtering,
         id_minter=id_minter,
     )
     database = translator.get_database()
@@ -1043,13 +950,11 @@ def _add_related_ids_to_alldocs(
     temp_collection, context, document_reference_ranged_slots_by_type
 ) -> None:
     """
-    Adds {`_upstream`,`_downstream`} fields to each document in the temporary alldocs collection.
+    Adds {`_inbound`,`_outbound`} fields to each document in the temporary alldocs collection.
 
-    The {`_upstream`,`_downstream`} fields each contain an array of subdocuments, each with fields `id` and `type`.
-    Each subdocument represents a link to another document that either links to or is linked from the document via
-    document-reference-ranged slots. If document A links to document B, document A is not necessarily "upstream of"
-    document B. Rather, "upstream" and "downstream" are defined by domain semantics. For example, a Study is
-    considered upstream of a Biosample even though the link `associated_studies` goes from a Biosample to a Study.
+    The {`_inbound`,`_outbound`} fields each contain an array of subdocuments, each with fields `id` and `type`.
+    Each subdocument represents a link to any other document that either links to or is linked from
+    the document via document-reference-ranged slots.
 
     Args:
         temp_collection: The temporary MongoDB collection to process
@@ -1061,7 +966,7 @@ def _add_related_ids_to_alldocs(
     """
 
     context.log.info(
-        "Building relationships and adding `_upstream` and `_downstream` fields..."
+        "Building relationships and adding `_inbound` and `_outbound` fields..."
     )
 
     # document ID -> type (with "nmdc:" prefix preserved)
@@ -1076,7 +981,6 @@ def _add_related_ids_to_alldocs(
         # Store the full type with prefix intact
         doc_type = doc["type"]
         # For looking up reference slots, we still need the type without prefix
-        # FIXME `document_reference_ranged_slots_by_type` should key on `doc_type`
         doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
 
         # Record ID to type mapping - preserve the original type with prefix
@@ -1102,32 +1006,34 @@ def _add_related_ids_to_alldocs(
         f"{len({d for (d, _, _) in relationship_triples})} containing references"
     )
 
-    # The bifurcation of document-reference-ranged slots as "upstream" and "downstream" is essential
+    # The bifurcation of document-reference-ranged slots as "inbound" and "outbound" is essential
     # in order to perform graph traversal and collect all entities "related" to a given entity without
     # recursion "exploding".
     #
     # Note: We are hard-coding this "direction" information here in the Runtime
     #       because the NMDC schema does not currently contain or expose it.
     #
-    # An "upstream" slot is such that the range entity originated, or helped produce, the domain entity.
-    upstream_document_reference_ranged_slots = [
-        "associated_studies",  # when a `nmdc:Study` is upstream of a `nmdc:Biosample`.
-        "collected_from",  # when a `nmdc:Site` is upstream of a `nmdc:Biosample`.
-        "has_chromatography_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
-        "has_input",  # when a `nmdc:NamedThing` is upstream of a `nmdc:PlannedProcess`.
-        "has_mass_spectrometry_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
-        "instrument_used",  # when a `nmdc:Instrument` is upstream of a `nmdc:PlannedProcess`.
-        "part_of",  # when a `nmdc:NamedThing` is upstream of a `nmdc:NamedThing`.
-        "uses_calibration",  # when a `nmdc:CalibrationInformation`is upstream of a `nmdc:PlannedProcess`.
-        "was_generated_by",  # when a `nmdc:DataEmitterProcess` is upstream of a `nmdc:DataObject`.
-        "was_informed_by",  # when a  `nmdc:DataGeneration` is upstream of a `nmdc:WorkflowExecution`.
+    # An "inbound" slot is one for which an entity in the domain "was influenced by" (formally,
+    # <https://www.w3.org/ns/prov#wasInfluencedBy>, with typical CURIE prov:wasInfluencedBy) an entity in the range.
+    inbound_document_reference_ranged_slots = [
+        "collected_from",  # a `nmdc:Biosample` was influenced by the `nmdc:Site` from which it was collected.
+        "has_chromatography_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "has_input",  # a `nmdc:PlannedProcess` was influenced by a `nmdc:NamedThing`.
+        "has_mass_spectrometry_configuration",  # a `nmdc:PlannedProcess` was influenced by its `nmdc:Configuration`.
+        "instrument_used",  # a `nmdc:PlannedProcess` was influenced by a used `nmdc:Instrument`.
+        "uses_calibration",  # a `nmdc:PlannedProcess` was influenced by `nmdc:CalibrationInformation`.
+        "was_generated_by",  # prov:wasGeneratedBy rdfs:subPropertyOf prov:wasInfluencedBy.
+        "was_informed_by",  # prov:wasInformedBy rdfs:subPropertyOf prov:wasInfluencedBy.
     ]
-    # A "downstream" slot is such that the range entity originated from, or is considered part of, the domain entity.
-    downstream_document_reference_ranged_slots = [
-        "calibration_object",  # when a `nmdc:DataObject` is downstream of a `nmdc:CalibrationInformation`.
-        "generates_calibration",  # when a `nmdc:CalibrationInformation` is downstream of a `nmdc:PlannedProcess`.
-        "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
-        "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
+    # An "outbound" slot is one for which an entity in the domain "influences"
+    # (i.e., [owl:inverseOf prov:wasInfluencedBy]) an entity in the range.
+    outbound_document_reference_ranged_slots = [
+        "associated_studies",  # a `nmdc:Biosample` influences a `nmdc:Study`.
+        "calibration_object",  # `nmdc:CalibrationInformation` generates a `nmdc:DataObject`.
+        "generates_calibration",  # a `nmdc:PlannedProcess` generates `nmdc:CalibrationInformation`.
+        "has_output",  # a `nmdc:PlannedProcess` generates a `nmdc:NamedThing`.
+        "in_manifest",  # a `nmdc:DataObject` becomes associated with `nmdc:Manifest`.
+        "part_of",  # a "contained" `nmdc:NamedThing` influences its "container" `nmdc:NamedThing`,
     ]
 
     unique_document_reference_ranged_slot_names = set()
@@ -1135,15 +1041,15 @@ def _add_related_ids_to_alldocs(
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
     context.log.info(f"{unique_document_reference_ranged_slot_names=}")
-    if len(upstream_document_reference_ranged_slots) + len(
-        downstream_document_reference_ranged_slots
+    if len(inbound_document_reference_ranged_slots) + len(
+        outbound_document_reference_ranged_slots
     ) != len(unique_document_reference_ranged_slot_names):
         raise Failure(
             "Number of detected unique document-reference-ranged slot names does not match "
             "sum of accounted-for inbound and outbound document-reference-ranged slot names."
         )
 
-    # Construct, and update documents with, `_upstream` and `_downstream` field values.
+    # Construct, and update documents with, `_incoming` and `_outgoing` field values.
     #
     # manage batching of MongoDB `bulk_write` operations
     bulk_operations, update_count = [], 0
@@ -1151,16 +1057,13 @@ def _add_related_ids_to_alldocs(
 
         # Determine in which respective fields to push this relationship
         # for the subject (doc) and object (ref) of this triple.
-        if slot in upstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_upstream", "_downstream"
-        elif slot in downstream_document_reference_ranged_slots:
-            field_for_doc, field_for_ref = "_downstream", "_upstream"
+        if slot in inbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_inbound", "_outbound"
+        elif slot in outbound_document_reference_ranged_slots:
+            field_for_doc, field_for_ref = "_outbound", "_inbound"
         else:
             raise Failure(f"Unknown slot {slot} for document {doc_id}")
 
-        context.log.debug(f"pushing: given {doc_id=} {slot=} {ref_id=}")
-        context.log.debug(f"pushing: {doc_id=} {field_for_doc=} {ref_id=} to alldocs")
-        context.log.debug(f"pushing: {ref_id=} {field_for_ref=} {doc_id=} to alldocs")
         updates = [
             {
                 "filter": {"id": doc_id},
@@ -1204,6 +1107,14 @@ def _add_related_ids_to_alldocs(
 
     context.log.info(f"Pushed {update_count} updates in total")
 
+    context.log.info("Creating {`_inbound`,`_outbound`} indexes...")
+    temp_collection.create_index("_inbound.id")
+    temp_collection.create_index("_outbound.id")
+    # Create compound indexes to ensure index-covered queries
+    temp_collection.create_index([("_inbound.type", 1), ("_inbound.id", 1)])
+    temp_collection.create_index([("_outbound.type", 1), ("_outbound.id", 1)])
+    context.log.info("Successfully created {`_inbound`,`_outbound`} indexes")
+
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
 #       pass an argument to the op (in order to specify the order of the ops in the graph)
@@ -1220,8 +1131,8 @@ def materialize_alldocs(context) -> int:
     2. Create a temporary collection to build the new alldocs collection.
     3. For each document in schema collections, extract `id`, `type`, and document-reference-ranged slot values.
     4. Add a special `_type_and_ancestors` field that contains the class hierarchy for the document's type.
-    5. Add special `_upstream` and `_downstream` fields with subdocuments containing ID and type of related entities.
-    6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
+    5. Add special `_inbound` and `_outbound` fields with subdocuments containing ID and type of related entities.
+    6. Add indexes for `id`, relationship fields, and `{_inbound,_outbound}.type`/`.id` compound indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
     The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
@@ -1232,7 +1143,7 @@ def materialize_alldocs(context) -> int:
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
     related documents. It serves as a denormalized view of the database to make these complex queries more efficient.
 
-    The {`_upstream`,`_downstream`} fields enable efficient index-covered queries to find all entities of specific types
+    The {`_inbound`,`_outbound`} fields enable efficient index-covered queries to find all entities of specific types
     that are related to a given set of source entities, leveraging the `_type_and_ancestors` field for subtype
     expansions.
     """
@@ -1263,9 +1174,6 @@ def materialize_alldocs(context) -> int:
         )
     )
 
-    # FIXME rename to `document_reference_ranged_slots_by_type`
-    # FIXME key on CURIE, e.g. `nmdc:Study`
-    #  (here, not upstream in `cls_slot_map`/`document_referenceable_ranges`, b/c `schema_view` used directly in those)
     document_reference_ranged_slots = defaultdict(list)
     for cls_name, slot_map in cls_slot_map.items():
         for slot_name, slot in slot_map.items():
@@ -1305,12 +1213,12 @@ def materialize_alldocs(context) -> int:
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
 
             new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
+            # InsertOne is a method on the py-mongo Client class.
             # Get ancestors without the prefix, but add prefix to each one in the output
             ancestors = schema_view.class_ancestors(doc_type)
             new_doc["_type_and_ancestors"] = [
                 "nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors
             ]
-            # InsertOne is a pymongo representation of a mongo command.
             write_operations.append(InsertOne(new_doc))
             if len(write_operations) == BULK_WRITE_BATCH_SIZE:
                 _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
@@ -1334,7 +1242,6 @@ def materialize_alldocs(context) -> int:
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
     # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
-    # TODO add indexes on each of `set(document_reference_ranged_slots.values())`.
     slots_to_index = ["has_input", "has_output", "was_informed_by"]
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
     context.log.info(f"created indexes on id, {slots_to_index}.")
@@ -1344,18 +1251,10 @@ def materialize_alldocs(context) -> int:
     _add_related_ids_to_alldocs(
         temp_alldocs_collection, context, document_reference_ranged_slots
     )
-    context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
-    temp_alldocs_collection.create_index("_upstream.id")
-    temp_alldocs_collection.create_index("_downstream.id")
-    # Create compound indexes to ensure index-covered queries
-    temp_alldocs_collection.create_index([("_upstream.type", 1), ("_upstream.id", 1)])
-    temp_alldocs_collection.create_index(
-        [("_downstream.type", 1), ("_downstream.id", 1)]
-    )
-    context.log.info("Successfully created {`_upstream`,`_downstream`} indexes")
 
     context.log.info(f"renaming `{temp_alldocs_collection.name}` to `alldocs`...")
     temp_alldocs_collection.rename("alldocs", dropTarget=True)
+
     n_alldocs_documents = mdb.alldocs.estimated_document_count()
     context.log.info(
         f"Rebuilt `alldocs` collection with {n_alldocs_documents} documents."
@@ -1503,16 +1402,24 @@ def post_submission_portal_biosample_ingest_record_stitching_filename(
     config_schema={
         "nmdc_study_id": str,
         "gold_nmdc_instrument_mapping_file_url": str,
+        "include_field_site_info": bool,
+        "enable_biosample_filtering": bool,
     },
     out={
         "nmdc_study_id": Out(str),
         "gold_nmdc_instrument_mapping_file_url": Out(str),
+        "include_field_site_info": Out(bool),
+        "enable_biosample_filtering": Out(bool),
     },
 )
-def get_database_updater_inputs(context: OpExecutionContext) -> Tuple[str, str]:
+def get_database_updater_inputs(
+    context: OpExecutionContext,
+) -> Tuple[str, str, bool, bool]:
     return (
         context.op_config["nmdc_study_id"],
         context.op_config["gold_nmdc_instrument_mapping_file_url"],
+        context.op_config["include_field_site_info"],
+        context.op_config["enable_biosample_filtering"],
     )
 
 
@@ -1527,6 +1434,8 @@ def generate_data_generation_set_post_biosample_ingest(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1542,6 +1451,8 @@ def generate_data_generation_set_post_biosample_ingest(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = (
         database_updater.generate_data_generation_set_records_from_gold_api_for_study()
@@ -1561,6 +1472,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
+    include_field_site_info: bool = False,
+    enable_biosample_filtering: bool = False,
 ) -> nmdc.Database:
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1576,6 +1489,8 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     database = database_updater.generate_biosample_set_from_gold_api_for_study()
 
@@ -1587,13 +1502,16 @@ def generate_biosample_set_for_nmdc_study_from_gold(
         "runtime_api_user_client",
         "runtime_api_site_client",
         "gold_api_client",
-    }
+    },
+    out=Out(Any),
 )
 def run_script_to_update_insdc_biosample_identifiers(
     context: OpExecutionContext,
     nmdc_study_id: str,
     gold_nmdc_instrument_map_df: pd.DataFrame,
-) -> Dict[str, Any]:
+    include_field_site_info: bool,
+    enable_biosample_filtering: bool,
+):
     """Generates a MongoDB update script to add INSDC biosample identifiers to biosamples.
 
     This op uses the DatabaseUpdater to generate a script that can be used to update biosample
@@ -1605,7 +1523,7 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_nmdc_instrument_map_df: A dataframe mapping GOLD instrument IDs to NMDC instrument set records
 
     Returns:
-        A dictionary containing the MongoDB update script
+        A dictionary or list of dictionaries containing the MongoDB update script(s)
     """
     runtime_api_user_client: RuntimeApiUserClient = (
         context.resources.runtime_api_user_client
@@ -1621,11 +1539,17 @@ def run_script_to_update_insdc_biosample_identifiers(
         gold_api_client,
         nmdc_study_id,
         gold_nmdc_instrument_map_df,
+        include_field_site_info,
+        enable_biosample_filtering,
     )
     update_script = database_updater.queries_run_script_to_update_insdc_identifiers()
 
+    if isinstance(update_script, list):
+        total_updates = sum(len(item.get("updates", [])) for item in update_script)
+    else:
+        total_updates = len(update_script.get("updates", []))
     context.log.info(
-        f"Generated update script for study {nmdc_study_id} with {len(update_script.get('updates', []))} updates"
+        f"Generated update script for study {nmdc_study_id} with {total_updates} updates"
     )
 
     return update_script

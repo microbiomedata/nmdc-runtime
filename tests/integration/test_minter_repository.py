@@ -1,4 +1,3 @@
-import collections
 import pytest
 
 from nmdc_runtime.minter.adapters.repository import InMemoryIDStore, MongoIDStore

@@ -167,11 +167,8 @@ endpoint allows you to get a filtered list of documents from one of the NMDC Sch
 
 ![List from collections](../img/list-from-collection.png)
 
-The `collection_name` must be one defined for a
-[nmdc:Database](https://microbiomedata.github.io/nmdc-schema/Database/), in the form expected by the
-JSON Schema,
-[nmdc.schema.json](https://github.com/microbiomedata/nmdc-schema/blob/69fd1ee91afac1a943b2cc9bfbfdecd0e2cdd089/jsonschema/nmdc.schema.json#L987).
-This typically means that any spaces in the name should be entered as underscores (`_`) instead.
+The `collection_name` must be the name of a slot of the
+[nmdc:Database](https://microbiomedata.github.io/nmdc-schema/Database/) class (e.g. `study_set`, `biosample_set`).
 
 The `filter`, if provided, is a JSON document in the form of the
 [MongoDB Query Language](https://docs.mongodb.com/manual/tutorial/query-documents/). For example,

@@ -17,6 +17,7 @@ eggs/
 lib/
 !/tests/lib/
 !/nmdc_runtime/api/endpoints/lib/
+!/nmdc_runtime/api/models/lib/
 lib64/
 parts/
 sdist/
@@ -142,16 +143,9 @@ presets_*.yaml
 # VSCode
 .vscode/
 
-# metadata-translation `make run-etl` output
-metadata-translation/src/bin/output/
-metadata-translation/examples/nmdc_example_database.json
-metadata-translation/src/data/nmdc_database.json.zip
-metadata-translation/src/data/nmdc_merged_data.tsv.zip
-
 deployment
 cordra-2.3.0/
 
-!metadata-translation/src/bin/lib
 .env*
 !.env.example
 !.env.test

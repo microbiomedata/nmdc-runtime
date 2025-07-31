@@ -6,7 +6,7 @@ $ nmdcdb-mongodump
 
 import os
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 

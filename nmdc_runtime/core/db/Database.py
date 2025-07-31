@@ -1,6 +1,4 @@
-from contextlib import contextmanager, AbstractContextManager
-from typing import Callable
-import logging
+from contextlib import contextmanager
 
 from motor import motor_asyncio
 

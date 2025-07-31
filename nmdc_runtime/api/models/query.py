@@ -1,7 +1,6 @@
-import datetime
 import json
 import logging
-from typing import Optional, Any, Dict, List, Union
+from typing import Optional, Any, Dict, List, Union, TypedDict
 
 import bson
 import bson.json_util
@@ -12,16 +11,12 @@ from pydantic import (
     PositiveInt,
     NonNegativeInt,
     field_validator,
-    ConfigDict,
     WrapSerializer,
 )
-from pymongo.database import Database as MongoDatabase
 from toolz import assoc, assoc_in
 from typing_extensions import Annotated
 
-from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import now, pick
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.core.util import pick
 
 
 def bson_to_json(doc: Any, handler) -> dict:
@@ -156,6 +151,7 @@ class CursorYieldingCommandResponse(CommandResponse):
 
 class DeleteStatement(BaseModel):
     q: Document
+    # `limit` is required: https://www.mongodb.com/docs/manual/reference/command/delete/#std-label-deletes-array-limit
     limit: OneOrZero
     hint: Optional[Dict[str, OneOrMinusOne]] = None
 
@@ -171,6 +167,11 @@ class DeleteCommandResponse(CommandResponse):
     writeErrors: Optional[List[Document]] = None
 
 
+# Custom types for the `delete_specs` derived from `DeleteStatement`s.
+DeleteSpec = TypedDict("DeleteSpec", {"filter": Document, "limit": OneOrZero})
+DeleteSpecs = List[DeleteSpec]
+
+
 # If `multi==True` all documents that meet the query criteria will be updated.
 # Else only a single document that meets the query criteria will be updated.
 class UpdateStatement(BaseModel):
@@ -179,6 +180,11 @@ class UpdateStatement(BaseModel):
     upsert: bool = False
     multi: bool = False
     hint: Optional[Dict[str, OneOrMinusOne]] = None
+
+
+# Custom types for the `update_specs` derived from `UpdateStatement`s.
+UpdateSpec = TypedDict("UpdateSpec", {"filter": Document, "limit": OneOrZero})
+UpdateSpecs = List[UpdateSpec]
 
 
 class UpdateCommand(CommandBase):
@@ -225,6 +231,9 @@ CommandResponseOptions = Union[
 
 
 def command_response_for(type_):
+    r"""
+    TODO: Add a docstring and type hints to this function.
+    """
     if issubclass(type_, CursorYieldingCommand):
         return CursorYieldingCommandResponse
 
@@ -235,6 +244,3 @@ def command_response_for(type_):
         UpdateCommand: UpdateCommandResponse,
     }
     return d.get(type_)
-
-
-_mdb = get_mongo_db()

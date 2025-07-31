@@ -23,9 +23,11 @@ def typecodes() -> List[dict]:
           that class _today_; regardless of what it may have used in the past.
 
     >>> typecode_descriptors = typecodes()
+
     # Test #1: We get the typecode we expect, for a class whose pattern contains only one typecode.
     >>> any((td["name"] == "sty" and td["schema_class"] == "nmdc:Study") for td in typecode_descriptors)
     True
+
     # Tests #2 and #3: We get only the typecode we expect, for a class whose pattern contains multiple typecodes.
     >>> any((td["name"] == "dgms" and td["schema_class"] == "nmdc:MassSpectrometry") for td in typecode_descriptors)
     True

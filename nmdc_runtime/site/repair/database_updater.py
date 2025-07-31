@@ -18,6 +18,8 @@ class DatabaseUpdater:
         gold_api_client: GoldApiClient,
         study_id: str,
         gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
+        include_field_site_info: bool = False,
+        enable_biosample_filtering: bool = True,
     ):
         """This class serves as an API for repairing connections in the database by
         adding records that are essentially missing "links"/"connections". As we identify
@@ -39,6 +41,8 @@ class DatabaseUpdater:
         self.gold_api_client = gold_api_client
         self.study_id = study_id
         self.gold_nmdc_instrument_map_df = gold_nmdc_instrument_map_df
+        self.include_field_site_info = include_field_site_info
+        self.enable_biosample_filtering = enable_biosample_filtering
 
     @lru_cache
     def _fetch_gold_biosample(self, gold_biosample_id: str) -> List[Dict[str, Any]]:
@@ -95,6 +99,8 @@ class DatabaseUpdater:
             biosamples=all_gold_biosamples,
             projects=all_gold_projects,
             gold_nmdc_instrument_map_df=self.gold_nmdc_instrument_map_df,
+            include_field_site_info=self.include_field_site_info,
+            enable_biosample_filtering=self.enable_biosample_filtering,
         )
 
         # The GoldStudyTranslator class has some pre-processing logic which filters out
@@ -214,6 +220,8 @@ class DatabaseUpdater:
             projects=gold_sequencing_projects_for_study,
             analysis_projects=gold_analysis_projects_for_study,
             gold_nmdc_instrument_map_df=self.gold_nmdc_instrument_map_df,
+            include_field_site_info=self.include_field_site_info,
+            enable_biosample_filtering=self.enable_biosample_filtering,
         )
 
         translated_biosamples = gold_study_translator.biosamples

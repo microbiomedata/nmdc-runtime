@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import tempfile
 from datetime import datetime
 from functools import lru_cache
@@ -8,7 +7,6 @@ from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
 from typing import List, Optional, Set, Tuple
-from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -22,7 +20,7 @@ from nmdc_runtime.api.core.util import (
     expiry_dt_from_now,
     raise404_if_none,
 )
-from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -42,7 +40,6 @@ from nmdc_runtime.api.models.site import Site
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.models.util import (
     FindRequest,
-    FindResponse,
     ListRequest,
     ResultT,
 )

@@ -17,7 +17,6 @@ from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from starlette import status
 from starlette.requests import Request
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 

@@ -2,9 +2,8 @@ import abc
 import re
 from typing import Union
 
-from fastapi import HTTPException
 from pymongo import ReturnDocument
-from toolz import merge, dissoc
+from toolz import merge
 from pymongo.database import Database as MongoDatabase
 
 
