@@ -90,7 +90,7 @@ def run_query(
         ),
     ] = False,
 ):
-    """
+    r"""
     Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
 
     For `find` and `aggregate` commands, the requested items will be in `cursor.batch`.

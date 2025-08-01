@@ -103,4 +103,7 @@ def json_clean(data, model, exclude_unset=False) -> dict:
     if not isinstance(data, (dict, BaseModel)):
         raise TypeError("`data` must be a pydantic model or its .model_dump()")
     m = model(**data) if isinstance(data, dict) else data
-    return json.loads(m.json(exclude_unset=exclude_unset))
+
+    # Note: Between Pydantic v1 and v2, the `json` method was renamed to `model_dump_json`.
+    #       Reference: https://docs.pydantic.dev/2.11/migration/#changes-to-pydanticbasemodel
+    return json.loads(m.model_dump_json(exclude_unset=exclude_unset))
