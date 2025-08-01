@@ -162,15 +162,22 @@ class NCBISubmissionXML:
         org,
         bioproject_id,
         nmdc_biosamples,
+        pooled_biosamples_data=None,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
         )
 
+        # Use provided pooling data or empty dict
+        pooling_data = pooled_biosamples_data or {}
+
         for biosample in nmdc_biosamples:
             attributes = {}
             sample_id_value = None
             env_package = None
+
+            # Get pooling info for this specific biosample
+            pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
                 if isinstance(value, list):
@@ -213,7 +220,11 @@ class NCBISubmissionXML:
 
                 # Special handling for NMDC Biosample "id"
                 if json_key == "id":
-                    sample_id_value = value
+                    # Use ProcessedSample ID if this is a pooled sample, otherwise use biosample ID
+                    if pooling_info and pooling_info.get("processed_sample_id"):
+                        sample_id_value = pooling_info["processed_sample_id"]
+                    else:
+                        sample_id_value = value
                     continue
 
                 if json_key not in attribute_mappings:
@@ -240,6 +251,28 @@ class NCBISubmissionXML:
                 formatted_value = handler(value)
                 attributes[xml_key] = formatted_value
 
+            # Override with aggregated values for pooled samples
+            if pooling_info:
+                if pooling_info.get("aggregated_collection_date"):
+                    # Find the mapping for collection_date
+                    collection_date_key = attribute_mappings.get(
+                        "collection_date", "collection_date"
+                    )
+                    attributes[collection_date_key] = pooling_info[
+                        "aggregated_collection_date"
+                    ]
+
+                if pooling_info.get("aggregated_depth"):
+                    # Find the mapping for depth
+                    depth_key = attribute_mappings.get("depth", "depth")
+                    attributes[depth_key] = pooling_info["aggregated_depth"]
+
+                # Add samp_pooling attribute with semicolon-delimited biosample IDs
+                if pooling_info.get("pooled_biosample_ids"):
+                    attributes["samp_pooling"] = ";".join(
+                        pooling_info["pooled_biosample_ids"]
+                    )
+
             biosample_elements = [
                 self.set_element(
                     "SampleId",
@@ -260,7 +293,36 @@ class NCBISubmissionXML:
                                 f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
                             ),
                         ),
-                    ],
+                    ]
+                    + (
+                        # Add external links for pooled samples
+                        [
+                            self.set_element(
+                                "ExternalLink",
+                                attrib={"label": "NMDC Processed Sample"},
+                                children=[
+                                    self.set_element(
+                                        "URL",
+                                        f"https://bioregistry.io/{pooling_info['processed_sample_id']}",
+                                    )
+                                ],
+                            ),
+                            self.set_element(
+                                "ExternalLink",
+                                attrib={"label": "NMDC Pooling Process"},
+                                children=[
+                                    self.set_element(
+                                        "URL",
+                                        f"https://bioregistry.io/{pooling_info['pooling_process_id']}",
+                                    )
+                                ],
+                            ),
+                        ]
+                        if pooling_info
+                        and pooling_info.get("processed_sample_id")
+                        and pooling_info.get("pooling_process_id")
+                        else []
+                    ),
                 ),
                 self.set_element(
                     "Organism",
@@ -583,6 +645,7 @@ class NCBISubmissionXML:
         biosample_data_objects_list: list,
         biosample_library_preparation_list: list,
         instruments_dict: dict,
+        pooled_biosamples_data=None,
     ):
         # data_type = None
 
@@ -645,6 +708,7 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
             bioproject_id=self.ncbi_bioproject_id,
             nmdc_biosamples=filtered_biosamples_list,
+            pooled_biosamples_data=pooled_biosamples_data,
         )
 
         # Also filter biosample_data_objects_list
