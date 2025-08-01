@@ -50,7 +50,7 @@ def authenticate_user(mdb, username: str, password: str) -> Union[UserInDB, bool
     r"""
     Returns the user, if any, having the specified username/password combination.
     """
-    
+
     user = get_user(mdb, username)
     if not user:
         return False
@@ -66,7 +66,7 @@ async def get_current_user(
 ) -> UserInDB:
     r"""
     Returns a user based upon the provided token.
-    
+
     If the token belongs to a site client, the returned user is an ephemeral "user"
     whose username is the site client's `client_id`.
 
@@ -117,7 +117,7 @@ def get_client_user(mdb, client_id: str) -> UserInDB:
     site = get_site(mdb, client_id)
     if site is None:
         raise credentials_exception
-    
+
     # Get the client, itself, via the site.
     client = next(client for client in site.clients if client.id == client_id)
     if client is None:
