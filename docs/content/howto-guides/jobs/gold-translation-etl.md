@@ -1,5 +1,7 @@
 # GOLD Translation ETL
 
+> **Note**: This documentation refers to the `translation` repository which has been removed. This guide is kept for historical reference but the described functionality is no longer available.
+
 This job takes a `nmdc_merged_data.tsv.zip` file as a data object input.
 
 First, start your local runtime stack:

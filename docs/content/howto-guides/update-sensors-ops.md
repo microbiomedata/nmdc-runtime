@@ -8,8 +8,8 @@ A Dagster [Repository](https://docs.dagster.io/concepts/repositories-workspaces/
 collection of code that defines how orchestration is to be done. The
 [`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
 module exposes three such repositories via the `@repository` decorator. The creatively named `repo`
-repository is the main one. The `translation` and `test_translation` repositories are used for GOLD
-database translation jobs.
+repository is the main one. ~~The `translation` and `test_translation` repositories are used for GOLD
+database translation jobs.~~ [Note: The `translation` and `test_translation` repositories have been removed.]
 
 Why multiple repositories? A given repository may require resources that a given Dagster deployment
 may not provide -- it is nice to opt-in to serve a given repository of functionality.
