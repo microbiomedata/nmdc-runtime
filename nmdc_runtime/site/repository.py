@@ -1010,15 +1010,3 @@ def database_records_stitching():
             },
         ),
     ]
-
-
-# @repository
-# def validation():
-#     graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
-#     return graph_jobs
-#
-#
-# @repository
-# def test_validation():
-#     graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
-#     return graph_jobs
