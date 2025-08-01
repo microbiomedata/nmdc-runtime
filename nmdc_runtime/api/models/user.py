@@ -123,7 +123,7 @@ def get_client_user(mdb, client_id: str) -> UserInDB:
     if client is None:
         raise credentials_exception
 
-    # Make a ephemeral "user" whose username matches the client's `id`.
+    # Make an ephemeral "user" whose username matches the client's `id`.
     user = UserInDB(username=client.id, hashed_password=client.hashed_secret)
     return user
 
