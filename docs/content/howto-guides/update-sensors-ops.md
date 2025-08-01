@@ -6,10 +6,10 @@ orchestrator used by the Runtime, using a particular
 
 A Dagster [Repository](https://docs.dagster.io/concepts/repositories-workspaces/repositories) is a
 collection of code that defines how orchestration is to be done. The
-[`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
+[
+`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
 module exposes three such repositories via the `@repository` decorator. The creatively named `repo`
-repository is the main one. The `translation` and `test_translation` repositories are used for GOLD
-database translation jobs.
+repository is the main one.
 
 Why multiple repositories? A given repository may require resources that a given Dagster deployment
 may not provide -- it is nice to opt-in to serve a given repository of functionality.
@@ -20,7 +20,8 @@ or more repositories for a given deployment.
 A Dagster [Sensor](https://docs.dagster.io/concepts/partitions-schedules-sensors/sensors) defines a
 process that will be run over and over again at a regular, relatively tight interval such as every
 30 seconds. The `claim_and_run_apply_changesheet_jobs` sensor, defined in
-[`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
+[
+`nmdc_runtime.site.repository`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/repository.py)
 via the `@sensor` decorator, is the example we'll explore here.
 
 A sensor decides, via the code in its body, to yield one or more `RunRequest`s, requests to run a
@@ -52,8 +53,9 @@ supplies resource definitions (a mapping of resource names to Python functions d
 `@resource`) as well as configuration for the resources (incl. specifying environment variables to
 source).
 
-The `apply_changesheet` Graph is defined in [`nmdc_runtime.site.graphs`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/graphs.py)
- as follows:
+The `apply_changesheet` Graph is defined in [
+`nmdc_runtime.site.graphs`](https://github.com/microbiomedata/nmdc-runtime/blob/main/nmdc_runtime/site/graphs.py)
+as follows:
 
 ```python
 @graph
@@ -62,7 +64,8 @@ def apply_changesheet():
     perform_changesheet_updates(sheet_in)
 ```
 
-which is rendered in Dagster's [web UI](https://docs.dagster.io/guides/operate/webserver) (sometimes still referred to as "Dagit," which was its previous name) as a graph:
+which is rendered in Dagster's [web UI](https://docs.dagster.io/guides/operate/webserver) (sometimes still referred to
+as "Dagit," which was its previous name) as a graph:
 
 <figure markdown style="max-width: 25em">
   ![Dagit UI rendering of `apply_changesheet` job](../img/dagit-apply-changesheet-job.png)
@@ -85,7 +88,7 @@ def get_changesheet_in(context) -> ChangesheetIn:
     ...
 ```
 
-and 
+and
 
 ```python
 @op(required_resource_keys={"mongo"})

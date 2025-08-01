@@ -35,8 +35,6 @@ nav:
     - howto-guides/improving-search-api.md
     - nb/queue_and_trigger_data_jobs.ipynb
     - nb/wf_automation.ipynb
-    - Specific Jobs:
-      - howto-guides/jobs/gold-translation-etl.md
   - Reference:
     - contributing-docs.md
     - admin.md
