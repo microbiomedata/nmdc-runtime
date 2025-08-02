@@ -47,10 +47,9 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
 # make this customizable via the environment, as we expect it to never change.
 DATABASE_CLASS_NAME: str = "Database"
 
-# Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
-# endpoint and the tests that target it.
-IS_RELATED_IDS_ENDPOINT_ENABLED: bool = is_env_var_true(
-    "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
+# Feature flag to enable/disable the `/nmdcschema/linked_instances` endpoint and the tests that target it.
+IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
+    "IS_LINKED_INSTANCES_ENDPOINT_ENABLED", default="true"
 )
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.

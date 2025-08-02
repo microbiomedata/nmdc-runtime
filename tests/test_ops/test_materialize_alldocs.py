@@ -31,6 +31,8 @@ def op_context(client_config):
     return build_op_context(
         resources={"mongo": mongo_resource.configured(client_config)}
     )
+
+
 def test_materialize_alldocs(op_context):
     mdb = op_context.resources.mongo.db
 
@@ -212,9 +214,9 @@ _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
 }
 
 
-def test_alldocs_related_ids_with_type_and_ancestors(op_context):
+def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
     """
-    Test that the {_inbound,_outbound} fields, in conjunction with the _type_and_ancestors field, can be used to find
+    Test that the {_upstream,_downstream} fields, in conjunction with the _type_and_ancestors field, can be used to find
     all nmdc:DataObjects related to a given nmdc:Biosample using an index-covered query.
     """
     mdb = op_context.resources.mongo.db
@@ -263,9 +265,9 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
     # Verify that `_outbound` and `_type_and_ancestors` fields are properly set for biosample -> workflow execution.
     biosample_doc = alldocs_collection.find_one({"id": ids_for["biosample_set"][0]})
     assert biosample_doc is not None
-    assert "_outbound" in biosample_doc
+    assert "_downstream" in biosample_doc
     assert ids_for["workflow_execution_set"][0] in [
-        d["id"] for d in biosample_doc["_outbound"]
+        d["id"] for d in biosample_doc["_downstream"]
     ]
     assert "_type_and_ancestors" in biosample_doc
     assert set(biosample_doc["_type_and_ancestors"]) == set(ancestry_chain["Biosample"])
@@ -279,20 +281,21 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_outbound.id",
-                        "connectFromField": "_outbound.id",
+                        "startWith": "$_downstream.id",
+                        "connectFromField": "_downstream.id",
                         "connectToField": "id",
-                        "as": "influenced",
+                        "as": "downstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$influenced"}},
-                {"$match": {"influenced._type_and_ancestors": "nmdc:DataObject"}},
-                {"$replaceRoot": {"newRoot": "$influenced"}},
+                {"$unwind": {"path": "$downstream_docs"}},
+                {"$match": {"downstream_docs._type_and_ancestors": "nmdc:DataObject"}},
+                {"$replaceRoot": {"newRoot": "$downstream_docs"}},
                 {"$unset": ["_id"]},
             ],
             allowDiskUse=True,
         )
     )
+    print(f"{related_data_objects=}")
 
     assert ids_for["data_object_set"][0] in [d["id"] for d in related_data_objects]
 
@@ -305,15 +308,15 @@ def test_alldocs_related_ids_with_type_and_ancestors(op_context):
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_inbound.id",
-                        "connectFromField": "_inbound.id",
+                        "startWith": "$_upstream.id",
+                        "connectFromField": "_upstream.id",
                         "connectToField": "id",
-                        "as": "was_influenced_by",
+                        "as": "upstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$was_influenced_by"}},
-                {"$match": {"was_influenced_by._type_and_ancestors": "nmdc:Sample"}},
-                {"$replaceRoot": {"newRoot": "$was_influenced_by"}},
+                {"$unwind": {"path": "$upstream_docs"}},
+                {"$match": {"upstream_docs._type_and_ancestors": "nmdc:Sample"}},
+                {"$replaceRoot": {"newRoot": "$upstream_docs"}},
                 {"$unset": ["_id"]},
             ],
             allowDiskUse=True,
