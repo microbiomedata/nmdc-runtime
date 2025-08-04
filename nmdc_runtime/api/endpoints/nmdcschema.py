@@ -1,22 +1,23 @@
-import json
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from pydantic import AfterValidator
 
-from nmdc_runtime.api.endpoints.lib.path_segments import (
-    parse_path_segment,
-    ParsedPathSegment,
+from nmdc_runtime.api.models.nmdc_schema import SimplifiedNMDCDatabase
+from nmdc_runtime.config import (
+    DATABASE_CLASS_NAME,
+    IS_LINKED_INSTANCES_ENDPOINT_ENABLED,
 )
-from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
-from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
+from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
     nmdc_database_collection_names,
     nmdc_schema_view,
+    get_collection_names_from_schema,
 )
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -27,7 +28,6 @@ from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    get_collection_names_from_schema,
 )
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
@@ -117,125 +117,30 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-def _parse_prefilter(
-    prefilter: Annotated[
-        str,
-        Path(
-            description="Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.",
-            examples=["ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("prefilter;" + prefilter)
-
-
-def _parse_postfilter(
-    postfilter: Annotated[
-        str,
-        Path(
-            description=(
-                "Example: `types=nmdc:DataObject,nmdc:PlannedProcess`."
-                + '\n\nUse `types=nmdc:NamedThing` to return "all" types'
-            ),
-            examples=[
-                "types=nmdc:NamedThing",
-                "types=nmdc:DataObject,nmdc:PlannedProcess",
-            ],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("postfilter;" + postfilter)
-
-
-@decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
+@decorate_if(condition=IS_LINKED_INSTANCES_ENDPOINT_ENABLED)(
     router.get(
-        "/nmdcschema/related_ids/{prefilter}/{postfilter}",
-        response_model=ListResponse[RelatedIDs],
+        "/nmdcschema/linked_instances",
+        response_model=ListResponse,
         response_model_exclude_unset=True,
     )
 )
-def get_related_ids(
-    prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),
-    postfilter_parsed: ParsedPathSegment = Depends(_parse_postfilter),
+def get_linked_instances(
+    ids: Annotated[list[str], Query(), AfterValidator(check_valid_ids)],
+    types: Annotated[list[str] | None, Query()] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """From entity IDs captured by `prefilter`, retrieve `postfilter`ed metadata for all related entities.
-
-    Use `postfilter` to control:
-    - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
-    - what metadata are returned for them (default: `id` and `type`).
-
-    Prefilters:
-    - `ids` : one or more (comma-delimited) IDs.
-        Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.
-    - `from` : `nmdc:Database` collection from which to retrieve related entities.
-        Example: `from=biosample_set`.
-    - `match` : MongoDB `filter` to apply to `from` collection. Must be proceeded by `from`.
-        Example: `from=study_set;match={"name": {"$regex": "National Ecological Observatory Network"}}`.
-
-    Postfilters:
-    - `types=nmdc:DataObject`
-
-    This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
-
-    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
-       each given entity, returning them in the "was_influenced_by" field.
-
-    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
-       by each given entity, returning them in the "influenced" field.
-    """
-    prefilter = {}
-    for param, value in prefilter_parsed.segment_parameters.items():
-        if param == "ids":
-            prefilter["ids"] = value if isinstance(value, list) else [value]
-        if param == "from":
-            prefilter["from"] = value
-        if param == "match":
-            prefilter["match"] = value
-
-    if "ids" in prefilter:
-        if ("from" in prefilter) or ("match" in prefilter):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `ids` prefilter parameter with {`from`,`match`} prefilter parameters.",
-            )
-        ids_found = [
-            d["id"]
-            for d in mdb.alldocs.find({"id": {"$in": prefilter["ids"]}}, {"id": 1})
-        ]
-        ids_not_found = list(set(prefilter["ids"]) - set(ids_found))
-        if ids_not_found:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Some IDs not found: {ids_not_found}.",
-            )
-    if "from" in prefilter:
-        if prefilter["from"] not in get_collection_names_from_schema():
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"`from` parameter {prefilter['from']} is not a known schema collection name."
-                    f" Known names: {get_collection_names_from_schema()}."
-                ),
-            )
-    if "match" in prefilter:
-        if "from" not in prefilter:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `match` prefilter parameter without `from` prefilter parameter.",
-            )
-        try:
-            prefilter["match"] = json.loads(prefilter["match"])
-            assert mdb[prefilter["from"]].count_documents(prefilter["match"]) > 0
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
-            )
-
-    types = ["nmdc:NamedThing"]
-    for param, value in postfilter_parsed.segment_parameters.items():
-        if param == "types":
-            types = value if isinstance(value, list) else [value]
+    """# TODO docstring"""
+    # TODO move logic from endpoint to unit-testable handler
+    # TODO ListResponse[SimplifiedNMDCDatabase]
+    # TODO ensure pagination for responses
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types = types or ["nmdc:NamedThing"]
     types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
     types_not_found = list(set(types) - types_possible)
     if types_not_found:
@@ -243,49 +148,41 @@ def get_related_ids(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
                 f"Some types not found: {types_not_found}. "
-                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+                "You may need to prefix with `nmdc:`. "
+                "If you don't supply any types, the set {'nmdc:NamedThing'} will be used. "
+                f"Types possible: {types_possible}"
             ),
         )
 
-    # Prepare `ids` for the `was_influenced_by` and `influenced` aggregation pipelines.
-    if "from" in prefilter:
-        ids = [
-            d["id"]
-            for d in mdb[prefilter["from"]].find(
-                filter=prefilter.get("match", {}), projection={"id": 1}
-            )
-        ]
-    else:
-        ids = prefilter["ids"]
-
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
-    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
-    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
-    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
-    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
-    was_influenced_by = list(
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following upstream
+    # relationships (_upstream.id) to discover upstream documents for entities that originated, or helped produce,
+    # the entities with documents identified by `ids`. It unwinds the collected (via `$graphLookup`) upstream docs,
+    # filters them by given `types` of interest, projects only essential fields to reduce response latency and size,
+    # and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed upstream docs into an array for each
+    # given ID.
+    upstream_docs = list(
         mdb.alldocs.aggregate(
             [
                 {"$match": {"id": {"$in": ids}}},
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_inbound.id",
-                        "connectFromField": "_inbound.id",
+                        "startWith": "$_upstream.id",
+                        "connectFromField": "_upstream.id",
                         "connectToField": "id",
-                        "as": "was_influenced_by",
+                        "as": "upstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$was_influenced_by"}},
-                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
-                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
+                {"$unwind": {"path": "$upstream_docs"}},
+                {"$match": {"upstream_docs._type_and_ancestors": {"$in": types}}},
+                {"$project": {"id": 1, "upstream_docs": "$upstream_docs"}},
                 {
                     "$group": {
                         "_id": "$id",
-                        "was_influenced_by": {
+                        "upstream_docs": {
                             "$addToSet": {
-                                "id": "$was_influenced_by.id",
-                                "type": "$was_influenced_by.type",
+                                "id": "$upstream_docs.id",
+                                "type": "$upstream_docs.type",
                             }
                         },
                     }
@@ -302,7 +199,7 @@ def get_related_ids(
                     "$project": {
                         "_id": 0,
                         "id": "$_id",
-                        "was_influenced_by": 1,
+                        "upstream_docs": 1,
                         "type": {"$arrayElemAt": ["$selves.type", 0]},
                     }
                 },
@@ -311,33 +208,34 @@ def get_related_ids(
         )
     )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
-    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
-    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
-    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
-    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
-    influenced = list(
+    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following downstream
+    # relationships (_downstream.id) to discover downstream documents for entities that originated from,
+    # or are considered part of, the entities with documents identified by `ids`. It unwinds the collected (via
+    # `$graphLookup`) downstream docs, filters them by given `types` of interest, projects only essential fields to
+    # reduce response latency and size, and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed
+    # downstream docs into an array for each given ID.
+    downstream_docs = list(
         mdb.alldocs.aggregate(
             [
                 {"$match": {"id": {"$in": ids}}},
                 {
                     "$graphLookup": {
                         "from": "alldocs",
-                        "startWith": "$_outbound.id",
-                        "connectFromField": "_outbound.id",
+                        "startWith": "$_downstream.id",
+                        "connectFromField": "_downstream.id",
                         "connectToField": "id",
-                        "as": "influenced",
+                        "as": "downstream_docs",
                     }
                 },
-                {"$unwind": {"path": "$influenced"}},
-                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
+                {"$unwind": {"path": "$downstream_docs"}},
+                {"$match": {"downstream_docs._type_and_ancestors": {"$in": types}}},
                 {
                     "$group": {
                         "_id": "$id",
-                        "influenced": {
+                        "downstream_docs": {
                             "$addToSet": {
-                                "id": "$influenced.id",
-                                "type": "$influenced.type",
+                                "id": "$downstream_docs.id",
+                                "type": "$downstream_docs.type",
                             }
                         },
                     }
@@ -354,7 +252,7 @@ def get_related_ids(
                     "$project": {
                         "_id": 0,
                         "id": "$_id",
-                        "influenced": 1,
+                        "downstream_docs": 1,
                         "type": {"$arrayElemAt": ["$selves.type", 0]},
                     }
                 },
@@ -366,19 +264,19 @@ def get_related_ids(
     relations_by_id = {
         id_: {
             "id": id_,
-            "was_influenced_by": [],
-            "influenced": [],
+            "upstream_docs": [],
+            "downstream_docs": [],
         }
         for id_ in ids
     }
 
-    # For each subject document that "was influenced by" or "influenced" any documents, create a dictionary
+    # For each subject document that was upstream of or downstream of any documents, create a dictionary
     # containing that subject document's `id`, its `type`, and the list of `id`s of the
-    # documents that it "was influenced by" and "influenced".
-    for d in was_influenced_by + influenced:
+    # documents that it for upstream or or downstream of.
+    for d in upstream_docs + downstream_docs:
         relations_by_id[d["id"]]["type"] = d["type"]
-        relations_by_id[d["id"]]["was_influenced_by"] += d.get("was_influenced_by", [])
-        relations_by_id[d["id"]]["influenced"] += d.get("influenced", [])
+        relations_by_id[d["id"]]["upstream_docs"] += d.get("upstream_docs", [])
+        relations_by_id[d["id"]]["downstream_docs"] += d.get("downstream_docs", [])
 
     return {"resources": list(relations_by_id.values())}
 

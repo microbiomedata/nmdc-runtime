@@ -4,7 +4,7 @@ from functools import lru_cache
 from pymongo.database import Database as MongoDatabase
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 
-from nmdc_runtime.api.db.mongo import get_collection_names_from_schema
+from nmdc_runtime.util import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
 
 mode_test = {
