@@ -125,11 +125,76 @@ def get_nmdc_database_collection_stats(
     )
 )
 def get_linked_instances(
-    ids: Annotated[list[str], Query(), AfterValidator(check_valid_ids)],
-    types: Annotated[list[str] | None, Query()] = None,
+    ids: Annotated[
+        list[str],
+        Query(
+            title="Instance (aka Document) IDs",
+            description=(
+                "The `ids` you want to serve as the nexus for graph traversal to collect linked instances."
+                "\n\n_Example_: [`nmdc:dobj-11-nf3t6f36`]"
+            ),
+            examples=["nmdc:dobj-11-nf3t6f36"],
+        ),
+        AfterValidator(check_valid_ids),
+    ],
+    types: Annotated[
+        list[str] | None,
+        Query(
+            title="Instance (aka Document) types",
+            description=(
+                "The `types` of instances you want to return. Can be abstract types such as `nmdc:InformationObject` "
+                "or instantiated ones such as `nmdc:DataObject`. Defaults to [`nmdc:NamedThing`]."
+                "\n\n_Example_: [`nmdc:PlannedProcess`]"
+            ),
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """# TODO docstring"""
+    """
+    Retrieves database instances that are both (a) linked to any of `ids`, and (b) of a type in `types`.
+
+    An [instance](https://linkml.io/linkml-model/latest/docs/specification/02instances/) is an object conforming to
+    a class definition ([linkml:ClassDefinition](https://w3id.org/linkml/ClassDefinition))
+    in our database ([nmdc:Database](https://w3id.org/nmdc/Database)).
+    While a [nmdc:Database](https://w3id.org/nmdc/Database) is organized into collections,
+    every item in every database collection -- that is, every instance -- knows its `type`, so we can
+    (and here do)<sup>&dagger;</sup>
+    return a simple list of instances
+    ([a LinkML CollectionInstance](https://linkml.io/linkml-model/latest/docs/specification/02instances/#collections)),
+    which a client may use to construct a corresponding [nmdc:Database](https://w3id.org/nmdc/Database).
+
+    From the nexus instance IDs given in `ids`, both "upstream" and "downstream" links are followed (transitively) in
+    order to collect the set of all instances linked to these `ids`.
+
+    * A link "upstream" is represented by a slot ([linkml:SlotDefinition](https://w3id.org/linkml/SlotDefinition))
+    for which the
+    range ([linkml:range](https://w3id.org/linkml/range)) instance has originated, or helped produce,
+    the domain ([linkml:domain](https://w3id.org/linkml/domain)) instance.
+    For example, we consider [nmdc:associated_studies](https://w3id.org/nmdc/associated_studies) to be
+    an "upstream" slot because we consider a [nmdc:Study](https://w3id.org/nmdc/Study) (the slot's range)
+    to be upstream of a [nmdc:Biosample](https://w3id.org/nmdc/Biosample) (the slot's domain).
+
+    * A link "downstream" is represented by a slot for which the
+    range instance has originated from, or was in part produced by, the domain instance.
+    For example, [nmdc:has_output](https://w3id.org/nmdc/has_output) is
+    a "downstream" slot because its [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing) range
+    is downstream of its [nmdc:PlannedProcess](https://w3id.org/nmdc/PlannedProcess) domain.
+
+    Acceptable values for `types` are not limited only to the ones embedded in concrete instances, e.g.
+    the `schema_class` field values returned by the [`GET /nmdcschema/typecodes`](/nmdcschema/typecodes) API endpoint.
+    Rather, any subclass (of any depth) of [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing) --
+    [nmdc:DataEmitterProcess](https://w3id.org/nmdc/DataEmitterProcess),
+    [nmdc:InformationObject](https://w3id.org/nmdc/InformationObject),
+    [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
+    If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
+
+    <sup>&dagger;</sup>: actually, we do not (yet).
+    For now (see [microbiomedata/nmdc-runtime#1118](https://github.com/microbiomedata/nmdc-runtime/issues/1118)),
+    we return a short list of "fat" documents,  each of which represents one of the `ids` and presents
+    representations of that id's downstream and upstream instances (currently just each instance's `id` and `type`)
+    as separate subdocument array fields.
+    """
     # TODO move logic from endpoint to unit-testable handler
     # TODO ListResponse[SimplifiedNMDCDatabase]
     # TODO ensure pagination for responses
