@@ -90,7 +90,9 @@ class ContentsObject(BaseModel):
         return drs_uri
 
 
-ContentsObject.update_forward_refs()
+# Note: Between Pydantic v1 and v2, the `update_forward_refs` method was renamed to `model_rebuild`.
+#       Reference: https://docs.pydantic.dev/2.11/migration/#changes-to-pydanticbasemodel
+ContentsObject.model_rebuild()
 
 Mimetype = Annotated[str, StringConstraints(pattern=r"^\w+/[-+.\w]+$")]
 SizeInBytes = Annotated[int, Field(strict=True, ge=0)]

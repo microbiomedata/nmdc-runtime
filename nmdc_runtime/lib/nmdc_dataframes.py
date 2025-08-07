@@ -305,10 +305,10 @@ def make_study_dataframe(study_table, contact_table, proposals_table, result_col
 
     ## make sure the contact ids are strings with the ".0" removed from the end (i.e., the strings aren't floats)
     study_table["contact_id"] = (
-        study_table["contact_id"].astype(str).replace("\.0", "", regex=True)
+        study_table["contact_id"].astype(str).replace(r"\.0", "", regex=True)
     )
     contact_table_splice["contact_id"] = (
-        contact_table_splice["contact_id"].astype(str).replace("\.0", "", regex=True)
+        contact_table_splice["contact_id"].astype(str).replace(r"\.0", "", regex=True)
     )
     # print(study_table[['contact_id', 'principal_investigator_name']].head())
 
