@@ -1065,9 +1065,6 @@ def _add_linked_instances_to_alldocs(
         else:
             raise Failure(f"Unknown slot {slot} for document {doc_id}")
 
-        context.log.debug(f"pushing: given {doc_id=} {slot=} {ref_id=}")
-        context.log.debug(f"pushing: {doc_id=} {field_for_doc=} {ref_id=} to alldocs")
-        context.log.debug(f"pushing: {ref_id=} {field_for_ref=} {doc_id=} to alldocs")
         updates = [
             {
                 "filter": {"id": doc_id},
