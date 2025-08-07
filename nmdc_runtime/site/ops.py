@@ -1025,7 +1025,6 @@ def _add_linked_instances_to_alldocs(
         "has_mass_spectrometry_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
         "instrument_used",  # when a `nmdc:Instrument` is upstream of a `nmdc:PlannedProcess`.
         "part_of",  # when a `nmdc:NamedThing` is upstream of a `nmdc:NamedThing`.
-        "uses_calibration",  # when a `nmdc:CalibrationInformation`is upstream of a `nmdc:PlannedProcess`.
         "was_generated_by",  # when a `nmdc:DataEmitterProcess` is upstream of a `nmdc:DataObject`.
         "was_informed_by",  # when a  `nmdc:DataGeneration` is upstream of a `nmdc:WorkflowExecution`.
     ]
@@ -1035,6 +1034,7 @@ def _add_linked_instances_to_alldocs(
         "generates_calibration",  # when a `nmdc:CalibrationInformation` is downstream of a `nmdc:PlannedProcess`.
         "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
         "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
+        "uses_calibration",  # when a `nmdc:CalibrationInformation`is part of a `nmdc:PlannedProcess`.
     ]
 
     unique_document_reference_ranged_slot_names = set()
