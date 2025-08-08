@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
 from refscan.lib.helpers import (
     get_collection_names_from_schema,
-    get_names_of_classes_eligible_for_collection
+    get_names_of_classes_eligible_for_collection,
 )
 
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
@@ -434,7 +434,9 @@ def get_collection_name_by_doc_id(
     schema_view = nmdc_schema_view()
     collection_names = []
     for collection_name in get_collection_names_from_schema(schema_view=schema_view):
-        if schema_class_name in get_names_of_classes_eligible_for_collection(schema_view=schema_view, collection_name=collection_name):
+        if schema_class_name in get_names_of_classes_eligible_for_collection(
+            schema_view=schema_view, collection_name=collection_name
+        ):
             collection_names.append(collection_name)
 
     if len(collection_names) == 0:

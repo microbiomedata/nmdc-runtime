@@ -518,4 +518,3 @@ def decorate_if(condition: bool = False) -> Callable:
         return check_condition
 
     return apply_original_decorator
-
