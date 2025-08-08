@@ -152,7 +152,7 @@ mongorestore-nmdc-db:
 		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
 		/tmp/remote-mongodump/nmdc
 	# Restore from `rsync`ed local directory:
-	mongorestore -v -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
+	mongorestore -v -h localhost:59639 -u admin -p root --authenticationDatabase=admin \
 		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
