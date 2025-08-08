@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
+from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
 
 from nmdc_runtime.api.analytics import Analytics
@@ -24,16 +25,14 @@ from nmdc_runtime.util import (
     get_allowed_references,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
+    nmdc_schema_view,
 )
 from nmdc_runtime.api.core.auth import (
     get_password_hash,
     ORCID_NMDC_CLIENT_ID,
     ORCID_BASE_URL,
 )
-from nmdc_runtime.api.db.mongo import (
-    get_collection_names_from_schema,
-    get_mongo_db,
-)
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -58,6 +57,7 @@ from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_descripti
 from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -142,7 +142,8 @@ def ensure_type_field_is_indexed():
     """
 
     mdb = get_mongo_db()
-    for collection_name in get_collection_names_from_schema():
+    schema_view = nmdc_schema_view()
+    for collection_name in get_collection_names_from_schema(schema_view):
         mdb.get_collection(collection_name).create_index("type", background=True)
 
 
