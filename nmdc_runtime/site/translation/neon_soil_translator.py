@@ -152,7 +152,7 @@ class NeonSoilDataTranslator(Translator):
             collection_date=_create_timestamp_value(
                 biosample_row["collectDate"].values[0]
             ),
-            temp=_create_quantity_value(biosample_row["soilTemp"].values[0], "Celsius"),
+            temp=_create_quantity_value(biosample_row["soilTemp"].values[0], "Cel"),
             depth=nmdc.QuantityValue(
                 has_minimum_numeric_value=_get_value_or_none(
                     biosample_row, "sampleTopDepth"
@@ -168,13 +168,13 @@ class NeonSoilDataTranslator(Translator):
             analysis_type=_get_value_or_none(biosample_row, "sequenceAnalysisType"),
             env_package=_create_text_value(biosample_row["sampleType"].values[0]),
             nitro=_create_quantity_value(
-                biosample_row["nitrogenPercent"].values[0], "percent"
+                biosample_row["nitrogenPercent"].values[0], "%"
             ),
             org_carb=_create_quantity_value(
-                biosample_row["organicCPercent"].values[0], "percent"
+                biosample_row["organicCPercent"].values[0], "%"
             ),
             carb_nitro_ratio=_create_quantity_value(
-                biosample_row["CNratio"].values[0], None
+                biosample_row["CNratio"].values[0], "ratio"
             ),
             ph=_create_double_value(biosample_row["soilInWaterpH"].values[0]),
             water_content=(

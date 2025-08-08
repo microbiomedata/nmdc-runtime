@@ -12,7 +12,7 @@
   "depth": {
     "has_maximum_numeric_value": 1,
     "has_minimum_numeric_value": 0,
-    "has_unit": "meters",
+    "has_unit": "m",
     "type": "nmdc:QuantityValue"
   },
   "elev": 1179.5,

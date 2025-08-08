@@ -280,43 +280,49 @@ def test_get_quantity_value():
     translator = GoldStudyTranslator()
 
     entity = {"arbitraryField": 7}
+    with pytest.raises(ValueError, match="has_unit must be supplied"):
+        # If the raw data does not have a parseable unit, and we don't supply one, an error should
+        # be raised.
+        translator._get_quantity_value(entity, "arbitraryField")
+
+    entity = {"arbitraryField": "5.5 kPa"}
     value = translator._get_quantity_value(entity, "arbitraryField")
     assert value is not None
-    assert value.has_raw_value == "7"
-    assert value.has_numeric_value == 7.0
-    assert value.has_unit is None
+    assert value.has_raw_value == "5.5 kPa"
+    assert value.has_numeric_value == 5.5
+    assert value.has_unit == nmdc.UnitEnum("kPa")
     assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": 0}
-    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
+    value = translator._get_quantity_value(entity, "arbitraryField", unit="m")
     assert value is not None
     assert value.has_raw_value == "0"
     assert value.has_numeric_value == 0.0
-    assert value.has_unit == "meters"
+    assert value.has_unit == nmdc.UnitEnum("m")
     assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": 8}
-    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
+    value = translator._get_quantity_value(entity, "arbitraryField", unit="m")
     assert value is not None
     assert value.has_raw_value == "8"
     assert value.has_numeric_value == 8.0
-    assert value.has_unit == "meters"
+    assert value.has_unit == nmdc.UnitEnum("m")
     assert value.type == "nmdc:QuantityValue"
 
     entity = {"arbitraryField": None}
-    value = translator._get_quantity_value(entity, "arbitraryField", unit="meters")
+    value = translator._get_quantity_value(entity, "arbitraryField", unit="m")
     assert value is None
 
     entity = {"arbitraryField1": 1, "arbitraryField2": 10}
     value = translator._get_quantity_value(
-        entity, ("arbitraryField1", "arbitraryField2"), unit="meters"
+        entity, ("arbitraryField1", "arbitraryField2"), unit="m"
     )
     assert value is not None
     assert value.has_minimum_numeric_value == 1.0
     assert value.has_maximum_numeric_value == 10.0
     assert value.has_raw_value is None
     assert value.has_numeric_value is None
-    assert value.has_unit == "meters"
+    assert value.has_unit == nmdc.UnitEnum("m")
     assert value.type == "nmdc:QuantityValue"
 
 
