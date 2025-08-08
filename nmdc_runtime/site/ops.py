@@ -15,7 +15,7 @@ from itertools import chain
 from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
-
+from refscan.lib.helpers import get_names_of_classes_in_effective_range_of_slot
 
 from bson import ObjectId, json_util
 from dagster import (
@@ -102,7 +102,6 @@ from nmdc_runtime.site.util import (
 )
 from nmdc_runtime.util import (
     drs_object_in_for,
-    get_names_of_classes_in_effective_range_of_slot,
     pluralize,
     put_object,
     specialize_activity_set_docs,
@@ -115,6 +114,7 @@ from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import get_in, valfilter, identity
+
 
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000

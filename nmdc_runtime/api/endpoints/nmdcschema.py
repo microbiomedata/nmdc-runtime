@@ -5,24 +5,21 @@ from typing import List, Dict, Annotated
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
-
-from nmdc_runtime.api.models.nmdc_schema import SimplifiedNMDCDatabase
-from nmdc_runtime.config import (
-    DATABASE_CLASS_NAME,
-    IS_LINKED_INSTANCES_ENDPOINT_ENABLED,
+from refscan.lib.helpers import (
+    get_collection_names_from_schema,
+    get_names_of_classes_eligible_for_collection
 )
+
+from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
     nmdc_database_collection_names,
     nmdc_schema_view,
-    get_collection_names_from_schema,
 )
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from linkml_runtime.utils.schemaview import SchemaView
-from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
@@ -44,7 +41,8 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
     r"""
     Raises an exception if the specified string is _not_ the name of a collection described by the NMDC Schema.
     """
-    names = get_collection_names_from_schema()
+    schema_view = nmdc_schema_view()
+    names = get_collection_names_from_schema(schema_view)
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -433,22 +431,11 @@ def get_collection_name_by_doc_id(
         )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
+    schema_view = nmdc_schema_view()
     collection_names = []
-    schema_view = SchemaView(get_nmdc_schema_definition())
-    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
-        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
-
-        # If this slot doesn't represent a Mongo collection, abort this iteration.
-        if not (slot_definition.multivalued and slot_definition.inlined_as_list):
-            continue
-
-        # Determine the names of the classes whose instances can be stored in this collection.
-        name_of_eligible_class = slot_definition.range
-        names_of_eligible_classes = schema_view.class_descendants(
-            name_of_eligible_class
-        )
-        if schema_class_name in names_of_eligible_classes:
-            collection_names.append(slot_name)
+    for collection_name in get_collection_names_from_schema(schema_view=schema_view):
+        if schema_class_name in get_names_of_classes_eligible_for_collection(schema_view=schema_view, collection_name=collection_name):
+            collection_names.append(collection_name)
 
     if len(collection_names) == 0:
         raise HTTPException(
@@ -487,7 +474,8 @@ def get_collection_names():
     Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
     https://w3id.org/nmdc/Database/) that describe database collections.
     """
-    return sorted(get_collection_names_from_schema())
+    schema_view = nmdc_schema_view()
+    return sorted(get_collection_names_from_schema(schema_view))
 
 
 @router.get(

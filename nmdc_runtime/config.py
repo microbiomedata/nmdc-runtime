@@ -43,10 +43,6 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).lower() in lowercase_true_strings
 
 
-# The name of the schema class representing the database. We don't bother to
-# make this customizable via the environment, as we expect it to never change.
-DATABASE_CLASS_NAME: str = "Database"
-
 # Feature flag to enable/disable the `/nmdcschema/linked_instances` endpoint and the tests that target it.
 IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
     "IS_LINKED_INSTANCES_ENDPOINT_ENABLED", default="true"

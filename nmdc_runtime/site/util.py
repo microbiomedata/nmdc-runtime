@@ -3,9 +3,11 @@ import os
 from functools import lru_cache
 from pymongo.database import Database as MongoDatabase
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
+from refscan.lib.helpers import get_collection_names_from_schema
 
-from nmdc_runtime.util import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
+from nmdc_runtime.util import nmdc_schema_view
+
 
 mode_test = {
     "resource_defs": {"mongo": mongo_resource}
@@ -36,12 +38,16 @@ def run_and_log(shell_cmd, context):
 
 @lru_cache
 def schema_collection_has_index_on_id(mdb: MongoDatabase) -> dict:
+    """
+    TODO: Document this function.
+    """
+    schema_view = nmdc_schema_view()
     present_collection_names = set(mdb.list_collection_names())
     return {
         name: (
             name in present_collection_names and "id_1" in mdb[name].index_information()
         )
-        for name in get_collection_names_from_schema()
+        for name in get_collection_names_from_schema(schema_view)
     }
 
 
