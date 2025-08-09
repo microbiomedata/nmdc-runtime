@@ -257,7 +257,7 @@ graphql-relay==3.2.0
     # via graphene
 graphviz==0.20.3
     # via linkml
-greenlet==3.2.2
+greenlet==3.2.4
     # via sqlalchemy
 grpcio==1.71.0
     # via
@@ -545,7 +545,7 @@ networkx==3.4.2
     #   oaklib
     #   pronto
     #   sssom
-nmdc-schema==11.9.1
+nmdc-schema==11.10.0rc4
     # via
     #   -r requirements/main.in
     #   ontology-loader

@@ -341,12 +341,7 @@ class GoldStudyTranslator(Translator):
         if field_value is None:
             return None
 
-        return nmdc.QuantityValue(
-            has_raw_value=field_value,
-            has_numeric_value=nmdc.Double(field_value),
-            has_unit=unit,
-            type="nmdc:QuantityValue",
-        )
+        return self._parse_quantity_value(str(field_value), unit)
 
     def _get_text_value(
         self, gold_entity: JSON_OBJECT, gold_field: str
@@ -572,13 +567,11 @@ class GoldStudyTranslator(Translator):
         gold_biosample_id = gold_biosample["biosampleGoldId"]
         return nmdc.Biosample(
             add_date=gold_biosample.get("addDate"),
-            alt=self._get_quantity_value(
-                gold_biosample, "altitudeInMeters", unit="meters"
-            ),
+            alt=self._get_quantity_value(gold_biosample, "altitudeInMeters", unit="m"),
             collected_from=nmdc_field_site_id,
             collection_date=self._get_collection_date(gold_biosample),
             depth=self._get_quantity_value(
-                gold_biosample, ("depthInMeters", "depthInMeters2"), unit="meters"
+                gold_biosample, ("depthInMeters", "depthInMeters2"), unit="m"
             ),
             description=gold_biosample.get("description"),
             diss_oxygen=self._get_quantity_value(gold_biosample, "oxygenConcentration"),
@@ -617,7 +610,7 @@ class GoldStudyTranslator(Translator):
             ),
             specific_ecosystem=gold_biosample.get("specificEcosystem"),
             subsurface_depth=self._get_quantity_value(
-                gold_biosample, "subsurfaceDepthInMeters", unit="meters"
+                gold_biosample, "subsurfaceDepthInMeters", unit="m"
             ),
             temp=self._get_quantity_value(
                 gold_biosample, "sampleCollectionTemperature"

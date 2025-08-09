@@ -12,6 +12,7 @@ from nmdc_schema.nmdc import (
     FileTypeEnum,
     DoiProviderEnum,
     DoiCategoryEnum,
+    UnitEnum,
 )
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
@@ -150,53 +151,48 @@ def test_get_has_credit_associations():
 def test_get_quantity_value():
     translator = SubmissionPortalTranslator()
 
-    qv = translator._get_quantity_value("3.5")
-    assert qv is not None
-    assert qv.has_raw_value == "3.5"
-    assert qv.has_numeric_value == 3.5
-    assert qv.has_minimum_numeric_value is None
-    assert qv.has_maximum_numeric_value is None
-    assert qv.has_unit is None
+    with pytest.raises(ValueError, match="has_unit must be supplied"):
+        translator._get_quantity_value("3.5")
 
-    qv = translator._get_quantity_value("0-.1")
+    qv = translator._get_quantity_value("0-.1 m")
     assert qv is not None
-    assert qv.has_raw_value == "0-.1"
+    assert qv.has_raw_value == "0-.1 m"
     assert qv.has_numeric_value is None
     assert qv.has_minimum_numeric_value == 0
     assert qv.has_maximum_numeric_value == 0.1
-    assert qv.has_unit is None
+    assert qv.has_unit == UnitEnum("m")
 
-    qv = translator._get_quantity_value("1.2 ppm")
+    qv = translator._get_quantity_value("1.2 [ppm]")
     assert qv is not None
-    assert qv.has_raw_value == "1.2 ppm"
+    assert qv.has_raw_value == "1.2 [ppm]"
     assert qv.has_numeric_value == 1.2
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
-    assert qv.has_unit == "ppm"
+    assert qv.has_unit == UnitEnum("[ppm]")
 
-    qv = translator._get_quantity_value("98.6F")
+    qv = translator._get_quantity_value("98.6Cel")
     assert qv is not None
-    assert qv.has_raw_value == "98.6F"
+    assert qv.has_raw_value == "98.6Cel"
     assert qv.has_numeric_value == 98.6
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
-    assert qv.has_unit == "F"
+    assert qv.has_unit == UnitEnum("Cel")
 
-    qv = translator._get_quantity_value("-80", unit="C")
+    qv = translator._get_quantity_value("-80", unit="Cel")
     assert qv is not None
     assert qv.has_raw_value == "-80"
     assert qv.has_numeric_value == -80
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
-    assert qv.has_unit == "C"
+    assert qv.has_unit == UnitEnum("Cel")
 
-    qv = translator._get_quantity_value("-90 - -100m", unit="meter")
+    qv = translator._get_quantity_value("-90 - -100m", unit="m")
     assert qv is not None
     assert qv.has_raw_value == "-90 - -100m"
     assert qv.has_numeric_value is None
     assert qv.has_minimum_numeric_value == -100
     assert qv.has_maximum_numeric_value == -90
-    assert qv.has_unit == "meter"
+    assert qv.has_unit == UnitEnum("m")
 
 
 def test_get_gold_study_identifiers():

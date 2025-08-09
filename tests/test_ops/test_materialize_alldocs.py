@@ -139,7 +139,7 @@ def test_materialize_alldocs(op_context):
 # A declarative representation -- specifically, a json-serializable `dict`
 # (cf. `linkml_runtime.utils.dictutils.as_simple_dict`) -- of the `nmdc:Database` constructed in the body of
 # `test_find_data_objects_for_study_having_one`.
-_test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
+_test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj = {
     "study_set": [
         {
             "id": "nmdc:sty-11-r2h77870",
@@ -200,15 +200,15 @@ _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj = {
     ],
     "workflow_execution_set": [
         {
-            "id": "nmdc:wfmsa-11-fqq66x60.1",
+            "id": "nmdc:wfmgan-11-fqq66x60.1",
             "started_at_time": "2023-03-24T02:02:59.479107+00:00",
             "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
             "was_informed_by": ["nmdc:omprc-11-nmtj1g51"],
             "execution_resource": "JGI",
-            "git_url": "https://github.com/microbiomedata/RawSequencingData",
+            "git_url": "https://www.example.com",
             "has_input": ["nmdc:bsm-11-6zd5nb38"],
             "has_output": ["nmdc:dobj-11-cpv4y420"],
-            "type": "nmdc:MetagenomeSequencing",
+            "type": "nmdc:MetagenomeAnnotation",
         }
     ],
 }
@@ -229,7 +229,7 @@ def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
     for (
         collection_name,
         docs,
-    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.items():
+    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.items():
         collection = mdb.get_collection(collection_name)
         for doc in docs:
 
@@ -257,7 +257,7 @@ def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
 
     # Verify that `alldocs` contains our test documents
     alldocs_collection = mdb.get_collection("alldocs")
-    for collection_docs in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.values():
+    for collection_docs in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.values():
         assert alldocs_collection.count_documents(
             {"id": {"$in": [doc["id"] for doc in collection_docs]}}
         ) == len(collection_docs)
@@ -330,7 +330,7 @@ def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
     for (
         collection_name,
         docs,
-    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmsa_dobj.items():
+    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.items():
         collection = mdb.get_collection(collection_name)
         for doc in docs:
             # If the document didn't exist before, delete it

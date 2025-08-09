@@ -103,7 +103,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -122,7 +122,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -141,7 +141,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -160,7 +160,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -179,7 +179,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -198,7 +198,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -217,7 +217,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -236,7 +236,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -255,7 +255,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -274,7 +274,7 @@ metadata_submission:
           collection_date: '2016-05-09'
           env_broad_scale: agricultural biome [ENVO:01001442]
           env_local_scale: phyllosphere biome [ENVO:01001442]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
           ecosystem_subtype: Leaf
           ecosystem_category: Terrestrial
           specific_ecosystem: Phyllosphere
@@ -289,7 +289,7 @@ metadata_submission:
           collection_date: 2021
           env_broad_scale: ewdwed [ENVO:123]
           env_local_scale: asdxasd [ENV:234]
-          samp_store_temp: "-80 Celsius"
+          samp_store_temp: "-80 Cel"
       jgi_mg_data:
         - samp_name: "G6R2_MAIN_09MAY2016"
           analysis_type:
