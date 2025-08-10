@@ -2,7 +2,7 @@
 
 ## Introduction
 
-In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how you can migrate the Mongo database from one NMDC Schema version to another. Also, when telling you about a step that has a shortcoming I'm aware of, I'll point that out.
+In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how you can migrate the Mongo database from conforming to _one_ version of the NMDC Schema, to conforming to _another_ version of the NMDC Schema.
 
 ## Glossary
 
@@ -12,7 +12,63 @@ In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how yo
 - **Origin database**: The database you want to migrate.
 - **Transformation database**: The database you will use to transform data.
 
+## Overview
+
+We currently use an [Extract, Transform, Load](https://en.wikipedia.org/wiki/Extract,_transform,_load) (ETL) process to migrate the database.
+
+We use Jupyter notebooks to **perform** the "Extract" and "Load" steps, and to **orchestrate** the "Transform" step. We use Python scripts to **perform** the "Transform" step.
+
+The Jupyter notebooks reside in the `db/` directory of the `nmdc-runtime` repository. In general, we try to keep all code that interacts directly with the NMDC database, in the `nmdc-runtime` repository.
+
+The Python scripts reside in the `nmdc_schema/migrations` directory of the `nmdc-schema` repository. These are typically written by data modelers.
+
+The basic flow of a migration looks like this:
+
+```mermaid
+%% This is a Mermaid diagram.
+%% Docs: https://docs.mermaidchart.com/mermaid-oss/syntax/sequenceDiagram.html
+
+sequenceDiagram
+    box rgba(0, 0, 0, 0.5) Arbitrary infrastructure
+        actor       USER as Administrator
+        participant DB_T as Mongo<br>(transformer)
+        participant NB as Jupyter<br>Notebook
+    end
+
+    box rgba(0, 0, 0, 0.5) Production infrastructure
+        participant DB_O as Mongo<br>(origin)
+        participant RUNTIME as Runtime
+    end
+
+    activate RUNTIME
+    USER ->> RUNTIME: Take offline
+    deactivate RUNTIME
+
+    USER ->> NB: Run notebook
+
+    activate NB
+    NB ->> DB_O: Revoke user/app access
+    NB ->> DB_O: Extract data<br>via mongodump
+    DB_O -->> NB: 
+    NB ->> DB_T: Load data<br>via mongorestore
+    activate DB_T
+    NB ->> DB_T: Transform data<br>via Python scripts
+    NB ->> DB_T: Validate data<br>via LinkML
+    NB ->> DB_T: Extract data<br>via mongodump
+    DB_T -->> NB: 
+    deactivate DB_T
+    Note left of NB: Last chance to<br>abort migration
+    NB ->> DB_O: Load data<br>via mongorestore
+    NB ->> DB_O: Restore user/app access
+    deactivate NB
+
+    USER ->> RUNTIME: Bring online (typically a new version, using the new schema)
+    activate RUNTIME
+```
+
 ## Prerequisites
+
+<!-- FIXME: This is at least partially obsolete. -->
 
 1. You're running the latest version of [nmdc-runtime](https://github.com/microbiomedata/nmdc-runtime) on your computer—by that, I mean:
     - Its [Docker-based development environment](https://github.com/microbiomedata/nmdc-runtime/blob/main/docker-compose.yml) is running on your computer (at least, the `fastapi` and `mongo` containers).
@@ -27,31 +83,12 @@ In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how yo
 
 ## Procedure
 
-1. Make the **origin database** be **read-only** for all users except the `root` user.
-    1. Connect to the Mongo server containing the origin database.
-       ```shell
-       mongosh "mongodb://localhost:10000" --username root --authenticationDatabase admin
-       password: ********
-       ```
-    1. At the Mongo Shell, display the username and role of each user.
-       ```js
-       use admin;
-       db.getCollection("system.users").find({}, { _id: 0, user: 1, roles: 1 });
-       // --> [ { user: 'alice', roles: [ { role: 'readWrite', db: 'nmdc' } ] }, ... ]
-       ```
-       Copy/paste the output into a text file.
-    1. For every user that has the `readWrite` role on the `nmdc` database, change that role to `read`:
-       ```js
-       // TODO: Provide a mongosh command for this. Ensure it doesn't affect users' roles on other databases.
-       ```
-    > #### Shortcomings
-    > - This doesn't account for [user-defined roles](https://www.mongodb.com/docs/v6.0/core/security-user-defined-roles/), which could have a name other than `readWrite` while still providing write access to the `nmdc` database.
-    > - This doesn't account for the [built-in roles](https://www.mongodb.com/docs/v6.0/reference/built-in-roles/)—other than `root`—that provide modification access to the `nmdc` database (e.g. `dbAdmin`, `dbOwner`, etc.).
+<!-- TODO: Write this. Consider moving the above Mermaid chart to here. -->
+
+1. 
 
 ## Appendix
 
 ### Precursors to this how-to guide
 
-- The "Data Releases" section of [`docs/howto-buides/release-process.md`](./release-process.md)
-- The [Jupyter notebook](../../demo/metadata_migration/from_7_7_2_to_7_8_0/migrate_7_7_2_to_7_8_0.ipynb) used for the `nmdc-schema` version `7.7.2` -> `7.8.0` migration
-
+- The "Data Releases" section of [`docs/howto-guides/release-process.md`](./release-process.md)
