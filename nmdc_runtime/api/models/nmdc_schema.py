@@ -1,8 +1,11 @@
 import inspect
 from enum import Enum
-from typing import List
+from typing import List, Any, Dict, Optional
 
 from pydantic import BaseModel, Field, create_model
+from refscan.lib.helpers import get_collection_names_from_schema
+
+from nmdc_runtime.util import nmdc_schema_view
 
 
 class FileTypeEnum(str, Enum):
@@ -130,3 +133,14 @@ def list_request_filter_to_mongo_filter(req: dict):
 
 
 DataObjectListRequest = create_list_request_model_for(DataObject)
+
+SimplifiedDocument = Dict[str, Any]
+
+schema_view = nmdc_schema_view()
+SimplifiedNMDCDatabase = create_model(
+    "NMDCDatabase",
+    **{
+        coll_name: Optional[list[SimplifiedDocument]]
+        for coll_name in get_collection_names_from_schema(schema_view)
+    },
+)

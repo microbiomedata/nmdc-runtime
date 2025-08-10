@@ -1,0 +1,53 @@
+{
+  "id": "nmdc:bsm-11-0pyv7738",
+  "name": "Lybrand_FT_01_W",
+  "description": "Lybrand NEON (EMSL 50267)",
+  "env_broad_scale": {
+    "has_raw_value": "ENVO:00000446",
+    "term": {
+      "id": "ENVO:00000446",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "env_local_scale": {
+    "has_raw_value": "ENVO:01000861",
+    "term": {
+      "id": "ENVO:01000861",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "env_medium": {
+    "has_raw_value": "ENVO:00001998",
+    "term": {
+      "id": "ENVO:00001998",
+      "name": "soil",
+      "type": "nmdc:OntologyClass"
+    },
+    "type": "nmdc:ControlledIdentifiedTermValue"
+  },
+  "type": "nmdc:Biosample",
+  "collection_date": {
+    "has_raw_value": "2015-03",
+    "type": "nmdc:TimestampValue"
+  },
+  "geo_loc_name": {
+    "has_raw_value": "USA: AK, North Slope",
+    "type": "nmdc:TextValue"
+  },
+  "lat_lon": {
+    "has_raw_value": "68.627175 -149.590514",
+    "latitude": 68.627175,
+    "longitude": -149.590514,
+    "type": "nmdc:GeolocationValue"
+  },
+  "sample_collection_site": "TOOL",
+  "biosample_categories": [
+    "NEON"
+  ],
+  "gold_biosample_identifiers": [],
+  "associated_studies": [
+    "nmdc:sty-11-db67n062"
+  ]
+}

@@ -1,3 +1,4 @@
+import builtins
 import inspect
 import json
 from collections import defaultdict, namedtuple
@@ -20,7 +21,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_name
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_names
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -169,7 +170,14 @@ def load_changesheet(
             class_name = data["type"].split(":")[-1]
             class_name = class_name_dict[class_name]
         else:
-            class_name = class_name_dict[collection_name_to_class_name[collection_name]]
+            class_names = collection_name_to_class_names[collection_name]
+            if len(class_names) > 1:
+                raise ValueError(
+                    "cannot unambiguously infer class of document"
+                    f" with `id` {id_} in collection {collection_name}."
+                    " Please ensure explicit `type` is present in document."
+                )
+            class_name = class_name_dict[class_names[0]]
 
         # set class name for id
         df["linkml_class"] = class_name
@@ -194,15 +202,22 @@ def load_changesheet(
         df.loc[ix, "multivalues"] = str.join("|", spp.multivalues)
     df = df.astype({"value": object})
     for ix, value, ranges in list(df[["value", "ranges"]].itertuples()):
-        # TODO make this way more robust,
-        #  i.e. detect a range with a https://w3id.org/linkml/base of "float".
-        # TODO mongo BSON has a decimal type. Should use this for decimals!
-        if (
-            ranges.endswith("float")
-            or ranges.endswith("double")
-            or ranges.endswith("decimal degree")
-        ):
-            df.at[ix, "value"] = float(value)
+        # Infer python builtin type for coercion via <https://w3id.org/linkml/base>.
+        # If base is member of builtins module, e.g. `int` or `float`, coercion will succeed.
+        # Otherwise, keep value as is (as a `str`).
+        # Note: Mongo BSON has a decimal type,
+        # but e.g. <https://w3id.org/nmdc/DecimalDegree> has a specified `base` of `float`
+        # and I think it's best to not "re-interpret" what LinkML specifies. Can revisit this decision
+        # by e.g. overriding `base` when `uri` is a "known" type (`xsd:decimal` in the case of DecimalDegree).
+        try:
+            base_type = view.induced_type(ranges.rsplit("|", maxsplit=1)[-1]).base
+            if base_type == "Decimal":
+                # Note: Use of bson.decimal128.Decimal128 here would require changing JSON encoding/decoding.
+                # Choosing to use `float` to preserve existing (expected) behavior.
+                df.at[ix, "value"] = float(value)
+            df.at[ix, "value"] = getattr(builtins, base_type)(value)
+        except:
+            continue
     return df
 
 
@@ -657,9 +672,9 @@ def copy_docs_in_update_cmd(
             dissoc(d, "_id")
             for d in mdb_from[collection_name].find({"id": {"$in": ids}})
         ]
-        results[
-            collection_name
-        ] = f"{len(mdb_to[collection_name].insert_many(docs).inserted_ids)} docs inserted"
+        results[collection_name] = (
+            f"{len(mdb_to[collection_name].insert_many(docs).inserted_ids)} docs inserted"
+        )
     return results
 
 
@@ -733,6 +748,11 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
     for result in results_of_updates:
         if len(result.get("validation_errors", [])) > 0:
             validation_errors.append(result["validation_errors"])
+        if (
+            len(write_errors := result.get("update_info", {}).get("writeErrors", {}))
+            > 0
+        ):
+            validation_errors.append(write_errors)
 
     if validation_errors:
         raise HTTPException(

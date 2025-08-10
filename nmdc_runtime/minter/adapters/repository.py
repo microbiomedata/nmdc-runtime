@@ -2,9 +2,8 @@ import abc
 import re
 from typing import Union
 
-from fastapi import HTTPException
 from pymongo import ReturnDocument
-from toolz import merge, dissoc
+from toolz import merge
 from pymongo.database import Database as MongoDatabase
 
 
@@ -97,7 +96,7 @@ class InMemoryIDStore(IDStore):
                 )
             )
         for id_ in ids:
-            self.db[id_.id] = id_.dict()
+            self.db[id_.id] = id_.model_dump()
         return ids
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
@@ -184,7 +183,7 @@ class MongoIDStore(abc.ABC):
                     )
                     for id_name in not_taken
                 ]
-                self.db["minter.id_records"].insert_many([i.dict() for i in ids])
+                self.db["minter.id_records"].insert_many([i.model_dump() for i in ids])
                 collected.extend(ids)
             if len(collected) == req_mint.how_many:
                 break

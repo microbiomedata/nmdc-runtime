@@ -15,6 +15,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+!/tests/lib/
+!/nmdc_runtime/api/endpoints/lib/
+!/nmdc_runtime/api/models/lib/
 lib64/
 parts/
 sdist/
@@ -118,7 +121,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+/docs/site
 
 # mypy
 .mypy_cache/
@@ -140,16 +143,9 @@ presets_*.yaml
 # VSCode
 .vscode/
 
-# metadata-translation `make run-etl` output
-metadata-translation/src/bin/output/
-metadata-translation/examples/nmdc_example_database.json
-metadata-translation/src/data/nmdc_database.json.zip
-metadata-translation/src/data/nmdc_merged_data.tsv.zip
-
 deployment
 cordra-2.3.0/
 
-!metadata-translation/src/bin/lib
 .env*
 !.env.example
 !.env.test
@@ -159,3 +155,18 @@ repl.ipynb
 *.crt
 
 tests/nmdcdb/
+
+neon_cache.sqlite
+
+# output of changesheet generation
+nmdc_runtime/site/changesheets/changesheets_output/
+
+mdb-nmdc-dev.tar.gz
+
+# superceded by .github/workflows/build-and-release-to-spin.yml
+docker-build.sh
+
+neon.db
+neon_api_cache.sqlite
+nmdc-db.nt.gz
+**/.claude/settings.local.json

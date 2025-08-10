@@ -1,0 +1,4 @@
+/.notebook.env
+/mongodump.*.out
+/tmp.*
+/*_migration.log

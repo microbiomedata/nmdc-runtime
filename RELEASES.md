@@ -13,6 +13,10 @@ Use <https://en.wikipedia.org/wiki/ISO_8601> to express the current date and tim
 time offset for New York on standard time (EST). "−08:00" would be for California.
 
 ## Release Log
+* 2023-11-07T19:45:00-08:00 update nmdc-schema package from 9.0.4 to 9.1.0
+* 2023-11-07T19:30:00-08:00 update nmdc-schema package from 8.1.2 to 9.0.4
+* 2023-11-07T17:30:00-08:00 update nmdc-schema package from 8.0.0 to 8.1.2
+* (missing entries)
 * 2023-08-31T22:15:00-07:00 update nmdc-schema package from 7.7.2 to 7.8.0
 * 2023-01-27T13:13:09-05:00 return 201 on activity creation
 * 2023-01-25T13:13:09-05:00 all typecodes for minter

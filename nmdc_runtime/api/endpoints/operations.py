@@ -1,5 +1,7 @@
+from typing import Annotated
+
 import pymongo
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Query
 from toolz import get_in, merge, assoc
 
 from nmdc_runtime.api.core.util import raise404_if_none, pick
@@ -20,7 +22,7 @@ router = APIRouter()
 
 @router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
 def list_operations(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "operations")
@@ -61,12 +63,16 @@ def update_operation(
             detail=f"client authorized for different site_id than {site_id_op}",
         )
     op_patch_metadata = merge(
-        op_patch.dict(exclude_unset=True).get("metadata", {}),
+        op_patch.model_dump(exclude_unset=True).get("metadata", {}),
         pick(["site_id", "job", "model"], doc_op.get("metadata", {})),
     )
     doc_op_patched = merge(
         doc_op,
-        assoc(op_patch.dict(exclude_unset=True), "metadata", op_patch_metadata),
+        assoc(
+            op_patch.model_dump(exclude_unset=True),
+            "metadata",
+            op_patch_metadata,
+        ),
     )
     mdb.operations.replace_one({"id": op_id}, doc_op_patched)
     return doc_op_patched

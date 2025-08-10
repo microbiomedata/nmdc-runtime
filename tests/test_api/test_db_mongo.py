@@ -1,20 +1,27 @@
 from uuid import uuid4
 
 import pytest
-from pymongo.collection import Collection
-from pymongo.errors import BulkWriteError, DuplicateKeyError
 from toolz import dissoc
 
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import (
+    get_mongo_db,
+    get_mongo_client,
+    OverlayDBError,
+    OverlayDB,
+)
 from nmdc_runtime.util import (
     all_docs_have_unique_id,
-    OverlayDB,
-    OverlayDBError,
 )
 
 
 def _new_collection(mdb):
     return mdb.create_collection(f"test-{uuid4()}")
+
+
+@pytest.fixture
+def mongo_client():
+    r"""Yields a `MongoClient` instance configured to access the MongoDB server specified via environment variables."""
+    yield get_mongo_client()
 
 
 @pytest.fixture
@@ -96,7 +103,7 @@ def test_overlaydb_delete(test_db):
             dissoc(d, "_id") for d in odb.merge_find(coll.name, {"filter": {"id": 0}})
         ]
         assert rv[0] == {"id": 0}
-        odb.delete(coll.name, [{"q": {"id": 0}}])
+        odb.delete(coll.name, [{"q": {"id": 0}, "limit": 1}])
         rv = [
             dissoc(d, "_id") for d in odb.merge_find(coll.name, {"filter": {"id": 0}})
         ]
@@ -123,3 +130,83 @@ def test_overlaydb_replace_or_insert_many(test_db):
     with OverlayDB(test_db) as odb:
         odb.replace_or_insert_many(coll.name, [{"id": n} for n in range(20)])
         assert len(list(odb.merge_find(coll.name, {}))) == 20
+
+
+def test_mongo_client_supports_transactions(mongo_client):
+    r"""
+    Note: This test was written to demonstrate how MongoDB sessions and transactions work.
+          It does not exercise any parts of the Runtime.
+
+    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/client_session.html#transactions
+    """
+
+    # Create a test database containing an empty collection.
+    db_name = f"test-{uuid4()}"
+    collection_name = "my_collection"
+    db = mongo_client.get_database(db_name)
+    collection = db.create_collection(collection_name)
+    assert len(db.list_collection_names()) == 1
+
+    # Insert documents into that collection (notice the three food names begin with the letters "a", "b", and "c").
+    collection.insert_one({"food": "apple"})
+    collection.insert_one({"food": "banana"})
+    collection.insert_one({"food": "carrot"})
+    assert collection.count_documents({}) == 3
+
+    # Start a session, so we can eventually start a transaction.
+    with mongo_client.start_session() as session:
+
+        # Modify the document while using the _session_ and confirm the real database _is_ affected.
+        collection.update_one(
+            {"food": "apple"}, {"$set": {"food": "donut"}}, session=session
+        )
+        assert set(collection.distinct("food", session=session)) == {
+            "donut",
+            "banana",
+            "carrot",
+        }
+        assert set(collection.distinct("food")) == {
+            "donut",
+            "banana",
+            "carrot",
+        }  # immediately says "donut"
+
+        # Start a transaction.
+        with session.start_transaction():
+
+            # Modify the document within the _transaction_ and confirm the real database is _not_ affected.
+            collection.update_one(
+                {"food": "banana"}, {"$set": {"food": "egg"}}, session=session
+            )
+            assert set(collection.distinct("food", session=session)) == {
+                "donut",
+                "egg",
+                "carrot",
+            }  # says "egg"
+            assert set(collection.distinct("food")) == {
+                "donut",
+                "banana",
+                "carrot",
+            }  # still says "banana"
+
+            # Abort the transaction.
+            #
+            # Note: If an exception had been raised within this currently-pending transaction, PyMongo would have
+            #       invoked this function implicitly. Here, we invoke it explicitly instead of raising an exception.
+            #
+            session.abort_transaction()
+
+        # Confirm the real database—whether using or not using the session—does _not_ reflect the changes that were
+        # made within the aborted transaction.
+        assert set(collection.distinct("food", session=session)) == {
+            "donut",
+            "banana",
+            "carrot",
+        }  # back to "banana"
+        assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}
+
+    # Confirm the real database _does_ reflect the changes that were made using the now-ended session.
+    assert set(collection.distinct("food")) == {"donut", "banana", "carrot"}
+
+    # Clean up.
+    mongo_client.drop_database(db_name)

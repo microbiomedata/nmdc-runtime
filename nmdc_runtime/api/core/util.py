@@ -28,9 +28,12 @@ def hash_from_str(s: str, algo="sha256") -> str:
     return getattr(hashlib, algo)(s.encode("utf-8")).hexdigest()
 
 
-def sha256hash_from_file(file_path: str):
+def sha256hash_from_file(file_path: str, timestamp: str):
     # https://stackoverflow.com/a/55542529
     h = hashlib.sha256()
+
+    timestamp_bytes = timestamp.encode("utf-8")
+    h.update(timestamp_bytes)
 
     with open(file_path, "rb") as file:
         while True:
@@ -98,6 +101,9 @@ def generate_secret(length=12):
 def json_clean(data, model, exclude_unset=False) -> dict:
     """Run data through a JSON serializer for a pydantic model."""
     if not isinstance(data, (dict, BaseModel)):
-        raise TypeError("`data` must be a pydantic model or its .dict()")
+        raise TypeError("`data` must be a pydantic model or its .model_dump()")
     m = model(**data) if isinstance(data, dict) else data
-    return json.loads(m.json(exclude_unset=exclude_unset))
+
+    # Note: Between Pydantic v1 and v2, the `json` method was renamed to `model_dump_json`.
+    #       Reference: https://docs.pydantic.dev/2.11/migration/#changes-to-pydanticbasemodel
+    return json.loads(m.model_dump_json(exclude_unset=exclude_unset))

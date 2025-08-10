@@ -8,7 +8,7 @@ from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.minter.adapters.repository import MongoIDStore, MinterError
-from nmdc_runtime.minter.config import minting_service_id, schema_classes
+from nmdc_runtime.minter.config import minting_service_id
 from nmdc_runtime.minter.domain.model import (
     Identifier,
     AuthenticatedMintingRequest,
@@ -37,7 +37,11 @@ def mint_ids(
     requester = Entity(id=site.id)
     try:
         minted = s.mint(
-            MintingRequest(service=service, requester=requester, **req_mint.dict())
+            MintingRequest(
+                service=service,
+                requester=requester,
+                **req_mint.model_dump(),
+            )
         )
         return [d.id for d in minted]
     except MinterError as e:

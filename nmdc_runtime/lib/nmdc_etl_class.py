@@ -8,14 +8,8 @@ import nmdc_runtime.lib.load_nmdc_data as lx
 import nmdc_runtime.lib.nmdc_dataframes as nmdc_dfs
 from nmdc_schema import nmdc
 import pandas as pds
-import jq
-import jsonasobj
-import json
-import zipfile
 import yaml
-from yaml import CLoader as Loader, CDumper as Dumper
-from dotted_dict import DottedDict
-from collections import namedtuple
+from yaml import CLoader as Loader
 
 
 class NMDC_ETL:
@@ -196,7 +190,6 @@ class NMDC_ETL:
         print_df=False,
         print_dict=False,
     ) -> list:
-
         ## used for testing
         if test_rows != 0:
             nmdc_df = nmdc_df.head(test_rows)

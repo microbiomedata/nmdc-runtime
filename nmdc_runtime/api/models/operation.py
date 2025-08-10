@@ -1,44 +1,44 @@
 import datetime
 from typing import Generic, TypeVar, Optional, List, Any, Union
 
-from pydantic import BaseModel, HttpUrl, constr
-from pydantic.generics import GenericModel
+from pydantic import StringConstraints, BaseModel, HttpUrl, field_serializer
 
 from nmdc_runtime.api.models.util import ResultT
+from typing_extensions import Annotated
 
 MetadataT = TypeVar("MetadataT")
 
 
-PythonImportPath = constr(regex=r"^[A-Za-z0-9_.]+$")
+PythonImportPath = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.]+$")]
 
 
 class OperationError(BaseModel):
     code: str
     message: str
-    details: Any
+    details: Any = None
 
 
-class Operation(GenericModel, Generic[ResultT, MetadataT]):
+class Operation(BaseModel, Generic[ResultT, MetadataT]):
     id: str
     done: bool = False
     expire_time: datetime.datetime
-    result: Optional[Union[ResultT, OperationError]]
-    metadata: Optional[MetadataT]
+    result: Optional[Union[ResultT, OperationError]] = None
+    metadata: Optional[MetadataT] = None
 
 
-class UpdateOperationRequest(GenericModel, Generic[ResultT, MetadataT]):
+class UpdateOperationRequest(BaseModel, Generic[ResultT, MetadataT]):
     done: bool = False
-    result: Optional[Union[ResultT, OperationError]]
+    result: Optional[Union[ResultT, OperationError]] = None
     metadata: Optional[MetadataT] = {}
 
 
-class ListOperationsResponse(GenericModel, Generic[ResultT, MetadataT]):
+class ListOperationsResponse(BaseModel, Generic[ResultT, MetadataT]):
     resources: List[Operation[ResultT, MetadataT]]
-    next_page_token: Optional[str]
+    next_page_token: Optional[str] = None
 
 
 class Result(BaseModel):
-    model: Optional[PythonImportPath]
+    model: Optional[PythonImportPath] = None
 
 
 class EmptyResult(Result):
@@ -47,7 +47,8 @@ class EmptyResult(Result):
 
 class Metadata(BaseModel):
     # XXX alternative: set model field using __class__ on __init__()?
-    model: Optional[PythonImportPath]
+    model: Optional[PythonImportPath] = None
+    cancelled: Optional[bool] = None
 
 
 class PausedOrNot(Metadata):
@@ -59,3 +60,7 @@ class ObjectPutMetadata(Metadata):
     site_id: str
     url: HttpUrl
     expires_in_seconds: int
+
+    @field_serializer("url")
+    def serialize_url(self, url: HttpUrl, _info):
+        return str(url)

@@ -1,13 +1,13 @@
 import logging
 import os
-import re
 import tempfile
+from datetime import datetime
 from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
 from typing import List, Optional, Set, Tuple
-from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 from bson import json_util
 from dagster import DagsterRunStatus
@@ -20,7 +20,7 @@ from nmdc_runtime.api.core.util import (
     expiry_dt_from_now,
     raise404_if_none,
 )
-from nmdc_runtime.api.db.mongo import activity_collection_names, get_mongo_db
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -40,10 +40,7 @@ from nmdc_runtime.api.models.site import Site
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.models.util import (
     FindRequest,
-    FindResponse,
     ListRequest,
-    PipelineFindRequest,
-    PipelineFindResponse,
     ResultT,
 )
 from nmdc_runtime.util import drs_metadata_for
@@ -59,6 +56,7 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def check_filter(filter_: str):
+    """A pass-through function that checks if `filter_` is parsable as a JSON object. Raises otherwise."""
     filter_ = filter_.strip()
     if not filter_.startswith("{") or not filter_.endswith("}"):
         raise HTTPException(
@@ -76,10 +74,27 @@ def check_filter(filter_: str):
 
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
+    r"""
+    Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
+
+    Note: If the specified `ListRequest` has a non-zero `max_page_size` number and the number of documents matching the
+          filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
+          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
+          when the collection involved contains many documents.
+    """
+
+    id_field = "id"
+    if "id_1" not in mdb[collection_name].index_information():
+        logging.warning(
+            f"list_resources: no index set on 'id' for collection {collection_name}"
+        )
+        id_field = (
+            "_id"  # currently expected for `functional_annotation_agg` collection
+        )
     limit = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
-        list(set(comma_separated_values(req.projection)) | {"id"})
+        list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
         else None
     )
@@ -94,10 +109,10 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     else:
         last_id = None
     if last_id is not None:
-        if "id" in filter_:
-            filter_["id"] = merge(filter_["id"], {"$gt": last_id})
+        if id_field in filter_:
+            filter_[id_field] = merge(filter_[id_field], {"$gt": last_id})
         else:
-            filter_ = merge(filter_, {"id": {"$gt": last_id}})
+            filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
     # If limit is 0, the response will include all results (bypassing pagination altogether).
     if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
@@ -108,28 +123,30 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         }
         return rv
     else:
-        if "id_1" not in mdb[collection_name].index_information():
-            logging.warning(
-                f"list_resources: no index set on 'id' for collection {collection_name}"
-            )
         resources = list(
             mdb[collection_name].find(
                 filter=filter_,
                 projection=projection,
                 limit=limit,
-                sort=[("id", 1)],
+                sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
         )
-        last_id = resources[-1]["id"]
+        last_id = resources[-1][id_field]
         token = generate_one_id(mdb, "page_tokens")
+        # TODO unify with `/queries:run` query continuation model
+        #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
         mdb.page_tokens.insert_one(
             {"_id": token, "ns": collection_name, "last_id": last_id}
         )
         return {"resources": resources, "next_page_token": token}
 
 
-def maybe_unstring(val):
+def coerce_to_float_if_possible(val):
+    r"""
+    Converts the specified value into a floating-point number if possible;
+    raising a `ValueError` if not possible.
+    """
     try:
         return float(val)
     except ValueError:
@@ -137,10 +154,26 @@ def maybe_unstring(val):
 
 
 def comma_separated_values(s: str):
-    return [v.strip() for v in re.split(r"\s*,\s*", s)]
+    r"""
+    Returns a list of the comma-delimited substrings of the specified string. Discards any whitespace
+    surrounding each substring.
+
+    Reference: https://docs.python.org/3/library/re.html#re.split
+
+    >>> comma_separated_values("apple, banana, cherry")
+    ['apple', 'banana', 'cherry']
+    """
+    return [v.strip() for v in s.split(",")]
 
 
 def get_mongo_filter(filter_str):
+    r"""
+    Convert a str in the domain-specific language (DSL) solicited by `nmdc_runtime.api.models.util.FindRequest.filter`
+    -- i.e., a comma-separated list of `attribute:value` pairs, where the `value` can include a comparison operator
+    (e.g. `>=`) and where if the attribute is of type _string_ and has the suffix `.search` appended to its name
+    then the server should perform a full-text search
+    -- to a corresponding MongoDB filter representation for e.g. passing to a collection `find` call.
+    """
     filter_ = {}
     if not filter_str:
         return filter_
@@ -159,7 +192,7 @@ def get_mongo_filter(filter_str):
         else:
             for op, key in {("<", "$lt"), ("<=", "$lte"), (">", "$gt"), (">=", "$gte")}:
                 if spec.startswith(op):
-                    filter_[attr] = {key: maybe_unstring(spec[len(op) :])}
+                    filter_[attr] = {key: coerce_to_float_if_possible(spec[len(op) :])}
                     break
             else:
                 filter_[attr] = spec
@@ -167,6 +200,11 @@ def get_mongo_filter(filter_str):
 
 
 def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
+    """
+    Parse `sort_str` and a str of the form "attribute:spec[,attribute:spec]*",
+    where spec is `asc` (ascending -- the default if no spec) or `desc` (descending),
+    and return a value suitable to pass as a `sort` kwarg to a mongo collection `find` call.
+    """
     sort_ = []
     if not sort_str:
         return None
@@ -194,7 +232,10 @@ def get_mongo_sort(sort_str) -> Optional[List[Tuple[str, int]]]:
     return sort_
 
 
-def strip_oid(doc):
+def strip_oid(doc: dict) -> dict:
+    r"""
+    Returns a copy of the specified dictionary, that has no `_id` key.
+    """
     return dissoc(doc, "_id")
 
 
@@ -207,6 +248,10 @@ def timeit(cursor):
 
 
 def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+    """Find nmdc schema collection entities that match the FindRequest.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+    """
     if req.group_by:
         raise HTTPException(
             status_code=status.HTTP_418_IM_A_TEAPOT,
@@ -332,11 +377,30 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 def find_resources_spanning(
     req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
 ):
+    """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
+
+    This is useful for collections that house documents that are subclasses of a common ancestor class.
+
+    "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+    """
     if req.cursor or not req.page:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This resource only supports page-based pagination",
         )
+
+    if len(collection_names) == 0:
+        return {
+            "meta": {
+                "mongo_filter_dict": get_mongo_filter(req.filter),
+                "count": 0,
+                "db_response_time_ms": 0,
+                "page": req.page,
+                "per_page": req.per_page,
+            },
+            "results": [],
+            "group_by": [],
+        }
 
     responses = {name: find_resources(req, mdb, name) for name in collection_names}
     rv = {
@@ -358,49 +422,10 @@ def find_resources_spanning(
 
 
 def exists(collection: MongoCollection, filter_: dict):
+    r"""
+    Returns True if there are any documents in the collection that meet the filter requirements.
+    """
     return collection.count_documents(filter_) > 0
-
-
-def find_for(resource: str, req: FindRequest, mdb: MongoDatabase):
-    if resource == "biosamples":
-        return find_resources(req, mdb, "biosample_set")
-    elif resource == "studies":
-        return find_resources(req, mdb, "study_set")
-    elif resource == "data_objects":
-        return find_resources(req, mdb, "data_object_set")
-    elif resource == "activities":
-        return find_resources_spanning(req, mdb, activity_collection_names(mdb))
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"Unknown API resource '{resource}'. "
-                f"Known resources: {{activities, biosamples, data_objects, studies}}."
-            ),
-        )
-
-
-def pipeline_find_resources(req: PipelineFindRequest, mdb: MongoDatabase):
-    description = req.description
-    components = [c.strip() for c in re.split(r"\s*\n\s*\n\s*", req.pipeline_spec)]
-    print(components)
-    for c in components:
-        if c.startswith("/"):
-            parse_result = urlparse(c)
-            resource = parse_result.path[1:]
-            request_params_dict = {
-                p: v[0] for p, v in parse_qs(parse_result.query).items()
-            }
-            req = FindRequest(**request_params_dict)
-            resp = FindResponse(**find_for(resource, req, mdb))
-            break
-    components = [
-        "NOTE: This method is yet to be implemented! Only the first stage is run!"
-    ] + components
-    return PipelineFindResponse(
-        meta=merge(resp.meta, {"description": description, "components": components}),
-        results=resp.results,
-    )
 
 
 def persist_content_and_get_drs_object(
@@ -410,7 +435,16 @@ def persist_content_and_get_drs_object(
     filename=None,
     content_type="application/json",
     id_ns="json-metadata-in",
+    exists_ok=False,
 ):
+    """Persist a Data Repository Service (DRS) object.
+
+    An object may be a blob, analogous to a file, or a bundle, analogous to a folder. Sites register objects,
+    and sites must ensure that these objects are accessible to the NMDC data broker.
+    An object may be associated with one or more object types, useful for triggering workflows.
+
+    Reference: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes
+    """
     mdb = get_mongo_db()
     drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
     filename = filename or drs_id
@@ -429,37 +463,70 @@ def persist_content_and_get_drs_object(
         filepath = str(Path(save_dir).joinpath(filename))
         with open(filepath, "w") as f:
             f.write(content)
+        now_to_the_minute = datetime.now(tz=ZoneInfo("America/Los_Angeles")).isoformat(
+            timespec="minutes"
+        )
         object_in = DrsObjectIn(
             **drs_metadata_for(
                 filepath,
                 base={
-                    "description": description + f" (created by/for {username})",
+                    "description": (
+                        description
+                        + f" (created by/for {username}"
+                        + f" at {now_to_the_minute})"
+                    ),
                     "access_methods": [{"access_id": drs_id}],
                 },
+                timestamp=now_to_the_minute,
             )
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     return _create_object(
-        mdb, object_in, mgr_site="nmdc-runtime", drs_id=drs_id, self_uri=self_uri
+        mdb,
+        object_in,
+        mgr_site="nmdc-runtime",
+        drs_id=drs_id,
+        self_uri=self_uri,
+        exists_ok=exists_ok,
     )
 
 
 def _create_object(
-    mdb: MongoDatabase, object_in: DrsObjectIn, mgr_site, drs_id, self_uri
+    mdb: MongoDatabase,
+    object_in: DrsObjectIn,
+    mgr_site,
+    drs_id,
+    self_uri,
+    exists_ok=False,
 ):
+    """Helper function for creating a Data Repository Service (DRS) object."""
     drs_obj = DrsObject(
-        **object_in.dict(exclude_unset=True), id=drs_id, self_uri=self_uri
+        **object_in.model_dump(exclude_unset=True),
+        id=drs_id,
+        self_uri=self_uri,
     )
-    doc = drs_obj.dict(exclude_unset=True)
+    doc = drs_obj.model_dump(exclude_unset=True)
     doc["_mgr_site"] = mgr_site  # manager site
     try:
         mdb.objects.insert_one(doc)
     except DuplicateKeyError as e:
         if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"provided checksum matches existing object: {e.details['keyValue']}",
-            )
+            if exists_ok:
+                return mdb.objects.find_one(
+                    {
+                        "checksums": {
+                            "$elemMatch": {
+                                "type": e.details["keyValue"]["checksums.type"],
+                                "checksum": e.details["keyValue"]["checksums.checksum"],
+                            }
+                        }
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"provided checksum matches existing object: {e.details['keyValue']}",
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -469,6 +536,9 @@ def _create_object(
 
 
 def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
+    r"""
+    TODO: Document this function.
+    """
     job_doc = raise404_if_none(mdb.jobs.find_one({"id": job_id}))
     job = Job(**job_doc)
     # check that site satisfies the job's workflow's required capabilities.
@@ -511,20 +581,21 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
                         "workflow": job.workflow,
                         "config": job.config,
                     }
-                ).dict(exclude_unset=True),
+                ).model_dump(exclude_unset=True),
                 "site_id": site.id,
                 "model": dotted_path_for(JobOperationMetadata),
             },
         }
     )
-    mdb.operations.insert_one(op.dict())
-    mdb.jobs.replace_one({"id": job.id}, job.dict(exclude_unset=True))
+    mdb.operations.insert_one(op.model_dump())
+    mdb.jobs.replace_one({"id": job.id}, job.model_dump(exclude_unset=True))
 
-    return op.dict(exclude_unset=True)
+    return op.model_dump(exclude_unset=True)
 
 
 @lru_cache
-def nmdc_workflow_id_to_dagster_job_name_map():
+def map_nmdc_workflow_id_to_dagster_job_name():
+    """Returns a dictionary mapping nmdc_workflow_id to dagster_job_name."""
     return {
         "metadata-in-1.0.0": "apply_metadata_in",
         "export-study-biosamples-as-csv-1.0.0": "export_study_biosamples_metadata",
@@ -539,6 +610,10 @@ def ensure_run_config_data(
     mdb: MongoDatabase,
     user: User,
 ):
+    r"""
+    Ensures that run_config_data has entries for certain nmdc workflow ids.
+    Returns return_config_data.
+    """
     if nmdc_workflow_id == "export-study-biosamples-as-csv-1.0.0":
         run_config_data = assoc_in(
             run_config_data,
@@ -568,6 +643,7 @@ def ensure_run_config_data(
 
 
 def inputs_for(nmdc_workflow_id, run_config_data):
+    """Returns a URI path for given nmdc_workflow_id, constructed from run_config_data."""
     if nmdc_workflow_id == "metadata-in-1.0.0":
         return [
             "/objects/"
@@ -600,7 +676,12 @@ def _request_dagster_run(
     repository_location_name=None,
     repository_name=None,
 ):
-    dagster_job_name = nmdc_workflow_id_to_dagster_job_name_map()[nmdc_workflow_id]
+    r"""
+    Requests a Dagster run using the specified parameters.
+    Returns a json dictionary indicating the job's success or failure.
+    This is a generic wrapper.
+    """
+    dagster_job_name = map_nmdc_workflow_id_to_dagster_job_name()[nmdc_workflow_id]
 
     extra_run_config_data = ensure_run_config_data(
         nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
@@ -646,6 +727,9 @@ def _request_dagster_run(
 
 
 def _get_dagster_run_status(run_id: str):
+    r"""
+    Returns the status (either "success" or "error") of a requested Dagster run.
+    """
     dagster_client = get_dagster_graphql_client()
     try:
         run_status: DagsterRunStatus = dagster_client.get_run_status(run_id)
@@ -654,14 +738,10 @@ def _get_dagster_run_status(run_id: str):
         return {"type": "error", "detail": str(exc)}
 
 
-def permitted(username: str, action: str):
+def check_action_permitted(username: str, action: str):
+    """Returns True if a Mongo database action is "allowed" and "not denied"."""
     db: MongoDatabase = get_mongo_db()
     filter_ = {"username": username, "action": action}
     denied = db["_runtime.api.deny"].find_one(filter_) is not None
     allowed = db["_runtime.api.allow"].find_one(filter_) is not None
     return (not denied) and allowed
-
-
-def users_allowed(action: str):
-    db: MongoDatabase = get_mongo_db()
-    return db["_runtime.api.allow"].distinct("username", {"action": action})

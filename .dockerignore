@@ -1,10 +1,36 @@
 .env*
+!.env.example
+!.env.test
 .idea
-docker-compose.yml
-.dockerignore
-docker-build.sh
 deployment
 .eggs
 .pytest_cache
 build
 dist
+
+# Omit the Docker configuration/specification files from the image build context,
+# so we can edit them without invalidating existing image layers.
+#
+# Note: Although we exclude the `.docker/` directory from the build context, we
+#       make an exception for the `wait-for-it.sh` file within it, since we want
+#       that specific file to be `COPY`-ed into the `test` container image during
+#       that container image's build process (which is defined in `Dockerfile`).
+#
+# Reference: https://docs.docker.com/build/concepts/context/#dockerignore-files
+#
+/.dockerignore
+/.docker/
+!/.docker/wait-for-it.sh
+/docker-compose.yml
+/docker-compose.test.yml
+/nmdc_runtime/Dockerfile
+
+# Omit any local Python virtual environment from the image build context. The
+# image build process includes its own package download/installation step.
+/venv
+/.venv
+
+# Omit residual files left behind by some tests.
+/neon.db
+/neon_api_cache.sqlite
+/neon_cache.sqlite

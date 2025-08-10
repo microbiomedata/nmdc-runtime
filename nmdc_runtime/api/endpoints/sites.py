@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Annotated
 
 import botocore
 import pymongo.database
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
@@ -25,7 +25,6 @@ from nmdc_runtime.api.db.s3 import (
     S3_ID_NS,
 )
 from nmdc_runtime.api.endpoints.util import exists, list_resources
-from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object import (
     AccessMethod,
     AccessURL,
@@ -40,6 +39,7 @@ from nmdc_runtime.api.models.site import (
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
+from nmdc_runtime.minter.bootstrap import refresh_minter_requesters_from_sites
 
 router = APIRouter()
 
@@ -55,7 +55,8 @@ def create_site(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"site with supplied id {site.id} already exists",
         )
-    mdb.sites.insert_one(site.dict())
+    mdb.sites.insert_one(site.model_dump())
+    refresh_minter_requesters_from_sites()
     rv = mdb.users.update_one(
         {"username": user.username},
         {"$addToSet": {"site_admin": site.id}},
@@ -72,7 +73,7 @@ def create_site(
     "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
 )
 def list_sites(
-    req: ListRequest = Depends(),
+    req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return list_resources(req, mdb, "sites")
@@ -98,14 +99,16 @@ def replace_site():
     pass
 
 
-@router.get("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.get("/sites/{site_id}/capabilities", include_in_schema=False)
 def list_site_capabilities(site_id: str):
-    return site_id
+    """Not yet implemented"""
+    pass
 
 
-@router.put("/sites/{site_id}/capabilities", response_model=List[Capability])
+@router.put("/sites/{site_id}/capabilities", include_in_schema=False)
 def replace_site_capabilities(site_id: str, capability_ids: List[str]):
-    return capability_ids
+    """Not yet implemented"""
+    pass
 
 
 def verify_client_site_pair(
@@ -161,7 +164,7 @@ def put_object_in_site(
             },
         }
     )
-    mdb.operations.insert_one(op.dict())
+    mdb.operations.insert_one(op.model_dump())
     return op
 
 
@@ -189,10 +192,18 @@ def get_site_object_link(
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
 def generate_credentials_for_site_client(
-    site_id: str,
+    site_id: str = Path(
+        ...,
+        description="The ID of the site.",
+    ),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """
+    Generate a client_id and client_secret for the given site.
+
+    You must be authenticated as a user who is registered as an admin of the given site.
+    """
     raise404_if_none(
         mdb.sites.find_one({"id": site_id}), detail=f"no site with ID '{site_id}'"
     )

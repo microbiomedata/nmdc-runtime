@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List, Optional, Union
 
 import pymongo.database
 from fastapi import Depends, HTTPException
@@ -12,7 +12,11 @@ from nmdc_runtime.api.core.auth import (
     oauth2_scheme,
     credentials_exception,
     TokenData,
+    bearer_scheme,
 )
+
+from nmdc_runtime.api.models.site import get_site
+
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
 
@@ -32,13 +36,21 @@ class UserInDB(User):
     hashed_password: str
 
 
-def get_user(mdb, username: str) -> UserInDB:
+def get_user(mdb, username: str) -> Optional[UserInDB]:
+    r"""
+    Returns the user having the specified username.
+    """
+
     user = mdb.users.find_one({"username": username})
     if user is not None:
         return UserInDB(**user)
 
 
-def authenticate_user(mdb, username: str, password: str):
+def authenticate_user(mdb, username: str, password: str) -> Union[UserInDB, bool]:
+    r"""
+    Returns the user, if any, having the specified username/password combination.
+    """
+
     user = get_user(mdb, username)
     if not user:
         return False
@@ -49,8 +61,18 @@ def authenticate_user(mdb, username: str, password: str):
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
+    bearer_credentials: str = Depends(bearer_scheme),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ) -> UserInDB:
+    r"""
+    Returns a user based upon the provided token.
+
+    If the token belongs to a site client, the returned user is an ephemeral "user"
+    whose username is the site client's `client_id`.
+
+    Raises an exception if the token is invalid.
+    """
+
     if mdb.invalidated_tokens.find_one({"_id": token}):
         raise credentials_exception
     try:
@@ -58,21 +80,61 @@ async def get_current_user(
         subject: str = payload.get("sub")
         if subject is None:
             raise credentials_exception
-        if not subject.startswith("user:"):
+        if not subject.startswith("user:") and not subject.startswith("client:"):
             raise credentials_exception
-        username = subject.split("user:", 1)[1]
+
+        # subject is in the form "user:foo" or "client:bar"
+        username = subject.split(":", 1)[1]
         token_data = TokenData(subject=username)
-    except JWTError:
+    except (JWTError, AttributeError) as e:
+        print(f"jwt error: {e}")
         raise credentials_exception
-    user = get_user(mdb, username=token_data.subject)
+
+    # Coerce a "client" into a "user"
+    # TODO: consolidate the client/user distinction.
+    if subject.startswith("user:"):
+        user = get_user(mdb, username=token_data.subject)
+    elif subject.startswith("client:"):
+        # construct a user from the client_id
+        user = get_client_user(mdb, client_id=token_data.subject)
+    else:
+        raise credentials_exception
     if user is None:
         raise credentials_exception
     return user
 
 
+def get_client_user(mdb, client_id: str) -> UserInDB:
+    r"""
+    Returns an ephemeral "user" whose username is the specified `client_id`
+    and whose password is the hashed secret of the client; provided that the
+    specified `client_id` is associated with a site in the database.
+
+    TODO: Clarify the above summary of the function.
+    """
+
+    # Get the site associated with the identified client.
+    site = get_site(mdb, client_id)
+    if site is None:
+        raise credentials_exception
+
+    # Get the client, itself, via the site.
+    client = next(client for client in site.clients if client.id == client_id)
+    if client is None:
+        raise credentials_exception
+
+    # Make an ephemeral "user" whose username matches the client's `id`.
+    user = UserInDB(username=client.id, hashed_password=client.hashed_secret)
+    return user
+
+
 async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+    current_user: UserInDB = Depends(get_current_user),
 ) -> UserInDB:
+    r"""
+    Returns the current user, provided their user account is not disabled.
+    """
+
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

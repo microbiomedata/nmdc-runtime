@@ -1,27 +1,95 @@
 import collections
 import re
-from typing import List, Union
+from typing import List, Tuple, Union
 from nmdc_schema import nmdc
+import pandas as pd
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
+
+# Dictionary of sequencing strategies from GOLD that we are filtering on
+# based on the kind of samples that are required for NMDC
+SEQUENCING_STRATEGIES = {"Metagenome", "Metatranscriptome"}
+
+
+def _is_valid_project(project: dict) -> bool:
+    """A project is considered valid if:
+    1. `sequencingStrategy` is in {"Metagenome", "Metatranscriptome"}
+    2. if `sequencingCenters` == 'DOE Joint Genome Institute (JGI)' then
+        `projectStatus` must be in ("Permanent Draft", "Complete and Published")
+    3. otherwise, no `projectStatus` filter is applied
+
+    :param project: GOLD project object (structurally similar to response
+                    from `/projects` endpoint)
+    :return: True if the project is valid, False otherwise
+    """
+    if project.get("sequencingStrategy") not in SEQUENCING_STRATEGIES:
+        return False
+
+    if project.get("sequencingCenters") == "DOE Joint Genome Institute (JGI)":
+        return project.get("projectStatus") in (
+            "Permanent Draft",
+            "Complete and Published",
+        )
+
+    return True
 
 
 class GoldStudyTranslator(Translator):
     def __init__(
         self,
         study: JSON_OBJECT = {},
+        study_type: str = "research_study",
         biosamples: List[JSON_OBJECT] = [],
         projects: List[JSON_OBJECT] = [],
         analysis_projects: List[JSON_OBJECT] = [],
+        gold_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
+        include_field_site_info: bool = False,
+        enable_biosample_filtering: bool = True,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 
         self.study = study
-        self.biosamples = biosamples
-        self.projects = projects
-        self.analysis_projects = analysis_projects
+        self.study_type = nmdc.StudyCategoryEnum(study_type)
+        self.include_field_site_info = include_field_site_info
+        self.enable_biosample_filtering = enable_biosample_filtering
+        # Filter biosamples to only those with `sequencingStrategy` of
+        # "Metagenome" or "Metatranscriptome" if filtering is enabled
+        if enable_biosample_filtering:
+            self.biosamples = [
+                biosample
+                for biosample in biosamples
+                if any(
+                    _is_valid_project(project)
+                    for project in biosample.get("projects", [])
+                )
+            ]
+        else:
+            self.biosamples = biosamples
+        # Fetch the valid projectGoldIds that are associated with filtered
+        # biosamples on their `projects` field
+        valid_project_ids = {
+            project.get("projectGoldId")
+            for project in projects
+            if _is_valid_project(project)
+        }
+        # Filter projects to only those with `projectGoldId` in valid_project_ids
+        self.projects = [
+            project
+            for project in projects
+            if project.get("projectGoldId") in valid_project_ids
+        ]
+        # Filter analysis_projects to only those with all `projects` in valid_project_ids
+        self.analysis_projects = [
+            analysis_project
+            for analysis_project in analysis_projects
+            if all(
+                project_id in valid_project_ids
+                for project_id in analysis_project.get("projects", [])
+            )
+        ]
+        self.gold_nmdc_instrument_map_df = gold_nmdc_instrument_map_df
 
         self._projects_by_id = self._index_by_id(self.projects, "projectGoldId")
         self._analysis_projects_by_id = self._index_by_id(
@@ -53,6 +121,9 @@ class GoldStudyTranslator(Translator):
         :param gold_entity: GOLD entity object
         :return: PersonValue corresponding to the first PI in the `contacts` field
         """
+        if "contacts" not in gold_entity:
+            return None
+
         pi_dict = next(
             (
                 contact
@@ -69,6 +140,7 @@ class GoldStudyTranslator(Translator):
             has_raw_value=pi_dict.get("name"),
             name=pi_dict.get("name"),
             email=pi_dict.get("email"),
+            type="nmdc:PersonValue",
         )
 
     def _get_mod_date(self, gold_entity: JSON_OBJECT) -> Union[str, None]:
@@ -101,29 +173,67 @@ class GoldStudyTranslator(Translator):
             for id in self._project_ids_by_biosample_id[gold_biosample_id]
         )
         return [
-            self._get_curie("biosample", project["ncbiBioSampleAccession"])
+            self._ensure_curie(
+                project["ncbiBioSampleAccession"], default_prefix="biosample"
+            )
             for project in biosample_projects
-            if project["ncbiBioSampleAccession"]
+            if project.get("ncbiBioSampleAccession")
         ]
 
     def _get_samp_taxon_id(
         self, gold_biosample: JSON_OBJECT
-    ) -> Union[nmdc.TextValue, None]:
-        """Get a TextValue representing the NCBI taxon for a GOLD biosample
+    ) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
+        """Get a ControlledIdentifiedTermValue representing the NCBI taxon
+        for a GOLD biosample
 
         This method gets the `ncbiTaxName` and `ncbiTaxId` from a GOLD biosample object.
-        If both are not `None`, it constructs a TextValue of the format
+        If both are not `None`, it constructs a ControlledIdentifiedTermValue of the format
         `{ncbiTaxName} [NCBITaxon:{ncbiTaxId}]`. Otherwise, it returns `None`
 
         :param gold_biosample: GOLD biosample object
-        :return: TextValue object
+        :return: ControlledIdentifiedTermValue object
         """
         ncbi_tax_name = gold_biosample.get("ncbiTaxName")
         ncbi_tax_id = gold_biosample.get("ncbiTaxId")
         if ncbi_tax_name is None or ncbi_tax_id is None:
             return None
 
-        return nmdc.TextValue(f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]")
+        raw_value = f"{ncbi_tax_name} [NCBITaxon:{ncbi_tax_id}]"
+
+        return nmdc.ControlledIdentifiedTermValue(
+            has_raw_value=raw_value,
+            term=nmdc.OntologyClass(
+                id=f"NCBITaxon:{ncbi_tax_id}",
+                name=ncbi_tax_name,
+                type="nmdc:OntologyClass",
+            ),
+            type="nmdc:ControlledIdentifiedTermValue",
+        )
+
+    def _get_host_taxid(
+        self, gold_biosample: JSON_OBJECT
+    ) -> Union[nmdc.ControlledIdentifiedTermValue, None]:
+        """Get a ControlledIdentifiedTermValue representing the NCBI host taxon id
+        for a GOLD biosample
+
+        This method gets the `hostNcbiTaxid` from a GOLD biosample object.
+        It constructs a ControlledIdentifiedTermValue of the format
+        `[NCBITaxon:{hostNcbiTaxid}]`. Otherwise, it returns `None`
+
+        :param gold_biosample: GOLD biosample object
+        :return: ControlledIdentifiedTermValue object
+        """
+        host_taxid = gold_biosample.get("hostNcbiTaxid")
+        if host_taxid is None:
+            return None
+        return nmdc.ControlledIdentifiedTermValue(
+            has_raw_value=f"NCBITaxon:{host_taxid}",
+            term=nmdc.OntologyClass(
+                id=f"NCBITaxon:{host_taxid}",
+                type="nmdc:OntologyClass",
+            ),
+            type="nmdc:ControlledIdentifiedTermValue",
+        )
 
     def _get_samp_name(self, gold_biosample: JSON_OBJECT) -> Union[str, None]:
         """Get a sample name for a GOLD biosample object
@@ -183,44 +293,55 @@ class GoldStudyTranslator(Translator):
         date_collected = gold_biosample.get("dateCollected")
         if date_collected is None:
             return None
-        return nmdc.TimestampValue(has_raw_value=date_collected)
+        return nmdc.TimestampValue(
+            has_raw_value=date_collected, type="nmdc:TimestampValue"
+        )
 
     def _get_quantity_value(
         self,
         gold_entity: JSON_OBJECT,
-        gold_field: str,
+        gold_field: Union[str, Tuple[str, str]],
         unit: Union[str, None] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Get any field of a GOLD entity object as a QuantityValue
 
         This method extracts any single field of a GOLD entity object (study, biosample, etc)
         and if it is not `None` returns it as an `nmdc:QuantityValue`. A has_numeric_value will
-        be inferred from the gold_field value in gold_entity. The inference is done only if the
-        unit is meters. Support for other units will be added incrementally. A unit can optionally
-        be provided, otherwise the unit will be `None`. If the value of the field is `None`,
-        `None` will be returned.
+        be inferred from the gold_field value in gold_entity if it is a simple string value. If
+        it is a tuple of two fields, a has_minimum_numeric_value and has_maximum_numeric_value
+        will be inferred from the gold_field values in gold_entity.
 
         :param gold_entity: GOLD entity object
-        :param gold_field: Name of the field to extract
+        :param gold_field: Name of the field to extract, or a tuple of two fields to extract a range
         :param unit: An optional unit as a string, defaults to None
         :return: QuantityValue object
         """
+        if isinstance(gold_field, tuple):
+            minimum_numeric_value = gold_entity.get(gold_field[0])
+            maximum_numeric_value = gold_entity.get(gold_field[1])
+
+            if minimum_numeric_value is None and maximum_numeric_value is None:
+                return None
+            elif minimum_numeric_value is not None and maximum_numeric_value is None:
+                return nmdc.QuantityValue(
+                    has_raw_value=minimum_numeric_value,
+                    has_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_unit=unit,
+                    type="nmdc:QuantityValue",
+                )
+            else:
+                return nmdc.QuantityValue(
+                    has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
+                    has_unit=unit,
+                    type="nmdc:QuantityValue",
+                )
+
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
 
-        numeric_value = None
-        # TODO: in the future we will need better handling
-        # to parse out the numerical portion of the quantity value
-        # ex. temp might be 3 C, and we will need to parse out 3.0 from it
-        if unit == "meters":
-            numeric_value = nmdc.Double(field_value)
-
-        return nmdc.QuantityValue(
-            has_raw_value=field_value,
-            has_numeric_value=numeric_value,
-            has_unit=unit,
-        )
+        return self._parse_quantity_value(str(field_value), unit)
 
     def _get_text_value(
         self, gold_entity: JSON_OBJECT, gold_field: str
@@ -238,7 +359,7 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.TextValue(has_raw_value=field_value)
+        return nmdc.TextValue(has_raw_value=field_value, type="nmdc:TextValue")
 
     def _get_controlled_term_value(
         self, gold_entity: JSON_OBJECT, gold_field: str
@@ -256,7 +377,9 @@ class GoldStudyTranslator(Translator):
         field_value = gold_entity.get(gold_field)
         if field_value is None:
             return None
-        return nmdc.ControlledTermValue(has_raw_value=field_value)
+        return nmdc.ControlledTermValue(
+            has_raw_value=field_value, type="nmdc:ControlledTermValue"
+        )
 
     def _get_env_term_value(
         self, gold_biosample: JSON_OBJECT, gold_field: str
@@ -266,8 +389,8 @@ class GoldStudyTranslator(Translator):
         In GOLD entities ENVO terms are represented as a nested object with `id` and `label`
         fields. This method extracts this type of nested object by the given field name, and
         returns it as an `nmdc:ControlledIdentifiedTermValue` object. The `id` in the original
-        GOLD object be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
-        `ENVO:00005801`). If the value of the given field is `None` or if does not contain
+        GOLD object should be reformatted by replacing `_` with `:` (e.g. `ENVO_00005801` to
+        `ENVO:00005801`). If the value of the given field is `None` or if it does not contain
         a nested object with an `id` field, `None` is returned.
 
         :param gold_biosample: GOLD biosample object
@@ -281,8 +404,10 @@ class GoldStudyTranslator(Translator):
             term=nmdc.OntologyClass(
                 id=env_field["id"].replace("_", ":"),
                 name=env_field.get("label"),
+                type="nmdc:OntologyClass",
             ),
             has_raw_value=env_field["id"],
+            type="nmdc:ControlledIdentifiedTermValue",
         )
 
     def _get_lat_lon(
@@ -305,22 +430,40 @@ class GoldStudyTranslator(Translator):
             has_raw_value=f"{latitude} {longitude}",
             latitude=nmdc.DecimalDegree(latitude),
             longitude=nmdc.DecimalDegree(longitude),
+            type="nmdc:GeolocationValue",
         )
 
-    def _get_instrument_name(self, gold_project: JSON_OBJECT) -> Union[str, None]:
-        """Get instrument name used in a GOLD project
+    def _get_instrument(self, gold_project: JSON_OBJECT) -> Union[str, None]:
+        """Get instrument id referenced in instrument_set collection in Mongo.
+        Note: The instrument id is not retrieved by making a call to the database,
+        but rather parsed out from a TSV file in the nmdc-schema repo stored at
+        self.gold_instrument_set_mapping_file_path.
 
-        This method gets the `seqMethod` field from a GOLD project object. If
-        that value is not `None` it should be a list and the first element of that
-        list is returned. If the value of the field is `None`, `None` is returned.
+        This method gets the seqMethod field from a GOLD project object. If
+        that value is not None and is in the self.gold_instrument_set_mapping_file_path
+        file's GOLD SeqMethod column, the corresponding instrument id from
+        NMDC instrument_set id column is returned. If the value of the field
+        is None, None is returned.
 
         :param gold_project: GOLD project object
-        :return: Instrument name
+        :return: id corresponding to an Instrument from instrument_set collection
         """
         seq_method = gold_project.get("seqMethod")
         if not seq_method:
             return None
-        return seq_method[0]
+
+        seq_method = seq_method[0].strip()
+        df = self.gold_nmdc_instrument_map_df
+
+        matching_row = df[df["GOLD SeqMethod"] == seq_method]
+
+        if not matching_row.empty:
+            instrument_id = matching_row["NMDC instrument_set id"].values[0]
+            return instrument_id
+
+        raise ValueError(
+            f"seqMethod '{seq_method}' could not be found in the GOLD-NMDC instrument mapping TSV file."
+        )
 
     def _get_processing_institution(
         self, gold_project: JSON_OBJECT
@@ -390,12 +533,15 @@ class GoldStudyTranslator(Translator):
         """
         return nmdc.Study(
             description=gold_study.get("description"),
-            gold_study_identifiers=self._get_curie("GOLD", gold_study["studyGoldId"]),
+            gold_study_identifiers=self._ensure_curie(
+                gold_study["studyGoldId"], default_prefix="gold"
+            ),
             id=nmdc_study_id,
             name=gold_study.get("studyName"),
             principal_investigator=self._get_pi(gold_study),
             title=gold_study.get("studyName"),
             type="nmdc:Study",
+            study_category=self.study_type,
         )
 
     def _translate_biosample(
@@ -421,13 +567,11 @@ class GoldStudyTranslator(Translator):
         gold_biosample_id = gold_biosample["biosampleGoldId"]
         return nmdc.Biosample(
             add_date=gold_biosample.get("addDate"),
-            alt=self._get_quantity_value(
-                gold_biosample, "altitudeInMeters", unit="meters"
-            ),
+            alt=self._get_quantity_value(gold_biosample, "altitudeInMeters", unit="m"),
             collected_from=nmdc_field_site_id,
             collection_date=self._get_collection_date(gold_biosample),
             depth=self._get_quantity_value(
-                gold_biosample, "depthInMeters", unit="meters"
+                gold_biosample, ("depthInMeters", "depthInMeters2"), unit="m"
             ),
             description=gold_biosample.get("description"),
             diss_oxygen=self._get_quantity_value(gold_biosample, "oxygenConcentration"),
@@ -440,10 +584,12 @@ class GoldStudyTranslator(Translator):
             env_local_scale=self._get_env_term_value(gold_biosample, "envoLocalScale"),
             env_medium=self._get_env_term_value(gold_biosample, "envoMedium"),
             geo_loc_name=self._get_text_value(gold_biosample, "geoLocation"),
-            gold_biosample_identifiers=self._get_curie("GOLD", gold_biosample_id),
+            gold_biosample_identifiers=self._ensure_curie(
+                gold_biosample_id, default_prefix="gold"
+            ),
             habitat=gold_biosample.get("habitat"),
             host_name=gold_biosample.get("hostName"),
-            host_taxid=self._get_text_value(gold_biosample, "hostNcbiTaxid"),
+            host_taxid=self._get_host_taxid(gold_biosample),
             id=nmdc_biosample_id,
             img_identifiers=self._get_img_identifiers(gold_biosample_id),
             insdc_biosample_identifiers=self._get_insdc_biosample_identifiers(
@@ -455,7 +601,6 @@ class GoldStudyTranslator(Translator):
             name=gold_biosample.get("biosampleName"),
             ncbi_taxonomy_name=gold_biosample.get("ncbiTaxName"),
             nitrite=self._get_quantity_value(gold_biosample, "nitrateConcentration"),
-            part_of=nmdc_study_id,
             ph=gold_biosample.get("ph"),
             pressure=self._get_quantity_value(gold_biosample, "pressure"),
             samp_name=self._get_samp_name(gold_biosample),
@@ -465,53 +610,67 @@ class GoldStudyTranslator(Translator):
             ),
             specific_ecosystem=gold_biosample.get("specificEcosystem"),
             subsurface_depth=self._get_quantity_value(
-                gold_biosample, "subsurfaceDepthInMeters", unit="meters"
+                gold_biosample, "subsurfaceDepthInMeters", unit="m"
             ),
             temp=self._get_quantity_value(
                 gold_biosample, "sampleCollectionTemperature"
             ),
             type="nmdc:Biosample",
+            associated_studies=[nmdc_study_id],
         )
 
-    def _translate_omics_processing(
+    def _translate_nucleotide_sequencing(
         self,
         gold_project: JSON_OBJECT,
-        nmdc_omics_processing_id: str,
+        nmdc_nucleotide_sequencing_id: str,
         nmdc_biosample_id: str,
         nmdc_study_id: str,
-    ) -> nmdc.OmicsProcessing:
-        """Translate a GOLD project object into an `nmdc:OmicsProcessing` object.
+    ):
+        """Translate a GOLD project object into an `nmdc:NucleotideSequencing` object.
 
-        This method translates a GOLD project object into an equivalent `nmdc:OmicsProcessing`
+        This method translates a GOLD project object into an equivalent `nmdc:NucleotideSequencing`
         object. Any minted NMDC IDs must be passed to this method. Internally, each
-        slot of the `nmdc:OmicsProcessing` is either directly pulled from the GOLD object or
+        slot of the `nmdc:NucleotideSequencing` is either directly pulled from the GOLD object or
         one of the `_get_*` methods is used.
 
         :param gold_project: GOLD project object
-        :param nmdc_omics_processing_id: Minted nmdc:OmicsProcessing identifier for the translated object
+        :param nmdc_omics_processing_id: Minted nmdc:NucleotideSequencing identifier for the translated object
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the related Biosample
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
-        :return: nmdc:OmicsProcessing object
+        :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
-        return nmdc.OmicsProcessing(
-            id=nmdc_omics_processing_id,
+        ncbi_bioproject_identifier = gold_project.get("ncbiBioProjectAccession")
+        insdc_bioproject_identifiers = []
+        if ncbi_bioproject_identifier:
+            insdc_bioproject_identifiers.append(
+                self._ensure_curie(
+                    ncbi_bioproject_identifier,
+                    default_prefix="bioproject",
+                )
+            )
+
+        return nmdc.NucleotideSequencing(
+            id=nmdc_nucleotide_sequencing_id,
             name=gold_project.get("projectName"),
-            gold_sequencing_project_identifiers=self._get_curie(
-                "GOLD", gold_project_id
+            gold_sequencing_project_identifiers=self._ensure_curie(
+                gold_project_id, default_prefix="gold"
             ),
             ncbi_project_name=gold_project.get("projectName"),
-            type="nmdc:OmicsProcessing",
+            type="nmdc:NucleotideSequencing",
             has_input=nmdc_biosample_id,
-            part_of=nmdc_study_id,
             add_date=gold_project.get("addDate"),
             mod_date=self._get_mod_date(gold_project),
+            insdc_bioproject_identifiers=insdc_bioproject_identifiers,
             principal_investigator=self._get_pi(gold_project),
-            omics_type=self._get_controlled_term_value(
-                gold_project, "sequencingStrategy"
-            ),
-            instrument_name=self._get_instrument_name(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
+            instrument_used=self._get_instrument(gold_project),
+            analyte_category=(
+                gold_project.get("sequencingStrategy").lower()
+                if gold_project.get("sequencingStrategy")
+                else None
+            ),
+            associated_studies=[nmdc_study_id],
         )
 
     def get_database(self) -> nmdc.Database:
@@ -535,28 +694,31 @@ class GoldStudyTranslator(Translator):
         nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(self.biosamples))
         gold_to_nmdc_biosample_ids = dict(zip(gold_biosample_ids, nmdc_biosample_ids))
 
-        gold_field_site_names = sorted(
-            {self._get_field_site_name(biosample) for biosample in self.biosamples}
-        )
-        nmdc_field_site_ids = self._id_minter(
-            "nmdc:FieldResearchSite", len(gold_field_site_names)
-        )
-        gold_name_to_nmdc_field_site_ids = dict(
-            zip(gold_field_site_names, nmdc_field_site_ids)
-        )
-        gold_biosample_to_nmdc_field_site_ids = {
-            biosample["biosampleGoldId"]: gold_name_to_nmdc_field_site_ids[
-                self._get_field_site_name(biosample)
-            ]
-            for biosample in self.biosamples
-        }
+        if self.include_field_site_info:
+            gold_field_site_names = sorted(
+                {self._get_field_site_name(biosample) for biosample in self.biosamples}
+            )
+            nmdc_field_site_ids = self._id_minter(
+                "nmdc:FieldResearchSite", len(gold_field_site_names)
+            )
+            gold_name_to_nmdc_field_site_ids = dict(
+                zip(gold_field_site_names, nmdc_field_site_ids)
+            )
+            gold_biosample_to_nmdc_field_site_ids = {
+                biosample["biosampleGoldId"]: gold_name_to_nmdc_field_site_ids[
+                    self._get_field_site_name(biosample)
+                ]
+                for biosample in self.biosamples
+            }
+        else:
+            gold_biosample_to_nmdc_field_site_ids = {}
 
         gold_project_ids = [project["projectGoldId"] for project in self.projects]
-        nmdc_omics_processing_ids = self._id_minter(
-            "nmdc:OmicsProcessing", len(gold_project_ids)
+        nmdc_nucleotide_sequencing_ids = self._id_minter(
+            "nmdc:NucleotideSequencing", len(gold_project_ids)
         )
-        gold_project_to_nmdc_omics_processing_ids = dict(
-            zip(gold_project_ids, nmdc_omics_processing_ids)
+        gold_project_to_nmdc_nucleotide_sequencing_ids = dict(
+            zip(gold_project_ids, nmdc_nucleotide_sequencing_ids)
         )
 
         database.study_set = [self._translate_study(self.study, nmdc_study_id)]
@@ -567,20 +729,21 @@ class GoldStudyTranslator(Translator):
                     biosample["biosampleGoldId"]
                 ],
                 nmdc_study_id=nmdc_study_id,
-                nmdc_field_site_id=gold_biosample_to_nmdc_field_site_ids[
-                    biosample["biosampleGoldId"]
-                ],
+                nmdc_field_site_id=gold_biosample_to_nmdc_field_site_ids.get(
+                    biosample["biosampleGoldId"], None
+                ),
             )
             for biosample in self.biosamples
         ]
-        database.field_research_site_set = [
-            nmdc.FieldResearchSite(id=id, name=name)
-            for name, id in gold_name_to_nmdc_field_site_ids.items()
-        ]
-        database.omics_processing_set = [
-            self._translate_omics_processing(
+        if self.include_field_site_info:
+            database.field_research_site_set = [
+                nmdc.FieldResearchSite(id=id, name=name, type="nmdc:FieldResearchSite")
+                for name, id in gold_name_to_nmdc_field_site_ids.items()
+            ]
+        database.data_generation_set = [
+            self._translate_nucleotide_sequencing(
                 project,
-                nmdc_omics_processing_id=gold_project_to_nmdc_omics_processing_ids[
+                nmdc_nucleotide_sequencing_id=gold_project_to_nmdc_nucleotide_sequencing_ids[
                     project["projectGoldId"]
                 ],
                 nmdc_biosample_id=gold_to_nmdc_biosample_ids[

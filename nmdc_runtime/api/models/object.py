@@ -5,14 +5,16 @@ from enum import Enum
 from typing import Optional, List, Dict
 
 from pydantic import (
+    field_validator,
+    model_validator,
+    Field,
+    StringConstraints,
     BaseModel,
     AnyUrl,
-    constr,
-    conint,
     HttpUrl,
-    root_validator,
-    validator,
+    field_serializer,
 )
+from typing_extensions import Annotated
 
 
 class AccessMethodType(str, Enum):
@@ -27,17 +29,21 @@ class AccessMethodType(str, Enum):
 
 
 class AccessURL(BaseModel):
-    headers: Optional[Dict[str, str]]
+    headers: Optional[Dict[str, str]] = None
     url: AnyUrl
+
+    @field_serializer("url")
+    def serialize_url(self, url: AnyUrl, _info):
+        return str(url)
 
 
 class AccessMethod(BaseModel):
-    access_id: Optional[constr(min_length=1)]
-    access_url: Optional[AccessURL]
-    region: Optional[str]
+    access_id: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
+    access_url: Optional[AccessURL] = None
+    region: Optional[str] = None
     type: AccessMethodType = AccessMethodType.https
 
-    @root_validator
+    @model_validator(mode="before")
     def at_least_one_of_access_id_and_url(cls, values):
         access_id, access_url = values.get("access_id"), values.get("access_url")
         if access_id is None and access_url is None:
@@ -47,62 +53,73 @@ class AccessMethod(BaseModel):
         return values
 
 
-ChecksumType = constr(
-    regex=rf"(?P<checksumtype>({'|'.join(sorted(hashlib.algorithms_guaranteed))}))"
-)
+ChecksumType = Annotated[
+    str,
+    StringConstraints(
+        pattern=rf"(?P<checksumtype>({'|'.join(sorted(hashlib.algorithms_guaranteed))}))"
+    ),
+]
 
 
 class Checksum(BaseModel):
-    checksum: constr(min_length=1)
+    checksum: Annotated[str, StringConstraints(min_length=1)]
     type: ChecksumType
 
 
-DrsId = constr(regex=r"^[A-Za-z0-9._~\-]+$")
-PortableFilename = constr(regex=r"^[A-Za-z0-9._\-]+$")
+DrsId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._~\-]+$")]
+PortableFilename = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._\-]+$")]
 
 
 class ContentsObject(BaseModel):
-    contents: Optional[List["ContentsObject"]]
-    drs_uri: Optional[List[AnyUrl]]
-    id: Optional[DrsId]
+    contents: Optional[List["ContentsObject"]] = None
+    drs_uri: Optional[List[AnyUrl]] = None
+    id: Optional[DrsId] = None
     name: PortableFilename
 
-    @root_validator()
+    @model_validator(mode="before")
     def no_contents_means_single_blob(cls, values):
         contents, id_ = values.get("contents"), values.get("id")
         if contents is None and id_ is None:
             raise ValueError("no contents means no further nesting, so id required")
         return values
 
+    @field_serializer("drs_uri")
+    def serialize_url(self, drs_uri: Optional[List[AnyUrl]], _info):
+        if drs_uri is not None and len(drs_uri) > 0:
+            return [str(u) for u in drs_uri]
+        return drs_uri
 
-ContentsObject.update_forward_refs()
 
-Mimetype = constr(regex=r"^\w+/[-+.\w]+$")
-SizeInBytes = conint(strict=True, ge=0)
+# Note: Between Pydantic v1 and v2, the `update_forward_refs` method was renamed to `model_rebuild`.
+#       Reference: https://docs.pydantic.dev/2.11/migration/#changes-to-pydanticbasemodel
+ContentsObject.model_rebuild()
+
+Mimetype = Annotated[str, StringConstraints(pattern=r"^\w+/[-+.\w]+$")]
+SizeInBytes = Annotated[int, Field(strict=True, ge=0)]
 
 
 class Error(BaseModel):
-    msg: Optional[str]
+    msg: Optional[str] = None
     status_code: http.HTTPStatus
 
 
 class DrsObjectBase(BaseModel):
-    aliases: Optional[List[str]]
-    description: Optional[str]
-    mime_type: Optional[Mimetype]
-    name: Optional[PortableFilename]
+    aliases: Optional[List[str]] = None
+    description: Optional[str] = None
+    mime_type: Optional[Mimetype] = None
+    name: Optional[PortableFilename] = None
 
 
 class DrsObjectIn(DrsObjectBase):
-    access_methods: Optional[List[AccessMethod]]
+    access_methods: Optional[List[AccessMethod]] = None
     checksums: List[Checksum]
-    contents: Optional[List[ContentsObject]]
+    contents: Optional[List[ContentsObject]] = None
     created_time: datetime.datetime
     size: SizeInBytes
-    updated_time: Optional[datetime.datetime]
-    version: Optional[str]
+    updated_time: Optional[datetime.datetime] = None
+    version: Optional[str] = None
 
-    @root_validator()
+    @model_validator(mode="before")
     def no_contents_means_single_blob(cls, values):
         contents, access_methods = values.get("contents"), values.get("access_methods")
         if contents is None and access_methods is None:
@@ -111,7 +128,8 @@ class DrsObjectIn(DrsObjectBase):
             )
         return values
 
-    @validator("checksums")
+    @field_validator("checksums")
+    @classmethod
     def at_least_one_checksum(cls, v):
         if not len(v) >= 1:
             raise ValueError("At least one checksum requried")
@@ -122,13 +140,21 @@ class DrsObject(DrsObjectIn):
     id: DrsId
     self_uri: AnyUrl
 
+    @field_serializer("self_uri")
+    def serialize_url(self, self_uri: AnyUrl, _info):
+        return str(self_uri)
 
-Seconds = conint(strict=True, gt=0)
+
+Seconds = Annotated[int, Field(strict=True, gt=0)]
 
 
 class ObjectPresignedUrl(BaseModel):
     url: HttpUrl
     expires_in: Seconds = 300
+
+    @field_serializer("url")
+    def serialize_url(self, url: HttpUrl, _info):
+        return str(url)
 
 
 class DrsObjectOutBase(DrsObjectBase):
@@ -137,8 +163,12 @@ class DrsObjectOutBase(DrsObjectBase):
     id: DrsId
     self_uri: AnyUrl
     size: SizeInBytes
-    updated_time: Optional[datetime.datetime]
-    version: Optional[str]
+    updated_time: Optional[datetime.datetime] = None
+    version: Optional[str] = None
+
+    @field_serializer("self_uri")
+    def serialize_url(self, self_uri: AnyUrl, _info):
+        return str(self_uri)
 
 
 class DrsObjectBlobOut(DrsObjectOutBase):
@@ -146,5 +176,5 @@ class DrsObjectBlobOut(DrsObjectOutBase):
 
 
 class DrsObjectBundleOut(DrsObjectOutBase):
-    access_methods: Optional[List[AccessMethod]]
+    access_methods: Optional[List[AccessMethod]] = None
     contents: List[ContentsObject]
