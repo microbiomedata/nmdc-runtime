@@ -79,11 +79,11 @@ sequenceDiagram
 
 <details>
     <summary>Show/hide glossary</summary>
-
-- **Mongo**: A nickname for [MongoDB](https://www.mongodb.com/).
-- **Mongo (origin)**: The database we are migrating.
-- **Mongo (transformer)**: The database we are using to transform data.
-
+    <ul>
+        <li><strong>Mongo</strong>: A nickname (alias) for MongoDB.</li>
+        <li><strong>Mongo (origin)</strong>: The database we are migrating.</li>
+        <li><strong>Mongo (transformer)</strong>: The database we are using to transform data.</li>
+    </ul>
 </details>
 
 Each Jupyter notebook walks the administrator through the above steps, except for the "Take offline" and "Bring online" steps at the beginning and end of the process.
