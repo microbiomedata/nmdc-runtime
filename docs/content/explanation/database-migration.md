@@ -2,15 +2,7 @@
 
 ## Introduction
 
-In this document, I'll [explain](https://diataxis.fr/explanation/) how we migrate the NMDC database from conforming to _one_ version of the NMDC Schema, to conforming to _another_ version of the NMDC Schema.
-
-## Glossary
-
-- **Mongo**: A nickname for MongoDB.
-- **Old schema**: The version of the NMDC Schema you will be migrating the database **from**.
-- **New schema**: The version of the NMDC Schema you will be migrating the database **to**.
-- **Origin database**: The database you want to migrate.
-- **Transformer database**: The database you will use to transform data.
+In this document, I'll [explain](https://diataxis.fr/explanation/) how we migrate the NMDC database from conforming to _one_ version of the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/), to conforming to _another_ version of the NMDC Schema.
 
 ## Overview
 
@@ -38,22 +30,7 @@ The Jupyter notebooks reside in the `db/` directory of the [`nmdc-runtime`](http
 
 The Python scripts [that we use to **perform** the "Transform" step] reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
 
-## Prerequisites
-
-<!-- FIXME: This is at least partially obsolete. -->
-
-1. You're running the latest version of [nmdc-runtime](https://github.com/microbiomedata/nmdc-runtime) on your computer—by that, I mean:
-    - Its [Docker-based development environment](https://github.com/microbiomedata/nmdc-runtime/blob/main/docker-compose.yml) is running on your computer (at least, the `fastapi` and `mongo` containers).
-    - The `main` branch in your clone matches the `main` branch on GitHub (run `$ git diff main origin/main` to check).
-    - The `main` branch is checked out and there are no uncommitted changes (run `$ git status` to check).
-    - The `nmdc-schema` Python package used by this version of `nmdc-runtime` contains the **old schema**.
-1. An `nmdc-schema` Python package containing the **new schema** is available on [PyPI](https://pypi.org/project/nmdc-schema/).
-    - The package version number is stored in [(nmdc-schema) `pyproject.toml`](https://github.com/microbiomedata/nmdc-schema/blob/main/pyproject.toml#L13)
-    - The schema version number is stored in [(nmdc-schema) `src/schema/nmdc.yaml`](https://github.com/microbiomedata/nmdc-schema/blob/main/src/schema/nmdc.yaml#L22)
-1. Root credentials for the **origin database**.
-1. Root credentials for the **transformer database**.
-
-## Procedure
+## Process
 
 The migration process looks like this:
 
@@ -100,12 +77,21 @@ sequenceDiagram
     activate RUNTIME
 ```
 
-<!-- TODO: Write this. -->
+<details>
+    <summary>Show/hide glossary</summary>
 
-1. 
+- **Mongo**: A nickname for [MongoDB](https://www.mongodb.com/).
+- **Mongo (origin)**: The database we are migrating.
+- **Mongo (transformer)**: The database we are using to transform data.
+
+</details>
+
+Each Jupyter notebook walks the administrator through the above steps, except for the "Take offline" and "Bring online" steps at the beginning and end of the process.
+
+> Those two exceptional steps—which are specific to our hosting environment—are covered in the [Runtime release management documentation](https://github.com/microbiomedata/infra-admin/blob/main/releases/nmdc-runtime.md#making-a-release), located in our internal infrastructure administration documentation repository (named `infra-admin`).
 
 ## Appendix
 
-### Precursors to this how-to guide
+### Precursors to this document
 
 - The "Data Releases" section of [`docs/howto-guides/release-process.md`](./release-process.md)
