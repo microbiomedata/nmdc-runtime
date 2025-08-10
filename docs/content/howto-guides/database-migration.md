@@ -29,15 +29,15 @@ The basic flow of a migration looks like this:
 %% Docs: https://docs.mermaidchart.com/mermaid-oss/syntax/sequenceDiagram.html
 
 sequenceDiagram
-    actor       USER as Administrator
+    actor USER as Administrator
 
     box rgba(0, 0, 0, 0.5) Laptop
         participant DB_T as Mongo<br>(transformer)
-        participant NB as Jupyter<br>Notebook
+        participant NB   as Jupyter<br>Notebook
     end
 
     box rgba(0, 0, 0, 0.5) Production infrastructure
-        participant DB_O as Mongo<br>(origin)
+        participant DB_O    as Mongo<br>(origin)
         participant RUNTIME as Runtime
     end
 
