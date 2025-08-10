@@ -36,9 +36,26 @@ The Jupyter notebooks reside in the `db/` directory of the [`nmdc-runtime`](http
 >
 > Now that (a) the notebook has remained roughly the same for each recent migration, and (b) we can use transactions in the Runtime's local development and CI (GHA) test environments; we think moving to a Python script/module is within reach. Ultimately, we want to [eliminate human intervention](https://github.com/microbiomedata/nmdc-runtime/issues/919) from (i.e. automate) the migration process.
 
-The Python scripts [that **perform** the "Transform" step] reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
+The Python scripts [that we use to **perform** the "Transform" step] reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
 
-The basic flow of a migration looks like this:
+## Prerequisites
+
+<!-- FIXME: This is at least partially obsolete. -->
+
+1. You're running the latest version of [nmdc-runtime](https://github.com/microbiomedata/nmdc-runtime) on your computer—by that, I mean:
+    - Its [Docker-based development environment](https://github.com/microbiomedata/nmdc-runtime/blob/main/docker-compose.yml) is running on your computer (at least, the `fastapi` and `mongo` containers).
+    - The `main` branch in your clone matches the `main` branch on GitHub (run `$ git diff main origin/main` to check).
+    - The `main` branch is checked out and there are no uncommitted changes (run `$ git status` to check).
+    - The `nmdc-schema` Python package used by this version of `nmdc-runtime` contains the **old schema**.
+1. An `nmdc-schema` Python package containing the **new schema** is available on [PyPI](https://pypi.org/project/nmdc-schema/).
+    - The package version number is stored in [(nmdc-schema) `pyproject.toml`](https://github.com/microbiomedata/nmdc-schema/blob/main/pyproject.toml#L13)
+    - The schema version number is stored in [(nmdc-schema) `src/schema/nmdc.yaml`](https://github.com/microbiomedata/nmdc-schema/blob/main/src/schema/nmdc.yaml#L22)
+1. Root credentials for the **origin database**.
+1. Root credentials for the **transformer database**.
+
+## Procedure
+
+The migration process looks like this:
 
 ```mermaid
 %% This is a Mermaid diagram.
@@ -83,24 +100,7 @@ sequenceDiagram
     activate RUNTIME
 ```
 
-## Prerequisites
-
-<!-- FIXME: This is at least partially obsolete. -->
-
-1. You're running the latest version of [nmdc-runtime](https://github.com/microbiomedata/nmdc-runtime) on your computer—by that, I mean:
-    - Its [Docker-based development environment](https://github.com/microbiomedata/nmdc-runtime/blob/main/docker-compose.yml) is running on your computer (at least, the `fastapi` and `mongo` containers).
-    - The `main` branch in your clone matches the `main` branch on GitHub (run `$ git diff main origin/main` to check).
-    - The `main` branch is checked out and there are no uncommitted changes (run `$ git status` to check).
-    - The `nmdc-schema` Python package used by this version of `nmdc-runtime` contains the **old schema**.
-1. An `nmdc-schema` Python package containing the **new schema** is available on [PyPI](https://pypi.org/project/nmdc-schema/).
-    - The package version number is stored in [(nmdc-schema) `pyproject.toml`](https://github.com/microbiomedata/nmdc-schema/blob/main/pyproject.toml#L13)
-    - The schema version number is stored in [(nmdc-schema) `src/schema/nmdc.yaml`](https://github.com/microbiomedata/nmdc-schema/blob/main/src/schema/nmdc.yaml#L22)
-1. Root credentials for the **origin database**.
-1. Root credentials for the **transformer database**.
-
-## Procedure
-
-<!-- TODO: Write this. Consider moving the above Mermaid chart to here. -->
+<!-- TODO: Write this. -->
 
 1. 
 
