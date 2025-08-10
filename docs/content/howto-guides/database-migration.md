@@ -29,8 +29,9 @@ The basic flow of a migration looks like this:
 %% Docs: https://docs.mermaidchart.com/mermaid-oss/syntax/sequenceDiagram.html
 
 sequenceDiagram
-    box rgba(0, 0, 0, 0.5) Arbitrary infrastructure
-        actor       USER as Administrator
+    actor       USER as Administrator
+
+    box rgba(0, 0, 0, 0.5) Laptop
         participant DB_T as Mongo<br>(transformer)
         participant NB as Jupyter<br>Notebook
     end
@@ -57,7 +58,7 @@ sequenceDiagram
     NB ->> DB_T: Extract data<br>via mongodump
     DB_T -->> NB: 
     deactivate DB_T
-    Note left of NB: Last chance to<br>abort migration
+    Note right of NB: Last chance to<br>abort migration
     NB ->> DB_O: Load data<br>via mongorestore
     NB ->> DB_O: Restore user/app access
     deactivate NB
