@@ -1,8 +1,8 @@
-# How to migrate the database
+# Database migration
 
 ## Introduction
 
-In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how you can migrate the Mongo database from conforming to _one_ version of the NMDC Schema, to conforming to _another_ version of the NMDC Schema.
+In this document, I'll [explain](https://diataxis.fr/explanation/) how we migrate the NMDC database from conforming to _one_ version of the NMDC Schema, to conforming to _another_ version of the NMDC Schema.
 
 ## Glossary
 
