@@ -10,7 +10,7 @@ In this [how-to guide](https://diataxis.fr/how-to-guides/), I'll tell you how yo
 - **Old schema**: The version of the NMDC Schema you will be migrating the database **from**.
 - **New schema**: The version of the NMDC Schema you will be migrating the database **to**.
 - **Origin database**: The database you want to migrate.
-- **Transformation database**: The database you will use to transform data.
+- **Transformer database**: The database you will use to transform data.
 
 ## Overview
 
@@ -18,15 +18,17 @@ We currently use an [Extract, Transform, Load](https://en.wikipedia.org/wiki/Ext
 
 > **FAQ: Why not "Transform in place?"**
 >
-> At the time we began designing a migration process, some NMDC team members did not feel comfortable with us using a "Transform in place" process. A contributing factor to that may have been the fact that—at that time—the MongoDB instances used in the Runtime's local development and CI (GHA) test environments did not yet support the use of transactions.
+> _...like Alembic (Python), Active Record (Ruby), Sequelize (JS), etc. do?_
 >
-> The decision not to use a "Transform in place" process is one we expect to revisit, now that (a) team members' confidence in the migration process has increased and (b) the MongoDB instances used in the aforementioned environments [now support](https://github.com/microbiomedata/nmdc-runtime/pull/884) the use of transactions.
+> At the time we began designing a migration process, some NMDC team members did not feel comfortable with us using a "Transform in place" process. A contributing factor to that may have been the fact that—at that time—the MongoDB instances used in the Runtime's local development and CI (GHA) test environments [did not support](https://github.com/microbiomedata/nmdc-runtime/issues/925) the use of transactions.
+>
+> The decision not to use a "Transform in place" process is one we expect to revisit, now that (a) team members' confidence in the migration process has increased, and (b) the MongoDB instances used in the aforementioned environments [now support](https://github.com/microbiomedata/nmdc-runtime/pull/884) the use of transactions.
 
 We use Jupyter notebooks to **perform** the "Extract" and "Load" steps, and to **orchestrate** the "Transform" step. We use Python scripts to **perform** the "Transform" step.
 
-The Jupyter notebooks reside in the `db/` directory of the `nmdc-runtime` repository. In general, we try to keep all code that interacts directly with the NMDC database, in that repository.
+The Jupyter notebooks reside in the `db/` directory of the [`nmdc-runtime`](https://github.com/microbiomedata/nmdc-runtime/) repository. In general, we try to keep all code that interacts directly with the NMDC database, in that repository.
 
-The Python scripts reside in the `nmdc_schema/migrators/` directory of the `nmdc-schema` repository. These are typically written by data modelers.
+The Python scripts reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
 
 The basic flow of a migration looks like this:
 
@@ -86,7 +88,7 @@ sequenceDiagram
     - The package version number is stored in [(nmdc-schema) `pyproject.toml`](https://github.com/microbiomedata/nmdc-schema/blob/main/pyproject.toml#L13)
     - The schema version number is stored in [(nmdc-schema) `src/schema/nmdc.yaml`](https://github.com/microbiomedata/nmdc-schema/blob/main/src/schema/nmdc.yaml#L22)
 1. Root credentials for the **origin database**.
-1. Root credentials for the **transformation database**.
+1. Root credentials for the **transformer database**.
 
 ## Procedure
 
