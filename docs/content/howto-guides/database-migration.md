@@ -28,7 +28,15 @@ We use Jupyter notebooks to **perform** the "Extract" and "Load" steps, and to *
 
 The Jupyter notebooks reside in the `db/` directory of the [`nmdc-runtime`](https://github.com/microbiomedata/nmdc-runtime/) repository. In general, we try to keep all code that interacts directly with the NMDC database, in that repository.
 
-The Python scripts reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
+> **FAQ: Why use a Jupyter notebook?**
+>
+> _...as opposed to a Python script/module?_
+>
+> At the time we began designing a migration process, we wanted to micromanage the process (i.e. scrutinize each command—whether shell or Python—and its output in the moment) the first few times we executed it. We thought doing that would be easier for us by using a Jupyter notebook compared to using a CLI script.
+>
+> Now that (a) the notebook has remained roughly the same for each recent migration, and (b) we can use transactions in the Runtime's local development and CI (GHA) test environments; we think moving to a Python script/module is within reach. Ultimately, we want to [eliminate human intervention](https://github.com/microbiomedata/nmdc-runtime/issues/919) from (i.e. automate) the migration process.
+
+The Python scripts [that **perform** the "Transform" step] reside in the `nmdc_schema/migrators/` directory of the [`nmdc-schema`](https://github.com/microbiomedata/nmdc-schema/) repository. These are typically written by data modelers.
 
 The basic flow of a migration looks like this:
 
