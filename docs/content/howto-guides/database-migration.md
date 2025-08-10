@@ -18,9 +18,9 @@ We currently use an [Extract, Transform, Load](https://en.wikipedia.org/wiki/Ext
 
 We use Jupyter notebooks to **perform** the "Extract" and "Load" steps, and to **orchestrate** the "Transform" step. We use Python scripts to **perform** the "Transform" step.
 
-The Jupyter notebooks reside in the `db/` directory of the `nmdc-runtime` repository. In general, we try to keep all code that interacts directly with the NMDC database, in the `nmdc-runtime` repository.
+The Jupyter notebooks reside in the `db/` directory of the `nmdc-runtime` repository. In general, we try to keep all code that interacts directly with the NMDC database, in that repository.
 
-The Python scripts reside in the `nmdc_schema/migrations` directory of the `nmdc-schema` repository. These are typically written by data modelers.
+The Python scripts reside in the `nmdc_schema/migrators/` directory of the `nmdc-schema` repository. These are typically written by data modelers.
 
 The basic flow of a migration looks like this:
 
