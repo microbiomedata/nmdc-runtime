@@ -48,7 +48,7 @@ sequenceDiagram
     USER ->> NB: Run notebook
 
     activate NB
-    NB ->> DB_O: Revoke user/app access
+    NB ->> DB_O: Revoke access<br>by other users
     NB ->> DB_O: Extract data<br>via mongodump
     DB_O -->> NB: 
     NB ->> DB_T: Load data<br>via mongorestore
@@ -60,7 +60,7 @@ sequenceDiagram
     deactivate DB_T
     Note right of NB: Last chance to<br>abort migration
     NB ->> DB_O: Load data<br>via mongorestore
-    NB ->> DB_O: Restore user/app access
+    NB ->> DB_O: Restore access<br>by other users
     deactivate NB
 
     USER ->> RUNTIME: Bring online (typically a new version, using the new schema)
