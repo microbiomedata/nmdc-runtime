@@ -41,6 +41,7 @@ nav:
   - Explanation:
     - explanation/journeys.md
     - explanation/identifiers.md
+    - explanation/database-migration.md
 
 theme:
   name: material
