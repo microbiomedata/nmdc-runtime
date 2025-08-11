@@ -34,6 +34,12 @@ The Python scripts [that we use to **perform** the "Transform" step] reside in t
 
 The migration process looks like this:
 
+<!-- Note: The following `!!! note` block is a so-called "admonition", which Material for MkDocs will format as a banner. Reference: https://squidfunk.github.io/mkdocs-material/reference/admonitions/ -->
+
+!!! note
+
+    When viewing this web page in light mode, some of the text in the diagram below may not be legible. That would be due to [this issue](https://github.com/microbiomedata/nmdc-runtime/issues/822). As a workaround, you can view the web page in dark mode.
+
 ```mermaid
 %% This is a Mermaid diagram.
 %% Docs: https://docs.mermaidchart.com/mermaid-oss/syntax/sequenceDiagram.html
@@ -41,12 +47,12 @@ The migration process looks like this:
 sequenceDiagram
     actor USER as Administrator
 
-    box rgba(0, 0, 0, 0.5) Laptop
+    box transparent Laptop
         participant DB_T as Mongo<br>(transformer)
         participant NB   as Jupyter<br>Notebook
     end
 
-    box rgba(0, 0, 0, 0.5) Production infrastructure
+    box transparent Production infrastructure
         participant DB_O    as Mongo<br>(origin)
         participant RUNTIME as Runtime
     end
@@ -94,4 +100,4 @@ Each Jupyter notebook walks the administrator through the above steps, except fo
 
 ### Precursors to this document
 
-- The "Data Releases" section of [`docs/howto-guides/release-process.md`](./release-process.md)
+- The "Data Releases" section of [`docs/howto-guides/release-process.md`](../howto-guides/release-process.md)
