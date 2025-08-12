@@ -702,6 +702,9 @@ class NCBISubmissionXML:
                     pooling_groups[pooling_process_id] = {
                         "entries": [],
                         "processed_sample_id": pooling_info.get("processed_sample_id"),
+                        "processed_sample_name": pooling_info.get(
+                            "processed_sample_name", ""
+                        ),
                     }
                 pooling_groups[pooling_process_id]["entries"].append(entry)
             else:
@@ -712,6 +715,7 @@ class NCBISubmissionXML:
             self._create_pooled_sra_action(
                 group_data["entries"],
                 group_data["processed_sample_id"],
+                group_data["processed_sample_name"],
                 bioproject_id,
                 org,
                 nmdc_nucleotide_sequencing,
@@ -906,7 +910,13 @@ class NCBISubmissionXML:
                         )
                     )
 
-                # Removed library_name attribute as requested
+                # Add library_name attribute
+                if library_name:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", library_name, {"name": "library_name"}
+                        )
+                    )
 
                 for biosample_id, lib_prep_name in lib_prep_protocol_names.items():
                     sra_attributes.append(
@@ -950,6 +960,7 @@ class NCBISubmissionXML:
         self,
         entries,
         processed_sample_id,
+        processed_sample_name,
         bioproject_id,
         org,
         nmdc_nucleotide_sequencing,
@@ -1117,6 +1128,14 @@ class NCBISubmissionXML:
             else:
                 sra_attributes.append(
                     self.set_element("Attribute", "single", {"name": "library_layout"})
+                )
+
+            # Add library_name attribute using ProcessedSample name
+            if processed_sample_name:
+                sra_attributes.append(
+                    self.set_element(
+                        "Attribute", processed_sample_name, {"name": "library_name"}
+                    )
                 )
 
             # Add library construction protocol from any of the biosamples
