@@ -4,7 +4,7 @@ This directory contains files related to using [Locust](https://locust.io/), an 
 
 ## Contents
 
-- `locustfile.py`: Definitions of tasks that Locust will perform
+- `locustfile.py`: Definitions of the tasks that will be performed by the "simulated users" spawned by Locust
 - `README.md`: This document
 
 ## Quick start
