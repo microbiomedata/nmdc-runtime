@@ -7,7 +7,7 @@ Note: This is a [Locustfile](https://docs.locust.io/en/stable/writing-a-locustfi
 
 import base64
 
-from locust import HttpUser, task
+from locust import HttpUser, task, tag
 
 
 # This is a quick-n-dirty way to specify user credentials for load testing,
@@ -19,7 +19,7 @@ from locust import HttpUser, task
 # your username and password:
 # https://emn178.github.io/online-tools/base64_encode.html
 #
-# FIXME: Get these from environment variables instead.
+# FIXME: Get the decoded values from environment variables instead.
 #
 username = base64.b64decode("__REPLACE_ME__")
 password = base64.b64decode("__REPLACE_ME__")
@@ -74,6 +74,17 @@ class User(HttpUser):
         via a general-purpose endpoint.
         """
         self.client.get("/nmdcschema/data_object_set")
+
+    @task
+    def get_data_object_set_documents_with_regex_filter(self):
+        """
+        A task that involves querying a medium MongoDB collection,
+        with a regex filter, via a general-purpose endpoint.
+        """
+        self.client.get(
+            "/nmdcschema/data_object_set",
+            params={"filter": r"""{"name": {"$regex": "/^output/"}}"""},
+        )
 
     @task
     def get_study_set_documents(self):
@@ -140,6 +151,14 @@ class SiteClient(HttpUser):
         site_client_access_token = response.json()["access_token"]
         self.client.headers.update({"Authorization": f"Bearer {site_client_access_token}"})
 
+    @task
+    def get_me(self):
+        """
+        A task that involves authentication.
+        """
+        self.client.get("/users/me")
+
+    @tag("mints_ids")
     @task
     def mint_data_object_ids(self):
         """
