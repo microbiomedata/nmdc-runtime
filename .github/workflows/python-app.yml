@@ -20,6 +20,7 @@ on:
       - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
+      - '!util/load_testing/**'
   pull_request:
     paths:
       - '.github/workflows/python-app.yml'
@@ -27,6 +28,7 @@ on:
       - '**/Dockerfile'
       - '**.py'
       - 'requirements/main.txt'
+      - '!util/load_testing/**'
   # Allow developers to trigger this workflow manually via the "Actions" page on GitHub.
   # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: { }
