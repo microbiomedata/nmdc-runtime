@@ -76,7 +76,7 @@ def check_filter(filter_: str):
 
 
 async def list_resources(
-    req: ListRequest, mdb: Union[MongoDatabase, AsyncDatabase], collection_name: str
+    req: ListRequest, adb: AsyncDatabase, collection_name: str
 ):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
@@ -85,22 +85,10 @@ async def list_resources(
           filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
           resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
           when the collection involved contains many documents.
-
-    Note: This function was retrofitted to support both synchronous and asynchronous `Database` connections.
-          We expect it to remain that way until we decide to migrate its remaining dependents to use asynchronous
-          connections. By accepting both for now, we avoid breaking those dependents (we "deal with" the extra
-          complexity within this function).
-
-          TODO: Once all dependents have been migrated to use asynchronous connections,
-                remove this function's support for synchronous connections here (which
-                will simplify this function's body).
     """
 
     # Get information about the indexes defined on the collection.
-    if isinstance(mdb, AsyncDatabase):
-        index_information = await mdb[collection_name].index_information()
-    else:
-        index_information = mdb[collection_name].index_information()
+    index_information = await adb[collection_name].index_information()
 
     # Check whether any of the indexes has the name, `id_1`.
     #
@@ -129,11 +117,7 @@ async def list_resources(
         token_filter = {"_id": req.page_token, "ns": collection_name}
 
         # Get the page token document.
-        if isinstance(mdb, AsyncDatabase):
-            doc = await mdb.page_tokens.find_one(token_filter)
-        else:
-            doc = mdb.page_tokens.find_one(token_filter)
-
+        doc = await adb.page_tokens.find_one(token_filter)
         if doc is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
@@ -146,10 +130,7 @@ async def list_resources(
         #       to find the page token document.
         #
         token_filter = {"_id": req.page_token}
-        if isinstance(mdb, AsyncDatabase):
-            await mdb.page_tokens.delete_one(token_filter)
-        else:
-            mdb.page_tokens.delete_one(token_filter)
+        await adb.page_tokens.delete_one(token_filter)
 
     else:
         last_id = None
@@ -165,28 +146,18 @@ async def list_resources(
     if limit == 0:
         will_paginate = False
     elif isinstance(limit, int):
-        if isinstance(mdb, AsyncDatabase):
-            num_docs_in_result = await mdb[collection_name].count_documents(
-                filter=filter_
-            )
-        else:
-            num_docs_in_result = mdb[collection_name].count_documents(filter=filter_)
+        num_docs_in_result = await adb[collection_name].count_documents(
+            filter=filter_
+        )
         if limit > num_docs_in_result:
             will_paginate = False
 
     if not will_paginate:
-        if isinstance(mdb, AsyncDatabase):
-            # Note: When using `AsyncDatabase`, the `find` method is synchronous, but returns an `AsyncCursor`.
-            resources_async_cursor: AsyncCursor = mdb[collection_name].find(
-                filter=filter_, projection=projection
-            )
-            resources = await resources_async_cursor.to_list()
-        else:
-            resources_cursor = mdb[collection_name].find(
-                filter=filter_, projection=projection
-            )
-            resources = [doc for doc in resources_cursor]
-
+        # Note: When using `AsyncDatabase`, the `find` method is synchronous, but returns an `AsyncCursor`.
+        resources_async_cursor: AsyncCursor = adb[collection_name].find(
+            filter=filter_, projection=projection
+        )
+        resources = await resources_async_cursor.to_list()
         rv = {"resources": resources}
         return rv
     else:
@@ -197,31 +168,20 @@ async def list_resources(
             sort=[(id_field, 1)],
             allow_disk_use=True,
         )
-
-        if isinstance(mdb, AsyncDatabase):
-            resources_async_cursor: AsyncCursor = mdb[collection_name].find(**find_args)
-            resources = await resources_async_cursor.to_list()
-        else:
-            resources_cursor = mdb[collection_name].find(**find_args)
-            resources = [doc for doc in resources_cursor]
+        resources_async_cursor: AsyncCursor = adb[collection_name].find(**find_args)
+        resources = await resources_async_cursor.to_list()
         last_id = resources[-1][id_field]
 
-        if isinstance(mdb, AsyncDatabase):
-            # Note: In this case, we need to get a synchronous `MongoDatabase` for this step, since
-            #       the `generate_one_id` helper function doesn't accept an `AsyncDatabase` yet.
-            #       As a result, this will be a blocking operation in both cases.
-            mdb_synchronous: MongoDatabase = get_mongo_db()
-            token = generate_one_id(mdb_synchronous, "page_tokens")
-        else:
-            token = generate_one_id(mdb, "page_tokens")
+        # Note: Here, we need to get a synchronous `MongoDatabase`, since the `generate_one_id`
+        #       helper function doesn't accept an `AsyncDatabase` yet. As a result, this will
+        #       be a blocking operation.
+        mdb_synchronous: MongoDatabase = get_mongo_db()
+        token = generate_one_id(mdb_synchronous, "page_tokens")
 
         # TODO unify with `/queries:run` query continuation model
         #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
         token_descriptor = {"_id": token, "ns": collection_name, "last_id": last_id}
-        if isinstance(mdb, AsyncDatabase):
-            await mdb.page_tokens.insert_one(token_descriptor)
-        else:
-            mdb.page_tokens.insert_one(token_descriptor)
+        await adb.page_tokens.insert_one(token_descriptor)
 
         return {"resources": resources, "next_page_token": token}
 
