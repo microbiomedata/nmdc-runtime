@@ -75,9 +75,7 @@ def check_filter(filter_: str):
     return filter_
 
 
-async def list_resources(
-    req: ListRequest, adb: AsyncDatabase, collection_name: str
-):
+async def list_resources(req: ListRequest, adb: AsyncDatabase, collection_name: str):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
@@ -146,9 +144,7 @@ async def list_resources(
     if limit == 0:
         will_paginate = False
     elif isinstance(limit, int):
-        num_docs_in_result = await adb[collection_name].count_documents(
-            filter=filter_
-        )
+        num_docs_in_result = await adb[collection_name].count_documents(filter=filter_)
         if limit > num_docs_in_result:
             will_paginate = False
 
