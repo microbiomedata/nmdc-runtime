@@ -41,7 +41,8 @@ lxml
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
-# TODO: Remove `motor` as a dependency.
+# TODO: Remove `motor` as a dependency, once it is not longer in use.
+#       It is currently imported in: `nmdc_runtime/core/db/Database.py`
 motor
 ontology-loader==0.2.2
 nmdc-schema==11.10.0

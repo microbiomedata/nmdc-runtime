@@ -1,3 +1,7 @@
+r"""
+TODO: Delete this module if it is obsolete.
+"""
+
 from contextlib import contextmanager
 
 from motor import motor_asyncio
