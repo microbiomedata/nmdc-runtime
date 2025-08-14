@@ -180,7 +180,7 @@ async def list_resources(
             resources_async_cursor: AsyncCursor = mdb[collection_name].find(
                 filter=filter_, projection=projection
             )
-            resources = [await doc for doc in resources_async_cursor]
+            resources = await resources_async_cursor.to_list()
         else:
             resources_cursor = mdb[collection_name].find(
                 filter=filter_, projection=projection
@@ -200,7 +200,7 @@ async def list_resources(
 
         if isinstance(mdb, AsyncDatabase):
             resources_async_cursor: AsyncCursor = mdb[collection_name].find(**find_args)
-            resources = [await doc for doc in resources_async_cursor]
+            resources = await resources_async_cursor.to_list()
         else:
             resources_cursor = mdb[collection_name].find(**find_args)
             resources = [doc for doc in resources_cursor]
