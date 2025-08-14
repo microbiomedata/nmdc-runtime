@@ -75,7 +75,9 @@ def check_filter(filter_: str):
     return filter_
 
 
-async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDatabase], collection_name: str):
+async def list_resources(
+    req: ListRequest, mdb: Union[MongoDatabase, AsyncDatabase], collection_name: str
+):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
@@ -125,7 +127,7 @@ async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDataba
     )
     if req.page_token:
         token_filter = {"_id": req.page_token, "ns": collection_name}
-        
+
         # Get the page token document.
         if isinstance(mdb, AsyncDatabase):
             doc = await mdb.page_tokens.find_one(token_filter)
@@ -164,7 +166,9 @@ async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDataba
         will_paginate = False
     elif isinstance(limit, int):
         if isinstance(mdb, AsyncDatabase):
-            num_docs_in_result = await mdb[collection_name].count_documents(filter=filter_)
+            num_docs_in_result = await mdb[collection_name].count_documents(
+                filter=filter_
+            )
         else:
             num_docs_in_result = mdb[collection_name].count_documents(filter=filter_)
         if limit > num_docs_in_result:
@@ -173,15 +177,17 @@ async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDataba
     if not will_paginate:
         if isinstance(mdb, AsyncDatabase):
             # Note: When using `AsyncDatabase`, the `find` method is synchronous, but returns an `AsyncCursor`.
-            resources_async_cursor: AsyncCursor = mdb[collection_name].find(filter=filter_, projection=projection)
+            resources_async_cursor: AsyncCursor = mdb[collection_name].find(
+                filter=filter_, projection=projection
+            )
             resources = [await doc for doc in resources_async_cursor]
         else:
-            resources_cursor = mdb[collection_name].find(filter=filter_, projection=projection)
+            resources_cursor = mdb[collection_name].find(
+                filter=filter_, projection=projection
+            )
             resources = [doc for doc in resources_cursor]
 
-        rv = {
-            "resources": resources
-        }
+        rv = {"resources": resources}
         return rv
     else:
         find_args = dict(
@@ -199,7 +205,7 @@ async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDataba
             resources_cursor = mdb[collection_name].find(**find_args)
             resources = [doc for doc in resources_cursor]
         last_id = resources[-1][id_field]
-        
+
         if isinstance(mdb, AsyncDatabase):
             # Note: In this case, we need to get a synchronous `MongoDatabase` for this step, since
             #       the `generate_one_id` helper function doesn't accept an `AsyncDatabase` yet.
