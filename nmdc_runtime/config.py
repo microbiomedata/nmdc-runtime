@@ -50,3 +50,7 @@ IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.
 IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
+
+# Feature flag that can be used to enable/disable performance profiling,
+# which can be activated via the `?profile=true` URL query parameter.
+IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")

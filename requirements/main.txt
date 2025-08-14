@@ -689,6 +689,8 @@ pygments==2.19.1
     #   mkdocs-material
     #   nbconvert
     #   rich
+pyinstrument==5.1.1
+    # via -r requirements/main.in
 pyjsg==0.11.10
     # via
     #   funowl
