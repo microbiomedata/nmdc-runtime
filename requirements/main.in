@@ -41,13 +41,16 @@ lxml
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
+# TODO: Remove `motor` as a dependency.
 motor
 ontology-loader==0.2.2
 nmdc-schema==11.10.0
 openpyxl
 pandas
 passlib[bcrypt]
-pymongo
+# Note: In `pymongo` version 4.13.0, "the asynchronous API is now stable and no longer in beta."
+#       Reference: https://pymongo.readthedocs.io/en/4.13.0/changelog.html
+pymongo>=4.13.0
 pydantic[email]>=1.10.0
 python-dotenv
 python-jose[cryptography]
