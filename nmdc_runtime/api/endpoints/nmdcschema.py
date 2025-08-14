@@ -3,6 +3,7 @@ import re
 from typing import List, Dict, Annotated
 
 import pymongo
+from pymongo.asynchronous.database import AsyncDatabase
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
 from refscan.lib.helpers import (
@@ -24,6 +25,7 @@ from starlette import status
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
+    get_async_mongo_db,
     get_mongo_db,
 )
 from nmdc_runtime.api.endpoints.util import (
@@ -485,7 +487,7 @@ def get_collection_names():
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
 )
-def list_from_collection(
+async def list_from_collection(
     collection_name: Annotated[
         str,
         Path(
@@ -495,7 +497,7 @@ def list_from_collection(
         ),
     ],
     req: Annotated[ListRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    adb: AsyncDatabase = Depends(get_async_mongo_db),
 ):
     r"""
     Retrieves resources that match the specified filter criteria and reside in the specified collection.
@@ -521,7 +523,7 @@ def list_from_collection(
     # raise HTTP_400_BAD_REQUEST on invalid collection_name
     ensure_collection_name_is_known_to_schema(collection_name)
 
-    rv = list_resources(req, mdb, collection_name)
+    rv = await list_resources(req, adb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 

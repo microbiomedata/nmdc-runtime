@@ -6,7 +6,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Union
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -44,6 +44,8 @@ from nmdc_runtime.api.models.util import (
     ResultT,
 )
 from nmdc_runtime.util import drs_metadata_for
+from pymongo.asynchronous.cursor import AsyncCursor
+from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import DuplicateKeyError
@@ -73,7 +75,7 @@ def check_filter(filter_: str):
     return filter_
 
 
-def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
+async def list_resources(req: ListRequest, mdb: Union[MongoDatabase, AsyncDatabase], collection_name: str):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
@@ -81,10 +83,33 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
           filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
           resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
           when the collection involved contains many documents.
+
+    Note: This function was retrofitted to support both synchronous and asynchronous `Database` connections.
+          We expect it to remain that way until we decide to migrate its remaining dependents to use asynchronous
+          connections. By accepting both for now, we avoid breaking those dependents (we "deal with" the extra
+          complexity within this function).
+
+          TODO: Once all dependents have been migrated to use asynchronous connections,
+                remove this function's support for synchronous connections here (which
+                will simplify this function's body).
     """
 
+    # Get information about the indexes defined on the collection.
+    if isinstance(mdb, AsyncDatabase):
+        index_information = await mdb[collection_name].index_information()
+    else:
+        index_information = mdb[collection_name].index_information()
+
+    # Check whether any of the indexes has the name, `id_1`.
+    #
+    # Note: I think this is an attempt to determine whether there
+    #       is an index on the `id` field, specifically, and that it
+    #       was written under the assumption that the name of the index
+    #       would be the name MongoDB would have given it by default
+    #       (as opposed to a custom name someone might have given it).
+    #
     id_field = "id"
-    if "id_1" not in mdb[collection_name].index_information():
+    if "id_1" not in index_information:
         logging.warning(
             f"list_resources: no index set on 'id' for collection {collection_name}"
         )
@@ -99,13 +124,31 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else None
     )
     if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
+        token_filter = {"_id": req.page_token, "ns": collection_name}
+        
+        # Get the page token document.
+        if isinstance(mdb, AsyncDatabase):
+            doc = await mdb.page_tokens.find_one(token_filter)
+        else:
+            doc = mdb.page_tokens.find_one(token_filter)
+
         if doc is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
             )
         last_id = doc["last_id"]
-        mdb.page_tokens.delete_one({"_id": req.page_token})
+
+        # Delete the page token document.
+        #
+        # Note: I don't know why the filter differs from the one used above
+        #       to find the page token document.
+        #
+        token_filter = {"_id": req.page_token}
+        if isinstance(mdb, AsyncDatabase):
+            await mdb.page_tokens.delete_one(token_filter)
+        else:
+            mdb.page_tokens.delete_one(token_filter)
+
     else:
         last_id = None
     if last_id is not None:
@@ -114,31 +157,66 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
-    # If limit is 0, the response will include all results (bypassing pagination altogether).
-    if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
+    # If the limit is either (a) 0 or (b) greater than the number of documents in the result set,
+    # the response will include all results (bypassing pagination altogether).
+    will_paginate = True
+    if limit == 0:
+        will_paginate = False
+    elif isinstance(limit, int):
+        if isinstance(mdb, AsyncDatabase):
+            num_docs_in_result = await mdb[collection_name].count_documents(filter=filter_)
+        else:
+            num_docs_in_result = mdb[collection_name].count_documents(filter=filter_)
+        if limit > num_docs_in_result:
+            will_paginate = False
+
+    if not will_paginate:
+        if isinstance(mdb, AsyncDatabase):
+            # Note: When using `AsyncDatabase`, the `find` method is synchronous, but returns an `AsyncCursor`.
+            resources_async_cursor: AsyncCursor = mdb[collection_name].find(filter=filter_, projection=projection)
+            resources = [await doc for doc in resources_async_cursor]
+        else:
+            resources_cursor = mdb[collection_name].find(filter=filter_, projection=projection)
+            resources = [doc for doc in resources_cursor]
+
         rv = {
-            "resources": list(
-                mdb[collection_name].find(filter=filter_, projection=projection)
-            )
+            "resources": resources
         }
         return rv
     else:
-        resources = list(
-            mdb[collection_name].find(
-                filter=filter_,
-                projection=projection,
-                limit=limit,
-                sort=[(id_field, 1)],
-                allow_disk_use=True,
-            )
+        find_args = dict(
+            filter=filter_,
+            projection=projection,
+            limit=limit,
+            sort=[(id_field, 1)],
+            allow_disk_use=True,
         )
+
+        if isinstance(mdb, AsyncDatabase):
+            resources_async_cursor: AsyncCursor = mdb[collection_name].find(**find_args)
+            resources = [await doc for doc in resources_async_cursor]
+        else:
+            resources_cursor = mdb[collection_name].find(**find_args)
+            resources = [doc for doc in resources_cursor]
         last_id = resources[-1][id_field]
-        token = generate_one_id(mdb, "page_tokens")
+        
+        if isinstance(mdb, AsyncDatabase):
+            # Note: In this case, we need to get a synchronous `MongoDatabase` for this step, since
+            #       the `generate_one_id` helper function doesn't accept an `AsyncDatabase` yet.
+            #       As a result, this will be a blocking operation in both cases.
+            mdb_synchronous: MongoDatabase = get_mongo_db()
+            token = generate_one_id(mdb_synchronous, "page_tokens")
+        else:
+            token = generate_one_id(mdb, "page_tokens")
+
         # TODO unify with `/queries:run` query continuation model
         #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
-        mdb.page_tokens.insert_one(
-            {"_id": token, "ns": collection_name, "last_id": last_id}
-        )
+        token_descriptor = {"_id": token, "ns": collection_name, "last_id": last_id}
+        if isinstance(mdb, AsyncDatabase):
+            await mdb.page_tokens.insert_one(token_descriptor)
+        else:
+            mdb.page_tokens.insert_one(token_descriptor)
+
         return {"resources": resources, "next_page_token": token}
 
 
