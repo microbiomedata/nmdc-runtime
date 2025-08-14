@@ -54,6 +54,7 @@ def get_mongo_client() -> MongoClient:
         directConnection=True,
     )
 
+
 @lru_cache
 def get_async_mongo_client() -> AsyncMongoClient:
     r"""
@@ -65,6 +66,7 @@ def get_async_mongo_client() -> AsyncMongoClient:
         password=os.getenv("MONGO_PASSWORD"),
         directConnection=True,
     )
+
 
 @lru_cache
 def get_mongo_db() -> MongoDatabase:
