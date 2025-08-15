@@ -147,8 +147,9 @@ make test
 
 # Run a Specific test file eg. tests/test_api/test_endpoints.py
 make test ARGS="tests/test_api/test_endpoints.py"
-```
+
 docker compose --file docker-compose.test.yml run test
+```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.

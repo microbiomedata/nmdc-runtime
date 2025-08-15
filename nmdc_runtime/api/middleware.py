@@ -18,19 +18,23 @@ class PyinstrumentMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
-        is_profiling = request.query_params.get("profile", False)
-        if is_profiling in ["true"]:
+        # Get the `profile` query parameter and check whether its value is "true" (case insensitive).
+        profile_param = request.query_params.get("profile", None)
+        is_profiling = isinstance(profile_param, str) and profile_param.lower() == "true"
+
+        # If profiling is enabled for this request, profile the request processing.
+        if is_profiling:
             # Start the profiler.
             profiler = Profiler()
             profiler.start()
 
-            # Allow the request to be processed as usual, and ignore the response.
+            # Allow the request to be processed as usual, and discard the normal response.
             _ = await call_next(request)
 
             # Stop the profiler.
             profiler.stop()
 
-            # Override the response with the profiling report.
+            # Override the normal response with the profiling report.
             return HTMLResponse(profiler.output_html())
         else:
             # Allow the request to be processed as usual.
