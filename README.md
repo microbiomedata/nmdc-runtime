@@ -129,16 +129,13 @@ http://127.0.0.1:8000/redoc/.
 
 
 *  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
-```
+```bash
 pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
 ```
 to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
 of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
 versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
 final requirements.txt file and import the dependencies into the Docker image.
-
-
-```bash
 
 ## Local Testing
 
@@ -150,14 +147,25 @@ make test
 
 # Run a Specific test file eg. tests/test_api/test_endpoints.py
 make test ARGS="tests/test_api/test_endpoints.py"
-```
+
 docker compose --file docker-compose.test.yml run test
+```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
+
+### Performance profiling
+
+We use a tool called [Pyinstrument](https://pyinstrument.readthedocs.io) to profile the performance of the Runtime API while processing an individual HTTP request.
+
+Here's how you can do that:
+1. In your `.env` file, set `IS_PROFILING_ENABLED` to `true`
+2. Start/restart your development stack: `$ make up-dev`
+3. In your web browser, visit any Runtime API URL, but add the `profile=true` query parameter to the URL; e.g., `http://127.0.0.1:8000/nmdcschema/study_set?profile=true`
+4. The Runtime API will respond with a performance profiling report web page (instead of the normal response; e.g., a JSON string)
 
 ### RAM usage
 

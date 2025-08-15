@@ -18,7 +18,9 @@ from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
 
+from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
+from nmdc_runtime.api.middleware import PyinstrumentMiddleware
 from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
@@ -272,6 +274,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(Analytics)
+
+if config.IS_PROFILING_ENABLED:
+    app.add_middleware(PyinstrumentMiddleware)
+
 app.mount(
     "/static",
     StaticFiles(directory=REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")),
