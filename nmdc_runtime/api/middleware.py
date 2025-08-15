@@ -20,7 +20,9 @@ class PyinstrumentMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Get the `profile` query parameter and check whether its value is "true" (case insensitive).
         profile_param = request.query_params.get("profile", None)
-        is_profiling = isinstance(profile_param, str) and profile_param.lower() == "true"
+        is_profiling = (
+            isinstance(profile_param, str) and profile_param.lower() == "true"
+        )
 
         # If profiling is enabled for this request, profile the request processing.
         if is_profiling:
