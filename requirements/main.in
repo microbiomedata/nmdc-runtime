@@ -49,6 +49,9 @@ pandas
 passlib[bcrypt]
 pymongo
 pydantic[email]>=1.10.0
+# Note: We use `pyinstrument` for performance profiling.
+#       Docs https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
+pyinstrument
 python-dotenv
 python-jose[cryptography]
 # Note: python-multipart version `0.0.18` introduced a patch for a security issue (CVE-2024-53981).
