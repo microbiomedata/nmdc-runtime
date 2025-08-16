@@ -4,6 +4,7 @@ import botocore
 from fastapi import APIRouter, status, Depends, HTTPException, Query
 from gridfs import GridFS
 from pymongo import ReturnDocument
+from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.database import Database as MongoDatabase
 import requests
 from starlette.responses import RedirectResponse
@@ -11,7 +12,7 @@ from toolz import merge
 
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
@@ -90,11 +91,11 @@ def create_object(
 
 
 @router.get("/objects", response_model=ListResponse[DrsObject])
-def list_objects(
+async def list_objects(
     req: Annotated[ListRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    adb: AsyncDatabase = Depends(get_async_mongo_db),
 ):
-    return list_resources(req, mdb, "objects")
+    return await list_resources(req, adb, "objects")
 
 
 @router.get(

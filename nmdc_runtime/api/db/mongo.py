@@ -10,7 +10,6 @@ import bson
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pymongo.errors import AutoReconnect, OperationFailure
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
@@ -27,15 +26,16 @@ from nmdc_runtime.util import (
     nmdc_database_collection_names,
     get_allowed_references,
 )
-from pymongo import MongoClient
+from pymongo import AsyncMongoClient, MongoClient
 from pymongo.database import Database as MongoDatabase
+from pymongo.asynchronous.database import AsyncDatabase
 
 
 @retry(
     retry=retry_if_exception_type(AutoReconnect),
     wait=wait_random_exponential(multiplier=0.5, max=60),
 )
-def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
+def check_mongo_ok_autoreconnect(mdb: MongoDatabase) -> bool:
     mdb["_runtime.healthcheck"].insert_one({"_id": "ok"})
     mdb["_runtime.healthcheck"].delete_one({"_id": "ok"})
     return True
@@ -56,13 +56,28 @@ def get_mongo_client() -> MongoClient:
 
 
 @lru_cache
+def get_async_mongo_client() -> AsyncMongoClient:
+    r"""
+    Returns an `AsyncMongoClient` instance you can use to access the MongoDB server specified via environment variables.
+    """
+    return AsyncMongoClient(
+        host=os.getenv("MONGO_HOST"),
+        username=os.getenv("MONGO_USERNAME"),
+        password=os.getenv("MONGO_PASSWORD"),
+        directConnection=True,
+    )
+
+
+@lru_cache
 def get_mongo_db() -> MongoDatabase:
     r"""
     Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
     """
     _client = get_mongo_client()
-    mdb = _client[os.getenv("MONGO_DBNAME")]
+    database_name = os.getenv("MONGO_DBNAME")
+    assert database_name is not None, "MONGO_DBNAME is None"
+    mdb = _client[database_name]
     check_mongo_ok_autoreconnect(mdb)
     return mdb
 
@@ -74,20 +89,20 @@ def get_session_bound_mongo_db(session=None) -> MongoDatabase:
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
     """
     _client = get_mongo_client()
-    mdb = _client[os.getenv("MONGO_DBNAME")]
+    database_name = os.getenv("MONGO_DBNAME")
+    assert database_name is not None, "MONGO_DBNAME is None"
+    mdb = _client[database_name]
     check_mongo_ok_autoreconnect(mdb)
     return SessionBoundDatabase(mdb, session) if session is not None else mdb
 
 
 @lru_cache
-def get_async_mongo_db() -> AsyncIOMotorDatabase:
-    _client = AsyncIOMotorClient(
-        host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
-        directConnection=True,
-    )
-    return _client[os.getenv("MONGO_DBNAME")]
+def get_async_mongo_db() -> AsyncDatabase:
+    _client = get_async_mongo_client()
+    database_name = os.getenv("MONGO_DBNAME")
+    assert database_name is not None, "MONGO_DBNAME is None"
+    mdb = _client[database_name]
+    return mdb
 
 
 def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:

@@ -1,6 +1,7 @@
 import json
 from typing import Optional, Annotated
 
+from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.database import Database
 from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -9,7 +10,7 @@ from starlette import status
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
 from nmdc_runtime.api.models.job import Job, JobClaim
 from nmdc_runtime.api.models.operation import Operation, MetadataT
@@ -26,9 +27,9 @@ router = APIRouter()
 @router.get(
     "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
 )
-def list_jobs(
+async def list_jobs(
     req: Annotated[ListRequest, Query()],
-    mdb: Database = Depends(get_mongo_db),
+    adb: AsyncDatabase = Depends(get_async_mongo_db),
     maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):
     """List pre-configured workflow jobs.
@@ -39,7 +40,7 @@ def list_jobs(
     """
     if isinstance(maybe_site, Site) and req.filter is None:
         req.filter = json.dumps({"claims.site_id": {"$ne": maybe_site.id}})
-    return list_resources(req, mdb, "jobs")
+    return await list_resources(req, adb, "jobs")
 
 
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)

@@ -137,6 +137,7 @@ of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like po
 versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
 final requirements.txt file and import the dependencies into the Docker image.
 
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following commands:

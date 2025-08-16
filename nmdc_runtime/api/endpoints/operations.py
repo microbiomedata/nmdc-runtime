@@ -1,11 +1,12 @@
 from typing import Annotated
 
 import pymongo
+from pymongo.asynchronous.database import AsyncDatabase
 from fastapi import APIRouter, Depends, status, HTTPException, Query
 from toolz import get_in, merge, assoc
 
 from nmdc_runtime.api.core.util import raise404_if_none, pick
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.operation import (
     ListOperationsResponse,
@@ -21,11 +22,11 @@ router = APIRouter()
 
 
 @router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
-def list_operations(
+async def list_operations(
     req: Annotated[ListRequest, Query()],
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    adb: AsyncDatabase = Depends(get_async_mongo_db),
 ):
-    return list_resources(req, mdb, "operations")
+    return await list_resources(req, adb, "operations")
 
 
 @router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
