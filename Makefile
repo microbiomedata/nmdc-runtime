@@ -82,6 +82,7 @@ run-test:
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
 			pytest --cov=nmdc_runtime \
 			       --doctest-modules \
+			       --ignore=util/load_testing \
 			       $(ARGS)
 
 # Uses Docker Compose to
