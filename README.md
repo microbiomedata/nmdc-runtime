@@ -187,7 +187,6 @@ Then, submit an HTTP request with a special query parameter that activates the p
 That'll only work for `GET` requests, though, since you're limited to specifying the request via the address bar.
 
 </details>
-<br />
 
 <details>
 <summary>Show/hide instructions for <strong>all</strong> kinds of requests (involves <code>curl</code> + web browser)</summary>
@@ -211,7 +210,6 @@ That'll only work for `GET` requests, though, since you're limited to specifying
    1. Alternatively, open your web browser and navigate to `file:///path/to/report.html`
 
 </details>
-<br />
 
 ### RAM usage
 
