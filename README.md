@@ -206,7 +206,7 @@ That'll only work for `GET` requests, though, since you're limited to specifying
    ```
 3. Run the command.
    > Note: The Runtime API will respond with a performance profiling report web page, instead of the normal response (which the Runtime discards). That web page will be saved to the HTML file to which you redirected the command output.
-3. Double-click on the HTML file to view it in your web browser.
+4. Double-click on the HTML file to view it in your web browser.
    1. Alternatively, open your web browser and navigate to `file:///path/to/report.html`
 
 </details>
