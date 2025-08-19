@@ -162,10 +162,56 @@ tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and
 We use a tool called [Pyinstrument](https://pyinstrument.readthedocs.io) to profile the performance of the Runtime API while processing an individual HTTP request.
 
 Here's how you can do that:
+
 1. In your `.env` file, set `IS_PROFILING_ENABLED` to `true`
 2. Start/restart your development stack: `$ make up-dev`
-3. In your web browser, visit any Runtime API URL, but add the `profile=true` query parameter to the URL; e.g., `http://127.0.0.1:8000/nmdcschema/study_set?profile=true`
-4. The Runtime API will respond with a performance profiling report web page (instead of the normal response; e.g., a JSON string)
+
+Then, submit an HTTP request with a special query parameter that activates the performance profiler. Instructions for doing that are in the sections below.
+
+<details>
+<summary>Show/hide instructions for <code>GET</code> requests only (involves web browser)</summary>
+
+1. In your web browser, visit any Runtime API URL, but add the `profile=true` query parameter to the URL. Examples:
+   ```diff
+   A. If the URL doesn't already have query parameters, append `?profile=true`.
+   - http://127.0.0.1:8000/nmdcschema/biosample_set
+   + http://127.0.0.1:8000/nmdcschema/biosample_set?profile=true
+
+   B. If the URL already has query parameters, append `&profile=true`.
+   - http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}
+   + http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}&profile=true
+   ```
+2. Your web browser will display a performance profiling report.
+   > Note: The Runtime API will have responded with a performance profiling report web page, instead of the normal response (which is typically a JSON object).
+
+That'll only work for `GET` requests, though, since you're limited to specifying the request via the address bar.
+
+</details>
+<br />
+
+<details>
+<summary>Show/hide instructions for <strong>all</strong> kinds of requests (involves <code>curl</code> + web browser)</summary>
+
+1. At your terminal, type or paste the `curl` command you want to run (you can copy/paste one from Swagger UI).
+2. Append the `profile=true` query parameter to the URL in the command, and redirect the command's output to a new HTML file (e.g. `> /path/to/report.html`). For example:
+   ```diff
+     curl -X 'POST' \
+   -   'http://127.0.0.1:8000/metadata/json:validate' \
+   +   'http://127.0.0.1:8000/metadata/json:validate?profile=true' \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d '{
+                "study_set": [{"id": "nmdc:sty-00-000001", "study_category": "research_study", "type": "nmdc:Study"}]
+   -        }'
+   +        }' > /path/to/report.html
+   ```
+3. Run the command.
+   > Note: The Runtime API will respond with a performance profiling report web page, instead of the normal response (which is typically a JSON object). That web page will be saved to the HTML file to which you redirected the command output.
+3. Double-click on the HTML file to view it in your web browser.
+   1. Alternatively, open your web browser and navigate to `file:///path/to/report.html`
+
+</details>
+<br />
 
 ### RAM usage
 
