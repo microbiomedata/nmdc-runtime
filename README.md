@@ -182,7 +182,7 @@ Then, submit an HTTP request with a special query parameter that activates the p
    + http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}&profile=true
    ```
 2. Your web browser will display a performance profiling report.
-   > Note: The Runtime API will have responded with a performance profiling report web page, instead of the normal response (which is typically a JSON object).
+   > Note: The Runtime API will have responded with a performance profiling report web page, instead of the normal response (which the Runtime discards).
 
 That'll only work for `GET` requests, though, since you're limited to specifying the request via the address bar.
 
@@ -205,7 +205,7 @@ That'll only work for `GET` requests, though, since you're limited to specifying
    +        }' > /path/to/report.html
    ```
 3. Run the command.
-   > Note: The Runtime API will respond with a performance profiling report web page, instead of the normal response (which is typically a JSON object). That web page will be saved to the HTML file to which you redirected the command output.
+   > Note: The Runtime API will respond with a performance profiling report web page, instead of the normal response (which the Runtime discards). That web page will be saved to the HTML file to which you redirected the command output.
 3. Double-click on the HTML file to view it in your web browser.
    1. Alternatively, open your web browser and navigate to `file:///path/to/report.html`
 
