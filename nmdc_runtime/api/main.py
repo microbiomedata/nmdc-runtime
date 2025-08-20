@@ -234,7 +234,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-@api_router.get("/")
+@api_router.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(
         BASE_URL_EXTERNAL + "/docs",
@@ -278,16 +278,19 @@ app.add_middleware(Analytics)
 if config.IS_PROFILING_ENABLED:
     app.add_middleware(PyinstrumentMiddleware)
 
-app.mount(
-    "/static",
-    StaticFiles(directory=REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")),
-    name="static",
-)
+# Note: Here, we are mounting a `StaticFiles` instance (which is bound to the directory that
+#       contains static files) as a "sub-application" of the main FastAPI application. This
+#       makes the contents of that directory be accessible under the `/static` URL path.
+#       Reference: https://fastapi.tiangolo.com/tutorial/static-files/
+static_files_path: Path = REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")
+app.mount("/static", StaticFiles(directory=static_files_path), name="static")
 
 
-@app.get("/favicon.ico")
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("static/favicon.ico")
+    r"""Returns the application's favicon."""
+    favicon_path = static_files_path / "favicon.ico"
+    return FileResponse(favicon_path)
 
 
 @decorate_if(condition=IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
