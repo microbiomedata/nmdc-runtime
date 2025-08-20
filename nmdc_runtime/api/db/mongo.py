@@ -36,8 +36,12 @@ from pymongo.database import Database as MongoDatabase
     wait=wait_random_exponential(multiplier=0.5, max=60),
 )
 def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
-    mdb["_runtime.healthcheck"].insert_one({"_id": "ok"})
-    mdb["_runtime.healthcheck"].delete_one({"_id": "ok"})
+    r"""
+    Check whether the application can write to the database.
+    """
+    collection = mdb.get_collection("_runtime.healthcheck")
+    collection.insert_one({"status": "ok"})
+    collection.delete_many({"status": "ok"})
     return True
 
 
