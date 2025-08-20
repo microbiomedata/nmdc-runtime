@@ -73,9 +73,9 @@ def generate_ids(
     shoulder: str = "fk4",
 ) -> List[str]:
     collection = mdb.get_collection(collection_name(naa, shoulder))
-    existing_count = collection.count_documents({})
+    initial_count = collection.count_documents({})
     n_chars = next(
-        (n for n, t in SPING_SIZE_THRESHOLDS if (number + existing_count) < t),
+        (n for n, t in SPING_SIZE_THRESHOLDS if (number + initial_count) < t),
         12,
     )
     collected = []

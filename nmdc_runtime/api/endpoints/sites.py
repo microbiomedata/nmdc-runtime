@@ -1,6 +1,7 @@
 from typing import List, Annotated
 
 import botocore
+from pymongo.asynchronous.database import AsyncDatabase
 import pymongo.database
 from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
@@ -17,7 +18,7 @@ from nmdc_runtime.api.core.util import (
     generate_secret,
     API_SITE_ID,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.db.mongo import get_async_mongo_db, get_mongo_db
 from nmdc_runtime.api.db.s3 import (
     get_s3_client,
     presigned_url_to_put,
@@ -72,11 +73,11 @@ def create_site(
 @router.get(
     "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
 )
-def list_sites(
+async def list_sites(
     req: Annotated[ListRequest, Query()],
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    adb: AsyncDatabase = Depends(get_async_mongo_db),
 ):
-    return list_resources(req, mdb, "sites")
+    return await list_resources(req, adb, "sites")
 
 
 @router.get("/sites/{site_id}", response_model=Site, response_model_exclude_unset=True)
