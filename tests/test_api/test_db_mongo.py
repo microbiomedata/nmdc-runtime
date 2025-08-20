@@ -4,6 +4,7 @@ import pytest
 from toolz import dissoc
 
 from nmdc_runtime.api.db.mongo import (
+    check_mongo_ok_autoreconnect,
     get_mongo_db,
     get_mongo_client,
     OverlayDBError,
@@ -210,3 +211,7 @@ def test_mongo_client_supports_transactions(mongo_client):
 
     # Clean up.
     mongo_client.drop_database(db_name)
+
+
+def test_check_mongo_ok_autoreconnect(test_db):
+    assert check_mongo_ok_autoreconnect(mdb=test_db) is True
