@@ -41,7 +41,7 @@ def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
     """
     collection = mdb.get_collection("_runtime.healthcheck")
     collection.insert_one({"status": "ok"})
-    collection.delete_one({"status": "ok"})
+    collection.delete_many({"status": "ok"})
     return True
 
 
