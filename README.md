@@ -183,7 +183,7 @@ Then—with all of that done—submit an HTTP request that includes the URL quer
    + http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}&profile=true
    ```
 2. Your web browser will display a performance profiling report.
-   > Note: The Runtime API will have responded with a performance profiling report web page, instead of the normal response (which the Runtime discards).
+   > Note: The Runtime API will have responded with a performance profiling report web page, instead of its normal response (which the Runtime discards).
 
 That'll only work for `GET` requests, though, since you're limited to specifying the request via the address bar.
 
