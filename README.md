@@ -165,6 +165,7 @@ Here's how you can do that:
 
 1. In your `.env` file, set `IS_PROFILING_ENABLED` to `true`
 2. Start/restart your development stack: `$ make up-dev`
+3. Ensure the endpoint function whose performance you want to profile is defined using `async def` (as opposed to just `def`) ([reference](https://github.com/joerick/pyinstrument/issues/257))
 
 Then, submit an HTTP request with a special query parameter that activates the performance profiler. Instructions for doing that are in the sections below.
 
@@ -192,22 +193,20 @@ That'll only work for `GET` requests, though, since you're limited to specifying
 <summary>Show/hide instructions for <strong>all</strong> kinds of requests (involves <code>curl</code> + web browser)</summary>
 
 1. At your terminal, type or paste the `curl` command you want to run (you can copy/paste one from Swagger UI).
-2. Append the `profile=true` query parameter to the URL in the command, and redirect the command's output to a new HTML file (e.g. `> /path/to/report.html`). For example:
+2. Append the `profile=true` query parameter to the URL in the command, and use the `-o` option to save the response to a file whose name ends with `.html`. For example:
    ```diff
      curl -X 'POST' \
    -   'http://127.0.0.1:8000/metadata/json:validate' \
    +   'http://127.0.0.1:8000/metadata/json:validate?profile=true' \
+   +    -o /tmp/profile.html
         -H 'accept: application/json' \
         -H 'Content-Type: application/json' \
-        -d '{
-                "study_set": [{"id": "nmdc:sty-00-000001", "study_category": "research_study", "type": "nmdc:Study"}]
-   -        }'
-   +        }' > /path/to/report.html
+        -d '{"biosample_set": []}'
    ```
 3. Run the command.
-   > Note: The Runtime API will respond with a performance profiling report web page, instead of the normal response (which the Runtime discards). That web page will be saved to the HTML file to which you redirected the command output.
-4. Double-click on the HTML file to view it in your web browser.
-   1. Alternatively, open your web browser and navigate to `file:///path/to/report.html`
+   > Note: The Runtime API will respond with a performance profiling report web page, instead of its normal response (which will be discarded on the server side). The performance profiling report web page will be saved to the `.html` file to which you redirected the command output.
+4. Double-click on the `.html` file to view it in your web browser.
+   1. Alternatively, open your web browser and navigate to the `.html` file; e.g., enter `file:///tmp/profile.html` into the address bar.
 
 </details>
 
