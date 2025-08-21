@@ -167,12 +167,12 @@ Here's how you can do that:
 2. Start/restart your development stack: `$ make up-dev`
 3. Ensure the endpoint function whose performance you want to profile is defined using `async def` (as opposed to just `def`) ([reference](https://github.com/joerick/pyinstrument/issues/257))
 
-Then, submit an HTTP request with a special query parameter that activates the performance profiler. Instructions for doing that are in the sections below.
+Then—with all of that done—submit an HTTP request that includes the URL query parameter: `profile=true`. Instructions for doing that are in the sections below.
 
 <details>
 <summary>Show/hide instructions for <code>GET</code> requests only (involves web browser)</summary>
 
-1. In your web browser, visit any Runtime API URL, but add the `profile=true` query parameter to the URL. Examples:
+1. In your web browser, visit the endpoint's URL, but add the `profile=true` query parameter to the URL. Examples:
    ```diff
    A. If the URL doesn't already have query parameters, append `?profile=true`.
    - http://127.0.0.1:8000/nmdcschema/biosample_set
@@ -204,7 +204,7 @@ That'll only work for `GET` requests, though, since you're limited to specifying
         -d '{"biosample_set": []}'
    ```
 3. Run the command.
-   > Note: The Runtime API will respond with a performance profiling report web page, instead of its normal response (which will be discarded on the server side). The performance profiling report web page will be saved to the `.html` file to which you redirected the command output.
+   > Note: The Runtime API will respond with a performance profiling report web page, instead of its normal response (which the Runtime discards). The performance profiling report web page will be saved to the `.html` file to which you redirected the command output.
 4. Double-click on the `.html` file to view it in your web browser.
    1. Alternatively, open your web browser and navigate to the `.html` file; e.g., enter `file:///tmp/profile.html` into the address bar.
 
