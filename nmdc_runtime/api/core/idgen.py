@@ -94,7 +94,11 @@ def generate_ids(
     collection = mdb.get_collection(collection_name(naa, shoulder))
     estimated_document_count = collection.estimated_document_count()
     n_chars = next(
-        (n for n, t in SPING_SIZE_THRESHOLDS if (number + estimated_document_count) < t),
+        (
+            n
+            for n, t in SPING_SIZE_THRESHOLDS
+            if (number + estimated_document_count) < t
+        ),
         12,
     )
     collected = []
