@@ -115,6 +115,11 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
     # If limit is 0, the response will include all results (bypassing pagination altogether).
+    #
+    # TODO: Since we don't need to know the exact count, but we do need to know whether
+    #       it would be greater than `limit`; consider using an aggregation pipeline to
+    #       count only up to "limit + 1" (see: https://stackoverflow.com/a/67503437).
+    #
     if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
         rv = {
             "resources": list(
