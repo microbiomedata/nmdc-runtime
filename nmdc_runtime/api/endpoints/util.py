@@ -151,14 +151,23 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
-    # If limit is 0 or it is <= the number of matching documents in the collection,
-    # the response will include all results (bypassing pagination altogether).
-    if isinstance(limit, int) and (
-        limit == 0
-        or not does_collection_contain_more_than_n_matching_documents(
+    # Determine whether we will paginate the results.
+    #
+    # We will paginate them unless either of the following is true:
+    # - the `limit` is not a positive integer
+    # - the number of documents matching the filter is no larger than `limit`
+    #
+    will_paginate = True
+    if (not isinstance(limit, int)) or (limit < 1):
+        will_paginate = False
+    else:
+        would_exceed_page = does_collection_contain_more_than_n_matching_documents(
             collection=mdb[collection_name], filter_=filter_, n=limit
         )
-    ):
+        if not would_exceed_page:
+            will_paginate = False
+
+    if not will_paginate:
         rv = {
             "resources": list(
                 mdb[collection_name].find(filter=filter_, projection=projection)
