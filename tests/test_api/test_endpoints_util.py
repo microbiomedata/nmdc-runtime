@@ -36,6 +36,7 @@ def test_does_collection_contain_more_than_n_matching_documents(seeded_db_for_fi
     assert collection.count_documents(filter_a) == 9
     assert collection.count_documents(filter_b) == 1
     assert collection.count_documents(filter_c) == 10
+    assert collection.count_documents(filter_d) == 0
 
     # Test: Vary the count.
     with pytest.raises(ValueError):
