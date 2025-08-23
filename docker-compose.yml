@@ -84,7 +84,8 @@ services:
       mongo-init: { condition: service_completed_successfully }
     # Note: We use `--reload-exclude` to prevent Uvicorn from restarting the FastAPI
     #       app whenever files in the `util/load_testing/` directory change. Developers
-    #       oftentimes modify those files while doing load testing.
+    #       oftentimes modify those files while doing load testing, and those files are
+    #       not part of the FastAPI app.
     #       Docs: https://www.uvicorn.org/settings/?h=watch#reloading-with-watchfiles
     command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
     env_file: .env
