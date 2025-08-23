@@ -77,11 +77,13 @@ def does_collection_contain_more_than_n_matching_documents(
     if not n >= 0:
         raise ValueError("The `n` value must be at least 0.")
 
-    result_cursor = collection.aggregate([
-        {"$match": filter_},
-        {"$limit": n + 1},
-        {"$count": "numCounted"},
-    ])
+    result_cursor = collection.aggregate(
+        [
+            {"$match": filter_},
+            {"$limit": n + 1},
+            {"$count": "numCounted"},
+        ]
+    )
     result: List[Dict[str, int]] = list(result_cursor)
 
     # Note: If no documents match the filter, `result` will be an empty list;
