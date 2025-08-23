@@ -56,9 +56,7 @@ HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
 def does_collection_contain_more_than_n_matching_documents(
-    collection: MongoCollection,
-    filter_: dict,
-    n: int
+    collection: MongoCollection, filter_: dict, n: int
 ) -> bool:
     """
     Check whether a MongoDB collection contains more than `n` documents that match the filter.
@@ -79,11 +77,15 @@ def does_collection_contain_more_than_n_matching_documents(
     if n < 0:
         raise ValueError("The `n` value must be non-negative.")
 
-    result: List[Dict[str, int]] = list(collection.aggregate([
-        { "$match": filter_ },
-        { "$limit": n + 1 },
-        { "$count": "numCounted" },
-    ]))
+    result: List[Dict[str, int]] = list(
+        collection.aggregate(
+            [
+                {"$match": filter_},
+                {"$limit": n + 1},
+                {"$count": "numCounted"},
+            ]
+        )
+    )
 
     # Note: If no documents match the filter, `result` will be an empty list;
     #       otherwise, it will be a 1-item list consisting of a dictionary.
@@ -153,11 +155,9 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     # If limit is 0 or it is <= the number of matching documents in the collection,
     # the response will include all results (bypassing pagination altogether).
     if isinstance(limit, int) and (
-        limit == 0 or
-        not does_collection_contain_more_than_n_matching_documents(
-            collection=mdb[collection_name],
-            filter_=filter_,
-            n=limit
+        limit == 0
+        or not does_collection_contain_more_than_n_matching_documents(
+            collection=mdb[collection_name], filter_=filter_, n=limit
         )
     ):
         rv = {
