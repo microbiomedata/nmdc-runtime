@@ -128,7 +128,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         id_field = (
             "_id"  # currently expected for `functional_annotation_agg` collection
         )
-    limit = req.max_page_size
+    max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
@@ -154,15 +154,15 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     # Determine whether we will paginate the results.
     #
     # We will paginate them unless either of the following is true:
-    # - the `limit` is not a positive integer
-    # - the number of documents matching the filter is no larger than `limit`
+    # - the `max_page_size` is not a positive integer
+    # - the number of documents matching the filter is no larger than `max_page_size`
     #
     will_paginate = True
-    if (not isinstance(limit, int)) or (limit < 1):
+    if (not isinstance(max_page_size, int)) or (max_page_size < 1):
         will_paginate = False
     else:
         would_exceed_page = does_collection_contain_more_than_n_matching_documents(
-            collection=mdb[collection_name], filter_=filter_, n=limit
+            collection=mdb[collection_name], filter_=filter_, n=max_page_size
         )
         if not would_exceed_page:
             will_paginate = False
@@ -179,7 +179,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             mdb[collection_name].find(
                 filter=filter_,
                 projection=projection,
-                limit=limit,
+                limit=max_page_size,
                 sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
