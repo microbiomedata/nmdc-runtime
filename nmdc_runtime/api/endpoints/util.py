@@ -6,7 +6,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -53,6 +53,42 @@ from toolz import assoc_in, concat, dissoc, get_in, merge
 BASE_URL_INTERNAL = os.getenv("API_HOST")
 BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
+
+
+def does_collection_contain_more_than_n_matching_documents(
+    collection: MongoCollection,
+    filter_: dict,
+    n: int
+) -> bool:
+    """
+    Check whether a MongoDB collection contains more than `n` documents that match the filter.
+
+    This function was designed as a "performance optimization" related to `count_documents()`.
+    The `count_documents()` method can be slow for large collections, especially when the filter
+    matches many documents, since it always counts all matching documents.
+
+    Sometimes, we only need to know whether there are "more than n" matching documents, rather
+    than the exact count. This function uses an aggregation pipeline to count only up to `n + 1`
+    matching documents.
+
+    Inspired by: https://stackoverflow.com/a/67503437
+    """
+
+    # Ensure the `n` value is non-negative, since the aggregation pipeline's
+    # `$limit` stage requires a non-negative integer.
+    if n < 0:
+        raise ValueError("The `n` value must be non-negative.")
+
+    result: List[Dict[str, int]] = list(collection.aggregate([
+        { "$match": filter_ },
+        { "$limit": n + 1 },
+        { "$count": "numCounted" },
+    ]))
+
+    # Note: If no documents match the filter, `result` will be an empty list;
+    #       otherwise, it will be a 1-item list consisting of a dictionary.
+    num_counted: int = 0 if len(result) == 0 else result[0]["numCounted"]
+    return num_counted > n
 
 
 def check_filter(filter_: str):
@@ -114,13 +150,16 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
-    # If limit is 0, the response will include all results (bypassing pagination altogether).
-    #
-    # TODO: Since we don't need to know the exact count, but we do need to know whether
-    #       it would be greater than `limit`; consider using an aggregation pipeline to
-    #       count only up to "limit + 1" (see: https://stackoverflow.com/a/67503437).
-    #
-    if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
+    # If limit is 0 or it is <= the number of matching documents in the collection,
+    # the response will include all results (bypassing pagination altogether).
+    if isinstance(limit, int) and (
+        limit == 0 or
+        not does_collection_contain_more_than_n_matching_documents(
+            collection=mdb[collection_name],
+            filter_=filter_,
+            n=limit
+        )
+    ):
         rv = {
             "resources": list(
                 mdb[collection_name].find(filter=filter_, projection=projection)
