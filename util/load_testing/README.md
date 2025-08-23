@@ -45,7 +45,7 @@ All commands shown below were designed to be issued from the root directory of t
    > - `--users 25` (so the test creates _25_ "actors" in total)
    > - `--spawn-rate 5` (so the test creates its "actors" at a rate of _5_ per second)
    > - `--stop-timeout 180s` (so the test waits for HTTP responses for an additional _180 seconds_ after the test would otherwise have ended)
-   > - Append a specific `HttpUser` subclass name to the end of the command (so only that kind of user is spawned during the test)
+   > - Append a specific `HttpUser` subclass name (e.g. `User`, `SiteClient`) to the command (so only that kind of user is spawned during the test)
    >
    > We may eventually specify some CLI options via a [configuration file](https://docs.locust.io/en/stable/configuration.html#configuration-file).
 4. Visit the Locust web UI, at: http://localhost:8089
