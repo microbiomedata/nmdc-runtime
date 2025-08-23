@@ -82,7 +82,11 @@ services:
     # before starting this FastAPI container.
     depends_on:
       mongo-init: { condition: service_completed_successfully }
-    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+    # Note: We use `--reload-exclude` to prevent Uvicorn from restarting the FastAPI
+    #       app whenever files in the `util/load_testing/` directory change. Developers
+    #       oftentimes modify those files while doing load testing.
+    #       Docs: https://www.uvicorn.org/settings/?h=watch#reloading-with-watchfiles
+    command: ["uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
     env_file: .env
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.

@@ -53,6 +53,14 @@ class User(HttpUser):
         self.client.get("/version")
 
     @task
+    def get_functional_annotation_agg_documents(self):
+        """
+        A task that involves querying a very large MongoDB collection
+        via a general-purpose endpoint.
+        """
+        self.client.get("/nmdcschema/functional_annotation_agg")
+
+    @task
     def get_biosamples(self):
         """
         A task that involves querying a large MongoDB database
@@ -186,7 +194,7 @@ class User(HttpUser):
         """
         self.client.get("/nmdcschema/study_set")
 
-    @task
+    @task(1)
     def get_me(self):
         """
         A task that involves authentication.
