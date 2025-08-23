@@ -114,10 +114,9 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    Note: If the specified `ListRequest` has a non-zero `max_page_size` number and the number of documents matching the
-          filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
-          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
-          when the collection involved contains many documents.
+    Note: If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter
+          criteria than can fit on a page of that size, this function will paginate the resources. Paginating the
+          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time.
     """
 
     id_field = "id"
