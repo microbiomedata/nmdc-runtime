@@ -17,11 +17,11 @@ from locust import HttpUser, task, tag
 # Note: When invoking Locust in a container via `docker run`, you can define
 #       the environment variables for the container like this:
 #       ```
-#       docker run --env API_ADMIN_USER="bob" --env API_ADMIN_PASSWORD="shh" ...
+#       docker run --env API_USERNAME="bob" --env API_PASSWORD="shh" ...
 #       ```
 #
-username = os.getenv("API_ADMIN_USER", "admin")
-password = os.getenv("API_ADMIN_PASSWORD", "root")
+username = os.getenv("API_USERNAME", "admin")
+password = os.getenv("API_PASSWORD", "root")
 
 
 class User(HttpUser):
