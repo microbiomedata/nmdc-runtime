@@ -55,41 +55,18 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
-def does_collection_contain_more_than_n_matching_documents(
-    collection: MongoCollection, filter_: dict, n: int
+def does_num_matching_docs_exceed_threshold(
+    collection: MongoCollection, filter_: dict, threshold: int
 ) -> bool:
-    """
-    Check whether a MongoDB collection contains more than `n` documents that match the filter.
+    """Check whether a MongoDB collection contains more than `threshold` documents matching the filter."""
+    if threshold < 0:
+        raise ValueError("Threshold must be at least 0.")
 
-    This function was designed as a "performance optimization" related to `count_documents()`.
-    The `count_documents()` method can be slow for large collections, especially when the filter
-    matches many documents, since it always counts all matching documents.
-
-    Sometimes, we only need to know whether there are "more than n" matching documents, rather
-    than the exact count. This function uses an aggregation pipeline to count only up to `n + 1`
-    matching documents.
-
-    Inspired by: https://stackoverflow.com/a/67503437
-    """
-
-    # Ensure the `n` value is at least 0, since the aggregation pipeline's
-    # `$limit` stage requires a positive integer.
-    if not n >= 0:
-        raise ValueError("The `n` value must be at least 0.")
-
-    result_cursor = collection.aggregate(
-        [
-            {"$match": filter_},
-            {"$limit": n + 1},
-            {"$count": "numCounted"},
-        ]
+    limited_num_matching_docs = collection.count_documents(
+        filter=filter_,
+        limit=threshold + 1,
     )
-    result: List[Dict[str, int]] = list(result_cursor)
-
-    # Note: If no documents match the filter, `result` will be an empty list;
-    #       otherwise, it will be a 1-item list consisting of a dictionary.
-    num_counted: int = 0 if len(result) == 0 else result[0]["numCounted"]
-    return num_counted > n
+    return limited_num_matching_docs > threshold
 
 
 def check_filter(filter_: str):
@@ -154,16 +131,18 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     #
     # We will paginate them unless either of the following is true:
     # - the `max_page_size` is not a positive integer
-    # - the number of documents matching the filter is no larger than `max_page_size`
+    # - the number of documents matching the filter does not exceed `max_page_size`
     #
     will_paginate = True
     if (not isinstance(max_page_size, int)) or (max_page_size < 1):
         will_paginate = False
     else:
-        would_exceed_page = does_collection_contain_more_than_n_matching_documents(
-            collection=mdb[collection_name], filter_=filter_, n=max_page_size
+        num_matching_docs_exceeds_page_size = does_num_matching_docs_exceed_threshold(
+            collection=mdb[collection_name],
+            filter_=filter_,
+            threshold=max_page_size
         )
-        if not would_exceed_page:
+        if not num_matching_docs_exceeds_page_size:
             will_paginate = False
 
     if not will_paginate:

@@ -2,7 +2,7 @@ from pymongo.database import Database
 import pytest
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import does_collection_contain_more_than_n_matching_documents
+from nmdc_runtime.api.endpoints.util import does_num_matching_docs_exceed_threshold
 from tests.lib.faker import Faker
 
 
@@ -25,7 +25,7 @@ def seeded_db_for_filtered_counting():
     db["study_set"].delete_many(filter_)
 
 
-def test_does_collection_contain_more_than_n_matching_documents(seeded_db_for_filtered_counting: Database):
+def test_does_num_matching_docs_exceed_threshold(seeded_db_for_filtered_counting: Database):
     # Seed the database.
     db = seeded_db_for_filtered_counting
     collection = db["study_set"]
@@ -40,23 +40,23 @@ def test_does_collection_contain_more_than_n_matching_documents(seeded_db_for_fi
 
     # Test: Vary the count.
     with pytest.raises(ValueError):
-        assert does_collection_contain_more_than_n_matching_documents(collection, filter_a, -1)
-    assert does_collection_contain_more_than_n_matching_documents(collection, filter_a, 0)
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_a, 9)  # there are exactly 9
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_a, 10)
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_a, 11)
+        assert does_num_matching_docs_exceed_threshold(collection, filter_a, -1)
+    assert does_num_matching_docs_exceed_threshold(collection, filter_a, 0)
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_a, 9)  # there are exactly 9
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_a, 10)
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_a, 11)
 
     # Test: Vary the filter.
-    assert does_collection_contain_more_than_n_matching_documents(collection, filter_b, 0)
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_b, 1)  # there is exactly 1
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_b, 2)
-    assert does_collection_contain_more_than_n_matching_documents(collection, filter_c, 9)
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_c, 10)  # there are exactly 10
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_c, 11)
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_d, 0)  # there are exactly 0
-    assert not does_collection_contain_more_than_n_matching_documents(collection, filter_d, 1)
+    assert does_num_matching_docs_exceed_threshold(collection, filter_b, 0)
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_b, 1)  # there is exactly 1
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_b, 2)
+    assert does_num_matching_docs_exceed_threshold(collection, filter_c, 9)
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_c, 10)  # there are exactly 10
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_c, 11)
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_d, 0)  # there are exactly 0
+    assert not does_num_matching_docs_exceed_threshold(collection, filter_d, 1)
 
     # Test: Vary collection.
     collection = db["empty_collection"]
     assert collection.count_documents({}) == 0
-    assert not does_collection_contain_more_than_n_matching_documents(collection, {}, 0)
+    assert not does_num_matching_docs_exceed_threshold(collection, {}, 0)
