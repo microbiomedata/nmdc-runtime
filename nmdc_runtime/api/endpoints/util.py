@@ -92,8 +92,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
     Note: If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter
-          criteria than can fit on a page of that size, this function will paginate the resources. Paginating the
-          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time.
+          criteria than can fit on a page of that size, this function will paginate the resources.
     """
 
     id_field = "id"
@@ -129,18 +128,18 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
 
     # Determine whether we will paginate the results.
     #
-    # We will paginate them unless either of the following is true:
-    # - the `max_page_size` is not a positive integer
-    # - the number of documents matching the filter does not exceed `max_page_size`
+    # Note: We will paginate them unless either:
+    #       - the `max_page_size` is not a positive integer
+    #       - the number of documents matching the filter does not exceed `max_page_size`
     #
     will_paginate = True
-    if (not isinstance(max_page_size, int)) or (max_page_size < 1):
+    if not isinstance(max_page_size, int):
         will_paginate = False
-    else:
-        num_matching_docs_exceeds_page_size = does_num_matching_docs_exceed_threshold(
+    elif max_page_size < 1:
+        will_paginate = False
+    elif not does_num_matching_docs_exceed_threshold(
             collection=mdb[collection_name], filter_=filter_, threshold=max_page_size
-        )
-        if not num_matching_docs_exceeds_page_size:
+        ):
             will_paginate = False
 
     if not will_paginate:
