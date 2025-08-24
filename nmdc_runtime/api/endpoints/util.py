@@ -138,9 +138,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         will_paginate = False
     else:
         num_matching_docs_exceeds_page_size = does_num_matching_docs_exceed_threshold(
-            collection=mdb[collection_name],
-            filter_=filter_,
-            threshold=max_page_size
+            collection=mdb[collection_name], filter_=filter_, threshold=max_page_size
         )
         if not num_matching_docs_exceeds_page_size:
             will_paginate = False
