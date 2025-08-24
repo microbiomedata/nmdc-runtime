@@ -44,6 +44,7 @@ All commands shown below were designed to be issued from the root directory of t
    > - `--exclude-tags mints_ids` (so tasks tagged with "`mints_ids`" are skipped)
    > - `--users 25` (so the test creates _25_ "actors" in total)
    > - `--spawn-rate 5` (so the test creates its "actors" at a rate of _5_ per second)
+   > - `--run-time 30s` (so the test runs for _30_ seconds)
    > - `--stop-timeout 180s` (so the test waits for HTTP responses for an additional _180 seconds_ after the test would otherwise have ended)
    > - Append a specific `HttpUser` subclass name (e.g. `User`, `SiteClient`) to the command (so only that kind of user is spawned during the test)
    >
