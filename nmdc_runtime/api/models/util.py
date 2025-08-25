@@ -31,6 +31,7 @@ class ListRequest(BaseModel):
         ],
     )
     # TODO: Document why the optional type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter).
+    # TODO: [FIX-MPS] Change `Optional[int]` below to `int`, and update downstream deps.
     max_page_size: Optional[int] = Field(
         default=20,
         title="Resources per page",
