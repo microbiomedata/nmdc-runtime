@@ -16,26 +16,38 @@ from toolz import merge
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
-# This is a queue of "request descriptors" to eventually be inserted into the database.
+# This is a queue of the "request descriptors" that we will eventually insert into the database.
 _requests = []
 _last_posted = datetime.now()
 
 
 def _post_requests(collection: str, requests_data: List[Dict], source: str):
+    """Inserts the specified request descriptors into the specified MongoDB collection."""
     mdb = get_mongo_db()
     mdb[collection].insert_many([merge(d, {"source": source}) for d in requests_data])
 
 
 def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
-    """ """
+    """Flushes the queue of request descriptors to the database if enough time has passed since the previous time."""
     global _requests, _last_posted
     _requests.append(request_data)
     now = datetime.now()
     # flush queue every minute at most
     if (now - _last_posted).total_seconds() > 60.0:
-        # Note: This use of threading is like "async".
-        # TODO: Confirm that this call does block until the insert happens.
-        #       FYI: This code/approach may have come from some documentation, like FastAPI's.
+        # Note: This use of threading is an attempt to avoid blocking the current thread
+        #       while performing the insertion(s).
+        #
+        # TODO: Is there is a race condition here? If multiple requests arrive at approximately
+        #       the same time, is it possible that each one causes a different thread to be
+        #       started, each with a different (and possibly overlapping) set of requests to
+        #       insert?
+        #
+        # TODO: If the insertion fails, will the requests be lost?
+        #
+        # Note: The author of this function said it may have been a "standard" solution copied
+        #       from some documentation. Indeed, the comment at the top of this module contains
+        #       a link to code on which it was based.
+        #
         threading.Thread(
             target=_post_requests, args=(collection, _requests, source)
         ).start()
