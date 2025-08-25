@@ -605,7 +605,7 @@ def translate_portal_submission_to_nmdc_schema_database(
         id_minter=id_minter,
         study_category=study_category,
         study_pi_image_url=study_pi_image_url,
-        study_id = study_id,
+        study_id=study_id,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         illumina_instrument_mapping=instrument_mapping,
