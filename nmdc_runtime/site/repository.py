@@ -508,6 +508,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "study_category": "research_study",
                             "study_pi_image_url": None,
+                            "study_id": None,
                         }
                     },
                 },
@@ -544,6 +545,7 @@ def biosample_submission_ingest():
                         "inputs": {
                             "study_category": None,
                             "study_pi_image_url": None,
+                            "study_id": None,
                         }
                     },
                 },

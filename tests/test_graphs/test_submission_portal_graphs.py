@@ -99,6 +99,7 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                 "inputs": {
                     "study_category": "research_study",
                     "study_pi_image_url": "http://www.example.com/test.png",
+                    "study_id": "",
                 }
             },
         },

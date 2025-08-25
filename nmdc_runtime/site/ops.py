@@ -588,6 +588,7 @@ def translate_portal_submission_to_nmdc_schema_database(
     instrument_mapping: Dict[str, str],
     study_category: Optional[str],
     study_pi_image_url: Optional[str],
+    study_id: Optional[str],
     biosample_extras: Optional[list[dict]],
     biosample_extras_slot_mapping: Optional[list[dict]],
 ) -> nmdc.Database:
@@ -604,6 +605,7 @@ def translate_portal_submission_to_nmdc_schema_database(
         id_minter=id_minter,
         study_category=study_category,
         study_pi_image_url=study_pi_image_url,
+        study_id = study_id,
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         illumina_instrument_mapping=instrument_mapping,
