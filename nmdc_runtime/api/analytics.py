@@ -16,6 +16,7 @@ from toolz import merge
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 
+# This is a queue of "request descriptors" to eventually be inserted into the database.
 _requests = []
 _last_posted = datetime.now()
 
@@ -26,15 +27,21 @@ def _post_requests(collection: str, requests_data: List[Dict], source: str):
 
 
 def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
+    """
+
+    """
     global _requests, _last_posted
     _requests.append(request_data)
     now = datetime.now()
     # flush queue every minute at most
     if (now - _last_posted).total_seconds() > 60.0:
+        # Note: This use of threading is like "async".
+        # TODO: Confirm that this call does block until the insert happens.
+        #       FYI: This code/approach may have come from some documentation, like FastAPI's.
         threading.Thread(
             target=_post_requests, args=(collection, _requests, source)
         ).start()
-        _requests = []
+        _requests = []  # empty the queue
         _last_posted = now
 
 
