@@ -133,6 +133,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     #       - the number of documents matching the filter does not exceed `max_page_size`
     #
     will_paginate = True
+    # TODO [FIX-MPS] remove the below
     if not isinstance(max_page_size, int):
         will_paginate = False
     elif max_page_size < 1:
