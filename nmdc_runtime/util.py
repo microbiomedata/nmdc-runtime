@@ -2,6 +2,7 @@ import json
 import mimetypes
 import os
 import pkgutil
+from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -9,15 +10,19 @@ from functools import lru_cache
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
-from typing import Callable, List, Optional, Set, Dict
+from typing import Callable, List, Optional, Set, Dict, Tuple
 
 import fastjsonschema
 import requests
 from frozendict import frozendict
+from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import OperationFailure
-from refscan.lib.helpers import identify_references
+from refscan.lib.helpers import (
+    identify_references,
+    get_collection_name_to_class_names_map,
+)
 from refscan.lib.ReferenceList import ReferenceList
 from toolz import merge
 
@@ -306,6 +311,32 @@ def nmdc_activity_collection_names():
 @lru_cache
 def nmdc_schema_view():
     return ViewGetter().get_view()
+
+
+@lru_cache
+def get_class_name_to_collection_names_map(
+    schema_view: SchemaView,
+) -> Dict[str, List[str]]:
+    """
+    Returns a mapping of class names to the names of the collections that can store instances of those classes/types,
+    according to the specified `SchemaView`.
+
+    Example output:
+    ```
+    {
+        "Study": ["study_set"],
+        "Biosample": ["biosample_set"],
+        ...
+    }
+    ```
+    """
+    class_name_to_collection_names = defaultdict(list)
+    for collection_name, class_names in get_collection_name_to_class_names_map(
+        schema_view
+    ).items():
+        for class_name in class_names:
+            class_name_to_collection_names[class_name].append(collection_name)
+    return class_name_to_collection_names
 
 
 @lru_cache

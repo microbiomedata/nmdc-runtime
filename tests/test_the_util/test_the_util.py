@@ -19,6 +19,7 @@ from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
     nmdc_schema_view,
+    get_class_name_to_collection_names_map,
 )
 from tests.lib.faker import Faker
 
@@ -367,3 +368,14 @@ def test_decorate_if():
     assert get_banana() == "banana"
     assert get_carrot() == "(carrot)"
     assert get_daikon() == "daikon"
+
+
+def test_get_class_name_to_collection_names_map_has_one_and_only_one_collection_name_per_class_name():
+    """
+    Test the assumption that each concrete document class, i.e. each class whose instances can be stored in a
+    collection specified by `nmdc_schema_view()`, can in fact be stored in one and only one collection.
+    """
+    for class_name, collection_names in get_class_name_to_collection_names_map(
+        nmdc_schema_view()
+    ).items():
+        assert len(collection_names) == 1, f"{class_name=}: {collection_names=}"

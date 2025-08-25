@@ -4,6 +4,7 @@ import re
 
 import pytest
 import requests
+from _pytest.fixtures import FixtureRequest
 from dagster import build_op_context
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from starlette import status
@@ -30,7 +31,7 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, MongoDatabase
 from tests.lib.faker import Faker
 
 
@@ -753,87 +754,83 @@ def test_get_class_name_and_collection_names_by_doc_id():
 
 
 @pytest.fixture
-def fake_study_in_mdb():
-    # Seed the database with a study that neither influences—nor is influenced by—any documents.
+def docs_one_fake_study() -> list[dict]:
+    """Provide a study that neither influences—nor is influenced by—any documents."""
     mdb = get_mongo_db()
     faker = Faker()
     study_a = faker.generate_studies(quantity=1, part_of=[])[0]
     study_set = mdb.get_collection(name="study_set")
     assert study_set.count_documents({"id": study_a["id"]}) == 0
-    study_set.insert_many([study_a])
-    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
-
-    yield study_a
-
-    # 🧹 Clean up: Delete the study we created earlier.
-    study_set.delete_many({"id": study_a["id"]})
-
-
-@pytest.fixture
-def fake_study_nonexistent_in_mdb():
-    mdb = get_mongo_db()
-    nonexistent_study_id = "nmdc:sty-00-00000x"
-    assert (
-        mdb.get_collection("study_set").count_documents({"id": nonexistent_study_id})
-        == 0
-    )
-    yield nonexistent_study_id
+    return [study_a]
 
 
 @pytest.mark.skipif(
     not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
+@pytest.mark.parametrize("seeded_db", ["docs_one_fake_study"], indirect=True)
 def test_get_linked_instances_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
-    api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
+    api_user_client, docs_one_fake_study, seeded_db: MongoDatabase
 ):
-    r"""
+    """
     This test demonstrates that the `/nmdcschema/linked_instances` API endpoint returns an
     unsuccessful status code when the request contains an `id` that does not exist in the
     database; and that that is the case whether that `id` is submitted on its own or as
     part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
     """
 
+    fake_study_nonexistent_in_mdb = "nmdc:sty-00-00000x"
+    assert (
+        seeded_db.get_collection("study_set").count_documents(
+            {"id": fake_study_nonexistent_in_mdb}
+        )
+        == 0
+    )
     # Request the `id`s of documents related to only that nonexistent study.
     #
     # Note: The `api_user_client` fixture's `request` method will raise an
     #       exception if the server responds with an unsuccessful status code.
     #
-    with pytest.raises(requests.exceptions.HTTPError):
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "GET",
-            f"/nmdcschema/linked_instances/ids={fake_study_nonexistent_in_mdb}/types=nmdc:NamedThing",
+            f"/nmdcschema/linked_instances/?ids={fake_study_nonexistent_in_mdb}",
         )
+    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
 
     # Submit the same request, but specify _both_ the existing study's `id`
     # and the nonexistent study's `id`.
-    with pytest.raises(requests.exceptions.HTTPError):
+    fake_study_in_mdb = docs_one_fake_study[0]["id"]
+    assert (
+        seeded_db.get_collection("study_set").count_documents({"id": fake_study_in_mdb})
+        == 1
+    )
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "GET",
             (
-                f'/nmdcschema/linked_instances/ids={fake_study_in_mdb["id"]},{fake_study_nonexistent_in_mdb}'
-                + "/types=nmdc:NamedThing"
+                f"/nmdcschema/linked_instances/?ids={fake_study_in_mdb}&ids={fake_study_nonexistent_in_mdb}"
             ),  # two ids
         )
+
+    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.skipif(
     not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
+@pytest.mark.parametrize("seeded_db", ["docs_one_fake_study"], indirect=True)
 def test_get_linked_instances_returns_empty_resources_list_for_isolated_subject(
-    api_user_client, fake_study_in_mdb
+    api_user_client, docs_one_fake_study, seeded_db
 ):
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
+    fake_study_in_mdb = docs_one_fake_study[0]
     response = api_user_client.request(
         "GET",
         f'/nmdcschema/linked_instances/?ids={fake_study_in_mdb["id"]}',
     )
     # Assert that the response contains an empty "resources" list.
     assert response.status_code == 200
-    assert response.json() == {
-        "resources": [
-            {"id": fake_study_in_mdb["id"], "upstream_docs": [], "downstream_docs": []}
-        ]
-    }
+    assert response.json() == {"resources": []}
 
 
 @pytest.fixture
