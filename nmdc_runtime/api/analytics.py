@@ -27,9 +27,7 @@ def _post_requests(collection: str, requests_data: List[Dict], source: str):
 
 
 def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
-    """
-
-    """
+    """ """
     global _requests, _last_posted
     _requests.append(request_data)
     now = datetime.now()
