@@ -5,25 +5,23 @@ Note: This is a [Locustfile](https://docs.locust.io/en/stable/writing-a-locustfi
       a load on the system under test (SUT). In this case, the SUT is the Runtime API.
 """
 
-import base64
 import json
+import os
 
 from locust import HttpUser, task, tag
 
 
-# This is a quick-n-dirty way to specify user credentials for load testing,
-# allowing for visual obfuscation (which can be undone via base64 decoding)
-# for sharing screen with team members, mitigating accidental retention
-# via casual glancing. THIS IS NOT SECURE. DO NOT SCREENSHOT THESE VALUES.
-# 
-# You can use the following website to generate base64-encoded strings of
-# your username and password:
-# https://emn178.github.io/online-tools/base64_encode.html
+# Read the credentials of a Runtime API user from environment variables,
+# falling back to default values if the environment variables are not set.
 #
-# FIXME: Get the decoded values from environment variables instead.
+# Note: When invoking Locust in a container via `docker run`, you can define
+#       the environment variables for the container like this:
+#       ```
+#       docker run --env API_USERNAME="bob" --env API_PASSWORD="shh" ...
+#       ```
 #
-username = base64.b64decode("__REPLACE_ME__")
-password = base64.b64decode("__REPLACE_ME__")
+username = os.getenv("API_USERNAME", "admin")
+password = os.getenv("API_PASSWORD", "root")
 
 
 class User(HttpUser):
@@ -51,6 +49,14 @@ class User(HttpUser):
         A baseline task that doesn't involve authentication or MongoDB.
         """
         self.client.get("/version")
+
+    @task
+    def get_functional_annotation_agg_documents(self):
+        """
+        A task that involves querying a very large MongoDB collection
+        via a general-purpose endpoint.
+        """
+        self.client.get("/nmdcschema/functional_annotation_agg")
 
     @task
     def get_biosamples(self):

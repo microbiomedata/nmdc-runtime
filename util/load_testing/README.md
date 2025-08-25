@@ -35,13 +35,20 @@ All commands shown below were designed to be issued from the root directory of t
        --network nmdc-runtime-dev_default \
        locustio/locust \
          --locustfile /mnt/locust/locustfile.py \
-         --users 1 \
-         --spawn-rate 1 \
          --host http://fastapi:8000
    ```
    > **Note:** The `--network nmdc-runtime-dev_default` CLI option causes Docker to connect the Locust container to the same network as the standard development stack. That way, the Locust container will be able to access the Runtime API at `http://fastapi:8000`, regardless of how you access the Runtime API from your host OS.
    >
-   > **Note:** The CLI options Locust supports are documented [here](https://docs.locust.io/en/stable/configuration.html#command-line-options). For example, developers sometimes use the `--autostart ` CLI option (so the test starts without requiring us to press the "Start" button on the web UI). Also, developers sometimes use the `--exclude-tags {string}` CLI option (so tasks tagged with `{string}` are skipped). Finally, developers sometimes append a specific `HttpUser` subclass name to the end of the command (so only that kind of user is spawned during the test). We may eventually specify some CLI options via a [configuration file](https://docs.locust.io/en/stable/configuration.html#configuration-file).
+   > **Note:** The CLI options Locust supports are documented [here](https://docs.locust.io/en/stable/configuration.html#command-line-options). Here are some that I have used:
+   > - `--autostart` (so the test starts without requiring me to press the "Start" button on the web UI)
+   > - `--exclude-tags mints_ids` (so tasks tagged with "`mints_ids`" are skipped)
+   > - `--users 25` (so the test creates _25_ "actors" in total)
+   > - `--spawn-rate 5` (so the test creates its "actors" at a rate of _5_ per second)
+   > - `--run-time 30s` (so the test runs for _30_ seconds)
+   > - `--stop-timeout 180s` (so the test waits for HTTP responses for an additional _180 seconds_ after the test would otherwise have ended)
+   > - Append a specific `HttpUser` subclass name (e.g. `User`, `SiteClient`) to the command (so only that kind of user is spawned during the test)
+   >
+   > We may eventually specify some CLI options via a [configuration file](https://docs.locust.io/en/stable/configuration.html#configuration-file).
 4. Visit the Locust web UI, at: http://localhost:8089
 5. Perform load testing.
    - Press the "Start" button to start the test.

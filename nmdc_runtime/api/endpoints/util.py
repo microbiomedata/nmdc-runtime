@@ -6,7 +6,7 @@ from functools import lru_cache
 from json import JSONDecodeError
 from pathlib import Path
 from time import time_ns
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from zoneinfo import ZoneInfo
 
 from bson import json_util
@@ -55,6 +55,20 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
+def does_num_matching_docs_exceed_threshold(
+    collection: MongoCollection, filter_: dict, threshold: int
+) -> bool:
+    """Check whether a MongoDB collection contains more than `threshold` documents matching the filter."""
+    if threshold < 0:
+        raise ValueError("Threshold must be at least 0.")
+
+    limited_num_matching_docs = collection.count_documents(
+        filter=filter_,
+        limit=threshold + 1,
+    )
+    return limited_num_matching_docs > threshold
+
+
 def check_filter(filter_: str):
     """A pass-through function that checks if `filter_` is parsable as a JSON object. Raises otherwise."""
     filter_ = filter_.strip()
@@ -77,10 +91,8 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    Note: If the specified `ListRequest` has a non-zero `max_page_size` number and the number of documents matching the
-          filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
-          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
-          when the collection involved contains many documents.
+    Note: If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter
+          criteria than can fit on a page of that size, this function will paginate the resources.
     """
 
     id_field = "id"
@@ -91,7 +103,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         id_field = (
             "_id"  # currently expected for `functional_annotation_agg` collection
         )
-    limit = req.max_page_size
+    max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
@@ -114,13 +126,23 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
-    # If limit is 0, the response will include all results (bypassing pagination altogether).
+    # Determine whether we will paginate the results.
     #
-    # TODO: Since we don't need to know the exact count, but we do need to know whether
-    #       it would be greater than `limit`; consider using an aggregation pipeline to
-    #       count only up to "limit + 1" (see: https://stackoverflow.com/a/67503437).
+    # Note: We will paginate them unless either:
+    #       - the `max_page_size` is not a positive integer
+    #       - the number of documents matching the filter does not exceed `max_page_size`
     #
-    if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
+    will_paginate = True
+    if not isinstance(max_page_size, int):
+        will_paginate = False
+    elif max_page_size < 1:
+        will_paginate = False
+    elif not does_num_matching_docs_exceed_threshold(
+        collection=mdb[collection_name], filter_=filter_, threshold=max_page_size
+    ):
+        will_paginate = False
+
+    if not will_paginate:
         rv = {
             "resources": list(
                 mdb[collection_name].find(filter=filter_, projection=projection)
@@ -132,7 +154,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             mdb[collection_name].find(
                 filter=filter_,
                 projection=projection,
-                limit=limit,
+                limit=max_page_size,
                 sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
