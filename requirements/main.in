@@ -46,7 +46,6 @@ dagster-postgres
 # Note: We use `fastapi` to implement the web application.
 fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
-fnc
 frozendict
 git-root
 jq
