@@ -51,7 +51,7 @@ def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
         threading.Thread(
             target=_post_requests, args=(collection, _requests, source)
         ).start()
-        _requests = []  # empty the queue
+        _requests = []  # empties the queue
         _last_posted = now
 
 
