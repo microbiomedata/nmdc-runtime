@@ -9,7 +9,7 @@ setup(
     name="nmdc_runtime",
     url="https://github.com/microbiomedata/nmdc-runtime",
     packages=find_packages(
-        include=["nmdc_runtime*", "components*"],
+        include=["nmdc_runtime*"],
         exclude=["tests"],
     ),
     use_scm_version=True,
