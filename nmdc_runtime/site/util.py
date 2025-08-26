@@ -66,6 +66,7 @@ def get_instruments_by_id(mdb: MongoDatabase) -> dict[str, dict]:
         instrument["id"]: instrument for instrument in mdb["instrument_set"].find({})
     }
 
+
 def mongo_add_docs_result_as_dict(rv):
     """TODO: Document this function."""
     return {
