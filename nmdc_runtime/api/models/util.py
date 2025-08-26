@@ -30,8 +30,13 @@ class ListRequest(BaseModel):
             r'{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}',
         ],
     )
-    # TODO: Document why the optional type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter).
-    max_page_size: Optional[int] = Field(
+    # TODO: Document the following things about this type hint and `Field` definition:
+    #       (a) why the type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter),
+    #       (b) why the default value here is 20 as opposed to 25 (the default value in `FindRequest`), and
+    #       (c) why there is no upper limit on the value (the `PerPageRange` type has an upper limit of 2000).
+    #
+    # Note: If the HTTP request lacks a value for this parameter, Pydantic will fall back to the default value specified here.
+    max_page_size: int = Field(
         default=20,
         title="Resources per page",
         description="How many resources you want _each page_ to contain, formatted as a positive integer.",
@@ -123,7 +128,7 @@ class FindRequest(BaseModel):
                     This is the page number formatted as an integer ≥ 1.""",
         examples=[1],
     )
-    per_page: Optional[PerPageRange] = Field(
+    per_page: PerPageRange = Field(
         default=25,
         title="Resources per page",
         description="How many resources you want _each page_ to contain, formatted as a positive integer ≤ 2000.",

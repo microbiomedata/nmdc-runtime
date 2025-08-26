@@ -10,7 +10,6 @@ import bson
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pymongo.errors import AutoReconnect, OperationFailure
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
@@ -81,17 +80,6 @@ def get_session_bound_mongo_db(session=None) -> MongoDatabase:
     mdb = _client[os.getenv("MONGO_DBNAME")]
     check_mongo_ok_autoreconnect(mdb)
     return SessionBoundDatabase(mdb, session) if session is not None else mdb
-
-
-@lru_cache
-def get_async_mongo_db() -> AsyncIOMotorDatabase:
-    _client = AsyncIOMotorClient(
-        host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
-        directConnection=True,
-    )
-    return _client[os.getenv("MONGO_DBNAME")]
 
 
 def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:

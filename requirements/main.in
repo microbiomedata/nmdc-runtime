@@ -17,7 +17,6 @@
 #
 base32-lib
 beautifulsoup4
-beanie>=1.16.0
 boto3
 click
 dagit
@@ -41,7 +40,6 @@ lxml
 mkdocs-jupyter
 mkdocs-material
 mkdocs-mermaid2-plugin
-motor
 ontology-loader==0.2.2
 nmdc-schema==11.10.0
 openpyxl

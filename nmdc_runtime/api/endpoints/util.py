@@ -55,18 +55,23 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
-def does_num_matching_docs_exceed_threshold(
-    collection: MongoCollection, filter_: dict, threshold: int
+def is_num_matching_docs_within_limit(
+    collection: MongoCollection, filter_: dict, limit: int
 ) -> bool:
-    """Check whether a MongoDB collection contains more than `threshold` documents matching the filter."""
-    if threshold < 0:
-        raise ValueError("Threshold must be at least 0.")
+    """
+    Check whether the number of documents in a MongoDB collection that match
+    the filter is within (i.e. is no greater than) the specified limit.
+    """
+    if limit < 0:
+        raise ValueError("Limit must be at least 0.")
 
+    # Count the number of documents matching the filter, but only count up to limit + 1,
+    # since that's enough to determine whether the number exceeds the limit.
     limited_num_matching_docs = collection.count_documents(
         filter=filter_,
-        limit=threshold + 1,
+        limit=limit + 1,
     )
-    return limited_num_matching_docs > threshold
+    return limited_num_matching_docs <= limit
 
 
 def check_filter(filter_: str):
@@ -128,17 +133,12 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
 
     # Determine whether we will paginate the results.
     #
-    # Note: We will paginate them unless either:
-    #       - the `max_page_size` is not a positive integer
-    #       - the number of documents matching the filter does not exceed `max_page_size`
+    # Note: We will paginate them unless either (a) the `max_page_size` is less than 1,
+    #       or (b) the number of documents matching the filter can fit on a single page.
     #
     will_paginate = True
-    if not isinstance(max_page_size, int):
-        will_paginate = False
-    elif max_page_size < 1:
-        will_paginate = False
-    elif not does_num_matching_docs_exceed_threshold(
-        collection=mdb[collection_name], filter_=filter_, threshold=max_page_size
+    if max_page_size < 1 or is_num_matching_docs_within_limit(
+        collection=mdb[collection_name], filter_=filter_, limit=max_page_size
     ):
         will_paginate = False
 
