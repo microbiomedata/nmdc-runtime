@@ -4,7 +4,6 @@ from functools import lru_cache
 from pymongo.database import Database as MongoDatabase
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from refscan.lib.helpers import get_collection_names_from_schema
-from toolz import dissoc
 
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.util import nmdc_schema_view
@@ -64,12 +63,4 @@ def get_instruments_by_id(mdb: MongoDatabase) -> dict[str, dict]:
     """Get all documents from the instrument_set collection in a dict keyed by id."""
     return {
         instrument["id"]: instrument for instrument in mdb["instrument_set"].find({})
-    }
-
-
-def mongo_add_docs_result_as_dict(rv):
-    """TODO: Document this function."""
-    return {
-        collection_name: dissoc(bulk_write_result.bulk_api_result, "upserted")
-        for collection_name, bulk_write_result in rv.items()
     }

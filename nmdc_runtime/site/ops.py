@@ -16,6 +16,7 @@ from ontology_loader.ontology_load_controller import OntologyLoaderController
 import pandas as pd
 import requests
 from refscan.lib.helpers import get_names_of_classes_in_effective_range_of_slot
+from toolz import dissoc
 
 from bson import ObjectId, json_util
 from dagster import (
@@ -73,7 +74,6 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
 )
-from nmdc_runtime.site.util import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
     GoldApiClient,
@@ -437,7 +437,13 @@ def _add_schema_docs_with_or_without_replacement(
             f"{colls_not_id_indexed=} ; {colls_id_indexed=}"
         )
     op_result = mongo.add_docs(docs, validate=False, replace=replace)
-    return mongo_add_docs_result_as_dict(op_result)
+
+    # Translate the operation result into a dictionary in which each item's key is a collection name
+    # and each item's value is the corresponding bulk API result (excluding the "upserted" field).
+    return {
+        collection_name: dissoc(bulk_write_result.bulk_api_result, "upserted")
+        for collection_name, bulk_write_result in op_result.items()
+    }
 
 
 @op(required_resource_keys={"mongo"})
