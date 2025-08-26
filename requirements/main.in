@@ -4,6 +4,11 @@
 #
 # Reference: https://github.com/jazzband/pip-tools?tab=readme-ov-file#requirements-from-requirementsin
 #
+# Note: Here's a handy command you can use to find imports of the "foo" package in the codebase:
+#       ```
+#       $ grep -rE '(import|from)\s+.*foo' ./nmdc_runtime/
+#       ```
+#
 # Note: To specify that a Python package be built from the contents of a GitHub repository (which can
 #       be useful for integration testing before that Python package gets published to PyPI), you can
 #       use the following syntax in this file:
@@ -18,25 +23,27 @@
 # TODO: Consider moving our "first-party" dependencies (e.g. `nmdc-schema`, `ontology-loader`, `refscan`)
 #       to a group at the top of the file or a separate requirements file.
 #
-# Base32 encoding/decoding library (used for minting IDs).
+###############################################################################
+
+# Note: We use this (imported via `base32_lib`) when minting IDs.
 base32-lib
-# AWS SDK for Python (S3, EC2, etc.)
+# Note: We use `boto3` to interact with S3-compatible storage services.
+#       There is an open issue (nmdc-runtime/issues/512) about removing
+#       the code that interacts with S3-compatible storage services, so
+#       we might eventually remove this dependency.
 boto3
-# Command-line interface creation toolkit
+# Note: We use `click` for some one-off scripts that generate changesheets (in `nmdc_runtime/site/changesheets/scripts/`)
+#       and for scripts that were once used to dump, export, and restore MongoDB databases (in `nmdc_runtime/site/backup/`).
 click
-# Web UI for Dagster data pipelines.
+# Dagster-related packages.
 # TODO: Maybe there's a new way to import Dagster's packages? See: https://docs.dagster.io/getting-started/installation#installation-requirements-for-manually-creating-or-updating-a-project
+# TODO: Consider using SQLite instead of Postgres for Dagster. Related issue: nmdc-runtime/issues/885.
+# Note: As some point, the only way to programmatically request that Dagster run something was via GraphQL. There may be another way now.
 dagit
-# Data orchestration platform for building data pipelines
 dagster
-# GraphQL client for Dagster.
-# Note: As some point, this was the only way to request that Dagster run something.
-# TODO: Check whether there's another way to do this nowadays.
 dagster-graphql
-# PostgreSQL integration for Dagster.
-# TODO: See existing issue in `microbiomedata/nmdc-runtime` about using SQLite instead of Postgres.
 dagster-postgres
-# Modern, fast web framework for building APIs with Python
+# Note: We use `fastapi` to implement the web application.
 fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
 fnc
