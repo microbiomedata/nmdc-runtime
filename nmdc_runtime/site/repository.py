@@ -502,13 +502,13 @@ def biosample_submission_ingest():
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
+                            "study_id": None,
                         }
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
                             "study_category": "research_study",
                             "study_pi_image_url": None,
-                            "study_id": None,
                         }
                     },
                 },
@@ -539,13 +539,13 @@ def biosample_submission_ingest():
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
+                            "study_id": None,
                         }
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
                         "inputs": {
                             "study_category": None,
                             "study_pi_image_url": None,
-                            "study_id": None,
                         }
                     },
                 },

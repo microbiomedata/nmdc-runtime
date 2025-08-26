@@ -93,13 +93,13 @@ def test_translate_metadata_submission_to_nmdc_schema_database():
                     "biosample_extras_slot_mapping_file_url": None,
                     "data_object_mapping_file_url": None,
                     "nucleotide_sequencing_mapping_file_url": None,
+                    "study_id": "",
                 }
             },
             "translate_portal_submission_to_nmdc_schema_database": {
                 "inputs": {
                     "study_category": "research_study",
                     "study_pi_image_url": "http://www.example.com/test.png",
-                    "study_id": "",
                 }
             },
         },

@@ -756,20 +756,12 @@ class SubmissionPortalTranslator(Translator):
 
         # Generate one Study instance based on the metadata submission, if a study_id wasn't provided
         if self.study_id:
-            if re.match(
-                "^[a-zA-Z0-9][a-zA-Z0-9_\.]+:[a-zA-Z0-9_][a-zA-Z0-9_\-\/\.,]*$",
-                self.study_id,
-            ):
-                nmdc_study_id = self.study_id
-            else:
-                nmdc_study_id = self._id_minter("nmdc:Study")[
-                    0
-                ]  # what do we actually want to do if an ID is supplied but it's invalid? I don't think we want to just mint a new id, probably raise an error.
+            nmdc_study_id = self.study_id
         else:
             nmdc_study_id = self._id_minter("nmdc:Study")[0]
-        database.study_set = [
-            self._translate_study(metadata_submission_data, nmdc_study_id)
-        ]
+            database.study_set = [
+                self._translate_study(metadata_submission_data, nmdc_study_id)
+            ]
 
         # Automatically populate the `env_package` field in the sample data based on which
         # environmental data tab the sample data came from.
