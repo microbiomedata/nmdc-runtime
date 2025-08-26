@@ -83,7 +83,6 @@ requests
 # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
 #       maintainers have not published recent versions of the package to PyPI yet.
 # Reference: https://github.com/scalar/scalar/issues/5337#issuecomment-2781011096
-# Modern API documentation interface for FastAPI
 scalar-fastapi@git+https://github.com/scalar/scalar/#subdirectory=integrations/fastapi
 semver
 setuptools-scm
