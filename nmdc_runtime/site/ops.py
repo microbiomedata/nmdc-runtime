@@ -564,14 +564,12 @@ def get_submission_portal_pipeline_inputs(
     biosample_extras_slot_mapping_file_url: Optional[str],
     study_id: Optional[str],
 ) -> Tuple[str, str | None, str | None, str | None, str | None, str | None]:
-    #query for studies matching the ID to see if it eists
+    # query for studies matching the ID to see if it eists
     if study_id:
         mdb = context.resources.mongo.db
         result = mdb.study_set.find_one({"id": study_id})
         if not result:
-            raise Exception(
-                f"Study id: {study_id} does not exist in Mongo."
-            )
+            raise Exception(f"Study id: {study_id} does not exist in Mongo.")
 
     return (
         submission_id,
