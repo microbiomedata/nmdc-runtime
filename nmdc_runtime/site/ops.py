@@ -1,7 +1,6 @@
 import csv
 import json
 import logging
-import mimetypes
 import os
 import subprocess
 from collections import defaultdict
@@ -95,15 +94,12 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
 )
 from nmdc_runtime.site.repair.database_updater import DatabaseUpdater
 from nmdc_runtime.site.util import (
-    run_and_log,
     schema_collection_has_index_on_id,
     nmdc_study_id_to_filename,
     get_instruments_by_id,
 )
 from nmdc_runtime.util import (
-    drs_object_in_for,
     pluralize,
-    put_object,
     specialize_activity_set_docs,
     collection_name_to_class_names,
     nmdc_schema_view,
@@ -112,7 +108,6 @@ from nmdc_runtime.util import (
 from nmdc_schema import nmdc
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
-from starlette import status
 from toolz import get_in, valfilter, identity
 
 
