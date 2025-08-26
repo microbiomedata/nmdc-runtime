@@ -27,6 +27,8 @@ click the `Try it out` button. In the request body, the only required fields are
 `password`. If you know the `id`s of any sites you would like the new user to administer, enter
 those as an array value for the `site_admin` field.
 
+<!-- TODO: Consider hosting an instance of Snappass on Spin instead of relying on an externally-hosted one. -->
+
 Share a new user's password securely with them. For example, a free instance of the open-source
 [snappass](https://github.com/pinterest/snappass) web app is hosted by `dwinston` at
 <https://snappass.polyneme.xyz/>. This will generate a one-time link that you can email, send via
