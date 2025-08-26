@@ -15,16 +15,28 @@
 #       refscan @ git+https://github.com/microbiomedata/refscan.git@b4f6bab138d2158ece7ea2423a27d8b8493d02f5
 #       ```
 #
+# TODO: Consider moving our "first-party" dependencies (e.g. `nmdc-schema`, `ontology-loader`, `refscan`)
+#       to a group at the top of the file or a separate requirements file.
+#
+# Base32 encoding/decoding library (used for minting IDs).
 base32-lib
-beautifulsoup4
+# AWS SDK for Python (S3, EC2, etc.)
 boto3
+# Command-line interface creation toolkit
 click
+# Web UI for Dagster data pipelines.
+# TODO: Maybe there's a new way to import Dagster's packages? See: https://docs.dagster.io/getting-started/installation#installation-requirements-for-manually-creating-or-updating-a-project
 dagit
+# Data orchestration platform for building data pipelines
 dagster
+# GraphQL client for Dagster.
+# Note: As some point, this was the only way to request that Dagster run something.
+# TODO: Check whether there's another way to do this nowadays.
 dagster-graphql
+# PostgreSQL integration for Dagster.
+# TODO: See existing issue in `microbiomedata/nmdc-runtime` about using SQLite instead of Postgres.
 dagster-postgres
-dependency-injector
-dotted-dict
+# Modern, fast web framework for building APIs with Python
 fastapi>=0.115.0  # note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models, including Swagger annotations
 fastjsonschema
 fnc
@@ -32,6 +44,7 @@ frozendict
 git-root
 jq
 jsonasobj2
+# TODO: Could these two Jupyter-related packages be made into development dependencies?
 jupyter
 jupyterlab
 linkml
@@ -42,7 +55,6 @@ mkdocs-material
 mkdocs-mermaid2-plugin
 ontology-loader==0.2.2
 nmdc-schema==11.10.0
-openpyxl
 pandas
 passlib[bcrypt]
 pymongo
@@ -64,6 +76,7 @@ requests
 # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
 #       maintainers have not published recent versions of the package to PyPI yet.
 # Reference: https://github.com/scalar/scalar/issues/5337#issuecomment-2781011096
+# Modern API documentation interface for FastAPI
 scalar-fastapi@git+https://github.com/scalar/scalar/#subdirectory=integrations/fastapi
 semver
 setuptools-scm
@@ -71,6 +84,4 @@ tenacity
 toolz
 tqdm
 uvicorn[standard]
-xlrd
-xlsxwriter
 requests-cache
