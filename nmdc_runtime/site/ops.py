@@ -73,7 +73,7 @@ from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_nucleotide_sequencing_from_biosamples,
     fetch_library_preparation_from_biosamples,
 )
-from nmdc_runtime.site.drsobjects.ingest import mongo_add_docs_result_as_dict
+from nmdc_runtime.site.util import mongo_add_docs_result_as_dict
 from nmdc_runtime.site.resources import (
     NmdcPortalApiClient,
     GoldApiClient,
