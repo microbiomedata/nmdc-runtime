@@ -60,7 +60,6 @@ bcrypt==4.3.0
     # via passlib
 beautifulsoup4==4.13.4
     # via
-    #   -r requirements/main.in
     #   mkdocs-mermaid2-plugin
     #   nbconvert
 bleach==6.2.0
@@ -172,8 +171,6 @@ defusedxml==0.7.1
     # via
     #   nbconvert
     #   oaklib
-dependency-injector==4.46.0
-    # via -r requirements/main.in
 deprecated==1.2.18
     # via
     #   linkml-runtime
@@ -188,8 +185,6 @@ dnspython==2.7.0
     #   pymongo
 docstring-parser==0.16
     # via dagster
-dotted-dict==1.1.3
-    # via -r requirements/main.in
 duckdb==1.3.0
     # via
     #   duckdb-engine
@@ -227,8 +222,6 @@ filelock==3.18.0
     #   dagster
     #   tox
     #   virtualenv
-fnc==0.5.3
-    # via -r requirements/main.in
 fqdn==1.5.1
     # via jsonschema
 frozendict==2.4.6
@@ -562,9 +555,7 @@ ontology-loader==0.2.2
 ontoportal-client==0.0.4
     # via oaklib
 openpyxl==3.1.5
-    # via
-    #   -r requirements/main.in
-    #   linkml
+    # via linkml
 overrides==7.7.0
     # via jupyter-server
 packaging==25.0
@@ -1080,10 +1071,6 @@ widgetsnbextension==4.0.14
     # via ipywidgets
 wrapt==1.17.2
     # via deprecated
-xlrd==2.0.1
-    # via -r requirements/main.in
-xlsxwriter==3.2.3
-    # via -r requirements/main.in
 xmltodict==0.14.2
     # via linkml-store
 yarl==1.20.0

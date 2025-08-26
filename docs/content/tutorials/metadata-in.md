@@ -79,21 +79,18 @@ intend for this object to be ingested as NMDC metadata.
 ## Monitor the progress of metadata ingest
 
 After tagging the DRS Object as "metadata-in", the NMDC Runtime site
-[senses](https://dagit-readonly.nmdc-runtime-dev.polyneme.xyz/workspace/repo@nmdc_runtime.site.repository:repo/sensors/process_workflow_job_triggers)
+[senses](https://dagit.microbiomedata.org/locations/repo@nmdc_runtime.site.repository:repo/sensors/process_workflow_job_triggers)
 that a new "metadata-in-1.0.0" job should be run given your DRS object `id` as input. You can then
 [monitor
-runs](https://dagit-readonly.nmdc-runtime-dev.polyneme.xyz/workspace/repo@nmdc_runtime.site.repository:repo/jobs/apply_metadata_in/runs)
+runs](https://dagit.microbiomedata.org/locations/repo@nmdc_runtime.site.repository:repo/jobs/apply_metadata_in/runs)
 of the job.
 
-In general, <https://dagit-readonly.nmdc-runtime-dev.polyneme.xyz/instance/runs> will give you an
+<!-- TODO: Update the administrator information. -->
+
+In general, <https://dagit.microbiomedata.org/runs> will give you an
 overview of the NMDC Runtime site's job runs. If you have the username and password (ask `dehays`),
 you can administer the underlying Dagster orchestrator via its Dagit web UI via
-<https://dagit.dev.microbiomedata.org/>.
-
-!!! note
-    The read-only version is hosted at NERSC in the same
-    kubernetes pod as the read-write version -- we just haven't gotten around to getting a SSL
-    certificate for a `*.mirobiomedata.org` subdomain.
+<https://dagit.microbiomedata.org/>.
 
 Here's an example of the general Runs view after our new metadata has been ingested:
 
