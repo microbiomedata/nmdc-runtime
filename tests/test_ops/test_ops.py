@@ -104,3 +104,45 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     db.workflow_execution_set.delete_many({"id": workflow_execution_id})
     for doc_spec in docs["functional_annotation_agg"]:
         db.functional_annotation_agg.delete_many(doc_spec)
+
+
+def test_apply_metadata_in_checks_referential_integrity(op_context):
+    db = op_context.resources.mongo.db  # concise alias
+    
+    # Confirm the _referenced_ document does not exist (anywhere the schema says it can).
+    workflow_execution_id = "nmdc:wfmtan-00-000000.1"
+    assert db.workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    functional_annotation_agg_member = {
+        "was_generated_by": workflow_execution_id,
+        "gene_function_id": "KEGG.ORTHOLOGY:K00005",
+        "count": 10,
+        "type": "nmdc:FunctionalAnnotationAggMember",
+    }
+
+    docs = {"functional_annotation_agg": [functional_annotation_agg_member]}
+
+    # Confirm the `functional_annotation_agg` document does not exist.
+    assert db.functional_annotation_agg.count_documents(
+        functional_annotation_agg_member
+    ) == 0
+
+    # Note: This statement was copied from the `test_apply_metadata_in_functional_annotation_agg` test above.
+    extra_run_config_data = _ensure_job__metadata_in(
+        docs,
+        op_context.resources.runtime_api_user_client.username,
+        db,
+        op_context.resources.runtime_api_site_client.client_id,
+        drs_object_exists_ok=True,  # If there exists a DRS object with a matching checksum, use it.
+    )
+
+    with pytest.raises(Exception) as exc_info:
+        apply_metadata_in.to_job(**preset_normal).execute_in_process(
+            run_config=extra_run_config_data
+        )
+        assert "references" in str(exc_info.value)
+
+    # Confirm the `functional_annotation_agg` document _still_ does not exist.
+    assert db.functional_annotation_agg.count_documents(
+        functional_annotation_agg_member
+    ) == 0
