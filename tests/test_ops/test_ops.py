@@ -47,8 +47,7 @@ def op_context():
 
 
 def test_apply_metadata_in_functional_annotation_agg(op_context):
-    mongo = op_context.resources.mongo
-    db = mongo.db  # concise alias
+    db = op_context.resources.mongo.db  # concise alias
     
     # Insert the _referenced_ document first, so that referential integrity is maintained.
     faker = Faker()
@@ -102,6 +101,6 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     )
 
     # 🧹 Clean up the test database.
-    db.workflow_execution.delete_many({"id": workflow_execution_id})
+    db.workflow_execution_set.delete_many({"id": workflow_execution_id})
     for doc_spec in docs["functional_annotation_agg"]:
         db.functional_annotation_agg.delete_many(doc_spec)
