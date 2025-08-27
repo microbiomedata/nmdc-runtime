@@ -389,7 +389,7 @@ def perform_mongo_updates(context, json_in):
     context.log.debug(f"{docs}")
 
     rv = validate_json(
-        docs, mongo.db
+        docs, mongo.db, check_inter_document_references=True,
     )  # use *exact* same check as /metadata/json:validate
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
