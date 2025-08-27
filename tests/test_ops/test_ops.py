@@ -12,6 +12,7 @@ from nmdc_runtime.site.resources import (
 )
 
 from nmdc_runtime.site.graphs import apply_metadata_in
+from tests.lib.faker import Faker
 
 
 @pytest.fixture
@@ -47,6 +48,19 @@ def op_context():
 
 def test_apply_metadata_in_functional_annotation_agg(op_context):
     mongo = op_context.resources.mongo
+    db = mongo.db  # concise alias
+    
+    # Insert the _referenced_ documents first, so that referential integrity is maintained.
+    faker = Faker()
+    workflow_execution: dict = faker.generate_metagenome_annotations(
+        1,
+        was_informed_by=['nmdc:dgns-00-000001'],
+        has_input=['nmdc:bsm-00-000001']
+    )[0]
+    filter_ = {"id": workflow_execution["id"]}
+    assert db.workflow_execution.count_documents(filter_) == 0
+    db.workflow_execution.insert_one(workflow_execution)
+
     docs = {
         "functional_annotation_agg": [
             {
@@ -65,12 +79,12 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     }
     # Ensure the docs are not already in the test database.
     for doc_spec in docs["functional_annotation_agg"]:
-        mongo.db.functional_annotation_agg.delete_many(doc_spec)
+        db.functional_annotation_agg.delete_many(doc_spec)
 
     extra_run_config_data = _ensure_job__metadata_in(
         docs,
         op_context.resources.runtime_api_user_client.username,
-        mongo.db,
+        db,
         op_context.resources.runtime_api_site_client.client_id,
         drs_object_exists_ok=True,  # If there exists a DRS object with a matching checksum, use it.
     )
@@ -80,8 +94,13 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     )
 
     assert (
-        mongo.db.functional_annotation_agg.count_documents(
+        db.functional_annotation_agg.count_documents(
             {"$or": docs["functional_annotation_agg"]}
         )
         == 2
     )
+
+    # Clean up the test database.
+    db.workflow_execution.delete_many(filter_)
+    for doc_spec in docs["functional_annotation_agg"]:
+        db.functional_annotation_agg.delete_many(doc_spec)
