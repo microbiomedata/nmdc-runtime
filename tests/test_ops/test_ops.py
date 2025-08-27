@@ -50,27 +50,28 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     mongo = op_context.resources.mongo
     db = mongo.db  # concise alias
     
-    # Insert the _referenced_ documents first, so that referential integrity is maintained.
+    # Insert the _referenced_ document first, so that referential integrity is maintained.
     faker = Faker()
+    workflow_execution_id = "nmdc:wfmtan-13-hemh0a82.1"
     workflow_execution: dict = faker.generate_metagenome_annotations(
         1,
         was_informed_by=['nmdc:dgns-00-000001'],
         has_input=['nmdc:bsm-00-000001']
     )[0]
-    filter_ = {"id": workflow_execution["id"]}
-    assert db.workflow_execution.count_documents(filter_) == 0
+    workflow_execution["id"] = workflow_execution_id
+    assert db.workflow_execution.count_documents({"id": workflow_execution_id}) == 0
     db.workflow_execution.insert_one(workflow_execution)
 
     docs = {
         "functional_annotation_agg": [
             {
-                "was_generated_by": "nmdc:wfmtan-13-hemh0a82.1",
+                "was_generated_by": workflow_execution_id,
                 "gene_function_id": "KEGG.ORTHOLOGY:K00005",
                 "count": 10,
                 "type": "nmdc:FunctionalAnnotationAggMember",
             },
             {
-                "was_generated_by": "nmdc:wfmtan-13-hemh0a82.1",
+                "was_generated_by": workflow_execution_id,
                 "gene_function_id": "KEGG.ORTHOLOGY:K01426",
                 "count": 5,
                 "type": "nmdc:FunctionalAnnotationAggMember",
@@ -100,7 +101,7 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
         == 2
     )
 
-    # Clean up the test database.
-    db.workflow_execution.delete_many(filter_)
+    # 🧹 Clean up the test database.
+    db.workflow_execution.delete_many({"id": workflow_execution_id})
     for doc_spec in docs["functional_annotation_agg"]:
         db.functional_annotation_agg.delete_many(doc_spec)
