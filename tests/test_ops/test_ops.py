@@ -60,7 +60,7 @@ def test_apply_metadata_in_functional_annotation_agg(op_context):
     )[0]
     workflow_execution["id"] = workflow_execution_id
     assert db.workflow_execution.count_documents({"id": workflow_execution_id}) == 0
-    db.workflow_execution.insert_one(workflow_execution)
+    db.workflow_execution_set.insert_one(workflow_execution)
 
     docs = {
         "functional_annotation_agg": [
