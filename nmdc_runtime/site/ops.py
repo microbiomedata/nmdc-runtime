@@ -380,6 +380,9 @@ def get_json_in(context):
 
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
+    """
+    TODO: Document this function.
+    """
     mongo = context.resources.mongo
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     op_id = context.op_config.get("operation_id")
