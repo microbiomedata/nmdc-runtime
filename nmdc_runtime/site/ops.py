@@ -368,6 +368,9 @@ def perform_changesheet_updates(context, sheet_in: ChangesheetIn):
 
 @op(required_resource_keys={"runtime_api_site_client"})
 def get_json_in(context):
+    """
+    TODO: Document this function.
+    """
     object_id = context.op_config.get("object_id")
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     rv = client.get_object_bytes(object_id)
@@ -380,6 +383,9 @@ def get_json_in(context):
 
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
 def perform_mongo_updates(context, json_in):
+    """
+    TODO: Document this function.
+    """
     mongo = context.resources.mongo
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
     op_id = context.op_config.get("operation_id")
@@ -409,6 +415,9 @@ def perform_mongo_updates(context, json_in):
 def _add_schema_docs_with_or_without_replacement(
     mongo: MongoDBResource, docs: Dict[str, list]
 ):
+    """
+    TODO: Document this function.
+    """
     coll_index_on_id_map = schema_collection_has_index_on_id(mongo.db)
     if all(coll_index_on_id_map[coll] for coll in docs.keys()):
         replace = True

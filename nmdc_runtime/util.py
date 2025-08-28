@@ -362,6 +362,12 @@ def all_docs_have_unique_id(coll) -> bool:
 
 
 def specialize_activity_set_docs(docs):
+    """
+    TODO: Document this function.
+
+    TODO: Check whether this function is still necessary, given that the `Database` class
+          in `nmdc-schema` does not have a slot named `activity_set`.
+    """
     validation_errors = {}
     type_collections = get_type_collections()
     if "activity_set" in docs:
