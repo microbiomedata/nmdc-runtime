@@ -43,40 +43,60 @@ window.addEventListener("nmdcInit", (event) => {{
         }});
     }
 
-    // Customize the headers in the modal login form so they are more user-friendly.
+    /**
+     * Customizes the login form.
+     * 
+     * Prerequisite: The login form must be present in the DOM.
+     */
+    const customizeLoginForm = () => {
+        const modalContentEl = document.querySelector('.auth-wrapper .modal-ux-content');
+
+        console.debug("Customizing login form headers");
+        const formHeaderEls = modalContentEl.querySelectorAll('.auth-container h4');
+        formHeaderEls.forEach(el => {
+            // Update the header text based on its current value.
+            switch (el.textContent.trim()) {
+                case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)":
+                    el.textContent = "User login";
+                    break;
+                case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials)":
+                    el.textContent = "Site client login";
+                    break;
+                // Note: This default string has a `U+00a0` character before the space.
+                case "bearerAuth  (http, Bearer)":
+                    break; // do nothing
+                default:
+                    console.debug(`Unrecognized header: ${el.textContent}`);
+            }
+        });
+
+        console.debug("Focusing on username field if present");
+        const usernameInputEl = modalContentEl.querySelector("input#oauth_username");
+        if (usernameInputEl !== null) {
+            usernameInputEl.focus();
+        }
+    };
+    console.debug("Setting up event listener for customizing login form");
+    //
+    // Listen for a "click" event on the `body` element, check whether the element that was clicked
+    // was the "Authorize" button (or one of its descendants), and if so, customize the modal login
+    // form that will have been mounted to the DOM by the time the "click" event propagated to the
+    // `body` element and our event handler was called.
     //
     // Note: We attach this event listener to the `body` element because that's the lowest-level
-    //       element where we found that mounting it doesn't cause it to run too early (i.e. doesn't
-    //       cause it to run _before_ the event handlers that mount the modal login form to the DOM
-    //       have run). Our event handler needs that form to be mounted so it can access its elements.
+    //       element where we found that mounting it doesn't cause our event handler to run too early
+    //       (i.e. doesn't cause it to run _before_ the event handlers that mount the modal login form
+    //       to the DOM have run). Our event handler needs that form to be mounted so it can access
+    //       its elements.
     //       
     //       If we were to attach it to a lower-level element (e.g. directly to the "Authorize" button),
     //       we would have to, for example, make its body a `setTimeout(fn, 0)` callback in order to
     //       defer its execution until all the event handlers for the "click" even have run.
     //
-    console.debug("Setting up event listener for customizing login form headers");
     bodyEl.addEventListener("click", (event) => {
         // Check whether the clicked element was the "Authorize" button or any of its descendants.
         if (event.target.closest(".auth-wrapper > .btn.authorize:not(.modal-btn)") !== null) {
-            console.debug("Customizing login form headers");
-            const modalContentEl = document.querySelector('.auth-wrapper .modal-ux-content');
-            const formHeaderEls = modalContentEl.querySelectorAll('.auth-container h4');
-            formHeaderEls.forEach(el => {
-                // Update the header text based on its current value.
-                switch (el.textContent.trim()) {
-                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)":
-                        el.textContent = "User login";
-                        break;
-                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials)":
-                        el.textContent = "Site client login";
-                        break;
-                    // Note: This default string has a `U+00a0` character before the space.
-                    case "bearerAuth  (http, Bearer)":
-                        break; // do nothing
-                    default:
-                        console.debug(`Unrecognized header: ${el.textContent}`);
-                }
-            });
+            customizeLoginForm();
         }
     });
 }});
