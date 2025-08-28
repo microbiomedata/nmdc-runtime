@@ -1,11 +1,13 @@
 console.debug("Listening for event: nmdcInit");
 window.addEventListener("nmdcInit", (event) => {{
+    console.debug("Detected event: nmdcInit");
+
     // Get the DOM elements we'll be referencing below. 
     const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
     const tokenEl = document.getElementById("token");
     const tokenCopierEl = document.getElementById("token-copier");
     const tokenCopierMessageEl = document.getElementById("token-copier-message");
-    const authBtnEl = document.querySelector('.auth-wrapper > .btn.authorize');
+    const bodyEl = document.querySelector("body");
     
     // If all the token visibility-related elements are present (according to the logic implemented in `main.py`,
     // they will be present if an access token is available), set up the token visibility toggler and token copier.
@@ -42,15 +44,19 @@ window.addEventListener("nmdcInit", (event) => {{
     }
 
     // Customize the headers in the modal login form so they are more user-friendly.
-    console.debug("Customizing login form headers");
-    authBtnEl.addEventListener("click", (event) => {
-        // Note: We wrap this in a `setTimeout` so that it runs after all other event handlers
-        //       listening for the "click" event have finished running. One of those event
-        //       handlers mounts the login form to the DOM, which is a prerequisite of us
-        //       accessing its elements below. We use a timeout of 0 milliseconds to
-        //       effectively schedule this to run "as soon as possible" after the
-        //       original "click" event has been handled.
-        setTimeout(() => {
+    //
+    // Note: We attach this event listener to a high-level DOM element instead of directly to
+    //       the specific button that opens the login form (i.e. the "Authorize" button) so
+    //       that our event handler doesn't run until the event handlers directly attached
+    //       to that button have finished running. Those event handlers are responsible
+    //       for creating and mounting the login form to the DOM, which is a prerequisite
+    //       of us being able to access and modify its elements below.
+    //
+    console.debug("Setting up event listener for customizing login form headers");
+    bodyEl.addEventListener("click", (event) => {
+        // Check whether the clicked element was the "Authorize" button or any of its descendants.
+        if (event.target.closest(".auth-wrapper > .btn.authorize:not(.modal-btn)") !== null) {
+            console.debug("Customizing login form headers");
             const modalContentEl = document.querySelector('.auth-wrapper .modal-ux-content');
             const formHeaderEls = modalContentEl.querySelectorAll('.auth-container h4');
             formHeaderEls.forEach(el => {
@@ -71,6 +77,6 @@ window.addEventListener("nmdcInit", (event) => {{
                         console.debug(`Unrecognized header: ${el.textContent}`);
                 }
             });
-        }, 0);
+        }
     });
 }});
