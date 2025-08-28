@@ -188,7 +188,7 @@ class NCBISubmissionXML:
             else:
                 individual_biosamples.append(biosample)
 
-        # Process pooled sample groups - create one Action per pooling process
+        # Process pooled sample groups - create one <Action> block per pooling process
         for pooling_process_id, group_data in pooling_groups.items():
             self._create_pooled_biosample_action(
                 group_data["biosamples"],
@@ -688,10 +688,10 @@ class NCBISubmissionXML:
         pooling_groups = {}
         individual_entries = []
 
-        for entry in biosample_data_objects:
+        for bsm_dobj in biosample_data_objects:
             pooling_process_id = None
-            # Check if any biosample in this entry belongs to a pooling process
-            for biosample_id in entry.keys():
+            # Check if any biosample in this bsm_dobj entry belongs to a pooling process
+            for biosample_id in bsm_dobj.keys():
                 pooling_info = pooling_data.get(biosample_id, {})
                 if pooling_info and pooling_info.get("pooling_process_id"):
                     pooling_process_id = pooling_info["pooling_process_id"]
@@ -710,7 +710,7 @@ class NCBISubmissionXML:
             else:
                 individual_entries.append(entry)
 
-        # Process pooled entries - create one SRA Action per pooling process
+        # Process pooled entries - create one SRA <Action> block per pooling process
         for pooling_process_id, group_data in pooling_groups.items():
             self._create_pooled_sra_action(
                 group_data["entries"],

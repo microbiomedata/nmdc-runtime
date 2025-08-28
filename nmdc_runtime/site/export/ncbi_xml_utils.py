@@ -280,25 +280,30 @@ def check_pooling_for_biosamples(
 ) -> Dict[str, Dict[str, Any]]:
     """Check which biosamples are part of pooling processes and return pooling information.
 
+    The way in which we check if a biosample is part of a Pooling process is by checking if
+    the biosample id has been asserted on the `has_input` slot/key of an `nmdc:Pooling` process
+    instance.
+
     :param material_processing_set: reference to the material_processing_set collection
     :param biosamples_list: list of all biosamples to check
     :return: dictionary mapping biosample_id to pooling information (empty dict if not pooled)
     """
     result = {}
+    # get list of all biosample IDs that are part of a given study
     biosample_lookup = {bs["id"]: bs for bs in biosamples_list}
 
-    # Find all pooling processes
+    # get list of all pooling processes
     pooling_processes = list(material_processing_set.find({"type": "nmdc:Pooling"}))
 
-    # Initialize all biosamples as not pooled
+    # initialize all biosamples as not pooled
     for biosample in biosamples_list:
         result[biosample["id"]] = {}
 
-    # Process each pooling process
+    # process each pooling process
     for pooling_process in pooling_processes:
         pooled_biosample_ids = pooling_process.get("has_input", [])
 
-        # Get the processed sample output from the pooling process
+        # get the processed sample output from the pooling process
         has_output = pooling_process.get("has_output", [])
         processed_sample_id = None
 
@@ -307,7 +312,12 @@ def check_pooling_for_biosamples(
                 processed_sample_id = output_id
                 break
 
-        # Aggregate collection dates and depths
+        # aggregate the values on `collection_date` and `depth` slots
+        # here, we are collecting the `collection_date` and `depth` values
+        # asserted on each of the biosamples that are part of a given pooling
+        # process in the following way:
+        # example of aggregated `collection_date`: 2017-06-05T16:50Z/2017-06-05T17:47Z
+        # example of aggregated `depth`: 0-10 m
         collection_dates = []
         depths = []
 
@@ -316,7 +326,6 @@ def check_pooling_for_biosamples(
             if not biosample:
                 continue
 
-            # Handle collection_date
             if "collection_date" in biosample:
                 collection_date = biosample["collection_date"]
                 if (
@@ -327,7 +336,6 @@ def check_pooling_for_biosamples(
                 elif isinstance(collection_date, str):
                     collection_dates.append(collection_date)
 
-            # Handle depth
             if "depth" in biosample:
                 depth = biosample["depth"]
                 if isinstance(depth, dict):
@@ -346,16 +354,16 @@ def check_pooling_for_biosamples(
                 elif isinstance(depth, (int, float)):
                     depths.append(depth)
 
-        # Calculate aggregated values
+        # create aggregated (forward slash separated) value for `collection_date`
         aggregated_collection_date = None
         if collection_dates:
-            # Sort dates and create range
             sorted_dates = sorted(collection_dates)
             if len(sorted_dates) > 1:
                 aggregated_collection_date = f"{sorted_dates[0]}/{sorted_dates[-1]}"
             else:
                 aggregated_collection_date = sorted_dates[0]
 
+        # create aggregated (hyphen separated) value for `depth`
         aggregated_depth = None
         if depths:
             min_depth = min(depths)
@@ -365,7 +373,7 @@ def check_pooling_for_biosamples(
             else:
                 aggregated_depth = f"{min_depth} m"
 
-        # Update all biosamples that are part of this pooling process
+        # update all biosamples that are part of this pooling process
         pooling_info = {
             "processed_sample_id": processed_sample_id,
             "pooling_process_id": pooling_process.get("id"),
