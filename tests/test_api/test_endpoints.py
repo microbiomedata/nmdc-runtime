@@ -9,7 +9,7 @@ from dagster import build_op_context
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
-from toolz import get_in
+from toolz import get_in, pluck
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
@@ -888,12 +888,15 @@ def test_get_linked_instances_returns_linked_instances(
         f'/nmdcschema/linked_instances?ids={study_a["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert study_a["id"] == response_resource["id"]
-    assert {study_b["id"], biosample_a["id"], biosample_b["id"]} == set(
-        [r["id"] for r in response_resource["downstream_docs"]]
-    )
-    assert len(response_resource["upstream_docs"]) == 0
+    resources = response.json()["resources"]
+    resource_ids = set(pluck("id", resources))
+    assert resource_ids == {study_b["id"], biosample_a["id"], biosample_b["id"]}
+    assert all(
+        "_downstream_of" in r for r in resources
+    ), "all resources should be downstream of requested `ids`"
+    assert not any(
+        "_upstream_of" in r for r in resources
+    ), "no resources should be upstream of requested `ids`"
 
     # Request the `id`s of the documents related to `study_b`, which is upstream of
     # `biosample_b`, and which is downstream of `study_a`.
@@ -902,12 +905,15 @@ def test_get_linked_instances_returns_linked_instances(
         f'/nmdcschema/linked_instances?ids={study_b["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert study_b["id"] == response_resource["id"]
-    assert {biosample_b["id"]} == set(
-        [r["id"] for r in response_resource["downstream_docs"]]
+    resources = response.json()["resources"]
+    downstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_downstream_of" in r, resources))
     )
-    assert {study_a["id"]} == set([r["id"] for r in response_resource["upstream_docs"]])
+    assert downstream_resource_ids == {biosample_b["id"]}
+    upstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_upstream_of" in r, resources))
+    )
+    assert upstream_resource_ids == {study_a["id"]}
 
     # Request the `id`s of the documents related to `biosample_a`, which is downstream of `study_a`,
     # and is not upstream of anything.
@@ -916,10 +922,14 @@ def test_get_linked_instances_returns_linked_instances(
         f'/nmdcschema/linked_instances?ids={biosample_a["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert biosample_a["id"] == response_resource["id"]
-    assert len(response_resource["downstream_docs"]) == 0
-    assert {study_a["id"]} == set([r["id"] for r in response_resource["upstream_docs"]])
+    resources = response.json()["resources"]
+    upstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_upstream_of" in r, resources))
+    )
+    assert upstream_resource_ids == {study_a["id"]}
+    assert not any(
+        "_downstream_of" in r for r in resources
+    ), "no resources should be downstream of requested `ids`"
 
 
 class TestFindDataObjectsForStudy:
