@@ -10,6 +10,7 @@ from refscan.lib.helpers import (
     get_names_of_classes_eligible_for_collection,
 )
 
+from nmdc_runtime.api.endpoints.lib.linked_instances import gather_linked_instances
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
@@ -118,7 +119,7 @@ def get_nmdc_database_collection_stats(
 @decorate_if(condition=IS_LINKED_INSTANCES_ENDPOINT_ENABLED)(
     router.get(
         "/nmdcschema/linked_instances",
-        response_model=ListResponse,
+        response_model=ListResponse[Doc],
         response_model_exclude_unset=True,
     )
 )
@@ -145,6 +146,18 @@ def get_linked_instances(
                 "\n\n_Example_: [`nmdc:PlannedProcess`]"
             ),
             examples=["nmdc:bsm-11-abc123"],
+        ),
+    ] = None,
+    page_token: Annotated[
+        str | None,
+        Query(
+            title="Next page token",
+            description="""A bookmark you can use to fetch the _next_ page of resources. You can get this from the
+                    `next_page_token` field in a previous response from this endpoint.\n\n_Example_: 
+                    `nmdc:sys0zr0fbt71`""",
+            examples=[
+                "nmdc:sys0zr0fbt71",
+            ],
         ),
     ] = None,
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -193,8 +206,6 @@ def get_linked_instances(
     representations of that id's downstream and upstream instances (currently just each instance's `id` and `type`)
     as separate subdocument array fields.
     """
-    # TODO move logic from endpoint to unit-testable handler
-    # TODO ListResponse[SimplifiedNMDCDatabase]
     # TODO ensure pagination for responses
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
@@ -217,131 +228,15 @@ def get_linked_instances(
             ),
         )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following upstream
-    # relationships (_upstream.id) to discover upstream documents for entities that originated, or helped produce,
-    # the entities with documents identified by `ids`. It unwinds the collected (via `$graphLookup`) upstream docs,
-    # filters them by given `types` of interest, projects only essential fields to reduce response latency and size,
-    # and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed upstream docs into an array for each
-    # given ID.
-    upstream_docs = list(
-        mdb.alldocs.aggregate(
-            [
-                {"$match": {"id": {"$in": ids}}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_upstream.id",
-                        "connectFromField": "_upstream.id",
-                        "connectToField": "id",
-                        "as": "upstream_docs",
-                    }
-                },
-                {"$unwind": {"path": "$upstream_docs"}},
-                {"$match": {"upstream_docs._type_and_ancestors": {"$in": types}}},
-                {"$project": {"id": 1, "upstream_docs": "$upstream_docs"}},
-                {
-                    "$group": {
-                        "_id": "$id",
-                        "upstream_docs": {
-                            "$addToSet": {
-                                "id": "$upstream_docs.id",
-                                "type": "$upstream_docs.type",
-                            }
-                        },
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "alldocs",
-                        "localField": "_id",
-                        "foreignField": "id",
-                        "as": "selves",
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": "$_id",
-                        "upstream_docs": 1,
-                        "type": {"$arrayElemAt": ["$selves.type", 0]},
-                    }
-                },
-            ],
-            allowDiskUse=True,
-        )
+    merge_into_collection_name = gather_linked_instances(
+        alldocs_collection=mdb.alldocs, ids=ids, types=types
     )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following downstream
-    # relationships (_downstream.id) to discover downstream documents for entities that originated from,
-    # or are considered part of, the entities with documents identified by `ids`. It unwinds the collected (via
-    # `$graphLookup`) downstream docs, filters them by given `types` of interest, projects only essential fields to
-    # reduce response latency and size, and groups them by each of the given `ids`, i.e. re-winding the `$unwind`-ed
-    # downstream docs into an array for each given ID.
-    downstream_docs = list(
-        mdb.alldocs.aggregate(
-            [
-                {"$match": {"id": {"$in": ids}}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_downstream.id",
-                        "connectFromField": "_downstream.id",
-                        "connectToField": "id",
-                        "as": "downstream_docs",
-                    }
-                },
-                {"$unwind": {"path": "$downstream_docs"}},
-                {"$match": {"downstream_docs._type_and_ancestors": {"$in": types}}},
-                {
-                    "$group": {
-                        "_id": "$id",
-                        "downstream_docs": {
-                            "$addToSet": {
-                                "id": "$downstream_docs.id",
-                                "type": "$downstream_docs.type",
-                            }
-                        },
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "alldocs",
-                        "localField": "_id",
-                        "foreignField": "id",
-                        "as": "selves",
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": "$_id",
-                        "downstream_docs": 1,
-                        "type": {"$arrayElemAt": ["$selves.type", 0]},
-                    }
-                },
-            ],
-            allowDiskUse=True,
-        )
+    rv = list_resources(
+        ListRequest(page_token=page_token), mdb, merge_into_collection_name
     )
-
-    relations_by_id = {
-        id_: {
-            "id": id_,
-            "upstream_docs": [],
-            "downstream_docs": [],
-        }
-        for id_ in ids
-    }
-
-    # For each subject document that was upstream of or downstream of any documents, create a dictionary
-    # containing that subject document's `id`, its `type`, and the list of `id`s of the
-    # documents that it for upstream or or downstream of.
-    for d in upstream_docs + downstream_docs:
-        relations_by_id[d["id"]]["type"] = d["type"]
-        relations_by_id[d["id"]]["upstream_docs"] += d.get("upstream_docs", [])
-        relations_by_id[d["id"]]["downstream_docs"] += d.get("downstream_docs", [])
-
-    return {"resources": list(relations_by_id.values())}
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.get(

@@ -1,12 +1,14 @@
 import os
-from collections import defaultdict
 
 import pytest
+from _pytest.fixtures import FixtureRequest
 from toolz import assoc
 
-from dagster import build_op_context
+from pymongo.database import Database as MongoDatabase
 
-from nmdc_runtime.site.resources import mongo_resource
+from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    pipeline_for_instances_linked_to_ids_by_direction,
+)
 from nmdc_runtime.site.ops import (
     materialize_alldocs,
 )
@@ -15,22 +17,7 @@ from nmdc_runtime.util import (
     populated_schema_collection_names_with_id_field,
 )
 
-
-@pytest.fixture
-def client_config():
-    return {
-        "dbname": os.getenv("MONGO_DBNAME"),
-        "host": os.getenv("MONGO_HOST"),
-        "password": os.getenv("MONGO_PASSWORD"),
-        "username": os.getenv("MONGO_USERNAME"),
-    }
-
-
-@pytest.fixture
-def op_context(client_config):
-    return build_op_context(
-        resources={"mongo": mongo_resource.configured(client_config)}
-    )
+from tests.conftest import docs_1ea_bsm_sty_omprc_wfmgan_dobj
 
 
 def test_materialize_alldocs(op_context):
@@ -136,217 +123,72 @@ def test_materialize_alldocs(op_context):
     alldocs_collection.delete_many({})
 
 
-# A declarative representation -- specifically, a json-serializable `dict`
-# (cf. `linkml_runtime.utils.dictutils.as_simple_dict`) -- of the `nmdc:Database` constructed in the body of
-# `test_find_data_objects_for_study_having_one`.
-_test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj = {
-    "study_set": [
-        {
-            "id": "nmdc:sty-11-r2h77870",
-            "type": "nmdc:Study",
-            "study_category": "research_study",
-        }
-    ],
-    "biosample_set": [
-        {
-            "id": "nmdc:bsm-11-6zd5nb38",
-            "env_broad_scale": {
-                "has_raw_value": "ENVO_00000446",
-                "term": {
-                    "id": "ENVO:00000446",
-                    "name": "terrestrial biome",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "env_local_scale": {
-                "has_raw_value": "ENVO_00005801",
-                "term": {
-                    "id": "ENVO:00005801",
-                    "name": "rhizosphere",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "env_medium": {
-                "has_raw_value": "ENVO_00001998",
-                "term": {
-                    "id": "ENVO:00001998",
-                    "name": "soil",
-                    "type": "nmdc:OntologyClass",
-                },
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-            "type": "nmdc:Biosample",
-            "associated_studies": ["nmdc:sty-11-r2h77870"],
-        }
-    ],
-    "data_generation_set": [
-        {
-            "id": "nmdc:omprc-11-nmtj1g51",
-            "has_input": ["nmdc:bsm-11-6zd5nb38"],
-            "type": "nmdc:NucleotideSequencing",
-            "analyte_category": "metagenome",
-            "associated_studies": ["nmdc:sty-11-r2h77870"],
-        }
-    ],
-    "data_object_set": [
-        {
-            "id": "nmdc:dobj-11-cpv4y420",
-            "name": "Raw sequencer read data",
-            "description": "Metagenome Raw Reads for nmdc:omprc-11-nmtj1g51",
-            "type": "nmdc:DataObject",
-        }
-    ],
-    "workflow_execution_set": [
-        {
-            "id": "nmdc:wfmgan-11-fqq66x60.1",
-            "started_at_time": "2023-03-24T02:02:59.479107+00:00",
-            "ended_at_time": "2023-03-24T02:02:59.479129+00:00",
-            "was_informed_by": ["nmdc:omprc-11-nmtj1g51"],
-            "execution_resource": "JGI",
-            "git_url": "https://www.example.com",
-            "has_input": ["nmdc:bsm-11-6zd5nb38"],
-            "has_output": ["nmdc:dobj-11-cpv4y420"],
-            "type": "nmdc:MetagenomeAnnotation",
-        }
-    ],
-}
-
-
-def test_alldocs_linked_instances_with_type_and_ancestors(op_context):
+@pytest.mark.parametrize(
+    "seeded_db", ["docs_1ea_bsm_sty_omprc_wfmgan_dobj"], indirect=True
+)
+def test_alldocs_linked_instances_with_type_and_ancestors(
+    docs_1ea_bsm_sty_omprc_wfmgan_dobj,
+    seeded_db: MongoDatabase,
+):
     """
     Test that the {_upstream,_downstream} fields, in conjunction with the _type_and_ancestors field, can be used to find
-    all nmdc:DataObjects related to a given nmdc:Biosample using an index-covered query.
+    all nmdc:DataObjects linked to a given nmdc:Biosample, and all nmdc:Biosamples linked to a nmdc:DataObject.
     """
-    mdb = op_context.resources.mongo.db
-
-    # Prepare to store any existing documents with the IDs we'll be using, to restore later
-    existing_docs = defaultdict(list)
-    # Prepare to store IDs for each test-document entity by type.
-    ids_for = defaultdict(list)
-
-    for (
-        collection_name,
-        docs,
-    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.items():
-        collection = mdb.get_collection(collection_name)
-        for doc in docs:
-
-            # Store any existing document
-            existing_doc = collection.find_one({"id": doc["id"]})
-            if existing_doc:
-                existing_docs[collection_name].append(existing_doc)
-
-            # Insert test document
-            collection.replace_one({"id": doc["id"]}, doc, upsert=True)
-
-            # Store ID for test document
-            ids_for[collection_name].append(doc["id"])
-
-    # Get class ancestry chains via a schema view, ensuring "nmdc:" CURIE prefix.
-    schema_view = nmdc_schema_view()
-    ancestry_chain = defaultdict(list)
-    for cls in {"Biosample", "DataObject"}:
-        ancestry_chain[cls] = [
-            "nmdc:" + a if not a.startswith("nmdc:") else a
-            for a in schema_view.class_ancestors(cls)
-        ]
-
-    materialize_alldocs(op_context)
-
     # Verify that `alldocs` contains our test documents
-    alldocs_collection = mdb.get_collection("alldocs")
-    for collection_docs in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.values():
-        assert alldocs_collection.count_documents(
-            {"id": {"$in": [doc["id"] for doc in collection_docs]}}
-        ) == len(collection_docs)
+    alldocs_collection = seeded_db.get_collection("alldocs")
+    seeded_docs = docs_1ea_bsm_sty_omprc_wfmgan_dobj
+    assert alldocs_collection.count_documents(
+        {"id": {"$in": [doc["id"] for doc in seeded_docs]}}
+    ) == len(seeded_docs)
 
-    # Verify that `_outbound` and `_type_and_ancestors` fields are properly set for biosample -> workflow execution.
-    biosample_doc = alldocs_collection.find_one({"id": ids_for["biosample_set"][0]})
-    assert biosample_doc is not None
-    assert "_downstream" in biosample_doc
-    assert ids_for["workflow_execution_set"][0] in [
-        d["id"] for d in biosample_doc["_downstream"]
+    def id_for_seeded_doc_of_class(cls: str) -> str:
+        assert not cls.startswith("nmdc:")
+        class_descendants = nmdc_schema_view().class_descendants(cls)
+        return next(
+            d["id"]
+            for d in seeded_docs
+            if d["type"].removeprefix("nmdc:") in class_descendants
+        )
+
+    # Verify that {`_type_and_ancestors`,`_downstream`} are properly set for Biosample -> WorkflowExecution.
+    seeded_biosample_id = id_for_seeded_doc_of_class("Biosample")
+    alldocs_biosample_doc = alldocs_collection.find_one({"id": seeded_biosample_id})
+    assert alldocs_biosample_doc is not None
+    assert "_type_and_ancestors" in alldocs_biosample_doc
+    assert set(alldocs_biosample_doc["_type_and_ancestors"]) == set(
+        f"nmdc:{a}" for a in nmdc_schema_view().class_ancestors("Biosample")
+    )
+    assert "_downstream" in alldocs_biosample_doc
+    assert id_for_seeded_doc_of_class("WorkflowExecution") in [
+        d["id"] for d in alldocs_biosample_doc["_downstream"]
     ]
-    assert "_type_and_ancestors" in biosample_doc
-    assert set(biosample_doc["_type_and_ancestors"]) == set(ancestry_chain["Biosample"])
 
-    # Find the `nmdc:DataObject`(s) related to a `nmdc:Biosample` via a `nmdc:DataEmitterProcess`.
-    biosample_id = ids_for["biosample_set"][0]
-    related_data_objects = list(
+    # Find the `nmdc:DataObject`(s) linked to a `nmdc:Biosample` via a `nmdc:DataEmitterProcess`.
+    linked_data_objects = list(
         alldocs_collection.aggregate(
-            [
-                {"$match": {"id": biosample_id}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_downstream.id",
-                        "connectFromField": "_downstream.id",
-                        "connectToField": "id",
-                        "as": "downstream_docs",
-                    }
-                },
-                {"$unwind": {"path": "$downstream_docs"}},
-                {"$match": {"downstream_docs._type_and_ancestors": "nmdc:DataObject"}},
-                {"$replaceRoot": {"newRoot": "$downstream_docs"}},
-                {"$unset": ["_id"]},
-            ],
+            pipeline_for_instances_linked_to_ids_by_direction(
+                ids=[seeded_biosample_id],
+                types=["nmdc:DataObject"],
+                direction="downstream",
+            ),
             allowDiskUse=True,
         )
     )
-    print(f"{related_data_objects=}")
+    print(f"{linked_data_objects=}")
+    seeded_data_object_id = id_for_seeded_doc_of_class("DataObject")
+    assert seeded_data_object_id in [d["id"] for d in linked_data_objects]
 
-    assert ids_for["data_object_set"][0] in [d["id"] for d in related_data_objects]
-
-    # Also test the reverse query - find the `nmdc:Biosample`(s) related to a given `nmdc:DataObject`.
-    data_object_id = ids_for["data_object_set"][0]
-    related_biosamples = list(
+    # Also test the reverse query - find the `nmdc:Biosample`(s) linked to a given `nmdc:DataObject`.
+    linked_biosamples = list(
         alldocs_collection.aggregate(
-            [
-                {"$match": {"id": data_object_id}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_upstream.id",
-                        "connectFromField": "_upstream.id",
-                        "connectToField": "id",
-                        "as": "upstream_docs",
-                    }
-                },
-                {"$unwind": {"path": "$upstream_docs"}},
-                {"$match": {"upstream_docs._type_and_ancestors": "nmdc:Sample"}},
-                {"$replaceRoot": {"newRoot": "$upstream_docs"}},
-                {"$unset": ["_id"]},
-            ],
+            pipeline_for_instances_linked_to_ids_by_direction(
+                ids=[seeded_data_object_id],
+                direction="upstream",
+                types=["nmdc:Biosample"],
+            ),
             allowDiskUse=True,
         )
     )
-    assert len(related_biosamples) == 1
-    assert related_biosamples[0]["id"] == biosample_id
-    assert related_biosamples[0]["type"] == "nmdc:Biosample"
-
-    # Clean up: Delete the documents we created (if they didn't exist before) or restore them
-    for (
-        collection_name,
-        docs,
-    ) in _test_nmdc_database_object_bsm_sty_omprc_wfmgan_dobj.items():
-        collection = mdb.get_collection(collection_name)
-        for doc in docs:
-            # If the document didn't exist before, delete it
-            if not any(
-                existing_doc["id"] == doc["id"]
-                for existing_doc in existing_docs.get(collection_name, [])
-            ):
-                collection.delete_one({"id": doc["id"]})
-            # Otherwise, restore the original document
-            else:
-                original_doc = next(
-                    existing_doc
-                    for existing_doc in existing_docs[collection_name]
-                    if existing_doc["id"] == doc["id"]
-                )
-                collection.replace_one({"id": doc["id"]}, original_doc)
-
-    # Re-materalize alldocs
-    materialize_alldocs(op_context)
+    assert len(linked_biosamples) == 1
+    assert linked_biosamples[0]["id"] == seeded_biosample_id
+    assert linked_biosamples[0]["type"] == "nmdc:Biosample"

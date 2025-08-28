@@ -108,6 +108,7 @@ from nmdc_runtime.util import (
 from nmdc_schema import nmdc
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
+from pymongo.collection import Collection as MongoCollection
 from toolz import get_in, valfilter, identity
 
 
@@ -948,7 +949,9 @@ def load_ontology(context: OpExecutionContext):
 
 
 def _add_linked_instances_to_alldocs(
-    temp_collection, context, document_reference_ranged_slots_by_type
+    temp_collection: MongoCollection,
+    context: OpExecutionContext,
+    document_reference_ranged_slots_by_type: dict,
 ) -> None:
     """
     Adds {`_upstream`,`_downstream`} fields to each document in the temporary alldocs collection.
@@ -984,16 +987,13 @@ def _add_linked_instances_to_alldocs(
         # Store the full type with prefix intact
         doc_type = doc["type"]
         # For looking up reference slots, we still need the type without prefix
-        # FIXME `document_reference_ranged_slots_by_type` should key on `doc_type`
         doc_type_no_prefix = doc_type[5:] if doc_type.startswith("nmdc:") else doc_type
 
         # Record ID to type mapping - preserve the original type with prefix
         id_to_type_map[doc_id] = doc_type
 
         # Find all document references from this document
-        reference_slots = document_reference_ranged_slots_by_type.get(
-            doc_type_no_prefix, []
-        )
+        reference_slots = document_reference_ranged_slots_by_type.get(doc_type, [])
         for slot in reference_slots:
             if slot in doc:
                 # Handle both single-value and array references
@@ -1117,7 +1117,7 @@ def _add_linked_instances_to_alldocs(
 #       Reference: https://docs.dagster.io/guides/build/ops/graphs#defining-nothing-dependencies
 #
 @op(required_resource_keys={"mongo"}, ins={"waits_for": In(dagster_type=Nothing)})
-def materialize_alldocs(context) -> int:
+def materialize_alldocs(context: OpExecutionContext) -> int:
     """
     This function (re)builds the `alldocs` collection to reflect the current state of the MongoDB database by:
 
@@ -1168,17 +1168,16 @@ def materialize_alldocs(context) -> int:
         )
     )
 
-    # FIXME rename to `document_reference_ranged_slots_by_type`
-    # FIXME key on CURIE, e.g. `nmdc:Study`
-    #  (here, not upstream in `cls_slot_map`/`document_referenceable_ranges`, b/c `schema_view` used directly in those)
-    document_reference_ranged_slots = defaultdict(list)
+    document_reference_ranged_slots_by_type = defaultdict(list)
     for cls_name, slot_map in cls_slot_map.items():
         for slot_name, slot in slot_map.items():
             if (
                 set(get_names_of_classes_in_effective_range_of_slot(schema_view, slot))
                 & document_referenceable_ranges
             ):
-                document_reference_ranged_slots[cls_name].append(slot_name)
+                document_reference_ranged_slots_by_type[f"nmdc:{cls_name}"].append(
+                    slot_name
+                )
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
@@ -1195,25 +1194,19 @@ def materialize_alldocs(context) -> int:
                 # Keep the full type with prefix for document
                 doc_type_full = doc["type"]
                 # Remove prefix for slot lookup and ancestor lookup
-                doc_type = (
-                    doc_type_full[5:]
-                    if doc_type_full.startswith("nmdc:")
-                    else doc_type_full
-                )
+                doc_type = doc_type_full.removeprefix("nmdc:")
             except KeyError:
                 raise Exception(
                     f"doc {doc['id']} in collection {coll_name} has no 'type'!"
                 )
-            slots_to_include = ["id", "type"] + document_reference_ranged_slots[
-                doc_type
+            slots_to_include = ["id", "type"] + document_reference_ranged_slots_by_type[
+                doc_type_full
             ]
             new_doc = keyfilter(lambda slot: slot in slots_to_include, doc)
 
-            new_doc["_type_and_ancestors"] = schema_view.class_ancestors(doc_type)
             # Get ancestors without the prefix, but add prefix to each one in the output
-            ancestors = schema_view.class_ancestors(doc_type)
             new_doc["_type_and_ancestors"] = [
-                "nmdc:" + a if not a.startswith("nmdc:") else a for a in ancestors
+                f"nmdc:{a}" for a in schema_view.class_ancestors(doc_type)
             ]
             # InsertOne is a pymongo representation of a mongo command.
             write_operations.append(InsertOne(new_doc))
@@ -1222,7 +1215,7 @@ def materialize_alldocs(context) -> int:
                 write_operations.clear()
                 documents_processed_counter += BULK_WRITE_BATCH_SIZE
         if len(write_operations) > 0:
-            # here bulk_write is a method on the py-mongo db Client class
+            # here bulk_write is a method on the pymongo db Collection class
             _ = temp_alldocs_collection.bulk_write(write_operations, ordered=False)
             documents_processed_counter += len(write_operations)
         context.log.info(
@@ -1239,15 +1232,18 @@ def materialize_alldocs(context) -> int:
     # so that `temp_alldocs_collection` will be "good to go" on renaming.
     temp_alldocs_collection.create_index("id", unique=True)
     # Add indexes to improve performance of `GET /data_objects/study/{study_id}`:
-    # TODO add indexes on each of `set(document_reference_ranged_slots.values())`.
-    slots_to_index = ["has_input", "has_output", "was_informed_by"]
+    slots_to_index = {"_type_and_ancestors"} | {
+        slot
+        for slots in document_reference_ranged_slots_by_type.values()
+        for slot in slots
+    }
     [temp_alldocs_collection.create_index(slot) for slot in slots_to_index]
-    context.log.info(f"created indexes on id, {slots_to_index}.")
+    context.log.info(f"created indexes on id and on each of {slots_to_index=}.")
 
     # Add related-ids fields to enable efficient relationship traversal
     context.log.info("Adding fields for related ids to documents...")
     _add_linked_instances_to_alldocs(
-        temp_alldocs_collection, context, document_reference_ranged_slots
+        temp_alldocs_collection, context, document_reference_ranged_slots_by_type
     )
     context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
     temp_alldocs_collection.create_index("_upstream.id")
