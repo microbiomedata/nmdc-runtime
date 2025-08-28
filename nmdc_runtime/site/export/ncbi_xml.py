@@ -688,10 +688,10 @@ class NCBISubmissionXML:
         pooling_groups = {}
         individual_entries = []
 
-        for bsm_dobj in biosample_data_objects:
+        for entry in biosample_data_objects:
             pooling_process_id = None
-            # Check if any biosample in this bsm_dobj entry belongs to a pooling process
-            for biosample_id in bsm_dobj.keys():
+            # Check if any biosample in this entry belongs to a pooling process
+            for biosample_id in entry.keys():
                 pooling_info = pooling_data.get(biosample_id, {})
                 if pooling_info and pooling_info.get("pooling_process_id"):
                     pooling_process_id = pooling_info["pooling_process_id"]
