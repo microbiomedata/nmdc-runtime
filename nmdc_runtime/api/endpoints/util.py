@@ -93,31 +93,41 @@ def check_filter(filter_: str):
 
 
 def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str = ""):
-    r"""
+    """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    Note: If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter
-          criteria than can fit on a page of that size, this function will paginate the resources.
+    `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`, Because `page_token` is globally
+    unique, and because the `mdb.page_tokens.find_one({"_id": req.page_token})` document stores `collection_name` in
+    the "ns" (namespace) field, the value for `collection_name` stored there takes precedence over any value supplied
+    as an argument to this function's `collection_name` parameter.
+
+    If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
+    can fit on a page of that size, this function will paginate the resources.
     """
-    # TODO `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`,
-    #   i.e. `page_token` is globally unique, so can just look up `collection_name` via doc `ns` field.
-    #   In other words, `mdb.page_tokens.find_one({"_id": req.page_token}).ns` should take precedence over
-    #   this function's `collection_name` parameter, and this function should allow `collection_name` to be
-    #   "empty" in that case.
     if collection_name == "" and req.page_token is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Must specify a collection name if no page token is supplied.",
         )
+    if req.page_token:
+        doc = mdb.page_tokens.find_one({"_id": req.page_token})
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
+            )
+        collection_name = doc["ns"]
+        last_id = doc["last_id"]
+        mdb.page_tokens.delete_one({"_id": req.page_token})
+    else:
+        last_id = None
 
     id_field = "id"
     if "id_1" not in mdb[collection_name].index_information():
         logging.warning(
             f"list_resources: no index set on 'id' for collection {collection_name}"
         )
-        id_field = (
-            "_id"  # currently expected for `functional_annotation_agg` collection
-        )
+        id_field = "_id"  # expected for `functional_annotation_agg` collection
+
     max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
@@ -125,16 +135,6 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str = 
         if req.projection
         else None
     )
-    if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
-        if doc is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
-            )
-        last_id = doc["last_id"]
-        mdb.page_tokens.delete_one({"_id": req.page_token})
-    else:
-        last_id = None
     if last_id is not None:
         if id_field in filter_:
             filter_[id_field] = merge(filter_[id_field], {"$gt": last_id})

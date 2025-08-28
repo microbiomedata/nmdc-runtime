@@ -206,8 +206,6 @@ def get_linked_instances(
     representations of that id's downstream and upstream instances (currently just each instance's `id` and `type`)
     as separate subdocument array fields.
     """
-    # TODO move logic from endpoint to unit-testable handler
-    # TODO ListResponse[SimplifiedNMDCDatabase]
     # TODO ensure pagination for responses
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
