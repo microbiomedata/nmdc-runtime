@@ -115,7 +115,7 @@ def list_resources(
         doc = mdb.page_tokens.find_one({"_id": req.page_token})
         if doc is None:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="`page_token` not found"
             )
         collection_name = doc["ns"]
         last_id = doc["last_id"]
