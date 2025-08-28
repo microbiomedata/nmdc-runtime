@@ -556,27 +556,39 @@ def nmdc_schema_database_from_gold_study(
 
 
 @op(
+    required_resource_keys={"mongo"},
     out={
         "submission_id": Out(),
         "nucleotide_sequencing_mapping_file_url": Out(Optional[str]),
         "data_object_mapping_file_url": Out(Optional[str]),
         "biosample_extras_file_url": Out(Optional[str]),
         "biosample_extras_slot_mapping_file_url": Out(Optional[str]),
+        "study_id": Out(Optional[str]),
     },
 )
 def get_submission_portal_pipeline_inputs(
+    context: OpExecutionContext,
     submission_id: str,
     nucleotide_sequencing_mapping_file_url: Optional[str],
     data_object_mapping_file_url: Optional[str],
     biosample_extras_file_url: Optional[str],
     biosample_extras_slot_mapping_file_url: Optional[str],
-) -> Tuple[str, str | None, str | None, str | None, str | None]:
+    study_id: Optional[str],
+) -> Tuple[str, str | None, str | None, str | None, str | None, str | None]:
+    # query for studies matching the ID to see if it eists
+    if study_id:
+        mdb = context.resources.mongo.db
+        result = mdb.study_set.find_one({"id": study_id})
+        if not result:
+            raise Exception(f"Study id: {study_id} does not exist in Mongo.")
+
     return (
         submission_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
+        study_id,
     )
 
 
@@ -601,6 +613,7 @@ def translate_portal_submission_to_nmdc_schema_database(
     study_pi_image_url: Optional[str],
     biosample_extras: Optional[list[dict]],
     biosample_extras_slot_mapping: Optional[list[dict]],
+    study_id: Optional[str],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -618,6 +631,7 @@ def translate_portal_submission_to_nmdc_schema_database(
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         illumina_instrument_mapping=instrument_mapping,
+        study_id=study_id,
     )
     database = translator.get_database()
     return database

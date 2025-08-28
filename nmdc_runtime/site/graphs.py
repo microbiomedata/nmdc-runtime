@@ -173,6 +173,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
+        study_id,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
@@ -193,6 +194,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         instrument_mapping=instrument_mapping,
+        study_id=study_id,
     )
 
     validate_metadata(database)
@@ -213,6 +215,7 @@ def ingest_metadata_submission():
         data_object_mapping_file_url,
         biosample_extras_file_url,
         biosample_extras_slot_mapping_file_url,
+        study_id,
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
@@ -233,6 +236,7 @@ def ingest_metadata_submission():
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         instrument_mapping=instrument_mapping,
+        study_id=study_id,
     )
 
     log_database_ids(database)

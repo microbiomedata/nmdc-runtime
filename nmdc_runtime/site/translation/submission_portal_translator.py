@@ -145,6 +145,7 @@ class SubmissionPortalTranslator(Translator):
         # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
+        study_id: Optional[str] = None,
         # Additional biosample-level metadata with optional column mapping information not captured
         # by the submission portal currently.
         # See: https://github.com/microbiomedata/submission-schema/issues/162
@@ -165,6 +166,7 @@ class SubmissionPortalTranslator(Translator):
             nmdc.StudyCategoryEnum(study_category) if study_category else None
         )
         self.study_pi_image_url = study_pi_image_url
+        self.study_id = study_id
 
         self.biosample_extras = group_dicts_by_key(
             BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras
@@ -752,11 +754,14 @@ class SubmissionPortalTranslator(Translator):
             "metadata_submission", {}
         )
 
-        # Generate one Study instance based on the metadata submission
-        nmdc_study_id = self._id_minter("nmdc:Study")[0]
-        database.study_set = [
-            self._translate_study(metadata_submission_data, nmdc_study_id)
-        ]
+        # Generate one Study instance based on the metadata submission, if a study_id wasn't provided
+        if self.study_id:
+            nmdc_study_id = self.study_id
+        else:
+            nmdc_study_id = self._id_minter("nmdc:Study")[0]
+            database.study_set = [
+                self._translate_study(metadata_submission_data, nmdc_study_id)
+            ]
 
         # Automatically populate the `env_package` field in the sample data based on which
         # environmental data tab the sample data came from.
