@@ -520,11 +520,24 @@ class MongoDB:
         self.db = self.client[dbname]
 
     def add_docs(self, docs, validate=True, replace=True):
+        """
+        TODO: Document this function.
+        """
         try:
             if validate:
                 nmdc_jsonschema_validator_noidpatterns(docs)
             rv = {}
-            for collection_name, docs in docs.items():
+            for collection_name, collection_docs in docs.items():
+                # If `collection_docs` is empty, abort this iteration.
+                #
+                # Note: We do this because the `bulk_write` method called below will raise
+                #       an `InvalidOperation` exception if it is passed 0 operations.
+                #
+                # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.bulk_write
+                #
+                if len(collection_docs) == 0:
+                    continue
+
                 rv[collection_name] = self.db[collection_name].bulk_write(
                     [
                         (
@@ -532,7 +545,7 @@ class MongoDB:
                             if replace
                             else InsertOne(d)
                         )
-                        for d in docs
+                        for d in collection_docs
                     ]
                 )
                 now = datetime.now(timezone.utc)
@@ -544,7 +557,7 @@ class MongoDB:
                             "ts": now,
                             # "dtl": {},
                         }
-                        for d in docs
+                        for d in collection_docs
                     ]
                 )
             return rv
