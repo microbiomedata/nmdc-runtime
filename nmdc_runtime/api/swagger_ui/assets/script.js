@@ -63,13 +63,11 @@ window.addEventListener("nmdcInit", (event) => {{
             const formHeaderEls = modalContentEl.querySelectorAll('.auth-container h4');
             formHeaderEls.forEach(el => {
                 // Update the header text based on its current value.
-                switch (el.textContent) {
-                    // Note: This default string has a trailing space.
-                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password) ":
+                switch (el.textContent.trim()) {
+                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)":
                         el.textContent = "User login";
                         break;
-                    // Note: This default string has a trailing space.
-                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials) ":
+                    case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials)":
                         el.textContent = "Site client login";
                         break;
                     // Note: This default string has a `U+00a0` character before the space.
