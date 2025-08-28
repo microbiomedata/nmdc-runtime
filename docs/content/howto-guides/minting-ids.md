@@ -19,7 +19,7 @@ Here's how you can obtain site client credentials:
 1. Visit the NMDC Runtime API's [Swagger UI](https://api.microbiomedata.org/docs). 
 2. Login as a regular Runtime user.
    1. Near the upper right corner of the page, click the "Authorize" button.
-   2. In the topmost section—entitled "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)"—enter your Runtime username and password, then click the "Authorize" button.
+   2. In the topmost section—entitled "User login"—enter your Runtime username and password, then click the "Authorize" button.
    3. Click the "Close" button to close the "Available authorizations" popup.
 3. Check whether your user account is already an admin of any sites.
    1. Expand the `GET /users/me` API endpoint section.
@@ -51,7 +51,7 @@ Here's how you can log into the NMDC Runtime API as a site client:
 1. Visit the NMDC Runtime API's [Swagger UI](https://api.microbiomedata.org/docs) (if you aren't already there).
 2. Log in as a site client.
    1. Near the upper right corner of the page, click the "Authorize" button.
-   2. Scroll down to the section entitled "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials)".
+   2. Scroll down to the section entitled "Site client login".
    3. In that section, enter your site client credentials—i.e., your `client_id` and `client_secret`—then click the "Authorize" button.
    4. Click the "Close" button to close the "Available authorizations" popup.
 
