@@ -330,7 +330,10 @@ def custom_swagger_ui_html(
     # Note: Setting `persistAuthorization` to `True` makes it so a logged-in user remains logged-in
     #       even after reloading the web page (or leaving the website and coming back to it later).
     # Reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/#parameters
-    swagger_ui_parameters: dict = {"withCredentials": True, "persistAuthorization": True}
+    swagger_ui_parameters: dict = {
+        "withCredentials": True,
+        "persistAuthorization": True,
+    }
     onComplete = ""
     if access_token is not None:
         onComplete += f"""
