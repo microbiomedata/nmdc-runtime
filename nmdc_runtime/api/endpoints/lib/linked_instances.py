@@ -69,11 +69,10 @@ def pipeline_for_direction(
 ) -> list:
     """A pure function that returns the aggregation pipeline for `direction`.
 
-    The pipeline traverses the graph of documents in the alldocs collection, following `direction`-specific
-    relationships to discover documents linked to the documents given by `ids`. After `$unwind`ing the collected (via
-    `$graphLookup`) docs, the pipeline filters them by given `types` of interest, adds bookkeeping information about
-    `direction`ality, projects only essential fields to reduce response latency and size, and merges the results into
-    a collection dedicated to serving the caller in a manner amenable to pagination across multiple HTTP requests.
+    The pipeline
+    - collects ∈`types` instances linked to `ids` along `direction`,
+    - retains only those document fields essential to the caller, and
+    - ensures the collected instances are present, and properly updated if applicable, in a merge-target collection.
     """
     return pipeline_for_instances_linked_to_ids_by_direction(
         ids=ids,
@@ -95,6 +94,15 @@ def pipeline_for_instances_linked_to_ids_by_direction(
     alldocs_collection_name: str = "alldocs",
     slim: bool = True,
 ) -> list[dict[str, Any]]:
+    """
+    Returns an aggregation pipeline that:
+    - traverses the graph of documents in the alldocs collection, following `direction`-specific relationships
+      to discover documents linked to the documents given by `ids`.
+    - `$unwind`s the collected (via `$graphLookup`) docs,
+    - filters them by given `types` of interest,
+     - adds bookkeeping information about `direction`ality, and
+     - (optionally) projects only essential fields to reduce response latency and size.
+    """
     return [
         {"$match": {"id": {"$in": ids}}},
         {
@@ -117,6 +125,10 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
     merge_into_collection_name: str,
     direction: Literal["downstream", "upstream"],
 ) -> dict[str, Any]:
+    """
+    Returns an aggregation-pipeline step that merges its input document stream to a collection dedicated to serving
+    the caller in a manner amenable to pagination across multiple HTTP requests.
+    """
     return {
         "$merge": {
             "into": merge_into_collection_name,
