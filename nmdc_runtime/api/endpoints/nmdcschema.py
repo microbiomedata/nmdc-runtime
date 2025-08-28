@@ -230,11 +230,6 @@ def get_linked_instances(
             ),
         )
 
-    # TODO ~~actually, need `merge_into_collection_name = fn(ids,types)`~~
-    #   ~~in order to accommodate `page_token` without overhaul of `list_resources` logic.~~
-    #   Wait, `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`,
-    #   i.e. `page_token` is globally unique, so can just look up `collection_name` via doc `ns` field.
-
     merge_into_collection_name = gather_linked_instances(
         alldocs_collection=mdb.alldocs, ids=ids, types=types
     )

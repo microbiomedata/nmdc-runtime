@@ -92,13 +92,23 @@ def check_filter(filter_: str):
     return filter_
 
 
-def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
+def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str = ""):
     r"""
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
     Note: If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter
           criteria than can fit on a page of that size, this function will paginate the resources.
     """
+    # TODO `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`,
+    #   i.e. `page_token` is globally unique, so can just look up `collection_name` via doc `ns` field.
+    #   In other words, `mdb.page_tokens.find_one({"_id": req.page_token}).ns` should take precedence over
+    #   this function's `collection_name` parameter, and this function should allow `collection_name` to be
+    #   "empty" in that case.
+    if collection_name == "" and req.page_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must specify a collection name if no page token is supplied.",
+        )
 
     id_field = "id"
     if "id_1" not in mdb[collection_name].index_information():

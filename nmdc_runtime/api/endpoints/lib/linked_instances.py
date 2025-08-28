@@ -15,10 +15,20 @@ from nmdc_runtime.api.core.util import hash_from_str
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
-    return hash_from_str(",".join(sorted(ids)) + "." + ",".join(sorted(types)))
+    """A quick hash as a function of `ids` and `types`.
+
+    This will serve as part of a temporary mongo collection name.
+    Because it will only be "part of" the name, avoiding hash collisions isn't a priority.
+
+    Returns a hex digest truncated to 8 characters, so 16**8 ≈ 4M possible values.
+    """
+    return hash_from_str(
+        ",".join(sorted(ids)) + "." + ",".join(sorted(types)), algo="md5"
+    )[:8]
 
 
 def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> str:
+    """A name for a temporary mongo collection to store linked instances in service of an API request."""
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
 
 
@@ -27,7 +37,11 @@ def gather_linked_instances(
     ids: list[str],
     types: list[str],
 ) -> str:
-    """Create a new temporary linked_instances collection and run the pipeline both "downstream" and "upstream"."""
+    """Collect linked instances and stores them in a new temporary collection.
+
+    Run an aggregation pipeline over `alldocs_collection` that collects ∈`types` instances linked to `ids`.
+    The pipeline is run twice, once for each of {"downstream", "upstream"} directions.
+    """
     merge_into_collection_name = temp_linked_instances_collection_name(
         ids=ids, types=types
     )
