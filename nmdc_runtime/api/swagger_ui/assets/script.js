@@ -45,12 +45,14 @@ window.addEventListener("nmdcInit", (event) => {{
 
     // Customize the headers in the modal login form so they are more user-friendly.
     //
-    // Note: We attach this event listener to a high-level DOM element instead of directly to
-    //       the specific button that opens the login form (i.e. the "Authorize" button) so
-    //       that our event handler doesn't run until the event handlers directly attached
-    //       to that button have finished running. Those event handlers are responsible
-    //       for creating and mounting the login form to the DOM, which is a prerequisite
-    //       of us being able to access and modify its elements below.
+    // Note: We attach this event listener to the `body` element because that's the lowest-level
+    //       element where we found that mounting it doesn't cause it to run too early (i.e. doesn't
+    //       cause it to run _before_ the event handlers that mount the modal login form to the DOM
+    //       have run). Our event handler needs that form to be mounted so it can access its elements.
+    //       
+    //       If we were to attach it to a lower-level element (e.g. directly to the "Authorize" button),
+    //       we would have to, for example, make its body a `setTimeout(fn, 0)` callback in order to
+    //       defer its execution until all the event handlers for the "click" even have run.
     //
     console.debug("Setting up event listener for customizing login form headers");
     bodyEl.addEventListener("click", (event) => {
