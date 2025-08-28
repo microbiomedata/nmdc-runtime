@@ -300,7 +300,7 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
-    swagger_ui_parameters = {"withCredentials": True}
+    swagger_ui_parameters: dict = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
         onComplete += f"""
@@ -336,14 +336,15 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
-    if onComplete:
-        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
-        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
-        swagger_ui_parameters.update(
-            {
-                "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
-            }
-        )
+    # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+    #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+    swagger_ui_parameters.update(
+        {
+            "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
+        }
+    )
+    # Note: Consider using a "custom layout" instead of injecting HTML snippets via Python.
+    #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
