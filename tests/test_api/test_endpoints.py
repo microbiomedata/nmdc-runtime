@@ -932,6 +932,75 @@ def test_get_linked_instances_returns_linked_instances(
     ), "no resources should be downstream of requested `ids`"
 
 
+@pytest.fixture
+def docs_study_and_1k_biosamples() -> list[dict]:
+    """Provide a study with 1k downstream biosamples."""
+    mdb = get_mongo_db()
+    faker = Faker()
+    study = faker.generate_studies(quantity=1, part_of=[])[0]
+    biosamples = faker.generate_biosamples(
+        quantity=1_000, associated_studies=[study["id"]]
+    )
+    assert (
+        mdb.get_collection(name="study_set").count_documents({"id": study["id"]}) == 0
+    )
+    assert (
+        mdb.get_collection(name="biosample_set").count_documents(
+            {"id": {"$in": [bsm["id"] for bsm in biosamples]}}
+        )
+        == 0
+    )
+    return [study] + biosamples
+
+
+@pytest.mark.skipif(
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
+@pytest.mark.parametrize("seeded_db", ["docs_study_and_1k_biosamples"], indirect=True)
+def test_get_linked_instances_pagination(
+    api_user_client,
+    docs_study_and_1k_biosamples,
+    seeded_db: MongoDatabase,
+):
+    study = docs_study_and_1k_biosamples[0]
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={study["id"]}',
+    )
+    assert response.status_code == 200
+    assert "next_page_token" in response.json()
+    page_1_resources = response.json()["resources"]
+    page_1_resource_ids = set(pluck("id", page_1_resources))
+    page_token = response.json()["next_page_token"]
+
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={study["id"]}&page_token={page_token}',
+    )
+    assert response.status_code == 200
+    page_2_resources = response.json()["resources"]
+    page_2_resource_ids = set(pluck("id", page_2_resources))
+    assert (
+        page_1_resource_ids & page_2_resource_ids == set()
+    ), "page 1 should have entirely different resources than page 2"
+
+    biosample = docs_study_and_1k_biosamples[1]
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={biosample["id"]}',
+    )
+    assert response.status_code == 200
+    assert "next_page_token" not in response.json()
+
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "GET",
+            f'/nmdcschema/linked_instances?ids={study["id"]}&page_token=FAKETOKEN',
+        )
+
+    assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 class TestFindDataObjectsForStudy:
     r"""
     Tests targeting the `/data_objects/study/{study_id}` API endpoint.

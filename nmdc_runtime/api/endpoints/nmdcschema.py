@@ -160,6 +160,14 @@ def get_linked_instances(
             ],
         ),
     ] = None,
+    max_page_size: Annotated[
+        int,
+        Query(
+            title="Resources per page",
+            description="How many resources you want _each page_ to contain, formatted as a positive integer.",
+            examples=[20],
+        ),
+    ] = 20,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """
@@ -206,7 +214,13 @@ def get_linked_instances(
     representations of that id's downstream and upstream instances (currently just each instance's `id` and `type`)
     as separate subdocument array fields.
     """
-    # TODO ensure pagination for responses
+    if page_token is not None:
+        rv = list_resources(
+            req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
+        )
+        rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+        return rv
+
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
     if ids_not_found:
@@ -233,7 +247,9 @@ def get_linked_instances(
     )
 
     rv = list_resources(
-        ListRequest(page_token=page_token), mdb, merge_into_collection_name
+        ListRequest(page_token=page_token, max_page_size=max_page_size),
+        mdb,
+        merge_into_collection_name,
     )
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
