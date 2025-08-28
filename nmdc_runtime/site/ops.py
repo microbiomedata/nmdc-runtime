@@ -108,6 +108,7 @@ from nmdc_runtime.util import (
 from nmdc_schema import nmdc
 from pymongo import InsertOne, UpdateOne
 from pymongo.database import Database as MongoDatabase
+from pymongo.collection import Collection as MongoCollection
 from toolz import get_in, valfilter, identity
 
 
@@ -948,7 +949,9 @@ def load_ontology(context: OpExecutionContext):
 
 
 def _add_linked_instances_to_alldocs(
-    temp_collection, context, document_reference_ranged_slots_by_type
+    temp_collection: MongoCollection,
+    context: OpExecutionContext,
+    document_reference_ranged_slots_by_type: dict,
 ) -> None:
     """
     Adds {`_upstream`,`_downstream`} fields to each document in the temporary alldocs collection.

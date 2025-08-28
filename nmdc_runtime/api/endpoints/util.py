@@ -92,7 +92,9 @@ def check_filter(filter_: str):
     return filter_
 
 
-def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str = ""):
+def list_resources(
+    req: ListRequest, mdb: MongoDatabase, collection_name: str = ""
+) -> dict:
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
