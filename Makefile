@@ -57,9 +57,9 @@ run-test:
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
 			uv run --active \
 				pytest --cov=nmdc_runtime \
-					   --doctest-modules \
-					   --ignore=util/load_testing \
-					   $(ARGS)
+				       --doctest-modules \
+				       --ignore=util/load_testing \
+				       $(ARGS)
 
 # Uses Docker Compose to
 # 1. Ensure the `test` stack is torn down, including data volumes such as that containing the test MongoDB database.
