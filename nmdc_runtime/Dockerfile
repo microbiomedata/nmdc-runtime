@@ -3,10 +3,10 @@
 #       Reference: https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/
 #
 # Base this image upon a variant of the official Python 3.10 image that is, in turn,
-# based upon a minimal (slim) variant of the Debian 13 (trixie) image.
+# based upon a minimal (slim) variant of the Debian 11 (bullseye) image.
 # Reference: https://hub.docker.com/_/python
 # ────────────────────────────────────────────────────────────────────────────┐
-FROM python:3.10-slim-trixie AS base
+FROM python:3.10-slim-bullseye AS base
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Install and upgrade system-level software in a non-interactive way, then delete temporary files.
@@ -39,7 +39,7 @@ RUN sh /uv-installer.sh && \
     rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
-# Install Python dependencies (production and development dependencies).
+# Install Python dependencies (production dependencies only).
 #
 # Note: We copy only the files that `uv` needs in order to install dependencies. That way,
 #       we minimize the number of files whose changes would invalidate cached image layers
@@ -57,29 +57,30 @@ ENV PATH="/root/.local/bin/:$PATH"
 #       - https://docs.astral.sh/uv/guides/integration/docker/#caching (RE: the technique)
 #       - https://docs.docker.com/build/cache/optimize/#use-cache-mounts (RE: the feature)
 #       - https://docs.astral.sh/uv/reference/settings/#link-mode (RE: `UV_LINK_MODE`)
+#       - https://docs.astral.sh/uv/reference/cli/#uv-sync--no-install-project (RE: `--no-install-project`)
 #
-WORKDIR /code
 ENV VIRTUAL_ENV="/venv"
 RUN mkdir -p "${VIRTUAL_ENV}"
-COPY ./pyproject.toml ./pyproject.toml
-COPY ./uv.lock        ./uv.lock
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./uv.lock        /code/uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
-    UV_LINK_MODE=copy \
-    uv sync --active --no-editable --no-install-project
+    cd /code && \
+    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Copy repository contents into image.
-WORKDIR /code
-COPY . .
+COPY . /code
 
-# Install the project in editable mode, and uninstall non-production dependencies.
-RUN uv sync --active --no-dev
+# Install the project in editable mode.
+RUN cd /code && \
+    uv sync --active --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
+WORKDIR /code
 CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
@@ -91,11 +92,11 @@ FROM base AS dagster
 # Note: This path (i.e. "/opt/dagster/lib/") is hard-coded in a few places in `nmdc_runtime/site/ops.py`. That's why
 #       this image does not store the repository contents in `/code`, unlike the other images in this Dockerfile.
 #
-WORKDIR /opt/dagster/lib
-COPY . .
+COPY . /opt/dagster/lib
 
-# Install the project in editable mode, and uninstall non-production dependencies.
-RUN uv sync --active --no-dev
+# Install the project in editable mode.
+RUN cd /opt/dagster/lib && \
+    uv sync --active --no-dev
 
 # Move Dagster configuration files to the place Dagster expects.
 ENV DAGSTER_HOME="/opt/dagster/dagster_home/"
@@ -120,14 +121,16 @@ FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Copy all repository contents into image.
-WORKDIR /code
-COPY . .
+COPY . /code
 
-# Install the project in editable mode.
-RUN uv sync --active
+# Install the project in editable mode, and install development dependencies.
+RUN cd /code && \
+    uv sync --active
 
 # Make `wait-for-it.sh` executable.
-RUN chmod +x ./.docker/wait-for-it.sh
+RUN chmod +x /code/.docker/wait-for-it.sh
+
+WORKDIR /code
 
 # Ensure started container does not exit, so that a subsequent `docker exec` command can run tests.
 # For an example `docker exec` command, see `Makefile`'s `run-test` target.
