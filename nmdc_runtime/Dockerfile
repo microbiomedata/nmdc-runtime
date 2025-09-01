@@ -75,7 +75,8 @@ FROM base AS fastapi
 COPY . /code
 
 # Install the project in editable mode.
-RUN cd /code && \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /code && \
     uv sync --active --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
@@ -95,7 +96,8 @@ FROM base AS dagster
 COPY . /opt/dagster/lib
 
 # Install the project in editable mode.
-RUN cd /opt/dagster/lib && \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /opt/dagster/lib && \
     uv sync --active --no-dev
 
 # Move Dagster configuration files to the place Dagster expects.
@@ -124,7 +126,8 @@ FROM base AS test
 COPY . /code
 
 # Install the project in editable mode, and install development dependencies.
-RUN cd /code && \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /code && \
     uv sync --active
 
 # Make `wait-for-it.sh` executable.
