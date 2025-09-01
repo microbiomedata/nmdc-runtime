@@ -10,10 +10,6 @@ jobs:
   build:
     name:  lint-check and style-normalize Python files
     runs-on: ubuntu-latest
-    env:
-      # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
-      # Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#runner-context (RE: `runner.temp`)
-      VIRTUAL_ENV: ${{ runner.temp }}/venv
     steps:
     - uses: actions/checkout@v4
       with:
@@ -26,10 +22,8 @@ jobs:
         #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
         #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
         cache-dependency-glob: "uv.lock"
-    - name: Create directory for Python virtual environment
-      run: mkdir -p "${VIRTUAL_ENV}"
     - name: Set up Python virtual environment
-      run: uv sync --active
+      run: uv sync
     - name: Lint with flake8 and Reformat with black
       run: |
         make lint

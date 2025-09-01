@@ -8,10 +8,6 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
     runs-on: ubuntu-latest
-    env:
-      # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
-      # Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#runner-context (RE: `runner.temp`)
-      VIRTUAL_ENV: ${{ runner.temp }}/venv
     steps:
       - uses: actions/checkout@v4
 
@@ -23,10 +19,8 @@ jobs:
           #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
           #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
           cache-dependency-glob: "uv.lock"
-      - name: Create directory for Python virtual environment
-        run: mkdir -p "${VIRTUAL_ENV}"
       - name: Set up Python virtual environment
-        run: uv sync --active --no-editable
+        run: uv sync
 
       - name: Build source and wheel archives
         run: uv build
