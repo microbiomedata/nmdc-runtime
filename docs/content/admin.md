@@ -114,7 +114,7 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    > This step is necessary because schema changes can introduce new constraints on the data processed by the Runtime, and some of the Runtime's tests use example data that may not meet those constraints. If any tests fail, determine the root cause of the failure, address the root cause, and re-run the tests.
 4. Commit the changes to the repository.
    ```sh
-   git add requirements/*
+   git add pyproject.toml uv.lock
    git commit -m 'Bump `nmdc-schema` version'
    git push
    ```
