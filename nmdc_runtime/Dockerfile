@@ -75,10 +75,8 @@ FROM base AS fastapi
 WORKDIR /code
 COPY . .
 
-# Install the project in editable mode, uninstall non-production dependencies, and compile Python source code into bytecode.
-# Note: Compiling into bytecode can speed up app startup time.
-#       Reference: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
-RUN uv sync --active --no-dev --compile-bytecode
+# Install the project in editable mode, and uninstall non-production dependencies.
+RUN uv sync --active --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
