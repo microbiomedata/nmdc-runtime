@@ -23,5 +23,4 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec uv run --active --directory /opt/dagster/lib \
-        dagster-daemon run -w "${DAGSTER_HOME}/workspace.yaml"
+exec uv run --active dagster-daemon run
