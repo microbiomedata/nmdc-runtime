@@ -41,8 +41,9 @@ services:
     restart: on-failure
     volumes:
       - .:/opt/dagster/lib
-      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      - "/app/.venv"
+      # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
+      #       from being mounted at this location within the container.
+      - /opt/dagster/lib/.venv
     env_file: .env
 
   # Dagster daemon.
@@ -68,8 +69,9 @@ services:
       mongo-init: { condition: service_completed_successfully }
     volumes:
       - .:/opt/dagster/lib
-      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      - "/app/.venv"
+      # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
+      #       from being mounted at this location within the container.
+      - /opt/dagster/lib/.venv
     env_file: .env
 
   # Uvicorn server hosting the FastAPI application.
@@ -82,8 +84,9 @@ services:
       - "${DEV_STACK_HOST_MACHINE_PORT_FASTAPI}:8000"
     volumes:
       - .:/code
-      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      - "/app/.venv"
+      # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
+      #       from being mounted at this location within the container.
+      - /code/.venv
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.
     depends_on:
