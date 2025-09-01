@@ -10,6 +10,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
+    env:
+      # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
+      VIRTUAL_ENV: /venv
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -21,7 +24,7 @@ jobs:
           #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
           cache-dependency-glob: "uv.lock"
       - name: Set up Python virtual environment
-        run: uv sync
+        run: uv sync --active --no-editable
       # Build the MkDocs site (but don't deploy it).
       #
       # Note: Until January 17, 2025, we would build and deploy the MkDocs website to GitHub Pages.
@@ -43,4 +46,4 @@ jobs:
       #       file, or due to one of the dependencies becoming unavailable), which can prompt remedial action.
       #
       - name: Build MkDocs site
-        run: uv run python -m mkdocs build -f docs/mkdocs.yml
+        run: uv run --active mkdocs build -f docs/mkdocs.yml

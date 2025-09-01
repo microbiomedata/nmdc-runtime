@@ -1,4 +1,4 @@
-# Use `uv sync` to set up a Python virtual environment.
+# Use `uv sync` to set up a Python virtual environment on your local machine.
 #
 # This command will:
 # 1. **Create a Python virtual environment** at `.venv` (if one doesn't already exist there)
@@ -55,10 +55,11 @@ reset-db-test:
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
-			uv run python -m pytest --cov=nmdc_runtime \
-			       --doctest-modules \
-			       --ignore=util/load_testing \
-			       $(ARGS)
+			uv run --active \
+				pytest --cov=nmdc_runtime \
+					   --doctest-modules \
+					   --ignore=util/load_testing \
+					   $(ARGS)
 
 # Uses Docker Compose to
 # 1. Ensure the `test` stack is torn down, including data volumes such as that containing the test MongoDB database.
@@ -69,16 +70,16 @@ test: down-test up-test run-test
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
-	uv run python -m black nmdc_runtime
+	uv run --active black nmdc_runtime
 
 # Lint Python code using `flake8`.
 # TODO: Migrate from `flake8` to `ruff`.
 lint:
 	# Python syntax errors or undefined names
-	uv run python -m flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
+	uv run --active flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
 		./nmdc_runtime ./tests
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-	uv run python -m flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
+	uv run --active flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722 \
 		./nmdc_runtime ./tests
 
@@ -128,7 +129,7 @@ mongorestore-nmdc-db:
 		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
-	uv run python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
+	uv run --active python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
 # List of Make targets that do not represent files being created.
 # Note: I think _most_ of the targets in this Makefile meet that criterion,

@@ -75,16 +75,6 @@ jobs:
           sh -c 'cp /mongoKeyFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
         mv _tmp/mongoKeyFile ./.docker/mongoKeyFile
         rmdir _tmp
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-      with:
-        # Note: Caching (of the packages that `uv` builds while resolving dependencies) is "enabled by default on GitHub-hosted runners."
-        #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#enable-caching
-        #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
-        #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
-        cache-dependency-glob: "uv.lock"
-    - name: Set up Python virtual environment
-      run: uv sync
     - name: Build and start containers upon which test runner depends
       run: make up-test
     - name: Run tests

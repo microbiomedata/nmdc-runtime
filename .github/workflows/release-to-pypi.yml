@@ -8,7 +8,9 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
     runs-on: ubuntu-latest
-
+    env:
+      # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
+      VIRTUAL_ENV: /venv
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +23,7 @@ jobs:
           #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
           cache-dependency-glob: "uv.lock"
       - name: Set up Python virtual environment
-        run: uv sync
+        run: uv sync --active --no-editable
 
       - name: Build source and wheel archives
         run: uv build
