@@ -76,11 +76,11 @@ black:
 lint:
 	# Python syntax errors or undefined names
 	uv run python -m flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
-		nmdc_runtime
+		./nmdc_runtime ./tests
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 	uv run python -m flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722 \
-		nmdc_runtime
+		./nmdc_runtime ./tests
 
 # Build the MkDocs documentation website and serve it at http://localhost:8080.
 # Docs: https://www.mkdocs.org/user-guide/cli/#mkdocs-serve
