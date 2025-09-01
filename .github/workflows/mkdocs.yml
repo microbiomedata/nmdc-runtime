@@ -12,7 +12,8 @@ jobs:
     if: github.event.repository.fork == false
     env:
       # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
-      VIRTUAL_ENV: /venv
+      # Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#runner-context (RE: `runner.temp`)
+      VIRTUAL_ENV: "${{ runner.temp }}/venv"
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
