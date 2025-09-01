@@ -105,13 +105,8 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    ```
 2. Synchronize the transitive dependencies by running:
    ```shell
-   docker compose run --rm --no-deps fastapi sh -c '\
-     make update-deps \
-     UPDATE_DEPS_MAIN_UPGRADE_OPT="" \
-     UPDATE_DEPS_DEV_UPGRADE_OPT=""  \
-   '
+   docker compose run --rm --no-deps fastapi sh -c 'uv sync'
    ```
-   > Note: That command performs the _minimum_ set of dependency updates to satisfy the new requirement—handy when you're in a hurry. You can omit the `UPDATE_DEPS_MAIN_UPGRADE_OPT=""` and `UPDATE_DEPS_DEV_UPGRADE_OPT=""` in order to perform additional dependency updates. See `Makefile` for details.
 3. Run the tests and confirm they all pass.
    ```shell
    make test

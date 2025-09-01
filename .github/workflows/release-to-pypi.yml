@@ -12,15 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.10'
+          # Note: Caching (of the packages that `uv` builds while resolving dependencies) is "enabled by default on GitHub-hosted runners."
+          #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#enable-caching
+          #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
+          #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
+          cache-dependency-glob: "uv.lock"
+      - name: Set up Python virtual environment
+        run: uv sync
 
       - name: Build source and wheel archives
-        run: |
-          make init
-          python -m build
+        run: uv build
 
       - name: Publish distribution 📦 to PyPI
         if: github.repository == 'microbiomedata/nmdc-runtime'

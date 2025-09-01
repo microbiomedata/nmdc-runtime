@@ -3,10 +3,10 @@
 #       Reference: https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/
 #
 # Base this image upon a variant of the official Python 3.10 image that is, in turn,
-# based upon a minimal (slim) variant of the Debian 11 (bullseye) image.
+# based upon a minimal (slim) variant of the Debian 13 (trixie) image.
 # Reference: https://hub.docker.com/_/python
 # ────────────────────────────────────────────────────────────────────────────┐
-FROM python:3.10-slim-bullseye AS base
+FROM python:3.10-slim-trixie AS base
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Install and upgrade system-level software in a non-interactive way, then delete temporary files.
@@ -32,22 +32,20 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Reference: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONFAULTHANDLER
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python dependencies into the image.
-#
-# Note: Because these `pip install` commands would consistently time out for one of our developers while he would build
-#       this container image, we have overridden pip's default socket timeout (from 15 → 30 seconds) and retry count
-#       (from 5 → 10 times). With those overrides in place, these `pip install` commands run OK for that developer.
-#
-#       References:
-#       - https://stackoverflow.com/a/59796952 (source of the workaround)
-#       - https://pip.pypa.io/en/stable/cli/pip/#cmdoption-timeout (pip's CLI options)
-#
-COPY ./requirements/main.txt /code/requirements/main.txt
-RUN pip install \
-    --timeout 30 \
-    --retries 10 \
-    --no-cache-dir \
-    -r /code/requirements/main.txt
+# Install `uv`.
+# Reference: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && \
+    rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
+
+# Install Python dependencies (both development and production dependencies).
+# Note: We copy only the files that `uv` needs in order to install dependencies.
+#       This allows us to leverage Docker's layer caching in more situations.
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./uv.lock /code/uv.lock
+COPY ./nmdc_runtime/__init__.py /code/nmdc_runtime/__init__.py
+RUN cd /code && uv sync
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
@@ -56,14 +54,13 @@ FROM base AS fastapi
 # Copy repository contents into image.
 COPY . /code
 
-# Install the project in editable mode.
-RUN cd /code && \
-    pip install --no-cache-dir --editable .
+# Install the project in editable mode, and uninstall development dependencies.
+RUN cd /code && uv sync --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
 WORKDIR /code
-CMD ["uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS dagster
@@ -76,9 +73,8 @@ FROM base AS dagster
 #
 COPY . /opt/dagster/lib
 
-# Install the project in editable mode.
-RUN cd /opt/dagster/lib && \
-    pip install --no-cache-dir --editable .
+# Install the project in editable mode, and uninstall development dependencies.
+RUN cd /opt/dagster/lib && uv sync --no-dev
 
 # Move Dagster configuration files to the place Dagster expects.
 ENV DAGSTER_HOME="/opt/dagster/dagster_home/"
@@ -102,22 +98,11 @@ ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
 FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
 
-# Copy dependency lists into image.
-COPY ./requirements /code/requirements
-
-# Install development-only Python dependencies into the image.
-RUN pip install \
-    --timeout 30 \
-    --retries 10 \
-    --no-cache-dir \
-    -r /code/requirements/dev.txt
-
 # Copy all repository contents into image.
 COPY . /code
 
 # Install the project in editable mode.
-RUN cd /code && \
-    pip install --no-cache-dir --editable .
+RUN cd /code && uv sync
 
 # Make `wait-for-it.sh` executable.
 RUN chmod +x /code/.docker/wait-for-it.sh

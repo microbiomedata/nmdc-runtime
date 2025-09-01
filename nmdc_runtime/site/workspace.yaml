@@ -1,13 +1,19 @@
 load_from:
   - python_package:
+      # Note: The directory to which the following "working_directory"
+      #       is _relative_, is `/opt/dagster/dagster_home`.
+      working_directory: ../lib
       package_name: nmdc_runtime.site.repository
       attribute: repo
   - python_package:
+      working_directory: ../lib
       package_name: nmdc_runtime.site.repository
       attribute: biosample_submission_ingest
   - python_package:
+      working_directory: ../lib
       package_name: nmdc_runtime.site.repository
       attribute: biosample_export
   - python_package:
+      working_directory: ../lib
       package_name: nmdc_runtime.site.repository
       attribute: database_records_stitching
