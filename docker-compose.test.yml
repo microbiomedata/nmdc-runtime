@@ -38,7 +38,11 @@ services:
       - dagster-postgresql
     restart: on-failure
     volumes:
-      - ./:/opt/dagster/lib
+      - .:/opt/dagster/lib
+      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
+      # That way, the host's Python virtual environment does not interfere with the container's
+      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
+      - "/app/.venv"
     env_file: .env.test
 
   # Dagster daemon.
@@ -63,7 +67,11 @@ services:
       # before starting this Dagster daemon container.
       mongo-init: { condition: service_completed_successfully }
     volumes:
-      - ./:/opt/dagster/lib
+      - .:/opt/dagster/lib
+      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
+      # That way, the host's Python virtual environment does not interfere with the container's
+      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
+      - "/app/.venv"
     env_file: .env.test
 
   # Uvicorn server hosting the FastAPI application.
@@ -76,6 +84,10 @@ services:
       - "${TEST_STACK_HOST_MACHINE_PORT_FASTAPI}:8000"
     volumes:
       - .:/code
+      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
+      # That way, the host's Python virtual environment does not interfere with the container's
+      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
+      - "/app/.venv"
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.
     depends_on:
@@ -128,6 +140,10 @@ services:
     env_file: .env.test
     volumes:
       - .:/code
+      # Create an anonymous volume to mask the host's Python virtual environment when mounting.
+      # That way, the host's Python virtual environment does not interfere with the container's
+      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
+      - "/app/.venv"
 
 volumes:
   postgres_data:
