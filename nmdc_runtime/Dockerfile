@@ -80,7 +80,7 @@ RUN uv sync --active --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
-CMD ["uv", "run", "--active", "python", "-m", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS dagster
