@@ -39,7 +39,7 @@ RUN sh /uv-installer.sh && \
     rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 
-# Install Python dependencies (production dependencies only).
+# Install Python dependencies (production and development dependencies).
 #
 # Note: We copy only the files that `uv` needs in order to install dependencies. That way,
 #       we minimize the number of files whose changes would invalidate cached image layers
@@ -65,7 +65,7 @@ COPY ./pyproject.toml ./pyproject.toml
 COPY ./uv.lock        ./uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy \
-    uv sync --active --no-editable --no-dev --no-install-project
+    uv sync --active --no-editable --no-install-project
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
@@ -75,7 +75,7 @@ FROM base AS fastapi
 WORKDIR /code
 COPY . .
 
-# Install the project in editable mode, and compile Python source code into bytecode.
+# Install the project in editable mode, uninstall non-production dependencies, and compile Python source code into bytecode.
 # Note: Compiling into bytecode can speed up app startup time.
 #       Reference: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
 RUN uv sync --active --no-dev --compile-bytecode
@@ -96,7 +96,7 @@ FROM base AS dagster
 WORKDIR /opt/dagster/lib
 COPY . .
 
-# Install the project in editable mode.
+# Install the project in editable mode, and uninstall non-production dependencies.
 RUN uv sync --active --no-dev
 
 # Move Dagster configuration files to the place Dagster expects.
@@ -125,7 +125,7 @@ FROM base AS test
 WORKDIR /code
 COPY . .
 
-# Install the project in editable mode, and install development dependencies (e.g. `pytest`).
+# Install the project in editable mode.
 RUN uv sync --active
 
 # Make `wait-for-it.sh` executable.
