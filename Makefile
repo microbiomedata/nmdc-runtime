@@ -55,7 +55,7 @@ reset-db-test:
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
-			uv run pytest --cov=nmdc_runtime \
+			uv run python -m pytest --cov=nmdc_runtime \
 			       --doctest-modules \
 			       --ignore=util/load_testing \
 			       $(ARGS)
@@ -69,15 +69,15 @@ test: down-test up-test run-test
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
-	uv run black nmdc_runtime
+	uv run python -m black nmdc_runtime
 
 # Lint Python code using `flake8`.
 # TODO: Migrate from `flake8` to `ruff`.
 lint:
 	# Python syntax errors or undefined names
-	uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
+	uv run python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-	uv run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
+	uv run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722
 
 # Build the MkDocs documentation website and serve it at http://localhost:8080.
