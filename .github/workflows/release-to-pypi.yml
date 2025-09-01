@@ -11,7 +11,7 @@ jobs:
     env:
       # Reference: https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
       # Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#runner-context (RE: `runner.temp`)
-      VIRTUAL_ENV: "${{ runner.temp }}/venv"
+      VIRTUAL_ENV: ${{ runner.temp }}/venv
     steps:
       - uses: actions/checkout@v4
 
