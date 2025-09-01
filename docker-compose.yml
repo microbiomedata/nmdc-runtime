@@ -42,8 +42,6 @@ services:
     volumes:
       - .:/opt/dagster/lib
       # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      # That way, the host's Python virtual environment does not interfere with the container's
-      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
       - "/app/.venv"
     env_file: .env
 
@@ -71,8 +69,6 @@ services:
     volumes:
       - .:/opt/dagster/lib
       # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      # That way, the host's Python virtual environment does not interfere with the container's
-      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
       - "/app/.venv"
     env_file: .env
 
@@ -87,8 +83,6 @@ services:
     volumes:
       - .:/code
       # Create an anonymous volume to mask the host's Python virtual environment when mounting.
-      # That way, the host's Python virtual environment does not interfere with the container's
-      # and vice versa, and the container does not have to customize `VIRTUAL_ENV`.
       - "/app/.venv"
     # Wait until the MongoDB replica set has been set up by the "init container"
     # before starting this FastAPI container.

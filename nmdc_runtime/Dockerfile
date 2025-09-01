@@ -60,6 +60,7 @@ ENV PATH="/root/.local/bin/:$PATH"
 #
 WORKDIR /code
 ENV VIRTUAL_ENV="/venv"
+RUN mkdir -p "${VIRTUAL_ENV}"
 COPY ./pyproject.toml ./pyproject.toml
 COPY ./uv.lock        ./uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
