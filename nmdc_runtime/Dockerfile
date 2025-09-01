@@ -59,13 +59,17 @@ ENV PATH="/root/.local/bin/:$PATH"
 #       - https://docs.astral.sh/uv/reference/settings/#link-mode (RE: `UV_LINK_MODE`)
 #       - https://docs.astral.sh/uv/reference/cli/#uv-sync--no-install-project (RE: `--no-install-project`)
 #
+# Note: We use `--compile-bytecode` so that Python compiles `.py` files to `.pyc` files now,
+#       instead of when the container is running. By default, `uv` defers this compilation
+#       to "run time," whereas `pip` (by default) performs it at "install time" (like this).
+#
 ENV VIRTUAL_ENV="/venv"
 RUN mkdir -p "${VIRTUAL_ENV}"
 COPY ./pyproject.toml /code/pyproject.toml
 COPY ./uv.lock        /code/uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project
+    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project --compile-bytecode
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
