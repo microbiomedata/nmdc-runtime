@@ -61,7 +61,7 @@ ENV PATH="/root/.local/bin/:$PATH"
 #
 # Note: We use `--compile-bytecode` so that Python compiles `.py` files to `.pyc` files now,
 #       instead of when the container is running. By default, `uv` defers this compilation
-#       to "run time," whereas `pip` (by default) performs it at "install time" (like this).
+#       to "import time," whereas `pip` (by default) performs it at "install time" (like this).
 #
 ENV VIRTUAL_ENV="/venv"
 RUN mkdir -p "${VIRTUAL_ENV}"
