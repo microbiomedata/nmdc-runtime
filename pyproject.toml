@@ -116,9 +116,16 @@ dev = [
 ]
 
 [project.urls]
+# > "A list of URLs associated with your project, displayed on the left sidebar of your PyPI project page."
+# Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+Changelog = "https://github.com/microbiomedata/nmdc-runtime/releases"
+Documentation = "https://docs.microbiomedata.org/runtime"
+Issues = "https://github.com/microbiomedata/nmdc-runtime/issues"
 Repository = "https://github.com/microbiomedata/nmdc-runtime"
 
 [project.scripts]
+# > "To install a command as part of your package, declare it in the [project.scripts] table."
+# Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
 nmdcdb-mongoexport = "nmdc_runtime.site.backup.nmdcdb_mongoexport:main"
 nmdcdb-mongodump = "nmdc_runtime.site.backup.nmdcdb_mongodump:main"
 nmdcdb-mongoimport = "nmdc_runtime.site.backup.nmdcdb_mongoimport:main"
