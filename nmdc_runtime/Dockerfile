@@ -44,11 +44,26 @@ ENV PATH="/root/.local/bin/:$PATH"
 # Note: We copy only the files that `uv` needs in order to install dependencies. That way,
 #       we minimize the number of files whose changes would invalidate cached image layers
 #
-# Note: We specify the path to the Python virtual environment that we want `uv` to create inside the
-#       container. We do this so that, when we later `COPY` the repository file tree (or a user of
-#       the image bind mounts it) into the container, it does not collide with the virtual environment.
+# Note: We use the `VIRTUAL_ENV` environment variable to specify the path to the Python virtual
+#       environment that we want the `uv` program inside the container to create and use.
+#
+#       Q: Why don't we use `./.venv` in the repository file tree?
+#       A: If we were to do that, then, whenever a developer would mount (via our Docker Compose file)
+#          the repository file tree from their host machine (which may include a `.venv/` directory
+#          created by their host machine) into the container, it would overwrite the Python virtual
+#          environment that the `uv` program inside the container is using.
+#
+#       Q: What is special about the `VIRTUAL_ENV` environment variable?
+#       A: When using `uv`'s `--active` option (as we do in later stages of this Dockerfile),
+#          `uv` determines which virtual environment is active by looking at `VIRTUAL_ENV'. This
+#          is the case, even though the documentation of the `venv` module (in Python's standard
+#          library) specifically says: "`VIRTUAL_ENV` cannot be relied upon to determine whether
+#          a virtual environment is being used."
+#
 #       References:
 #       - https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
+#       - https://docs.astral.sh/uv/reference/environment/#virtual_env (RE: `VIRTUAL_ENV`, from uv's perspective)
+#       - https://docs.python.org/3/library/venv.html#how-venvs-work (RE: `VIRTUAL_ENV`, from venv's perspective)
 #       - https://docs.astral.sh/uv/concepts/projects/sync/#partial-installations (RE: `--no-install-project`)
 #
 # Note: In the `RUN` command, we use a "cache mount" (a feature of Docker) to cache production dependencies
