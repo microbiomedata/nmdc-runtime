@@ -220,5 +220,5 @@ Here are links related to this repository:
 
 - Production API server: https://api.microbiomedata.org
 - PyPI package: https://pypi.org/project/nmdc-runtime
-- DockerHub image (API server): https://hub.docker.com/r/microbiomedata/nmdc-runtime-fastapi
-- DockerHub image (Dagster): https://hub.docker.com/r/microbiomedata/nmdc-runtime-dagster
+- Container image (API server): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-fastapi
+- Container image (Dagster): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-dagster
