@@ -1,13 +1,3 @@
-# Use `uv sync` to set up a Python virtual environment on your local machine.
-#
-# This command will:
-# 1. **Create a Python virtual environment** at `.venv` (if one doesn't already exist there)
-# 2. **Install all dependencies** described in `uv.lock` into that Python virtual environment
-# 3. Uninstall all dependencies _not_ described in `uv.lock` from that Python virtual environment
-#
-env:
-	uv sync
-
 # Spin up the development stack.
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
@@ -134,7 +124,7 @@ quick-blade:
 # List of Make targets that do not represent files being created.
 # Note: I think _most_ of the targets in this Makefile meet that criterion,
 #       despite them not being listed here.
-.PHONY: env up-dev down-dev publish docs quick-blade
+.PHONY: up-dev down-dev publish docs quick-blade
 
 # Note: The leading hyphen in each command below tells `make` to ignore whether
 #       the command fails (i.e. returns a non-zero exit code).

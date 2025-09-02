@@ -127,6 +127,37 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+### Dependency management
+
+We use [`uv`](https://docs.astral.sh/uv/) to manage dependencies of the application. Here's how you can use `uv` both on your host machine and within a container in the Docker Compose stack.
+
+#### On the host
+
+Although we typically run the application within a container, some developers prefer that application's dependencies be installed locally also (so that their code editors will provide auto-completion, type checking, etc.).
+
+Here's how you can install the application's dependencies locally:
+
+```sh
+uv sync
+```
+
+That will...
+1. **Create a Python virtual environment** at `.venv` (if one doesn't already exist there)
+2. **Install all dependencies** described in `uv.lock` into that Python virtual environment
+3. Uninstall all dependencies _not_ described in `uv.lock` from that Python virtual environment
+
+> Note: Long term, we may implement a [devcontainer](https://containers.dev/) for this project, which will streamline the process of setting up a local development environment.
+
+#### In a container
+
+**Preface:** In the Docker Compose stack, the Python virtual environment is located at the path specified by the `VIRTUAL_ENV` environment variable (defined in: `Dockerfile`). That helps with containerization, but it deviates from `uv`'s default behavior, which is to look for the Python virtual environment at `./.venv`. So, when running `uv` commands within a container, we always include the [`--active`](https://docs.astral.sh/uv/reference/cli/#uv-sync--active) flag (which tells `uv` to use the Python virtual environment at the path specified by `VIRTUAL_ENV`).
+
+Here's how you can install the application's dependencies within the container. You might do this when introducing a new dependency or deleting an obsolete one.
+
+```sh
+uv sync --active
+```
+
 ## Local Testing
 
 Tests can be found in `tests` and are run with the following commands:
