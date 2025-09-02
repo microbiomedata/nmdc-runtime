@@ -142,17 +142,17 @@ uv sync
 ```
 
 That will...
-1. **Create a Python virtual environment** at `.venv` (if one doesn't already exist there)
-2. **Install all dependencies** described in `uv.lock` into that Python virtual environment
-3. Uninstall all dependencies _not_ described in `uv.lock` from that Python virtual environment
+1. (If you made changes to `pyproject.toml`) **Update the lock file** (at `uv.lock`) to reflect those changes
+2. (If a Python virtual environment doesn't exist at `.venv/` yet) **Create a Python virtual environment** at `.venv/`
+3. (If the Python virtual environment and `uv.lock` files are out of sync) **Synchronize the Python virtual environment** with `uv.lock` (by installing and uninstalling packages)
 
 > Note: Long term, we may implement a [devcontainer](https://containers.dev/) for this project, which will streamline the process of setting up a local development environment.
 
-#### In a container
+#### In the Docker Compose stack
 
-**Preface:** In the Docker Compose stack, the Python virtual environment is located at the path specified by the `VIRTUAL_ENV` environment variable (defined in: `Dockerfile`). That helps with containerization, but it deviates from `uv`'s default behavior, which is to look for the Python virtual environment at `./.venv`. So, when running `uv` commands within a container, we always include the [`--active`](https://docs.astral.sh/uv/reference/cli/#uv-sync--active) flag (which tells `uv` to use the Python virtual environment at the path specified by `VIRTUAL_ENV`).
+In the Docker Compose stack, the Python virtual environment is located at the path specified by the `VIRTUAL_ENV` environment variable (which is defined in the `Dockerfile`) instead of at `.venv/`. That helps with containerization, but it deviates from `uv`'s default behavior, which is to use the Python virtual environment at `.venv/`. So, when running `uv` commands within the Docker Compose stack, we always include the [`--active`](https://docs.astral.sh/uv/reference/cli/#uv-sync--active) flag (which tells `uv` to use the Python virtual environment at the path specified by `VIRTUAL_ENV`).
 
-Here's how you can install the application's dependencies within the container. You might do this when introducing a new dependency or deleting an obsolete one.
+Here's how you can install the application's dependencies within a container in the Docker Compose stack:
 
 ```sh
 uv sync --active
