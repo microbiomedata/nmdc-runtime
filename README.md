@@ -214,14 +214,6 @@ found **12 GB** to be sufficient for running the tests.
 
 This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
 
-You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
-
-```
-rm -rf dist
-python -m build
-twine upload dist/*
-```
-
 ## Links
 
 Here are links related to this repository:
