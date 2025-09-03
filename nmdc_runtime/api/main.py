@@ -56,6 +56,7 @@ from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
+from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
@@ -327,7 +328,6 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
-    swagger_ui_parameters: dict = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
         onComplete += f"""
@@ -363,6 +363,7 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
+    swagger_ui_parameters = base_swagger_ui_parameters.copy()
     # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
     #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
     swagger_ui_parameters.update(
