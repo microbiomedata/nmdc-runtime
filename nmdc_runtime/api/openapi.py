@@ -12,12 +12,31 @@ Notes:
 
 from html import escape
 from typing import List, Dict
+from enum import Enum
+
+class OpenAPITag(str, Enum):
+    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+    SITES = "Sites"
+    FIND = "Find metadata"
+    WORKFLOWS = "Workflows"
+    USERS = "Users"
+    CAPABILITIES = "Capabilities"
+    OBJECT_TYPES = "Object types"
+    TRIGGERS = "Triggers"
+    JOBS = "Jobs"
+    OBJECTS = "Objects"
+    OPERATIONS = "Operations"
+    QUERIES = "Queries"
+    METADATA = "Metadata"
+    RUNS = "Runs"
+    MINTER = "Minter"
+
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
 
 tag_descriptions[
-    "sites"
+    OpenAPITag.SITES.value
 ] = r"""
 A site corresponds to a physical place that may participate in job execution.
 
@@ -32,7 +51,7 @@ system.
 """
 
 tag_descriptions[
-    "workflows"
+    OpenAPITag.WORKFLOWS
 ] = r"""
 A workflow is a template for creating jobs.
 
@@ -42,7 +61,7 @@ in order for those sites to claim workflow jobs.
 """
 
 tag_descriptions[
-    "users"
+    OpenAPITag.USERS.value
 ] = r"""
 Endpoints for user identification.
 
@@ -50,7 +69,7 @@ Currently, accounts for use with the Runtime API are created manually by system 
 """
 
 tag_descriptions[
-    "capabilities"
+    OpenAPITag.CAPABILITIES.value
 ] = r"""
 A workflow may require an executing site to have particular capabilities.
 
@@ -60,7 +79,7 @@ jobs if they are known to have the capabilities required by the workflow.
 """
 
 tag_descriptions[
-    "object types"
+    OpenAPITag.OBJECT_TYPES.value
 ] = r"""
 An object type is an object annotation that is useful for triggering workflows.
 
@@ -74,7 +93,7 @@ object type to workflow via a trigger resource.
 """
 
 tag_descriptions[
-    "triggers"
+    OpenAPITag.TRIGGERS.value
 ] = r"""
 A trigger is an association between a workflow and a data object type.
 
@@ -83,7 +102,7 @@ Runtime will check, via trigger associations, for potential new jobs to create f
 """
 
 tag_descriptions[
-    "jobs"
+    OpenAPITag.JOBS.value
 ] = r"""
 A job is a resource that isolates workflow configuration from execution.
 
@@ -101,7 +120,7 @@ pre-claimed type.
 """
 
 tag_descriptions[
-    "objects"
+    OpenAPITag.OBJECTS.value
 ] = r"""
 A [Data Repository Service (DRS)
 object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes)
@@ -114,7 +133,7 @@ An object may be associated with one or more object types, useful for triggering
 """
 
 tag_descriptions[
-    "operations"
+    OpenAPITag.OPERATIONS.value
 ] = r"""
 An operation is a resource for tracking the execution of a job.
 
@@ -134,7 +153,7 @@ of operations are available.
 """
 
 tag_descriptions[
-    "queries"
+    OpenAPITag.QUERIES.value
 ] = r"""
 A query is an operation (find, update, etc.) against the metadata store.
 
@@ -149,7 +168,7 @@ issue an update query).
 """
 
 tag_descriptions[
-    "metadata"
+    OpenAPITag.METADATA.value
 ] = r"""
 The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter
 metadata from collection set types (including 
@@ -171,7 +190,7 @@ uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutori
 """
 
 tag_descriptions[
-    "find"
+    OpenAPITag.FIND.value
 ] = r"""
 The [find endpoints](https://api.microbiomedata.org/docs#/find) are provided with NMDC metadata entities
 already specified - where metadata about [studies](https://w3id.org/nmdc/Study),
@@ -184,7 +203,7 @@ in a meaningful way.  Parameters that do not have a red ___* required___ label n
 """
 
 tag_descriptions[
-    "runs"
+    OpenAPITag.RUNS.value
 ] = r"""
 **WORK IN PROGRESS**
 
@@ -193,24 +212,31 @@ Run simple jobs.
 For off-site job runs, keep the Runtime appraised of run events.
 """
 
+tag_descriptions[
+    OpenAPITag.MINTER.value
+] = r"""
+Mint identifiers.
+"""
+
 # Remove leading and trailing whitespace from each description.
 for name, description in tag_descriptions.items():
     tag_descriptions[name] = description.strip()
 
-ordered_tag_descriptors: List[Dict[str, str]] = [
-    {"name": "sites", "description": tag_descriptions["sites"]},
-    {"name": "users", "description": tag_descriptions["users"]},
-    {"name": "workflows", "description": tag_descriptions["workflows"]},
-    {"name": "capabilities", "description": tag_descriptions["capabilities"]},
-    {"name": "object types", "description": tag_descriptions["object types"]},
-    {"name": "triggers", "description": tag_descriptions["triggers"]},
-    {"name": "jobs", "description": tag_descriptions["jobs"]},
-    {"name": "objects", "description": tag_descriptions["objects"]},
-    {"name": "operations", "description": tag_descriptions["operations"]},
-    {"name": "queries", "description": tag_descriptions["queries"]},
-    {"name": "metadata", "description": tag_descriptions["metadata"]},
-    {"name": "find", "description": tag_descriptions["find"]},
-    {"name": "runs", "description": tag_descriptions["runs"]},
+ordered_tag_descriptors: List[Dict] = [
+    {"name": OpenAPITag.SITES.value, "description": tag_descriptions[OpenAPITag.SITES.value]},
+    {"name": OpenAPITag.USERS.value, "description": tag_descriptions[OpenAPITag.USERS.value]},
+    {"name": OpenAPITag.WORKFLOWS.value, "description": tag_descriptions[OpenAPITag.WORKFLOWS.value]},
+    {"name": OpenAPITag.CAPABILITIES.value, "description": tag_descriptions[OpenAPITag.CAPABILITIES.value]},
+    {"name": OpenAPITag.OBJECT_TYPES.value, "description": tag_descriptions[OpenAPITag.OBJECT_TYPES.value]},
+    {"name": OpenAPITag.TRIGGERS.value, "description": tag_descriptions[OpenAPITag.TRIGGERS.value]},
+    {"name": OpenAPITag.JOBS.value, "description": tag_descriptions[OpenAPITag.JOBS.value]},
+    {"name": OpenAPITag.OBJECTS.value, "description": tag_descriptions[OpenAPITag.OBJECTS.value]},
+    {"name": OpenAPITag.OPERATIONS.value, "description": tag_descriptions[OpenAPITag.OPERATIONS.value]},
+    {"name": OpenAPITag.QUERIES.value, "description": tag_descriptions[OpenAPITag.QUERIES.value]},
+    {"name": OpenAPITag.METADATA.value, "description": tag_descriptions[OpenAPITag.METADATA.value]},
+    {"name": OpenAPITag.FIND.value, "description": tag_descriptions[OpenAPITag.FIND.value]},
+    {"name": OpenAPITag.RUNS.value, "description": tag_descriptions[OpenAPITag.RUNS.value]},
+    {"name": OpenAPITag.MINTER.value, "description": tag_descriptions[OpenAPITag.MINTER.value]},
 ]
 
 

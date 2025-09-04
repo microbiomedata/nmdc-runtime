@@ -55,28 +55,28 @@ from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
+from nmdc_runtime.api.openapi import OpenAPITag, ordered_tag_descriptors, make_api_description
 from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 
 api_router = APIRouter()
-api_router.include_router(users.router, tags=["users"])
-api_router.include_router(operations.router, tags=["operations"])
-api_router.include_router(sites.router, tags=["sites"])
-api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(objects.router, tags=["objects"])
-api_router.include_router(capabilities.router, tags=["capabilities"])
-api_router.include_router(triggers.router, tags=["triggers"])
-api_router.include_router(workflows.router, tags=["workflows"])
-api_router.include_router(object_types.router, tags=["object types"])
-api_router.include_router(queries.router, tags=["queries"])
-api_router.include_router(metadata.router, tags=["metadata"])
-api_router.include_router(nmdcschema.router, tags=["metadata"])
-api_router.include_router(find.router, tags=["find"])
-api_router.include_router(runs.router, tags=["runs"])
-api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
+api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(operations.router, tags=[OpenAPITag.OPERATIONS.value])
+api_router.include_router(sites.router, tags=[OpenAPITag.SITES.value])
+api_router.include_router(jobs.router, tags=[OpenAPITag.JOBS.value])
+api_router.include_router(objects.router, tags=[OpenAPITag.OBJECTS.value])
+api_router.include_router(capabilities.router, tags=[OpenAPITag.CAPABILITIES.value])
+api_router.include_router(triggers.router, tags=[OpenAPITag.TRIGGERS.value])
+api_router.include_router(workflows.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(object_types.router, tags=[OpenAPITag.OBJECT_TYPES.value])
+api_router.include_router(queries.router, tags=[OpenAPITag.QUERIES.value])
+api_router.include_router(metadata.router, tags=[OpenAPITag.METADATA.value])
+api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA.value])
+api_router.include_router(find.router, tags=[OpenAPITag.FIND.value])
+api_router.include_router(runs.router, tags=[OpenAPITag.RUNS.value])
+api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 
 
 def ensure_initial_resources_on_boot():
