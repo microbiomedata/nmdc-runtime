@@ -55,27 +55,32 @@ from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
+from nmdc_runtime.api.openapi import (
+    OpenAPITag,
+    ordered_tag_descriptors,
+    make_api_description,
+)
+from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 
 api_router = APIRouter()
-api_router.include_router(users.router, tags=["users"])
-api_router.include_router(operations.router, tags=["operations"])
-api_router.include_router(sites.router, tags=["sites"])
-api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(objects.router, tags=["objects"])
-api_router.include_router(capabilities.router, tags=["capabilities"])
-api_router.include_router(triggers.router, tags=["triggers"])
-api_router.include_router(workflows.router, tags=["workflows"])
-api_router.include_router(object_types.router, tags=["object types"])
-api_router.include_router(queries.router, tags=["queries"])
-api_router.include_router(metadata.router, tags=["metadata"])
-api_router.include_router(nmdcschema.router, tags=["metadata"])
-api_router.include_router(find.router, tags=["find"])
-api_router.include_router(runs.router, tags=["runs"])
-api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
+api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(operations.router, tags=[OpenAPITag.OPERATIONS.value])
+api_router.include_router(sites.router, tags=[OpenAPITag.SITES.value])
+api_router.include_router(jobs.router, tags=[OpenAPITag.JOBS.value])
+api_router.include_router(objects.router, tags=[OpenAPITag.OBJECTS.value])
+api_router.include_router(capabilities.router, tags=[OpenAPITag.CAPABILITIES.value])
+api_router.include_router(triggers.router, tags=[OpenAPITag.TRIGGERS.value])
+api_router.include_router(workflows.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(object_types.router, tags=[OpenAPITag.OBJECT_TYPES.value])
+api_router.include_router(queries.router, tags=[OpenAPITag.QUERIES.value])
+api_router.include_router(metadata.router, tags=[OpenAPITag.METADATA.value])
+api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA.value])
+api_router.include_router(find.router, tags=[OpenAPITag.FIND.value])
+api_router.include_router(runs.router, tags=[OpenAPITag.RUNS.value])
+api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 
 
 def ensure_initial_resources_on_boot():
@@ -327,7 +332,6 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
-    swagger_ui_parameters: dict = {"withCredentials": True}
     onComplete = ""
     if access_token is not None:
         onComplete += f"""
@@ -363,6 +367,7 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
+    swagger_ui_parameters = base_swagger_ui_parameters.copy()
     # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
     #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
     swagger_ui_parameters.update(
@@ -370,8 +375,34 @@ def custom_swagger_ui_html(
             "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
         }
     )
-    # Note: Consider using a "custom layout" instead of injecting HTML snippets via Python.
+    # TODO: Consider using a "custom layout" instead of injecting HTML snippets via Python.
     #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
+    #       Note: Custom layouts are specified via the Swagger UI parameter named `layout`, whose
+    #             value identifies a component specified via the Swagger UI parameter named `plugins`;
+    #             but FastAPI serializes each parameter's value to JSON, and the Swagger UI JavaScript
+    #             expects each item in the `plugins` array to be a JavaScript function, not a string;
+    #             so, I think our usage of a custom layout is blocked by a FastAPI limitation. As a
+    #             workaround, we could use the body manipulation technique shown below to put the
+    #             literal JavaScript characters into place in the final HTML document content.
+    #             That would look like this:
+    #             1. In the `swagger_ui_parameters` dictionary, set:
+    #                ```py
+    #                "layout": "CustomLayout",
+    #                "plugins": ["__REPLACE_WITH_NMDC_PLUGINS__"],
+    #                ```
+    #             2. In the final HTML document content replacement section below, do this replacement:
+    #                ```py
+    #                .replace(r'''"plugins": ["__REPLACE_WITH_NMDC_PLUGINS__"],''',
+    #                         r'''"plugins": [() => ({
+    #                                components: {
+    #                                    CustomLayout: (props) => JSON.stringify(props),
+    #                                }
+    #                            })
+    #                         ],''')
+    #                ```
+    #             I have been able to display a custom component that way, but I have _not_ been able
+    #             to get the custom component to display the `BaseLayout` component (i.e. the base
+    #             layout, which includes the core Swagger UI functionality). That's a deal breaker.
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
