@@ -17,7 +17,7 @@ from enum import Enum
 class OpenAPITag(str, Enum):
     r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
     SITES = "Sites"
-    FIND = "Find metadata"
+    FIND = "Find"
     WORKFLOWS = "Workflows"
     USERS = "Users"
     CAPABILITIES = "Capabilities"
