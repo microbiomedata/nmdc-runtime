@@ -7,10 +7,14 @@ base_swagger_ui_parameters: dict = {
     # Collapse the "Schemas" section by default.
     # Note: `-1` would omit the section entirely.
     "defaultModelsExpandDepth": 0,
-    # Display the response times of "Try it out" requests.
+    # Display the response times of the requests performed via "Try it out".
     # Note: In my local testing, the response times reported by this
     #       are about 50-100ms longer than the response times reported
     #       by Chrome DevTools. That is the case whether the actual
-    #       response time is short (e.g. 100ms) or long (e.g. 60s).
+    #       response time is short (e.g. 100ms) or long (e.g. 60s);
+    #       i.e. not proportional to the actual response time.
     "displayRequestDuration": True,
+    # Make it so a logged-in user remains logged in even after reloading
+    # the web page (or leaving the web page and coming back to it later).
+    "persistAuthorization": True,
 }
