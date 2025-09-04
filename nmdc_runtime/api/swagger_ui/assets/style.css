@@ -18,6 +18,10 @@
  * Customize Swagger UI's default elements.
  *****************************************************************************/
 
+ /* Remove the box shadow from the top section of the page. */
+.swagger-ui .scheme-container {
+    box-shadow: none;
+}
 /* Draw a border around each section and add a shadow behind it. */
 .swagger-ui div.opblock-tag-section {
     border: .075rem solid black;
