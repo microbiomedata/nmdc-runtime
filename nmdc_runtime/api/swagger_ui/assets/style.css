@@ -2,6 +2,7 @@
     padding: 1em;
     background-color: #448aff1a;
     border: .075rem solid #448aff;
+    border-radius: 4px;
 }
 .nmdc-info-token code {
     font-size: x-small;
@@ -11,4 +12,37 @@
 }
 .nmdc-error {
     color: red;
+}
+
+/*****************************************************************************
+ * Customize Swagger UI's default elements.
+ *****************************************************************************/
+
+/* Draw a border around each section and add a shadow behind it. */
+.swagger-ui div.opblock-tag-section {
+    border: .075rem solid black;
+    border-radius: 4px;
+    padding-top: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.19);
+    transition: box-shadow 0.2s;
+}
+.swagger-ui div.opblock-tag-section:not(.is-open):hover {
+    box-shadow: 0 0px 6px rgba(0, 0, 0, 0.19);
+}
+/* Stack the elements of each section header vertically. */
+.swagger-ui h3.opblock-tag {
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: none;
+}
+.swagger-ui h3.opblock-tag:hover {
+    background-color: transparent;
+}
+/* Remove the left margin from the description and chevron icon rows. */
+.swagger-ui h3.opblock-tag > small,
+.swagger-ui h3.opblock-tag > button {
+    padding-left: 0;
 }
