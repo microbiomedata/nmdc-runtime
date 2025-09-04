@@ -55,7 +55,11 @@ from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.openapi import OpenAPITag, ordered_tag_descriptors, make_api_description
+from nmdc_runtime.api.openapi import (
+    OpenAPITag,
+    ordered_tag_descriptors,
+    make_api_description,
+)
 from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
@@ -389,7 +393,7 @@ def custom_swagger_ui_html(
     #             2. In the final HTML document content replacement section below, do this replacement:
     #                ```py
     #                .replace(r'''"plugins": ["__REPLACE_WITH_NMDC_PLUGINS__"],''',
-    #                         r'''"plugins": [() => ({   
+    #                         r'''"plugins": [() => ({
     #                                components: {
     #                                    CustomLayout: (props) => JSON.stringify(props),
     #                                }

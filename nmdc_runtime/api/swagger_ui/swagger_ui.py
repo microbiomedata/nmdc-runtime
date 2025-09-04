@@ -1,6 +1,5 @@
 """Constants related to configuring Swagger UI."""
 
-
 # Reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/#parameters
 base_swagger_ui_parameters: dict = {
     "withCredentials": True,
@@ -16,7 +15,7 @@ base_swagger_ui_parameters: dict = {
     "displayRequestDuration": True,
     # Make all sections (i.e. groups of endpoints) _collapsed_ by default.
     # Note: `"list"` would make all sections _expanded_ by default.
-    "docExpansion": "none",    
+    "docExpansion": "none",
     # Make it so a logged-in user remains logged in even after reloading
     # the web page (or leaving the web page and coming back to it later).
     "persistAuthorization": True,

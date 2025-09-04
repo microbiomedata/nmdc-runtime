@@ -14,8 +14,10 @@ from html import escape
 from typing import List, Dict
 from enum import Enum
 
+
 class OpenAPITag(str, Enum):
     r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+
     SITES = "Sites"
     FIND = "Find"
     WORKFLOWS = "Workflows"
@@ -223,20 +225,62 @@ for name, description in tag_descriptions.items():
     tag_descriptions[name] = description.strip()
 
 ordered_tag_descriptors: List[Dict] = [
-    {"name": OpenAPITag.SITES.value, "description": tag_descriptions[OpenAPITag.SITES.value]},
-    {"name": OpenAPITag.USERS.value, "description": tag_descriptions[OpenAPITag.USERS.value]},
-    {"name": OpenAPITag.WORKFLOWS.value, "description": tag_descriptions[OpenAPITag.WORKFLOWS.value]},
-    {"name": OpenAPITag.CAPABILITIES.value, "description": tag_descriptions[OpenAPITag.CAPABILITIES.value]},
-    {"name": OpenAPITag.OBJECT_TYPES.value, "description": tag_descriptions[OpenAPITag.OBJECT_TYPES.value]},
-    {"name": OpenAPITag.TRIGGERS.value, "description": tag_descriptions[OpenAPITag.TRIGGERS.value]},
-    {"name": OpenAPITag.JOBS.value, "description": tag_descriptions[OpenAPITag.JOBS.value]},
-    {"name": OpenAPITag.OBJECTS.value, "description": tag_descriptions[OpenAPITag.OBJECTS.value]},
-    {"name": OpenAPITag.OPERATIONS.value, "description": tag_descriptions[OpenAPITag.OPERATIONS.value]},
-    {"name": OpenAPITag.QUERIES.value, "description": tag_descriptions[OpenAPITag.QUERIES.value]},
-    {"name": OpenAPITag.METADATA.value, "description": tag_descriptions[OpenAPITag.METADATA.value]},
-    {"name": OpenAPITag.FIND.value, "description": tag_descriptions[OpenAPITag.FIND.value]},
-    {"name": OpenAPITag.RUNS.value, "description": tag_descriptions[OpenAPITag.RUNS.value]},
-    {"name": OpenAPITag.MINTER.value, "description": tag_descriptions[OpenAPITag.MINTER.value]},
+    {
+        "name": OpenAPITag.SITES.value,
+        "description": tag_descriptions[OpenAPITag.SITES.value],
+    },
+    {
+        "name": OpenAPITag.USERS.value,
+        "description": tag_descriptions[OpenAPITag.USERS.value],
+    },
+    {
+        "name": OpenAPITag.WORKFLOWS.value,
+        "description": tag_descriptions[OpenAPITag.WORKFLOWS.value],
+    },
+    {
+        "name": OpenAPITag.CAPABILITIES.value,
+        "description": tag_descriptions[OpenAPITag.CAPABILITIES.value],
+    },
+    {
+        "name": OpenAPITag.OBJECT_TYPES.value,
+        "description": tag_descriptions[OpenAPITag.OBJECT_TYPES.value],
+    },
+    {
+        "name": OpenAPITag.TRIGGERS.value,
+        "description": tag_descriptions[OpenAPITag.TRIGGERS.value],
+    },
+    {
+        "name": OpenAPITag.JOBS.value,
+        "description": tag_descriptions[OpenAPITag.JOBS.value],
+    },
+    {
+        "name": OpenAPITag.OBJECTS.value,
+        "description": tag_descriptions[OpenAPITag.OBJECTS.value],
+    },
+    {
+        "name": OpenAPITag.OPERATIONS.value,
+        "description": tag_descriptions[OpenAPITag.OPERATIONS.value],
+    },
+    {
+        "name": OpenAPITag.QUERIES.value,
+        "description": tag_descriptions[OpenAPITag.QUERIES.value],
+    },
+    {
+        "name": OpenAPITag.METADATA.value,
+        "description": tag_descriptions[OpenAPITag.METADATA.value],
+    },
+    {
+        "name": OpenAPITag.FIND.value,
+        "description": tag_descriptions[OpenAPITag.FIND.value],
+    },
+    {
+        "name": OpenAPITag.RUNS.value,
+        "description": tag_descriptions[OpenAPITag.RUNS.value],
+    },
+    {
+        "name": OpenAPITag.MINTER.value,
+        "description": tag_descriptions[OpenAPITag.MINTER.value],
+    },
 ]
 
 
