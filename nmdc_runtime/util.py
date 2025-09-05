@@ -484,12 +484,14 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
     return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
-def does_collection_have_unique_index_on_id_field(collection_name: str, db: MongoDatabase) -> bool:
+def does_collection_have_unique_index_on_id_field(
+    collection_name: str, db: MongoDatabase
+) -> bool:
     """Check whether the specified MongoDB collection has a unique index on its `id` field (not `_id`).
 
     Note: If the specified MongoDB collection either does not exist or is a _view_ instead of a collection,
           this function will return `False`.
-    
+
     References:
     - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.list_indexes
     - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.index_information
