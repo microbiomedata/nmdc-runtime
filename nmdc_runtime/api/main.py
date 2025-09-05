@@ -217,9 +217,6 @@ async def lifespan(app: FastAPI):
     From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
     > You can define logic (code) that should be executed before the application starts up. This means that
     > this code will be executed once, before the application starts receiving requests.
-
-    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
-          but not before that (i.e. not when the application is idle before any requests start coming in).
     """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
