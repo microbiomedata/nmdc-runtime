@@ -10,7 +10,7 @@ from functools import lru_cache
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
-from typing import Callable, List, Optional, Set, Dict, Tuple
+from typing import Callable, List, Optional, Set, Dict
 
 import fastjsonschema
 import requests
