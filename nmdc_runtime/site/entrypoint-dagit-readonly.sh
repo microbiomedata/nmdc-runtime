@@ -23,4 +23,4 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec dagit -h 0.0.0.0 -p 3000 -w workspace.yaml --read-only
+exec uv run --active dagit -h 0.0.0.0 -p 3000 -w workspace.yaml --read-only

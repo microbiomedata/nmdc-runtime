@@ -21,7 +21,7 @@ All commands shown below were designed to be issued from the root directory of t
    # Install `locust` into that Python virtual environment.
    python -m pip install locust
    ```
-   > **Note:** We may eventually designate `locust` as a formal development dependency of `nmdc-runtime` (i.e. we may add it to `requirements/dev.in`). For now, we're opting not to, as we're still experimenting with it.
+   > **Note:** We may eventually designate `locust` as a formal development dependency of `nmdc-runtime` (i.e. we may add it to `pyproject.toml`). For now, we're opting not to, as we're still experimenting with it.
 2. Spin up the standard development stack so we have a Runtime API instance
    to test.
    ```sh
