@@ -441,7 +441,6 @@ def test_does_collection_have_unique_index_on_id_field(db):
     assert does_collection_have_unique_index_on_id_field(
         collection_name=collection_name, db=db
     ) is False
-    db.drop_collection(collection_name)
 
     # Test: "Collection" is actually a _view_.
     db.command("create", collection_name, viewOn="study_set", pipeline=[])
