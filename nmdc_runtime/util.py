@@ -11,10 +11,10 @@ from io import BytesIO
 from itertools import chain
 from pathlib import Path
 from typing import Callable, List, Optional, Set, Dict, Tuple
-from bson.son import SON
 
 import fastjsonschema
 import requests
+from bson.son import SON
 from frozendict import frozendict
 from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
