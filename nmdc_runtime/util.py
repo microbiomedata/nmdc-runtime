@@ -487,23 +487,25 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
 def does_collection_have_unique_index_on_id_field(collection_name: str, db: MongoDatabase) -> bool:
     """Check whether the specified MongoDB collection has a unique index on its `id` field (not `_id`).
 
-    Note: If the specified MongoDB collection is actually a _view_ instead of a collection,
+    Note: If the specified MongoDB collection either does not exist or is a _view_ instead of a collection,
           this function will return `False`.
     
     References:
     - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.list_indexes
     - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.index_information
     """
-    # Check whether the specified collection is actually a _view_ instead of a collection.
-    # If it is a view, return `False` right away; rather than trying to call `list_indexes()`
-    # on it (which would raise an exception).
-    collections_info = db.list_collections(filter={"name": collection_name})
-    collection_info = list(collections_info)[0]
+    # Check whether the specified collection actually exists in the database; and, if it does,
+    # whether it is really a _collection_ (as opposed to being a _view_). If it doesn't exist,
+    # or it is a view, return `False` right away.
+    collection_infos_cursor = db.list_collections(filter={"name": collection_name})
+    collection_infos = list(collection_infos_cursor)
+    if len(collection_infos) == 0:
+        return False
+    collection_info = collection_infos[0]
     if collection_info["type"] != "collection":
         return False
 
-    # Now that we know we're dealing with a collection,
-    # get information about each index in the collection.
+    # Now that we know we're dealing with a collection, get information about each of its indexes.
     collection = db.get_collection(collection_name)
     for index_information in collection.list_indexes():
         # Get the "field_name-direction" pairs that make up this index.
