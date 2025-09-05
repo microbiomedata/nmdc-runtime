@@ -25,6 +25,7 @@ from refscan.lib.helpers import (
 )
 from refscan.lib.ReferenceList import ReferenceList
 from toolz import merge
+import pyinstrument
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
@@ -482,6 +483,7 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
     return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
+@pyinstrument.profile()
 def ensure_unique_id_indexes(mdb: MongoDatabase):
     """Ensure that any collections with an "id" field have an index on "id"."""
 
