@@ -32,22 +32,59 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Reference: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONFAULTHANDLER
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python dependencies into the image.
+# Install `uv`.
+# Reference: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && \
+    rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
+
+# Install Python dependencies (production dependencies only).
 #
-# Note: Because these `pip install` commands would consistently time out for one of our developers while he would build
-#       this container image, we have overridden pip's default socket timeout (from 15 → 30 seconds) and retry count
-#       (from 5 → 10 times). With those overrides in place, these `pip install` commands run OK for that developer.
+# Note: We copy only the files that `uv` needs in order to install dependencies. That way,
+#       we minimize the number of files whose changes would invalidate cached image layers
+#
+# Note: We use the `VIRTUAL_ENV` environment variable to specify the path to the Python virtual
+#       environment that we want the `uv` program inside the container to create and use.
+#
+#       Q: Why don't we use `./.venv` in the repository file tree?
+#       A: If we were to do that, then, whenever a developer would mount (via our Docker Compose file)
+#          the repository file tree from their host machine (which may include a `.venv/` directory
+#          created by their host machine) into the container, it would overwrite the Python virtual
+#          environment that the `uv` program inside the container is using.
+#
+#       Q: What is special about the `VIRTUAL_ENV` environment variable?
+#       A: When using `uv`'s `--active` option (as we do in later stages of this Dockerfile),
+#          `uv` determines which virtual environment is active by looking at `VIRTUAL_ENV'. This
+#          is the case, even though the documentation of the `venv` module (in Python's standard
+#          library) specifically says: "`VIRTUAL_ENV` cannot be relied upon to determine whether
+#          a virtual environment is being used."
 #
 #       References:
-#       - https://stackoverflow.com/a/59796952 (source of the workaround)
-#       - https://pip.pypa.io/en/stable/cli/pip/#cmdoption-timeout (pip's CLI options)
+#       - https://docs.astral.sh/uv/pip/environments/#using-arbitrary-python-environments (RE: `VIRTUAL_ENV`)
+#       - https://docs.astral.sh/uv/reference/environment/#virtual_env (RE: `VIRTUAL_ENV`, from uv's perspective)
+#       - https://docs.python.org/3/library/venv.html#how-venvs-work (RE: `VIRTUAL_ENV`, from venv's perspective)
+#       - https://docs.astral.sh/uv/concepts/projects/sync/#partial-installations (RE: `--no-install-project`)
 #
-COPY ./requirements/main.txt /code/requirements/main.txt
-RUN pip install \
-    --timeout 30 \
-    --retries 10 \
-    --no-cache-dir \
-    -r /code/requirements/main.txt
+# Note: In the `RUN` command, we use a "cache mount" (a feature of Docker) to cache production dependencies
+#       across builds. This is a performance optimization technique shown in the `uv` docs.
+#       Reference:
+#       - https://docs.astral.sh/uv/guides/integration/docker/#caching (RE: the technique)
+#       - https://docs.docker.com/build/cache/optimize/#use-cache-mounts (RE: the feature)
+#       - https://docs.astral.sh/uv/reference/settings/#link-mode (RE: `UV_LINK_MODE`)
+#       - https://docs.astral.sh/uv/reference/cli/#uv-sync--no-install-project (RE: `--no-install-project`)
+#
+# Note: We use `--compile-bytecode` so that Python compiles `.py` files to `.pyc` files now,
+#       instead of when the container is running. By default, `uv` defers this compilation
+#       to "import time," whereas `pip` (by default) performs it at "install time" (like this).
+#
+ENV VIRTUAL_ENV="/venv"
+RUN mkdir -p "${VIRTUAL_ENV}"
+COPY ./pyproject.toml /code/pyproject.toml
+COPY ./uv.lock        /code/uv.lock
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /code && \
+    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project --compile-bytecode
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
@@ -57,13 +94,14 @@ FROM base AS fastapi
 COPY . /code
 
 # Install the project in editable mode.
-RUN cd /code && \
-    pip install --no-cache-dir --editable .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /code && \
+    uv sync --active --no-dev
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
 WORKDIR /code
-CMD ["uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS dagster
@@ -77,8 +115,9 @@ FROM base AS dagster
 COPY . /opt/dagster/lib
 
 # Install the project in editable mode.
-RUN cd /opt/dagster/lib && \
-    pip install --no-cache-dir --editable .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /opt/dagster/lib && \
+    uv sync --active --no-dev
 
 # Move Dagster configuration files to the place Dagster expects.
 ENV DAGSTER_HOME="/opt/dagster/dagster_home/"
@@ -102,22 +141,13 @@ ENTRYPOINT ["tini", "--", "../lib/nmdc_runtime/site/entrypoint-dagit.sh"]
 FROM base AS test
 # ────────────────────────────────────────────────────────────────────────────┘
 
-# Copy dependency lists into image.
-COPY ./requirements /code/requirements
-
-# Install development-only Python dependencies into the image.
-RUN pip install \
-    --timeout 30 \
-    --retries 10 \
-    --no-cache-dir \
-    -r /code/requirements/dev.txt
-
 # Copy all repository contents into image.
 COPY . /code
 
-# Install the project in editable mode.
-RUN cd /code && \
-    pip install --no-cache-dir --editable .
+# Install the project in editable mode, and install development dependencies.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /code && \
+    uv sync --active
 
 # Make `wait-for-it.sh` executable.
 RUN chmod +x /code/.docker/wait-for-it.sh

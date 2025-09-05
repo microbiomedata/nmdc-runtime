@@ -16,13 +16,18 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ github.event.pull_request.head.ref }}
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
       with:
-        python-version: '3.10'
+        # Note: Caching (of the packages that `uv` builds while resolving dependencies) is "enabled by default on GitHub-hosted runners."
+        #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#enable-caching
+        #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
+        #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
+        cache-dependency-glob: "uv.lock"
+    - name: Set up Python virtual environment
+      run: uv sync
     - name: Lint with flake8 and Reformat with black
       run: |
-        make init-lint-and-black
         make lint
         make black
     - name: commit and push if reformatted

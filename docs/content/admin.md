@@ -105,13 +105,8 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    ```
 2. Synchronize the transitive dependencies by running:
    ```shell
-   docker compose run --rm --no-deps fastapi sh -c '\
-     make update-deps \
-     UPDATE_DEPS_MAIN_UPGRADE_OPT="" \
-     UPDATE_DEPS_DEV_UPGRADE_OPT=""  \
-   '
+   docker compose run --rm --no-deps fastapi sh -c 'uv sync --active'
    ```
-   > Note: That command performs the _minimum_ set of dependency updates to satisfy the new requirement—handy when you're in a hurry. You can omit the `UPDATE_DEPS_MAIN_UPGRADE_OPT=""` and `UPDATE_DEPS_DEV_UPGRADE_OPT=""` in order to perform additional dependency updates. See `Makefile` for details.
 3. Run the tests and confirm they all pass.
    ```shell
    make test
@@ -119,7 +114,7 @@ Here's how you can update the `nmdc-schema` package upon which the Runtime depen
    > This step is necessary because schema changes can introduce new constraints on the data processed by the Runtime, and some of the Runtime's tests use example data that may not meet those constraints. If any tests fail, determine the root cause of the failure, address the root cause, and re-run the tests.
 4. Commit the changes to the repository.
    ```sh
-   git add requirements/*
+   git add pyproject.toml uv.lock
    git commit -m 'Bump `nmdc-schema` version'
    git push
    ```

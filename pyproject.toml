@@ -1,0 +1,143 @@
+[project]
+name = "nmdc-runtime"
+version = "0.0.0"
+description = "A runtime system for NMDC data management and orchestration"
+authors = []
+# Note: This version requirement of ">= 3.10" was copied from the `setup.py` file used by the application's original build system.
+requires-python = ">= 3.10"
+# Note: Here's a handy command you can use to find imports of the "foo" package in the codebase:
+#       ```
+#       $ grep -rE '(import|from)\s+.*foo' ./nmdc_runtime/
+#       ```
+#
+# Note: To specify that a Python package be built from the contents of a GitHub repository (which can
+#       be useful for integration testing before that Python package gets published to PyPI), you can
+#       use the following syntax in this file:
+#       ```
+#       {package_name} @ git+https://github.com/{owner}/{repo}.git@{commit}
+#       ```
+#       For example:
+#       ```
+#       refscan @ git+https://github.com/microbiomedata/refscan.git@b4f6bab138d2158ece7ea2423a27d8b8493d02f5
+#       ```
+#
+dependencies = [
+    # Note: We use this (imported via `base32_lib`) when minting IDs.
+    "base32-lib",
+    # Note: We use `boto3` to interact with S3-compatible storage services.
+    #       There is an open issue (nmdc-runtime/issues/512) about removing
+    #       the code that interacts with S3-compatible storage services, so
+    #       we might eventually remove this dependency.
+    "boto3",
+    # Note: We use `click` for some one-off scripts that generate changesheets (in `nmdc_runtime/site/changesheets/scripts/`)
+    #       and for scripts that were once used to dump, export, and restore MongoDB databases (in `nmdc_runtime/site/backup/`).
+    "click",
+    # Dagster-related packages.
+    # TODO: Maybe there's a new way to import Dagster's packages? See: https://docs.dagster.io/getting-started/installation#installation-requirements-for-manually-creating-or-updating-a-project
+    # TODO: Consider using SQLite instead of Postgres for Dagster. Related issue: nmdc-runtime/issues/885.
+    # Note: As some point, the only way to programmatically request that Dagster run something was via GraphQL. There may be another way now.
+    "dagit",
+    "dagster",
+    "dagster-graphql",
+    "dagster-postgres",
+    # We use this as our web application framework.
+    # Note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models.
+    # Docs: https://fastapi.tiangolo.com/
+    "fastapi >= 0.115.0",
+    "fastjsonschema",
+    "frozendict",
+    "git-root",
+    "jq",
+    "jsonasobj2",
+    # TODO: Why is this a production dependency instead of a development dependency?
+    "jupyter",
+    # TODO: Why is this a production dependency instead of a development dependency?
+    "jupyterlab",
+    "linkml",
+    "linkml-runtime",
+    "lxml",
+    # TODO: Why is this a production dependency instead of a development dependency?
+    "mkdocs-jupyter",
+    # TODO: Why is this a production dependency instead of a development dependency?
+    "mkdocs-material",
+    # TODO: Why is this a production dependency instead of a development dependency?
+    "mkdocs-mermaid2-plugin",
+    "ontology-loader == 0.2.2",
+    # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
+    # Docs: https://microbiomedata.github.io/nmdc-schema/
+    "nmdc-schema == 11.10.0",
+    "pandas",
+    "passlib[bcrypt]",
+    "pymongo",
+    "pydantic[email] >= 1.10.0",
+    # Note: We use `pyinstrument` for performance profiling.
+    #       Docs https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
+    "pyinstrument",
+    "python-dotenv",
+    "python-jose[cryptography]",
+    # Note: python-multipart version `0.0.18` introduced a patch for a security issue (CVE-2024-53981).
+    #       Reference: https://github.com/microbiomedata/nmdc-runtime/security/dependabot/8
+    "python-multipart >= 0.0.18",
+    "pyyaml",
+    # Note: We use `refscan` to get information about inter-document references from the schema and database.
+    #       Reference: https://pypi.org/project/refscan/
+    "refscan == 0.3.2",
+    "requests",
+    # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
+    # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
+    #       maintainers have not published recent versions of the package to PyPI yet.
+    # Reference: https://github.com/scalar/scalar/issues/5337#issuecomment-2781011096
+    "scalar-fastapi @ git+https://github.com/scalar/scalar/#subdirectory=integrations/fastapi",
+    "tenacity",
+    "toolz",
+    "tqdm",
+    "uvicorn[standard]",
+    "requests-cache",
+]
+
+[dependency-groups]
+dev = [
+    # We use Black to format source code.
+    # Docs: https://black.readthedocs.io/
+    "black",
+    # We use coverage to measure how much of our application code our test code exercises.
+    # Docs: https://coverage.readthedocs.io
+    "coverage",
+    "flake8",
+    # We use pytest as our automated test framework.
+    # Docs: https://docs.pytest.org/
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "python-dotenv",
+    "pytest-mock",
+    "requests-mock",
+    "requests-cache",
+]
+
+[project.urls]
+# > "A list of URLs associated with your project, displayed on the left sidebar of your PyPI project page."
+# Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+Changelog = "https://github.com/microbiomedata/nmdc-runtime/releases"
+Documentation = "https://docs.microbiomedata.org/runtime"
+Issues = "https://github.com/microbiomedata/nmdc-runtime/issues"
+Repository = "https://github.com/microbiomedata/nmdc-runtime"
+
+[project.scripts]
+# > "To install a command as part of your package, declare it in the [project.scripts] table."
+# Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#creating-executable-scripts
+nmdcdb-mongoexport = "nmdc_runtime.site.backup.nmdcdb_mongoexport:main"
+nmdcdb-mongodump = "nmdc_runtime.site.backup.nmdcdb_mongodump:main"
+nmdcdb-mongoimport = "nmdc_runtime.site.backup.nmdcdb_mongoimport:main"
+
+[build-system]
+# Reference: https://docs.astral.sh/uv/concepts/build-backend/#using-the-uv-build-backend
+requires = ["uv_build >= 0.8.14, < 0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Note: We specify `module-name` here to tell the `uv_build` backend that our main module is in `nmdc_runtime/`
+#       (as opposed to being in a `src/` directory, which is where the backend would look for it by default).
+#       Reference: https://docs.astral.sh/uv/concepts/build-backend/#modules
+module-name = "nmdc_runtime"
+module-root = ""
