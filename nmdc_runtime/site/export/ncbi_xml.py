@@ -190,15 +190,6 @@ class NCBISubmissionXML:
                             attributes[xml_key] = value
                             continue  # Skip applying the handler to this key
 
-                        # Special handling for "host_taxid"
-                        if json_key == "host_taxid" and isinstance(value, dict):
-                            if "term" in value and "id" in value["term"]:
-                                value = re.findall(
-                                    r"\d+", value["term"]["id"].split(":")[1]
-                                )[0]
-                            attributes[xml_key] = value
-                            continue  # Skip applying the handler to this key
-
                         formatted_value = handler(item)
 
                         # Combine multiple values with a separator for list elements
@@ -234,6 +225,15 @@ class NCBISubmissionXML:
                     if "term" in value and "id" in value["term"]:
                         value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
                     attributes[xml_key] = value
+                    continue  # Skip applying the handler to this key
+
+                # Special handling for "geo_loc_name" - convert to ASCII with XML character references
+                if json_key == "geo_loc_name":
+                    formatted_value = handler(value)
+                    formatted_value = formatted_value.encode(
+                        "ascii", "xmlcharrefreplace"
+                    ).decode("ascii")
+                    attributes[xml_key] = formatted_value
                     continue  # Skip applying the handler to this key
 
                 # Default processing for other keys
