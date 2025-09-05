@@ -17,6 +17,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
 from nmdc_runtime.api.endpoints.lib import path_segments
 from nmdc_runtime.util import (
     decorate_if,
+    does_collection_have_unique_index_on_id_field,
     get_allowed_references,
     nmdc_schema_view,
     get_class_name_to_collection_names_map,
@@ -379,3 +380,78 @@ def test_get_class_name_to_collection_names_map_has_one_and_only_one_collection_
         nmdc_schema_view()
     ).items():
         assert len(collection_names) == 1, f"{class_name=}: {collection_names=}"
+
+
+def test_does_collection_have_unique_index_on_id_field(db):
+    r"""Test the `does_collection_have_unique_index_on_id_field` function."""
+
+    # Test: Collection has a unique index on its `id` field.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    collection.create_index("id", unique=True)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is True
+    db.drop_collection(collection_name)
+
+    # Test: Collection has a non-unique index on its `id` field.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    collection.create_index("id", unique=False)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
+
+    # Test: Collection has multiple indexes, including a unique index on its `id` field.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    collection.create_index("id", unique=True)
+    collection.create_index("age", unique=False)
+    collection.create_index("real_name", unique=False)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is True
+    db.drop_collection(collection_name)
+
+    # Test: Collection has a unique index on a field _other_ than `id` only.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    collection.create_index("username", unique=True)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
+
+    # Test: Collection has a unique index that _includes_ `id`, but also other fields.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    collection.create_index([("id", 1), ("username", 1)], unique=True)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
+
+    # Test: Collection has _no_ indexes at all.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    collection = db.get_collection(collection_name)
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
+
+    # Test: Collection does not _exist_.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    assert collection_name not in db.list_collection_names()
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
+
+    # Test: "Collection" is actually a _view_.
+    collection_name = "test_does_collection_have_unique_index_on_id_field"
+    db.command("create", collection_name, viewOn="study_set", pipeline=[])
+    assert does_collection_have_unique_index_on_id_field(
+        collection_name=collection_name, db=db
+    ) is False
+    db.drop_collection(collection_name)
