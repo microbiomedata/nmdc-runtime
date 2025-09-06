@@ -9,8 +9,12 @@ from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 
-@pytest.mark.skip(reason="no data tests for code CI")
 def test_schema_conformance():
+    """
+    TODO: Document this test. Was its author trying to check that all documents in
+          a test database conform to the schema, except disregarding whether their
+          IDs conform to ID patterns in the schema?
+    """
     mdb = get_mongo(run_config_frozen__normal_env).db
     names = get_nonempty_nmdc_schema_collection_names(mdb)
     fails = []
