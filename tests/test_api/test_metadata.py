@@ -115,7 +115,9 @@ def test_changesheet_update_slot_with_range_uriorcurie():
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
+@pytest.mark.skip(
+    reason=r"""Exception: ('Cannot find ID', 'nmdc:sty-11-pzmd0x14', 'in any collection')""".strip()
+)
 def test_update_01():
     mdb = get_mongo(run_config_frozen__normal_env).db
     df = load_changesheet(
