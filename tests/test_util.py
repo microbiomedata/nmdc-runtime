@@ -38,14 +38,14 @@ nmdc_jsonschema_validator = fastjsonschema.compile(
 
 def test_nmdc_jsonschema_using_new_id_scheme():
     r"""
-    Note: Until the commit following #867fa572c5dccf86dd997418f57339ce7ac11db5,
-          this test was being skipped. When un-skipped, the test failed with an
-          error message (unrelated properties have been replaces with "..." here):
+    Note: Until commit #9d6963567ea203b724f372b9b6ac612d6dd15bf2, this test was being
+          skipped. When un-skipped, the test failed with the following error message
+          (here, unrelated dictionary items have been replaced with "..."):
           ```
           Failed: ChemicalEntity.id: {..., 'pattern': '^[a-zA-Z0-9][a-zA-Z0-9_\\.]+:[a-zA-Z0-9_][a-zA-Z0-9_\\-\\/\\.,]*$', ...}
           ```
           In order to get the test to pass, the developer un-skipping the test
-          did two things: (a) extracted the literal prefix from the `.startswith()`
+          did two things: (a) extracted the original argument from the `.startswith()`
           call into a `valid_prefix_patterns` tuple so we would check for multiple
           prefixes; and (b) added the prefix shown in the above error message
           (after replacing `\\.` with `\.`) to that tuple.
