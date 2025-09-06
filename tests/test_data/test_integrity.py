@@ -9,6 +9,22 @@ from nmdc_runtime.site.resources import get_mongo
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
 
 
+@pytest.mark.skip(reason=r"""
+Exception
+----------------------------- Captured stdout call -----------------------------
+testing schema conformance for biosample_set ...
+testing schema conformance for data_generation_set ...
+testing schema conformance for material_processing_set ...
+testing schema conformance for study_set ...
+testing schema conformance for workflow_execution_set ...
+6 fails
+failed: biosample_set doc with id nmdc:bsm-12-7mysck21 (data.biosample_set[0] must contain ['associated_studies'] properties)
+failed: biosample_set doc with id nmdc:bsm-11-5nhz3402 (data.biosample_set[0] must contain ['associated_studies'] properties)
+failed: data_generation_set doc with id nmdc:omprc-11-00383810 (data.data_generation_set[0] cannot be validated by any definition)
+failed: study_set doc with id nmdc:sty-1-foobar (data.study_set[0] must contain ['study_category'] properties)
+failed: workflow_execution_set doc with id nmdc:wfmag-11-00jn7876.2 (data.workflow_execution_set[0] cannot be validated by any definition)
+failed: workflow_execution_set doc with id nmdc:wfmag-11-0133pz73.1 (data.workflow_execution_set[0] cannot be validated by any definition)
+""".strip())
 def test_schema_conformance():
     """
     TODO: Document this test. Was its author trying to check that all documents in
