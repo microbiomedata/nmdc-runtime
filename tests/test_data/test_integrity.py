@@ -34,3 +34,15 @@ def test_schema_conformance():
         for f in fails:
             print(f)
         raise Exception("Fails")
+
+    # Note: This explicit `close()` was added because, without it, pytest would display
+    #       the following error message after running the test suite (here, some lines
+    #       have been omitted and replaced with `...`):
+    #       ```
+    #       sys:1: ResourceWarning: Unclosed MongoClient opened at:
+    #       ...
+    #       File "/code/tests/test_data/test_integrity.py", line 18, in test_schema_conformance
+    #         mdb = get_mongo(run_config_frozen__normal_env).db
+    #       ...
+    #       ```
+    mdb.client.close()
