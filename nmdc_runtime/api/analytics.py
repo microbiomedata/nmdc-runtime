@@ -66,8 +66,8 @@ class Analytics(BaseHTTPMiddleware):
         start = time()
         response = await call_next(request)
 
-        # Apply a fallback IP address if we can't determine one from the request.
-        ip_address: str = request.client.host if request.client is not None else ""
+        # Use a fallback IP address value (currently an empty string) if we can't derive one from the request.
+        ip_address: str = "" if request.client is None else request.client.host
 
         # Build a dictionary that describes the incoming request.
         #
