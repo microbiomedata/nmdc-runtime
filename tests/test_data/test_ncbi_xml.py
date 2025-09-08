@@ -680,6 +680,74 @@ class TestNCBISubmissionXML:
         # Biosample should be excluded because it has at least one JGI sequencing activity
         assert "nmdc:bsm-12-mixed" not in submission_xml
 
+    def test_geo_loc_name_ascii_conversion(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "geo_loc_name": "geo_loc_name",
+                    "id": "",
+                    "name": "sample_name",
+                    "env_broad_scale": "env_broad_scale",
+                    "env_local_scale": "env_local_scale",
+                    "env_medium": "env_medium",
+                },
+                {
+                    "geo_loc_name": "TextValue",
+                    "id": "uriorcurie",
+                    "name": "string",
+                    "env_broad_scale": "ControlledIdentifiedTermValue",
+                    "env_local_scale": "ControlledIdentifiedTermValue",
+                    "env_medium": "ControlledIdentifiedTermValue",
+                },
+            ),
+        )
+
+        # Create a biosample with non-ASCII characters in geo_loc_name
+        test_biosample = [
+            {
+                "id": "nmdc:bsm-12-unicode-test",
+                "name": "Test Biosample",
+                "geo_loc_name": {
+                    "has_raw_value": "USA: Alaska, Utqiaġvik",
+                    "type": "nmdc:TextValue",
+                },
+                "env_broad_scale": {
+                    "has_raw_value": "ENVO:00000446",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "env_local_scale": {
+                    "has_raw_value": "ENVO:00002030",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "env_medium": {
+                    "has_raw_value": "ENVO:00002007",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "associated_studies": ["nmdc:sty-11-unicode-test"],
+            }
+        ]
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=test_biosample,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Verify that non-ASCII characters are converted to XML character references
+        assert "USA: Alaska, Utqia&#289;vik" in biosample_xml
+        # Verify the original Unicode characters are not present
+        assert "Utqiaġvik" not in biosample_xml
+
 
 class TestNCBIXMLUtils:
     def test_handle_quantity_value(self):
