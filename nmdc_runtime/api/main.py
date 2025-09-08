@@ -12,7 +12,6 @@ from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
@@ -217,9 +216,6 @@ async def lifespan(app: FastAPI):
     From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
     > You can define logic (code) that should be executed before the application starts up. This means that
     > this code will be executed once, before the application starts receiving requests.
-
-    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
-          but not before that (i.e. not when the application is idle before any requests start coming in).
     """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
@@ -243,7 +239,7 @@ async def root():
 @api_router.get("/version")
 async def get_versions():
     return {
-        "nmdc-runtime": get_version(),
+        "nmdc-runtime": version("nmdc_runtime"),
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
@@ -251,7 +247,7 @@ async def get_versions():
 
 app = FastAPI(
     title="NMDC Runtime API",
-    version=get_version(),
+    version=version("nmdc_runtime"),
     description=make_api_description(
         schema_version=version("nmdc_schema"),
         orcid_login_url=f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code",

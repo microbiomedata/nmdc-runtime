@@ -11,7 +11,8 @@ on:
       - 'Makefile'
       - '**/Dockerfile'
       - '**.py'
-      - 'requirements/main.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
 
 env:
   # We don't want to do certain steps if this is running in a fork

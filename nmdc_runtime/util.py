@@ -10,10 +10,11 @@ from functools import lru_cache
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
-from typing import Callable, List, Optional, Set, Dict, Tuple
+from typing import Callable, List, Optional, Set, Dict
 
 import fastjsonschema
 import requests
+from bson.son import SON
 from frozendict import frozendict
 from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
@@ -482,6 +483,49 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
     return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
+def does_collection_have_unique_index_on_id_field(
+    collection_name: str, db: MongoDatabase
+) -> bool:
+    """Check whether the specified MongoDB collection has a unique index on its `id` field (not `_id`).
+
+    Note: If the specified MongoDB collection either does not exist or is a _view_ instead of a collection,
+          this function will return `False`.
+
+    References:
+    - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.list_indexes
+    - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.index_information
+    """
+    # Check whether the specified collection actually exists in the database; and, if it does,
+    # whether it is really a _collection_ (as opposed to being a _view_). If it doesn't exist,
+    # or it is a view, return `False` right away.
+    collection_infos_cursor = db.list_collections(filter={"name": collection_name})
+    collection_infos = list(collection_infos_cursor)
+    if len(collection_infos) == 0:
+        return False
+    collection_info = collection_infos[0]
+    if collection_info["type"] != "collection":
+        return False
+
+    # Now that we know we're dealing with a collection, get information about each of its indexes.
+    collection = db.get_collection(collection_name)
+    for index_information in collection.list_indexes():
+        # Get the "field_name-direction" pairs that make up this index.
+        field_name_and_direction_pairs: SON = index_information["key"]
+
+        # If this index involves a number of fields other than one, skip it.
+        # We're only interested in indexes that involve the `id` field by itself.
+        if len(field_name_and_direction_pairs.keys()) != 1:
+            continue
+
+        # Check whether the field this index involves is the `id` field,
+        # and whether this index is `unique`.
+        field_name = list(field_name_and_direction_pairs.keys())[0]
+        if field_name == "id" and index_information.get("unique", False):
+            return True
+
+    return False
+
+
 def ensure_unique_id_indexes(mdb: MongoDatabase):
     """Ensure that any collections with an "id" field have an index on "id"."""
 
@@ -494,6 +538,11 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
     )
     for collection_name in candidate_names:
         if collection_name.startswith("system."):  # reserved by mongodb
+            continue
+
+        # If the collection already has a unique index on `id`, there's no need
+        # to check anything else about the collection.
+        if does_collection_have_unique_index_on_id_field(collection_name, mdb):
             continue
 
         if (
