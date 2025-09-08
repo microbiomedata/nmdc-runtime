@@ -744,7 +744,7 @@ class TestNCBISubmissionXML:
         )
 
         # Verify that non-ASCII characters are converted to XML character references
-        assert "USA: Alaska, Utqia&#289;vik" in biosample_xml
+        assert "USA: Alaska, Utqia&amp;#289;vik" in biosample_xml
         # Verify the original Unicode characters are not present
         assert "Utqiaġvik" not in biosample_xml
 
