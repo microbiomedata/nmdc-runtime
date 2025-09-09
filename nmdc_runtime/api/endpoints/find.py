@@ -698,12 +698,3 @@ def find_related_objects_for_workflow_execution(
     }
 
     return response
-
-
-jinja_env = Environment(
-    loader=PackageLoader("nmdc_runtime"), autoescape=select_autoescape()
-)
-
-
-def attr_index_sort_key(attr):
-    return "_" if attr == "id" else attr
