@@ -35,6 +35,7 @@ nav:
     - howto-guides/improving-search-api.md
     - nb/queue_and_trigger_data_jobs.ipynb
     - nb/wf_automation.ipynb
+    - nb/convert_json_into_csv.ipynb
   - Reference:
     - contributing-docs.md
     - admin.md
