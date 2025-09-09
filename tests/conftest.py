@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Generator, Any
 
 from nmdc_runtime.api.core.util import import_via_dotted_path
-from pymongo import MongoClient
+from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -199,12 +199,17 @@ def seeded_db(
         docs_by_collection_name[collection_name].append(doc)
 
     # Seed the db.
+    # Replace existing docs with new ones if necessary, i.e. tolerate being given a "dirty" db.
     with mongo.client.start_session() as session:
         with session.start_transaction():
             for collection_name, docs in docs_by_collection_name.items():
-                mongo.db.get_collection(collection_name).insert_many(
-                    docs, session=session
-                )
+                write_requests = [
+                    ReplaceOne({"id": doc["id"]}, doc, upsert=True) for doc in docs
+                ]
+                if write_requests:
+                    mongo.db.get_collection(collection_name).bulk_write(
+                        write_requests, session=session, ordered=False
+                    )
     # XXX nest `materialize_alldocs` in above transaction?
     materialize_alldocs(op_context)
 
