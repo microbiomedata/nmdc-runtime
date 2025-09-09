@@ -1,17 +1,12 @@
-from operator import itemgetter
-from typing import List, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
-from jinja2 import Environment, PackageLoader, select_autoescape
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
 from pymongo.database import Database as MongoDatabase
-from starlette.responses import HTMLResponse
 
 from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    activity_collection_names,
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
@@ -24,9 +19,8 @@ from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
-    entity_attributes_to_index,
 )
-from nmdc_runtime.util import get_class_names_from_collection_spec
+
 
 router = APIRouter()
 
@@ -698,12 +692,3 @@ def find_related_objects_for_workflow_execution(
     }
 
     return response
-
-
-jinja_env = Environment(
-    loader=PackageLoader("nmdc_runtime"), autoescape=select_autoescape()
-)
-
-
-def attr_index_sort_key(attr):
-    return "_" if attr == "id" else attr
