@@ -270,4 +270,3 @@ def update_object(
     doc_object_patched = merge(doc, object_patch.model_dump(exclude_unset=True))
     mdb.operations.replace_one({"id": object_id}, doc_object_patched)
     return doc_object_patched
-

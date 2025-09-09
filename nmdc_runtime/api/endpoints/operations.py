@@ -76,4 +76,3 @@ def update_operation(
     )
     mdb.operations.replace_one({"id": op_id}, doc_op_patched)
     return doc_op_patched
-
