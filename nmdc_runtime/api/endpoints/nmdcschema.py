@@ -148,6 +148,13 @@ def get_linked_instances(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ] = None,
+    hydrate: Annotated[
+        bool,
+        Query(
+            title="Hydrate",
+            description="Whether to include full documents in the response.",
+        ),
+    ] = False,
     page_token: Annotated[
         str | None,
         Query(
@@ -243,7 +250,11 @@ def get_linked_instances(
         )
 
     merge_into_collection_name = gather_linked_instances(
-        alldocs_collection=mdb.alldocs, ids=ids, types=types
+        mdb=mdb,
+        alldocs_collection=mdb.alldocs,
+        ids=ids,
+        types=types,
+        hydrate=hydrate,
     )
 
     rv = list_resources(

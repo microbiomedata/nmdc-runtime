@@ -10,8 +10,11 @@ from typing import Literal, Any
 
 from bson import ObjectId
 from pymongo.collection import Collection as MongoCollection
+from pymongo.database import Database as MongoDatabase
+from pymongo.operations import ReplaceOne
 
 from nmdc_runtime.api.core.util import hash_from_str
+from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -33,14 +36,18 @@ def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> s
 
 
 def gather_linked_instances(
+    mdb: MongoDatabase,
     alldocs_collection: MongoCollection,
     ids: list[str],
     types: list[str],
+    hydrate: bool = False,
 ) -> str:
     """Collect linked instances and stores them in a new temporary collection.
 
     Run an aggregation pipeline over `alldocs_collection` that collects ∈`types` instances linked to `ids`.
     The pipeline is run twice, once for each of {"downstream", "upstream"} directions.
+
+    If `hydrate` is True, then replace every document in the new collection with its full representation.
     """
     merge_into_collection_name = temp_linked_instances_collection_name(
         ids=ids, types=types
@@ -57,6 +64,41 @@ def gather_linked_instances(
                 allowDiskUse=True,
             )
         )
+    linked_instances_collection = mdb.get_collection(merge_into_collection_name)
+    if hydrate:
+        # For each distinct `type` in `linked_instances_collection`,
+        # issue a `find` against the corresponding schema collection
+        # and replace each document with its full representation.
+        #
+        # XXX Can we assume all full docs will fit in memory?
+        #  If so, then can potentially issue a single aggregation
+        #  `[{"$group": {"_id": "$type", "ids": {"$push": "$id"}}}]`
+        #  followed by a single `bulk_write`.
+
+        # TODO kill all this.
+        #  Instead, dynamically hydrate a single page from the endpoint handler
+        #  as e.g. `resources = hydrated(resources, mdb) if hydrate else resources`.
+        linked_instances_collection.create_index("id", unique=True)
+        linked_instances_collection.create_index("type")
+        class_name_to_collection_names_map = get_class_name_to_collection_names_map(
+            nmdc_schema_view()
+        )
+        types_of_linked_instances = linked_instances_collection.distinct("type")
+        for type in types_of_linked_instances:
+            linked_instance_ids_of_type = [
+                d["id"]
+                for d in linked_instances_collection.find({"type": type}, ["id"])
+            ]
+
+            schema_collection = mdb.get_collection(
+                class_name_to_collection_names_map[type][0]
+            )
+            bulk_write_requests = []
+            for doc in schema_collection.find({"id": {"$in": ids}}):
+                bulk_write_requests.append(ReplaceOne({"id": doc["id"]}, doc))
+
+            linked_instances_collection.bulk_write(bulk_write_requests, ordered=False)
+
     return merge_into_collection_name
 
 
