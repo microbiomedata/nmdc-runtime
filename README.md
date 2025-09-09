@@ -127,15 +127,36 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+### Dependency management
 
-*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
-```bash
-pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
+We use [`uv`](https://docs.astral.sh/uv/) to manage dependencies of the application. Here's how you can use `uv` both on your host machine and within a container in the Docker Compose stack.
+
+#### On the host
+
+Although we typically run the application within a container, some developers prefer that application's dependencies be installed locally also (so that their code editors will provide auto-completion, type checking, etc.).
+
+Here's how you can install the application's dependencies locally:
+
+```sh
+uv sync
 ```
-to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
-of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
-versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
-final requirements.txt file and import the dependencies into the Docker image.
+
+That will...
+1. (If you made changes to `pyproject.toml`) **Update the lock file** (at `uv.lock`) to reflect those changes
+2. (If a Python virtual environment doesn't exist at `.venv/` yet) **Create a Python virtual environment** at `.venv/`
+3. (If the Python virtual environment and `uv.lock` files are out of sync) **Synchronize the Python virtual environment** with `uv.lock` (by installing and uninstalling packages)
+
+> Note: Long term, we may implement a [devcontainer](https://containers.dev/) for this project, which will streamline the process of setting up a local development environment.
+
+#### In the Docker Compose stack
+
+In the Docker Compose stack, the Python virtual environment is located at the path specified by the `VIRTUAL_ENV` environment variable (which is defined in the `Dockerfile`) instead of at `.venv/`. That helps with containerization, but it deviates from `uv`'s default behavior, which is to use the Python virtual environment at `.venv/`. So, when running `uv` commands within the Docker Compose stack, we always include the [`--active`](https://docs.astral.sh/uv/reference/cli/#uv-sync--active) flag (which tells `uv` to use the Python virtual environment at the path specified by `VIRTUAL_ENV`).
+
+Here's how you can install the application's dependencies within a container in the Docker Compose stack:
+
+```sh
+uv sync --active
+```
 
 ## Local Testing
 
@@ -224,19 +245,11 @@ found **12 GB** to be sufficient for running the tests.
 
 This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
 
-You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
-
-```
-rm -rf dist
-python -m build
-twine upload dist/*
-```
-
 ## Links
 
 Here are links related to this repository:
 
 - Production API server: https://api.microbiomedata.org
 - PyPI package: https://pypi.org/project/nmdc-runtime
-- DockerHub image (API server): https://hub.docker.com/r/microbiomedata/nmdc-runtime-fastapi
-- DockerHub image (Dagster): https://hub.docker.com/r/microbiomedata/nmdc-runtime-dagster
+- Container image (API server): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-fastapi
+- Container image (Dagster): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-dagster

@@ -66,6 +66,9 @@ class Analytics(BaseHTTPMiddleware):
         start = time()
         response = await call_next(request)
 
+        # Use a fallback IP address value (currently an empty string) if we can't derive one from the request.
+        ip_address: str = "" if request.client is None else request.client.host
+
         # Build a dictionary that describes the incoming request.
         #
         # Note: `request.headers` is an instance of `MultiDict`. References:
@@ -74,7 +77,7 @@ class Analytics(BaseHTTPMiddleware):
         #
         request_data = {
             "hostname": request.url.hostname,
-            "ip_address": request.client.host,
+            "ip_address": ip_address,
             "path": request.url.path,
             "user_agent": request.headers.get("user-agent"),
             "method": request.method,

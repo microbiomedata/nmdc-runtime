@@ -87,30 +87,6 @@ def get_site(
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
-@router.patch("/sites/{site_id}", include_in_schema=False)
-def update_site():
-    """Not yet implemented"""
-    pass
-
-
-@router.put("/sites/{site_id}", include_in_schema=False)
-def replace_site():
-    """Not yet implemented"""
-    pass
-
-
-@router.get("/sites/{site_id}/capabilities", include_in_schema=False)
-def list_site_capabilities(site_id: str):
-    """Not yet implemented"""
-    pass
-
-
-@router.put("/sites/{site_id}/capabilities", include_in_schema=False)
-def replace_site_capabilities(site_id: str, capability_ids: List[str]):
-    """Not yet implemented"""
-    pass
-
-
 def verify_client_site_pair(
     site_id: str,
     mdb: pymongo.database.Database = Depends(get_mongo_db),

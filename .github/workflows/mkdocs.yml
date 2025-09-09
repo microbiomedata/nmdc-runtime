@@ -11,13 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.fork == false
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: 3.x
-      - name: Install Python package dependencies
-        run: pip install mkdocs-material mkdocs-mermaid2-plugin mkdocs-jupyter
-
+          # Note: Caching (of the packages that `uv` builds while resolving dependencies) is "enabled by default on GitHub-hosted runners."
+          #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#enable-caching
+          #       Here, we make it so the cache gets invalidated whenever the `uv.lock` file changes.
+          #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
+          cache-dependency-glob: "uv.lock"
+      - name: Set up Python virtual environment
+        run: uv sync
       # Build the MkDocs site (but don't deploy it).
       #
       # Note: Until January 17, 2025, we would build and deploy the MkDocs website to GitHub Pages.
@@ -39,4 +43,4 @@ jobs:
       #       file, or due to one of the dependencies becoming unavailable), which can prompt remedial action.
       #
       - name: Build MkDocs site
-        run: mkdocs build -f docs/mkdocs.yml
+        run: uv run mkdocs build -f docs/mkdocs.yml
