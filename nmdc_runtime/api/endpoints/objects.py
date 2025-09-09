@@ -271,7 +271,3 @@ def update_object(
     mdb.operations.replace_one({"id": object_id}, doc_object_patched)
     return doc_object_patched
 
-
-@router.put("/objects/{object_id}", response_model=DrsObject)
-def replace_object():
-    pass
