@@ -707,4 +707,3 @@ jinja_env = Environment(
 
 def attr_index_sort_key(attr):
     return "_" if attr == "id" else attr
-
