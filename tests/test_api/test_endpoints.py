@@ -1008,7 +1008,6 @@ def test_get_linked_instances_hydration(
     fake_studies_and_biosamples_in_mdb,
 ):
     study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
-    print(f'{api_user_client.request("GET", "/nmdcschema/biosample_set").json()=}')
     response_not_hydrated = api_user_client.request(
         "GET",
         f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample",
@@ -1020,7 +1019,6 @@ def test_get_linked_instances_hydration(
         "GET",
         f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample&hydrate=true",
     )
-    print(f'{response_hydrated.json()["resources"]=}')
     assert all("associated_studies" in r for r in response_hydrated.json()["resources"])
 
 
