@@ -115,15 +115,6 @@ def test_changesheet_update_slot_with_range_uriorcurie():
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-@pytest.fixture
-def docs_for_seeded_db_for_changesheet_study_update():
-    # alternative: `return Faker().generate_studies(1, id="nmdc:sty-11-pzmd0x14")`
-    with open(
-        REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_sty-11-pzmd0x14.json")
-    ) as f:
-        return [json.load(f)]
-
-
 @pytest.mark.parametrize(
     "seeded_db", ["docs_for_seeded_db_for_changesheet_study_update"], indirect=True
 )

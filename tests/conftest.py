@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 import os
 from functools import lru_cache
@@ -22,7 +23,11 @@ from nmdc_runtime.minter.config import (
 from nmdc_runtime.minter.domain.model import MintingRequest, Identifier
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.resources import mongo_resource, MongoDB
-from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
+from nmdc_runtime.util import (
+    get_class_name_to_collection_names_map,
+    nmdc_schema_view,
+    REPO_ROOT_DIR,
+)
 
 
 def minting_request():
@@ -223,3 +228,12 @@ def seeded_db(
                     {"id": {"$in": [d["id"] for d in docs]}}, session=session
                 )
     materialize_alldocs(op_context)
+
+
+@pytest.fixture
+def docs_for_seeded_db_for_changesheet_study_update():
+    # alternative: `return Faker().generate_studies(1, id="nmdc:sty-11-pzmd0x14")`
+    with open(
+        REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_sty-11-pzmd0x14.json")
+    ) as f:
+        return [json.load(f)]
