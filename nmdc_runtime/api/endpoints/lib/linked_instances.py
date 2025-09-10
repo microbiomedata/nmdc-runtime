@@ -10,8 +10,11 @@ from typing import Literal, Any
 
 from bson import ObjectId
 from pymongo.collection import Collection as MongoCollection
+from pymongo.database import Database as MongoDatabase
+from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str
+from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -148,3 +151,22 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
             "whenNotMatched": "insert",
         }
     }
+
+
+def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
+    """Replace each `dict` in `resources` with a hydrated version."""
+    class_name_to_collection_names_map = get_class_name_to_collection_names_map(
+        nmdc_schema_view()
+    )
+    types_of_resources = {r["type"] for r in resources}
+    full_docs_by_id = {}
+
+    for type in types_of_resources:
+        resource_ids_of_type = [d["id"] for d in resources if d["type"] == type]
+        schema_collection = mdb.get_collection(
+            class_name_to_collection_names_map[type.removeprefix("nmdc:")][0]
+        )
+        for doc in schema_collection.find({"id": {"$in": resource_ids_of_type}}):
+            full_docs_by_id[doc["id"]] = doc
+
+    return [merge(r, full_docs_by_id[r["id"]]) for r in resources]
