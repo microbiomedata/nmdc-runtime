@@ -6,6 +6,7 @@ from nmdc_runtime.api.models.query import UpdateCommand, UpdateStatement
 from tests.lib.faker import Faker
 
 
+# TODO: Since `tests/conftest.py` already has a `seeded_db` fixture, consider renaming this fixture.
 @pytest.fixture()
 def seeded_db():
     r"""Pytest fixture that yields a seeded database."""
