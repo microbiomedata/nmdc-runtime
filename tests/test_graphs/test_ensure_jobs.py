@@ -42,6 +42,10 @@ def can_apply_changesheet_via_job_config():
     mdb.objects.delete_one({"id": drs_obj_doc["id"]})
 
 
+# Note: The `@pytest.mark.parametrize` decorator is used to set the so-called "fixture request parameter"
+#       (accessed within the `seeded_db` fixture) to a particular value. The `indirect=True` flag tells pytest
+#       to invoke the fixture having the specified name, and set the "fixture request parameter" to whatever
+#       that fixture yields, rather than setting the "fixture request parameter" to this string, itself.
 @pytest.mark.parametrize(
     "seeded_db", ["docs_for_seeded_db_for_changesheet_study_update"], indirect=True
 )
