@@ -13,8 +13,8 @@ v2		name	NEW PI NAME 1
 v2		has_raw_value	NEW RAW NAME 1
 v2		type	nmdc:PersonValue
 	update	description	NEW DESCRIPTION 1
-	update	websites	HTTP://TEST1.EXAMPLE.COM
-	update	websites	HTTP://TEST2.EXAMPLE.COM
+	insert	websites	HTTP://TEST1.EXAMPLE.COM
+	insert	websites	HTTP://TEST2.EXAMPLE.COM
 	insert	has_credit_associations	v3
 v3		applied_roles	Investigation
 v3		type	prov:Association

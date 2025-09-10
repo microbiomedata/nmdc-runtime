@@ -1,16 +1,24 @@
+"""
+This module contains `pytest` fixture definitions that `pytest` will automatically
+make available to all tests within this directory and its descendant directories.
+Reference: https://docs.pytest.org/en/stable/reference/fixtures.html#conftest-py-sharing-fixtures-across-multiple-files
+"""
+
+import json
 from collections import defaultdict
 import os
 from functools import lru_cache
 from typing import Generator, Any
 
 from nmdc_runtime.api.core.util import import_via_dotted_path
-from pymongo import MongoClient
+from pymongo import MongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
 import pytest
 from _pytest.fixtures import FixtureRequest
 from dagster import build_op_context
 from dagster._core.execution.context.invocation import DirectOpExecutionContext
 
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.minter.adapters.repository import InMemoryIDStore
 from nmdc_runtime.minter.config import (
     typecodes,
@@ -21,8 +29,41 @@ from nmdc_runtime.minter.config import (
 )
 from nmdc_runtime.minter.domain.model import MintingRequest, Identifier
 from nmdc_runtime.site.ops import materialize_alldocs
-from nmdc_runtime.site.resources import mongo_resource, MongoDB
-from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
+from nmdc_runtime.site.resources import (
+    mongo_resource,
+    MongoDB,
+    RuntimeApiSiteClient,
+    RuntimeApiUserClient,
+)
+from nmdc_runtime.util import (
+    get_class_name_to_collection_names_map,
+    nmdc_schema_view,
+    REPO_ROOT_DIR,
+)
+from tests.test_api.test_endpoints import ensure_test_resources
+
+
+@pytest.fixture
+def base_url() -> str:
+    r"""Returns the base URL of the API."""
+
+    base_url = os.getenv("API_HOST")
+    assert isinstance(base_url, str), "Base URL is not defined"
+    return base_url
+
+
+@pytest.fixture
+def api_site_client() -> RuntimeApiSiteClient:
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiSiteClient(base_url=os.getenv("API_HOST"), **rs["site_client"])
+
+
+@pytest.fixture
+def api_user_client() -> RuntimeApiUserClient:
+    mdb = get_mongo_db()
+    rs = ensure_test_resources(mdb)
+    return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
 def minting_request():
@@ -199,12 +240,17 @@ def seeded_db(
         docs_by_collection_name[collection_name].append(doc)
 
     # Seed the db.
+    # Replace existing docs with new ones if necessary, i.e. tolerate being given a "dirty" db.
     with mongo.client.start_session() as session:
         with session.start_transaction():
             for collection_name, docs in docs_by_collection_name.items():
-                mongo.db.get_collection(collection_name).insert_many(
-                    docs, session=session
-                )
+                write_requests = [
+                    ReplaceOne({"id": doc["id"]}, doc, upsert=True) for doc in docs
+                ]
+                if write_requests:
+                    mongo.db.get_collection(collection_name).bulk_write(
+                        write_requests, session=session, ordered=False
+                    )
     # XXX nest `materialize_alldocs` in above transaction?
     materialize_alldocs(op_context)
 
@@ -218,3 +264,12 @@ def seeded_db(
                     {"id": {"$in": [d["id"] for d in docs]}}, session=session
                 )
     materialize_alldocs(op_context)
+
+
+@pytest.fixture
+def docs_for_seeded_db_for_changesheet_study_update():
+    # alternative: `return Faker().generate_studies(1, id="nmdc:sty-11-pzmd0x14")`
+    with open(
+        REPO_ROOT_DIR.joinpath("tests", "files", f"nmdc_sty-11-pzmd0x14.json")
+    ) as f:
+        return [json.load(f)]
