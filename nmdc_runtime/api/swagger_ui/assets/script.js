@@ -5,10 +5,10 @@ window.addEventListener("nmdcInit", (event) => {{
     // Get the DOM elements we'll be referencing below.
     const bodyEl = document.querySelector("body");
 
-    // If the access token is present in the DOM (see `main.py`), create and add a banner
+    // If there is a non-empty access token present in the DOM (see `main.py`), create and add a banner
     // displaying the token along with buttons to show/hide it and copy it to the clipboard.
     const accessToken = document.getElementById("nmdc-access-token")?.getAttribute("data-token");
-    if (typeof accessToken === "string") {
+    if (typeof accessToken === "string" && accessToken.trim().length > 0) {
         console.debug("Adding token banner");
 
         // Create the banner.
@@ -70,27 +70,43 @@ window.addEventListener("nmdcInit", (event) => {{
     }
 
     /**
-     * Customizes the login form.
+     * Customizes the login form in the following ways:
+     * - Changes the header text of the username/password login form to "User login".
+     * - Changes the header text of the client credentials login form to "Site client login".
+     * - Augments the "Logout" button on the `bearerAuth` login form so that, when it is clicked,
+     *   it clears and expires the `user_id_token` cookie.
+     * - Focuses on the username input field whenever the login form appears.
+     * 
+     * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
      * 
      * Prerequisite: The login form must be present in the DOM.
      */
     const customizeLoginForm = () => {
         const modalContentEl = document.querySelector('.auth-wrapper .modal-ux-content');
-
-        console.debug("Customizing login form headers");
         const formHeaderEls = modalContentEl.querySelectorAll('.auth-container h4');
         formHeaderEls.forEach(el => {
-            // Update the header text based on its current value.
             switch (el.textContent.trim()) {
                 case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, password)":
+                    console.debug(`Customizing "password" login form header`);
                     el.textContent = "User login";
                     break;
                 case "OAuth2PasswordOrClientCredentialsBearer (OAuth2, clientCredentials)":
+                    console.debug(`Customizing "clientCredentials" login form header`);
                     el.textContent = "Site client login";
                     break;
-                // Note: This default string has a `U+00a0` character before the space.
+                // Note: This string has a `U+00a0` character before the regular space.
                 case "bearerAuth  (http, Bearer)":
-                    break; // do nothing
+                    const buttonEls = el.closest(".auth-container").querySelectorAll("button");
+                    buttonEls.forEach(buttonEl => {
+                        if (buttonEl.textContent.trim() === "Logout") {
+                            console.debug(`Augmenting "bearerAuth" form logout button`);
+                            buttonEl.addEventListener("click", () => {
+                                console.debug("Clearing and expiring `user_id_token` cookie");
+                                document.cookie = "user_id_token=; max-age:0; path=/;";
+                            });
+                        }
+                    });
+                    break;
                 default:
                     console.debug(`Unrecognized header: ${el.textContent}`);
             }

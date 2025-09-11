@@ -376,8 +376,9 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # Inject an HTML element containing (as the value of an HTML5 data-* attribute) the access token.
-        # This makes the access token available to JavaScript code running on the web page.
+        # Inject an HTML element containing (as the value of an HTML5 data-* attribute) the access token,
+        # (or an empty string if there is no access token). This makes the access token (if there is one)
+        # available to the JavaScript code running on the web page.
         #
         # Note: Since the access token is a JWT (which is a period-delimited sequence of
         #       base64-encoded substrings), we know it doesn't contain double quotes and
@@ -389,7 +390,7 @@ def custom_swagger_ui_html(
             </head>
             <div
                 id="nmdc-access-token"
-                data-token="{access_token}"
+                data-token="{access_token if access_token is not None else ''}"
                 style="display: none"
             ></div>
             """,
