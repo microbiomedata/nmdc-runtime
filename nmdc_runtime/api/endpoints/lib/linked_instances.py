@@ -165,7 +165,7 @@ def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
         resource_ids_of_type = [d["id"] for d in resources if d["type"] == type]
         schema_collection = mdb.get_collection(
             # Note: We are assuming that documents of this type are only allowed (by
-            #       the schema) to reside in one collection. Based on that assumption, 
+            #       the schema) to reside in one collection. Based on that assumption,
             #       we will query only the _first_ collection whose name we get
             #       from the map.
             class_name_to_collection_names_map[type.removeprefix("nmdc:")][0]
