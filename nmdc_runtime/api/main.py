@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from html import escape
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -376,21 +377,16 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # Inject an HTML element containing (as the value of an HTML5 data-* attribute) the access token,
-        # (or an empty string if there is no access token). This makes the access token (if there is one)
-        # available to the JavaScript code running on the web page.
-        #
-        # Note: Since the access token is a JWT (which is a period-delimited sequence of
-        #       base64-encoded substrings), we know it doesn't contain double quotes and
-        #       so we can safely inject it as is (i.e. without encoding it further).
-        #
+        # Inject an HTML element containing the access token (or an empty string, if there is no access token)
+        # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
+        # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
         .replace(
             "</head>",
             f"""
             </head>
             <div
                 id="nmdc-access-token"
-                data-token="{access_token if access_token is not None else ''}"
+                data-token="{escape(access_token if access_token is not None else '')}"
                 style="display: none"
             ></div>
             """,
