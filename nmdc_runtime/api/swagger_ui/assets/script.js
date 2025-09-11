@@ -19,7 +19,7 @@ window.addEventListener("nmdcInit", (event) => {{
             <p>
                 <code>
                     <span>Authorization: Bearer </span>
-                    <span id="token" data-token-value="${accessToken}" data-state="masked">***</span>
+                    <span id="token" data-state="masked">***</span>
                 </code>
             </p>
             <p>
@@ -44,7 +44,7 @@ window.addEventListener("nmdcInit", (event) => {{
             if (tokenEl.dataset.state == "masked") {{
                 console.debug("Unmasking token");
                 tokenEl.dataset.state = "unmasked";
-                tokenEl.textContent = tokenEl.dataset.tokenValue;
+                tokenEl.textContent = accessToken;
                 event.target.textContent = "Hide token";
             }} else {{
                 console.debug("Masking token");
@@ -60,7 +60,7 @@ window.addEventListener("nmdcInit", (event) => {{
         tokenCopierEl.addEventListener("click", async (event) => {{
             tokenCopierMessageEl.textContent = "";
             try {{                            
-                await navigator.clipboard.writeText(tokenEl.dataset.tokenValue);
+                await navigator.clipboard.writeText(accessToken);
                 tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
             }} catch (error) {{
                 console.error(error.message);
