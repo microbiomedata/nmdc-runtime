@@ -304,7 +304,7 @@ def custom_swagger_ui_html(
     user_id_token: Annotated[str | None, Cookie()] = None,
 ):
     r"""Returns the HTML markup for an interactive API docs web page powered by Swagger UI.
-    
+
     If the `user_id_token` cookie is present and not empty, this function will send its value to
     the `/token` endpoint in an attempt to get an access token. If it gets one, this function will
     inject that access token into the web page so Swagger UI will consider the user to be logged in.
@@ -383,15 +383,17 @@ def custom_swagger_ui_html(
         #       base64-encoded substrings), we know it doesn't contain double quotes and
         #       so we can safely inject it as is (i.e. without encoding it further).
         #
-        .replace("</head>",
-                 f'''
+        .replace(
+            "</head>",
+            f"""
                  </head>
                  <div 
                     id="nmdc-access-token"
                     data-token="{access_token}"
                     style="display: none"
                  ></div>
-                 ''')
+                 """,
+        )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
         # Inject a custom JavaScript script immediately before the closing `</body>` tag.
