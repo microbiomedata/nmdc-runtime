@@ -743,8 +743,8 @@ class TestNCBISubmissionXML:
             ncbi_submission_client.root.find(".//BioSample"), "unicode"
         )
 
-        # Verify that non-ASCII characters are converted to XML character references
-        assert "USA: Alaska, Utqia&amp;#289;vik" in biosample_xml
+        # Verify that non-ASCII characters are converted to closest ASCII equivalents using unidecode
+        assert "USA: Alaska, Utqiagvik" in biosample_xml
         # Verify the original Unicode characters are not present
         assert "Utqiaġvik" not in biosample_xml
 

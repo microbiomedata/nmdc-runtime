@@ -6,6 +6,7 @@ import xml.dom.minidom
 
 from typing import Any, List
 from urllib.parse import urlparse
+from unidecode import unidecode
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
@@ -227,12 +228,10 @@ class NCBISubmissionXML:
                     attributes[xml_key] = value
                     continue  # Skip applying the handler to this key
 
-                # Special handling for "geo_loc_name" - convert to ASCII with XML character references
+                # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
                 if json_key == "geo_loc_name":
                     formatted_value = handler(value)
-                    formatted_value = formatted_value.encode(
-                        "ascii", "xmlcharrefreplace"
-                    ).decode("ascii")
+                    formatted_value = unidecode(formatted_value)
                     attributes[xml_key] = formatted_value
                     continue  # Skip applying the handler to this key
 
