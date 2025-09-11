@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from html import escape
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -303,6 +304,14 @@ async def get_scalar_html():
 def custom_swagger_ui_html(
     user_id_token: Annotated[str | None, Cookie()] = None,
 ):
+    r"""Returns the HTML markup for an interactive API docs web page powered by Swagger UI.
+
+    If the `user_id_token` cookie is present and not empty, this function will send its value to
+    the `/token` endpoint in an attempt to get an access token. If it gets one, this function will
+    inject that access token into the web page so Swagger UI will consider the user to be logged in.
+
+    Reference: https://fastapi.tiangolo.com/tutorial/cookie-params/
+    """
     access_token = None
     if user_id_token:
         # get bearer token
@@ -332,29 +341,7 @@ def custom_swagger_ui_html(
     }
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""
-            ui.preauthorizeApiKey('bearerAuth', '{access_token}');
-            
-            token_info = document.createElement('section');
-            token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
-            token_info.innerHTML = <double-quote>
-                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
-                <p>
-                    <code>
-                        <span>Authorization: Bearer </span>
-                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>
-                    </code>
-                </p>
-                <p>
-                    <button id='token-mask-toggler'>Show token</button>
-                    <button id='token-copier'>Copy token</button>
-                    <span id='token-copier-message'></span>
-                </p>
-            </double-quote>;
-            document.querySelector('.information-container').append(token_info);
-        """.replace(
-            "\n", " "
-        )
+        onComplete += f"ui.preauthorizeApiKey('bearerAuth', '{access_token}');"
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
@@ -390,6 +377,20 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Inject an HTML element containing the access token (or an empty string, if there is no access token)
+        # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
+        # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
+        .replace(
+            "</head>",
+            f"""
+            </head>
+            <div
+                id="nmdc-access-token"
+                data-token="{escape(access_token if access_token is not None else '')}"
+                style="display: none"
+            ></div>
+            """,
+        )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
         # Inject a custom JavaScript script immediately before the closing `</body>` tag.
