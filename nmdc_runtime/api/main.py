@@ -386,13 +386,13 @@ def custom_swagger_ui_html(
         .replace(
             "</head>",
             f"""
-                 </head>
-                 <div 
-                    id="nmdc-access-token"
-                    data-token="{access_token}"
-                    style="display: none"
-                 ></div>
-                 """,
+            </head>
+            <div
+                id="nmdc-access-token"
+                data-token="{access_token}"
+                style="display: none"
+            ></div>
+            """,
         )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
