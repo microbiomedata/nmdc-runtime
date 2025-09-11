@@ -102,7 +102,7 @@ window.addEventListener("nmdcInit", (event) => {{
                             console.debug(`Augmenting "bearerAuth" form logout button`);
                             buttonEl.addEventListener("click", () => {
                                 console.debug("Clearing and expiring `user_id_token` cookie");
-                                document.cookie = "user_id_token=; max-age:0; path=/;";
+                                document.cookie = "user_id_token=; max-age=0; path=/;";
                             });
                         }
                     });
