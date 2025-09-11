@@ -91,6 +91,7 @@ dependencies = [
     "tenacity",
     "toolz",
     "tqdm",
+    "unidecode",
     "uvicorn[standard]",
     "requests-cache",
 ]
