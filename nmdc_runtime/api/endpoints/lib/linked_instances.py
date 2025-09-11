@@ -154,7 +154,11 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
 
 
 def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
-    """Replace each `dict` in `resources` with a hydrated version."""
+    """Replace each `dict` in `resources` with a hydrated version.
+
+    Instead of returning the retrieved "full" documents as is, we merge each one with (a copy of) the corresponding
+    original document in *resources*, which includes additional fields, e.g. `_upstream_of` and `_downstream_of`.
+    """
     class_name_to_collection_names_map = get_class_name_to_collection_names_map(
         nmdc_schema_view()
     )
@@ -173,7 +177,4 @@ def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
         for doc in schema_collection.find({"id": {"$in": resource_ids_of_type}}):
             full_docs_by_id[doc["id"]] = doc
 
-    # Note: Instead of returning the newly-retrieved "full" documents as is,
-    #       we merge each one with its corresponding original _resource_, which
-    #       includes additional fields; e.g. `_upstream_of` and `_downstream_of`.
     return [merge(r, full_docs_by_id[r["id"]]) for r in resources]
