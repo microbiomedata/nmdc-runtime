@@ -74,7 +74,7 @@ window.addEventListener("nmdcInit", (event) => {{
      * - Changes the header text of the username/password login form to "User login".
      * - Changes the header text of the client credentials login form to "Site client login".
      * - Augments the "Logout" button on the `bearerAuth` login form so that, when it is clicked,
-     *   it clears and expires the `user_id_token` cookie.
+     *   it clears and expires the `user_id_token` cookie, and reloads the web page.
      * - Focuses on the username input field whenever the login form appears.
      * 
      * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
@@ -103,6 +103,9 @@ window.addEventListener("nmdcInit", (event) => {{
                             buttonEl.addEventListener("click", () => {
                                 console.debug("Clearing and expiring `user_id_token` cookie");
                                 document.cookie = "user_id_token=; max-age=0; path=/;";
+
+                                console.debug("Reloading page to clear in-memory auth state");
+                                window.location.reload();
                             });
                         }
                     });
