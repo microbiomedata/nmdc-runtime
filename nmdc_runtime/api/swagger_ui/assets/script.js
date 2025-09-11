@@ -2,16 +2,42 @@ console.debug("Listening for event: nmdcInit");
 window.addEventListener("nmdcInit", (event) => {{
     console.debug("Detected event: nmdcInit");
 
-    // Get the DOM elements we'll be referencing below. 
-    const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
-    const tokenEl = document.getElementById("token");
-    const tokenCopierEl = document.getElementById("token-copier");
-    const tokenCopierMessageEl = document.getElementById("token-copier-message");
+    // Get the DOM elements we'll be referencing below.
     const bodyEl = document.querySelector("body");
-    
-    // If all the token visibility-related elements are present (according to the logic implemented in `main.py`,
-    // they will be present if an access token is available), set up the token visibility toggler and token copier.
-    if (tokenMaskTogglerEl !== null && tokenEl !== null && tokenCopierEl !== null && tokenCopierMessageEl !== null) {
+
+    // If the access token is present in the DOM (see `main.py`), create and add a banner
+    // displaying the token along with buttons to show/hide it and copy it to the clipboard.
+    const accessToken = document.getElementById("nmdc-access-token")?.getAttribute("data-token");
+    if (typeof accessToken === "string") {
+        console.debug("Adding token banner");
+
+        // Create the banner.
+        const sectionEl = document.createElement("section");
+        sectionEl.classList.add("nmdc-info", "nmdc-info-token", "block", "col-12");
+        sectionEl.innerHTML = `
+            <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
+            <p>
+                <code>
+                    <span>Authorization: Bearer </span>
+                    <span id="token" data-token-value="${accessToken}" data-state="masked">***</span>
+                </code>
+            </p>
+            <p>
+                <button id="token-mask-toggler">Show token</button>
+                <button id="token-copier">Copy token</button>
+                <span id="token-copier-message"></span>
+            </p>
+        `;
+
+        // Mount the banner to the DOM.
+        document.querySelector(".information-container").append(sectionEl);
+
+        // Get references to DOM elements within the banner that was mounted to the DOM.
+        const tokenMaskTogglerEl = document.getElementById("token-mask-toggler");
+        const tokenEl = document.getElementById("token");
+        const tokenCopierEl = document.getElementById("token-copier");
+        const tokenCopierMessageEl = document.getElementById("token-copier-message");
+
         // Set up the token visibility toggler.
         console.debug("Setting up token visibility toggler");
         tokenMaskTogglerEl.addEventListener("click", (event) => {{
