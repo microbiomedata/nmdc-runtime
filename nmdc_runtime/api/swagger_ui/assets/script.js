@@ -103,8 +103,10 @@ window.addEventListener("nmdcInit", (event) => {{
                             buttonEl.addEventListener("click", () => {
                                 console.debug("Clearing and expiring `user_id_token` cookie");
                                 document.cookie = "user_id_token=; max-age=0; path=/;";
-
-                                console.debug("Reloading page to clear in-memory auth state");
+                                // Reload the web page so that any in-memory authentication state is reset.
+                                // Note: If we had full control over the Swagger UI code, we would just
+                                //       manipulate that state directly instead of reloading the page.
+                                console.debug("Reloading web page");
                                 window.location.reload();
                             });
                         }
