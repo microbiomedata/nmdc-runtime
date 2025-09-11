@@ -10,7 +10,10 @@ from refscan.lib.helpers import (
     get_names_of_classes_eligible_for_collection,
 )
 
-from nmdc_runtime.api.endpoints.lib.linked_instances import gather_linked_instances
+from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    gather_linked_instances,
+    hydrated,
+)
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
@@ -148,6 +151,13 @@ def get_linked_instances(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ] = None,
+    hydrate: Annotated[
+        bool,
+        Query(
+            title="Hydrate",
+            description="Whether to include full documents in the response. The default is to include slim documents.",
+        ),
+    ] = False,
     page_token: Annotated[
         str | None,
         Query(
@@ -173,18 +183,22 @@ def get_linked_instances(
     """
     Retrieves database instances that are both (a) linked to any of `ids`, and (b) of a type in `types`.
 
-    An [instance](https://linkml.io/linkml-model/latest/docs/specification/02instances/) is an object conforming to
-    a class definition ([linkml:ClassDefinition](https://w3id.org/linkml/ClassDefinition))
-    in our database ([nmdc:Database](https://w3id.org/nmdc/Database)).
-    While a [nmdc:Database](https://w3id.org/nmdc/Database) is organized into collections,
-    every item in every database collection -- that is, every instance -- knows its `type`, so we can
-    (and here do)<sup>&dagger;</sup>
-    return a simple list of instances
-    ([a LinkML CollectionInstance](https://linkml.io/linkml-model/latest/docs/specification/02instances/#collections)),
-    which a client may use to construct a corresponding [nmdc:Database](https://w3id.org/nmdc/Database).
+    An [instance](https://linkml.io/linkml-model/latest/docs/specification/02instances/) is an object conforming to a
+    class definition ([linkml:ClassDefinition](https://w3id.org/linkml/ClassDefinition)) in our database ([
+    nmdc:Database](https://w3id.org/nmdc/Database)). While a [nmdc:Database](https://w3id.org/nmdc/Database) is
+    organized into collections, every item in every database collection -- that is, every instance -- knows its
+    `type`, so we can (and here do) return a simple list of instances ([a LinkML CollectionInstance](
+    https://linkml.io/linkml-model/latest/docs/specification/02instances/#collections)). If hydrate is `False` (the
+    default), then the returned list contains "slim" documents that include only the `id` and `type` of each
+    instance. If hydrate is `True`, then the returned list contains "full" (aka <a
+    href="https://en.wikipedia.org/wiki/Hydration_(web_development)">"hydrated"</a>) documents of each instance,
+    suitable e.g. for a client to subsequently use to construct a corresponding
+    [nmdc:Database](https://w3id.org/nmdc/Database) instance with schema-compliant documents.
+    Both "slim" and "full" documents include (optional) `_upstream_of` and `_downstream_of` fields,
+    to indicate the returned document's relationship to `ids`.
 
-    From the nexus instance IDs given in `ids`, both "upstream" and "downstream" links are followed (transitively) in
-    order to collect the set of all instances linked to these `ids`.
+    From the nexus instance IDs given in `ids`, both "upstream" and "downstream" links are followed (transitively)
+    to collect the set of all instances linked to these `ids`.
 
     * A link "upstream" is represented by a slot ([linkml:SlotDefinition](https://w3id.org/linkml/SlotDefinition))
     for which the
@@ -207,17 +221,12 @@ def get_linked_instances(
     [nmdc:InformationObject](https://w3id.org/nmdc/InformationObject),
     [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
     If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
-
-    <sup>&dagger;</sup>: actually, we do not (yet).
-    For now (see [microbiomedata/nmdc-runtime#1118](https://github.com/microbiomedata/nmdc-runtime/issues/1118)),
-    we return a short list of "fat" documents,  each of which represents one of the `ids` and presents
-    representations of that id's downstream and upstream instances (currently just each instance's `id` and `type`)
-    as separate subdocument array fields.
     """
     if page_token is not None:
         rv = list_resources(
             req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
         )
+        rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
         rv["resources"] = [strip_oid(d) for d in rv["resources"]]
         return rv
 
@@ -251,6 +260,7 @@ def get_linked_instances(
         mdb,
         merge_into_collection_name,
     )
+    rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 

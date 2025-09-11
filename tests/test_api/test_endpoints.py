@@ -1000,6 +1000,28 @@ def test_get_linked_instances_pagination(
     assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
 
 
+@pytest.mark.skipif(
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
+def test_get_linked_instances_hydration(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+    response_not_hydrated = api_user_client.request(
+        "GET",
+        f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample",
+    )
+    assert not any(
+        "associated_studies" in r for r in response_not_hydrated.json()["resources"]
+    )
+    response_hydrated = api_user_client.request(
+        "GET",
+        f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample&hydrate=true",
+    )
+    assert all("associated_studies" in r for r in response_hydrated.json()["resources"])
+
+
 class TestFindDataObjectsForStudy:
     r"""
     Tests targeting the `/data_objects/study/{study_id}` API endpoint.
