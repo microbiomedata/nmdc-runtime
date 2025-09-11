@@ -173,4 +173,7 @@ def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
         for doc in schema_collection.find({"id": {"$in": resource_ids_of_type}}):
             full_docs_by_id[doc["id"]] = doc
 
+    # Note: Instead of returning the newly-retrieved "full" documents as is,
+    #       we merge each one with its corresponding original _resource_, which
+    #       includes additional fields; e.g. `_upstream_of` and `_downstream_of`.
     return [merge(r, full_docs_by_id[r["id"]]) for r in resources]
