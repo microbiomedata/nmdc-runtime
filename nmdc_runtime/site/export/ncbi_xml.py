@@ -6,6 +6,7 @@ import xml.dom.minidom
 
 from typing import Any, List
 from urllib.parse import urlparse
+from unidecode import unidecode
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     handle_controlled_identified_term_value,
     handle_controlled_term_value,
@@ -190,15 +191,6 @@ class NCBISubmissionXML:
                             attributes[xml_key] = value
                             continue  # Skip applying the handler to this key
 
-                        # Special handling for "host_taxid"
-                        if json_key == "host_taxid" and isinstance(value, dict):
-                            if "term" in value and "id" in value["term"]:
-                                value = re.findall(
-                                    r"\d+", value["term"]["id"].split(":")[1]
-                                )[0]
-                            attributes[xml_key] = value
-                            continue  # Skip applying the handler to this key
-
                         formatted_value = handler(item)
 
                         # Combine multiple values with a separator for list elements
@@ -234,6 +226,13 @@ class NCBISubmissionXML:
                     if "term" in value and "id" in value["term"]:
                         value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
                     attributes[xml_key] = value
+                    continue  # Skip applying the handler to this key
+
+                # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                if json_key == "geo_loc_name":
+                    formatted_value = handler(value)
+                    formatted_value_ascii = unidecode(formatted_value)
+                    attributes[xml_key] = formatted_value_ascii
                     continue  # Skip applying the handler to this key
 
                 # Default processing for other keys
