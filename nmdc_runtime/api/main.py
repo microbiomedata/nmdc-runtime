@@ -404,5 +404,5 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=8000,
-        access_log_format='%(client_addr)s - "%(request_line)s" %(status_code)s %(process_time).3fs',
+        log_config="uvicorn-log-config.yaml",
     )

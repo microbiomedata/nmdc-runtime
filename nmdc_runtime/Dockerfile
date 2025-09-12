@@ -101,7 +101,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
 WORKDIR /code
-CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--access-log-format", "%(client_addr)s - \"%(request_line)s\" %(status_code)s %(process_time).3fs"]
+CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/code/uvicorn-log-config.yaml"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS dagster
