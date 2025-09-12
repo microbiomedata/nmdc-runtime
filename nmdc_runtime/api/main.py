@@ -400,4 +400,9 @@ def custom_swagger_ui_html(
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000, 
+        access_log_format='%(client_addr)s - "%(request_line)s" %(status_code)s %(process_time).3fs'
+    )

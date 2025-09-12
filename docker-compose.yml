@@ -96,7 +96,7 @@ services:
     #       oftentimes modify those files while doing load testing, and those files are
     #       not part of the FastAPI app.
     #       Docs: https://www.uvicorn.org/settings/?h=watch#reloading-with-watchfiles
-    command: ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
+    command: ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*", "--access-log-format", "%(client_addr)s - \"%(request_line)s\" %(status_code)s %(process_time).3fs"]
     env_file: .env
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
