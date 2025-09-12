@@ -20,7 +20,10 @@ from scalar_fastapi import get_scalar_api_reference
 
 from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
-from nmdc_runtime.api.middleware import PyinstrumentMiddleware, ResponseTimeLoggerMiddleware
+from nmdc_runtime.api.middleware import (
+    PyinstrumentMiddleware,
+    ResponseTimeLoggerMiddleware,
+)
 from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
