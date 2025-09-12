@@ -231,8 +231,8 @@ class NCBISubmissionXML:
                 # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
                 if json_key == "geo_loc_name":
                     formatted_value = handler(value)
-                    formatted_value = unidecode(formatted_value)
-                    attributes[xml_key] = formatted_value
+                    formatted_value_ascii = unidecode(formatted_value)
+                    attributes[xml_key] = formatted_value_ascii
                     continue  # Skip applying the handler to this key
 
                 # Default processing for other keys
