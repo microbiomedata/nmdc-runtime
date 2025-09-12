@@ -3,8 +3,7 @@ disable_existing_loggers: false
 
 formatters:
   default:
-    format: "%(levelprefix)s %(message)s"
-    use_colors: true
+    format: "%(levelname)s:     %(message)s"
   access:
     format: '%(client_addr)s - "%(request_line)s" %(status_code)s %(process_time).3fs'
 
