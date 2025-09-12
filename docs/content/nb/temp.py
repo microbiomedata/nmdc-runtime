@@ -160,9 +160,8 @@ def flatten_each(dicts: list[dict]) -> dict:
     # and initialize each value to an empty list.
     result: dict = {distinct_key: [] for distinct_key in distinct_keys}
 
-    # For each distinct key, populate its list with the corresponding value from
-    # each flat dictionary, falling back to `None` when a given flat dictionary
-    # lacks that key.
+    # For each flat dictionary, append its values to the corresponding lists,
+    # appending `None` whenever the flat dictionary lacks a given key.
     for flat_dict in flat_dicts:
         for distinct_key in distinct_keys:
             value_from_flat_dict = flat_dict.get(distinct_key, None)
