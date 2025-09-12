@@ -20,7 +20,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
-from nmdc_runtime.api.middleware import PyinstrumentMiddleware
+from nmdc_runtime.api.middleware import PyinstrumentMiddleware, ResponseTimeLoggerMiddleware
 from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
@@ -272,6 +272,7 @@ app.add_middleware(Analytics)
 
 if config.IS_PROFILING_ENABLED:
     app.add_middleware(PyinstrumentMiddleware)
+    app.add_middleware(ResponseTimeLoggerMiddleware)
 
 # Note: Here, we are mounting a `StaticFiles` instance (which is bound to the directory that
 #       contains static files) as a "sub-application" of the main FastAPI application. This
