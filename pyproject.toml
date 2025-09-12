@@ -91,6 +91,8 @@ dependencies = [
     "tenacity",
     "toolz",
     "tqdm",
+    # Note: The translators use this to convert non-ASCII characters into ASCII,
+    #       since NCBI's system doesn't accept non-ASCII characters.
     "unidecode",
     "uvicorn[standard]",
     "requests-cache",
