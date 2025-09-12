@@ -70,7 +70,7 @@ class ResponseTimeLoggerMiddleware(BaseHTTPMiddleware):
         #       focal point of these messages to be the duration. Uvicorn's access
         #       logs already show the full query string.
         #
-        query_string = "" if request.url.query in {None, ""} else "?..."
+        query_string = "?..." if request.url.query != "" else ""
         request_string = f"{request.method} {request.url.path}{query_string}"
         logging.info(f'"{request_string}" response time (sec): {formatted_duration}')
 
