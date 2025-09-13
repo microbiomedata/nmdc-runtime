@@ -275,6 +275,8 @@ app.add_middleware(Analytics)
 
 if config.IS_PROFILING_ENABLED:
     app.add_middleware(PyinstrumentMiddleware)
+
+if config.IS_RESPONSE_TIME_LOGGING_ENABLED:
     app.add_middleware(ResponseTimeLoggerMiddleware)
 
 # Note: Here, we are mounting a `StaticFiles` instance (which is bound to the directory that
