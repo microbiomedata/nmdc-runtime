@@ -140,7 +140,7 @@ class FindRequest(BaseModel):
         default=None,
         title="Cursor",
         description="""A bookmark you can use to fetch the _next_ page of resources, when using cursor-based pagination.
-                    To use cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
+                    To begin using cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
                     include a `next_cursor` field, whose value can be used as the `cursor` parameter in a subsequent
                     request.\n\n_Example_: `nmdc:sys0zr0fbt71`""",
         examples=[
