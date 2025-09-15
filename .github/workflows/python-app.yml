@@ -88,3 +88,5 @@ jobs:
       run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
       run: make run-test
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi

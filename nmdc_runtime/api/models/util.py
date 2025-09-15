@@ -125,7 +125,9 @@ class FindRequest(BaseModel):
         default=None,
         title="Page number",
         description="""_Which page_ of resources you want to retrieve, when using page number-based pagination.
-                    This is the page number formatted as an integer ≥ 1.""",
+                    This is the page number formatted as an integer ≥ 1.
+                    **Limitation:** When using _page number_-based pagination, only the first 10,000 resources
+                    are accessible. You can access resources beyond that by using _cursor_-based pagination.""",
         examples=[1],
     )
     per_page: PerPageRange = Field(
@@ -138,7 +140,7 @@ class FindRequest(BaseModel):
         default=None,
         title="Cursor",
         description="""A bookmark you can use to fetch the _next_ page of resources, when using cursor-based pagination.
-                    To use cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
+                    To begin using cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
                     include a `next_cursor` field, whose value can be used as the `cursor` parameter in a subsequent
                     request.\n\n_Example_: `nmdc:sys0zr0fbt71`""",
         examples=[
