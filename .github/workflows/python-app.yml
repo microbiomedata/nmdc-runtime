@@ -77,20 +77,18 @@ jobs:
         rmdir _tmp
     - name: Build and start containers upon which test runner depends
       run: make up-test
-    # Before running the tests, wait a few seconds, then dump the `fastapi` container logs.
+    # When running the GHA workflow in "Debug" mode: Wait a few seconds, then dump the `fastapi` container logs.
     #
     # Note: This is in an attempt to facilitate debugging. The failure of that container to
     #       start up has been a relatively common source of GitHub Actions workflow failures
     #       (and we think seeing the container's logs will make debugging easier).
-    #       TODO: Consider making this conditional, by adding `if: runner.debug == '1'`
     #
-    - name: Sleep for 5s
+    - name: Sleep
+      if: runner.debug == '1'
       uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 5s
+      with: { time: 20s }
     - name: Dump FastAPI container logs (for debugging)
+      if: runner.debug == '1'
       run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
       run: make run-test
-    - name: Dump FastAPI container logs (for debugging)
-      run: docker compose --file docker-compose.test.yml logs fastapi
