@@ -86,7 +86,8 @@ jobs:
     - name: Sleep
       if: runner.debug == '1'
       uses: juliangruber/sleep-action@v2.0.0
-      with: { time: 20s }
+      with:
+        time: 20s
     - name: Dump FastAPI container logs (for debugging)
       if: runner.debug == '1'
       run: docker compose --file docker-compose.test.yml logs fastapi

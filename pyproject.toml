@@ -84,8 +84,8 @@ dependencies = [
     "refscan == 0.3.2",
     "requests",
     # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
-    #       Reference: 
-    "scalar-fastapi >= 1.4.0, < 2.0.0",
+    #       Reference: https://pypi.org/project/scalar-fastapi/
+    "scalar-fastapi >= 1.4.1, < 2.0.0",
     "tenacity",
     "toolz",
     "tqdm",
