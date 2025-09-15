@@ -32,6 +32,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Reference: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONFAULTHANDLER
 ENV PYTHONFAULTHANDLER=1
 
+# Configure Git to consider the `/code` directory to be "safe", so that, when `uv-dynamic-versioning`
+# runs within this container on GitHub Actions, it does not fail with the following error message:
+# > "Detected Git repository, but failed because of dubious ownership"
+# Reference: https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory
+RUN git config --global --add safe.directory /code
+
 # Install `uv`.
 # Reference: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
