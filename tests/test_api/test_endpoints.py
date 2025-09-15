@@ -4,11 +4,12 @@ import re
 
 import pytest
 import requests
+from _pytest.fixtures import FixtureRequest
 from dagster import build_op_context
-from nmdc_runtime.config import IS_RELATED_IDS_ENDPOINT_ENABLED
+from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from starlette import status
 from tenacity import wait_random_exponential, stop_after_attempt, retry
-from toolz import get_in
+from toolz import get_in, pluck
 
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.metadata import df_from_sheet_in, _validate_changesheet
@@ -30,7 +31,7 @@ from nmdc_runtime.site.resources import (
     mongo_resource,
     RuntimeApiUserClient,
 )
-from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes
+from nmdc_runtime.util import REPO_ROOT_DIR, ensure_unique_id_indexes, MongoDatabase
 from tests.lib.faker import Faker
 
 
@@ -120,7 +121,6 @@ def ensure_test_resources(mdb):
     }
 
 
-@pytest.mark.skip(reason="Skipping because test causes suite to hang")
 def test_update_operation():
     mdb = get_mongo(run_config_frozen__normal_env).db
     rs = ensure_test_resources(mdb)
@@ -188,6 +188,7 @@ def test_create_user():
             {"$pull": {"site_admin": "nmdc-runtime-useradmin"}},
         )
 
+
 def test_queries_run_invalid_update(api_user_client):
     # Seed the database
     mdb = get_mongo_db()
@@ -202,7 +203,7 @@ def test_queries_run_invalid_update(api_user_client):
     study = faker.generate_studies(1)[0]
     assert study_set.count_documents({"id": study["id"]}) == 0
     study_set.insert_one(study)
-    
+
     # test incorrect update - initial command syntax that brought this issue to light
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
@@ -229,22 +230,107 @@ def test_queries_run_invalid_update(api_user_client):
     }
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
-    
+
     # test incorrect delete
     with pytest.raises(requests.HTTPError) as exc_info:
         api_user_client.request(
             "POST",
             "/queries:run",
-            {
-                "delete": "study_set",
-                "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]
-
-            },
+            {"delete": "study_set", "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}]},
         )
-    expected_response = {'detail': [{'type': 'missing', 'loc': ['body', 'FindCommand', 'find'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'aggregate'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'AggregateCommand', 'pipeline'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}], 'cursor': {'batchSize': 25}}}, {'type': 'missing', 'loc': ['body', 'GetMoreCommand', 'getMore'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CollStatsCommand', 'collStats'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'CountCommand', 'count'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'q'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'DeleteCommand', 'deletes', 0, 'limit'], 'msg': 'Field required', 'input': {'id': 'nmdc:sty-11-hhkbcg72'}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'update'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}, {'type': 'missing', 'loc': ['body', 'UpdateCommand', 'updates'], 'msg': 'Field required', 'input': {'delete': 'study_set', 'deletes': [{'id': 'nmdc:sty-11-hhkbcg72'}]}}]}
+    expected_response = {
+        "detail": [
+            {
+                "type": "missing",
+                "loc": ["body", "FindCommand", "find"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "AggregateCommand", "aggregate"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                    "cursor": {"batchSize": 25},
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "AggregateCommand", "pipeline"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                    "cursor": {"batchSize": 25},
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "GetMoreCommand", "getMore"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "CollStatsCommand", "collStats"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "CountCommand", "count"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "DeleteCommand", "deletes", 0, "q"],
+                "msg": "Field required",
+                "input": {"id": "nmdc:sty-11-hhkbcg72"},
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "DeleteCommand", "deletes", 0, "limit"],
+                "msg": "Field required",
+                "input": {"id": "nmdc:sty-11-hhkbcg72"},
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "UpdateCommand", "update"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+            {
+                "type": "missing",
+                "loc": ["body", "UpdateCommand", "updates"],
+                "msg": "Field required",
+                "input": {
+                    "delete": "study_set",
+                    "deletes": [{"id": "nmdc:sty-11-hhkbcg72"}],
+                },
+            },
+        ]
+    }
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert exc_info.value.response.json() == expected_response
-    
+
     # 🧹 Clean up.
     allowances_collection.delete_many(allow_spec)
     study_set.delete_many({"id": study["id"]})
@@ -572,7 +658,9 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
         has_output=[
             data_object_b["id"]
         ],  # schema says field optional; but validator complains when absent
-        was_informed_by=[nonexistent_data_generation_id],  # intentionally-broken reference
+        was_informed_by=[
+            nonexistent_data_generation_id
+        ],  # intentionally-broken reference
     )[0]
 
     # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
@@ -665,91 +753,83 @@ def test_get_class_name_and_collection_names_by_doc_id():
 
 
 @pytest.fixture
-def fake_study_in_mdb():
-    # Seed the database with a study that neither influences—nor is influenced by—any documents.
+def docs_one_fake_study() -> list[dict]:
+    """Provide a study that neither influences—nor is influenced by—any documents."""
     mdb = get_mongo_db()
     faker = Faker()
     study_a = faker.generate_studies(quantity=1, part_of=[])[0]
     study_set = mdb.get_collection(name="study_set")
     assert study_set.count_documents({"id": study_a["id"]}) == 0
-    study_set.insert_many([study_a])
-    ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
-
-    yield study_a
-
-    # 🧹 Clean up: Delete the study we created earlier.
-    study_set.delete_many({"id": study_a["id"]})
-
-
-@pytest.fixture
-def fake_study_nonexistent_in_mdb():
-    mdb = get_mongo_db()
-    nonexistent_study_id = "nmdc:sty-00-00000x"
-    assert (
-        mdb.get_collection("study_set").count_documents({"id": nonexistent_study_id})
-        == 0
-    )
-    yield nonexistent_study_id
+    return [study_a]
 
 
 @pytest.mark.skipif(
-    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
-    api_user_client, fake_study_in_mdb, fake_study_nonexistent_in_mdb
+@pytest.mark.parametrize("seeded_db", ["docs_one_fake_study"], indirect=True)
+def test_get_linked_instances_returns_unsuccessful_status_code_when_any_subject_does_not_exist(
+    api_user_client, docs_one_fake_study, seeded_db: MongoDatabase
 ):
-    r"""
-    This test demonstrates that the `/nmdcschema/related_ids` API endpoint returns an
+    """
+    This test demonstrates that the `/nmdcschema/linked_instances` API endpoint returns an
     unsuccessful status code when the request contains an `id` that does not exist in the
     database; and that that is the case whether that `id` is submitted on its own or as
     part of a list of `id`s (even if some of the other `id`s in the list _do_ exist).
     """
 
+    fake_study_nonexistent_in_mdb = "nmdc:sty-00-00000x"
+    assert (
+        seeded_db.get_collection("study_set").count_documents(
+            {"id": fake_study_nonexistent_in_mdb}
+        )
+        == 0
+    )
     # Request the `id`s of documents related to only that nonexistent study.
     #
     # Note: The `api_user_client` fixture's `request` method will raise an
     #       exception if the server responds with an unsuccessful status code.
     #
-    with pytest.raises(requests.exceptions.HTTPError):
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "GET",
-            f"/nmdcschema/related_ids/ids={fake_study_nonexistent_in_mdb}/types=nmdc:NamedThing",
+            f"/nmdcschema/linked_instances/?ids={fake_study_nonexistent_in_mdb}",
         )
+    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
 
     # Submit the same request, but specify _both_ the existing study's `id`
     # and the nonexistent study's `id`.
-    with pytest.raises(requests.exceptions.HTTPError):
+    fake_study_in_mdb = docs_one_fake_study[0]["id"]
+    assert (
+        seeded_db.get_collection("study_set").count_documents({"id": fake_study_in_mdb})
+        == 1
+    )
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "GET",
             (
-                f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]},{fake_study_nonexistent_in_mdb}'
-                + "/types=nmdc:NamedThing"
+                f"/nmdcschema/linked_instances/?ids={fake_study_in_mdb}&ids={fake_study_nonexistent_in_mdb}"
             ),  # two ids
         )
 
+    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
+
 
 @pytest.mark.skipif(
-    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_empty_resources_list_for_isolated_subject(
-    api_user_client, fake_study_in_mdb
+@pytest.mark.parametrize("seeded_db", ["docs_one_fake_study"], indirect=True)
+def test_get_linked_instances_returns_empty_resources_list_for_isolated_subject(
+    api_user_client, docs_one_fake_study, seeded_db
 ):
     # Request the `id`s of the documents that either influence—or are influenced by—that study.
+    fake_study_in_mdb = docs_one_fake_study[0]
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={fake_study_in_mdb["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances/?ids={fake_study_in_mdb["id"]}',
     )
     # Assert that the response contains an empty "resources" list.
     assert response.status_code == 200
-    assert response.json() == {
-        "resources": [
-            {
-                "id": fake_study_in_mdb["id"],
-                "was_influenced_by": [],
-                "influenced": [],
-            }
-        ]
-    }
+    assert response.json() == {"resources": []}
 
 
 @pytest.fixture
@@ -791,54 +871,155 @@ def fake_studies_and_biosamples_in_mdb():
 
 
 @pytest.mark.skipif(
-    not IS_RELATED_IDS_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
 )
-def test_get_related_ids_returns_related_ids(
+def test_get_linked_instances_returns_linked_instances(
     api_user_client, fake_studies_and_biosamples_in_mdb
 ):
     study_a, study_b, biosample_a, biosample_b = fake_studies_and_biosamples_in_mdb
-    # Request the `id`s of the documents related to `study_a`, which is influenced by
-    # `study_b`, `biosample_a`, and `biosample_b`, and which influences nothing.
+    # Request the `id`s of the documents related to `study_a`, which is upstream of
+    # `study_b`, `biosample_a`, and `biosample_b`, and which is downstream of nothing.
     #
     # Note: The API doesn't advertise that the related `id`s will be in any particular order.
     #
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={study_a["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances?ids={study_a["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert study_a["id"] == response_resource["id"]
-    assert {study_b["id"], biosample_a["id"], biosample_b["id"]} == set(
-        [r["id"] for r in response_resource["was_influenced_by"]]
-    )
-    assert len(response_resource["influenced"]) == 0
+    resources = response.json()["resources"]
+    resource_ids = set(pluck("id", resources))
+    assert resource_ids == {study_b["id"], biosample_a["id"], biosample_b["id"]}
+    assert all(
+        "_downstream_of" in r for r in resources
+    ), "all resources should be downstream of requested `ids`"
+    assert not any(
+        "_upstream_of" in r for r in resources
+    ), "no resources should be upstream of requested `ids`"
 
-    # Request the `id`s of the documents related to `study_b`, which is influenced by
-    # `biosample_b`, and which influences `study_a`.
+    # Request the `id`s of the documents related to `study_b`, which is upstream of
+    # `biosample_b`, and which is downstream of `study_a`.
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={study_b["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances?ids={study_b["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert study_b["id"] == response_resource["id"]
-    assert {biosample_b["id"]} == set(
-        [r["id"] for r in response_resource["was_influenced_by"]]
+    resources = response.json()["resources"]
+    downstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_downstream_of" in r, resources))
     )
-    assert {study_a["id"]} == set([r["id"] for r in response_resource["influenced"]])
+    assert downstream_resource_ids == {biosample_b["id"]}
+    upstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_upstream_of" in r, resources))
+    )
+    assert upstream_resource_ids == {study_a["id"]}
 
-    # Request the `id`s of the documents related to `biosample_a`, which influences `study_a`,
-    # and is not influenced by anything.
+    # Request the `id`s of the documents related to `biosample_a`, which is downstream of `study_a`,
+    # and is not upstream of anything.
     response = api_user_client.request(
         "GET",
-        f'/nmdcschema/related_ids/ids={biosample_a["id"]}/types=nmdc:NamedThing',
+        f'/nmdcschema/linked_instances?ids={biosample_a["id"]}',
     )
     assert response.status_code == 200
-    response_resource = response.json()["resources"][0]
-    assert biosample_a["id"] == response_resource["id"]
-    assert len(response_resource["was_influenced_by"]) == 0
-    assert {study_a["id"]} == set([r["id"] for r in response_resource["influenced"]])
+    resources = response.json()["resources"]
+    upstream_resource_ids = set(
+        pluck("id", filter(lambda r: "_upstream_of" in r, resources))
+    )
+    assert upstream_resource_ids == {study_a["id"]}
+    assert not any(
+        "_downstream_of" in r for r in resources
+    ), "no resources should be downstream of requested `ids`"
+
+
+@pytest.fixture
+def docs_study_and_1k_biosamples() -> list[dict]:
+    """Provide a study with 1k downstream biosamples."""
+    mdb = get_mongo_db()
+    faker = Faker()
+    study = faker.generate_studies(quantity=1, part_of=[])[0]
+    biosamples = faker.generate_biosamples(
+        quantity=1_000, associated_studies=[study["id"]]
+    )
+    assert (
+        mdb.get_collection(name="study_set").count_documents({"id": study["id"]}) == 0
+    )
+    assert (
+        mdb.get_collection(name="biosample_set").count_documents(
+            {"id": {"$in": [bsm["id"] for bsm in biosamples]}}
+        )
+        == 0
+    )
+    return [study] + biosamples
+
+
+@pytest.mark.skipif(
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
+@pytest.mark.parametrize("seeded_db", ["docs_study_and_1k_biosamples"], indirect=True)
+def test_get_linked_instances_pagination(
+    api_user_client,
+    docs_study_and_1k_biosamples,
+    seeded_db: MongoDatabase,
+):
+    study = docs_study_and_1k_biosamples[0]
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={study["id"]}',
+    )
+    assert response.status_code == 200
+    assert "next_page_token" in response.json()
+    page_1_resources = response.json()["resources"]
+    page_1_resource_ids = set(pluck("id", page_1_resources))
+    page_token = response.json()["next_page_token"]
+
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={study["id"]}&page_token={page_token}',
+    )
+    assert response.status_code == 200
+    page_2_resources = response.json()["resources"]
+    page_2_resource_ids = set(pluck("id", page_2_resources))
+    assert (
+        page_1_resource_ids & page_2_resource_ids == set()
+    ), "page 1 should have entirely different resources than page 2"
+
+    biosample = docs_study_and_1k_biosamples[1]
+    response = api_user_client.request(
+        "GET",
+        f'/nmdcschema/linked_instances?ids={biosample["id"]}',
+    )
+    assert response.status_code == 200
+    assert "next_page_token" not in response.json()
+
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request(
+            "GET",
+            f'/nmdcschema/linked_instances?ids={study["id"]}&page_token=FAKETOKEN',
+        )
+
+    assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.skipif(
+    not IS_LINKED_INSTANCES_ENDPOINT_ENABLED, reason="Target endpoint is disabled"
+)
+def test_get_linked_instances_hydration(
+    api_user_client,
+    fake_studies_and_biosamples_in_mdb,
+):
+    study_a, _, _, _ = fake_studies_and_biosamples_in_mdb
+    response_not_hydrated = api_user_client.request(
+        "GET",
+        f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample",
+    )
+    assert not any(
+        "associated_studies" in r for r in response_not_hydrated.json()["resources"]
+    )
+    response_hydrated = api_user_client.request(
+        "GET",
+        f"/nmdcschema/linked_instances?ids={study_a['id']}&types=nmdc:Biosample&hydrate=true",
+    )
+    assert all("associated_studies" in r for r in response_hydrated.json()["resources"])
 
 
 class TestFindDataObjectsForStudy:
@@ -2033,7 +2214,9 @@ def test_find_related_resources_for_workflow_execution__returns_related_workflow
     )
 
 
-def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generations(api_user_client):
+def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generations(
+    api_user_client,
+):
     r"""
     This test is focused on the case where the specified `WorkflowExecution` is
     informed by multiple `DataGeneration`s, each having a `Biosample` as input
@@ -2066,16 +2249,54 @@ def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generation
     biosample_a, biosample_b = biosamples
     data_objects = faker.generate_data_objects(2)
     data_object_a, data_object_b = data_objects
-    data_generation_a = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_a["id"]], has_output=[data_object_a["id"]])[0]
-    data_generation_b = faker.generate_nucleotide_sequencings(1, associated_studies=[study["id"]], has_input=[biosample_b["id"]], has_output=[data_object_b["id"]])[0]
-    workflow_execution = faker.generate_metagenome_annotations(1, was_informed_by=[data_generation_a["id"], data_generation_b["id"], data_generation_b["id"]], has_input=[data_object_a["id"], data_object_b["id"]])[0]
+    data_generation_a = faker.generate_nucleotide_sequencings(
+        1,
+        associated_studies=[study["id"]],
+        has_input=[biosample_a["id"]],
+        has_output=[data_object_a["id"]],
+    )[0]
+    data_generation_b = faker.generate_nucleotide_sequencings(
+        1,
+        associated_studies=[study["id"]],
+        has_input=[biosample_b["id"]],
+        has_output=[data_object_b["id"]],
+    )[0]
+    workflow_execution = faker.generate_metagenome_annotations(
+        1,
+        was_informed_by=[
+            data_generation_a["id"],
+            data_generation_b["id"],
+            data_generation_b["id"],
+        ],
+        has_input=[data_object_a["id"], data_object_b["id"]],
+    )[0]
 
     # Confirm documents having the above-generated IDs don't already exist in the database.
     assert get_mongo_db().study_set.count_documents({"id": study["id"]}) == 0
-    assert get_mongo_db().biosample_set.count_documents({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}) == 0
-    assert get_mongo_db().data_object_set.count_documents({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}) == 0
-    assert get_mongo_db().data_generation_set.count_documents({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}) == 0
-    assert get_mongo_db().workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+    assert (
+        get_mongo_db().biosample_set.count_documents(
+            {"id": {"$in": [biosample_a["id"], biosample_b["id"]]}}
+        )
+        == 0
+    )
+    assert (
+        get_mongo_db().data_object_set.count_documents(
+            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+        )
+        == 0
+    )
+    assert (
+        get_mongo_db().data_generation_set.count_documents(
+            {"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}
+        )
+        == 0
+    )
+    assert (
+        get_mongo_db().workflow_execution_set.count_documents(
+            {"id": workflow_execution["id"]}
+        )
+        == 0
+    )
 
     # Insert the documents.
     mdb = get_mongo_db()
@@ -2112,8 +2333,12 @@ def test_find_related_resources_when_wfe_is_informed_by_multiple_data_generation
     # Clean up.
     study_set.delete_many({"id": study["id"]})
     biosample_set.delete_many({"id": {"$in": [biosample_a["id"], biosample_b["id"]]}})
-    data_object_set.delete_many({"id": {"$in": [data_object_a["id"], data_object_b["id"]]}})
-    data_generation_set.delete_many({"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}})
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
+    data_generation_set.delete_many(
+        {"id": {"$in": [data_generation_a["id"], data_generation_b["id"]]}}
+    )
     workflow_execution_set.delete_one({"id": workflow_execution["id"]})
 
 

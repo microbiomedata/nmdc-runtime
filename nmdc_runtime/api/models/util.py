@@ -1,12 +1,6 @@
 from typing import TypeVar, List, Optional, Generic, Annotated
 
 from pydantic import model_validator, Field, BaseModel
-from typing_extensions import Annotated
-
-# TODO: Document rationale for importing `Annotated` from one package versus the other, and remove the obsolete import.
-#       As of Python 3.9, I think there is no difference. That's because the `typing_extensions` documentation says the
-#       following about its `Annotated` thing: "See typing.Annotated and PEP 593. In typing since 3.9."
-#       Reference: https://typing-extensions.readthedocs.io/en/stable/#typing_extensions.Annotated
 
 ResultT = TypeVar("ResultT")
 
@@ -36,8 +30,13 @@ class ListRequest(BaseModel):
             r'{"lat_lon.latitude": {"$gt": 45.0}, "ecosystem_category": "Plants"}',
         ],
     )
-    # TODO: Document why the optional type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter).
-    max_page_size: Optional[int] = Field(
+    # TODO: Document the following things about this type hint and `Field` definition:
+    #       (a) why the type here is `int` as opposed to `PerPageRange` (`FindRequest` uses the latter),
+    #       (b) why the default value here is 20 as opposed to 25 (the default value in `FindRequest`), and
+    #       (c) why there is no upper limit on the value (the `PerPageRange` type has an upper limit of 2000).
+    #
+    # Note: If the HTTP request lacks a value for this parameter, Pydantic will fall back to the default value specified here.
+    max_page_size: int = Field(
         default=20,
         title="Resources per page",
         description="How many resources you want _each page_ to contain, formatted as a positive integer.",
@@ -126,10 +125,12 @@ class FindRequest(BaseModel):
         default=None,
         title="Page number",
         description="""_Which page_ of resources you want to retrieve, when using page number-based pagination.
-                    This is the page number formatted as an integer ≥ 1.""",
+                    This is the page number formatted as an integer ≥ 1.
+                    **Limitation:** When using _page number_-based pagination, only the first 10,000 resources
+                    are accessible. You can access resources beyond that by using _cursor_-based pagination.""",
         examples=[1],
     )
-    per_page: Optional[PerPageRange] = Field(
+    per_page: PerPageRange = Field(
         default=25,
         title="Resources per page",
         description="How many resources you want _each page_ to contain, formatted as a positive integer ≤ 2000.",
@@ -139,7 +140,7 @@ class FindRequest(BaseModel):
         default=None,
         title="Cursor",
         description="""A bookmark you can use to fetch the _next_ page of resources, when using cursor-based pagination.
-                    To use cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
+                    To begin using cursor-based pagination, set the `cursor` parameter to `*`. The response's `meta` object will
                     include a `next_cursor` field, whose value can be used as the `cursor` parameter in a subsequent
                     request.\n\n_Example_: `nmdc:sys0zr0fbt71`""",
         examples=[

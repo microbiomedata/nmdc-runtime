@@ -54,8 +54,8 @@ biosample_set:
       longitude: -85.37
       type: nmdc:GeolocationValue
     samp_store_temp:
-      has_raw_value: -80 Celsius
-      has_unit: Celsius
+      has_raw_value: -80 Cel
+      has_unit: Cel
       has_numeric_value: -80.0
       type: nmdc:QuantityValue
     source_mat_id:

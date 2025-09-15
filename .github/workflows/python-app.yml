@@ -19,14 +19,18 @@ on:
       - 'Makefile'
       - '**/Dockerfile'
       - '**.py'
-      - 'requirements/main.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '!util/load_testing/**'
   pull_request:
     paths:
       - '.github/workflows/python-app.yml'
       - 'Makefile'
       - '**/Dockerfile'
       - '**.py'
-      - 'requirements/main.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '!util/load_testing/**'
   # Allow developers to trigger this workflow manually via the "Actions" page on GitHub.
   # Reference: https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/manually-running-a-workflow
   workflow_dispatch: { }
@@ -71,16 +75,11 @@ jobs:
           sh -c 'cp /mongoKeyFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
         mv _tmp/mongoKeyFile ./.docker/mongoKeyFile
         rmdir _tmp
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-# deprecated: Consider merging python.app.yml and lint.yml
-#    - name: Lint with flake8
-#      run: |
-#        pip install flake8
-#        make lint
     - name: Build and start containers upon which test runner depends
       run: make up-test
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
       run: make run-test
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi

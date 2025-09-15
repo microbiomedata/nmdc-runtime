@@ -20,7 +20,7 @@ metadata_submission:
           growth_facil: field
           lat_lon: 42.39 -85.37
           samp_name: G5R1_MAIN_09MAY2016
-          samp_store_temp: -80 Celsius
+          samp_store_temp: -80 Cel
           source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
           specific_ecosystem: Phyllosphere
     studyForm:

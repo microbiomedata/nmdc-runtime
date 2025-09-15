@@ -43,15 +43,14 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).lower() in lowercase_true_strings
 
 
-# The name of the schema class representing the database. We don't bother to
-# make this customizable via the environment, as we expect it to never change.
-DATABASE_CLASS_NAME: str = "Database"
-
-# Feature flag that can be used to enable/disable the `/nmdcschema/related_ids`
-# endpoint and the tests that target it.
-IS_RELATED_IDS_ENDPOINT_ENABLED: bool = is_env_var_true(
-    "IS_RELATED_IDS_ENDPOINT_ENABLED", default="true"
+# Feature flag to enable/disable the `/nmdcschema/linked_instances` endpoint and the tests that target it.
+IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
+    "IS_LINKED_INSTANCES_ENDPOINT_ENABLED", default="true"
 )
 
 # Feature flag that can be used to enable/disable the `/scalar` endpoint.
 IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
+
+# Feature flag that can be used to enable/disable performance profiling,
+# which can be activated via the `?profile=true` URL query parameter.
+IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")

@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from html import escape
 from importlib import import_module
 from importlib.metadata import version
 from typing import Annotated
@@ -12,28 +13,28 @@ from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from setuptools_scm import get_version
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
+from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
 
+from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
+from nmdc_runtime.api.middleware import PyinstrumentMiddleware
 from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
     ensure_unique_id_indexes,
     REPO_ROOT_DIR,
+    nmdc_schema_view,
 )
 from nmdc_runtime.api.core.auth import (
     get_password_hash,
     ORCID_NMDC_CLIENT_ID,
     ORCID_BASE_URL,
 )
-from nmdc_runtime.api.db.mongo import (
-    get_collection_names_from_schema,
-    get_mongo_db,
-)
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -55,9 +56,9 @@ from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
 from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
-from nmdc_runtime.api.v1.router import router_v1
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -74,7 +75,6 @@ api_router.include_router(metadata.router, tags=["metadata"])
 api_router.include_router(nmdcschema.router, tags=["metadata"])
 api_router.include_router(find.router, tags=["find"])
 api_router.include_router(runs.router, tags=["runs"])
-api_router.include_router(router_v1, tags=["v1"])
 api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
 
 
@@ -142,7 +142,8 @@ def ensure_type_field_is_indexed():
     """
 
     mdb = get_mongo_db()
-    for collection_name in get_collection_names_from_schema():
+    schema_view = nmdc_schema_view()
+    for collection_name in get_collection_names_from_schema(schema_view):
         mdb.get_collection(collection_name).create_index("type", background=True)
 
 
@@ -216,9 +217,6 @@ async def lifespan(app: FastAPI):
     From the [FastAPI documentation](https://fastapi.tiangolo.com/advanced/events/#lifespan-function):
     > You can define logic (code) that should be executed before the application starts up. This means that
     > this code will be executed once, before the application starts receiving requests.
-
-    Note: Based on my own observations, I think this function gets called when the first request starts coming in,
-          but not before that (i.e. not when the application is idle before any requests start coming in).
     """
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
@@ -231,7 +229,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-@api_router.get("/")
+@api_router.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(
         BASE_URL_EXTERNAL + "/docs",
@@ -242,7 +240,7 @@ async def root():
 @api_router.get("/version")
 async def get_versions():
     return {
-        "nmdc-runtime": get_version(),
+        "nmdc-runtime": version("nmdc_runtime"),
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
@@ -250,7 +248,7 @@ async def get_versions():
 
 app = FastAPI(
     title="NMDC Runtime API",
-    version=get_version(),
+    version=version("nmdc_runtime"),
     description=make_api_description(
         schema_version=version("nmdc_schema"),
         orcid_login_url=f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code",
@@ -271,16 +269,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(Analytics)
-app.mount(
-    "/static",
-    StaticFiles(directory=REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")),
-    name="static",
-)
+
+if config.IS_PROFILING_ENABLED:
+    app.add_middleware(PyinstrumentMiddleware)
+
+# Note: Here, we are mounting a `StaticFiles` instance (which is bound to the directory that
+#       contains static files) as a "sub-application" of the main FastAPI application. This
+#       makes the contents of that directory be accessible under the `/static` URL path.
+#       Reference: https://fastapi.tiangolo.com/tutorial/static-files/
+static_files_path: Path = REPO_ROOT_DIR.joinpath("nmdc_runtime/static/")
+app.mount("/static", StaticFiles(directory=static_files_path), name="static")
 
 
-@app.get("/favicon.ico")
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("static/favicon.ico")
+    r"""Returns the application's favicon."""
+    favicon_path = static_files_path / "favicon.ico"
+    return FileResponse(favicon_path)
 
 
 @decorate_if(condition=IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
@@ -299,6 +304,14 @@ async def get_scalar_html():
 def custom_swagger_ui_html(
     user_id_token: Annotated[str | None, Cookie()] = None,
 ):
+    r"""Returns the HTML markup for an interactive API docs web page powered by Swagger UI.
+
+    If the `user_id_token` cookie is present and not empty, this function will send its value to
+    the `/token` endpoint in an attempt to get an access token. If it gets one, this function will
+    inject that access token into the web page so Swagger UI will consider the user to be logged in.
+
+    Reference: https://fastapi.tiangolo.com/tutorial/cookie-params/
+    """
     access_token = None
     if user_id_token:
         # get bearer token
@@ -319,32 +332,16 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
-    swagger_ui_parameters = {"withCredentials": True}
+    # Note: Setting `persistAuthorization` to `True` makes it so a logged-in user remains logged-in
+    #       even after reloading the web page (or leaving the website and coming back to it later).
+    # Reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/#parameters
+    swagger_ui_parameters: dict = {
+        "withCredentials": True,
+        "persistAuthorization": True,
+    }
     onComplete = ""
     if access_token is not None:
-        onComplete += f"""
-            ui.preauthorizeApiKey('bearerAuth', '{access_token}');
-            
-            token_info = document.createElement('section');
-            token_info.classList.add('nmdc-info', 'nmdc-info-token', 'block', 'col-12');
-            token_info.innerHTML = <double-quote>
-                <p>You are now authorized. Prefer a command-line interface (CLI)? Use this header for HTTP requests:</p>
-                <p>
-                    <code>
-                        <span>Authorization: Bearer </span>
-                        <span id='token' data-token-value='{access_token}' data-state='masked'>***</span>
-                    </code>
-                </p>
-                <p>
-                    <button id='token-mask-toggler'>Show token</button>
-                    <button id='token-copier'>Copy token</button>
-                    <span id='token-copier-message'></span>
-                </p>
-            </double-quote>;
-            document.querySelector('.information-container').append(token_info);
-        """.replace(
-            "\n", " "
-        )
+        onComplete += f"ui.preauthorizeApiKey('bearerAuth', '{access_token}');"
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
@@ -355,14 +352,15 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
-    if onComplete:
-        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
-        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
-        swagger_ui_parameters.update(
-            {
-                "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
-            }
-        )
+    # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+    #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+    swagger_ui_parameters.update(
+        {
+            "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
+        }
+    )
+    # Note: Consider using a "custom layout" instead of injecting HTML snippets via Python.
+    #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
@@ -379,6 +377,20 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Inject an HTML element containing the access token (or an empty string, if there is no access token)
+        # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
+        # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
+        .replace(
+            "</head>",
+            f"""
+            </head>
+            <div
+                id="nmdc-access-token"
+                data-token="{escape(access_token if access_token is not None else '')}"
+                style="display: none"
+            ></div>
+            """,
+        )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
         # Inject a custom JavaScript script immediately before the closing `</body>` tag.

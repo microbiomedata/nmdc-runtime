@@ -55,6 +55,25 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
+def is_num_matching_docs_within_limit(
+    collection: MongoCollection, filter_: dict, limit: int
+) -> bool:
+    """
+    Check whether the number of documents in a MongoDB collection that match
+    the filter is within (i.e. is no greater than) the specified limit.
+    """
+    if limit < 0:
+        raise ValueError("Limit must be at least 0.")
+
+    # Count the number of documents matching the filter, but only count up to limit + 1,
+    # since that's enough to determine whether the number exceeds the limit.
+    limited_num_matching_docs = collection.count_documents(
+        filter=filter_,
+        limit=limit + 1,
+    )
+    return limited_num_matching_docs <= limit
+
+
 def check_filter(filter_: str):
     """A pass-through function that checks if `filter_` is parsable as a JSON object. Raises otherwise."""
     filter_ = filter_.strip()
@@ -73,49 +92,69 @@ def check_filter(filter_: str):
     return filter_
 
 
-def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
-    r"""
+def list_resources(
+    req: ListRequest, mdb: MongoDatabase, collection_name: str = ""
+) -> dict:
+    """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
 
-    Note: If the specified `ListRequest` has a non-zero `max_page_size` number and the number of documents matching the
-          filter criteria is _larger_ than that number, this function will paginate the resources. Paginating the
-          resources currently involves MongoDB sorting _all_ matching documents, which can take a long time, especially
-          when the collection involved contains many documents.
+    `mdb.page_tokens` docs are `{"_id": req.page_token, "ns": collection_name}`, Because `page_token` is globally
+    unique, and because the `mdb.page_tokens.find_one({"_id": req.page_token})` document stores `collection_name` in
+    the "ns" (namespace) field, the value for `collection_name` stored there takes precedence over any value supplied
+    as an argument to this function's `collection_name` parameter.
+
+    If the specified page size (`req.max_page_size`) is non-zero and more documents match the filter criteria than
+    can fit on a page of that size, this function will paginate the resources.
     """
+    if collection_name == "" and req.page_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must specify a collection name if no page token is supplied.",
+        )
+    if req.page_token:
+        doc = mdb.page_tokens.find_one({"_id": req.page_token})
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="`page_token` not found"
+            )
+        collection_name = doc["ns"]
+        last_id = doc["last_id"]
+        mdb.page_tokens.delete_one({"_id": req.page_token})
+    else:
+        last_id = None
 
     id_field = "id"
     if "id_1" not in mdb[collection_name].index_information():
         logging.warning(
             f"list_resources: no index set on 'id' for collection {collection_name}"
         )
-        id_field = (
-            "_id"  # currently expected for `functional_annotation_agg` collection
-        )
-    limit = req.max_page_size
+        id_field = "_id"  # expected for `functional_annotation_agg` collection
+
+    max_page_size = req.max_page_size
     filter_ = json_util.loads(check_filter(req.filter)) if req.filter else {}
     projection = (
         list(set(comma_separated_values(req.projection)) | {id_field})
         if req.projection
         else None
     )
-    if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token, "ns": collection_name})
-        if doc is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Bad page_token"
-            )
-        last_id = doc["last_id"]
-        mdb.page_tokens.delete_one({"_id": req.page_token})
-    else:
-        last_id = None
     if last_id is not None:
         if id_field in filter_:
             filter_[id_field] = merge(filter_[id_field], {"$gt": last_id})
         else:
             filter_ = merge(filter_, {id_field: {"$gt": last_id}})
 
-    # If limit is 0, the response will include all results (bypassing pagination altogether).
-    if (limit == 0) or (mdb[collection_name].count_documents(filter=filter_) <= limit):
+    # Determine whether we will paginate the results.
+    #
+    # Note: We will paginate them unless either (a) the `max_page_size` is less than 1,
+    #       or (b) the number of documents matching the filter can fit on a single page.
+    #
+    will_paginate = True
+    if max_page_size < 1 or is_num_matching_docs_within_limit(
+        collection=mdb[collection_name], filter_=filter_, limit=max_page_size
+    ):
+        will_paginate = False
+
+    if not will_paginate:
         rv = {
             "resources": list(
                 mdb[collection_name].find(filter=filter_, projection=projection)
@@ -127,7 +166,7 @@ def list_resources(req: ListRequest, mdb: MongoDatabase, collection_name: str):
             mdb[collection_name].find(
                 filter=filter_,
                 projection=projection,
-                limit=limit,
+                limit=max_page_size,
                 sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
@@ -277,9 +316,19 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
     if req.page:
         skip = (req.page - 1) * req.per_page
         if skip > 10_000:
+            # Note: because _page number_-based pagination is currently implemented via MongoDB's `skip` and `limit`
+            # parameters, a full (slow) collection scan is performed to skip to the requested page. This scan takes
+            # longer and longer as `skip` increases, which is why cursor-based pagination is preferred for large
+            # collections.
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Use cursor-based pagination for paging beyond 10,000 items",
+                detail=(
+                    "Use cursor-based pagination for paging beyond 10,000 items. "
+                    "That is, instead of specifying the `page` query parameter for this endpoint, "
+                    "specify the `cursor` query parameter. In particular, set `cursor` to `*` to get the first page, "
+                    "and use the value of `meta.next_cursor` in the response, if not `null`, as the value to which "
+                    "you set `cursor` in the next request."
+                ),
             )
         limit = req.per_page
         results, db_response_time_ms = timeit(

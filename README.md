@@ -127,18 +127,36 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+### Dependency management
 
-*  NOTE: Any time you add or change requirements in requirements/main.in or requirements/dev.in, you must run:
+We use [`uv`](https://docs.astral.sh/uv/) to manage dependencies of the application. Here's how you can use `uv` both on your host machine and within a container in the Docker Compose stack.
+
+#### On the host
+
+Although we typically run the application within a container, some developers prefer that application's dependencies be installed locally also (so that their code editors will provide auto-completion, type checking, etc.).
+
+Here's how you can install the application's dependencies locally:
+
+```sh
+uv sync
 ```
-pip-compile --build-isolation --allow-unsafe --resolver=backtracking --strip-extras --output-file requirements/[main|dev].txt requirements/[main|dev].in
+
+That will...
+1. (If you made changes to `pyproject.toml`) **Update the lock file** (at `uv.lock`) to reflect those changes
+2. (If a Python virtual environment doesn't exist at `.venv/` yet) **Create a Python virtual environment** at `.venv/`
+3. (If the Python virtual environment and `uv.lock` files are out of sync) **Synchronize the Python virtual environment** with `uv.lock` (by installing and uninstalling packages)
+
+> Note: Long term, we may implement a [devcontainer](https://containers.dev/) for this project, which will streamline the process of setting up a local development environment.
+
+#### In the Docker Compose stack
+
+In the Docker Compose stack, the Python virtual environment is located at the path specified by the `VIRTUAL_ENV` environment variable (which is defined in the `Dockerfile`) instead of at `.venv/`. That helps with containerization, but it deviates from `uv`'s default behavior, which is to use the Python virtual environment at `.venv/`. So, when running `uv` commands within the Docker Compose stack, we always include the [`--active`](https://docs.astral.sh/uv/reference/cli/#uv-sync--active) flag (which tells `uv` to use the Python virtual environment at the path specified by `VIRTUAL_ENV`).
+
+Here's how you can install the application's dependencies within a container in the Docker Compose stack:
+
+```sh
+uv sync --active
 ```
-to generate main.txt and dev.txt files respectively. main.in is kind of like a poetry dependency stanza, dev.in is kind 
-of like poetry dev.dependencies stanza. main.txt and dev.txt are kind of like poetry.lock files to specify the exact 
-versions of dependencies to use. main.txt and dev.txt are combined in the docker compose build process to create the 
-final requirements.txt file and import the dependencies into the Docker image.
-
-
-```bash
 
 ## Local Testing
 
@@ -150,14 +168,68 @@ make test
 
 # Run a Specific test file eg. tests/test_api/test_endpoints.py
 make test ARGS="tests/test_api/test_endpoints.py"
-```
+
 docker compose --file docker-compose.test.yml run test
+```
 
 As you create Dagster solids and pipelines, add tests in `tests/` to check that your code behaves as
 desired and does not break over time.
 
 [For hints on how to write tests for solids and pipelines in Dagster, see their documentation
 tutorial on Testing](https://docs.dagster.io/guides/test/unit-testing-assets-and-ops).
+
+### Performance profiling
+
+We use a tool called [Pyinstrument](https://pyinstrument.readthedocs.io) to profile the performance of the Runtime API while processing an individual HTTP request.
+
+Here's how you can do that:
+
+1. In your `.env` file, set `IS_PROFILING_ENABLED` to `true`
+2. Start/restart your development stack: `$ make up-dev`
+3. Ensure the endpoint function whose performance you want to profile is defined using `async def` (as opposed to just `def`) ([reference](https://github.com/joerick/pyinstrument/issues/257))
+
+Then—with all of that done—submit an HTTP request that includes the URL query parameter: `profile=true`. Instructions for doing that are in the sections below.
+
+<details>
+<summary>Show/hide instructions for <code>GET</code> requests only (involves web browser)</summary>
+
+1. In your web browser, visit the endpoint's URL, but add the `profile=true` query parameter to the URL. Examples:
+   ```diff
+   A. If the URL doesn't already have query parameters, append `?profile=true`.
+   - http://127.0.0.1:8000/nmdcschema/biosample_set
+   + http://127.0.0.1:8000/nmdcschema/biosample_set?profile=true
+
+   B. If the URL already has query parameters, append `&profile=true`.
+   - http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}
+   + http://127.0.0.1:8000/nmdcschema/biosample_set?filter={}&profile=true
+   ```
+2. Your web browser will display a performance profiling report.
+   > Note: The Runtime API will have responded with a performance profiling report web page, instead of its normal response (which the Runtime discards).
+
+That'll only work for `GET` requests, though, since you're limited to specifying the request via the address bar.
+
+</details>
+
+<details>
+<summary>Show/hide instructions for <strong>all</strong> kinds of requests (involves <code>curl</code> + web browser)</summary>
+
+1. At your terminal, type or paste the `curl` command you want to run (you can copy/paste one from Swagger UI).
+2. Append the `profile=true` query parameter to the URL in the command, and use the `-o` option to save the response to a file whose name ends with `.html`. For example:
+   ```diff
+     curl -X 'POST' \
+   -   'http://127.0.0.1:8000/metadata/json:validate' \
+   +   'http://127.0.0.1:8000/metadata/json:validate?profile=true' \
+   +    -o /tmp/profile.html
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d '{"biosample_set": []}'
+   ```
+3. Run the command.
+   > Note: The Runtime API will respond with a performance profiling report web page, instead of its normal response (which the Runtime discards). The performance profiling report web page will be saved to the `.html` file to which you redirected the command output.
+4. Double-click on the `.html` file to view it in your web browser.
+   1. Alternatively, open your web browser and navigate to the `.html` file; e.g., enter `file:///tmp/profile.html` into the address bar.
+
+</details>
 
 ### RAM usage
 
@@ -173,19 +245,11 @@ found **12 GB** to be sufficient for running the tests.
 
 This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
 
-You can also _manually_ publish the Python package to PyPI by issuing the following commands in the root directory of the repository:
-
-```
-rm -rf dist
-python -m build
-twine upload dist/*
-```
-
 ## Links
 
 Here are links related to this repository:
 
 - Production API server: https://api.microbiomedata.org
 - PyPI package: https://pypi.org/project/nmdc-runtime
-- DockerHub image (API server): https://hub.docker.com/r/microbiomedata/nmdc-runtime-fastapi
-- DockerHub image (Dagster): https://hub.docker.com/r/microbiomedata/nmdc-runtime-dagster
+- Container image (API server): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-fastapi
+- Container image (Dagster): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-dagster

@@ -51,7 +51,7 @@
   "depth": {
     "has_raw_value": "0.1",
     "has_numeric_value": 0.1,
-    "has_unit": "meters"
+    "has_unit": "m"
   },
   "part_of": [
     "nmdc:sty-11-r2h77870"

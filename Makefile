@@ -1,43 +1,8 @@
-init:
-	pip install -r requirements/main.txt
-	pip install -r requirements/dev.txt
-	pip install --editable .[dev]
-
-# Updates Python dependencies based upon the contents of the `requirements/main.in` and `requirements/dev.in` files.
-#
-# Note: To omit the `--upgrade` option (included by default) from the constituent `pip-compile` commands:
-#       ```
-#       $ make update-deps UPDATE_DEPS_MAIN_UPGRADE_OPT='' UPDATE_DEPS_DEV_UPGRADE_OPT=''
-#       ```
-#
-# Note: You can run the following command on your host machine to have `$ make update-deps` run within a container:
-#       ```sh
-#       $ docker compose run --rm --no-deps fastapi sh -c 'make update-deps'
-#       ```
-#       To omit the `--upgrade` option (included by default) from the constituent `pip-compile` commands:
-#       ```sh
-#       $ docker compose run --rm --no-deps fastapi sh -c 'make update-deps UPDATE_DEPS_MAIN_UPGRADE_OPT="" UPDATE_DEPS_DEV_UPGRADE_OPT=""'
-#       ```
-#
-UPDATE_DEPS_MAIN_UPGRADE_OPT ?= --upgrade
-UPDATE_DEPS_DEV_UPGRADE_OPT ?= --upgrade
-update-deps:
-    # --allow-unsafe pins packages considered unsafe: distribute, pip, setuptools.
-	pip install --upgrade pip-tools pip setuptools
-	pip-compile $(UPDATE_DEPS_MAIN_UPGRADE_OPT) --build-isolation \
-		--allow-unsafe --resolver=backtracking --strip-extras \
-		--output-file requirements/main.txt \
-		requirements/main.in
-	pip-compile --allow-unsafe $(UPDATE_DEPS_DEV_UPGRADE_OPT) --build-isolation \
-		--allow-unsafe --resolver=backtracking --strip-extras \
-		--output-file requirements/dev.txt \
-		requirements/dev.in
-
-update: update-deps init
-
+# Spin up the development stack.
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
 
+# Spin down the development stack.
 down-dev:
 	docker compose down
 
@@ -51,7 +16,7 @@ up-test:
 	docker compose --file docker-compose.test.yml \
 		up --build --force-recreate --detach --remove-orphans
 
-# Tears down the `test` stack, including removing data volumes such as that for the test MongoDB database.
+# Tears down the `test` stack, including removing data volumes such as that containing the test MongoDB database.
 down-test:
 	docker compose --file docker-compose.test.yml down --volumes
 
@@ -80,35 +45,33 @@ reset-db-test:
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
-			pytest --cov=nmdc_runtime \
-			       --doctest-modules \
-			       $(ARGS)
+			uv run --active \
+				pytest --cov=nmdc_runtime \
+				       --doctest-modules \
+				       --ignore=util/load_testing \
+				       $(ARGS)
 
 # Uses Docker Compose to
-# 1. Ensure the `test` stack is torn down, including data volumes such as that of the test MongoDB database.
+# 1. Ensure the `test` stack is torn down, including data volumes such as that containing the test MongoDB database.
 # 2. Build and spin up the stack upon which the `test` container (i.e. the test runner) depends.
 # 3. Run tests on the `test` container, passing `ARGS` to `pytest` (see Tip in comment above for `run-test` target).
 test: down-test up-test run-test
 
+# Format Python code using `black`.
+# TODO: Migrate from `black` to `ruff`.
 black:
-	black nmdc_runtime
+	uv run --active black nmdc_runtime
 
+# Lint Python code using `flake8`.
+# TODO: Migrate from `flake8` to `ruff`.
 lint:
 	# Python syntax errors or undefined names
-	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722
+	uv run --active flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
+		./nmdc_runtime ./tests
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 \
-		--statistics --extend-exclude="./build/" --extend-ignore=F722
-
-PIP_PINNED_FLAKE8 := $(shell grep 'flake8==' requirements/dev.txt)
-PIP_PINNED_BLACK := $(shell grep 'black==' requirements/dev.txt)
-
-init-lint-and-black:
-	pip install $(PIP_PINNED_FLAKE8)
-	pip install $(PIP_PINNED_BLACK)
-
-follow-fastapi:
-	docker compose logs fastapi -f
+	uv run --active flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
+		--statistics --extend-exclude="./build/" --extend-ignore=F722 \
+		./nmdc_runtime ./tests
 
 # Build the MkDocs documentation website and serve it at http://localhost:8080.
 # Docs: https://www.mkdocs.org/user-guide/cli/#mkdocs-serve
@@ -152,15 +115,19 @@ mongorestore-nmdc-db:
 		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
 		/tmp/remote-mongodump/nmdc
 	# Restore from `rsync`ed local directory:
-	mongorestore -v -h localhost:27018 -u admin -p root --authenticationDatabase=admin \
+	mongorestore -v -h localhost:59639 -u admin -p root --authenticationDatabase=admin \
 		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
-	python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
+	uv run --active python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
-.PHONY: init update-deps update up-dev down-dev follow-fastapi \
-	publish docs
+# List of Make targets that do not represent files being created.
+# Note: I think _most_ of the targets in this Makefile meet that criterion,
+#       despite them not being listed here.
+.PHONY: up-dev down-dev publish docs quick-blade
 
+# Note: The leading hyphen in each command below tells `make` to ignore whether
+#       the command fails (i.e. returns a non-zero exit code).
 docker-clean:
 	# Down the dev stack with volumes
 	-docker compose down --volumes --remove-orphans

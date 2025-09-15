@@ -115,8 +115,12 @@ def test_changesheet_update_slot_with_range_uriorcurie():
         mdb.study_set.delete_one({"id": "nmdc:" + local_id})
 
 
-@pytest.mark.skip(reason="no /site-packages/nmdc_schema/external_identifiers.yaml ?")
-def test_update_01():
+@pytest.mark.parametrize(
+    "seeded_db", ["docs_for_seeded_db_for_changesheet_study_update"], indirect=True
+)
+def test_changesheet_study_update(
+    docs_for_seeded_db_for_changesheet_study_update, seeded_db
+):
     mdb = get_mongo(run_config_frozen__normal_env).db
     df = load_changesheet(
         TEST_DATA_DIR.joinpath("changesheet-without-separator3.tsv"), mdb
@@ -124,14 +128,18 @@ def test_update_01():
     id_ = list(df.groupby("group_id"))[0][0]
     study_doc = dissoc(mdb.study_set.find_one({"id": id_}), "_id")
 
-    pi_info = {"has_raw_value": "NEW RAW NAME 2", "name": "NEW PI NAME 2"}
-    assert study_doc["principal_investigator"] != pi_info
-    assert study_doc["name"] != "NEW STUDY NAME 2"
-    assert study_doc["ecosystem"] != "NEW ECOSYSTEM 2"
-    assert study_doc["ecosystem_type"] != "NEW ECOSYSTEM_TYPE 2"
-    assert study_doc["ecosystem_subtype"] != "NEW ECOSYSTEM_SUBTYPE 2"
+    pi_info = {
+        "name": "NEW PI NAME 1",
+        "has_raw_value": "NEW RAW NAME 1",
+        "type": "nmdc:PersonValue",
+    }
+    assert study_doc.get("principal_investigator") != pi_info
+    assert study_doc.get("name") != "NEW STUDY NAME 1"
+    assert study_doc.get("ecosystem") != "NEW ECOSYSTEM 1"
+    assert study_doc.get("ecosystem_type") != "NEW ECOSYSTEM_TYPE 1"
+    assert study_doc.get("ecosystem_subtype") != "NEW ECOSYSTEM_SUBTYPE 1"
 
-    website_info = ["HTTP://TEST4.EXAMPLE.COM"]
+    website_info = ["HTTP://TEST1.EXAMPLE.COM", "HTTP://TEST2.EXAMPLE.COM"]
     for website in website_info:
         assert website not in study_doc.get("websites", [])
 
@@ -142,12 +150,11 @@ def test_update_01():
     )
     results = update_mongo_db(mdb_scratch, update_cmd)
     first_result = results[0]
-    assert first_result["update_info"]["nModified"] == 11
     assert first_result["doc_after"]["principal_investigator"] == pi_info
-    assert first_result["doc_after"]["name"] == "NEW STUDY NAME 2"
-    assert first_result["doc_after"]["ecosystem"] == "NEW ECOSYSTEM 2"
-    assert first_result["doc_after"]["ecosystem_type"] == "NEW ECOSYSTEM_TYPE 2"
-    assert first_result["doc_after"]["ecosystem_subtype"] == "NEW ECOSYSTEM_SUBTYPE 2"
+    assert first_result["doc_after"]["name"] == "NEW STUDY NAME 1"
+    assert first_result["doc_after"]["ecosystem"] == "NEW ECOSYSTEM 1"
+    assert first_result["doc_after"]["ecosystem_type"] == "NEW ECOSYSTEM_TYPE 1"
+    assert first_result["doc_after"]["ecosystem_subtype"] == "NEW ECOSYSTEM_SUBTYPE 1"
     for website in website_info:
         assert website in first_result["doc_after"]["websites"]
     assert first_result["validation_errors"] == []

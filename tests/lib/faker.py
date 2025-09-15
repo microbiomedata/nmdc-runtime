@@ -13,6 +13,7 @@ from nmdc_schema.nmdc import (
     NucleotideSequencing,
     NucleotideSequencingEnum,
     OntologyClass,
+    ProcessingInstitutionEnum,
     ReadQcAnalysis,
     Study,
     StudyCategoryEnum,
@@ -222,7 +223,7 @@ class Faker:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
         which can be stored in the `workflow_execution_set` collection.
-        The documents comply with schema v11.9.0.
+        The documents comply with schema v11.10.0rc3.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/MetagenomeAnnotation/
 
@@ -258,8 +259,9 @@ class Faker:
             params = {
                 "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
                 "type": MetagenomeAnnotation.class_class_curie,
-                "execution_resource": ExecutionResourceEnum.JGI.text,
+                "execution_resource": getattr(ExecutionResourceEnum, "NERSC-Perlmutter").text,
                 "git_url": "https://www.example.com",
+                "processing_institution": ProcessingInstitutionEnum.NMDC.text,
                 "started_at_time": "2000-01-01 12:00:00",
                 "was_informed_by": was_informed_by,
                 "has_input": has_input,
@@ -398,7 +400,7 @@ class Faker:
         """
         Generates the specified number of documents representing generic workflow execution instances,
         which can be stored in the `workflow_execution_set` collection.
-        The documents comply with schema v11.8.0.
+        The documents comply with schema v11.10.0rc3.
 
         :param quantity: Number of documents to create
         :param workflow_type: The type of workflow (e.g., 'nmdc:MetagenomeAnnotation', 'nmdc:MetagenomeAssembly')
@@ -450,8 +452,9 @@ class Faker:
             params = {
                 "id": self.make_unique_id(id_prefix) + ".1",
                 "type": workflow_type,
-                "execution_resource": ExecutionResourceEnum.JGI.text,
+                "execution_resource": getattr(ExecutionResourceEnum, "NERSC-Perlmutter").text,
                 "git_url": "https://www.example.com",
+                "processing_institution": ProcessingInstitutionEnum.NMDC.text,
                 "started_at_time": "2000-01-01 12:00:00",
                 "was_informed_by": was_informed_by,
                 "has_input": has_input,

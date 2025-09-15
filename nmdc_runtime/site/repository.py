@@ -502,6 +502,7 @@ def biosample_submission_ingest():
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
+                            "study_id": None,
                         }
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
@@ -538,6 +539,7 @@ def biosample_submission_ingest():
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
                             "biosample_extras_slot_mapping_file_url": None,
+                            "study_id": None,
                         }
                     },
                     "translate_portal_submission_to_nmdc_schema_database": {
@@ -1010,15 +1012,3 @@ def database_records_stitching():
             },
         ),
     ]
-
-
-# @repository
-# def validation():
-#     graph_jobs = [validate_jgi_job, validate_gold_job, validate_emsl_job]
-#     return graph_jobs
-#
-#
-# @repository
-# def test_validation():
-#     graph_jobs = [test_validate_jgi_job, test_validate_gold_job, test_validate_emsl_job]
-#     return graph_jobs

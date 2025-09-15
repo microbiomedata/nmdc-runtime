@@ -10,14 +10,13 @@ import bson
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pymongo.errors import AutoReconnect, OperationFailure
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
 from tenacity import wait_random_exponential, retry, retry_if_exception_type
 from toolz import merge, unique
+from refscan.lib.helpers import get_collection_names_from_schema
 
 from nmdc_runtime.api.models.query import UpdateStatement, DeleteStatement
-from nmdc_runtime.config import DATABASE_CLASS_NAME
 from nmdc_runtime.mongo_util import SessionBoundDatabase
 from nmdc_runtime.util import (
     nmdc_schema_view,
@@ -36,8 +35,12 @@ from pymongo.database import Database as MongoDatabase
     wait=wait_random_exponential(multiplier=0.5, max=60),
 )
 def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
-    mdb["_runtime.healthcheck"].insert_one({"_id": "ok"})
-    mdb["_runtime.healthcheck"].delete_one({"_id": "ok"})
+    r"""
+    Check whether the application can write to the database.
+    """
+    collection = mdb.get_collection("_runtime.healthcheck")
+    collection.insert_one({"status": "ok"})
+    collection.delete_many({"status": "ok"})
     return True
 
 
@@ -79,46 +82,18 @@ def get_session_bound_mongo_db(session=None) -> MongoDatabase:
     return SessionBoundDatabase(mdb, session) if session is not None else mdb
 
 
-@lru_cache
-def get_async_mongo_db() -> AsyncIOMotorDatabase:
-    _client = AsyncIOMotorClient(
-        host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
-        directConnection=True,
-    )
-    return _client[os.getenv("MONGO_DBNAME")]
-
-
 def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
-    """Returns the names of schema collections in the database that have at least one document."""
-    names = set(mdb.list_collection_names()) & set(get_collection_names_from_schema())
-    return {name for name in names if mdb[name].estimated_document_count() > 0}
-
-
-@lru_cache
-def get_collection_names_from_schema() -> list[str]:
     """
-    Returns the names of the slots of the `Database` class that describe database collections.
+    Returns the names of the collections that (a) exist in the database,
+    (b) are described by the schema, and (c) contain at least one document.
 
-    Source: https://github.com/microbiomedata/refscan/blob/af092b0e068b671849fe0f323fac2ed54b81d574/refscan/lib/helpers.py#L31
+    Note: The ampersand (`&`) is the "set intersection" operator.
     """
-    collection_names = []
-
+    collection_names_from_database = mdb.list_collection_names()
     schema_view = nmdc_schema_view()
-    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
-        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
-
-        # Filter out any hypothetical (future) slots that don't correspond to a collection (e.g. `db_version`).
-        if slot_definition.multivalued and slot_definition.inlined_as_list:
-            collection_names.append(slot_name)
-
-        # Filter out duplicate names. This is to work around the following issues in the schema:
-        # - https://github.com/microbiomedata/nmdc-schema/issues/1954
-        # - https://github.com/microbiomedata/nmdc-schema/issues/1955
-        collection_names = list(set(collection_names))
-
-    return collection_names
+    collection_names_from_schema = get_collection_names_from_schema(schema_view)
+    names = set(collection_names_from_database) & set(collection_names_from_schema)
+    return {name for name in names if mdb[name].estimated_document_count() > 0}
 
 
 @lru_cache
@@ -155,12 +130,18 @@ def get_planned_process_collection_names() -> Set[str]:
     return collection_names
 
 
-def mongodump_excluded_collections():
+def mongodump_excluded_collections() -> str:
+    """
+    TODO: Document this function.
+    """
     _mdb = get_mongo_db()
+    schema_view = nmdc_schema_view()
+    collection_names_from_database = _mdb.list_collection_names()
+    collection_names_from_schema = get_collection_names_from_schema(schema_view)
     excluded_collections = " ".join(
         f"--excludeCollection={c}"
         for c in sorted(
-            set(_mdb.list_collection_names()) - set(get_collection_names_from_schema())
+            set(collection_names_from_database) - set(collection_names_from_schema)
         )
     )
     return excluded_collections

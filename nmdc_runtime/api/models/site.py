@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import pymongo.database
 from fastapi import Depends
@@ -33,7 +33,11 @@ class SiteInDB(Site):
     clients: List[SiteClientInDB] = []
 
 
-def get_site(mdb, client_id: str):
+def get_site(mdb, client_id: str) -> Optional[SiteInDB]:
+    r"""
+    Returns the site, if any, for which the specified `client_id` was generated.
+    """
+
     site = mdb.sites.find_one({"clients.id": client_id})
     if site is not None:
         return SiteInDB(**site)

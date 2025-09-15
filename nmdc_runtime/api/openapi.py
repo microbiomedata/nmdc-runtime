@@ -160,7 +160,7 @@ metadata from collection set types (including
 as discussed in the __find__ section).
 <br/>
  
-The __metadata__ endpoints allow users to retrieve metadata from the data portal using the various
+The __metadata__ endpoints allow users to retrieve metadata from the NMDC database using the various
 GET endpoints  that are slightly different than the __find__ endpoints, but some can be used similarly.
 As with the __find__ endpoints,  parameters for the __metadata__ endpoints that do not have a
 red ___* required___ next to them are optional. <br/>
@@ -183,6 +183,7 @@ Each endpoint is unique and requires the applicable attribute names to be known 
 in a meaningful way.  Parameters that do not have a red ___* required___ label next to them are optional.
 """
 
+# TODO: Explain the extent to which the `runs` endpoints are a work in progress.
 tag_descriptions[
     "runs"
 ] = r"""

@@ -1,18 +1,22 @@
-import json
 from importlib.metadata import version
 import re
 from typing import List, Dict, Annotated
 
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-
-from nmdc_runtime.api.endpoints.lib.path_segments import (
-    parse_path_segment,
-    ParsedPathSegment,
+from pydantic import AfterValidator
+from refscan.lib.helpers import (
+    get_collection_names_from_schema,
+    get_names_of_classes_eligible_for_collection,
 )
-from nmdc_runtime.api.models.nmdc_schema import RelatedIDs
-from nmdc_runtime.config import DATABASE_CLASS_NAME, IS_RELATED_IDS_ENDPOINT_ENABLED
+
+from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    gather_linked_instances,
+    hydrated,
+)
+from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
+from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
     nmdc_database_collection_names,
@@ -20,14 +24,11 @@ from nmdc_runtime.util import (
 )
 from pymongo.database import Database as MongoDatabase
 from starlette import status
-from linkml_runtime.utils.schemaview import SchemaView
-from nmdc_schema.nmdc_data import get_nmdc_schema_definition
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
-    get_collection_names_from_schema,
 )
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
@@ -44,7 +45,8 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
     r"""
     Raises an exception if the specified string is _not_ the name of a collection described by the NMDC Schema.
     """
-    names = get_collection_names_from_schema()
+    schema_view = nmdc_schema_view()
+    names = get_collection_names_from_schema(schema_view)
     if collection_name not in names:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -117,125 +119,125 @@ def get_nmdc_database_collection_stats(
     return stats
 
 
-def _parse_prefilter(
-    prefilter: Annotated[
-        str,
-        Path(
-            description="Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.",
-            examples=["ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55"],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("prefilter;" + prefilter)
-
-
-def _parse_postfilter(
-    postfilter: Annotated[
-        str,
-        Path(
-            description=(
-                "Example: `types=nmdc:DataObject,nmdc:PlannedProcess`."
-                + '\n\nUse `types=nmdc:NamedThing` to return "all" types'
-            ),
-            examples=[
-                "types=nmdc:NamedThing",
-                "types=nmdc:DataObject,nmdc:PlannedProcess",
-            ],
-        ),
-    ],
-) -> ParsedPathSegment:
-    return parse_path_segment("postfilter;" + postfilter)
-
-
-@decorate_if(condition=IS_RELATED_IDS_ENDPOINT_ENABLED)(
+@decorate_if(condition=IS_LINKED_INSTANCES_ENDPOINT_ENABLED)(
     router.get(
-        "/nmdcschema/related_ids/{prefilter}/{postfilter}",
-        response_model=ListResponse[RelatedIDs],
+        "/nmdcschema/linked_instances",
+        response_model=ListResponse[Doc],
         response_model_exclude_unset=True,
     )
 )
-def get_related_ids(
-    prefilter_parsed: ParsedPathSegment = Depends(_parse_prefilter),
-    postfilter_parsed: ParsedPathSegment = Depends(_parse_postfilter),
+def get_linked_instances(
+    ids: Annotated[
+        list[str],
+        Query(
+            title="Instance (aka Document) IDs",
+            description=(
+                "The `ids` you want to serve as the nexus for graph traversal to collect linked instances."
+                "\n\n_Example_: [`nmdc:dobj-11-nf3t6f36`]"
+            ),
+            examples=["nmdc:dobj-11-nf3t6f36"],
+        ),
+        AfterValidator(check_valid_ids),
+    ],
+    types: Annotated[
+        list[str] | None,
+        Query(
+            title="Instance (aka Document) types",
+            description=(
+                "The `types` of instances you want to return. Can be abstract types such as `nmdc:InformationObject` "
+                "or instantiated ones such as `nmdc:DataObject`. Defaults to [`nmdc:NamedThing`]."
+                "\n\n_Example_: [`nmdc:PlannedProcess`]"
+            ),
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ] = None,
+    hydrate: Annotated[
+        bool,
+        Query(
+            title="Hydrate",
+            description="Whether to include full documents in the response. The default is to include slim documents.",
+        ),
+    ] = False,
+    page_token: Annotated[
+        str | None,
+        Query(
+            title="Next page token",
+            description="""A bookmark you can use to fetch the _next_ page of resources. You can get this from the
+                    `next_page_token` field in a previous response from this endpoint.\n\n_Example_: 
+                    `nmdc:sys0zr0fbt71`""",
+            examples=[
+                "nmdc:sys0zr0fbt71",
+            ],
+        ),
+    ] = None,
+    max_page_size: Annotated[
+        int,
+        Query(
+            title="Resources per page",
+            description="How many resources you want _each page_ to contain, formatted as a positive integer.",
+            examples=[20],
+        ),
+    ] = 20,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """From entity IDs captured by `prefilter`, retrieve `postfilter`ed metadata for all related entities.
-
-    Use `postfilter` to control:
-    - what related entities are returned (no default: use `types=nmdc:NamedObject` to return "all" types), and
-    - what metadata are returned for them (default: `id` and `type`).
-
-    Prefilters:
-    - `ids` : one or more (comma-delimited) IDs.
-        Example: `ids=nmdc:bsm-11-6zd5nb38,nmdc:bsm-11-ahpvvb55`.
-    - `from` : `nmdc:Database` collection from which to retrieve related entities.
-        Example: `from=biosample_set`.
-    - `match` : MongoDB `filter` to apply to `from` collection. Must be proceeded by `from`.
-        Example: `from=study_set;match={"name": {"$regex": "National Ecological Observatory Network"}}`.
-
-    Postfilters:
-    - `types=nmdc:DataObject`
-
-    This endpoint performs bidirectional graph traversal from the entity IDs yielded by `prefilter`:
-
-    1. "Inbound" traversal: Follows inbound relationships to find entities that influenced
-       each given entity, returning them in the "was_influenced_by" field.
-
-    2. "Outbound" traversal: Follows outbound relationships to find entities that were influenced
-       by each given entity, returning them in the "influenced" field.
     """
-    prefilter = {}
-    for param, value in prefilter_parsed.segment_parameters.items():
-        if param == "ids":
-            prefilter["ids"] = value if isinstance(value, list) else [value]
-        if param == "from":
-            prefilter["from"] = value
-        if param == "match":
-            prefilter["match"] = value
+    Retrieves database instances that are both (a) linked to any of `ids`, and (b) of a type in `types`.
 
-    if "ids" in prefilter:
-        if ("from" in prefilter) or ("match" in prefilter):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `ids` prefilter parameter with {`from`,`match`} prefilter parameters.",
-            )
-        ids_found = [
-            d["id"]
-            for d in mdb.alldocs.find({"id": {"$in": prefilter["ids"]}}, {"id": 1})
-        ]
-        ids_not_found = list(set(prefilter["ids"]) - set(ids_found))
-        if ids_not_found:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Some IDs not found: {ids_not_found}.",
-            )
-    if "from" in prefilter:
-        if prefilter["from"] not in get_collection_names_from_schema():
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"`from` parameter {prefilter['from']} is not a known schema collection name."
-                    f" Known names: {get_collection_names_from_schema()}."
-                ),
-            )
-    if "match" in prefilter:
-        if "from" not in prefilter:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot use `match` prefilter parameter without `from` prefilter parameter.",
-            )
-        try:
-            prefilter["match"] = json.loads(prefilter["match"])
-            assert mdb[prefilter["from"]].count_documents(prefilter["match"]) > 0
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
-            )
+    An [instance](https://linkml.io/linkml-model/latest/docs/specification/02instances/) is an object conforming to a
+    class definition ([linkml:ClassDefinition](https://w3id.org/linkml/ClassDefinition)) in our database ([
+    nmdc:Database](https://w3id.org/nmdc/Database)). While a [nmdc:Database](https://w3id.org/nmdc/Database) is
+    organized into collections, every item in every database collection -- that is, every instance -- knows its
+    `type`, so we can (and here do) return a simple list of instances ([a LinkML CollectionInstance](
+    https://linkml.io/linkml-model/latest/docs/specification/02instances/#collections)). If hydrate is `False` (the
+    default), then the returned list contains "slim" documents that include only the `id` and `type` of each
+    instance. If hydrate is `True`, then the returned list contains "full" (aka <a
+    href="https://en.wikipedia.org/wiki/Hydration_(web_development)">"hydrated"</a>) documents of each instance,
+    suitable e.g. for a client to subsequently use to construct a corresponding
+    [nmdc:Database](https://w3id.org/nmdc/Database) instance with schema-compliant documents.
+    Both "slim" and "full" documents include (optional) `_upstream_of` and `_downstream_of` fields,
+    to indicate the returned document's relationship to `ids`.
 
-    types = ["nmdc:NamedThing"]
-    for param, value in postfilter_parsed.segment_parameters.items():
-        if param == "types":
-            types = value if isinstance(value, list) else [value]
+    From the nexus instance IDs given in `ids`, both "upstream" and "downstream" links are followed (transitively)
+    to collect the set of all instances linked to these `ids`.
+
+    * A link "upstream" is represented by a slot ([linkml:SlotDefinition](https://w3id.org/linkml/SlotDefinition))
+    for which the
+    range ([linkml:range](https://w3id.org/linkml/range)) instance has originated, or helped produce,
+    the domain ([linkml:domain](https://w3id.org/linkml/domain)) instance.
+    For example, we consider [nmdc:associated_studies](https://w3id.org/nmdc/associated_studies) to be
+    an "upstream" slot because we consider a [nmdc:Study](https://w3id.org/nmdc/Study) (the slot's range)
+    to be upstream of a [nmdc:Biosample](https://w3id.org/nmdc/Biosample) (the slot's domain).
+
+    * A link "downstream" is represented by a slot for which the
+    range instance has originated from, or was in part produced by, the domain instance.
+    For example, [nmdc:has_output](https://w3id.org/nmdc/has_output) is
+    a "downstream" slot because its [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing) range
+    is downstream of its [nmdc:PlannedProcess](https://w3id.org/nmdc/PlannedProcess) domain.
+
+    Acceptable values for `types` are not limited only to the ones embedded in concrete instances, e.g.
+    the `schema_class` field values returned by the [`GET /nmdcschema/typecodes`](/nmdcschema/typecodes) API endpoint.
+    Rather, any subclass (of any depth) of [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing) --
+    [nmdc:DataEmitterProcess](https://w3id.org/nmdc/DataEmitterProcess),
+    [nmdc:InformationObject](https://w3id.org/nmdc/InformationObject),
+    [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
+    If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
+    """
+    if page_token is not None:
+        rv = list_resources(
+            req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
+        )
+        rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
+        rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+        return rv
+
+    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
+    ids_not_found = list(set(ids) - set(ids_found))
+    if ids_not_found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Some IDs not found: {ids_not_found}.",
+        )
+    types = types or ["nmdc:NamedThing"]
     types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
     types_not_found = list(set(types) - types_possible)
     if types_not_found:
@@ -243,144 +245,24 @@ def get_related_ids(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
                 f"Some types not found: {types_not_found}. "
-                f"You may need to prefix with `nmdc:`. Types possible: {types_possible}"
+                "You may need to prefix with `nmdc:`. "
+                "If you don't supply any types, the set {'nmdc:NamedThing'} will be used. "
+                f"Types possible: {types_possible}"
             ),
         )
 
-    # Prepare `ids` for the `was_influenced_by` and `influenced` aggregation pipelines.
-    if "from" in prefilter:
-        ids = [
-            d["id"]
-            for d in mdb[prefilter["from"]].find(
-                filter=prefilter.get("match", {}), projection={"id": 1}
-            )
-        ]
-    else:
-        ids = prefilter["ids"]
-
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following inbound
-    # relationships (_inbound.id) to discover upstream documents that influenced the documents identified by `ids`.
-    # It unwinds the collected (via `$graphLookup`) influencers, filters them by given `types` of interest,
-    # projects only essential fields to reduce response latency and size, and groups them by each of the given `ids`,
-    # i.e. re-winding the `$unwind`-ed influencers into an array for each given ID.
-    was_influenced_by = list(
-        mdb.alldocs.aggregate(
-            [
-                {"$match": {"id": {"$in": ids}}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_inbound.id",
-                        "connectFromField": "_inbound.id",
-                        "connectToField": "id",
-                        "as": "was_influenced_by",
-                    }
-                },
-                {"$unwind": {"path": "$was_influenced_by"}},
-                {"$match": {"was_influenced_by._type_and_ancestors": {"$in": types}}},
-                {"$project": {"id": 1, "was_influenced_by": "$was_influenced_by"}},
-                {
-                    "$group": {
-                        "_id": "$id",
-                        "was_influenced_by": {
-                            "$addToSet": {
-                                "id": "$was_influenced_by.id",
-                                "type": "$was_influenced_by.type",
-                            }
-                        },
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "alldocs",
-                        "localField": "_id",
-                        "foreignField": "id",
-                        "as": "selves",
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": "$_id",
-                        "was_influenced_by": 1,
-                        "type": {"$arrayElemAt": ["$selves.type", 0]},
-                    }
-                },
-            ],
-            allowDiskUse=True,
-        )
+    merge_into_collection_name = gather_linked_instances(
+        alldocs_collection=mdb.alldocs, ids=ids, types=types
     )
 
-    # This aggregation pipeline traverses the graph of documents in the alldocs collection, following outbound
-    # relationships (_outbound.id) to discover downstream documents that were influenced by the documents identified
-    # by `ids`. It unwinds the collected (via `$graphLookup`) "influencees", filters them by given `types` of
-    # interest, projects only essential fields to reduce response latency and size, and groups them by each of the
-    # given `ids`, i.e. re-winding the `$unwind`-ed influencees into an array for each given ID.
-    influenced = list(
-        mdb.alldocs.aggregate(
-            [
-                {"$match": {"id": {"$in": ids}}},
-                {
-                    "$graphLookup": {
-                        "from": "alldocs",
-                        "startWith": "$_outbound.id",
-                        "connectFromField": "_outbound.id",
-                        "connectToField": "id",
-                        "as": "influenced",
-                    }
-                },
-                {"$unwind": {"path": "$influenced"}},
-                {"$match": {"influenced._type_and_ancestors": {"$in": types}}},
-                {
-                    "$group": {
-                        "_id": "$id",
-                        "influenced": {
-                            "$addToSet": {
-                                "id": "$influenced.id",
-                                "type": "$influenced.type",
-                            }
-                        },
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "alldocs",
-                        "localField": "_id",
-                        "foreignField": "id",
-                        "as": "selves",
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": "$_id",
-                        "influenced": 1,
-                        "type": {"$arrayElemAt": ["$selves.type", 0]},
-                    }
-                },
-            ],
-            allowDiskUse=True,
-        )
+    rv = list_resources(
+        ListRequest(page_token=page_token, max_page_size=max_page_size),
+        mdb,
+        merge_into_collection_name,
     )
-
-    relations_by_id = {
-        id_: {
-            "id": id_,
-            "was_influenced_by": [],
-            "influenced": [],
-        }
-        for id_ in ids
-    }
-
-    # For each subject document that "was influenced by" or "influenced" any documents, create a dictionary
-    # containing that subject document's `id`, its `type`, and the list of `id`s of the
-    # documents that it "was influenced by" and "influenced".
-    for d in was_influenced_by + influenced:
-        relations_by_id[d["id"]]["type"] = d["type"]
-        relations_by_id[d["id"]]["was_influenced_by"] += d.get("was_influenced_by", [])
-        relations_by_id[d["id"]]["influenced"] += d.get("influenced", [])
-
-    return {"resources": list(relations_by_id.values())}
+    rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.get(
@@ -470,22 +352,13 @@ def get_collection_name_by_doc_id(
         )
 
     # Determine the Mongo collection(s) in which instances of that schema class can reside.
+    schema_view = nmdc_schema_view()
     collection_names = []
-    schema_view = SchemaView(get_nmdc_schema_definition())
-    for slot_name in schema_view.class_slots(DATABASE_CLASS_NAME):
-        slot_definition = schema_view.induced_slot(slot_name, DATABASE_CLASS_NAME)
-
-        # If this slot doesn't represent a Mongo collection, abort this iteration.
-        if not (slot_definition.multivalued and slot_definition.inlined_as_list):
-            continue
-
-        # Determine the names of the classes whose instances can be stored in this collection.
-        name_of_eligible_class = slot_definition.range
-        names_of_eligible_classes = schema_view.class_descendants(
-            name_of_eligible_class
-        )
-        if schema_class_name in names_of_eligible_classes:
-            collection_names.append(slot_name)
+    for collection_name in get_collection_names_from_schema(schema_view=schema_view):
+        if schema_class_name in get_names_of_classes_eligible_for_collection(
+            schema_view=schema_view, collection_name=collection_name
+        ):
+            collection_names.append(collection_name)
 
     if len(collection_names) == 0:
         raise HTTPException(
@@ -524,7 +397,8 @@ def get_collection_names():
     Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
     https://w3id.org/nmdc/Database/) that describe database collections.
     """
-    return sorted(get_collection_names_from_schema())
+    schema_view = nmdc_schema_view()
+    return sorted(get_collection_names_from_schema(schema_view))
 
 
 @router.get(

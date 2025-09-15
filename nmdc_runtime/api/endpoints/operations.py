@@ -76,30 +76,3 @@ def update_operation(
     )
     mdb.operations.replace_one({"id": op_id}, doc_op_patched)
     return doc_op_patched
-
-
-@router.post(
-    "/operations/{op_id}:wait",
-    description=(
-        "Wait until the operation is resolved or rejected before returning the result."
-        " This is a 'blocking' alternative to client-side polling, and may not be available"
-        " for operation types know to be particularly long-running."
-    ),
-)
-def wait_operation():
-    pass
-
-
-@router.post("/operations/{op_id}:cancel")
-def cancel_operation():
-    pass
-
-
-@router.post("/operations/{op_id}:pause")
-def pause_operation():
-    pass
-
-
-@router.post("/operations/{op_id}:resume")
-def resume_operation():
-    pass

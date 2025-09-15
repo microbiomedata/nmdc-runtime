@@ -2,6 +2,7 @@ import json
 import mimetypes
 import os
 import pkgutil
+from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -13,60 +14,21 @@ from typing import Callable, List, Optional, Set, Dict
 
 import fastjsonschema
 import requests
+from bson.son import SON
 from frozendict import frozendict
-from linkml_runtime import linkml_model
-from linkml_runtime.utils.schemaview import SchemaView
+from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import OperationFailure
-from refscan.lib.helpers import identify_references
+from refscan.lib.helpers import (
+    identify_references,
+    get_collection_name_to_class_names_map,
+)
 from refscan.lib.ReferenceList import ReferenceList
 from toolz import merge
 
 from nmdc_runtime.api.core.util import sha256hash_from_file
 from nmdc_runtime.api.models.object import DrsObjectIn
-
-
-def get_names_of_classes_in_effective_range_of_slot(
-    schema_view: SchemaView, slot_definition: linkml_model.SlotDefinition
-) -> List[str]:
-    r"""
-    Determine the slot's "effective" range, by taking into account its `any_of` constraints (if defined).
-
-    Note: The `any_of` constraints constrain the slot's "effective" range beyond that described by the
-          induced slot definition's `range` attribute. `SchemaView` does not seem to provide the result
-          of applying those additional constraints, so we do it manually here (if any are defined).
-          Reference: https://github.com/orgs/linkml/discussions/2101#discussion-6625646
-
-    Reference: https://linkml.io/linkml-model/latest/docs/any_of/
-    """
-
-    # Initialize the list to be empty.
-    names_of_eligible_target_classes = []
-
-    # If the `any_of` constraint is defined on this slot, use that instead of the `range`.
-    if "any_of" in slot_definition and len(slot_definition.any_of) > 0:
-        for slot_expression in slot_definition.any_of:
-            # Use the slot expression's `range` to get the specified eligible class name
-            # and the names of all classes that inherit from that eligible class.
-            if slot_expression.range in schema_view.all_classes():
-                own_and_descendant_class_names = schema_view.class_descendants(
-                    slot_expression.range
-                )
-                names_of_eligible_target_classes.extend(own_and_descendant_class_names)
-    else:
-        # Use the slot's `range` to get the specified eligible class name
-        # and the names of all classes that inherit from that eligible class.
-        if slot_definition.range in schema_view.all_classes():
-            own_and_descendant_class_names = schema_view.class_descendants(
-                slot_definition.range
-            )
-            names_of_eligible_target_classes.extend(own_and_descendant_class_names)
-
-    # Remove duplicate class names.
-    names_of_eligible_target_classes = list(set(names_of_eligible_target_classes))
-
-    return names_of_eligible_target_classes
 
 
 def get_class_names_from_collection_spec(
@@ -353,6 +315,32 @@ def nmdc_schema_view():
 
 
 @lru_cache
+def get_class_name_to_collection_names_map(
+    schema_view: SchemaView,
+) -> Dict[str, List[str]]:
+    """
+    Returns a mapping of class names to the names of the collections that can store instances of those classes/types,
+    according to the specified `SchemaView`.
+
+    Example output:
+    ```
+    {
+        "Study": ["study_set"],
+        "Biosample": ["biosample_set"],
+        ...
+    }
+    ```
+    """
+    class_name_to_collection_names = defaultdict(list)
+    for collection_name, class_names in get_collection_name_to_class_names_map(
+        schema_view
+    ).items():
+        for class_name in class_names:
+            class_name_to_collection_names[class_name].append(collection_name)
+    return class_name_to_collection_names
+
+
+@lru_cache
 def nmdc_database_collection_instance_class_names():
     names = []
     view = nmdc_schema_view()
@@ -370,7 +358,7 @@ def nmdc_database_collection_names():
     TODO: Document this function.
 
     TODO: Assuming this function was designed to return a list of names of all Database slots that represents database
-          collections, use the function named `get_collection_names_from_schema` in `nmdc_runtime/api/db/mongo.py`
+          collections, import/use the function named `get_collection_names_from_schema` from `refscan.lib.helpers`
           instead, since (a) it includes documentation and (b) it performs the additional checks the lead schema
           maintainer expects (e.g. checking whether a slot is `multivalued` and `inlined_as_list`).
     """
@@ -406,6 +394,12 @@ def all_docs_have_unique_id(coll) -> bool:
 
 
 def specialize_activity_set_docs(docs):
+    """
+    TODO: Document this function.
+
+    TODO: Check whether this function is still necessary, given that the `Database` class
+          in `nmdc-schema` does not have a slot named `activity_set`.
+    """
     validation_errors = {}
     type_collections = get_type_collections()
     if "activity_set" in docs:
@@ -489,6 +483,49 @@ def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[
     return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
+def does_collection_have_unique_index_on_id_field(
+    collection_name: str, db: MongoDatabase
+) -> bool:
+    """Check whether the specified MongoDB collection has a unique index on its `id` field (not `_id`).
+
+    Note: If the specified MongoDB collection either does not exist or is a _view_ instead of a collection,
+          this function will return `False`.
+
+    References:
+    - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.list_indexes
+    - https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.index_information
+    """
+    # Check whether the specified collection actually exists in the database; and, if it does,
+    # whether it is really a _collection_ (as opposed to being a _view_). If it doesn't exist,
+    # or it is a view, return `False` right away.
+    collection_infos_cursor = db.list_collections(filter={"name": collection_name})
+    collection_infos = list(collection_infos_cursor)
+    if len(collection_infos) == 0:
+        return False
+    collection_info = collection_infos[0]
+    if collection_info["type"] != "collection":
+        return False
+
+    # Now that we know we're dealing with a collection, get information about each of its indexes.
+    collection = db.get_collection(collection_name)
+    for index_information in collection.list_indexes():
+        # Get the "field_name-direction" pairs that make up this index.
+        field_name_and_direction_pairs: SON = index_information["key"]
+
+        # If this index involves a number of fields other than one, skip it.
+        # We're only interested in indexes that involve the `id` field by itself.
+        if len(field_name_and_direction_pairs.keys()) != 1:
+            continue
+
+        # Check whether the field this index involves is the `id` field,
+        # and whether this index is `unique`.
+        field_name = list(field_name_and_direction_pairs.keys())[0]
+        if field_name == "id" and index_information.get("unique", False):
+            return True
+
+    return False
+
+
 def ensure_unique_id_indexes(mdb: MongoDatabase):
     """Ensure that any collections with an "id" field have an index on "id"."""
 
@@ -501,6 +538,11 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
     )
     for collection_name in candidate_names:
         if collection_name.startswith("system."):  # reserved by mongodb
+            continue
+
+        # If the collection already has a unique index on `id`, there's no need
+        # to check anything else about the collection.
+        if does_collection_have_unique_index_on_id_field(collection_name, mdb):
             continue
 
         if (

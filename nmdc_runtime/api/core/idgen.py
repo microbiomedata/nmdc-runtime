@@ -56,10 +56,26 @@ def encode_id(number: int, split_every=4, min_length=10, checksum=True) -> int:
 
 
 # sping: "semi-opaque string" (https://n2t.net/e/n2t_apidoc.html).
+#
+# Note: The result is always the following list of tuples:
+#       ```
+#       [
+#         ( 2,             512),
+#         ( 4,          524288),
+#         ( 6,       536870912),
+#         ( 8,    549755813888),
+#         (10, 562949953421312)
+#       ]
+#       ````
 SPING_SIZE_THRESHOLDS = [(n, (2 ** (5 * n)) // 2) for n in [2, 4, 6, 8, 10]]
 
 
 def collection_name(naa, shoulder):
+    r"""
+    Returns a string designed to be used as a MongoDB collection name.
+
+    TODO: Document the function parameters, including expanding the "naa" acronym.
+    """
     return f"ids_{naa}_{shoulder}"
 
 
@@ -72,12 +88,16 @@ def generate_ids(
     naa: str = "nmdc",
     shoulder: str = "fk4",
 ) -> List[str]:
+    r"""
+    TODO: Document this function.
+    """
     collection = mdb.get_collection(collection_name(naa, shoulder))
+    estimated_document_count = collection.estimated_document_count()
     n_chars = next(
         (
             n
             for n, t in SPING_SIZE_THRESHOLDS
-            if (number + collection.count_documents({})) < t
+            if (number + estimated_document_count) < t
         ),
         12,
     )

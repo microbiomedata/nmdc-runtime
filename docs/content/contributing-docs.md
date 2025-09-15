@@ -14,6 +14,7 @@ Reference for contributing to this documentation.
 docs/
     content/           # Documentation source files (e.g. `.md`, `.ipynb`).
         index.md       # The documentation homepage.
+        nb/            # Jupyter notebooks (`.ipynb`).
         ...
     mkdocs_overrides/  # Files that override default parts of the theme.
         ...
