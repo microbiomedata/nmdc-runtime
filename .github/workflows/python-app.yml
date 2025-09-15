@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4 # update version to maintain consistency across workflows
     # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
     #
     # Note: This is to prevent MongoDB from reporting the error:
@@ -77,9 +77,13 @@ jobs:
         rmdir _tmp
     - name: Build and start containers upon which test runner depends
       run: make up-test
-    # Wait a few seconds, then dump the logs from the `fastapi` container. This is in an attempt to facilitate
-    # debugging (when needed). The failure of that container to start up has been a relatively common source of
-    # GitHub Actions workflow failures (and we think seeing the container's logs will make debugging easier).
+    # Before running the tests, wait a few seconds, then dump the `fastapi` container logs.
+    #
+    # Note: This is in an attempt to facilitate debugging. The failure of that container to
+    #       start up has been a relatively common source of GitHub Actions workflow failures
+    #       (and we think seeing the container's logs will make debugging easier).
+    #       TODO: Consider making this conditional, by adding `if: runner.debug == '1'`
+    #
     - name: Sleep for 5s
       uses: juliangruber/sleep-action@v2.0.0
       with:
