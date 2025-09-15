@@ -77,8 +77,6 @@ jobs:
         rmdir _tmp
     - name: Build and start containers upon which test runner depends
       run: make up-test
-    - name: Build and start containers upon which test runner depends
-      run: make up-test
     - name: Dump FastAPI container logs (for debugging)
       run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
