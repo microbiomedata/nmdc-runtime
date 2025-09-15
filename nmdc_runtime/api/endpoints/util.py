@@ -316,6 +316,10 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
     if req.page:
         skip = (req.page - 1) * req.per_page
         if skip > 10_000:
+            # Note: because _page number_-based pagination is currently implemented via MongoDB's `skip` and `limit`
+            # parameters, a full (slow) collection scan is performed to skip to the requested page. This scan takes
+            # longer and longer as `skip` increases, which is why cursor-based pagination is preferred for large
+            # collections.
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Use cursor-based pagination for paging beyond 10,000 items",
