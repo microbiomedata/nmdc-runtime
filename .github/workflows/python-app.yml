@@ -41,6 +41,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+      with:
+        # Note: This (supposedly the default) is necessary so the `uv-dynamic-versioning`
+        #       tool can read tag names from the repository.
+        set-safe-directory: true
+    - name: Dump global Git configuration (for debugging)
+      run: git config --list --global
     # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
     #
     # Note: This is to prevent MongoDB from reporting the error:
@@ -75,8 +81,12 @@ jobs:
           sh -c 'cp /mongoKeyFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
         mv _tmp/mongoKeyFile ./.docker/mongoKeyFile
         rmdir _tmp
+    - name: Dump global Git configuration (for debugging)
+      run: git config --list --global
     - name: Build and start containers upon which test runner depends
       run: make up-test
+    - name: Dump global Git configuration (for debugging)
+      run: git config --list --global
     - name: Dump FastAPI container logs (for debugging)
       run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Sleep for 10s
