@@ -2942,7 +2942,7 @@ requires-dist = [
     { name = "refscan", specifier = "==0.3.2" },
     { name = "requests" },
     { name = "requests-cache" },
-    { name = "scalar-fastapi", specifier = ">=1.4.0,<2.0.0" },
+    { name = "scalar-fastapi", specifier = ">=1.4.1,<2.0.0" },
     { name = "tenacity" },
     { name = "toolz" },
     { name = "tqdm" },
@@ -4661,11 +4661,11 @@ wheels = [
 
 [[package]]
 name = "scalar-fastapi"
-version = "1.4.0"
+version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c9/ad/442647dcac13de028388c943ac023d19cd027348f433511758a57a87b78e/scalar_fastapi-1.4.0.tar.gz", hash = "sha256:69c47a7930138431ef52de85adfb259365becae1f0313c88f33bdf0f7136b8ef", size = 12690, upload-time = "2025-09-08T22:14:26.892Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/ed/8efedc23b992fbceefa9fd4f895e48766762ec95141d6fd8a05174dc10ec/scalar_fastapi-1.4.1.tar.gz", hash = "sha256:1333350d34ea4718c507afb6d905dce93612d2e9f3decd58166ca5f32f5a0f6e", size = 12677, upload-time = "2025-09-15T19:57:10.741Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/31/25/cd04e1444982978c0f15e355ec65096e82afb73d53143bf4fa81f7c53560/scalar_fastapi-1.4.0-py3-none-any.whl", hash = "sha256:346a9fae09a2696e0962a9002fa5fb040992f1bfd6426faf12e3118fa6278327", size = 14526, upload-time = "2025-09-08T22:14:25.946Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/e1/e062a7e8b1e7f6c4d719d963a3464adc2a7cc6e5593a48f45c058a6315c1/scalar_fastapi-1.4.1-py3-none-any.whl", hash = "sha256:a583e7f0c8a972cb262f103ab832bc8c4e4189259faf048853afefbf37258a41", size = 14526, upload-time = "2025-09-15T19:57:09.826Z" },
 ]
 
 [[package]]
