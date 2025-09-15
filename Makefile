@@ -44,7 +44,7 @@ reset-db-test:
 #
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
-		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
+		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=60 -- \
 			uv run --active \
 				pytest --cov=nmdc_runtime \
 				       --doctest-modules \
