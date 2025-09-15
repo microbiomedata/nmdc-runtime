@@ -79,6 +79,24 @@ jobs:
       run: make up-test
     - name: Dump FastAPI container logs (for debugging)
       run: docker compose --file docker-compose.test.yml logs fastapi
+    - name: Sleep for 10s
+      uses: juliangruber/sleep-action@v2.0.0
+      with:
+        time: 10s
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi
+    - name: Sleep for 10s
+      uses: juliangruber/sleep-action@v2.0.0
+      with:
+        time: 10s
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi
+    - name: Sleep for 10s
+      uses: juliangruber/sleep-action@v2.0.0
+      with:
+        time: 10s
+    - name: Dump FastAPI container logs (for debugging)
+      run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
       run: make run-test
     - name: Dump FastAPI container logs (for debugging)
