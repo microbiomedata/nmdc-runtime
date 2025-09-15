@@ -322,7 +322,13 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             # collections.
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Use cursor-based pagination for paging beyond 10,000 items",
+                detail=(
+                    "Use cursor-based pagination for paging beyond 10,000 items. "
+                    "That is, instead of specifying the `page` query parameter for this endpoint, "
+                    "specify the `cursor` query parameter. In particular, set `cursor` to `*` to get the first page, "
+                    "and use the value of `meta.next_cursor` in the response, if not `null`, as the value to which "
+                    "you set `cursor` in the next request."
+                ),
             )
         limit = req.per_page
         results, db_response_time_ms = timeit(
