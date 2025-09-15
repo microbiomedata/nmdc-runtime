@@ -41,12 +41,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
-      with:
-        # Note: This (supposedly the default) is necessary so the `uv-dynamic-versioning`
-        #       tool can read tag names from the repository.
-        set-safe-directory: true
-    - name: Dump local Git configuration (for debugging)
-      run: git config --list
     # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
     #
     # Note: This is to prevent MongoDB from reporting the error:
@@ -83,29 +77,14 @@ jobs:
         rmdir _tmp
     - name: Build and start containers upon which test runner depends
       run: make up-test
-    - name: Dump local Git configuration (for debugging)
-      run: git config --list
-    - name: Dump FastAPI container logs (for debugging)
-      run: docker compose --file docker-compose.test.yml logs fastapi
-    - name: Sleep for 10s
+    # Wait a few seconds, then dump the logs from the `fastapi` container. This is in an attempt to facilitate
+    # debugging (when needed). The failure of that container to start up has been a relatively common source of
+    # GitHub Actions workflow failures (and we think seeing the container's logs will make debugging easier).
+    - name: Sleep for 5s
       uses: juliangruber/sleep-action@v2.0.0
       with:
-        time: 10s
-    - name: Dump FastAPI container logs (for debugging)
-      run: docker compose --file docker-compose.test.yml logs fastapi
-    - name: Sleep for 10s
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
-    - name: Dump FastAPI container logs (for debugging)
-      run: docker compose --file docker-compose.test.yml logs fastapi
-    - name: Sleep for 10s
-      uses: juliangruber/sleep-action@v2.0.0
-      with:
-        time: 10s
+        time: 5s
     - name: Dump FastAPI container logs (for debugging)
       run: docker compose --file docker-compose.test.yml logs fastapi
     - name: Run tests
       run: make run-test
-    - name: Dump FastAPI container logs (for debugging)
-      run: docker compose --file docker-compose.test.yml logs fastapi
