@@ -2846,7 +2846,6 @@ wheels = [
 
 [[package]]
 name = "nmdc-runtime"
-version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "base32-lib" },
