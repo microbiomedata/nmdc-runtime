@@ -90,6 +90,9 @@ services:
     depends_on:
       mongo-init: { condition: service_completed_successfully }
     env_file: .env.test
+    # Note: Setting `tty: true` makes it so the console output is in color.
+    #       Reference: https://docs.docker.com/reference/cli/docker/container/run/#tty
+    tty: true
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:
