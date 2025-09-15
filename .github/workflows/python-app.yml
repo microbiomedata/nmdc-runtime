@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4 # update version to maintain consistency across workflows
+    - uses: actions/checkout@v5
     # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
     #
     # Note: This is to prevent MongoDB from reporting the error:
