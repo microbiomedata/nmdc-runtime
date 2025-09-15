@@ -71,7 +71,7 @@ dependencies = [
     "pymongo",
     "pydantic[email] >= 1.10.0",
     # Note: We use `pyinstrument` for performance profiling.
-    #       Docs https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
+    #       Docs: https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
     "pyinstrument",
     "python-dotenv",
     "python-jose[cryptography]",
@@ -84,10 +84,8 @@ dependencies = [
     "refscan == 0.3.2",
     "requests",
     # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
-    # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
-    #       maintainers have not published recent versions of the package to PyPI yet.
-    # Reference: https://github.com/scalar/scalar/issues/5337#issuecomment-2781011096
-    "scalar-fastapi @ git+https://github.com/scalar/scalar/#subdirectory=integrations/fastapi",
+    #       Reference: 
+    "scalar-fastapi >= 1.4.0, < 2.0.0",
     "tenacity",
     "toolz",
     "tqdm",
@@ -145,12 +143,6 @@ packages = ["nmdc_runtime"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
-
-# Configure hatch to allow dependencies to be specified with the "<NAME> @ <URL>" syntax,
-# which we currently use (above) for specifying `scalar-fastapi` as a dependency.
-# Reference: https://hatch.pypa.io/latest/config/metadata/#allowing-direct-references
-[tool.hatch.metadata]
-allow-direct-references = true
 
 # Note: We use dynamic versioning.
 #       You can preview the version number by running: `$ uvx uv-dynamic-versioning`
