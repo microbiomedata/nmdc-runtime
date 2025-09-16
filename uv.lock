@@ -2846,7 +2846,6 @@ wheels = [
 
 [[package]]
 name = "nmdc-runtime"
-version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "base32-lib" },
@@ -2943,7 +2942,7 @@ requires-dist = [
     { name = "refscan", specifier = "==0.3.2" },
     { name = "requests" },
     { name = "requests-cache" },
-    { name = "scalar-fastapi", git = "https://github.com/scalar/scalar/?subdirectory=integrations%2Ffastapi" },
+    { name = "scalar-fastapi", specifier = ">=1.4.1,<2.0.0" },
     { name = "tenacity" },
     { name = "toolz" },
     { name = "tqdm" },
@@ -4662,8 +4661,12 @@ wheels = [
 
 [[package]]
 name = "scalar-fastapi"
-version = "1.3.0"
-source = { git = "https://github.com/scalar/scalar/?subdirectory=integrations%2Ffastapi#549eb025929f159088e3045e71b42a238e31bb08" }
+version = "1.4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/ed/8efedc23b992fbceefa9fd4f895e48766762ec95141d6fd8a05174dc10ec/scalar_fastapi-1.4.1.tar.gz", hash = "sha256:1333350d34ea4718c507afb6d905dce93612d2e9f3decd58166ca5f32f5a0f6e", size = 12677, upload-time = "2025-09-15T19:57:10.741Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/e1/e062a7e8b1e7f6c4d719d963a3464adc2a7cc6e5593a48f45c058a6315c1/scalar_fastapi-1.4.1-py3-none-any.whl", hash = "sha256:a583e7f0c8a972cb262f103ab832bc8c4e4189259faf048853afefbf37258a41", size = 14526, upload-time = "2025-09-15T19:57:09.826Z" },
+]
 
 [[package]]
 name = "scipy"
