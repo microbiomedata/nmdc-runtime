@@ -21,15 +21,17 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - name: Set up Python virtual environment
         run: uv sync
+
       - name: Preview derived version number
         run: uvx uv-dynamic-versioning
       # Here, we build the package using the build settings specified in `pyproject.toml`,
       # one of which is to derive the package's version number from the Git repository.
-      - name: Build package  # Docs: https://docs.astral.sh/uv/reference/cli/#uv-build
+      - name: Build source and wheel archives
         run: uv build
-      - name: Publish package
+
+      - name: Publish distribution 📦 to PyPI
         if: github.repository == 'microbiomedata/nmdc-runtime'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}
