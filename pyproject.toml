@@ -1,5 +1,7 @@
 [project]
 name = "nmdc-runtime"
+# Note: We use `uv-dynamic-versioning` to manage the version number.
+#       Docs: https://github.com/ninoseki/uv-dynamic-versioning
 dynamic = ["version"]
 description = "A runtime system for NMDC data management and orchestration"
 authors = []
