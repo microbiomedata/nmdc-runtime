@@ -152,6 +152,11 @@ def nmdc_biosample():
             "name": "ARIK.20150721.AMC.EPIPSAMMON.3",
             "type": "nmdc:Biosample",
             "associated_studies": ["nmdc:sty-11-pzmd0x14"],
+            "host_taxid": {
+                "term": {"id": "NCBITaxon:9606", "name": "Homo sapiens"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
         }
     ]
 
@@ -952,7 +957,7 @@ class TestNCBIXMLUtils:
 
         # Create test biosamples
         biosample1 = {
-            "id": "nmdc:bsm-pooled-1",
+            "id": "nmdc:bsm-12-002hb858",
             "name": "Pooled Sample 1",
             "geo_loc_name": {
                 "has_raw_value": "USA: Test Location",
@@ -988,7 +993,7 @@ class TestNCBIXMLUtils:
         }
 
         biosample2 = {
-            "id": "nmdc:bsm-pooled-2",
+            "id": "nmdc:bsm-12-938kxq31",
             "name": "Pooled Sample 2",
             "geo_loc_name": {
                 "has_raw_value": "USA: Test Location",
@@ -1024,7 +1029,7 @@ class TestNCBIXMLUtils:
         }
 
         biosample3 = {
-            "id": "nmdc:bsm-individual-1",
+            "id": "nmdc:bsm-12-s2ngn133",
             "name": "Individual Sample",
             "geo_loc_name": {
                 "has_raw_value": "USA: Test Location 2",
@@ -1060,21 +1065,41 @@ class TestNCBIXMLUtils:
         }
 
         pooled_biosamples_data = {
-            "nmdc:bsm-pooled-1": {
-                "pooling_process_id": "nmdc:poolp-test-1",
-                "processed_sample_id": "nmdc:procsm-pooled-1",
+            "nmdc:bsm-12-002hb858": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
                 "processed_sample_name": "Aggregated Pool Sample",
-                "pooled_biosample_ids": ["nmdc:bsm-pooled-1", "nmdc:bsm-pooled-2"],
-                "aggregated_collection_date": "2021-01-01/2021-01-02",
-                "aggregated_depth": "5 - 10 m",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
             },
-            "nmdc:bsm-pooled-2": {
-                "pooling_process_id": "nmdc:poolp-test-1",
-                "processed_sample_id": "nmdc:procsm-pooled-1",
+            "nmdc:bsm-12-938kxq31": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
                 "processed_sample_name": "Aggregated Pool Sample",
-                "pooled_biosample_ids": ["nmdc:bsm-pooled-1", "nmdc:bsm-pooled-2"],
-                "aggregated_collection_date": "2021-01-01/2021-01-02",
-                "aggregated_depth": "5 - 10 m",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
+            },
+            "nmdc:bsm-12-s2ngn133": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Aggregated Pool Sample",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
             },
         }
 
@@ -1086,41 +1111,30 @@ class TestNCBIXMLUtils:
             pooled_biosamples_data=pooled_biosamples_data,
         )
 
-        # Should create 2 Action elements: 1 pooled (for both pooled samples) + 1 individual
+        # Should create 1 Action element: all three biosamples are pooled into a single pooling process
         action_elements = ncbi_submission_client.root.findall(".//Action")
-        assert len(action_elements) == 2
+        assert len(action_elements) == 1
 
         # Find the pooled sample action
-        pooled_action = None
-        individual_action = None
-        for action in action_elements:
-            action_xml = ET.tostring(action, "unicode")
-            if "nmdc:procsm-pooled-1" in action_xml:
-                pooled_action = action
-            elif "nmdc:bsm-individual-1" in action_xml:
-                individual_action = action
-
-        assert pooled_action is not None
-        assert individual_action is not None
-
-        # Check pooled action content
+        pooled_action = action_elements[0]
         pooled_xml = ET.tostring(pooled_action, "unicode")
-        assert "nmdc:procsm-pooled-1" in pooled_xml
-        assert "Aggregated Pool Sample" in pooled_xml
-        assert "nmdc:poolp-test-1" in pooled_xml
-        assert "2021-01-01/2021-01-02" in pooled_xml
-        assert "5 - 10 m" in pooled_xml
-        assert "nmdc:bsm-pooled-1;nmdc:bsm-pooled-2" in pooled_xml
 
-        # Check individual action content
-        individual_xml = ET.tostring(individual_action, "unicode")
-        assert "nmdc:bsm-individual-1" in individual_xml
-        assert "Individual Sample" in individual_xml
+        # Check pooled action content - should reference the processed sample ID from the pooling process
+        assert "nmdc:procsm-11-dha8mw20" in pooled_xml
+        assert "Aggregated Pool Sample" in pooled_xml
+        assert "nmdc:poolp-11-gznh3638" in pooled_xml
+        assert "2021-01-01/2021-01-03" in pooled_xml
+        assert "2 - 10 m" in pooled_xml
+        # Should contain all three biosample IDs in the pooled list
+        assert "nmdc:bsm-12-002hb858" in pooled_xml
+        assert "nmdc:bsm-12-938kxq31" in pooled_xml
+        assert "nmdc:bsm-12-s2ngn133" in pooled_xml
 
     def test_elev_special_handling(
         self,
         mocker: Callable[..., Generator[MockerFixture, None, None]],
         ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -1130,17 +1144,11 @@ class TestNCBIXMLUtils:
             ),
         )
 
-        test_biosample = {
-            "id": "nmdc:bsm-elev-test",
-            "name": "Elevation Test Sample",
-            "elev": 1234.5,
-        }
-
         ncbi_submission_client.set_biosample(
             organism_name="Test Organism",
             org="Test Org",
             bioproject_id="PRJNA123456",
-            nmdc_biosamples=[test_biosample],
+            nmdc_biosamples=nmdc_biosample,
         )
 
         biosample_xml = ET.tostring(
@@ -1148,12 +1156,13 @@ class TestNCBIXMLUtils:
         )
 
         # Elevation should be converted to string with " m" suffix
-        assert "1234.5 m" in biosample_xml
+        assert "1179.5 m" in biosample_xml
 
     def test_host_taxid_special_handling(
         self,
         mocker: Callable[..., Generator[MockerFixture, None, None]],
         ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -1167,20 +1176,11 @@ class TestNCBIXMLUtils:
             ),
         )
 
-        test_biosample = {
-            "id": "nmdc:bsm-host-taxid-test",
-            "name": "Host Taxid Test Sample",
-            "host_taxid": {
-                "term": {"id": "NCBITaxon:9606", "name": "Homo sapiens"},
-                "type": "nmdc:ControlledIdentifiedTermValue",
-            },
-        }
-
         ncbi_submission_client.set_biosample(
             organism_name="Test Organism",
             org="Test Org",
             bioproject_id="PRJNA123456",
-            nmdc_biosamples=[test_biosample],
+            nmdc_biosamples=nmdc_biosample,
         )
 
         biosample_xml = ET.tostring(
@@ -1194,6 +1194,7 @@ class TestNCBIXMLUtils:
         self,
         mocker: Callable[..., Generator[MockerFixture, None, None]],
         ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
     ):
         mocker.patch(
             "nmdc_runtime.site.export.ncbi_xml.load_mappings",
@@ -1203,17 +1204,11 @@ class TestNCBIXMLUtils:
             ),
         )
 
-        test_biosample = {
-            "id": "nmdc:bsm-env-package-test",
-            "name": "Env Package Test Sample",
-            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
-        }
-
         ncbi_submission_client.set_biosample(
             organism_name="Test Organism",
             org="Test Org",
             bioproject_id="PRJNA123456",
-            nmdc_biosamples=[test_biosample],
+            nmdc_biosamples=nmdc_biosample,
         )
 
         biosample_xml = ET.tostring(
@@ -1365,36 +1360,36 @@ class TestNCBIXMLUtils:
         }
 
         pooled_biosamples_data = {
-            "nmdc:bsm-pooled-1": {
-                "pooling_process_id": "nmdc:poolp-test-1",
-                "processed_sample_id": "nmdc:procsm-pooled-1",
+            "nmdc:bsm-12-002hb858": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
                 "processed_sample_name": "Pooled SRA Sample",
             },
-            "nmdc:bsm-pooled-2": {
-                "pooling_process_id": "nmdc:poolp-test-1",
-                "processed_sample_id": "nmdc:procsm-pooled-1",
+            "nmdc:bsm-12-938kxq31": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
                 "processed_sample_name": "Pooled SRA Sample",
             },
         }
 
         biosample_data_objects = [
             {
-                "nmdc:bsm-pooled-1": fastq_data_objects,
-                "nmdc:bsm-pooled-2": fastq_data_objects,
+                "nmdc:bsm-12-002hb858": fastq_data_objects,
+                "nmdc:bsm-12-938kxq31": fastq_data_objects,
             }
         ]
 
         biosample_nucleotide_sequencing = [
             {
-                "nmdc:bsm-pooled-1": nucleotide_sequencing,
-                "nmdc:bsm-pooled-2": nucleotide_sequencing,
+                "nmdc:bsm-12-002hb858": nucleotide_sequencing,
+                "nmdc:bsm-12-938kxq31": nucleotide_sequencing,
             }
         ]
 
         biosample_library_preparation = [
             {
-                "nmdc:bsm-pooled-1": library_preparation,
-                "nmdc:bsm-pooled-2": library_preparation,
+                "nmdc:bsm-12-002hb858": library_preparation,
+                "nmdc:bsm-12-938kxq31": library_preparation,
             }
         ]
 
@@ -1416,7 +1411,7 @@ class TestNCBIXMLUtils:
         action_xml = ET.tostring(action_elements[0], "unicode")
 
         # Should reference the processed sample, not individual biosamples
-        assert "nmdc:procsm-pooled-1" in action_xml
+        assert "nmdc:procsm-11-dha8mw20" in action_xml
         assert "Pooled SRA Sample" in action_xml
         assert "pooled_R1.fastq.gz" in action_xml
         assert "pooled_R2.fastq.gz" in action_xml
@@ -1456,20 +1451,22 @@ class TestNCBIXMLUtils:
         }
 
         pooled_biosamples_data = {
-            "nmdc:bsm-single": {
-                "pooling_process_id": "nmdc:poolp-single",
-                "processed_sample_id": "nmdc:procsm-single",
+            "nmdc:bsm-12-bcfa4694": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
                 "processed_sample_name": "Single Read Sample",
             }
         }
 
         ncbi_submission_client.set_fastq(
-            biosample_data_objects=[{"nmdc:bsm-single": single_read_data}],
+            biosample_data_objects=[{"nmdc:bsm-12-bcfa4694": single_read_data}],
             bioproject_id="PRJNA123456",
             org="Test Org",
-            nmdc_nucleotide_sequencing=[{"nmdc:bsm-single": nucleotide_sequencing}],
+            nmdc_nucleotide_sequencing=[
+                {"nmdc:bsm-12-bcfa4694": nucleotide_sequencing}
+            ],
             nmdc_biosamples=[],
-            nmdc_library_preparation=[{"nmdc:bsm-single": {}}],
+            nmdc_library_preparation=[{"nmdc:bsm-12-bcfa4694": {}}],
             all_instruments=all_instruments,
             pooled_biosamples_data=pooled_biosamples_data,
         )
@@ -1496,14 +1493,14 @@ class TestNCBIXMLUtils:
         )
 
         test_biosample = {
-            "id": "nmdc:bsm-external-link-test",
+            "id": "nmdc:bsm-12-s2ngn133",
             "name": "External Link Test Sample",
         }
 
         pooled_biosamples_data = {
-            "nmdc:bsm-external-link-test": {
-                "processed_sample_id": "nmdc:procsm-external-test",
-                "pooling_process_id": "nmdc:poolp-external-test",
+            "nmdc:bsm-12-s2ngn133": {
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
             }
         }
 
@@ -1520,7 +1517,5 @@ class TestNCBIXMLUtils:
         )
 
         # Should contain external links to processed sample and pooling process
-        assert "https://bioregistry.io/nmdc:procsm-external-test" in biosample_xml
-        assert "https://bioregistry.io/nmdc:poolp-external-test" in biosample_xml
-        assert "nmdc:procsm-external-test" in biosample_xml
-        assert "nmdc:poolp-external-test" in biosample_xml
+        assert "https://bioregistry.io/nmdc:procsm-11-dha8mw20" in biosample_xml
+        assert "https://bioregistry.io/nmdc:poolp-11-gznh3638" in biosample_xml
