@@ -1225,12 +1225,46 @@ class TestNCBIXMLUtils:
 
     def test_fastq_file_filtering(
         self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
         ncbi_submission_client: NCBISubmissionXML,
         nmdc_biosample: list[dict[str, Any]],
         nucleotide_sequencing_list: list[dict[str, Any]],
         library_preparation_dict: dict[str, Any],
         mocked_instruments: list[dict[str, Any]],
     ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "analysis_type": "",
+                    "biosample_categories": "",
+                    "collection_date": "collection_date",
+                    "depth": "depth",
+                    "env_broad_scale": "env_broad_scale",
+                    "env_local_scale": "env_local_scale",
+                    "env_medium": "env_medium",
+                    "geo_loc_name": "geo_loc_name",
+                    "id": "",
+                    "lat_lon": "lat_lon",
+                    "name": "sample_name",
+                    "type": "",
+                },
+                {
+                    "analysis_type": "string",
+                    "biosample_categories": "string",
+                    "collection_date": "TimestampValue",
+                    "depth": "QuantityValue",
+                    "env_broad_scale": "ControlledTermValue",
+                    "env_local_scale": "ControlledTermValue",
+                    "env_medium": "ControlledTermValue",
+                    "geo_loc_name": "TextValue",
+                    "id": "uriorcurie",
+                    "lat_lon": "GeolocationValue",
+                    "name": "string",
+                    "type": "string",
+                },
+            ),
+        )
         # Create mixed data objects with and without acceptable extensions
         mixed_data_objects = [
             {
