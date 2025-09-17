@@ -96,6 +96,8 @@ nersc-mongo-tunnels:
 		-o ServerAliveInterval=60 \
 		${NERSC_USERNAME}@dtn02.nersc.gov
 
+DEV_STACK_HOST_MACHINE_PORT_MONGO:=$(shell cat .env | grep DEV_STACK_HOST_MACHINE_PORT_MONGO= | cut -d= -f2)
+
 mongorestore-nmdc-db:
 	mkdir -p /tmp/remote-mongodump/nmdc
 	# Optionally, manually update MONGO_REMOTE_DUMP_DIR env var:
@@ -115,7 +117,7 @@ mongorestore-nmdc-db:
 		${NERSC_USERNAME}@dtn01.nersc.gov:${MONGO_REMOTE_DUMP_DIR}/nmdc/ \
 		/tmp/remote-mongodump/nmdc
 	# Restore from `rsync`ed local directory:
-	mongorestore -v -h localhost:59639 -u admin -p root --authenticationDatabase=admin \
+	mongorestore -v -h localhost:$(DEV_STACK_HOST_MACHINE_PORT_MONGO) -u admin -p root --authenticationDatabase=admin \
 		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
