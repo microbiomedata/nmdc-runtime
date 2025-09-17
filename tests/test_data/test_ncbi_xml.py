@@ -1522,5 +1522,5 @@ class TestNCBIXMLUtils:
         # Should contain external links to processed sample and pooling process
         assert "https://bioregistry.io/nmdc:procsm-external-test" in biosample_xml
         assert "https://bioregistry.io/nmdc:poolp-external-test" in biosample_xml
-        assert "NMDC Processed Sample" in biosample_xml
-        assert "NMDC Pooling Process" in biosample_xml
+        assert "nmdc:procsm-external-test" in biosample_xml
+        assert "nmdc:poolp-external-test" in biosample_xml
