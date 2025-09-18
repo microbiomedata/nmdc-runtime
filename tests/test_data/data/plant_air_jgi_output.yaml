@@ -649,20 +649,6 @@ biosample_set:
     has_raw_value: UUID:c0c4a2b5-0382-450a-8728-a176fa438efe
   analysis_type:
   - metagenomics
-  dna_concentration: 0.1
-  dna_cont_type: tube
-  dna_container_id: 00001
-  dna_dnase: "no"
-  dna_isolate_meth: phenol/chloroform extraction
-  dna_project_contact: Jane Doe
-  dna_samp_id: 00001
-  dna_sample_format: Ethanol
-  dna_sample_name: 00001
-  dna_seq_project: 00001
-  dna_seq_project_name: 00001
-  dna_seq_project_pi: Jane Doe
-  dna_volume: 10
-  proposal_dna: 00001
 - id: nmdc:bsm-00-7r7pn0r2
   type: 'nmdc:Biosample'
   name: 'wedw'
