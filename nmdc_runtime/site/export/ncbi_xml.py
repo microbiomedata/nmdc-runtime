@@ -163,15 +163,52 @@ class NCBISubmissionXML:
         org,
         bioproject_id,
         nmdc_biosamples,
+        pooled_biosamples_data=None,
     ):
         attribute_mappings, slot_range_mappings = load_mappings(
             self.nmdc_ncbi_attribute_mapping_file_url
         )
 
+        # Use provided pooling data or empty dict
+        pooling_data = pooled_biosamples_data or {}
+
+        # Group biosamples by pooling process
+        pooling_groups = {}
+        individual_biosamples = []
+
         for biosample in nmdc_biosamples:
+            pooling_info = pooling_data.get(biosample["id"], {})
+            if pooling_info and pooling_info.get("pooling_process_id"):
+                pooling_process_id = pooling_info["pooling_process_id"]
+                if pooling_process_id not in pooling_groups:
+                    pooling_groups[pooling_process_id] = {
+                        "biosamples": [],
+                        "pooling_info": pooling_info,
+                    }
+                pooling_groups[pooling_process_id]["biosamples"].append(biosample)
+            else:
+                individual_biosamples.append(biosample)
+
+        # Process pooled sample groups - create one <Action> block per pooling process
+        for pooling_process_id, group_data in pooling_groups.items():
+            self._create_pooled_biosample_action(
+                group_data["biosamples"],
+                group_data["pooling_info"],
+                organism_name,
+                org,
+                bioproject_id,
+                attribute_mappings,
+                slot_range_mappings,
+            )
+
+        # Process individual biosamples
+        for biosample in individual_biosamples:
             attributes = {}
             sample_id_value = None
             env_package = None
+
+            # Get pooling info for this specific biosample
+            pooling_info = pooling_data.get(biosample["id"], {})
 
             for json_key, value in biosample.items():
                 if isinstance(value, list):
@@ -205,7 +242,11 @@ class NCBISubmissionXML:
 
                 # Special handling for NMDC Biosample "id"
                 if json_key == "id":
-                    sample_id_value = value
+                    # Use ProcessedSample ID if this is a pooled sample, otherwise use biosample ID
+                    if pooling_info and pooling_info.get("processed_sample_id"):
+                        sample_id_value = pooling_info["processed_sample_id"]
+                    else:
+                        sample_id_value = value
                     continue
 
                 if json_key not in attribute_mappings:
@@ -239,6 +280,28 @@ class NCBISubmissionXML:
                 formatted_value = handler(value)
                 attributes[xml_key] = formatted_value
 
+            # Override with aggregated values for pooled samples
+            if pooling_info:
+                if pooling_info.get("aggregated_collection_date"):
+                    # Find the mapping for collection_date
+                    collection_date_key = attribute_mappings.get(
+                        "collection_date", "collection_date"
+                    )
+                    attributes[collection_date_key] = pooling_info[
+                        "aggregated_collection_date"
+                    ]
+
+                if pooling_info.get("aggregated_depth"):
+                    # Find the mapping for depth
+                    depth_key = attribute_mappings.get("depth", "depth")
+                    attributes[depth_key] = pooling_info["aggregated_depth"]
+
+                # Add samp_pooling attribute with semicolon-delimited biosample IDs
+                if pooling_info.get("pooled_biosample_ids"):
+                    attributes["samp_pooling"] = ";".join(
+                        pooling_info["pooled_biosample_ids"]
+                    )
+
             biosample_elements = [
                 self.set_element(
                     "SampleId",
@@ -259,7 +322,36 @@ class NCBISubmissionXML:
                                 f"NMDC Biosample {sample_id_value} from {organism_name}, part of {self.nmdc_study_id} study",
                             ),
                         ),
-                    ],
+                    ]
+                    + (
+                        # Add external links for pooled samples
+                        [
+                            self.set_element(
+                                "ExternalLink",
+                                attrib={"label": "NMDC Processed Sample"},
+                                children=[
+                                    self.set_element(
+                                        "URL",
+                                        f"https://bioregistry.io/{pooling_info['processed_sample_id']}",
+                                    )
+                                ],
+                            ),
+                            self.set_element(
+                                "ExternalLink",
+                                attrib={"label": "NMDC Pooling Process"},
+                                children=[
+                                    self.set_element(
+                                        "URL",
+                                        f"https://bioregistry.io/{pooling_info['pooling_process_id']}",
+                                    )
+                                ],
+                            ),
+                        ]
+                        if pooling_info
+                        and pooling_info.get("processed_sample_id")
+                        and pooling_info.get("pooling_process_id")
+                        else []
+                    ),
                 ),
                 self.set_element(
                     "Organism",
@@ -331,6 +423,248 @@ class NCBISubmissionXML:
             )
             self.root.append(action)
 
+    def _create_pooled_biosample_action(
+        self,
+        biosamples,
+        pooling_info,
+        organism_name,
+        org,
+        bioproject_id,
+        attribute_mappings,
+        slot_range_mappings,
+    ):
+        # Use the processed sample ID as the primary identifier
+        sample_id_value = pooling_info.get("processed_sample_id")
+        if not sample_id_value:
+            return
+
+        # Aggregate attributes from all biosamples in the pool
+        aggregated_attributes = {}
+        env_package = None
+
+        # Get title from the first biosample or use processed sample name
+        title = pooling_info.get(
+            "processed_sample_name", f"Pooled sample {sample_id_value}"
+        )
+
+        # Process each biosample to collect and aggregate attributes
+        for biosample in biosamples:
+            for json_key, value in biosample.items():
+                if json_key == "id":
+                    continue
+
+                if json_key == "env_package":
+                    env_package = f"MIMS.me.{handle_text_value(value)}.6.0"
+                    continue
+
+                if isinstance(value, list):
+                    for item in value:
+                        if json_key not in attribute_mappings:
+                            continue
+
+                        xml_key = attribute_mappings[json_key]
+                        value_type = slot_range_mappings.get(json_key, "string")
+                        handler = self.type_handlers.get(
+                            value_type, handle_string_value
+                        )
+
+                        # Special handling for "elev" key
+                        if json_key == "elev":
+                            value = f"{float(value)} m"
+                            aggregated_attributes[xml_key] = value
+                            continue
+
+                        # Special handling for "host_taxid"
+                        if json_key == "host_taxid" and isinstance(value, dict):
+                            if "term" in value and "id" in value["term"]:
+                                value = re.findall(
+                                    r"\d+", value["term"]["id"].split(":")[1]
+                                )[0]
+                            aggregated_attributes[xml_key] = value
+                            continue
+
+                        formatted_value = handler(item)
+
+                        # For pooled samples, we typically want the first value or aggregate appropriately
+                        if xml_key not in aggregated_attributes:
+                            aggregated_attributes[xml_key] = formatted_value
+                    continue
+
+                if json_key not in attribute_mappings:
+                    continue
+
+                xml_key = attribute_mappings[json_key]
+                value_type = slot_range_mappings.get(json_key, "string")
+                handler = self.type_handlers.get(value_type, handle_string_value)
+
+                # Special handling for "elev" key
+                if json_key == "elev":
+                    value = f"{float(value)} m"
+                    aggregated_attributes[xml_key] = value
+                    continue
+
+                # Special handling for "host_taxid"
+                if json_key == "host_taxid" and isinstance(value, dict):
+                    if "term" in value and "id" in value["term"]:
+                        value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
+                    aggregated_attributes[xml_key] = value
+                    continue
+
+                formatted_value = handler(value)
+
+                # For pooled samples, we typically want the first value or aggregate appropriately
+                if xml_key not in aggregated_attributes:
+                    aggregated_attributes[xml_key] = formatted_value
+
+        # Override with aggregated values for pooled samples
+        if pooling_info.get("aggregated_collection_date"):
+            collection_date_key = attribute_mappings.get(
+                "collection_date", "collection_date"
+            )
+            aggregated_attributes[collection_date_key] = pooling_info[
+                "aggregated_collection_date"
+            ]
+
+        if pooling_info.get("aggregated_depth"):
+            depth_key = attribute_mappings.get("depth", "depth")
+            aggregated_attributes[depth_key] = pooling_info["aggregated_depth"]
+
+        # Add samp_pooling attribute with semicolon-delimited biosample IDs
+        if pooling_info.get("pooled_biosample_ids"):
+            aggregated_attributes["samp_pooling"] = ";".join(
+                pooling_info["pooled_biosample_ids"]
+            )
+
+        # Filter attributes to only include the ones from neon_soil_example.xml for pooled samples
+        allowed_attributes = {
+            "collection_date",
+            "depth",
+            "elev",
+            "geo_loc_name",
+            "lat_lon",
+            "env_broad_scale",
+            "env_local_scale",
+            "env_medium",
+            "samp_pooling",
+        }
+        filtered_attributes = {
+            k: v for k, v in aggregated_attributes.items() if k in allowed_attributes
+        }
+
+        biosample_elements = [
+            self.set_element(
+                "SampleId",
+                children=[
+                    self.set_element("SPUID", sample_id_value, {"spuid_namespace": org})
+                ],
+            ),
+            self.set_element(
+                "Descriptor",
+                children=[
+                    self.set_element("Title", title),
+                    self.set_element(
+                        "ExternalLink",
+                        attrib={"label": sample_id_value},
+                        children=[
+                            self.set_element(
+                                "URL",
+                                f"https://bioregistry.io/{sample_id_value}",
+                            )
+                        ],
+                    ),
+                    self.set_element(
+                        "ExternalLink",
+                        attrib={"label": pooling_info["pooling_process_id"]},
+                        children=[
+                            self.set_element(
+                                "URL",
+                                f"https://bioregistry.io/{pooling_info['pooling_process_id']}",
+                            )
+                        ],
+                    ),
+                ]
+                + [
+                    self.set_element(
+                        "ExternalLink",
+                        attrib={"label": biosample_id},
+                        children=[
+                            self.set_element(
+                                "URL",
+                                f"https://bioregistry.io/{biosample_id}",
+                            )
+                        ],
+                    )
+                    for biosample_id in pooling_info.get("pooled_biosample_ids", [])
+                ],
+            ),
+            self.set_element(
+                "Organism",
+                children=[self.set_element("OrganismName", organism_name)],
+            ),
+            self.set_element(
+                "BioProject",
+                children=[
+                    self.set_element("PrimaryId", bioproject_id, {"db": "BioProject"})
+                ],
+            ),
+            self.set_element("Package", env_package),
+            self.set_element(
+                "Attributes",
+                children=[
+                    self.set_element(
+                        "Attribute", filtered_attributes[key], {"attribute_name": key}
+                    )
+                    for key in sorted(filtered_attributes)
+                ]
+                + [
+                    self.set_element(
+                        "Attribute",
+                        "National Microbiome Data Collaborative",
+                        {"attribute_name": "broker name"},
+                    )
+                ],
+            ),
+        ]
+
+        action = self.set_element(
+            "Action",
+            children=[
+                self.set_element(
+                    "AddData",
+                    attrib={"target_db": "BioSample"},
+                    children=[
+                        self.set_element(
+                            "Data",
+                            attrib={"content_type": "XML"},
+                            children=[
+                                self.set_element(
+                                    "XmlContent",
+                                    children=[
+                                        self.set_element(
+                                            "BioSample",
+                                            attrib={"schema_version": "2.0"},
+                                            children=biosample_elements,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        self.set_element(
+                            "Identifier",
+                            children=[
+                                self.set_element(
+                                    "SPUID",
+                                    sample_id_value,
+                                    {"spuid_namespace": org},
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        self.root.append(action)
+
     def set_fastq(
         self,
         biosample_data_objects: list,
@@ -340,12 +674,57 @@ class NCBISubmissionXML:
         nmdc_biosamples: list,
         nmdc_library_preparation: list,
         all_instruments: dict,
+        pooled_biosamples_data=None,
     ):
         bsm_id_name_dict = {
             biosample["id"]: biosample["name"] for biosample in nmdc_biosamples
         }
 
+        # Use provided pooling data or empty dict
+        pooling_data = pooled_biosamples_data or {}
+
+        # Group data objects by pooling process
+        pooling_groups = {}
+        individual_entries = []
+
         for entry in biosample_data_objects:
+            pooling_process_id = None
+            # Check if any biosample in this entry belongs to a pooling process
+            for biosample_id in entry.keys():
+                pooling_info = pooling_data.get(biosample_id, {})
+                if pooling_info and pooling_info.get("pooling_process_id"):
+                    pooling_process_id = pooling_info["pooling_process_id"]
+                    break
+
+            if pooling_process_id:
+                if pooling_process_id not in pooling_groups:
+                    pooling_groups[pooling_process_id] = {
+                        "entries": [],
+                        "processed_sample_id": pooling_info.get("processed_sample_id"),
+                        "processed_sample_name": pooling_info.get(
+                            "processed_sample_name", ""
+                        ),
+                    }
+                pooling_groups[pooling_process_id]["entries"].append(entry)
+            else:
+                individual_entries.append(entry)
+
+        # Process pooled entries - create one SRA <Action> block per pooling process
+        for pooling_process_id, group_data in pooling_groups.items():
+            self._create_pooled_sra_action(
+                group_data["entries"],
+                group_data["processed_sample_id"],
+                group_data["processed_sample_name"],
+                bioproject_id,
+                org,
+                nmdc_nucleotide_sequencing,
+                nmdc_library_preparation,
+                all_instruments,
+                bsm_id_name_dict,
+            )
+
+        # Process individual entries
+        for entry in individual_entries:
             fastq_files = []
             biosample_ids = []
             nucleotide_sequencing_ids = {}
@@ -530,6 +909,7 @@ class NCBISubmissionXML:
                         )
                     )
 
+                # Add library_name attribute
                 if library_name:
                     sra_attributes.append(
                         self.set_element(
@@ -575,6 +955,233 @@ class NCBISubmissionXML:
 
                     self.root.append(action)
 
+    def _create_pooled_sra_action(
+        self,
+        entries,
+        processed_sample_id,
+        processed_sample_name,
+        bioproject_id,
+        org,
+        nmdc_nucleotide_sequencing,
+        nmdc_library_preparation,
+        all_instruments,
+        bsm_id_name_dict,
+    ):
+        if not processed_sample_id:
+            return
+
+        # Collect all fastq files from all entries
+        all_fastq_files = set()
+        all_biosample_ids = set()
+        nucleotide_sequencing_ids = {}
+        lib_prep_protocol_names = {}
+        analyte_category = ""
+        instrument_vendor = ""
+        instrument_model = ""
+
+        for entry in entries:
+            for biosample_id, data_objects in entry.items():
+                all_biosample_ids.add(biosample_id)
+                for data_object in data_objects:
+                    if "url" in data_object:
+                        url = urlparse(data_object["url"])
+                        file_path = os.path.basename(url.path)
+                        all_fastq_files.add(file_path)
+
+                # Get nucleotide sequencing info
+                for ntseq_dict in nmdc_nucleotide_sequencing:
+                    if biosample_id in ntseq_dict:
+                        for ntseq in ntseq_dict[biosample_id]:
+                            nucleotide_sequencing_ids[biosample_id] = ntseq.get(
+                                "id", ""
+                            )
+                            instrument_used = ntseq.get("instrument_used", [])
+                            if instrument_used:
+                                instrument_id = instrument_used[0]
+                                instrument = all_instruments.get(instrument_id, {})
+                                instrument_vendor = instrument.get("vendor", "")
+                                instrument_model = instrument.get("model", "")
+                            analyte_category = ntseq.get("analyte_category", "")
+
+                # Get library preparation info
+                for lib_prep_dict in nmdc_library_preparation:
+                    if biosample_id in lib_prep_dict:
+                        lib_prep_protocol_names[biosample_id] = (
+                            lib_prep_dict[biosample_id]
+                            .get("protocol_link", {})
+                            .get("name", "")
+                        )
+
+        if all_fastq_files:
+            files_elements = [
+                self.set_element(
+                    "File",
+                    "",
+                    {"file_path": f},
+                    [
+                        self.set_element(
+                            "DataType",
+                            "sra-run-fastq" if ".fastq" in f else "generic-data",
+                        )
+                    ],
+                )
+                for f in sorted(all_fastq_files)
+            ]
+
+            attribute_elements = [
+                self.set_element(
+                    "AttributeRefId",
+                    attrib={"name": "BioProject"},
+                    children=[
+                        self.set_element(
+                            "RefId",
+                            children=[
+                                self.set_element(
+                                    "PrimaryId",
+                                    bioproject_id,
+                                    {"db": "BioProject"},
+                                )
+                            ],
+                        )
+                    ],
+                ),
+                # Reference the processed sample, not individual biosamples
+                self.set_element(
+                    "AttributeRefId",
+                    attrib={"name": "BioSample"},
+                    children=[
+                        self.set_element(
+                            "RefId",
+                            children=[
+                                self.set_element(
+                                    "SPUID",
+                                    processed_sample_id,
+                                    {"spuid_namespace": org},
+                                )
+                            ],
+                        )
+                    ],
+                ),
+            ]
+
+            sra_attributes = []
+            if instrument_vendor == "illumina":
+                sra_attributes.append(
+                    self.set_element("Attribute", "ILLUMINA", {"name": "platform"})
+                )
+                if instrument_model == "nextseq_550":
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "NextSeq 550", {"name": "instrument_model"}
+                        )
+                    )
+                elif instrument_model == "novaseq_6000":
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            "NovaSeq 6000",
+                            {"name": "instrument_model"},
+                        )
+                    )
+                elif instrument_model == "hiseq":
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute", "HiSeq", {"name": "instrument_model"}
+                        )
+                    )
+
+            if analyte_category == "metagenome":
+                sra_attributes.append(
+                    self.set_element("Attribute", "WGS", {"name": "library_strategy"})
+                )
+                sra_attributes.append(
+                    self.set_element(
+                        "Attribute", "METAGENOMIC", {"name": "library_source"}
+                    )
+                )
+                sra_attributes.append(
+                    self.set_element(
+                        "Attribute", "RANDOM", {"name": "library_selection"}
+                    )
+                )
+            elif analyte_category == "metatranscriptome":
+                sra_attributes.append(
+                    self.set_element(
+                        "Attribute",
+                        "METATRANSCRIPTOMIC",
+                        {"name": "library_source"},
+                    )
+                )
+
+            # Determine library layout based on file patterns
+            has_paired_reads = any(
+                "_R1" in f and "_R2" in f.replace("_R1", "_R2") in all_fastq_files
+                for f in all_fastq_files
+                if "_R1" in f
+            )
+
+            if has_paired_reads:
+                sra_attributes.append(
+                    self.set_element("Attribute", "paired", {"name": "library_layout"})
+                )
+            else:
+                sra_attributes.append(
+                    self.set_element("Attribute", "single", {"name": "library_layout"})
+                )
+
+            # Add library_name attribute using ProcessedSample name
+            if processed_sample_name:
+                sra_attributes.append(
+                    self.set_element(
+                        "Attribute", processed_sample_name, {"name": "library_name"}
+                    )
+                )
+
+            # Add library construction protocol from any of the biosamples
+            for biosample_id, lib_prep_name in lib_prep_protocol_names.items():
+                if lib_prep_name:
+                    sra_attributes.append(
+                        self.set_element(
+                            "Attribute",
+                            lib_prep_name,
+                            {"name": "library_construction_protocol"},
+                        )
+                    )
+                    break  # Only add one protocol name
+
+            # Use the first nucleotide sequencing ID as the identifier
+            omics_processing_id = None
+            for biosample_id, seq_id in nucleotide_sequencing_ids.items():
+                if seq_id:
+                    omics_processing_id = seq_id
+                    break
+
+            if omics_processing_id:
+                identifier_element = self.set_element(
+                    "Identifier",
+                    children=[
+                        self.set_element(
+                            "SPUID", omics_processing_id, {"spuid_namespace": org}
+                        )
+                    ],
+                )
+
+                action = self.set_element(
+                    "Action",
+                    children=[
+                        self.set_element(
+                            "AddFiles",
+                            attrib={"target_db": "SRA"},
+                            children=files_elements
+                            + attribute_elements
+                            + sra_attributes
+                            + [identifier_element],
+                        ),
+                    ],
+                )
+
+                self.root.append(action)
+
     def get_submission_xml(
         self,
         biosamples_list: list,
@@ -582,6 +1189,7 @@ class NCBISubmissionXML:
         biosample_data_objects_list: list,
         biosample_library_preparation_list: list,
         instruments_dict: dict,
+        pooled_biosamples_data=None,
     ):
         # data_type = None
 
@@ -644,6 +1252,7 @@ class NCBISubmissionXML:
             org=self.ncbi_submission_metadata.get("organization", ""),
             bioproject_id=self.ncbi_bioproject_id,
             nmdc_biosamples=filtered_biosamples_list,
+            pooled_biosamples_data=pooled_biosamples_data,
         )
 
         # Also filter biosample_data_objects_list
@@ -690,6 +1299,7 @@ class NCBISubmissionXML:
             nmdc_biosamples=filtered_biosamples_list,
             nmdc_library_preparation=filtered_library_preparation_list,
             all_instruments=instruments_dict,
+            pooled_biosamples_data=pooled_biosamples_data,
         )
 
         rough_string = ET.tostring(self.root, "unicode")
