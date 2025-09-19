@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/runs", 
+    "/runs",
     response_model=RunSummary,
     description="Request execution of a workflow run",
 )
@@ -31,7 +31,7 @@ def request_run(
 ):
     """
     Request the execution of a workflow with the specified configuration.
-    
+
     Creates a new run request and returns a summary of the execution status.
     """
     requested = _request_dagster_run(
@@ -71,8 +71,8 @@ def _get_run_summary(run_id, mdb) -> RunSummary:
 
 
 @router.get(
-    "/runs/{run_id}", 
-    response_model=RunSummary, 
+    "/runs/{run_id}",
+    response_model=RunSummary,
     response_model_exclude_unset=True,
     description="Get summary of a workflow run",
 )
@@ -89,14 +89,14 @@ def get_run_summary(
 ):
     """
     Retrieve a summary of the specified workflow run.
-    
+
     Returns run status, timing information, and key events.
     """
     return _get_run_summary(run_id, mdb)
 
 
 @router.get(
-    "/runs/{run_id}/events", 
+    "/runs/{run_id}/events",
     response_model=ListResponse[RunEvent],
     description="List events for a workflow run",
 )
@@ -113,7 +113,7 @@ def list_events_for_run(
 ):
     """
     List all events for the specified run in reverse chronological order.
-    
+
     Events track the lifecycle and progress of workflow execution.
     """
     """List events for run, in reverse chronological order."""

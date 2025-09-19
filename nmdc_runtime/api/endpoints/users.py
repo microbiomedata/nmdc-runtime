@@ -75,7 +75,7 @@ async def get_orcid_jwt(
 ):
     """
     Retrieve the current user's ORCiD JWT token from browser cookies.
-    
+
     Returns the JWT token if the user is logged in via ORCiD, otherwise returns a message indicating no token found.
     """
     if user_id_token:

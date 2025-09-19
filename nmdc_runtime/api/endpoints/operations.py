@@ -21,7 +21,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/operations", 
+    "/operations",
     response_model=ListOperationsResponse[ResultT, MetadataT],
     description="List operations with optional filtering",
 )
@@ -31,14 +31,14 @@ def list_operations(
 ):
     """
     Retrieve a list of operations with optional filtering and pagination.
-    
+
     Operations track the progress and status of long-running tasks.
     """
     return list_resources(req, mdb, "operations")
 
 
 @router.get(
-    "/operations/{op_id}", 
+    "/operations/{op_id}",
     response_model=Operation[ResultT, MetadataT],
     description="Get details of a specific operation",
 )
@@ -55,7 +55,7 @@ def get_operation(
 ):
     """
     Retrieve detailed information about a specific operation.
-    
+
     Returns operation status, progress, and result data.
     """
     op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
@@ -63,7 +63,7 @@ def get_operation(
 
 
 @router.patch(
-    "/operations/{op_id}", 
+    "/operations/{op_id}",
     response_model=Operation[ResultT, MetadataT],
     description="Update operation status and metadata",
 )

@@ -35,7 +35,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/workflows", 
+    "/workflows",
     response_model=List[Workflow],
     description="List all available workflows",
 )
@@ -44,14 +44,14 @@ def list_workflows(
 ):
     """
     Retrieve a list of all workflows available in the system.
-    
+
     Returns workflow definitions including their capabilities and metadata.
     """
     return list(mdb.workflows.find())
 
 
 @router.get(
-    "/workflows/{workflow_id}", 
+    "/workflows/{workflow_id}",
     response_model=Workflow,
     description="Get details of a specific workflow",
 )
@@ -68,14 +68,14 @@ def get_workflow(
 ):
     """
     Retrieve detailed information about a specific workflow.
-    
+
     Returns the workflow definition including its capabilities, object types, and metadata.
     """
     return raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
 
 
 @router.get(
-    "/workflows/{workflow_id}/object_types", 
+    "/workflows/{workflow_id}/object_types",
     response_model=List[ObjectType],
     description="List object types that can trigger a workflow",
 )
@@ -92,7 +92,7 @@ def list_workflow_object_types(
 ):
     """
     List all object types that can trigger the specified workflow.
-    
+
     Returns object type definitions that are configured as triggers for this workflow.
     """
     object_type_ids = [
@@ -102,7 +102,7 @@ def list_workflow_object_types(
 
 
 @router.get(
-    "/workflows/{workflow_id}/capabilities", 
+    "/workflows/{workflow_id}/capabilities",
     response_model=List[Capability],
     description="List capabilities required by a workflow",
 )
@@ -119,7 +119,7 @@ def list_workflow_capabilities(
 ):
     """
     List all capabilities required by the specified workflow.
-    
+
     Returns capability definitions that this workflow depends on for execution.
     """
     doc = raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))

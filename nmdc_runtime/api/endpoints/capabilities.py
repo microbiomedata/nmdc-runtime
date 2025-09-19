@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/capabilities", 
+    "/capabilities",
     response_model=List[Capability],
     description="List all available capabilities",
 )
@@ -20,14 +20,14 @@ def list_capabilities(
 ):
     """
     Retrieve a list of all capabilities available in the system.
-    
+
     Capabilities define the functional requirements for workflow execution.
     """
     return list(mdb.capabilities.find())
 
 
 @router.get(
-    "/capabilities/{capability_id}", 
+    "/capabilities/{capability_id}",
     response_model=Capability,
     description="Get details of a specific capability",
 )
@@ -44,7 +44,7 @@ def get_capability(
 ):
     """
     Retrieve detailed information about a specific capability.
-    
+
     Returns the capability definition including its requirements and configuration.
     """
     return raise404_if_none(mdb.capabilities.find_one({"id": capability_id}))

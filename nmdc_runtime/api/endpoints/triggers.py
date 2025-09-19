@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/triggers", 
+    "/triggers",
     response_model=List[Trigger],
     description="List all workflow triggers",
 )
@@ -20,14 +20,14 @@ def list_triggers(
 ):
     """
     Retrieve a list of all workflow triggers in the system.
-    
+
     Triggers define the conditions that automatically start workflow execution.
     """
     return list(mdb.triggers.find())
 
 
 @router.get(
-    "/triggers/{trigger_id}", 
+    "/triggers/{trigger_id}",
     response_model=Trigger,
     description="Get details of a specific trigger",
 )
@@ -44,7 +44,7 @@ def get_trigger(
 ):
     """
     Retrieve detailed information about a specific workflow trigger.
-    
+
     Returns the trigger configuration including its conditions and associated workflow.
     """
     return raise404_if_none(mdb.triggers.find_one({"id": trigger_id}))

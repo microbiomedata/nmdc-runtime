@@ -70,8 +70,8 @@ def create_site(
 
 
 @router.get(
-    "/sites", 
-    response_model=ListResponse[Site], 
+    "/sites",
+    response_model=ListResponse[Site],
     response_model_exclude_unset=True,
     description="List all sites with optional filtering and pagination",
 )
@@ -81,15 +81,15 @@ def list_sites(
 ):
     """
     Retrieve a list of all sites in the system.
-    
+
     Supports filtering and pagination through query parameters.
     """
     return list_resources(req, mdb, "sites")
 
 
 @router.get(
-    "/sites/{site_id}", 
-    response_model=Site, 
+    "/sites/{site_id}",
+    response_model=Site,
     response_model_exclude_unset=True,
     description="Get details of a specific site by its ID",
 )
@@ -106,7 +106,7 @@ def get_site(
 ):
     """
     Retrieve detailed information about a specific site.
-    
+
     Returns the complete site record including configuration and metadata.
     """
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
@@ -155,7 +155,7 @@ def put_object_in_site(
 ):
     """
     Generate a presigned URL for uploading an object to S3-compatible storage.
-    
+
     Returns an operation that contains the upload URL and metadata.
     The operation expires after the specified time limit.
     """
@@ -210,7 +210,7 @@ def get_site_object_link(
 ):
     """
     Generate a presigned URL for downloading an object from S3-compatible storage.
-    
+
     The URL allows temporary access to the object without requiring authentication.
     """
     if site_id != API_SITE_ID:
@@ -226,7 +226,7 @@ def get_site_object_link(
 
 
 @router.post(
-    "/sites/{site_id}:generateCredentials", 
+    "/sites/{site_id}:generateCredentials",
     response_model=ClientCredentials,
     description="Generate client credentials for a site",
 )

@@ -24,8 +24,8 @@ router = APIRouter()
 
 
 @router.get(
-    "/jobs", 
-    response_model=ListResponse[Job], 
+    "/jobs",
+    response_model=ListResponse[Job],
     response_model_exclude_unset=True,
     description="List workflow jobs with optional filtering",
 )
@@ -46,8 +46,8 @@ def list_jobs(
 
 
 @router.get(
-    "/jobs/{job_id}", 
-    response_model=Job, 
+    "/jobs/{job_id}",
+    response_model=Job,
     response_model_exclude_unset=True,
     description="Get details of a specific job",
 )
@@ -64,14 +64,14 @@ def get_job_info(
 ):
     """
     Retrieve detailed information about a specific job.
-    
+
     Returns job configuration, status, and execution metadata.
     """
     return raise404_if_none(mdb.jobs.find_one({"id": job_id}))
 
 
 @router.post(
-    "/jobs/{job_id}:claim", 
+    "/jobs/{job_id}:claim",
     response_model=Operation[ResultT, MetadataT],
     description="Claim a job for execution by a site",
 )
@@ -89,7 +89,7 @@ def claim_job(
 ):
     """
     Claim a job for execution by the authenticated site.
-    
+
     Returns an operation that tracks the job execution process.
     """
     return _claim_job(job_id, mdb, site)
