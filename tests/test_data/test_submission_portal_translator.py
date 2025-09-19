@@ -424,7 +424,7 @@ def test_instruments(test_minter):
 
 @pytest.mark.parametrize(
     "data_file_base",
-    ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data"],
+    ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data", "soil_sample_link"],
 )
 def test_get_dataset(test_minter, monkeypatch, data_file_base):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
@@ -473,3 +473,16 @@ def test_get_dataset(test_minter, monkeypatch, data_file_base):
 
     validation_result = validate_json(json_dumper.to_dict(actual), mongo_db)
     assert validation_result == {"result": "All Okay!"}
+
+
+def test_parse_sample_link():
+    translator = SubmissionPortalTranslator()
+
+    parsed = translator._parse_sample_link("")
+    assert parsed is None
+
+    parsed = translator._parse_sample_link("invalid syntax")
+    assert parsed is None
+
+    parsed = translator._parse_sample_link("Pooling:sample1, sample2")
+    assert parsed == ("Pooling", ["sample1", "sample2"])

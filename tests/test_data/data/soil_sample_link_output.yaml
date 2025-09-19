@@ -1,0 +1,139 @@
+biosample_set:
+  - id: 'nmdc:bsm-00-4wn6isig'
+    type: 'nmdc:Biosample'
+    name: '00001'
+    associated_studies: ['nmdc:sty-00-y0cq65zt']
+    env_broad_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'urban biome [ENVO:01000249]'
+      term:
+        id: 'ENVO:01000249'
+        type: 'nmdc:OntologyClass'
+        name: 'urban biome'
+    env_local_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'tunnel [ENVO:00000068]'
+      term:
+        id: 'ENVO:00000068'
+        type: 'nmdc:OntologyClass'
+        name: 'tunnel'
+    env_medium:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'bare soil [ENVO:01001616]'
+      term:
+        id: 'ENVO:01001616'
+        type: 'nmdc:OntologyClass'
+        name: 'bare soil'
+    collection_date:
+       type: 'nmdc:TimestampValue'
+       has_raw_value: '2022-01-15'
+    depth:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '0 - 1'
+      has_unit: 'm'
+      has_maximum_numeric_value: 1
+      has_minimum_numeric_value: 0
+    elev: 123.0
+    env_package:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'soil'
+    geo_loc_name:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'USA: Nowhere, Oklahoma'
+    growth_facil:
+      type: 'nmdc:ControlledTermValue'
+      has_raw_value: 'greenhouse'
+    lat_lon:
+      type: 'nmdc:GeolocationValue'
+      has_raw_value: '35.211445 -98.464612'
+      latitude: 35.211445
+      longitude: -98.464612
+    samp_name: '00001'
+    samp_store_temp:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '-80 Cel'
+      has_unit: 'Cel'
+      has_numeric_value: -80
+    store_cond:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'frozen'
+    analysis_type: ['metagenomics']
+  - id: 'nmdc:bsm-00-q8jtgev4'
+    type: 'nmdc:Biosample'
+    name: '00002'
+    associated_studies: [ 'nmdc:sty-00-y0cq65zt' ]
+    env_broad_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'urban biome [ENVO:01000249]'
+      term:
+        id: 'ENVO:01000249'
+        type: 'nmdc:OntologyClass'
+        name: 'urban biome'
+    env_local_scale:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'tunnel [ENVO:00000068]'
+      term:
+        id: 'ENVO:00000068'
+        type: 'nmdc:OntologyClass'
+        name: 'tunnel'
+    env_medium:
+      type: 'nmdc:ControlledIdentifiedTermValue'
+      has_raw_value: 'bare soil [ENVO:01001616]'
+      term:
+        id: 'ENVO:01001616'
+        type: 'nmdc:OntologyClass'
+        name: 'bare soil'
+    collection_date:
+      type: 'nmdc:TimestampValue'
+      has_raw_value: '2022-01-15'
+    depth:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '0 - 1'
+      has_unit: 'm'
+      has_maximum_numeric_value: 1
+      has_minimum_numeric_value: 0
+    elev: 123.0
+    env_package:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'soil'
+    geo_loc_name:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'USA: Nowhere, Oklahoma'
+    growth_facil:
+      type: 'nmdc:ControlledTermValue'
+      has_raw_value: 'greenhouse'
+    lat_lon:
+      type: 'nmdc:GeolocationValue'
+      has_raw_value: '35.211445 -98.464612'
+      latitude: 35.211445
+      longitude: -98.464612
+    samp_name: '00002'
+    samp_store_temp:
+      type: 'nmdc:QuantityValue'
+      has_raw_value: '-80 Cel'
+      has_unit: 'Cel'
+      has_numeric_value: -80
+    store_cond:
+      type: 'nmdc:TextValue'
+      has_raw_value: 'frozen'
+    analysis_type: [ 'metagenomics' ]
+processed_sample_set:
+  - id: 'nmdc:procsm-00-27qd9afz'
+    type: 'nmdc:ProcessedSample'
+    name: '00003-POOLED'
+material_processing_set:
+  - id: 'nmdc:poolp-00-a5vpuemo'
+    type: 'nmdc:Pooling'
+    has_input: ['nmdc:bsm-00-4wn6isig', 'nmdc:bsm-00-q8jtgev4']
+    has_output: ['nmdc:procsm-00-27qd9afz']
+study_set:
+  - id: 'nmdc:sty-00-y0cq65zt'
+    type: 'nmdc:Study'
+    name: 'A test submission where sample_link is used to generate processed sample records'
+    study_category: research_study
+    principal_investigator:
+      type: 'nmdc:PersonValue'
+      email: 'test.testerson@example.com'
+      name: 'Test Testerson'
+      orcid: '0000-0000-0000-000X'
+    title: 'A test submission where sample_link is used to generate processed sample records'

@@ -176,6 +176,13 @@ class SubmissionPortalTranslator(Translator):
         )
 
         self.schema_view: SchemaView = _get_schema_view()
+        self._material_processing_subclass_names = []
+        for class_name in self.schema_view.class_descendants(
+            "MaterialProcessing", reflexive=False
+        ):
+            class_def = self.schema_view.get_class(class_name)
+            if not class_def.abstract:
+                self._material_processing_subclass_names.append(class_name)
 
     def _get_pi(
         self, metadata_submission: JSON_OBJECT
@@ -544,6 +551,14 @@ class SubmissionPortalTranslator(Translator):
 
         return data_objects, manifest
 
+    def _parse_sample_link(self, sample_link: str) -> tuple[str, list[str]] | None:
+        """Parse a sample link in the form of `ProcessingName:SampleName,..."""
+        pattern = r"(" + "|".join(self._material_processing_subclass_names) + r"):(.+)"
+        match = re.match(pattern, sample_link)
+        if not match:
+            return None
+        return match.group(1), split_strip(match.group(2), ",")
+
     def _translate_study(
         self, metadata_submission: JSON_OBJECT, nmdc_study_id: str
     ) -> nmdc.Study:
@@ -793,15 +808,63 @@ class SubmissionPortalTranslator(Translator):
         )
 
         # Translate the sample data into nmdc:Biosample objects
-        database.biosample_set = [
-            self._translate_biosample(
-                sample_data,
-                nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
-                nmdc_study_id=nmdc_study_id,
-            )
-            for sample_data_id, sample_data in sample_data_by_id.items()
-            if sample_data
-        ]
+        database.biosample_set = []
+        for sample_data_id, sample_data in sample_data_by_id.items():
+            # This shouldn't happen, but just in case skip empty sample data
+            if not sample_data:
+                continue
+
+            # Find the first tab that has a sample_link value and attempt to parse it
+            sample_link = ""
+            for tab in sample_data:
+                if tab.get("sample_link"):
+                    sample_link = tab.get("sample_link")
+                    break
+            parsed_sample_link = self._parse_sample_link(sample_link)
+
+            # If the sample_link could be parsed according to the [ProcessName]:[InputSample,...]
+            # format, then create a ProcessedSample and MaterialProcessing instance instead of a
+            # Biosample instance. The input samples must be present in the submission for this to
+            # work. An exception is raised if any of the referenced input samples are missing.
+            if parsed_sample_link is not None:
+                processing_type, processing_inputs = parsed_sample_link
+                if not all(
+                    input_id in sample_data_to_nmdc_biosample_ids
+                    for input_id in processing_inputs
+                ):
+                    raise ValueError(
+                        f"Could not find all input samples in sample_link '{sample_link}'"
+                    )
+                processed_sample_id = self._id_minter("nmdc:ProcessedSample")[0]
+                database.processed_sample_set.append(
+                    nmdc.ProcessedSample(
+                        id=processed_sample_id,
+                        type="nmdc:ProcessedSample",
+                        name=sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip(),
+                    )
+                )
+
+                processing_class = getattr(nmdc, processing_type)
+                material_processing = processing_class(
+                    id=self._id_minter(f"nmdc:{processing_type}")[0],
+                    type=f"nmdc:{processing_type}",
+                    has_input=[
+                        sample_data_to_nmdc_biosample_ids[input_id]
+                        for input_id in processing_inputs
+                    ],
+                    has_output=[processed_sample_id],
+                )
+                database.material_processing_set.append(material_processing)
+
+            # If there was no sample_link or it doesn't follow the expected format, create a
+            # Biosample instance as normal.
+            else:
+                biosample = self._translate_biosample(
+                    sample_data,
+                    nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
+                    nmdc_study_id=nmdc_study_id,
+                )
+                database.biosample_set.append(biosample)
 
         # This section handles the translation of information in the external sequencing tabs into
         # various NMDC objects.
