@@ -19,12 +19,21 @@ from nmdc_runtime.api.models.util import ListResponse
 router = APIRouter()
 
 
-@router.post("/runs", response_model=RunSummary)
+@router.post(
+    "/runs", 
+    response_model=RunSummary,
+    description="Request execution of a workflow run",
+)
 def request_run(
     run_user_spec: RunUserSpec = Depends(),
     mdb: MongoDatabase = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """
+    Request the execution of a workflow with the specified configuration.
+    
+    Creates a new run request and returns a summary of the execution status.
+    """
     requested = _request_dagster_run(
         nmdc_workflow_id=run_user_spec.job_id,
         nmdc_workflow_inputs=run_user_spec.inputs,
@@ -62,7 +71,10 @@ def _get_run_summary(run_id, mdb) -> RunSummary:
 
 
 @router.get(
-    "/runs/{run_id}", response_model=RunSummary, response_model_exclude_unset=True
+    "/runs/{run_id}", 
+    response_model=RunSummary, 
+    response_model_exclude_unset=True,
+    description="Get summary of a workflow run",
 )
 def get_run_summary(
     run_id: Annotated[
@@ -75,10 +87,19 @@ def get_run_summary(
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    Retrieve a summary of the specified workflow run.
+    
+    Returns run status, timing information, and key events.
+    """
     return _get_run_summary(run_id, mdb)
 
 
-@router.get("/runs/{run_id}/events", response_model=ListResponse[RunEvent])
+@router.get(
+    "/runs/{run_id}/events", 
+    response_model=ListResponse[RunEvent],
+    description="List events for a workflow run",
+)
 def list_events_for_run(
     run_id: Annotated[
         str,
@@ -90,6 +111,11 @@ def list_events_for_run(
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    List all events for the specified run in reverse chronological order.
+    
+    Events track the lifecycle and progress of workflow execution.
+    """
     """List events for run, in reverse chronological order."""
     raise404_if_none(mdb.run_events.find_one({"run.id": run_id}))
     return {

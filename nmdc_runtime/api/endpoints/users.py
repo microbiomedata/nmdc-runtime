@@ -60,7 +60,10 @@ async def receive_orcid_code(request: Request, code: str, state: str | None = No
     return response
 
 
-@router.get("/orcid_jwt")
+@router.get(
+    "/orcid_jwt",
+    description="Retrieve the current user's ORCiD JWT token",
+)
 async def get_orcid_jwt(
     user_id_token: Annotated[
         str | None,
@@ -70,6 +73,11 @@ async def get_orcid_jwt(
         ),
     ] = None,
 ):
+    """
+    Retrieve the current user's ORCiD JWT token from browser cookies.
+    
+    Returns the JWT token if the user is logged in via ORCiD, otherwise returns a message indicating no token found.
+    """
     if user_id_token:
         return PlainTextResponse(content=user_id_token)
     else:

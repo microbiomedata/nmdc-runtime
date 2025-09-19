@@ -24,7 +24,10 @@ router = APIRouter()
 
 
 @router.get(
-    "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
+    "/jobs", 
+    response_model=ListResponse[Job], 
+    response_model_exclude_unset=True,
+    description="List workflow jobs with optional filtering",
 )
 def list_jobs(
     req: Annotated[ListRequest, Query()],
@@ -42,7 +45,12 @@ def list_jobs(
     return list_resources(req, mdb, "jobs")
 
 
-@router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
+@router.get(
+    "/jobs/{job_id}", 
+    response_model=Job, 
+    response_model_exclude_unset=True,
+    description="Get details of a specific job",
+)
 def get_job_info(
     job_id: Annotated[
         str,
@@ -54,10 +62,19 @@ def get_job_info(
     ],
     mdb: Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve detailed information about a specific job.
+    
+    Returns job configuration, status, and execution metadata.
+    """
     return raise404_if_none(mdb.jobs.find_one({"id": job_id}))
 
 
-@router.post("/jobs/{job_id}:claim", response_model=Operation[ResultT, MetadataT])
+@router.post(
+    "/jobs/{job_id}:claim", 
+    response_model=Operation[ResultT, MetadataT],
+    description="Claim a job for execution by a site",
+)
 def claim_job(
     job_id: Annotated[
         str,
@@ -70,6 +87,11 @@ def claim_job(
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
+    """
+    Claim a job for execution by the authenticated site.
+    
+    Returns an operation that tracks the job execution process.
+    """
     return _claim_job(job_id, mdb, site)
 
 

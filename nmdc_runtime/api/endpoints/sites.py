@@ -70,16 +70,29 @@ def create_site(
 
 
 @router.get(
-    "/sites", response_model=ListResponse[Site], response_model_exclude_unset=True
+    "/sites", 
+    response_model=ListResponse[Site], 
+    response_model_exclude_unset=True,
+    description="List all sites with optional filtering and pagination",
 )
 def list_sites(
     req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve a list of all sites in the system.
+    
+    Supports filtering and pagination through query parameters.
+    """
     return list_resources(req, mdb, "sites")
 
 
-@router.get("/sites/{site_id}", response_model=Site, response_model_exclude_unset=True)
+@router.get(
+    "/sites/{site_id}", 
+    response_model=Site, 
+    response_model_exclude_unset=True,
+    description="Get details of a specific site by its ID",
+)
 def get_site(
     site_id: Annotated[
         str,
@@ -91,6 +104,11 @@ def get_site(
     ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve detailed information about a specific site.
+    
+    Returns the complete site record including configuration and metadata.
+    """
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
@@ -120,6 +138,7 @@ def verify_client_site_pair(
     "/sites/{site_id}:putObject",
     response_model=Operation[DrsObjectIn, ObjectPutMetadata],
     dependencies=[Depends(verify_client_site_pair)],
+    description="Create a presigned URL for uploading an object to site storage",
 )
 def put_object_in_site(
     site_id: Annotated[
@@ -134,6 +153,12 @@ def put_object_in_site(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    """
+    Generate a presigned URL for uploading an object to S3-compatible storage.
+    
+    Returns an operation that contains the upload URL and metadata.
+    The operation expires after the specified time limit.
+    """
     if site_id != API_SITE_ID:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -169,6 +194,7 @@ def put_object_in_site(
     "/sites/{site_id}:getObjectLink",
     response_model=AccessURL,
     dependencies=[Depends(verify_client_site_pair)],
+    description="Generate a presigned URL for downloading an object from site storage",
 )
 def get_site_object_link(
     site_id: Annotated[
@@ -182,6 +208,11 @@ def get_site_object_link(
     access_method: AccessMethod,
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
+    """
+    Generate a presigned URL for downloading an object from S3-compatible storage.
+    
+    The URL allows temporary access to the object without requiring authentication.
+    """
     if site_id != API_SITE_ID:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -194,7 +225,11 @@ def get_site_object_link(
     return {"url": url}
 
 
-@router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
+@router.post(
+    "/sites/{site_id}:generateCredentials", 
+    response_model=ClientCredentials,
+    description="Generate client credentials for a site",
+)
 def generate_credentials_for_site_client(
     site_id: Annotated[
         str,

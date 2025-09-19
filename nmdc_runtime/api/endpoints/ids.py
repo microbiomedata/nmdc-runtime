@@ -33,7 +33,11 @@ from nmdc_runtime.api.models.site import get_current_client_site, Site
 router = APIRouter()
 
 
-@router.post("/ids/mint", response_model=List[str])
+@router.post(
+    "/ids/mint", 
+    response_model=List[str],
+    description="Generate new NMDC identifiers",
+)
 def mint_ids(
     mint_req: MintRequest,
     mdb: MongoDatabase = Depends(get_mongo_db),
@@ -54,12 +58,21 @@ def mint_ids(
     return ids
 
 
-@router.post("/ids/bindings", response_model=List[Dict[str, Any]])
+@router.post(
+    "/ids/bindings", 
+    response_model=List[Dict[str, Any]],
+    description="Create bindings between identifiers and data objects",
+)
 def set_id_bindings(
     binding_requests: List[IdBindingRequest],
     mdb: MongoDatabase = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
+    """
+    Create bindings between NMDC identifiers and their associated data.
+    
+    Associates identifiers with documents in the database for resolution.
+    """
     bons = [r.i for r in binding_requests]
     ids: List[IdThreeParts] = []
     for bon in bons:
@@ -119,7 +132,11 @@ def set_id_bindings(
         return [dissoc(d, "_id") for d in docs]
 
 
-@router.get("/ids/bindings/{rest:path}", response_model=Dict[str, Any])
+@router.get(
+    "/ids/bindings/{rest:path}", 
+    response_model=Dict[str, Any],
+    description="Resolve an identifier to its bound data",
+)
 def get_id_bindings(
     rest: Annotated[
         str,
@@ -131,6 +148,11 @@ def get_id_bindings(
     ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
+    """
+    Resolve an NMDC identifier to its associated data.
+    
+    Returns the document or field value bound to the specified identifier.
+    """
     cleaned = rest.replace("-", "")
     parts = cleaned.split(":")
     if len(parts) != 2:
