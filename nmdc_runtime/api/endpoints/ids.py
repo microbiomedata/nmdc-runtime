@@ -3,9 +3,9 @@
 """
 
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import ValidationError
 from pymongo.database import Database as MongoDatabase
 from starlette import status
@@ -121,7 +121,11 @@ def set_id_bindings(
 
 @router.get("/ids/bindings/{rest:path}", response_model=Dict[str, Any])
 def get_id_bindings(
-    rest: str,
+    rest: Annotated[str, Path(
+        title="ID Path",
+        description="The identifier path (e.g., 'nmdc:bsm-11-abc123' or 'nmdc:bsm-11-abc123/name').",
+        examples=["nmdc:bsm-11-abc123"],
+    )],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     cleaned = rest.replace("-", "")

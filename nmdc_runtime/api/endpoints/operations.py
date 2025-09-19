@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Query, Path
 from toolz import get_in, merge, assoc
 
 from nmdc_runtime.api.core.util import raise404_if_none, pick
@@ -30,7 +30,11 @@ def list_operations(
 
 @router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
 def get_operation(
-    op_id: str,
+    op_id: Annotated[str, Path(
+        title="Operation ID",
+        description="The unique identifier of the operation.",
+        examples=["nmdc:op-11-abc123"],
+    )],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
@@ -39,7 +43,11 @@ def get_operation(
 
 @router.patch("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
 def update_operation(
-    op_id: str,
+    op_id: Annotated[str, Path(
+        title="Operation ID",
+        description="The unique identifier of the operation to update.",
+        examples=["nmdc:op-11-abc123"],
+    )],
     op_patch: UpdateOperationRequest,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),

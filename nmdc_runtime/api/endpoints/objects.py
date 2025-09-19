@@ -1,7 +1,7 @@
 from typing import List, Annotated
 
 import botocore
-from fastapi import APIRouter, status, Depends, HTTPException, Query
+from fastapi import APIRouter, status, Depends, HTTPException, Query, Path
 from gridfs import GridFS
 from pymongo import ReturnDocument
 from pymongo.database import Database as MongoDatabase
@@ -183,14 +183,25 @@ def get_ga4gh_object_info(object_id: DrsId):
 
 
 @router.get("/objects/{object_id}/types", response_model=List[ObjectType])
-def list_object_types(object_id: DrsId, mdb: MongoDatabase = Depends(get_mongo_db)):
+def list_object_types(
+    object_id: Annotated[DrsId, Path(
+        title="Object ID", 
+        description="The unique identifier of the object.",
+        examples=["nmdc:dobj-11-abc123"],
+    )],
+    mdb: MongoDatabase = Depends(get_mongo_db),
+):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}, ["types"]))
     return list(mdb.object_types.find({"id": {"$in": doc.get("types", [])}}))
 
 
 @router.put("/objects/{object_id}/types", response_model=DrsObjectWithTypes)
 def replace_object_types(
-    object_id: str,
+    object_id: Annotated[str, Path(
+        title="Object ID",
+        description="The unique identifier of the object whose types to replace.",
+        examples=["nmdc:dobj-11-abc123"],
+    )],
     object_type_ids: List[str],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
@@ -219,8 +230,16 @@ def object_access_id_ok(obj_doc, access_id):
 
 @router.get("/objects/{object_id}/access/{access_id}", response_model=AccessURL)
 def get_object_access(
-    object_id: DrsId,
-    access_id: str,
+    object_id: Annotated[DrsId, Path(
+        title="Object ID",
+        description="The unique identifier of the object.",
+        examples=["nmdc:dobj-11-abc123"],
+    )],
+    access_id: Annotated[str, Path(
+        title="Access ID", 
+        description="The identifier for the access method.",
+        examples=["access-123"],
+    )],
     mdb: MongoDatabase = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
@@ -254,7 +273,11 @@ def get_object_access(
 
 @router.patch("/objects/{object_id}", response_model=DrsObject)
 def update_object(
-    object_id: str,
+    object_id: Annotated[str, Path(
+        title="Object ID",
+        description="The unique identifier of the object to update.",
+        examples=["nmdc:dobj-11-abc123"],
+    )],
     object_patch: DrsObjectIn,
     mdb: MongoDatabase = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
