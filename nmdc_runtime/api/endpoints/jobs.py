@@ -44,11 +44,14 @@ def list_jobs(
 
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
 def get_job_info(
-    job_id: Annotated[str, Path(
-        title="Job ID",
-        description="The unique identifier of the job.",
-        examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
-    )],
+    job_id: Annotated[
+        str,
+        Path(
+            title="Job ID",
+            description="The unique identifier of the job.",
+            examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
+        ),
+    ],
     mdb: Database = Depends(get_mongo_db),
 ):
     return raise404_if_none(mdb.jobs.find_one({"id": job_id}))
@@ -56,11 +59,14 @@ def get_job_info(
 
 @router.post("/jobs/{job_id}:claim", response_model=Operation[ResultT, MetadataT])
 def claim_job(
-    job_id: Annotated[str, Path(
-        title="Job ID",
-        description="The unique identifier of the job to claim.",
-        examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
-    )],
+    job_id: Annotated[
+        str,
+        Path(
+            title="Job ID",
+            description="The unique identifier of the job to claim.",
+            examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
+        ),
+    ],
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):

@@ -121,11 +121,14 @@ def set_id_bindings(
 
 @router.get("/ids/bindings/{rest:path}", response_model=Dict[str, Any])
 def get_id_bindings(
-    rest: Annotated[str, Path(
-        title="ID Path",
-        description="The identifier path (e.g., 'nmdc:bsm-11-abc123' or 'nmdc:bsm-11-abc123/name').",
-        examples=["nmdc:bsm-11-abc123"],
-    )],
+    rest: Annotated[
+        str,
+        Path(
+            title="ID Path",
+            description="The identifier path (e.g., 'nmdc:bsm-11-abc123' or 'nmdc:bsm-11-abc123/name').",
+            examples=["nmdc:bsm-11-abc123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     cleaned = rest.replace("-", "")

@@ -43,11 +43,14 @@ def list_workflows(
 
 @router.get("/workflows/{workflow_id}", response_model=Workflow)
 def get_workflow(
-    workflow_id: Annotated[str, Path(
-        title="Workflow ID",
-        description="The unique identifier of the workflow.",
-        examples=["nmdc:wf-11-abc123"],
-    )],
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
@@ -55,11 +58,14 @@ def get_workflow(
 
 @router.get("/workflows/{workflow_id}/object_types", response_model=List[ObjectType])
 def list_workflow_object_types(
-    workflow_id: Annotated[str, Path(
-        title="Workflow ID",
-        description="The unique identifier of the workflow whose object types to list.",
-        examples=["nmdc:wf-11-abc123"],
-    )],
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow whose object types to list.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     object_type_ids = [
@@ -70,11 +76,14 @@ def list_workflow_object_types(
 
 @router.get("/workflows/{workflow_id}/capabilities", response_model=List[Capability])
 def list_workflow_capabilities(
-    workflow_id: Annotated[str, Path(
-        title="Workflow ID",
-        description="The unique identifier of the workflow whose capabilities to list.", 
-        examples=["nmdc:wf-11-abc123"],
-    )],
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow whose capabilities to list.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     doc = raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))

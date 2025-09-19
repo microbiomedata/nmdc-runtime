@@ -20,11 +20,14 @@ def list_object_types(
 
 @router.get("/object_types/{object_type_id}", response_model=ObjectType)
 def get_object_type(
-    object_type_id: Annotated[str, Path(
-        title="Object Type ID",
-        description="The unique identifier of the object type.",
-        examples=["nmdc:DataObject"],
-    )],
+    object_type_id: Annotated[
+        str,
+        Path(
+            title="Object Type ID",
+            description="The unique identifier of the object type.",
+            examples=["nmdc:DataObject"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return raise404_if_none(mdb.object_types.find_one({"id": object_type_id}))
@@ -32,11 +35,14 @@ def get_object_type(
 
 @router.get("/object_types/{object_type_id}/workflows", response_model=List[Workflow])
 def list_object_type_workflows(
-    object_type_id: Annotated[str, Path(
-        title="Object Type ID",
-        description="The unique identifier of the object type whose workflows to list.",
-        examples=["nmdc:DataObject"],
-    )],
+    object_type_id: Annotated[
+        str,
+        Path(
+            title="Object Type ID",
+            description="The unique identifier of the object type whose workflows to list.",
+            examples=["nmdc:DataObject"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     workflow_ids = [

@@ -19,11 +19,14 @@ def list_capabilities(
 
 @router.get("/capabilities/{capability_id}", response_model=Capability)
 def get_capability(
-    capability_id: Annotated[str, Path(
-        title="Capability ID",
-        description="The unique identifier of the capability.",
-        examples=["cap-123"],
-    )],
+    capability_id: Annotated[
+        str,
+        Path(
+            title="Capability ID",
+            description="The unique identifier of the capability.",
+            examples=["cap-123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return raise404_if_none(mdb.capabilities.find_one({"id": capability_id}))

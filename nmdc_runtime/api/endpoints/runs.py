@@ -65,11 +65,14 @@ def _get_run_summary(run_id, mdb) -> RunSummary:
     "/runs/{run_id}", response_model=RunSummary, response_model_exclude_unset=True
 )
 def get_run_summary(
-    run_id: Annotated[str, Path(
-        title="Run ID",
-        description="The unique identifier of the run.",
-        examples=["run-123"],
-    )],
+    run_id: Annotated[
+        str,
+        Path(
+            title="Run ID",
+            description="The unique identifier of the run.",
+            examples=["run-123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     return _get_run_summary(run_id, mdb)
@@ -77,11 +80,14 @@ def get_run_summary(
 
 @router.get("/runs/{run_id}/events", response_model=ListResponse[RunEvent])
 def list_events_for_run(
-    run_id: Annotated[str, Path(
-        title="Run ID",
-        description="The unique identifier of the run whose events to list.",
-        examples=["run-123"],
-    )],
+    run_id: Annotated[
+        str,
+        Path(
+            title="Run ID",
+            description="The unique identifier of the run whose events to list.",
+            examples=["run-123"],
+        ),
+    ],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """List events for run, in reverse chronological order."""

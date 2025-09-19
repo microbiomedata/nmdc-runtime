@@ -81,22 +81,28 @@ def list_sites(
 
 @router.get("/sites/{site_id}", response_model=Site, response_model_exclude_unset=True)
 def get_site(
-    site_id: Annotated[str, Path(
-        title="Site ID",
-        description="The unique identifier of the site.",
-        examples=["site-123"],
-    )],
+    site_id: Annotated[
+        str,
+        Path(
+            title="Site ID",
+            description="The unique identifier of the site.",
+            examples=["site-123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
 def verify_client_site_pair(
-    site_id: Annotated[str, Path(
-        title="Site ID",
-        description="The unique identifier of the site to verify.",
-        examples=["site-123"],
-    )],
+    site_id: Annotated[
+        str,
+        Path(
+            title="Site ID",
+            description="The unique identifier of the site to verify.",
+            examples=["site-123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
 ):
@@ -116,11 +122,14 @@ def verify_client_site_pair(
     dependencies=[Depends(verify_client_site_pair)],
 )
 def put_object_in_site(
-    site_id: Annotated[str, Path(
-        title="Site ID",
-        description="The unique identifier of the site where the object will be stored.",
-        examples=["site-123"],
-    )],
+    site_id: Annotated[
+        str,
+        Path(
+            title="Site ID",
+            description="The unique identifier of the site where the object will be stored.",
+            examples=["site-123"],
+        ),
+    ],
     object_in: DrsObjectBase,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
@@ -162,11 +171,14 @@ def put_object_in_site(
     dependencies=[Depends(verify_client_site_pair)],
 )
 def get_site_object_link(
-    site_id: Annotated[str, Path(
-        title="Site ID", 
-        description="The unique identifier of the site containing the object.",
-        examples=["site-123"],
-    )],
+    site_id: Annotated[
+        str,
+        Path(
+            title="Site ID",
+            description="The unique identifier of the site containing the object.",
+            examples=["site-123"],
+        ),
+    ],
     access_method: AccessMethod,
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
@@ -184,11 +196,14 @@ def get_site_object_link(
 
 @router.post("/sites/{site_id}:generateCredentials", response_model=ClientCredentials)
 def generate_credentials_for_site_client(
-    site_id: Annotated[str, Path(
-        title="Site ID",
-        description="The unique identifier of the site for which to generate credentials.",
-        examples=["site-123"],
-    )],
+    site_id: Annotated[
+        str,
+        Path(
+            title="Site ID",
+            description="The unique identifier of the site for which to generate credentials.",
+            examples=["site-123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
