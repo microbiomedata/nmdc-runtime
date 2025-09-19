@@ -228,8 +228,11 @@ def make_api_description(schema_version: str, orcid_login_url: str) -> str:
         str: The Markdown-formatted API description.
     """
     result = f"""
-The NMDC Runtime API, via on-demand functions and via schedule-based and sensor-based automation, 
+The NMDC Runtime API, via on-demand functions and via schedule-based and sensor-based automation,
 supports validation and submission of metadata, as well as orchestration of workflow executions.
+
+You can [contact us](https://microbiomedata.org/contact/) anytime.
+We continuously refine the API and may be able to streamline your use case.
 
 [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
 
