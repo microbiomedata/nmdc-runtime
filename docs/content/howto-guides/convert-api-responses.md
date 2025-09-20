@@ -152,9 +152,10 @@ curl --silent 'https://api.microbiomedata.org/studies?fields=id,name,principal_i
 The output would be:
 
 ```tsv
-nmdc:sty-11-8fb6t785    Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA   Kelly Wrighton
-nmdc:sty-11-33fbta56    Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes       Christopher Schadt
-nmdc:sty-11-aygzgv51    Riverbed sediment microbial communities from the Columbia River, Washington, USA        James Stegen
+$.id	$.name	$.principal_investigator.has_raw_value
+nmdc:sty-11-8fb6t785	Deep subsurface shale carbon reservoir microbial communities from Ohio and West Virginia, USA	Kelly Wrighton
+nmdc:sty-11-33fbta56	Peatland microbial communities from Minnesota, USA, analyzing carbon cycling and trace gas fluxes	Christopher Schadt
+nmdc:sty-11-aygzgv51	Riverbed sediment microbial communities from the Columbia River, Washington, USA	James Stegen
 ```
 
 ## Conclusion
