@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -2928,7 +2928,7 @@ requires-dist = [
     { name = "mkdocs-jupyter" },
     { name = "mkdocs-material" },
     { name = "mkdocs-mermaid2-plugin" },
-    { name = "nmdc-schema", specifier = "==11.10.0" },
+    { name = "nmdc-schema", specifier = "==11.11.0" },
     { name = "ontology-loader", specifier = "==0.2.2" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
@@ -2966,7 +2966,7 @@ dev = [
 
 [[package]]
 name = "nmdc-schema"
-version = "11.10.0"
+version = "11.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2983,9 +2983,9 @@ dependencies = [
     { name = "rdflib" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/88/19/2442b9640c5bf3478f66bc9ee220706207c5ec4299132162dc83d56a905f/nmdc_schema-11.10.0.tar.gz", hash = "sha256:8cc0c1fbb2632c2cbe58498f8b6adeecc151d8820c6b414f8dcdcdd517d06b4b", size = 687680, upload-time = "2025-08-13T18:35:12.631Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/fc/24a7728d96c5fb14d3a48fa1e5d8cefaf6755afde331ee02ab4ff9df5246/nmdc_schema-11.11.0.tar.gz", hash = "sha256:af445c7be1bc6d0cfd20c24732912364e3fb94a6dc17b9b0cf83ff199e39b18c", size = 679168, upload-time = "2025-09-17T19:56:56.102Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/42/38185a08092704590c407446f2b47cfb57c4bed6f25f24fee978b73ba41c/nmdc_schema-11.10.0-py3-none-any.whl", hash = "sha256:52b1dcf54b31b66f52c0cfa1320f1d1fa2e093331f083142c4db1416db3905cc", size = 750591, upload-time = "2025-08-13T18:35:10.559Z" },
+    { url = "https://files.pythonhosted.org/packages/78/d2/6412a43b6168632eb11e03032761218941bbad56a335efc7014547da26ca/nmdc_schema-11.11.0-py3-none-any.whl", hash = "sha256:b4658d5346fe7f8b9a9be1025d0a8b7ff05c78642f4c2540e9706ec2d6e8a31e", size = 743964, upload-time = "2025-09-17T19:56:53.318Z" },
 ]
 
 [[package]]
