@@ -2928,7 +2928,7 @@ requires-dist = [
     { name = "mkdocs-jupyter" },
     { name = "mkdocs-material" },
     { name = "mkdocs-mermaid2-plugin" },
-    { name = "nmdc-schema", specifier = "==11.11.0" },
+    { name = "nmdc-schema", specifier = "==11.11.1" },
     { name = "ontology-loader", specifier = "==0.2.2" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
@@ -2966,7 +2966,7 @@ dev = [
 
 [[package]]
 name = "nmdc-schema"
-version = "11.11.0"
+version = "11.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2983,9 +2983,9 @@ dependencies = [
     { name = "rdflib" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/fc/24a7728d96c5fb14d3a48fa1e5d8cefaf6755afde331ee02ab4ff9df5246/nmdc_schema-11.11.0.tar.gz", hash = "sha256:af445c7be1bc6d0cfd20c24732912364e3fb94a6dc17b9b0cf83ff199e39b18c", size = 679168, upload-time = "2025-09-17T19:56:56.102Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/3a/9d6ef0f7618eefbe59ae497cc2d35f745562a7b1d6061a9c37b7835ad0d7/nmdc_schema-11.11.1.tar.gz", hash = "sha256:fbf290e3991ba192ad45a90d2aeaa4db364e4be2041392d80f234617a26e5460", size = 679182, upload-time = "2025-09-19T01:08:59.522Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/d2/6412a43b6168632eb11e03032761218941bbad56a335efc7014547da26ca/nmdc_schema-11.11.0-py3-none-any.whl", hash = "sha256:b4658d5346fe7f8b9a9be1025d0a8b7ff05c78642f4c2540e9706ec2d6e8a31e", size = 743964, upload-time = "2025-09-17T19:56:53.318Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/d9/08134cdec2260ade3048cdae87b47e693b3c2e7003d9810b744d82381ea1/nmdc_schema-11.11.1-py3-none-any.whl", hash = "sha256:5df7e14f997f48a221620472b27938c12310d76308bbfb184a53a59c05de74db", size = 743976, upload-time = "2025-09-19T01:08:57.35Z" },
 ]
 
 [[package]]
