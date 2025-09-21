@@ -203,7 +203,7 @@ def find_data_objects_for_study(
     )
     biosample_ids = [d["id"] for d in linked_biosamples_result.get("resources", [])]
     logging.debug(f"Found {len(biosample_ids)} Biosamples for Study {study_id}")
-    
+
     # Get all the `DataObject`s that are downstream from any of those `Biosample`s.
     data_objects_by_biosample_id = {}
     linked_data_objects_result: dict = get_linked_instances(
@@ -228,10 +228,12 @@ def find_data_objects_for_study(
     # i.e., into the format returned by the initial version of this API endpoint,
     # which did not use the `get_linked_instances` function under the hood.
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
-        biosample_data_objects.append({
-            "biosample_id": biosample_id,
-            "data_objects": data_objects,
-        })
+        biosample_data_objects.append(
+            {
+                "biosample_id": biosample_id,
+                "data_objects": data_objects,
+            }
+        )
     return biosample_data_objects
 
 
