@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -10,6 +11,7 @@ from nmdc_runtime.api.db.mongo import (
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
+from nmdc_runtime.api.endpoints.nmdcschema import get_linked_instances
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
@@ -171,133 +173,65 @@ def find_data_objects_for_study(
         is a list of the `DataObject`s associated with that `Biosample`.
     """
     biosample_data_objects = []
-    study = raise404_if_none(
-        mdb.study_set.find_one({"id": study_id}, ["id"]), detail="Study not found"
+
+    # Respond with an error if the specified `Study` does not exist.
+    # Note: We project only the `_id` field, to minimize data transfer.
+    raise404_if_none(
+        mdb["study_set"].find_one({"id": study_id}, projection={"_id": 1}),
+        detail="Study not found",
     )
 
-    # Note: With nmdc-schema v10 (legacy schema), we used the field named `part_of` here.
-    #       With nmdc-schema v11 (Berkeley schema), we use the field named `associated_studies` here.
-    biosamples = mdb.biosample_set.find({"associated_studies": study["id"]}, ["id"])
-    biosample_ids = [biosample["id"] for biosample in biosamples]
+    # Use the `get_linked_instances` function—which is the function that
+    # underlies the `/nmdcschema/linked_instances` API endpoint—to get all
+    # the `Biosample`s that are downstream from the specified `Study`.
+    #
+    # Note: The `get_linked_instances` function requires that an integer
+    #       `max_page_size` argument be passed in. In our case, we want to
+    #       get _all_ instance. As a workaround, we pass in a large number
+    #       (but not so large that we get this `OverflowError` from Mongo):
+    #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
+    #
+    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
+    #
+    linked_biosamples_result: dict = get_linked_instances(
+        ids=[study_id],
+        types=["nmdc:Biosample"],
+        hydrate=False,  # we'll only use their `id` values
+        page_token=None,
+        max_page_size=1_000_000_000_000,
+        mdb=mdb,
+    )
+    biosample_ids = [d["id"] for d in linked_biosamples_result.get("resources", [])]
+    logging.debug(f"Found {len(biosample_ids)} Biosamples for Study {study_id}")
+    
+    # Get all the `DataObject`s that are downstream from any of those `Biosample`s.
+    data_objects_by_biosample_id = {}
+    linked_data_objects_result: dict = get_linked_instances(
+        ids=biosample_ids,
+        types=["nmdc:DataObject"],
+        hydrate=True,  # we want the full `DataObject` documents
+        page_token=None,
+        max_page_size=1_000_000_000_000,
+        mdb=mdb,
+    )
+    for data_object in linked_data_objects_result.get("resources", []):
+        upstream_biosample_id = data_object["_downstream_of"][0]
+        if upstream_biosample_id not in data_objects_by_biosample_id.keys():
+            data_objects_by_biosample_id[upstream_biosample_id] = []
 
-    # SchemaView interface to NMDC Schema
-    nmdc_view = ViewGetter()
-    nmdc_sv = nmdc_view.get_view()
-    dg_descendants = [
-        (f"nmdc:{t}" if ":" not in t else t)
-        for t in nmdc_sv.class_descendants("DataGeneration")
-    ]
+        # Strip away the metadata fields injected by `get_linked_instances()`.
+        data_object.pop("_upstream_of", None)
+        data_object.pop("_downstream_of", None)
+        data_objects_by_biosample_id[upstream_biosample_id].append(data_object)
 
-    def collect_data_objects(doc_ids, collected_objects, unique_ids):
-        """Helper function to collect data objects from `has_input` and `has_output` references."""
-        for doc_id in doc_ids:
-            # Check if this is a DataObject by looking at the document's type directly
-            doc = mdb.alldocs.find_one({"id": doc_id}, {"type": 1})
-            if (
-                doc
-                and doc.get("type") == "nmdc:DataObject"
-                and doc_id not in unique_ids
-            ):
-                data_obj = mdb.data_object_set.find_one({"id": doc_id})
-                if data_obj:
-                    collected_objects.append(strip_oid(data_obj))
-                    unique_ids.add(doc_id)
-
-    # Another way in which DataObjects can be related to Biosamples is through the
-    # `was_informed_by` key/slot. We need to link records from the `workflow_execution_set`
-    # collection that are "informed" by the same DataGeneration records that created
-    # the outputs above. Then we need to get additional DataObject records that are
-    # created by this linkage.
-    def process_informed_by_docs(doc, collected_objects, unique_ids):
-        """Process documents linked by `was_informed_by` and collect relevant data objects."""
-        # Note: As of nmdc-schema 11.9.0, the `was_informed_by` field, if defined,
-        #       will contain a list of strings. In MongoDB, the `{k: v}` filter
-        #       can be used to check whether either (a) the value of field `f` is
-        #       an array containing `v` as one of its elements, or (b) the value
-        #       of field `f` is exactly equal to `v`. We rely on behavior (a) here.
-        informed_by_docs = mdb.workflow_execution_set.find(
-            {"was_informed_by": doc["id"]}
-        )
-        for informed_doc in informed_by_docs:
-            collect_data_objects(
-                informed_doc.get("has_input", []), collected_objects, unique_ids
-            )
-            collect_data_objects(
-                informed_doc.get("has_output", []), collected_objects, unique_ids
-            )
-
-    biosample_data_objects = []
-
-    for biosample_id in biosample_ids:
-        current_ids = [biosample_id]
-        collected_data_objects = []
-        unique_ids = set()
-
-        # Iterate over records in the `alldocs` collection. Look for
-        # records that have the given biosample_id as value on the
-        # `has_input` key/slot. The retrieved documents might also have a
-        # `has_output` key/slot associated with them. Get the value of the
-        # `has_output` key and check if it's type is `nmdc:DataObject`. If
-        # it's not, repeat the process till it is.
-        while current_ids:
-            new_current_ids = []
-            for current_id in current_ids:
-                # Query to find all documents with current_id as the value on
-                # `has_input` slot
-                for doc in mdb.alldocs.find({"has_input": current_id}):
-                    has_output = doc.get("has_output", [])
-
-                    # Process `DataGeneration` type documents linked by `was_informed_by`
-                    if not has_output and any(
-                        t in dg_descendants for t in doc.get("_type_and_ancestors", [])
-                    ):
-                        process_informed_by_docs(
-                            doc, collected_data_objects, unique_ids
-                        )
-                        continue
-
-                    collect_data_objects(has_output, collected_data_objects, unique_ids)
-                    # Add non-DataObject outputs to continue the chain
-                    for op in has_output:
-                        doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                        if doc_check and doc_check.get("type") != "nmdc:DataObject":
-                            new_current_ids.append(op)
-
-                    if any(
-                        t in dg_descendants for t in doc.get("_type_and_ancestors", [])
-                    ):
-                        process_informed_by_docs(
-                            doc, collected_data_objects, unique_ids
-                        )
-
-                # Also check if current_id is a DataObject that serves as input to other processes
-                current_doc_type = mdb.alldocs.find_one({"id": current_id}, {"type": 1})
-                if (
-                    current_doc_type
-                    and current_doc_type.get("type") == "nmdc:DataObject"
-                ):
-                    # Find all documents in alldocs that have this DataObject as input
-                    for doc in mdb.alldocs.find({"has_input": current_id}):
-                        has_output = doc.get("has_output", [])
-                        # Process outputs from these documents
-                        collect_data_objects(
-                            has_output, collected_data_objects, unique_ids
-                        )
-                        # Add non-DataObject outputs to continue the chain
-                        for op in has_output:
-                            doc_check = mdb.alldocs.find_one({"id": op}, {"type": 1})
-                            if doc_check and doc_check.get("type") != "nmdc:DataObject":
-                                new_current_ids.append(op)
-
-            current_ids = new_current_ids
-
-        if collected_data_objects:
-            result = {
-                "biosample_id": biosample_id,
-                "data_objects": collected_data_objects,
-            }
-            biosample_data_objects.append(result)
-
+    # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
+    # i.e., into the format returned by the initial version of this API endpoint,
+    # which did not use the `get_linked_instances` function under the hood.
+    for biosample_id, data_objects in data_objects_by_biosample_id.items():
+        biosample_data_objects.append({
+            "biosample_id": biosample_id,
+            "data_objects": data_objects,
+        })
     return biosample_data_objects
 
 
