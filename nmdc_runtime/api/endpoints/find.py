@@ -193,12 +193,13 @@ def find_data_objects_for_study(
     #
     #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
     #
+    large_max_page_size: int = 1_000_000_000_000
     linked_biosamples_result: dict = get_linked_instances(
         ids=[study_id],
         types=["nmdc:Biosample"],
         hydrate=False,  # we'll only use their `id` values
         page_token=None,
-        max_page_size=1_000_000_000_000,
+        max_page_size=large_max_page_size,
         mdb=mdb,
     )
     biosample_ids = [d["id"] for d in linked_biosamples_result.get("resources", [])]
@@ -211,7 +212,7 @@ def find_data_objects_for_study(
         types=["nmdc:DataObject"],
         hydrate=True,  # we want the full `DataObject` documents
         page_token=None,
-        max_page_size=1_000_000_000_000,
+        max_page_size=large_max_page_size,
         mdb=mdb,
     )
     for data_object in linked_data_objects_result.get("resources", []):
