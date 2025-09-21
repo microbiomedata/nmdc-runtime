@@ -183,13 +183,16 @@ def find_data_objects_for_study(
 
     # Use the `get_linked_instances` function—which is the function that
     # underlies the `/nmdcschema/linked_instances` API endpoint—to get all
-    # the `Biosample`s that are downstream from the specified `Study`.
+    # the `Biosample`s that are downstream of the specified `Study`.
     #
-    # Note: The `get_linked_instances` function requires that an integer
-    #       `max_page_size` argument be passed in. In our case, we want to
-    #       get _all_ instance. As a workaround, we pass in a large number
-    #       (but not so large that we get this `OverflowError` from Mongo):
+    # Note: The `get_linked_instances` function requires that a `max_page_size`
+    #       integer argument be passed in. In our case, we want to get _all_ of
+    #       the instances. Python has no "infinity" integer; and, even if it did,
+    #       if we were to specify too large of an integer, we'd get this error:
     #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
+    #       So, as a workaround, we pass in a number that is large enough that we
+    #       think it will account for all cases in practice (e.g., a study having
+    #       a trillion biosamples or a trillion data objects).
     #
     #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
     #
