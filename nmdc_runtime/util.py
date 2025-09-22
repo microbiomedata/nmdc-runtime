@@ -86,7 +86,6 @@ def get_allowed_references() -> ReferenceList:
     """
 
     # Identify the inter-document references that the schema allows a database to contain.
-    print("Identifying schema-allowed references.")
     references = identify_references(
         schema_view=nmdc_schema_view(),
         collection_name_to_class_names=collection_name_to_class_names,

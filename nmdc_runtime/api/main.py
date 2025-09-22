@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from html import escape
@@ -9,6 +10,7 @@ from pathlib import Path
 import fastapi
 import requests
 import uvicorn
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -22,6 +24,7 @@ from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.api.middleware import PyinstrumentMiddleware
 from nmdc_runtime.config import IS_SCALAR_ENABLED
+from nmdc_runtime.logger import configure_logging
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
@@ -59,6 +62,7 @@ from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_descripti
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
+logger = logging.getLogger(__name__)
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -218,12 +222,15 @@ async def lifespan(app: FastAPI):
     > You can define logic (code) that should be executed before the application starts up. This means that
     > this code will be executed once, before the application starts receiving requests.
     """
+    configure_logging()
+    logger.debug("Configured logging.")
     ensure_initial_resources_on_boot()
     ensure_attribute_indexes()
     ensure_type_field_is_indexed()
     ensure_default_api_perms()
 
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
+    logger.debug("Identifying schema-allowed references...")
     get_allowed_references()  # we ignore the return value here
 
     yield
@@ -259,7 +266,9 @@ app = FastAPI(
 )
 app.include_router(api_router)
 
-
+app.add_middleware(
+    lambda app_: CorrelationIdMiddleware(app_)
+)  # Wrap CorrelationIdMiddleware as a factory to satisfy Starlette's typing
 app.add_middleware(
     CORSMiddleware,
     # Allow requests from client-side web apps hosted in local development environments, on microbiomedata.org, and on GitHub Pages.
