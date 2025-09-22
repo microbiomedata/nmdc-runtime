@@ -350,7 +350,19 @@ class NCBISubmissionXML:
                         if pooling_info
                         and pooling_info.get("processed_sample_id")
                         and pooling_info.get("pooling_process_id")
-                        else []
+                        else [
+                            # Add external link for individual biosamples
+                            self.set_element(
+                                "ExternalLink",
+                                attrib={"label": sample_id_value},
+                                children=[
+                                    self.set_element(
+                                        "URL",
+                                        f"https://bioregistry.io/{sample_id_value}",
+                                    )
+                                ],
+                            ),
+                        ]
                     ),
                 ),
                 self.set_element(
