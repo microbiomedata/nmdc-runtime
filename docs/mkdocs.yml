@@ -33,6 +33,7 @@ nav:
     - howto-guides/minting-ids.md
     - howto-guides/release-process.md
     - howto-guides/improving-search-api.md
+    - howto-guides/convert-api-responses.md
     - nb/queue_and_trigger_data_jobs.ipynb
     - nb/wf_automation.ipynb
   - Reference:
