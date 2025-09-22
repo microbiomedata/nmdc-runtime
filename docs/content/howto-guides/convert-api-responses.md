@@ -12,6 +12,10 @@ In this how-to guide, we'll show you how you can convert JSON-formatted Runtime 
 
 Here's how you can convert JSON into CSV.
 
+> **Note:** In this section, we'll be demonstrating a process that produces a CSV string in which each column name is a **[JSONPath](https://en.wikipedia.org/wiki/JSONPath) expression** that indicates precisely where—in the original JSON object(s)—the value(s) in that column came from.
+>
+> For example, the column name "`$.principal_investigator.has_raw_value`" indicates that the value(s) in that column came from the "`has_raw_value`" field of the object in the "`principal_investigator`" field of the root object (represented by "`$`").
+
 ### Prerequisites
 
 1. The [jq](https://jqlang.org/) CLI application is installed
