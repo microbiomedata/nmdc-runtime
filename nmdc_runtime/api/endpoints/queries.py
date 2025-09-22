@@ -175,6 +175,28 @@ def run_query(
     }
     ```
 
+    Get a specific study and all the biosamples associated with that study.
+    ```
+    {
+      "aggregate": "study_set",
+      "pipeline": [
+        {
+          "$match": {
+            "id": "nmdc:sty-11-8fb6t785"
+          }
+        },
+        {
+          "$lookup": {
+            "from": "biosample_set",
+            "localField": "id",
+            "foreignField": "associated_studies",
+            "as": "biosamples_of_study"
+          }
+        }
+      ]
+    }
+    ```
+
     Use the `cursor.id` from a previous response to get the next batch of results,
     whether that batch is empty or non-empty.
     ```
