@@ -231,7 +231,7 @@ class MongoIDStore(abc.ABC):
 
     def delete(self, req_del: DeleteRequest):
         """Delete an identifier that is still in the draft state.
-        
+
         Note: You can mint (draft) as many IDs as you want. As long as you don't bind them
               (i.e. as long as they are still in the draft state), you can still delete them.
 
