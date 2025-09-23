@@ -2861,14 +2861,9 @@ dependencies = [
     { name = "git-root" },
     { name = "jq" },
     { name = "jsonasobj2" },
-    { name = "jupyter" },
-    { name = "jupyterlab" },
     { name = "linkml" },
     { name = "linkml-runtime" },
     { name = "lxml" },
-    { name = "mkdocs-jupyter" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-mermaid2-plugin" },
     { name = "nmdc-schema" },
     { name = "ontology-loader" },
     { name = "pandas" },
@@ -2904,6 +2899,13 @@ dev = [
     { name = "requests-cache" },
     { name = "requests-mock" },
 ]
+docs = [
+    { name = "jupyter" },
+    { name = "jupyterlab" },
+    { name = "mkdocs-jupyter" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-mermaid2-plugin" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2920,14 +2922,9 @@ requires-dist = [
     { name = "git-root" },
     { name = "jq" },
     { name = "jsonasobj2" },
-    { name = "jupyter" },
-    { name = "jupyterlab" },
     { name = "linkml" },
     { name = "linkml-runtime" },
     { name = "lxml" },
-    { name = "mkdocs-jupyter" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-mermaid2-plugin" },
     { name = "nmdc-schema", specifier = "==11.11.1" },
     { name = "ontology-loader", specifier = "==0.2.2" },
     { name = "pandas" },
@@ -2962,6 +2959,13 @@ dev = [
     { name = "python-dotenv" },
     { name = "requests-cache" },
     { name = "requests-mock" },
+]
+docs = [
+    { name = "jupyter" },
+    { name = "jupyterlab" },
+    { name = "mkdocs-jupyter" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-mermaid2-plugin" },
 ]
 
 [[package]]

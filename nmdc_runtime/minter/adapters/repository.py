@@ -136,6 +136,10 @@ class MongoIDStore(abc.ABC):
         self.db = mdb
 
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
+        """
+        TODO: Document this method.
+        """
+
         if not self.db["minter.services"].find_one({"id": req_mint.service.id}):
             raise MinterError(f"Unknown service {req_mint.service.id}")
         if not self.db["minter.requesters"].find_one({"id": req_mint.requester.id}):
@@ -190,6 +194,10 @@ class MongoIDStore(abc.ABC):
         return collected
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
+        """Associate the specified arbitrary metadata with the specified ID.
+
+        TODO: Do not allow users to bind identifiers minted by _other_ users.
+        """
         id_stored = self.resolve(req_bind)
         if id_stored is None:
             raise MinterError(f"ID {req_bind.id_name} is unknown")
@@ -207,15 +215,28 @@ class MongoIDStore(abc.ABC):
                 )
 
     def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
+        """Get the metadata that is bound to the specified identifier."""
         match re.match(r"nmdc:([^-]+)-([^-]+)-.*", req_res.id_name).groups():
             case (_, _):
                 doc = self.db["minter.id_records"].find_one({"id": req_res.id_name})
                 # TODO if draft ID, check requester
+                #
+                #      Note: The above "TODO" comment is about checking whether the user that wants to
+                #            resolve the identifier, is the same user that minted the identifier. If
+                #            it isn't, then... what? (i.e. allow resolution, or deny resolution)?
+                #
                 return Identifier(**doc) if doc else None
             case _:
                 raise MinterError("Invalid ID name")
 
     def delete(self, req_del: DeleteRequest):
+        """Delete an identifier that is still in the draft state.
+
+        Note: You can mint (draft) as many IDs as you want. As long as you don't bind them
+              (i.e. as long as they are still in the draft state), you can still delete them.
+
+        TODO: Do not allow users to delete identifiers minted by _other_ users.
+        """
         id_stored = self.resolve(req_del)
         if id_stored is None:
             raise MinterError(f"ID {req_del.id_name} is unknown")
