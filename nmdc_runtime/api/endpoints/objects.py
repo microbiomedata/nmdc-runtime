@@ -124,9 +124,10 @@ def get_object_info(
         )
     if object_id.startswith("sty-"):
         url_to_try = f"https://data.microbiomedata.org/api/study/nmdc:{object_id}"
+        # TODO: Update this HTTP request to use the HTTP "HEAD" method once the upstream endpoint supports that method.
         rv = requests.get(
             url_to_try, allow_redirects=True
-        )  # TODO use HEAD when enabled upstream
+        )
         if rv.status_code != 404:
             return RedirectResponse(
                 f"https://data.microbiomedata.org/details/study/nmdc:{object_id}",
@@ -134,9 +135,10 @@ def get_object_info(
             )
     elif object_id.startswith("bsm-"):
         url_to_try = f"https://data.microbiomedata.org/api/biosample/nmdc:{object_id}"
+        # TODO: Update this HTTP request to use the HTTP "HEAD" method once the upstream endpoint supports that method.
         rv = requests.get(
             url_to_try, allow_redirects=True
-        )  # TODO use HEAD when enabled upstream
+        )
         if rv.status_code != 404:
             return RedirectResponse(
                 f"https://data.microbiomedata.org/details/sample/nmdc:{object_id}",
