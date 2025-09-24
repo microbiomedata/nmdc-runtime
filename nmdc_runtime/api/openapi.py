@@ -53,7 +53,7 @@ system.
 """
 
 tag_descriptions[
-    OpenAPITag.WORKFLOWS
+    OpenAPITag.WORKFLOWS.value
 ] = r"""
 A workflow is a template for creating jobs.
 
