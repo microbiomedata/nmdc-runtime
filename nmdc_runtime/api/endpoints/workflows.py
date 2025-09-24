@@ -34,35 +34,94 @@ from nmdc_schema.nmdc import (
 router = APIRouter()
 
 
-@router.get("/workflows", response_model=List[Workflow])
+@router.get(
+    "/workflows",
+    response_model=List[Workflow],
+    description="List all available workflows",
+)
 def list_workflows(
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve a list of all workflows available in the system.
+
+    Returns workflow definitions including their capabilities and metadata.
+    """
     return list(mdb.workflows.find())
 
 
-@router.get("/workflows/{workflow_id}", response_model=Workflow)
+@router.get(
+    "/workflows/{workflow_id}",
+    response_model=Workflow,
+    description="Get details of a specific workflow",
+)
 def get_workflow(
-    workflow_id: str,
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve detailed information about a specific workflow.
+
+    Returns the workflow definition including its capabilities, object types, and metadata.
+    """
     return raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
 
 
-@router.get("/workflows/{workflow_id}/object_types", response_model=List[ObjectType])
+@router.get(
+    "/workflows/{workflow_id}/object_types",
+    response_model=List[ObjectType],
+    description="List object types that can trigger a workflow",
+)
 def list_workflow_object_types(
-    workflow_id: str, mdb: pymongo.database.Database = Depends(get_mongo_db)
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow whose object types to list.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    List all object types that can trigger the specified workflow.
+
+    Returns object type definitions that are configured as triggers for this workflow.
+    """
     object_type_ids = [
         doc["object_type_id"] for doc in mdb.triggers.find({"workflow_id": workflow_id})
     ]
     return list(mdb.object_types.find({"id": {"$in": object_type_ids}}))
 
 
-@router.get("/workflows/{workflow_id}/capabilities", response_model=List[Capability])
+@router.get(
+    "/workflows/{workflow_id}/capabilities",
+    response_model=List[Capability],
+    description="List capabilities required by a workflow",
+)
 def list_workflow_capabilities(
-    workflow_id: str, mdb: pymongo.database.Database = Depends(get_mongo_db)
+    workflow_id: Annotated[
+        str,
+        Path(
+            title="Workflow ID",
+            description="The unique identifier of the workflow whose capabilities to list.",
+            examples=["nmdc:wf-11-abc123"],
+        ),
+    ],
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    List all capabilities required by the specified workflow.
+
+    Returns capability definitions that this workflow depends on for execution.
+    """
     doc = raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
     return list(mdb.capabilities.find({"id": {"$in": doc.get("capability_ids", [])}}))
 

@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Query, Path
 from toolz import get_in, merge, assoc
 
 from nmdc_runtime.api.core.util import raise404_if_none, pick
@@ -20,26 +20,62 @@ from nmdc_runtime.api.models.util import ListRequest
 router = APIRouter()
 
 
-@router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
+@router.get(
+    "/operations",
+    response_model=ListOperationsResponse[ResultT, MetadataT],
+    description="List operations with optional filtering",
+)
 def list_operations(
     req: Annotated[ListRequest, Query()],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve a list of operations with optional filtering and pagination.
+
+    Operations track the progress and status of long-running tasks.
+    """
     return list_resources(req, mdb, "operations")
 
 
-@router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
+@router.get(
+    "/operations/{op_id}",
+    response_model=Operation[ResultT, MetadataT],
+    description="Get details of a specific operation",
+)
 def get_operation(
-    op_id: str,
+    op_id: Annotated[
+        str,
+        Path(
+            title="Operation ID",
+            description="The unique identifier of the operation.",
+            examples=["nmdc:op-11-abc123"],
+        ),
+    ],
     mdb: pymongo.database.Database = Depends(get_mongo_db),
 ):
+    """
+    Retrieve detailed information about a specific operation.
+
+    Returns operation status, progress, and result data.
+    """
     op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
     return op
 
 
-@router.patch("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
+@router.patch(
+    "/operations/{op_id}",
+    response_model=Operation[ResultT, MetadataT],
+    description="Update operation status and metadata",
+)
 def update_operation(
-    op_id: str,
+    op_id: Annotated[
+        str,
+        Path(
+            title="Operation ID",
+            description="The unique identifier of the operation to update.",
+            examples=["nmdc:op-11-abc123"],
+        ),
+    ],
     op_patch: UpdateOperationRequest,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     client_site: Site = Depends(get_current_client_site),
