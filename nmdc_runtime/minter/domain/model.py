@@ -22,9 +22,29 @@ class ValueObject(BaseModel):
 
 
 class Status(str, Enum):
+    """Status of an identifier.
+
+    Note: These state values were chosen in an attempt to mirror those that DataCite uses for DOIs,
+          which are (currently) "Draft", "Registered", and "Findable" (we use "Indexed" instead).
+          Reference: https://support.datacite.org/docs/doi-states
+    """
+
     draft = "draft"
+    """
+    Draft; i.e., the identifier is reserved for potential use. The identifier can still be deleted.
+    """
+
     registered = "registered"
+    """
+    Registered; i.e., the identifier is in use and recognized by the minter, but the resource
+    it identifies isn't publicly accessible (yet or anymore). The identifier cannot be deleted.
+    """
+
     indexed = "indexed"
+    """
+    Indexed; i.e., the identifier is in use and recognized by the minter and the resource it
+    identifies is publicly accessible. The identifier cannot be deleted.
+    """
 
 
 class MintingRequest(ValueObject):
