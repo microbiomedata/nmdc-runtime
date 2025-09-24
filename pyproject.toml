@@ -1,6 +1,8 @@
 [project]
 name = "nmdc-runtime"
-version = "0.0.0"
+# Note: We use `uv-dynamic-versioning` to manage the version number.
+#       Docs: https://github.com/ninoseki/uv-dynamic-versioning
+dynamic = ["version"]
 description = "A runtime system for NMDC data management and orchestration"
 authors = []
 # Note: This version requirement of ">= 3.10" was copied from the `setup.py` file used by the application's original build system.
@@ -49,29 +51,19 @@ dependencies = [
     "git-root",
     "jq",
     "jsonasobj2",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "jupyter",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "jupyterlab",
     "linkml",
     "linkml-runtime",
     "lxml",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-jupyter",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-material",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-mermaid2-plugin",
     "ontology-loader == 0.2.2",
     # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema == 11.10.0",
+    "nmdc-schema == 11.11.1",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",
     "pydantic[email] >= 1.10.0",
     # Note: We use `pyinstrument` for performance profiling.
-    #       Docs https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
+    #       Docs: https://pyinstrument.readthedocs.io/en/latest/guide.html#profile-a-web-request-in-fastapi
     "pyinstrument",
     "python-dotenv",
     "python-jose[cryptography]",
@@ -84,13 +76,14 @@ dependencies = [
     "refscan == 0.3.2",
     "requests",
     # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
-    # Note: We use a Git URL to install the `scalar-fastapi` package, because the Scalar
-    #       maintainers have not published recent versions of the package to PyPI yet.
-    # Reference: https://github.com/scalar/scalar/issues/5337#issuecomment-2781011096
-    "scalar-fastapi @ git+https://github.com/scalar/scalar/#subdirectory=integrations/fastapi",
+    #       Reference: https://pypi.org/project/scalar-fastapi/
+    "scalar-fastapi >= 1.4.1, < 2.0.0",
     "tenacity",
     "toolz",
     "tqdm",
+    # Note: The translators use this to convert non-ASCII characters into ASCII,
+    #       since NCBI's system doesn't accept non-ASCII characters.
+    "unidecode",
     "uvicorn[standard]",
     "requests-cache",
 ]
@@ -114,6 +107,13 @@ dev = [
     "requests-mock",
     "requests-cache",
 ]
+docs = [
+    "jupyter",
+    "jupyterlab",
+    "mkdocs-jupyter",
+    "mkdocs-material",
+    "mkdocs-mermaid2-plugin",
+]
 
 [project.urls]
 # > "A list of URLs associated with your project, displayed on the left sidebar of your PyPI project page."
@@ -131,13 +131,21 @@ nmdcdb-mongodump = "nmdc_runtime.site.backup.nmdcdb_mongodump:main"
 nmdcdb-mongoimport = "nmdc_runtime.site.backup.nmdcdb_mongoimport:main"
 
 [build-system]
-# Reference: https://docs.astral.sh/uv/concepts/build-backend/#using-the-uv-build-backend
-requires = ["uv_build >= 0.8.14, < 0.9.0"]
-build-backend = "uv_build"
+# Reference: https://hatch.pypa.io/latest/config/build/#build-system
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
 
-[tool.uv.build-backend]
-# Note: We specify `module-name` here to tell the `uv_build` backend that our main module is in `nmdc_runtime/`
-#       (as opposed to being in a `src/` directory, which is where the backend would look for it by default).
+# Note: We specify `packages` here to tell the build backend that our main module is in `nmdc_runtime/`.
 #       Reference: https://docs.astral.sh/uv/concepts/build-backend/#modules
-module-name = "nmdc_runtime"
-module-root = ""
+[tool.hatch.build.targets.wheel]
+packages = ["nmdc_runtime"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+# Note: We use dynamic versioning.
+#       You can preview the version number by running: `$ uvx uv-dynamic-versioning`
+# Docs: https://github.com/ninoseki/uv-dynamic-versioning/blob/main/docs/version_source.md
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"  # can use "pep440" (default) or "semver"

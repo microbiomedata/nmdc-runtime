@@ -21,7 +21,7 @@ jobs:
           #       Reference: https://github.com/astral-sh/setup-uv/blob/main/README.md#cache-dependency-glob
           cache-dependency-glob: "uv.lock"
       - name: Set up Python virtual environment
-        run: uv sync
+        run: uv sync --group docs
       # Build the MkDocs site (but don't deploy it).
       #
       # Note: Until January 17, 2025, we would build and deploy the MkDocs website to GitHub Pages.

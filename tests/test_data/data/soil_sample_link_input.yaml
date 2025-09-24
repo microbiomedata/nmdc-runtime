@@ -1,0 +1,103 @@
+metadata_submission:
+  metadata_submission:
+    packageName: [ 'soil' ]
+    addressForm:
+      shipper:
+        name: ''
+        email: ''
+        phone: ''
+        line1: ''
+        line2: ''
+        city: ''
+        state: ''
+        postalCode: ''
+      expectedShippingDate:
+      shippingConditions: ''
+      sample: ''
+      description: ''
+      experimentalGoals: ''
+      randomization: ''
+      usdaRegulated:
+      permitNumber: ''
+      biosafetyLevel: ''
+      irbOrHipaa:
+      comments: ''
+    templates: [ 'soil' ]
+    studyForm:
+      studyName: A test submission where sample_link is used to generate processed sample records
+      piName: Test Testerson
+      piEmail: test.testerson@example.com
+      piOrcid: 0000-0000-0000-000X
+      linkOutWebpage:
+      studyDate:
+      description:
+      notes:
+      fundingSources:
+      contributors:
+      alternativeNames:
+      GOLDStudyId:
+      NCBIBioProjectId:
+    multiOmicsForm:
+      JGIStudyId:
+      award:
+      dataGenerated: true
+      facilities: [ ]
+      facilityGenerated: true
+      omicsProcessingTypes:
+      otherAward:
+      studyNumber:
+    sampleData:
+      soil_data:
+        - elev: 123
+          analysis_type:
+            - metagenomics
+          collection_date: '2022-01-15'
+          depth: "0 - 1"
+          env_broad_scale: 'urban biome [ENVO:01000249]'
+          env_local_scale: 'tunnel [ENVO:00000068]'
+          env_medium: 'bare soil [ENVO:01001616]'
+          geo_loc_name: 'USA: Nowhere, Oklahoma'
+          growth_facil: greenhouse
+          lat_lon: 35.211445 -98.464612
+          samp_name: "00001"
+          samp_store_temp: "-80 Cel"
+          store_cond: frozen
+        - elev: 123
+          analysis_type:
+            - metagenomics
+          collection_date: '2022-01-15'
+          depth: "0 - 1"
+          env_broad_scale: 'urban biome [ENVO:01000249]'
+          env_local_scale: 'tunnel [ENVO:00000068]'
+          env_medium: 'bare soil [ENVO:01001616]'
+          geo_loc_name: 'USA: Nowhere, Oklahoma'
+          growth_facil: greenhouse
+          lat_lon: 35.211445 -98.464612
+          samp_name: "00002"
+          samp_store_temp: "-80 Cel"
+          store_cond: frozen
+        - elev: 123
+          analysis_type:
+            - metagenomics
+          collection_date: '2022-01-15'
+          depth: "0 - 1"
+          env_broad_scale: 'urban biome [ENVO:01000249]'
+          env_local_scale: 'tunnel [ENVO:00000068]'
+          env_medium: 'bare soil [ENVO:01001616]'
+          geo_loc_name: 'USA: Nowhere, Oklahoma'
+          growth_facil: greenhouse
+          lat_lon: 35.211445 -98.464612
+          sample_link: "Pooling:00001,00002"
+          samp_name: "00003-POOLED"
+          samp_store_temp: "-80 Cel"
+          store_cond: frozen
+  status: in-progress
+  id: 406e6ce5-ec5f-4617-badd-dc061358da24
+  author_orcid: 0000-0000-0000-000X
+  created: '2023-04-03T18:31:16.856377'
+  author:
+    id: a295b145-dc87-416d-9a57-9373d791fb68
+    orcid: 0000-0000-0000-000X
+    name: Test Testerson
+    is_admin: false
+    type: nmdc:PersonValue

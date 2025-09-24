@@ -152,6 +152,11 @@ def nmdc_biosample():
             "name": "ARIK.20150721.AMC.EPIPSAMMON.3",
             "type": "nmdc:Biosample",
             "associated_studies": ["nmdc:sty-11-pzmd0x14"],
+            "host_taxid": {
+                "term": {"id": "NCBITaxon:9606", "name": "Homo sapiens"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_package": {"has_raw_value": "soil", "type": "nmdc:TextValue"},
         }
     ]
 
@@ -680,6 +685,74 @@ class TestNCBISubmissionXML:
         # Biosample should be excluded because it has at least one JGI sequencing activity
         assert "nmdc:bsm-12-mixed" not in submission_xml
 
+    def test_geo_loc_name_ascii_conversion(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "geo_loc_name": "geo_loc_name",
+                    "id": "",
+                    "name": "sample_name",
+                    "env_broad_scale": "env_broad_scale",
+                    "env_local_scale": "env_local_scale",
+                    "env_medium": "env_medium",
+                },
+                {
+                    "geo_loc_name": "TextValue",
+                    "id": "uriorcurie",
+                    "name": "string",
+                    "env_broad_scale": "ControlledIdentifiedTermValue",
+                    "env_local_scale": "ControlledIdentifiedTermValue",
+                    "env_medium": "ControlledIdentifiedTermValue",
+                },
+            ),
+        )
+
+        # Create a biosample with non-ASCII characters in geo_loc_name
+        test_biosample = [
+            {
+                "id": "nmdc:bsm-12-unicode-test",
+                "name": "Test Biosample",
+                "geo_loc_name": {
+                    "has_raw_value": "USA: Alaska, Utqiaġvik",
+                    "type": "nmdc:TextValue",
+                },
+                "env_broad_scale": {
+                    "has_raw_value": "ENVO:00000446",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "env_local_scale": {
+                    "has_raw_value": "ENVO:00002030",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "env_medium": {
+                    "has_raw_value": "ENVO:00002007",
+                    "type": "nmdc:ControlledTermValue",
+                },
+                "associated_studies": ["nmdc:sty-11-unicode-test"],
+            }
+        ]
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=test_biosample,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Verify that non-ASCII characters are converted to closest ASCII equivalents using unidecode
+        assert "USA: Alaska, Utqiagvik" in biosample_xml
+        # Verify the original Unicode characters are not present
+        assert "Utqiaġvik" not in biosample_xml
+
 
 class TestNCBIXMLUtils:
     def test_handle_quantity_value(self):
@@ -846,3 +919,603 @@ class TestNCBIXMLUtils:
 
         assert attribute_mappings == expected_attribute_mappings
         assert slot_range_mappings == expected_slot_range_mappings
+
+    def test_pooled_biosample_grouping(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "id": "",
+                    "name": "sample_name",
+                    "geo_loc_name": "geo_loc_name",
+                    "collection_date": "collection_date",
+                    "depth": "depth",
+                    "elev": "elev",
+                    "lat_lon": "lat_lon",
+                    "env_broad_scale": "env_broad_scale",
+                    "env_local_scale": "env_local_scale",
+                    "env_medium": "env_medium",
+                },
+                {
+                    "id": "uriorcurie",
+                    "name": "string",
+                    "geo_loc_name": "TextValue",
+                    "collection_date": "TimestampValue",
+                    "depth": "QuantityValue",
+                    "elev": "float",
+                    "lat_lon": "GeolocationValue",
+                    "env_broad_scale": "ControlledIdentifiedTermValue",
+                    "env_local_scale": "ControlledIdentifiedTermValue",
+                    "env_medium": "ControlledIdentifiedTermValue",
+                },
+            ),
+        )
+
+        # Create test biosamples
+        biosample1 = {
+            "id": "nmdc:bsm-12-002hb858",
+            "name": "Pooled Sample 1",
+            "geo_loc_name": {
+                "has_raw_value": "USA: Test Location",
+                "type": "nmdc:TextValue",
+            },
+            "collection_date": {
+                "has_raw_value": "2021-01-01",
+                "type": "nmdc:TimestampValue",
+            },
+            "depth": {
+                "has_numeric_value": 5,
+                "has_unit": "m",
+                "type": "nmdc:QuantityValue",
+            },
+            "elev": 100.5,
+            "lat_lon": {
+                "latitude": 40.0,
+                "longitude": -120.0,
+                "type": "nmdc:GeolocationValue",
+            },
+            "env_broad_scale": {
+                "term": {"id": "ENVO:00000446", "name": "terrestrial biome"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_local_scale": {
+                "term": {"id": "ENVO:00002030", "name": "meadow"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_medium": {
+                "term": {"id": "ENVO:00002007", "name": "sediment"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+        }
+
+        biosample2 = {
+            "id": "nmdc:bsm-12-938kxq31",
+            "name": "Pooled Sample 2",
+            "geo_loc_name": {
+                "has_raw_value": "USA: Test Location",
+                "type": "nmdc:TextValue",
+            },
+            "collection_date": {
+                "has_raw_value": "2021-01-02",
+                "type": "nmdc:TimestampValue",
+            },
+            "depth": {
+                "has_numeric_value": 10,
+                "has_unit": "m",
+                "type": "nmdc:QuantityValue",
+            },
+            "elev": 100.5,
+            "lat_lon": {
+                "latitude": 40.0,
+                "longitude": -120.0,
+                "type": "nmdc:GeolocationValue",
+            },
+            "env_broad_scale": {
+                "term": {"id": "ENVO:00000446", "name": "terrestrial biome"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_local_scale": {
+                "term": {"id": "ENVO:00002030", "name": "meadow"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_medium": {
+                "term": {"id": "ENVO:00002007", "name": "sediment"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+        }
+
+        biosample3 = {
+            "id": "nmdc:bsm-12-s2ngn133",
+            "name": "Individual Sample",
+            "geo_loc_name": {
+                "has_raw_value": "USA: Test Location 2",
+                "type": "nmdc:TextValue",
+            },
+            "collection_date": {
+                "has_raw_value": "2021-01-03",
+                "type": "nmdc:TimestampValue",
+            },
+            "depth": {
+                "has_numeric_value": 2,
+                "has_unit": "m",
+                "type": "nmdc:QuantityValue",
+            },
+            "elev": 200.0,
+            "lat_lon": {
+                "latitude": 41.0,
+                "longitude": -121.0,
+                "type": "nmdc:GeolocationValue",
+            },
+            "env_broad_scale": {
+                "term": {"id": "ENVO:00000446", "name": "terrestrial biome"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_local_scale": {
+                "term": {"id": "ENVO:00002030", "name": "meadow"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+            "env_medium": {
+                "term": {"id": "ENVO:00002007", "name": "sediment"},
+                "type": "nmdc:ControlledIdentifiedTermValue",
+            },
+        }
+
+        pooled_biosamples_data = {
+            "nmdc:bsm-12-002hb858": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Aggregated Pool Sample",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
+            },
+            "nmdc:bsm-12-938kxq31": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Aggregated Pool Sample",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
+            },
+            "nmdc:bsm-12-s2ngn133": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Aggregated Pool Sample",
+                "pooled_biosample_ids": [
+                    "nmdc:bsm-12-002hb858",
+                    "nmdc:bsm-12-938kxq31",
+                    "nmdc:bsm-12-s2ngn133",
+                ],
+                "aggregated_collection_date": "2021-01-01/2021-01-03",
+                "aggregated_depth": "2 - 10 m",
+            },
+        }
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=[biosample1, biosample2, biosample3],
+            pooled_biosamples_data=pooled_biosamples_data,
+        )
+
+        # Should create 1 Action element: all three biosamples are pooled into a single pooling process
+        action_elements = ncbi_submission_client.root.findall(".//Action")
+        assert len(action_elements) == 1
+
+        # Find the pooled sample action
+        pooled_action = action_elements[0]
+        pooled_xml = ET.tostring(pooled_action, "unicode")
+
+        # Check pooled action content - should reference the processed sample ID from the pooling process
+        assert "nmdc:procsm-11-dha8mw20" in pooled_xml
+        assert "Aggregated Pool Sample" in pooled_xml
+        assert "nmdc:poolp-11-gznh3638" in pooled_xml
+        assert "2021-01-01/2021-01-03" in pooled_xml
+        assert "2 - 10 m" in pooled_xml
+        # Should contain all three biosample IDs in the pooled list
+        assert "nmdc:bsm-12-002hb858" in pooled_xml
+        assert "nmdc:bsm-12-938kxq31" in pooled_xml
+        assert "nmdc:bsm-12-s2ngn133" in pooled_xml
+
+    def test_elev_special_handling(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"elev": "elev", "id": "", "name": "sample_name"},
+                {"elev": "float", "id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=nmdc_biosample,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Elevation should be converted to string with " m" suffix
+        assert "1179.5 m" in biosample_xml
+
+    def test_host_taxid_special_handling(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"host_taxid": "host_taxid", "id": "", "name": "sample_name"},
+                {
+                    "host_taxid": "ControlledIdentifiedTermValue",
+                    "id": "uriorcurie",
+                    "name": "string",
+                },
+            ),
+        )
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=nmdc_biosample,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Should extract just the numeric part
+        assert "9606" in biosample_xml
+
+    def test_env_package_processing(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"env_package": "env_package", "id": "", "name": "sample_name"},
+                {"env_package": "TextValue", "id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=nmdc_biosample,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Should be formatted as MIMS.me.{value}.6.0
+        assert "MIMS.me.soil.6.0" in biosample_xml
+
+    def test_fastq_file_filtering(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+        nmdc_biosample: list[dict[str, Any]],
+        nucleotide_sequencing_list: list[dict[str, Any]],
+        library_preparation_dict: dict[str, Any],
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {
+                    "analysis_type": "",
+                    "biosample_categories": "",
+                    "collection_date": "collection_date",
+                    "depth": "depth",
+                    "env_broad_scale": "env_broad_scale",
+                    "env_local_scale": "env_local_scale",
+                    "env_medium": "env_medium",
+                    "geo_loc_name": "geo_loc_name",
+                    "id": "",
+                    "lat_lon": "lat_lon",
+                    "name": "sample_name",
+                    "type": "",
+                },
+                {
+                    "analysis_type": "string",
+                    "biosample_categories": "string",
+                    "collection_date": "TimestampValue",
+                    "depth": "QuantityValue",
+                    "env_broad_scale": "ControlledTermValue",
+                    "env_local_scale": "ControlledTermValue",
+                    "env_medium": "ControlledTermValue",
+                    "geo_loc_name": "TextValue",
+                    "id": "uriorcurie",
+                    "lat_lon": "GeolocationValue",
+                    "name": "string",
+                    "type": "string",
+                },
+            ),
+        )
+        # Create mixed data objects with and without acceptable extensions
+        mixed_data_objects = [
+            {
+                "id": "nmdc:dobj-11-fastq1",
+                "url": "https://example.com/test1.fastq.gz",
+                "data_object_type": "Metagenome Raw Read 1",
+            },
+            {
+                "id": "nmdc:dobj-11-fastq2",
+                "url": "https://example.com/test2.fastq",
+                "data_object_type": "Metagenome Raw Read 2",
+            },
+            {
+                "id": "nmdc:dobj-11-other",
+                "url": "https://example.com/test.bam",
+                "data_object_type": "Alignment File",
+            },
+            {
+                "id": "nmdc:dobj-11-txt",
+                "url": "https://example.com/readme.txt",
+                "data_object_type": "Text File",
+            },
+        ]
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        biosample_data_objects = [
+            {biosample["id"]: mixed_data_objects} for biosample in nmdc_biosample
+        ]
+
+        biosample_nucleotide_sequencing = [
+            {biosample["id"]: nucleotide_sequencing_list}
+            for biosample in nmdc_biosample
+        ]
+
+        biosample_library_preparation = [
+            {biosample["id"]: library_preparation_dict} for biosample in nmdc_biosample
+        ]
+
+        # Call get_submission_xml which includes file filtering
+        submission_xml = ncbi_submission_client.get_submission_xml(
+            nmdc_biosample,
+            biosample_nucleotide_sequencing,
+            biosample_data_objects,
+            biosample_library_preparation,
+            all_instruments,
+        )
+
+        # Should include .fastq.gz and .fastq files
+        assert "test1.fastq.gz" in submission_xml
+        assert "test2.fastq" in submission_xml
+
+        # Should exclude other file types
+        assert "test.bam" not in submission_xml
+        assert "readme.txt" not in submission_xml
+
+    def test_pooled_sra_action_creation(
+        self,
+        ncbi_submission_client: NCBISubmissionXML,
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        # Create test data for pooled SRA action
+        fastq_data_objects = [
+            {
+                "id": "nmdc:dobj-pooled-1",
+                "url": "https://example.com/pooled_R1.fastq.gz",
+                "data_object_type": "Metagenome Raw Read 1",
+            },
+            {
+                "id": "nmdc:dobj-pooled-2",
+                "url": "https://example.com/pooled_R2.fastq.gz",
+                "data_object_type": "Metagenome Raw Read 2",
+            },
+        ]
+
+        nucleotide_sequencing = [
+            {
+                "id": "nmdc:ntseq-pooled-1",
+                "analyte_category": "metagenome",
+                "instrument_used": ["nmdc:inst-14-xz5tb342"],
+            }
+        ]
+
+        library_preparation = {"protocol_link": {"name": "Test Library Prep Protocol"}}
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        pooled_biosamples_data = {
+            "nmdc:bsm-12-002hb858": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Pooled SRA Sample",
+            },
+            "nmdc:bsm-12-938kxq31": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Pooled SRA Sample",
+            },
+        }
+
+        biosample_data_objects = [
+            {
+                "nmdc:bsm-12-002hb858": fastq_data_objects,
+                "nmdc:bsm-12-938kxq31": fastq_data_objects,
+            }
+        ]
+
+        biosample_nucleotide_sequencing = [
+            {
+                "nmdc:bsm-12-002hb858": nucleotide_sequencing,
+                "nmdc:bsm-12-938kxq31": nucleotide_sequencing,
+            }
+        ]
+
+        biosample_library_preparation = [
+            {
+                "nmdc:bsm-12-002hb858": library_preparation,
+                "nmdc:bsm-12-938kxq31": library_preparation,
+            }
+        ]
+
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=biosample_data_objects,
+            bioproject_id="PRJNA123456",
+            org="Test Org",
+            nmdc_nucleotide_sequencing=biosample_nucleotide_sequencing,
+            nmdc_biosamples=[],
+            nmdc_library_preparation=biosample_library_preparation,
+            all_instruments=all_instruments,
+            pooled_biosamples_data=pooled_biosamples_data,
+        )
+
+        # Should create 1 SRA action for the pooled samples
+        action_elements = ncbi_submission_client.root.findall(".//Action")
+        assert len(action_elements) == 1
+
+        action_xml = ET.tostring(action_elements[0], "unicode")
+
+        # Should reference the processed sample, not individual biosamples
+        assert "nmdc:procsm-11-dha8mw20" in action_xml
+        assert "Pooled SRA Sample" in action_xml
+        assert "pooled_R1.fastq.gz" in action_xml
+        assert "pooled_R2.fastq.gz" in action_xml
+        assert "paired" in action_xml  # Should detect paired reads from _R1/_R2 pattern
+        assert "ILLUMINA" in action_xml
+        assert "NextSeq 550" in action_xml
+        assert "Test Library Prep Protocol" in action_xml
+
+    def test_library_layout_detection_pooled(
+        self,
+        ncbi_submission_client: NCBISubmissionXML,
+        mocked_instruments: list[dict[str, Any]],
+    ):
+        # Test single read detection for pooled samples
+        single_read_data = [
+            {
+                "id": "nmdc:dobj-single",
+                "url": "https://example.com/single_read.fastq.gz",
+                "data_object_type": "Metagenome Raw Reads",
+            }
+        ]
+
+        nucleotide_sequencing = [
+            {
+                "id": "nmdc:ntseq-single",
+                "analyte_category": "metagenome",
+                "instrument_used": ["nmdc:inst-14-xz5tb342"],
+            }
+        ]
+
+        all_instruments = {
+            instrument["id"]: {
+                "vendor": instrument["vendor"],
+                "model": instrument["model"],
+            }
+            for instrument in mocked_instruments
+        }
+
+        pooled_biosamples_data = {
+            "nmdc:bsm-12-bcfa4694": {
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "processed_sample_name": "Single Read Sample",
+            }
+        }
+
+        ncbi_submission_client.set_fastq(
+            biosample_data_objects=[{"nmdc:bsm-12-bcfa4694": single_read_data}],
+            bioproject_id="PRJNA123456",
+            org="Test Org",
+            nmdc_nucleotide_sequencing=[
+                {"nmdc:bsm-12-bcfa4694": nucleotide_sequencing}
+            ],
+            nmdc_biosamples=[],
+            nmdc_library_preparation=[{"nmdc:bsm-12-bcfa4694": {}}],
+            all_instruments=all_instruments,
+            pooled_biosamples_data=pooled_biosamples_data,
+        )
+
+        action_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//Action"), "unicode"
+        )
+
+        # Should detect single read layout since no _R1/_R2 pattern
+        assert "single" in action_xml
+        assert "paired" not in action_xml
+
+    def test_external_links_for_pooled_samples(
+        self,
+        mocker: Callable[..., Generator[MockerFixture, None, None]],
+        ncbi_submission_client: NCBISubmissionXML,
+    ):
+        mocker.patch(
+            "nmdc_runtime.site.export.ncbi_xml.load_mappings",
+            return_value=(
+                {"id": "", "name": "sample_name"},
+                {"id": "uriorcurie", "name": "string"},
+            ),
+        )
+
+        test_biosample = {
+            "id": "nmdc:bsm-12-s2ngn133",
+            "name": "External Link Test Sample",
+        }
+
+        pooled_biosamples_data = {
+            "nmdc:bsm-12-s2ngn133": {
+                "processed_sample_id": "nmdc:procsm-11-dha8mw20",
+                "pooling_process_id": "nmdc:poolp-11-gznh3638",
+            }
+        }
+
+        ncbi_submission_client.set_biosample(
+            organism_name="Test Organism",
+            org="Test Org",
+            bioproject_id="PRJNA123456",
+            nmdc_biosamples=[test_biosample],
+            pooled_biosamples_data=pooled_biosamples_data,
+        )
+
+        biosample_xml = ET.tostring(
+            ncbi_submission_client.root.find(".//BioSample"), "unicode"
+        )
+
+        # Should contain external links to processed sample and pooling process
+        assert "https://bioregistry.io/nmdc:procsm-11-dha8mw20" in biosample_xml
+        assert "https://bioregistry.io/nmdc:poolp-11-gznh3638" in biosample_xml

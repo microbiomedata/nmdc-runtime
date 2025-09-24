@@ -98,10 +98,10 @@ If you need to delete objects copy it to `nmdc_deleted` database under the corre
 
 Here's how you can update the `nmdc-schema` package upon which the Runtime depends.
 
-1. Update `requirements/main.in` so it references the new version of `nmdc-schema`; for example:
+1. Update the `dependencies` list in `pyproject.toml` so it references the new version of `nmdc-schema`; for example:
    ```diff
-   - nmdc-schema==11.7.0
-   + nmdc-schema==11.8.0
+   - "nmdc-schema == 11.7.0",
+   + "nmdc-schema == 11.8.0",
    ```
 2. Synchronize the transitive dependencies by running:
    ```shell

@@ -1371,6 +1371,42 @@ def get_library_preparation_from_biosamples(
 
 
 @op(required_resource_keys={"mongo"})
+def get_aggregated_pooled_biosamples(context: OpExecutionContext, biosamples: list):
+    from nmdc_runtime.site.export.ncbi_xml_utils import check_pooling_for_biosamples
+
+    mdb = context.resources.mongo.db
+    material_processing_set = mdb["material_processing_set"]
+    pooled_biosamples_data = check_pooling_for_biosamples(
+        material_processing_set, biosamples
+    )
+
+    # Fetch ProcessedSample names from database
+    processed_sample_ids = set()
+    for biosample_id, pooling_info in pooled_biosamples_data.items():
+        if pooling_info and pooling_info.get("processed_sample_id"):
+            processed_sample_ids.add(pooling_info["processed_sample_id"])
+
+    # Query database for ProcessedSample names
+    if processed_sample_ids:
+        processed_sample_set = mdb["processed_sample_set"]
+        cursor = processed_sample_set.find(
+            {"id": {"$in": list(processed_sample_ids)}}, {"id": 1, "name": 1}
+        )
+        processed_samples = {doc["id"]: doc.get("name", "") for doc in cursor}
+
+        # Update pooled_biosamples_data with ProcessedSample names
+        for biosample_id, pooling_info in pooled_biosamples_data.items():
+            if pooling_info and pooling_info.get("processed_sample_id"):
+                processed_sample_id = pooling_info["processed_sample_id"]
+                if processed_sample_id in processed_samples:
+                    pooling_info["processed_sample_name"] = processed_samples[
+                        processed_sample_id
+                    ]
+
+    return pooled_biosamples_data
+
+
+@op(required_resource_keys={"mongo"})
 def get_all_instruments(context: OpExecutionContext) -> dict[str, dict]:
     mdb = context.resources.mongo.db
     return get_instruments_by_id(mdb)
@@ -1403,6 +1439,7 @@ def ncbi_submission_xml_from_nmdc_study(
     data_object_records: list,
     library_preparation_records: list,
     all_instruments: dict,
+    pooled_biosamples_data: dict,
 ) -> str:
     ncbi_exporter = NCBISubmissionXML(nmdc_study, ncbi_exporter_metadata)
     ncbi_xml = ncbi_exporter.get_submission_xml(
@@ -1411,6 +1448,7 @@ def ncbi_submission_xml_from_nmdc_study(
         data_object_records,
         library_preparation_records,
         all_instruments,
+        pooled_biosamples_data,
     )
     return ncbi_xml
 
