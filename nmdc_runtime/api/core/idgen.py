@@ -111,7 +111,7 @@ def generate_ids(
     1. The inclusion of a typecode.
        The inclusion of a typecode came out of discussions with team members,
        who wanted identifiers to include some non-opaque substring that could be used
-       to determine down what type of resource a given identifier refers to.
+       to determine what type of resource a given identifier refers to.
     2. Making hyphens mandatory.
        We decided to make the hyphens mandatory, whereas the spec says they are optional.
        > "Hyphens are considered to be insignificant and are always ignored in ARKs."
