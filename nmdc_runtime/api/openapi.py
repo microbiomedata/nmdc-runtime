@@ -38,7 +38,7 @@ class OpenAPITag(str, Enum):
     OBJECTS = "Workflow management: Objects"
     OPERATIONS = "Workflow management: Operations"
     QUERIES = "Metadata access: Queries"
-    METADATA = "Metadata access: Explore"
+    METADATA = "Metadata access: Metadata"
     RUNS = "Workflow management: Runs"
     MINTER = "Persistent identifiers"
     SYSTEM = "System administration"
