@@ -37,7 +37,7 @@ def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> s
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
 
 
-def drop_stale_temp_linked_instances_collections():
+def drop_stale_temp_linked_instances_collections() -> None:
     """Drop any temporary linked-instances collections that were generated earlier than one day ago."""
     mdb = get_mongo_db()
     one_day_ago = now() - timedelta(days=1)
