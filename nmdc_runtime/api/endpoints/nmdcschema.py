@@ -3,7 +3,7 @@ import re
 from typing import List, Dict, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, BackgroundTasks
 from pydantic import AfterValidator
 from refscan.lib.helpers import (
     get_collection_names_from_schema,
@@ -13,6 +13,7 @@ from refscan.lib.helpers import (
 from nmdc_runtime.api.endpoints.lib.linked_instances import (
     gather_linked_instances,
     hydrated,
+    drop_stale_temp_linked_instances_collections,
 )
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from nmdc_runtime.minter.config import typecodes
@@ -127,6 +128,7 @@ def get_nmdc_database_collection_stats(
     )
 )
 def get_linked_instances(
+    background_tasks: BackgroundTasks,
     ids: Annotated[
         list[str],
         Query(
@@ -222,6 +224,7 @@ def get_linked_instances(
     [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
     If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
     """
+    background_tasks.add_task(drop_stale_temp_linked_instances_collections)
     if page_token is not None:
         rv = list_resources(
             req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
@@ -237,6 +240,7 @@ def get_linked_instances(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Some IDs not found: {ids_not_found}.",
         )
+
     types = types or ["nmdc:NamedThing"]
     types_possible = set([f"nmdc:{name}" for name in nmdc_schema_view().all_classes()])
     types_not_found = list(set(types) - types_possible)
