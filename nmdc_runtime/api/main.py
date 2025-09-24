@@ -421,7 +421,7 @@ def custom_swagger_ui_html(
             <script src="https://cdn.jsdelivr.net/npm/swagger-ui-plugin-hierarchical-tags@1.0.4/build/index.min.js"></script>
             </head>
             """,
-         )
+        )
         # Inject an HTML element containing the access token (or an empty string, if there is no access token)
         # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
         # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).

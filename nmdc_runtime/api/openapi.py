@@ -17,7 +17,7 @@ from enum import Enum
 
 class OpenAPITag(str, Enum):
     r"""A tag you can use to group related API endpoints together in an OpenAPI schema.
-    
+
     Note: Because we are using the `hierarchical-tags` plugin for Swagger UI, if a tag
           value contains a colon (":") or pipe ("|") character, the text before that
           character will be treated as a "parent" tag, and the text after it will be
@@ -326,7 +326,6 @@ ordered_tag_descriptors: List[Dict] = [
         "name": OpenAPITag.SYSTEM.value,
         "description": tag_descriptions[OpenAPITag.SYSTEM.value],
     },
-
 ]
 
 
