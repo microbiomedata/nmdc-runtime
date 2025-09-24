@@ -36,14 +36,14 @@ class Status(str, Enum):
 
     registered = "registered"
     """
-    Registered; i.e., the identifier is in use and recognized by the minter, but the resource
-    it identifies isn't publicly accessible (yet or anymore). The identifier cannot be deleted.
+    Registered; i.e., the identifier is in use, but the resource it identifies is not publicly accessible
+    (yet, or anymore). The identifier cannot be deleted.
     """
 
     indexed = "indexed"
     """
-    Indexed; i.e., the identifier is in use and recognized by the minter and the resource it
-    identifies is publicly accessible. The identifier cannot be deleted.
+    Indexed; i.e., the resource identified by the identifier is publicly accessible (i.e. in the
+    production database). The identifier cannot be deleted.
     """
 
 
