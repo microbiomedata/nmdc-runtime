@@ -16,22 +16,38 @@ from enum import Enum
 
 
 class OpenAPITag(str, Enum):
-    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+    r"""A tag you can use to group related API endpoints together in an OpenAPI schema.
+    
+    Note: Because we are using the `hierarchical-tags` plugin for Swagger UI, if a tag
+          value contains a colon (":") or pipe ("|") character, the text before that
+          character will be treated as a "parent" tag, and the text after it will be
+          treated as a "child" tag. For example, it a tag value is "Foo: Bar", "Foo"
+          will be treated as a "parent" tag and "Bar" will be treated as a "child" tag.
 
-    SITES = "Sites"
-    FIND = "Find"
-    WORKFLOWS = "Workflows"
-    USERS = "Users"
-    CAPABILITIES = "Capabilities"
-    OBJECT_TYPES = "Object types"
-    TRIGGERS = "Triggers"
-    JOBS = "Jobs"
-    OBJECTS = "Objects"
-    OPERATIONS = "Operations"
-    QUERIES = "Queries"
-    METADATA = "Metadata"
-    RUNS = "Runs"
-    MINTER = "Minter"
+          Reference: https://github.com/kael-shipman/swagger-ui-plugins/blob/combined/packages/hierarchical-tags/README.md
+    """
+
+    SITES = "Workflow management: Sites"
+    FIND = "Metadata access: Find"
+    WORKFLOWS = "Workflow management: Workflows"
+    USERS = "User accounts"
+    CAPABILITIES = "Workflow management: Capabilities"
+    OBJECT_TYPES = "Workflow management: Object types"
+    TRIGGERS = "Workflow management: Triggers"
+    JOBS = "Workflow management: Jobs"
+    OBJECTS = "Workflow management: Objects"
+    OPERATIONS = "Workflow management: Operations"
+    QUERIES = "Metadata access: Queries"
+    METADATA = "Metadata access: Explore"
+    RUNS = "Workflow management: Runs"
+    MINTER = "Persistent identifiers"
+    SYSTEM = "System administration"
+
+    WORKFLOW_MANAGEMENT = "Workflow management"
+    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
+
+    METADATA_ACCESS = "Metadata access"
+    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
 
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
@@ -65,9 +81,7 @@ in order for those sites to claim workflow jobs.
 tag_descriptions[
     OpenAPITag.USERS.value
 ] = r"""
-Endpoints for user identification.
-
-Currently, accounts for use with the Runtime API are created manually by system administrators.
+Endpoints related to creating and managing user accounts.
 """
 
 tag_descriptions[
@@ -218,7 +232,25 @@ For off-site job runs, keep the Runtime appraised of run events.
 tag_descriptions[
     OpenAPITag.MINTER.value
 ] = r"""
-Mint identifiers.
+Endpoints related to minting and binding persistent identifiers.
+"""
+
+tag_descriptions[
+    OpenAPITag.SYSTEM.value
+] = r"""
+Endpoints related to system administration.
+"""
+
+tag_descriptions[
+    OpenAPITag.WORKFLOW_MANAGEMENT.value
+] = r"""
+Endpoints related to managing workflow executions.
+"""
+
+tag_descriptions[
+    OpenAPITag.METADATA_ACCESS.value
+] = r"""
+Endpoints related to accessing metadata.
 """
 
 # Remove leading and trailing whitespace from each description.
@@ -227,12 +259,28 @@ for name, description in tag_descriptions.items():
 
 ordered_tag_descriptors: List[Dict] = [
     {
-        "name": OpenAPITag.SITES.value,
-        "description": tag_descriptions[OpenAPITag.SITES.value],
+        "name": OpenAPITag.METADATA_ACCESS.value,
+        "description": tag_descriptions[OpenAPITag.METADATA_ACCESS.value],
     },
     {
-        "name": OpenAPITag.USERS.value,
-        "description": tag_descriptions[OpenAPITag.USERS.value],
+        "name": OpenAPITag.WORKFLOW_MANAGEMENT.value,
+        "description": tag_descriptions[OpenAPITag.WORKFLOW_MANAGEMENT.value],
+    },
+    {
+        "name": OpenAPITag.QUERIES.value,
+        "description": tag_descriptions[OpenAPITag.QUERIES.value],
+    },
+    {
+        "name": OpenAPITag.METADATA.value,
+        "description": tag_descriptions[OpenAPITag.METADATA.value],
+    },
+    {
+        "name": OpenAPITag.FIND.value,
+        "description": tag_descriptions[OpenAPITag.FIND.value],
+    },
+    {
+        "name": OpenAPITag.SITES.value,
+        "description": tag_descriptions[OpenAPITag.SITES.value],
     },
     {
         "name": OpenAPITag.WORKFLOWS.value,
@@ -263,18 +311,6 @@ ordered_tag_descriptors: List[Dict] = [
         "description": tag_descriptions[OpenAPITag.OPERATIONS.value],
     },
     {
-        "name": OpenAPITag.QUERIES.value,
-        "description": tag_descriptions[OpenAPITag.QUERIES.value],
-    },
-    {
-        "name": OpenAPITag.METADATA.value,
-        "description": tag_descriptions[OpenAPITag.METADATA.value],
-    },
-    {
-        "name": OpenAPITag.FIND.value,
-        "description": tag_descriptions[OpenAPITag.FIND.value],
-    },
-    {
         "name": OpenAPITag.RUNS.value,
         "description": tag_descriptions[OpenAPITag.RUNS.value],
     },
@@ -282,6 +318,15 @@ ordered_tag_descriptors: List[Dict] = [
         "name": OpenAPITag.MINTER.value,
         "description": tag_descriptions[OpenAPITag.MINTER.value],
     },
+    {
+        "name": OpenAPITag.USERS.value,
+        "description": tag_descriptions[OpenAPITag.USERS.value],
+    },
+    {
+        "name": OpenAPITag.SYSTEM.value,
+        "description": tag_descriptions[OpenAPITag.SYSTEM.value],
+    },
+
 ]
 
 

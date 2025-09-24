@@ -19,4 +19,16 @@ base_swagger_ui_parameters: dict = {
     # Make it so a logged-in user remains logged in even after reloading
     # the web page (or leaving the web page and coming back to it later).
     "persistAuthorization": True,
+    # Specify the Swagger UI plugins we want to use (see note below).
+    #
+    # Note: FastAPI's `get_swagger_ui_html` function always serializes
+    #       the value of this property as a _string_, while the Swagger UI
+    #       JavaScript code requires it to be an _array_. To work around that,
+    #       we just add a placeholder string here; then, after we pass this
+    #       dictionary to FastAPI's `get_swagger_ui_html` function and get the
+    #       returned HTML for the web page, we replace this placeholder string
+    #       (within the returned HTML) with the JavaScript array we wanted
+    #       the "plugins" property to contain all along.
+    #
+    "plugins": r"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}",
 }

@@ -52,35 +52,66 @@
  * Customize Swagger UI's default elements.
  *****************************************************************************/
 
- /* Remove the box shadow from the top section of the page. */
+/* Remove the box shadow from the top section of the page. */
 .swagger-ui .scheme-container {
     box-shadow: none;
 }
-/* Draw a border around each section and add a shadow behind it. */
+/* Draw a border around each section. */
 .swagger-ui div.opblock-tag-section {
-    border: .075rem solid black;
+    border: 1px solid rgba(59,65,81,.3);
     border-radius: 4px;
     padding-top: 15px;
     padding-left: 15px;
     padding-right: 15px;
     margin-bottom: 15px;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.19);
-    transition: box-shadow 0.2s;
 }
 .swagger-ui div.opblock-tag-section:not(.is-open):hover {
-    box-shadow: 0 0px 6px rgba(0, 0, 0, 0.19);
+    background-color: rgba(0, 0, 0, 0.01);
 }
 /* Stack the elements of each section header vertically. */
-.swagger-ui h3.opblock-tag {
+.swagger-ui .opblock-tag {
     flex-direction: column;
     align-items: stretch;
     border-bottom: none;
 }
-.swagger-ui h3.opblock-tag:hover {
+.swagger-ui .opblock-tag:hover {
     background-color: transparent;
 }
 /* Remove the left margin from the description and chevron icon rows. */
-.swagger-ui h3.opblock-tag > small,
-.swagger-ui h3.opblock-tag > button {
+.swagger-ui .opblock-tag > small,
+.swagger-ui .opblock-tag > button {
     padding-left: 0;
+}
+/* When using the `hierarchical-tags` plugin, disable the rotation
+   animation of the chevron icon, and ensure the chevron icon always
+   points upward when a section (at any level) is collapsed, and always
+   points downward when a section (at any level) is expanded. */
+.swagger-ui .opblock-tag-section svg {
+    transition: none;
+}
+.swagger-ui .opblock-tag-section:not(.is-open) svg {
+    transform: rotate(90deg);
+}
+.swagger-ui .opblock-tag-section.is-open svg {
+    transform: rotate(180deg);
+}
+.swagger-ui .no-margin .opblock-tag-section:not(.is-open) svg {
+    transform: rotate(90deg);
+}
+.swagger-ui .no-margin .opblock-tag-section.is-open svg {
+    transform: rotate(0deg);
+}
+/* When using the `hierarchical-tags` plugin, prevent the tag sections
+   from having a minimum height of 150px. */
+.swagger-ui .opblock-tag > div {
+    flex-basis: auto;
+}
+/* When using the `hierarchical-tags` plugin, prevent the nested
+   tag sections from being left-indented and having a left border.
+   We use `!important` here because the existing styles are defined
+   directly on the HTML element. */
+.swagger-ui .opblock-tag-section div.hierarchical-operation-tags {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }

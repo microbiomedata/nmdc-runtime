@@ -242,7 +242,7 @@ async def root():
     )
 
 
-@api_router.get("/version")
+@api_router.get("/version", tags=[OpenAPITag.SYSTEM.value])
 async def get_versions():
     return {
         "nmdc-runtime": version("nmdc_runtime"),
@@ -402,6 +402,26 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # Make the two changes necessary for integrating the `hierarchical-tags` plugin into the Swagger UI page.
+        # Reference: https://github.com/kael-shipman/swagger-ui-plugins/blob/combined/packages/hierarchical-tags/README.md
+        #
+        # 1. Replace the placeholder string (at this point, quoted by FastAPI's `get_swagger_ui_html` function)
+        #    we added to the `plugins` property, with the JavaScript array we want that property to ultimately contain.
+        #
+        .replace(
+            r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"',
+            r"[HierarchicalTagsPlugin]",
+        )
+        #
+        # 2. Inject a `<script>` tag to load the plugin's JavaScript code, immediately before the closing `</head>` tag.
+        #
+        .replace(
+            r"</head>",
+            r"""
+            <script src="https://cdn.jsdelivr.net/npm/swagger-ui-plugin-hierarchical-tags@1.0.4/build/index.min.js"></script>
+            </head>
+            """,
+         )
         # Inject an HTML element containing the access token (or an empty string, if there is no access token)
         # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
         # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
