@@ -100,9 +100,9 @@ def generate_ids(
                       Indicates "who generated this ID." Callers will oftentimes set
                       this to the name of a Runtime "site" (as in, a "site client" site,
                       not a "Dagster" site).
-    :param ns: Namespace (see Minter docs)
-    :param naa: Name-Assigning Authority (see Minter docs)
-    :param shoulder: String that will go in the "how" field (see Minter docs); e.g. "11"
+    :param ns: Namespace (see Minter docs); e.g. "changesheets"
+    :param naa: Name-Assigning Authority (see Minter docs); e.g. "nmdc"
+    :param shoulder: String that will go in the "how" field (see Minter docs); e.g. "sys0"
 
     This function was written the way it was in an attempt to mirror the ARK spec:
     https://www.ietf.org/archive/id/draft-kunze-ark-41.html (found via: https://arks.org/specs/)
