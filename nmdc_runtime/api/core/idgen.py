@@ -89,7 +89,35 @@ def generate_ids(
     shoulder: str = "fk4",
 ) -> List[str]:
     r"""
-    TODO: Document this function.
+    Generate the specified number of identifiers, storing them in a MongoDB collection
+    whose name is derived from the specified Name-Assigning Authority (NAA) and Shoulder.
+
+    :param mdb: Handle to a MongoDB database
+    :param owner: String that will go in the "__ao" field of the identifier record.
+                  Callers will oftentimes set this to the name of a Runtime "site"
+                  (as in, a "site client" site, not a "Dagster" site).
+    :param populator: String that will go in the "who" field of the identifier record.
+                      Indicates "who generated this ID." Callers will oftentimes set
+                      this to the name of a Runtime "site" (as in, a "site client" site,
+                      not a "Dagster" site).
+    :param ns: Namespace (see Minter docs); e.g. "changesheets"
+    :param naa: Name-Assigning Authority (see Minter docs); e.g. "nmdc"
+    :param shoulder: String that will go in the "how" field (see Minter docs); e.g. "sys0"
+
+    This function was written the way it was in an attempt to mirror the ARK spec:
+    https://www.ietf.org/archive/id/draft-kunze-ark-41.html (found via: https://arks.org/specs/)
+
+    Deviations from the ARK spec include:
+    1. The inclusion of a typecode.
+       The inclusion of a typecode came out of discussions with team members,
+       who wanted identifiers to include some non-opaque substring that could be used
+       to determine what type of resource a given identifier refers to.
+    2. Making hyphens mandatory.
+       We decided to make the hyphens mandatory, whereas the spec says they are optional.
+       > "Hyphens are considered to be insignificant and are always ignored in ARKs."
+       > Reference: https://www.ietf.org/archive/id/draft-kunze-ark-41.html#name-character-repertoires
+       In our case, we require that users include an identifier's hyphens whenever
+       they are using that identifier.
     """
     collection = mdb.get_collection(collection_name(naa, shoulder))
     estimated_document_count = collection.estimated_document_count()
@@ -119,7 +147,9 @@ def generate_ids(
         if not_taken:
             # All attribute names beginning with "__a" are reserved...
             # https://github.com/jkunze/n2t-eggnog/blob/0f0f4c490e6dece507dba710d3557e29b8f6627e/egg#L1882
-            # XXX mongo is a pain with '.'s in field names, so not using e.g. "_.e" names.
+            # The author of this function opted to refrain from using property names beginning with "_.e",
+            # because he thought it would complicate MongoDB queries involving those properties, given that
+            # the "." is used as a field delimiter in MongoDB syntax (e.g. "foo.bar.baz").
             docs = [
                 {
                     "@context": "https://n2t.net/e/n2t_apidoc.html#identifier-metadata",
@@ -145,9 +175,9 @@ def generate_ids(
 
 
 def generate_one_id(
-    mdb: MongoDatabase = None,
+    mdb: MongoDatabase,
     ns: str = "",
-    shoulder: str = "sys0",
+    shoulder: str = "sys0",  # "sys0" represents the Runtime
 ) -> str:
     """Generate unique Crockford Base32-encoded ID for mdb repository.
 
@@ -156,8 +186,8 @@ def generate_one_id(
     """
     return generate_ids(
         mdb,
-        owner="_system",
-        populator="_system",
+        owner="_system",  # "_system" represents the Runtime
+        populator="_system",  # "_system" represents the Runtime
         number=1,
         ns=ns,
         naa="nmdc",

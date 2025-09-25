@@ -51,19 +51,9 @@ dependencies = [
     "git-root",
     "jq",
     "jsonasobj2",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "jupyter",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "jupyterlab",
     "linkml",
     "linkml-runtime",
     "lxml",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-jupyter",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-material",
-    # TODO: Why is this a production dependency instead of a development dependency?
-    "mkdocs-mermaid2-plugin",
     "ontology-loader == 0.2.2",
     # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
     # Docs: https://microbiomedata.github.io/nmdc-schema/
@@ -118,6 +108,13 @@ dev = [
     "pytest-mock",
     "requests-mock",
     "requests-cache",
+]
+docs = [
+    "jupyter",
+    "jupyterlab",
+    "mkdocs-jupyter",
+    "mkdocs-material",
+    "mkdocs-mermaid2-plugin",
 ]
 
 [project.urls]

@@ -76,6 +76,7 @@ lint:
 # Build the MkDocs documentation website and serve it at http://localhost:8080.
 # Docs: https://www.mkdocs.org/user-guide/cli/#mkdocs-serve
 docs-dev:
+	uv sync --group docs
 	mkdocs serve --config-file docs/mkdocs.yml --dev-addr localhost:8080
 
 # 🙋 Prerequisites:
