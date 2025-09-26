@@ -35,18 +35,21 @@ class OpenAPITag(str, Enum):
     OBJECT_TYPES = "Workflow management: Object types"
     TRIGGERS = "Workflow management: Triggers"
     JOBS = "Workflow management: Jobs"
-    OBJECTS = "Workflow management: Objects"
+    OBJECTS = "System administration: DRS objects"
     OPERATIONS = "Workflow management: Operations"
     QUERIES = "Metadata access: Queries"
     METADATA = "Metadata access: Metadata"
     RUNS = "Workflow management: Runs"
     MINTER = "Persistent identifiers"
-    SYSTEM = "System administration"
+    SOFTWARE = "System administration: Software"
 
     WORKFLOW_MANAGEMENT = "Workflow management"
     """Parent tag, which we are defining independently so we can define a description for this group of tags."""
 
     METADATA_ACCESS = "Metadata access"
+    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
+
+    SYSTEM_ADMINISTRATION = "System administration"
     """Parent tag, which we are defining independently so we can define a description for this group of tags."""
 
 
@@ -236,9 +239,9 @@ Endpoints related to minting and binding persistent identifiers.
 """
 
 tag_descriptions[
-    OpenAPITag.SYSTEM.value
+    OpenAPITag.SOFTWARE.value
 ] = r"""
-Endpoints related to system administration.
+Endpoints related to software.
 """
 
 tag_descriptions[
@@ -251,6 +254,12 @@ tag_descriptions[
     OpenAPITag.METADATA_ACCESS.value
 ] = r"""
 Endpoints related to accessing metadata.
+"""
+
+tag_descriptions[
+    OpenAPITag.SYSTEM_ADMINISTRATION.value
+] = r"""
+Endpoints related to system administration.
 """
 
 # Remove leading and trailing whitespace from each description.
@@ -303,10 +312,6 @@ ordered_tag_descriptors: List[Dict] = [
         "description": tag_descriptions[OpenAPITag.JOBS.value],
     },
     {
-        "name": OpenAPITag.OBJECTS.value,
-        "description": tag_descriptions[OpenAPITag.OBJECTS.value],
-    },
-    {
         "name": OpenAPITag.OPERATIONS.value,
         "description": tag_descriptions[OpenAPITag.OPERATIONS.value],
     },
@@ -323,8 +328,16 @@ ordered_tag_descriptors: List[Dict] = [
         "description": tag_descriptions[OpenAPITag.USERS.value],
     },
     {
-        "name": OpenAPITag.SYSTEM.value,
-        "description": tag_descriptions[OpenAPITag.SYSTEM.value],
+        "name": OpenAPITag.SYSTEM_ADMINISTRATION.value,
+        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value],
+    },
+    {
+        "name": OpenAPITag.OBJECTS.value,
+        "description": tag_descriptions[OpenAPITag.OBJECTS.value],
+    },
+    {
+        "name": OpenAPITag.SOFTWARE.value,
+        "description": tag_descriptions[OpenAPITag.SOFTWARE.value],
     },
 ]
 

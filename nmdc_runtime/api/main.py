@@ -242,7 +242,7 @@ async def root():
     )
 
 
-@api_router.get("/version", tags=[OpenAPITag.SYSTEM.value])
+@api_router.get("/version", tags=[OpenAPITag.SOFTWARE.value])
 async def get_versions():
     return {
         "nmdc-runtime": version("nmdc_runtime"),
