@@ -188,6 +188,9 @@ window.addEventListener("nmdcInit", (event) => {
             //       invoked by the JavaScript code built into FastAPI (that JavaScript code assigns
             //       the return value to a global variable named `ui`, which we access here).
             //
+            // TODO: Consider extracting the endpoint's description, too, so we can display a portion of it
+            //       in the search results. It can be obtained via `opMap.get("operation").get("description")`.
+            //
             const operationMaps = Array.from(ui.specSelectors.operations());
             this.endpoints = operationMaps.map(opMap => ({
                 urlPath: opMap.get("path"), // e.g. "/studies/{study_id}"
@@ -259,6 +262,9 @@ window.addEventListener("nmdcInit", (event) => {
                     min-width: 52px;
                     margin-right: 10px;
                 }
+                .matching-substring {
+                    background-color: #f9f871;
+                }
             `;
             this.shadowRoot.appendChild(styleEl);
 
@@ -273,10 +279,15 @@ window.addEventListener("nmdcInit", (event) => {
                 return;
             }
 
-            // Identify the matching endpoints.
-            const matchingEndpoints = this.endpoints.filter(item => item.urlPath.includes(searchTerm));
+            // Identify the matching endpoints (case-insensitively).
+            const lowercaseSearchTerm = searchTerm.toLowerCase();
+            const matchingEndpoints = this.endpoints.filter(item => {
+                const lowercaseUrlPath = item.urlPath.toLowerCase();
+                return lowercaseUrlPath.includes(lowercaseSearchTerm);
+            });
             
             // If there are no matching endpoints, clear the search results.
+            // TODO: Display a message saying there are no matching endpoints.
             if (matchingEndpoints.length === 0) {
                 this.resultsListEl.replaceChildren();
                 return;
@@ -295,6 +306,24 @@ window.addEventListener("nmdcInit", (event) => {
                 const liEl = document.createElement("li");
                 const aEl = document.createElement("a");
 
+                // Here, we distinguish the part of the URL path that matched the search term.
+                const urlPathSpanEl = document.createElement("span");
+                const lowercaseUrlPath = matchingEndpoint.urlPath.toLowerCase();
+                const substrCharIdx = lowercaseUrlPath.indexOf(lowercaseSearchTerm);
+                if (substrCharIdx === -1) {
+                    // Note: I don't expect this to ever happen, since we already know this
+                    //       endpoint matches the search term.
+                    urlPathSpanEl.textContent = matchingEndpoint.urlPath;
+                } else {
+                    const substrSpanEl = document.createElement("span");
+                    const preSubstrChars = matchingEndpoint.urlPath.substring(0, substrCharIdx);
+                    const substrChars = matchingEndpoint.urlPath.substring(substrCharIdx, substrCharIdx + searchTerm.length);
+                    const postSubstrChars = matchingEndpoint.urlPath.substring(substrCharIdx + searchTerm.length);
+                    substrSpanEl.classList = "matching-substring";
+                    substrSpanEl.textContent = substrChars;
+                    urlPathSpanEl.append(preSubstrChars, substrSpanEl, postSubstrChars);
+                }
+
                 // Here, we build a "deep link" to the corresponding endpoint, using the syntax
                 // shown in the Swagger UI "Deep Linking" documentation, at:
                 // https://swagger.io/docs/open-source-tools/swagger-ui/usage/deep-linking/#usage
@@ -309,9 +338,9 @@ window.addEventListener("nmdcInit", (event) => {
                 const tagPart = encodeURIComponent(matchingEndpoint.tag);
                 const operationPart = encodeURIComponent(matchingEndpoint.operationId);
                 const httpMethodSpanEl = document.createElement("span");
-                httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
                 httpMethodSpanEl.classList = "http-method";  // e.g. "<span class="http-method">GET</span>"
-                aEl.append(httpMethodSpanEl, matchingEndpoint.urlPath);
+                httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
+                aEl.append(httpMethodSpanEl, urlPathSpanEl);
                 aEl.href = `${urlWithoutQueryStr}/#${tagPart}/${operationPart}`;
                 liEl.appendChild(aEl);
                 return liEl;
