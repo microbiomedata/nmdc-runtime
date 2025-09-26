@@ -231,6 +231,7 @@ window.addEventListener("nmdcInit", (event) => {
                     list-style-type: none;
                     padding-left: 26px;
                     padding-right: 26px;
+                    font-family: monospace;
                 }
                 ul > li:first-child {
                     padding-top: 26px;
