@@ -254,6 +254,11 @@ window.addEventListener("nmdcInit", (event) => {
                 li > a:hover {
                     color: #1f69c0;
                 }
+                li > a .http-method {
+                    display: inline-block;
+                    min-width: 52px;
+                    margin-right: 10px;
+                }
             `;
             this.shadowRoot.appendChild(styleEl);
 
@@ -303,7 +308,10 @@ window.addEventListener("nmdcInit", (event) => {
                 const urlWithoutQueryStr = window.location.origin + window.location.pathname;
                 const tagPart = encodeURIComponent(matchingEndpoint.tag);
                 const operationPart = encodeURIComponent(matchingEndpoint.operationId);
-                aEl.textContent = `${matchingEndpoint.httpMethod} ${matchingEndpoint.urlPath}`;
+                const httpMethodSpanEl = document.createElement("span");
+                httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
+                httpMethodSpanEl.classList = "http-method";  // e.g. "<span class="http-method">GET</span>"
+                aEl.append(httpMethodSpanEl, matchingEndpoint.urlPath);
                 aEl.href = `${urlWithoutQueryStr}/#${tagPart}/${operationPart}`;
                 liEl.appendChild(aEl);
                 return liEl;
