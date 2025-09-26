@@ -327,9 +327,10 @@ window.addEventListener("nmdcInit", (event) => {
                 aEl.addEventListener("click", (event) => {
                     event.preventDefault();
 
-                    // Scroll to the corresponding endpoint (minus a small margin).
-                    const sectionYOffset = matchingEndpoint.endpointEl.getBoundingClientRect().top;
-                    window.scrollTo({ top: sectionYOffset - 12, behavior: "smooth" });
+                    // Scroll to the corresponding endpoint (and leave some extra margin above it).
+                    const extraYOffset = 12;
+                    const endpointYOffset = matchingEndpoint.endpointEl.getBoundingClientRect().top;
+                    window.scrollTo({ top: endpointYOffset - extraYOffset, behavior: "smooth" });
                 });
                 liEl.appendChild(aEl);
                 return liEl;
