@@ -86,19 +86,19 @@
    animation of the chevron icon, and ensure the chevron icon always
    points upward when a section (at any level) is collapsed, and always
    points downward when a section (at any level) is expanded. */
-.swagger-ui .opblock-tag-section svg {
+.swagger-ui .opblock-tag-section svg.arrow {
     transition: none;
 }
-.swagger-ui .opblock-tag-section:not(.is-open) svg {
+.swagger-ui .opblock-tag-section:not(.is-open) svg.arrow {
     transform: rotate(90deg);
 }
-.swagger-ui .opblock-tag-section.is-open svg {
+.swagger-ui .opblock-tag-section.is-open svg.arrow {
     transform: rotate(180deg);
 }
-.swagger-ui .no-margin .opblock-tag-section:not(.is-open) svg {
+.swagger-ui .no-margin .opblock-tag-section:not(.is-open) svg.arrow {
     transform: rotate(90deg);
 }
-.swagger-ui .no-margin .opblock-tag-section.is-open svg {
+.swagger-ui .no-margin .opblock-tag-section.is-open svg.arrow {
     transform: rotate(180deg);
 }
 /* When using the `hierarchical-tags` plugin, prevent the tag sections
