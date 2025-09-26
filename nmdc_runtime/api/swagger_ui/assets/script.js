@@ -1,5 +1,5 @@
 console.debug("Listening for event: nmdcInit");
-window.addEventListener("nmdcInit", (event) => {{
+window.addEventListener("nmdcInit", (event) => {
     console.debug("Detected event: nmdcInit");
 
     // Get the DOM elements we'll be referencing below.
@@ -40,33 +40,33 @@ window.addEventListener("nmdcInit", (event) => {{
 
         // Set up the token visibility toggler.
         console.debug("Setting up token visibility toggler");
-        tokenMaskTogglerEl.addEventListener("click", (event) => {{
-            if (tokenEl.dataset.state == "masked") {{
+        tokenMaskTogglerEl.addEventListener("click", (event) => {
+            if (tokenEl.dataset.state == "masked") {
                 console.debug("Unmasking token");
                 tokenEl.dataset.state = "unmasked";
                 tokenEl.textContent = accessToken;
                 event.target.textContent = "Hide token";
-            }} else {{
+            } else {
                 console.debug("Masking token");
                 tokenEl.dataset.state = "masked";
                 tokenEl.textContent = "***";
                 event.target.textContent = "Show token";
-            }}
-        }});
+            }
+        });
 
         // Set up the token copier.
         // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
         console.debug("Setting up token copier");
-        tokenCopierEl.addEventListener("click", async (event) => {{
+        tokenCopierEl.addEventListener("click", async (event) => {
             tokenCopierMessageEl.textContent = "";
-            try {{                            
+            try {
                 await navigator.clipboard.writeText(accessToken);
                 tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
-            }} catch (error) {{
+            } catch (error) {
                 console.error(error.message);
                 tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
-            }}
-        }});
+            }
+        });
     }
 
     /**
@@ -146,4 +146,126 @@ window.addEventListener("nmdcInit", (event) => {{
             customizeLoginForm();
         }
     });
-}});
+
+    // Implement an endpoint search widget as an HTML Web Component.
+    //
+    // References:
+    // - https://developer.mozilla.org/en-US/docs/Web/API/Web_components
+    // - https://open-wc.org/codelabs/basics/web-components#2
+    //
+    class EndpointSearchWidget extends HTMLElement {
+        constructor() {
+            super();
+        }
+
+        connectedCallback() {
+            // Create a Shadow DOM tree specific to this custom HTML element, so that its styles don't
+            // impact other elements on the page and so styles on the page don't impact this element.
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#creating_a_shadow_dom
+            this.attachShadow({ mode: "open" });
+
+            // Implement the widget.
+            const containerEl = document.createElement("div");
+            containerEl.classList = "container";
+            const inputEl = document.createElement("input");
+            inputEl.name = "search-term";
+            inputEl.placeholder = "Find an endpoint...";
+            this.resultsEl = document.createElement("ul");
+            containerEl.appendChild(inputEl);
+            containerEl.appendChild(this.resultsEl);
+
+            // Build a search index of all the endpoints listed on the Swagger UI page.
+            const endpointPathEls = document.querySelectorAll(".opblock-summary-path");
+            this.searchIndex = Array.from(endpointPathEls).map(el => {
+                const urlPath = el.textContent.trim();
+                const endpointSectionEl = el.closest(".opblock");
+                const httpMethod = endpointSectionEl.querySelector(".opblock-summary-method").textContent.trim();
+                return { urlPath, httpMethod, endpointSectionEl };
+            });
+
+            // Make it so the search results update whenever the value of the search input
+            // changes as the result of a user action (e.g. typing, cutting, pasting).
+            // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+            inputEl.addEventListener("input", (event) => {
+                this.updateSearchResults(event.target.value);
+            });
+
+            // Mount the container element to the custom element's Shadow DOM tree.
+            this.shadowRoot.appendChild(containerEl);
+
+            // Add styles to the custom element's Shadow DOM tree.
+            // Note: We try to mimic the appearance of native Swagger UI elements.
+            const styleEl = document.createElement("style");
+            styleEl.textContent = `
+                .container {
+                    margin: 20px 20px 0px 20px;
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    color: #3b4151;
+                }
+                input {
+                    padding: 8px 10px;
+                    box-sizing: border-box;
+                    border: 1px solid #d9d9d9;
+                    border-radius: 4px;
+                    width: 100%;
+                }
+                ul {
+                    list-style-type: none;
+                    background-color: rgba(0, 0, 0, .05);
+                    border-radius: 4px;
+                }
+                ul > li:first-child {
+                    padding-top: 26px;
+                }
+                ul > li:last-child {
+                    padding-bottom: 26px;
+                }
+                li > a {
+                    color: #4990e2;
+                    text-decoration: none;
+                }
+                li > a:hover {
+                    color: #1f69c0;
+                }
+            `;
+            this.shadowRoot.appendChild(styleEl);
+
+            // Initialize the search results to be empty.
+            this.updateSearchResults("");
+        }
+
+        updateSearchResults(searchTerm) {
+            // Special case: If the search term is empty, clear the search results.
+            if (searchTerm.trim().length === 0) {
+                this.resultsEl.replaceChildren();
+                return;
+            }
+
+            // Identify the matching endpoints.
+            const matchingEndpoints = this.searchIndex.filter(item => item.urlPath.includes(searchTerm));
+
+            // Update the search results.
+            const resultEls = matchingEndpoints.map(matchingEndpoint => {
+                const liEl = document.createElement("li");
+                const aEl = document.createElement("a");
+                aEl.textContent = `${matchingEndpoint.httpMethod} ${matchingEndpoint.urlPath}`;
+                aEl.href = "#";
+                aEl.addEventListener("click", (event) => {
+                    event.preventDefault();
+
+                    // Scroll the corresponding endpoint section into view.
+                    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView
+                    matchingEndpoint.endpointSectionEl.scrollIntoView({ behavior: "smooth" });
+                });
+                liEl.appendChild(aEl);
+                return liEl;
+            });
+            this.resultsEl.replaceChildren(...resultEls);
+        }
+    }
+    console.debug("Setting up endpoint search widget.");
+    customElements.define("endpoint-search-widget", EndpointSearchWidget);
+    const endpointSearchWidgetEl = document.createElement("endpoint-search-widget");
+    bodyEl.querySelector(".scheme-container").after(endpointSearchWidgetEl); // put it below the "Authorize" section
+});
