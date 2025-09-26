@@ -167,12 +167,15 @@ window.addEventListener("nmdcInit", (event) => {
             // Implement the widget.
             const containerEl = document.createElement("div");
             containerEl.classList = "container";
+            const innerContainerEl = document.createElement("div");
+            innerContainerEl.classList = "inner-container";
             const inputEl = document.createElement("input");
             inputEl.name = "search-term";
             inputEl.placeholder = "Find an endpoint...";
             this.resultsEl = document.createElement("ul");
-            containerEl.appendChild(inputEl);
-            containerEl.appendChild(this.resultsEl);
+            innerContainerEl.appendChild(inputEl);
+            innerContainerEl.appendChild(this.resultsEl);
+            containerEl.appendChild(innerContainerEl);
 
             // Build a search index of all the endpoints listed on the Swagger UI page.
             const endpointPathEls = document.querySelectorAll(".opblock-summary-path");
@@ -198,10 +201,14 @@ window.addEventListener("nmdcInit", (event) => {
             const styleEl = document.createElement("style");
             styleEl.textContent = `
                 .container {
-                    margin: 20px 20px 0px 20px;
+                    margin: 0 auto;
+                    max-width: 1460px;
                     font-family: sans-serif;
                     font-size: 14px;
                     color: #3b4151;
+                }
+                .inner-container {
+                    margin: 20px 20px 0px 20px;
                 }
                 input {
                     padding: 8px 10px;
