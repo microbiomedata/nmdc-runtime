@@ -14,7 +14,8 @@ base_swagger_ui_parameters: dict = {
     #       i.e. not proportional to the actual response time.
     "displayRequestDuration": True,
     # Expand all sections (i.e. groups of endpoints) by default.
-    "docExpansion": "list",
+    # Note: `"list"` expands them, and `"none"` collapses them.
+    "docExpansion": "none",
     # Make it so a logged-in user remains logged in even after reloading
     # the web page (or leaving the web page and coming back to it later).
     "persistAuthorization": True,

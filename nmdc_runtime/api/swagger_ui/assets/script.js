@@ -166,28 +166,36 @@ window.addEventListener("nmdcInit", (event) => {
 
             // Implement the widget.
             const containerEl = document.createElement("div");
-            containerEl.classList = "container";
             const innerContainerEl = document.createElement("div");
-            innerContainerEl.classList = "inner-container";
             const inputEl = document.createElement("input");
-            inputEl.name = "search-term";
-            inputEl.placeholder = "Find an endpoint...";
             this.resultsPanelEl = document.createElement("div");
             this.resultsListEl = document.createElement("ul");
+            containerEl.classList = "container";
+            innerContainerEl.classList = "inner-container";
             this.resultsPanelEl.classList = "results-panel";
+            inputEl.name = "search-term";
+            inputEl.placeholder = "Find an endpoint...";
             this.resultsPanelEl.appendChild(this.resultsListEl);
             innerContainerEl.appendChild(inputEl);
             innerContainerEl.appendChild(this.resultsPanelEl);
             containerEl.appendChild(innerContainerEl);
 
-            // Build a search index of all the endpoints listed on the Swagger UI page.
-            const endpointPathEls = document.querySelectorAll(".opblock-summary-path");
-            this.searchIndex = Array.from(endpointPathEls).map(el => {
-                const urlPath = el.textContent.trim();
-                const endpointEl = el.closest(".opblock");
-                const httpMethod = endpointEl.querySelector(".opblock-summary-method").textContent.trim();
-                return { urlPath, httpMethod, endpointEl };
-            });
+            // Make an array of all the endpoints that Swagger UI knows about. This will be our search index.
+            //
+            // Note: In an earlier implementation of this step, we queried the DOM for this information.
+            //       However, that didn't work when any of the endpoint groups were collapsed. So, instead,
+            //       we access the data structure returned by the `SwaggerUI()` constructor, which is
+            //       invoked by the JavaScript code built into FastAPI (that JavaScript code assigns
+            //       the return value to a global variable named `ui`, which we access here).
+            //
+            const operationMaps = Array.from(ui.specSelectors.operations());
+            this.endpoints = operationMaps.map(opMap => ({
+                urlPath: opMap.get("path"), // e.g. "/studies/{study_id}"
+                httpMethod: opMap.get("method").toUpperCase(), // e.g. "GET"
+                operationId: opMap.get("operation").get("operationId"), // e.g. "find_studies_studies_get"
+                tag: opMap.get("operation").get("tags").get(0), // e.g. "Metadata access: Find"
+            }));
+            console.debug(`Found ${this.endpoints.length} endpoints in OpenAPI schema`);
 
             // Make it so the search results update whenever the value of the search input
             // changes as the result of a user action (e.g. typing, cutting, pasting).
@@ -253,64 +261,23 @@ window.addEventListener("nmdcInit", (event) => {
             this.updateSearchResults("");
         }
 
-        hideMessage() {
-            const messageEl = this.resultsPanelEl.querySelector(".message");
-            if (messageEl !== null) {
-                messageEl.remove();
-            }
-        }
-
-        showMessage() {
-            const messageEl = this.resultsPanelEl.querySelector(".message");
-            if (messageEl === null) {
-                const pEl = document.createElement("p");
-                pEl.classList = "message";
-                pEl.textContent = `
-                    Some endpoint sections are currently collapsed.
-                    Links to endpoints in those sections will not work.
-                `;
-                this.resultsPanelEl.prepend(pEl);
-            }
-        }
-
         updateSearchResults(searchTerm) {
             // Special case: If the search term is empty, clear the search results.
             if (searchTerm.trim().length === 0) {
                 this.resultsListEl.replaceChildren();
-                this.hideMessage();
                 return
             }
 
             // Identify the matching endpoints.
-            const matchingEndpoints = this.searchIndex.filter(item => item.urlPath.includes(searchTerm));
+            const matchingEndpoints = this.endpoints.filter(item => item.urlPath.includes(searchTerm));
             
             // If there are no matching endpoints, clear the search results.
             if (matchingEndpoints.length === 0) {
                 this.resultsListEl.replaceChildren();
-                this.hideMessage();
                 return;
             }
 
-            // Check whether there are any endpoint sections that are collapsed.
-            // 
-            // Note: If there are, and we aren't already displaying a message about links to endpoints in
-            //       collapsed sections not working, display such a message. Otherwise, hide any such message.
-            //
-            // TODO: Handle the case where an endpoint section gets expanded/collapsed while the search results
-            //       are already being displayed. That expansion/collapsing doesn't trigger this check. We
-            //       may be able to attach an event listener to each section's expand/collapse button.
-            //
-            // FIXME: Once endpoint sections have been collapsed, the links to endpoints, in general, seem
-            //        to not always work. Look into this.
-            //
-            const collapsedEndpointSections = document.querySelectorAll(".opblock-tag-section:not(.is-open)");
-            if (collapsedEndpointSections.length > 0) {
-                this.showMessage();
-            } else {
-                this.hideMessage();
-            }
-
-            // Update the search results.
+            // Update the search results to list the matching endpoints.
             const resultEls = matchingEndpoints.sort((a, b) => {
                 // If the URL paths are identical, sort by HTTP method; otherwise, sort by URL path.
                 // Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
@@ -322,23 +289,29 @@ window.addEventListener("nmdcInit", (event) => {
             }).map(matchingEndpoint => {
                 const liEl = document.createElement("li");
                 const aEl = document.createElement("a");
-                aEl.textContent = `${matchingEndpoint.httpMethod} ${matchingEndpoint.urlPath}`;
-                aEl.href = "#";
-                aEl.addEventListener("click", (event) => {
-                    event.preventDefault();
 
-                    // Scroll to the corresponding endpoint (and leave some extra margin above it).
-                    const extraYOffset = 12;
-                    const endpointYOffset = matchingEndpoint.endpointEl.getBoundingClientRect().top;
-                    window.scrollTo({ top: endpointYOffset - extraYOffset, behavior: "smooth" });
-                });
+                // Here, we build a "deep link" to the corresponding endpoint, using the syntax
+                // shown in the Swagger UI "Deep Linking" documentation, at:
+                // https://swagger.io/docs/open-source-tools/swagger-ui/usage/deep-linking/#usage
+                //
+                // Note: The reason we don't use something like `scrollTo` or `scrollIntoView`
+                //       is that the target element may not be mounted to the DOM right now,
+                //       due to it being within a collapsed section. Instead, we send the
+                //       browser to the deep link URL (in which case, Swagger UI will
+                //       automatically expand the relevant section).
+                //
+                const urlWithoutQueryStr = window.location.origin + window.location.pathname;
+                const tagPart = encodeURIComponent(matchingEndpoint.tag);
+                const operationPart = encodeURIComponent(matchingEndpoint.operationId);
+                aEl.textContent = `${matchingEndpoint.httpMethod} ${matchingEndpoint.urlPath}`;
+                aEl.href = `${urlWithoutQueryStr}/#${tagPart}/${operationPart}`;
                 liEl.appendChild(aEl);
                 return liEl;
             });
             this.resultsListEl.replaceChildren(...resultEls);
         }
     }
-    console.debug("Setting up endpoint search widget.");
+    console.debug("Setting up endpoint search widget");
     customElements.define("endpoint-search-widget", EndpointSearchWidget);
     const endpointSearchWidgetEl = document.createElement("endpoint-search-widget");
     bodyEl.querySelector(".scheme-container").after(endpointSearchWidgetEl); // put it below the "Authorize" section

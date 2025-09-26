@@ -43,15 +43,6 @@ class OpenAPITag(str, Enum):
     MINTER = "Persistent identifiers"
     SOFTWARE = "System administration: Software"
 
-    WORKFLOW_MANAGEMENT = "Workflow management"
-    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
-
-    METADATA_ACCESS = "Metadata access"
-    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
-
-    SYSTEM_ADMINISTRATION = "System administration"
-    """Parent tag, which we are defining independently so we can define a description for this group of tags."""
-
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
@@ -244,37 +235,11 @@ tag_descriptions[
 Endpoints related to software.
 """
 
-tag_descriptions[
-    OpenAPITag.WORKFLOW_MANAGEMENT.value
-] = r"""
-Endpoints related to managing workflow executions.
-"""
-
-tag_descriptions[
-    OpenAPITag.METADATA_ACCESS.value
-] = r"""
-Endpoints related to accessing metadata.
-"""
-
-tag_descriptions[
-    OpenAPITag.SYSTEM_ADMINISTRATION.value
-] = r"""
-Endpoints related to system administration.
-"""
-
 # Remove leading and trailing whitespace from each description.
 for name, description in tag_descriptions.items():
     tag_descriptions[name] = description.strip()
 
 ordered_tag_descriptors: List[Dict] = [
-    {
-        "name": OpenAPITag.METADATA_ACCESS.value,
-        "description": tag_descriptions[OpenAPITag.METADATA_ACCESS.value],
-    },
-    {
-        "name": OpenAPITag.WORKFLOW_MANAGEMENT.value,
-        "description": tag_descriptions[OpenAPITag.WORKFLOW_MANAGEMENT.value],
-    },
     {
         "name": OpenAPITag.QUERIES.value,
         "description": tag_descriptions[OpenAPITag.QUERIES.value],
@@ -326,10 +291,6 @@ ordered_tag_descriptors: List[Dict] = [
     {
         "name": OpenAPITag.USERS.value,
         "description": tag_descriptions[OpenAPITag.USERS.value],
-    },
-    {
-        "name": OpenAPITag.SYSTEM_ADMINISTRATION.value,
-        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value],
     },
     {
         "name": OpenAPITag.OBJECTS.value,
