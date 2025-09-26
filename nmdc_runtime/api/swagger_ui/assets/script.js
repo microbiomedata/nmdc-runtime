@@ -184,9 +184,9 @@ window.addEventListener("nmdcInit", (event) => {
             const endpointPathEls = document.querySelectorAll(".opblock-summary-path");
             this.searchIndex = Array.from(endpointPathEls).map(el => {
                 const urlPath = el.textContent.trim();
-                const endpointSectionEl = el.closest(".opblock");
-                const httpMethod = endpointSectionEl.querySelector(".opblock-summary-method").textContent.trim();
-                return { urlPath, httpMethod, endpointSectionEl };
+                const endpointEl = el.closest(".opblock");
+                const httpMethod = endpointEl.querySelector(".opblock-summary-method").textContent.trim();
+                return { urlPath, httpMethod, endpointEl };
             });
 
             // Make it so the search results update whenever the value of the search input
@@ -326,9 +326,9 @@ window.addEventListener("nmdcInit", (event) => {
                 aEl.addEventListener("click", (event) => {
                     event.preventDefault();
 
-                    // Scroll the corresponding endpoint section into view.
-                    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView
-                    matchingEndpoint.endpointSectionEl.scrollIntoView({ behavior: "smooth" });
+                    // Scroll to the corresponding endpoint (minus a small margin).
+                    const sectionYOffset = matchingEndpoint.endpointEl.getBoundingClientRect().top;
+                    window.scrollTo({ top: sectionYOffset - 12, behavior: "smooth" });
                 });
                 liEl.appendChild(aEl);
                 return liEl;
