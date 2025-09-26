@@ -172,9 +172,12 @@ window.addEventListener("nmdcInit", (event) => {
             const inputEl = document.createElement("input");
             inputEl.name = "search-term";
             inputEl.placeholder = "Find an endpoint...";
-            this.resultsEl = document.createElement("ul");
+            this.resultsPanelEl = document.createElement("div");
+            this.resultsListEl = document.createElement("ul");
+            this.resultsPanelEl.classList = "results-panel";
+            this.resultsPanelEl.appendChild(this.resultsListEl);
             innerContainerEl.appendChild(inputEl);
-            innerContainerEl.appendChild(this.resultsEl);
+            innerContainerEl.appendChild(this.resultsPanelEl);
             containerEl.appendChild(innerContainerEl);
 
             // Build a search index of all the endpoints listed on the Swagger UI page.
@@ -217,10 +220,17 @@ window.addEventListener("nmdcInit", (event) => {
                     border-radius: 4px;
                     width: 100%;
                 }
-                ul {
-                    list-style-type: none;
+                .results-panel {
                     background-color: rgba(0, 0, 0, .05);
                     border-radius: 4px;
+                }
+                .results-panel .message {
+                    padding: 26px 26px 0px 26px;
+                }
+                ul {
+                    list-style-type: none;
+                    padding-left: 26px;
+                    padding-right: 26px;
                 }
                 ul > li:first-child {
                     padding-top: 26px;
@@ -242,18 +252,73 @@ window.addEventListener("nmdcInit", (event) => {
             this.updateSearchResults("");
         }
 
+        hideMessage() {
+            const messageEl = this.resultsPanelEl.querySelector(".message");
+            if (messageEl !== null) {
+                messageEl.remove();
+            }
+        }
+
+        showMessage() {
+            const messageEl = this.resultsPanelEl.querySelector(".message");
+            if (messageEl === null) {
+                const pEl = document.createElement("p");
+                pEl.classList = "message";
+                pEl.textContent = `
+                    Some endpoint sections are currently collapsed.
+                    Links to endpoints in those sections will not work.
+                `;
+                this.resultsPanelEl.prepend(pEl);
+            }
+        }
+
         updateSearchResults(searchTerm) {
             // Special case: If the search term is empty, clear the search results.
             if (searchTerm.trim().length === 0) {
-                this.resultsEl.replaceChildren();
-                return;
+                this.resultsListEl.replaceChildren();
+                this.hideMessage();
+                return
             }
 
             // Identify the matching endpoints.
             const matchingEndpoints = this.searchIndex.filter(item => item.urlPath.includes(searchTerm));
+            
+            // If there are no matching endpoints, clear the search results.
+            if (matchingEndpoints.length === 0) {
+                this.resultsListEl.replaceChildren();
+                this.hideMessage();
+                return;
+            }
+
+            // Check whether there are any endpoint sections that are collapsed.
+            // 
+            // Note: If there are, and we aren't already displaying a message about links to endpoints in
+            //       collapsed sections not working, display such a message. Otherwise, hide any such message.
+            //
+            // TODO: Handle the case where an endpoint section gets expanded/collapsed while the search results
+            //       are already being displayed. That expansion/collapsing doesn't trigger this check. We
+            //       may be able to attach an event listener to each section's expand/collapse button.
+            //
+            // FIXME: Once endpoint sections have been collapsed, the links to endpoints, in general, seem
+            //        to not always work. Look into this.
+            //
+            const collapsedEndpointSections = document.querySelectorAll(".opblock-tag-section:not(.is-open)");
+            if (collapsedEndpointSections.length > 0) {
+                this.showMessage();
+            } else {
+                this.hideMessage();
+            }
 
             // Update the search results.
-            const resultEls = matchingEndpoints.map(matchingEndpoint => {
+            const resultEls = matchingEndpoints.sort((a, b) => {
+                // If the URL paths are identical, sort by HTTP method; otherwise, sort by URL path.
+                // Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+                if (a.urlPath.localeCompare(b.urlPath) === 0) {
+                    return a.httpMethod.localeCompare(b.httpMethod);
+                } else {
+                    return a.urlPath.localeCompare(b.urlPath);
+                }
+            }).map(matchingEndpoint => {
                 const liEl = document.createElement("li");
                 const aEl = document.createElement("a");
                 aEl.textContent = `${matchingEndpoint.httpMethod} ${matchingEndpoint.urlPath}`;
@@ -268,7 +333,7 @@ window.addEventListener("nmdcInit", (event) => {
                 liEl.appendChild(aEl);
                 return liEl;
             });
-            this.resultsEl.replaceChildren(...resultEls);
+            this.resultsListEl.replaceChildren(...resultEls);
         }
     }
     console.debug("Setting up endpoint search widget.");
