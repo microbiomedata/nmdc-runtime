@@ -270,7 +270,7 @@ window.addEventListener("nmdcInit", (event) => {
             // Special case: If the search term is empty, clear the search results.
             if (searchTerm.trim().length === 0) {
                 this.resultsListEl.replaceChildren();
-                return
+                return;
             }
 
             // Identify the matching endpoints.
@@ -302,8 +302,8 @@ window.addEventListener("nmdcInit", (event) => {
                 // Note: The reason we don't use something like `scrollTo` or `scrollIntoView`
                 //       is that the target element may not be mounted to the DOM right now,
                 //       due to it being within a collapsed section. Instead, we send the
-                //       browser to the deep link URL (in which case, Swagger UI will
-                //       automatically expand the relevant section).
+                //       browser to the deep link URL (Swagger UI will automatically expand
+                //       the relevant section when the page loads at that deep link URL).
                 //
                 const urlWithoutQueryStr = window.location.origin + window.location.pathname;
                 const tagPart = encodeURIComponent(matchingEndpoint.tag);
