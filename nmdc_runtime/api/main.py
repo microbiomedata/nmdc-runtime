@@ -396,7 +396,9 @@ def custom_swagger_ui_html(
     assets_dir_path = Path(__file__).parent / "swagger_ui" / "assets"
     style_css: str = Path(assets_dir_path / "style.css").read_text()
     script_js: str = Path(assets_dir_path / "script.js").read_text()
-    endpoint_search_widget_js: str = Path(assets_dir_path / "EndpointSearchWidget.js").read_text()
+    endpoint_search_widget_js: str = Path(
+        assets_dir_path / "EndpointSearchWidget.js"
+    ).read_text()
     content = (
         response.body.decode()
         .replace('"<unquote-safe>', "")
@@ -420,7 +422,9 @@ def custom_swagger_ui_html(
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
         # Inject custom JavaScript scripts immediately before the closing `</body>` tag.
-        .replace("</body>", f"<script>\n{endpoint_search_widget_js}\n</script>\n</body>")
+        .replace(
+            "</body>", f"<script>\n{endpoint_search_widget_js}\n</script>\n</body>"
+        )
         .replace("</body>", f"<script>\n{script_js}\n</script>\n</body>")
     )
     return HTMLResponse(content=content)
