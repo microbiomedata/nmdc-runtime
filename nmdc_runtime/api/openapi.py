@@ -16,32 +16,23 @@ from enum import Enum
 
 
 class OpenAPITag(str, Enum):
-    r"""A tag you can use to group related API endpoints together in an OpenAPI schema.
+    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
 
-    Note: Because we are using the `hierarchical-tags` plugin for Swagger UI, if a tag
-          value contains a colon (":") or pipe ("|") character, the text before that
-          character will be treated as a "parent" tag, and the text after it will be
-          treated as a "child" tag. For example, it a tag value is "Foo: Bar", "Foo"
-          will be treated as a "parent" tag and "Bar" will be treated as a "child" tag.
-
-          Reference: https://github.com/kael-shipman/swagger-ui-plugins/blob/combined/packages/hierarchical-tags/README.md
-    """
-
-    SITES = "Workflow management: Sites"
-    FIND = "Metadata access: Find"
-    WORKFLOWS = "Workflow management: Workflows"
-    USERS = "User accounts"
-    CAPABILITIES = "Workflow management: Capabilities"
-    OBJECT_TYPES = "Workflow management: Object types"
-    TRIGGERS = "Workflow management: Triggers"
-    JOBS = "Workflow management: Jobs"
-    OBJECTS = "System administration: DRS objects"
-    OPERATIONS = "Workflow management: Operations"
-    QUERIES = "Metadata access: Queries"
-    METADATA = "Metadata access: Metadata"
-    RUNS = "Workflow management: Runs"
-    MINTER = "Persistent identifiers"
-    SOFTWARE = "System administration: Software"
+    SITES = "🏭 Workflow management: Sites"
+    FIND = "🔍 Metadata access: Find"
+    WORKFLOWS = "🏭 Workflow management: Workflows"
+    USERS = "👤 User accounts"
+    CAPABILITIES = "🏭 Workflow management: Capabilities"
+    OBJECT_TYPES = "🏭 Workflow management: Object types"
+    TRIGGERS = "🏭 Workflow management: Triggers"
+    JOBS = "🏭 Workflow management: Jobs"
+    OBJECTS = "⚙️ System administration: DRS objects"
+    OPERATIONS = "🏭 Workflow management: Operations"
+    QUERIES = "🔍 Metadata access: Queries"
+    METADATA = "🔍 Metadata access: Metadata"
+    RUNS = "🏭 Workflow management: Runs"
+    MINTER = "🏛️ Persistent identifiers"
+    SOFTWARE = "⚙️ System administration: Software"
 
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
