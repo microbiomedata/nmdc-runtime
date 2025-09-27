@@ -48,6 +48,18 @@
     display: none;
 }
 
+/**
+ * Hide the portion of the tag description that we have determined
+ * to be excessive, when that tag section is collapsed.
+ *
+ * Note: The class `excess-tag-description` gets applied to a wrapper
+ *       element that wraps everything after the first element of the
+ *       tag description. The wrapper is created by our custom JavaScript.
+ */
+.opblock-tag-section:not(.is-open) .excess-tag-description {
+    display: none;
+}
+
 /*****************************************************************************
  * Customize Swagger UI's default elements.
  *****************************************************************************/

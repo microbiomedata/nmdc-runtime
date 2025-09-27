@@ -147,6 +147,22 @@ window.addEventListener("nmdcInit", (event) => {
         }
     });
 
+    // Wrap the child elements of the tag description (except the first child element)
+    // in a `<div>` having a specific class, so we can hide/show it via CSS. We consider
+    // that portion of the tag description to be "excessive" for a collapsed section.
+    // Note: This is in an attempt to reduce visual clutter.
+    console.debug("Setting up excess tag description hider");
+    const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
+    Array.from(tagSectionEls).forEach(el => {
+        const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
+        if (descriptionEl.children.length > 1) {
+            const excessEl = document.createElement("div");
+            excessEl.classList = "excess-tag-description";
+            Array.from(descriptionEl.children).slice(1).forEach(el => excessEl.appendChild(el));
+            descriptionEl.replaceChildren(descriptionEl.firstChild, excessEl);
+        }
+    });
+
     // If the `<endpoint-search-widget>` custom HTML element is available, add it to the DOM.
     // Note: That custom HTML element gets defined within the `EndpointSearchWidget.js` script.
     // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_a_custom_element
