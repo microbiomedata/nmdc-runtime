@@ -59,6 +59,9 @@
     background-color: transparent;
     border: none;
 }
+.tag-description-details-toggler:hover {
+    color: #1f69c0;
+}
 
 /*****************************************************************************
  * Customize Swagger UI's default elements.
