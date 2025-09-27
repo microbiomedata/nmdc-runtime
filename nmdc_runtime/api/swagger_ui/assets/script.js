@@ -5,6 +5,22 @@ window.addEventListener("nmdcInit", (event) => {
     // Get the DOM elements we'll be referencing below.
     const bodyEl = document.querySelector("body");
 
+    // Add the NMDC logo to the top of the page, next to the title.
+    // Note: The logo image will be added as a background image via CSS.
+    const addLogo = () => {
+        console.debug("Adding logo");
+        const headingGroupEl = document.querySelector(".information-container hgroup.main");
+        const titleEl = headingGroupEl.querySelector("h2.title");
+        const openapiSchemaLinkEl = headingGroupEl.querySelector("a.link");
+        const titleWrapperEl = document.createElement("div");
+        const logoEl = document.createElement("div");
+        logoEl.classList.add("nmdc-logo");
+        headingGroupEl.classList.add("nmdc-heading-group");
+        titleWrapperEl.replaceChildren(titleEl, openapiSchemaLinkEl);
+        headingGroupEl.replaceChildren(logoEl, titleWrapperEl);
+    };
+    addLogo();
+
     // If there is a non-empty access token present in the DOM (see `main.py`), create and add a banner
     // displaying the token along with buttons to show/hide it and copy it to the clipboard.
     const accessToken = document.getElementById("nmdc-access-token")?.getAttribute("data-token");

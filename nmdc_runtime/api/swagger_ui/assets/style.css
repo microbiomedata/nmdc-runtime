@@ -14,6 +14,35 @@
     color: red;
 }
 
+/**
+ * Style the NMDC logo we add to the top of the Swagger UI page via JavaScript.
+ *
+ * Notes:
+ * - We set the background size larger than the element size, and then offset
+ *   the background a small amount, so that we do not display the thin border
+ *   that is baked into this SVG image.
+ * - On wide screens, we set the heading group (which contains the logo, and a
+ *   wrapper element—introduced via JavaScript—containing the normal API title
+ *   and link to the OpenAPI schema) to use `display: flex`, so that the logo
+ *   appears next to that wrapper element. On narrow screens, we allow them
+ *   to stack like they normally would.
+ */
+@media screen and (min-width: 768px) {
+    .nmdc-heading-group {
+        display: flex;
+    }
+}
+.nmdc-heading-group .nmdc-logo {
+    width: 64px;
+    height: 64px;
+    margin-right: 16px;
+    background-image: url("/static/NMDC_logo.svg");
+    background-repeat: no-repeat;
+    background-size: 68px 68px;
+    background-position: -2px -2px;
+}
+
+
 /** 
  * Hides the following text from the Swagger UI modal login form:
  *
