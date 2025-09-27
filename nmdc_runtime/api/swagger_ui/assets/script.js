@@ -76,6 +76,7 @@ window.addEventListener("nmdcInit", (event) => {
      * - Augments the "Logout" button on the `bearerAuth` login form so that, when it is clicked,
      *   it clears and expires the `user_id_token` cookie, and reloads the web page.
      * - Focuses on the username input field whenever the login form appears.
+     * - Adds a "Login with ORCID" widget to the login form.
      * 
      * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
      * 
@@ -116,6 +117,27 @@ window.addEventListener("nmdcInit", (event) => {
                     console.debug(`Unrecognized header: ${el.textContent}`);
             }
         });
+        // Add a "Login with ORCID" widget to the login form.
+        //
+        // TODO: Consider disabling this when the user is already logged in.
+        //
+        // TODO: Consider moving this up next to (or into) the regular "User login" form,
+        //       once our system administrators have implemented a practical process for
+        //       managing "allowances" of users whose usernames are ORCID IDs. Putting it
+        //       at the bottom of the modal (I think) makes it less likely people will use it.
+        //
+        console.debug("Adding ORCID Login widget to login form");
+        const orcidLoginUrl = document.getElementById("nmdc-orcid-login-url")?.getAttribute("data-url");
+        const orcidLoginWidgetEl = document.createElement("div");
+        orcidLoginWidgetEl.classList.add("auth-container", "nmdc-orcid-login");
+        orcidLoginWidgetEl.innerHTML = `
+            <h4>User login with ORCID</h4>
+            <div class="nmdc-orcid-login-icon-link">
+                <img src="/static/ORCID-iD_icon_vector.svg" height="16" width="16"/>
+                <a href="${orcidLoginUrl}">Login with ORCID</a>
+            </div>
+        `;
+        modalContentEl.appendChild(orcidLoginWidgetEl);
 
         console.debug("Focusing on username field if present");
         const usernameInputEl = modalContentEl.querySelector("input#oauth_username");

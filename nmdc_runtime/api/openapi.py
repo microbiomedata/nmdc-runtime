@@ -340,14 +340,12 @@ ordered_tag_descriptors: List[Dict] = [
 ]
 
 
-def make_api_description(schema_version: str, orcid_login_url: str) -> str:
+def make_api_description(schema_version: str) -> str:
     r"""
-    Returns an API description into which the specified schema version and
-    ORCID login URL have been incorporated.
+    Returns an API description into which the specified schema version string has been incorporated.
 
     Args:
         schema_version (str): The version of `nmdc-schema` the Runtime is using.
-        orcid_login_url (str): The URL at which a user could login via ORCID.
 
     Returns:
         str: The Markdown-formatted API description.
@@ -362,10 +360,5 @@ We continuously refine the API and may be able to streamline your use case.
 [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
 
 [Documentation](https://docs.microbiomedata.org/runtime/)
-
-<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/>
-<a href="{escape(orcid_login_url)}" title="Login with ORCID">
-    Login with ORCID
-</a>
 """.strip()
     return result

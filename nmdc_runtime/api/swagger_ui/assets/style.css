@@ -49,6 +49,27 @@
 }
 
 /**
+ * Style the ORCID Login widget we inject via JavaScript into the
+ * Swagger UI modal login form.
+ */
+.auth-container.nmdc-orcid-login {
+    padding-bottom: 20px;
+    font-size: 14px;
+ }
+.auth-container.nmdc-orcid-login .nmdc-orcid-login-icon-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.auth-container.nmdc-orcid-login .nmdc-orcid-login-icon-link > a {
+    color: #4990e2;
+    text-decoration: none;
+}
+.auth-container.nmdc-orcid-login .nmdc-orcid-login-icon-link > a:hover {
+    color: #1f69c0;
+}
+
+/**
  * Hide the portion of the tag description beyond the first element (i.e. paragraph),
  * and makes the ellipses button appear subtle.
  */

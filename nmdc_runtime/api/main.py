@@ -251,13 +251,14 @@ async def get_versions():
     }
 
 
+# Build an ORCID Login URL for the Swagger UI page, based upon some environment variables.
+orcid_login_url = f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
+
+
 app = FastAPI(
     title="NMDC Runtime API",
     version=version("nmdc_runtime"),
-    description=make_api_description(
-        schema_version=version("nmdc_schema"),
-        orcid_login_url=f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code",
-    ),
+    description=make_api_description(schema_version=version("nmdc_schema")),
     openapi_tags=ordered_tag_descriptors,
     lifespan=lifespan,
     docs_url=None,
@@ -405,9 +406,8 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # Inject an HTML element containing the access token (or an empty string, if there is no access token)
-        # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
-        # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
+        # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
+        # Note: We escape the values here so they can be safely used as HTML attribute values.
         .replace(
             "</head>",
             f"""
@@ -415,6 +415,11 @@ def custom_swagger_ui_html(
             <div
                 id="nmdc-access-token"
                 data-token="{escape(access_token if access_token is not None else '')}"
+                style="display: none"
+            ></div>
+            <div
+                id="nmdc-orcid-login-url"
+                data-url="{escape(orcid_login_url)}"
                 style="display: none"
             ></div>
             """,
