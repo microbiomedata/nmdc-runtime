@@ -123,8 +123,10 @@ class EndpointSearchWidget extends HTMLElement {
         //       invoked by the JavaScript code built into FastAPI (that JavaScript code assigns
         //       the return value to a global variable named `ui`, which we access here).
         //
-        // TODO: Consider extracting the endpoint's description, too, so we can display a portion of it
-        //       in the search results. It can be obtained via `opMap.get("operation").get("description")`.
+        // Note: Should we eventually choose to display endpoint's description also, we can be obtain it
+        //       via the endpoint's operation Map; i.e. `opMap.get("operation").get("description")`.
+        //
+        // Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/get
         //
         const operationMaps = Array.from(ui.specSelectors.operations());
         this.endpoints = operationMaps.map(opMap => ({
