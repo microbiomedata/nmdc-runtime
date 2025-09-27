@@ -41,6 +41,10 @@ tag_descriptions: Dict[str, str] = {}
 tag_descriptions[
     OpenAPITag.SITES.value
 ] = r"""
+Manage sites and generate site client credentials.
+
+---
+
 A site corresponds to a physical place that may participate in job execution.
 
 A site may register data objects and capabilities with NMDC. It may claim jobs to execute, and it may
@@ -56,6 +60,10 @@ system.
 tag_descriptions[
     OpenAPITag.WORKFLOWS.value
 ] = r"""
+List and manage workflows and their executions.
+
+---
+
 A workflow is a template for creating jobs.
 
 Workflow jobs are typically created by the system via trigger associations between
@@ -66,12 +74,16 @@ in order for those sites to claim workflow jobs.
 tag_descriptions[
     OpenAPITag.USERS.value
 ] = r"""
-Endpoints related to creating and managing user accounts.
+Create and manage user accounts.
 """
 
 tag_descriptions[
     OpenAPITag.CAPABILITIES.value
 ] = r"""
+Learn about the capabilities that workflow-executing sites can have.
+
+---
+
 A workflow may require an executing site to have particular capabilities.
 
 These capabilities go beyond the simple ability to access the data object resources registered with
@@ -82,6 +94,10 @@ jobs if they are known to have the capabilities required by the workflow.
 tag_descriptions[
     OpenAPITag.OBJECT_TYPES.value
 ] = r"""
+Learn the types of objects whose creation can trigger the execution of workflows.
+
+---
+
 An object type is an object annotation that is useful for triggering workflows.
 
 A data object may be annotated with one or more types, which in turn can be associated with
@@ -96,6 +112,10 @@ object type to workflow via a trigger resource.
 tag_descriptions[
     OpenAPITag.TRIGGERS.value
 ] = r"""
+Learn about the events that can trigger the execution of workflows.
+
+---
+
 A trigger is an association between a workflow and a data object type.
 
 When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
@@ -105,6 +125,10 @@ Runtime will check, via trigger associations, for potential new jobs to create f
 tag_descriptions[
     OpenAPITag.JOBS.value
 ] = r"""
+List and claim workflows that are ready to be executed.
+
+---
+
 A job is a resource that isolates workflow configuration from execution.
 
 Rather than directly creating a workflow operation by supplying a workflow ID along with
@@ -123,6 +147,10 @@ pre-claimed type.
 tag_descriptions[
     OpenAPITag.OBJECTS.value
 ] = r"""
+Create and manage Data Repository Service (DRS) objects.
+
+---
+
 A [Data Repository Service (DRS)
 object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes)
 represents content necessary for a workflow job to execute, and/or output from a job execution.
@@ -136,6 +164,10 @@ An object may be associated with one or more object types, useful for triggering
 tag_descriptions[
     OpenAPITag.OPERATIONS.value
 ] = r"""
+Report and track the execution of workflows.
+
+---
+
 An operation is a resource for tracking the execution of a job.
 
 When a job is claimed by a site for execution, an operation resource is created.
@@ -156,6 +188,10 @@ of operations are available.
 tag_descriptions[
     OpenAPITag.QUERIES.value
 ] = r"""
+Find and manage metadata using MongoDB syntax.
+
+---
+
 A query is an operation (find, update, etc.) against the metadata store.
 
 Metadata -- for studies, biosamples, omics processing, etc. -- is used by sites to execute jobs,
@@ -171,6 +207,10 @@ issue an update query).
 tag_descriptions[
     OpenAPITag.METADATA.value
 ] = r"""
+Find and submit metadata, and interrogate the schema.
+
+---
+
 The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter
 metadata from collection set types (including 
 [studies](https://w3id.org/nmdc/Study/), 
@@ -179,7 +219,7 @@ metadata from collection set types (including
 [data objects](https://w3id.org/nmdc/DataObject/) 
 as discussed in the __find__ section).
 <br/>
- 
+
 The __metadata__ endpoints allow users to retrieve metadata from the NMDC database using the various
 GET endpoints  that are slightly different than the __find__ endpoints, but some can be used similarly.
 As with the __find__ endpoints,  parameters for the __metadata__ endpoints that do not have a
@@ -193,6 +233,10 @@ uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutori
 tag_descriptions[
     OpenAPITag.FIND.value
 ] = r"""
+Find metadata using a simplified, proprietary syntax.
+
+---
+
 The [find endpoints](https://api.microbiomedata.org/docs#/find) are provided with NMDC metadata entities
 already specified - where metadata about [studies](https://w3id.org/nmdc/Study),
 [biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/),
@@ -209,6 +253,8 @@ tag_descriptions[
 ] = r"""
 **WORK IN PROGRESS**
 
+---
+
 Run simple jobs.
 
 For off-site job runs, keep the Runtime appraised of run events.
@@ -217,13 +263,13 @@ For off-site job runs, keep the Runtime appraised of run events.
 tag_descriptions[
     OpenAPITag.MINTER.value
 ] = r"""
-Endpoints related to minting and binding persistent identifiers.
+Mint and manage persistent identifiers.
 """
 
 tag_descriptions[
     OpenAPITag.SOFTWARE.value
 ] = r"""
-Endpoints related to software.
+Monitor the software components that make up the Runtime.
 """
 
 # Remove leading and trailing whitespace from each description.
