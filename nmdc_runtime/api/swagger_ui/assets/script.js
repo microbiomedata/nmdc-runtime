@@ -157,7 +157,7 @@ window.addEventListener("nmdcInit", (event) => {
         const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
         if (descriptionEl.children.length > 1) {
             const excessEl = document.createElement("div");
-            excessEl.classList = "excess-tag-description";
+            excessEl.classList.add("excess-tag-description");
             Array.from(descriptionEl.children).slice(1).forEach(el => excessEl.appendChild(el));
             descriptionEl.replaceChildren(descriptionEl.firstChild, excessEl);
         }

@@ -92,7 +92,7 @@ class EndpointSearchWidget extends HTMLElement {
 
         // Implement the base HTML structure of the widget.
         const containerEl = document.createElement("div");
-        containerEl.classList = "container";
+        containerEl.classList.add("container");
         containerEl.innerHTML = String.raw`
             <div class="inner-container">
                 <input name="search-term" placeholder="Find an endpoint..." />
@@ -185,7 +185,7 @@ class EndpointSearchWidget extends HTMLElement {
             const preSubstrChars = matchingEndpoint.urlPath.substring(0, substrCharIdx);
             const substrChars = matchingEndpoint.urlPath.substring(substrCharIdx, substrCharIdx + searchTerm.length);
             const postSubstrChars = matchingEndpoint.urlPath.substring(substrCharIdx + searchTerm.length);
-            substrSpanEl.classList = "matching-substring";
+            substrSpanEl.classList.add("matching-substring");
             substrSpanEl.textContent = substrChars;
             urlPathSpanEl.append(preSubstrChars, substrSpanEl, postSubstrChars);
 
@@ -203,7 +203,7 @@ class EndpointSearchWidget extends HTMLElement {
             const tagPart = encodeURIComponent(matchingEndpoint.tag);
             const operationPart = encodeURIComponent(matchingEndpoint.operationId);
             const httpMethodSpanEl = document.createElement("span");
-            httpMethodSpanEl.classList = "http-method";  // e.g. "<span class="http-method">GET</span>"
+            httpMethodSpanEl.classList.add("http-method");  // e.g. "<span class="http-method">GET</span>"
             httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
             aEl.append(httpMethodSpanEl, urlPathSpanEl);
             aEl.href = `${urlWithoutQueryStr}/#${tagPart}/${operationPart}`;
