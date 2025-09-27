@@ -147,19 +147,49 @@ window.addEventListener("nmdcInit", (event) => {
         }
     });
 
-    // Wrap the child elements of the tag description (except the first child element)
-    // in a `<div>` having a specific class, so we can hide/show it via CSS. We consider
-    // that portion of the tag description to be "excessive" for a collapsed section.
-    // Note: This is in an attempt to reduce visual clutter.
-    console.debug("Setting up excess tag description hider");
+    // Set up the togglers for the tag details.
+    //
+    // Note: At the time of this writing, all of our tag descriptions begin with a
+    //       single-paragraph summary of the tag. Some of the tag descriptions have
+    //       additional paragraphs that provide more _details_ about the tag. In an
+    //       attempt to keep the Swagger UI page "initially concise" (only showing
+    //       more information when the user requests it), for the tag descriptions
+    //       that have additional paragraphs, we add a toggler button that the user
+    //       can press to toggle the visibility of the additional paragraphs.
+    //
+    console.debug("Setting up tag description details togglers");
     const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
     Array.from(tagSectionEls).forEach(el => {
+        // Check whether the description contains more than one element (i.e. paragraph).
         const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
         if (descriptionEl.children.length > 1) {
-            const excessEl = document.createElement("div");
-            excessEl.classList.add("excess-tag-description");
-            Array.from(descriptionEl.children).slice(1).forEach(el => excessEl.appendChild(el));
-            descriptionEl.replaceChildren(descriptionEl.firstChild, excessEl);
+            // Wrap the additional elements (i.e. paragraphs) in a hidable `<div>`.
+            const detailsEl = document.createElement("div");
+            detailsEl.classList.add("tag-description-details", "hidden");
+            Array.from(descriptionEl.children).slice(1).forEach(el => {
+                detailsEl.appendChild(el);
+            });
+            descriptionEl.replaceChildren(descriptionEl.firstChild, detailsEl);
+
+            // Add a button that toggles the visibility of the tag details.
+            // Note: We use SVG to draw ellipses on the button, rather than
+            //       loading an image or icon.
+            const toggleButtonEl = document.createElement("button");
+            toggleButtonEl.classList.add("tag-description-details-toggler");
+            toggleButtonEl.title = "Toggle details";
+            toggleButtonEl.innerHTML = `
+                <!-- Ellipses -->
+                <svg width="12" height="8" viewBox="0 0 12 8">
+                    <ellipse cx="2" cy="4" rx="1" ry="1" fill="currentColor" />
+                    <ellipse cx="6" cy="4" rx="1" ry="1" fill="currentColor" />
+                    <ellipse cx="10" cy="4" rx="1" ry="1" fill="currentColor" />
+                </svg>
+            `;
+            descriptionEl.firstChild.appendChild(toggleButtonEl);
+            toggleButtonEl.addEventListener("click", (event) => {
+                detailsEl.classList.toggle("hidden");
+                event.stopPropagation();  // avoid expanding the tag section, itself
+            });
         }
     });
 

@@ -49,15 +49,15 @@
 }
 
 /**
- * Hide the portion of the tag description that we have determined
- * to be excessive, when that tag section is collapsed.
- *
- * Note: The class `excess-tag-description` gets applied to a wrapper
- *       element that wraps everything after the first element of the
- *       tag description. The wrapper is created by our custom JavaScript.
+ * Hide the portion of the tag description beyond the first element (i.e. paragraph),
+ * and makes the ellipses button appear subtle.
  */
-.opblock-tag-section:not(.is-open) .excess-tag-description {
+.tag-description-details.hidden {
     display: none;
+}
+.tag-description-details-toggler {
+    background-color: transparent;
+    border: none;
 }
 
 /*****************************************************************************
