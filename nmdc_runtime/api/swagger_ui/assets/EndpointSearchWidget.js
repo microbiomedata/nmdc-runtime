@@ -57,8 +57,8 @@ class EndpointSearchWidget extends HTMLElement {
                 background-color: rgba(0, 0, 0, .05);
                 border-radius: 4px;
             }
-            .results-panel .message {
-                padding: 26px 26px 0px 26px;
+            .results-panel p.no-endpoints {
+                padding: 26px;
             }
             ul {
                 list-style-type: none;
@@ -87,6 +87,14 @@ class EndpointSearchWidget extends HTMLElement {
             .matching-substring {
                 background-color: #f9f871;
             }
+            .hidden {
+                /* 
+                   Note: When we hide elements via 'display: none', we do not have to also set 'aria-hidden="true"'.
+                   MDN says: 'aria-hidden="true" should not be added when [...] The element [...] is hidden with 'display: none'.
+                   Reference: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-hidden
+                */
+                display: none;
+            }
         `;
         this.shadowRoot.appendChild(styleEl);
 
@@ -97,12 +105,14 @@ class EndpointSearchWidget extends HTMLElement {
             <div class="inner-container">
                 <input name="search-term" placeholder="Find an endpoint..." />
                 <div class="results-panel">
+                    <p class="no-endpoints hidden">No matching endpoints.</p>
                     <ul class="results-list"></ul>
                 </div>
             </div>
         `;
         this.inputEl = containerEl.querySelector("input");
         this.resultsPanelEl = containerEl.querySelector(".results-panel");
+        this.noEndpointsMessageEl = containerEl.querySelector(".no-endpoints");
         this.resultsListEl = containerEl.querySelector(".results-list");
 
         // Make an array of all the endpoints that Swagger UI knows about. This will be our search index.
@@ -145,6 +155,7 @@ class EndpointSearchWidget extends HTMLElement {
         // Special case: If the search term is empty, clear the search results.
         if (searchTerm.trim().length === 0) {
             this.resultsListEl.replaceChildren();
+            this.noEndpointsMessageEl.classList.add("hidden");
             return;
         }
 
@@ -158,10 +169,12 @@ class EndpointSearchWidget extends HTMLElement {
         });
         
         // If there are no matching endpoints, clear the search results.
-        // TODO: Display a message saying there are no matching endpoints.
         if (matchingEndpoints.length === 0) {
             this.resultsListEl.replaceChildren();
+            this.noEndpointsMessageEl.classList.remove("hidden");
             return;
+        } else {
+            this.noEndpointsMessageEl.classList.add("hidden");
         }
 
         // Build a deep link for each matching endpoint (sorted by URL path, then HTTP method).
