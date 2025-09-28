@@ -12,6 +12,12 @@
  *
  *****************************************************************************/
 
+// If the Swagger UI JavaScript hasn't been executed yet, throw an error explaining the situation.
+// Note: FastAPI runs the Swagger UI JavaScript in a way that creates a global variable named `ui`.
+if (ui === undefined) {
+    throw new Error("The Swagger UI JavaScript has not been executed yet.");
+}
+
 /**
  * Endpoint search widget, implemented as a Web Component.
  * 
