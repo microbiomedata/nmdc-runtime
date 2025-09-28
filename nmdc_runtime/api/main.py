@@ -393,10 +393,7 @@ def custom_swagger_ui_html(
         #             that custom layout to display Swagger UI's `BaseLayout` component (which includes the core
         #             Swagger UI functionality). That's a deal breaker.
         #
-        .replace(
-            r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"',
-            r"[]"
-        )
+        .replace(r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"', r"[]")
         # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
         # Note: We escape the values here so they can be safely used as HTML attribute values.
         .replace(
