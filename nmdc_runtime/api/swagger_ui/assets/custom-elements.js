@@ -181,6 +181,28 @@ class EndpointSearchWidget extends HTMLElement {
     }
 
     /**
+     * Callback function designed to be passed in as the `compareFn` argument to `Array.prototype.sort()`.
+     * This callback function that sorts endpoint objects by comparing the URL paths and, if those are
+     * equal, comparing the HTTP methods.
+     * 
+     * @param {{ urlPath: string, httpMethod: string }} a 
+     * @param {{ urlPath: string, httpMethod: string }} b 
+     * @returns {number} A negative number if `a` comes before `b`,
+     *                   a positive number if `a` comes after `b`,
+     *                   and 0 if `a` and `b` are equivalent.
+     * 
+     * References:
+     * - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#comparefn
+     */
+    _sortEndpoints(a, b) {
+        if (a.urlPath.localeCompare(b.urlPath) === 0) {
+            return a.httpMethod.localeCompare(b.httpMethod);
+        } else {
+            return a.urlPath.localeCompare(b.urlPath);
+        }
+    }
+
+    /**
      * Updates the search results list so it shows the endpoints whose URL paths contain the search term.
      * 
      * @param {string} searchTerm The search term.
@@ -213,13 +235,7 @@ class EndpointSearchWidget extends HTMLElement {
 
         // Build a deep link for each matching endpoint (sorted by URL path, then HTTP method).
         // Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
-        const resultEls = matchingEndpoints.sort((a, b) => {
-            if (a.urlPath.localeCompare(b.urlPath) === 0) {
-                return a.httpMethod.localeCompare(b.httpMethod);
-            } else {
-                return a.urlPath.localeCompare(b.urlPath);
-            }
-        }).map(matchingEndpoint => {
+        const resultEls = matchingEndpoints.sort(this._sortEndpoints).map(matchingEndpoint => {
             const liEl = document.createElement("li");
             const aEl = document.createElement("a");
 
