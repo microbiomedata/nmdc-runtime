@@ -1,3 +1,7 @@
+// This JavaScript file contains the implementations of various Web Components
+// (which get defined as "custom elements") designed for use with Swagger UI.
+// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
+
 /**
  * Endpoint search widget, implemented as a Web Component.
  * 
