@@ -45,6 +45,18 @@ class EndpointSearchWidget extends HTMLElement {
         this.noEndpointsMessageEl = null;
         this.resultsListEl = null;
         this.endpoints = [];
+
+        // Redefine each callback method so that, within that method, the "this" variable
+        // refers to this instance of the class.
+        //
+        // Note: If we didn't do this, the value of the "this" variable would depend upon how
+        //       the method was invoked (e.g. if invoked via an event listener, the "this"
+        //       variable would refer to the element that triggered the event; e.g. a text field).
+        //
+        // Reference:
+        // - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind#creating_a_bound_function
+        //
+        this._handleInput = this._handleInput.bind(this);
     }
 
     /**
@@ -52,6 +64,9 @@ class EndpointSearchWidget extends HTMLElement {
      * 
      * Note: The `connectedCallback` function gets called automatically when
      *       this HTML element gets added to the DOM.
+     * 
+     * References:
+     * - https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#custom_element_lifecycle_callbacks
      */
     connectedCallback() {
         // Create a Shadow DOM tree specific to this custom HTML element, so that its styles don't
@@ -175,10 +190,18 @@ class EndpointSearchWidget extends HTMLElement {
 
         // Make it so the search results list gets updated whenever the user changes the search input.
         // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
-        this.inputEl.addEventListener("input", (event) => {
-            const inputValue = event.target.value;
-            this.updateSearchResults(inputValue);
-        });
+        this.inputEl.addEventListener("input", this._handleInput);
+    }
+
+    /**
+     * Callback function that handles the "input" event on the endpoint search input field.
+     * The main role of this method is to extract the search term from the event object
+     * and pass it to the method that updates the search results to reflect that search term.
+     * 
+     * @param {Event} event The "input" event.
+     */
+    _handleInput(event) {
+        this.updateSearchResults(event.target.value);
     }
 
     /**
@@ -330,6 +353,19 @@ class EndpointSearchWidget extends HTMLElement {
         });
         this.resultsListEl.replaceChildren(...resultEls);
     }
+
+    /**
+     * Callback function that will be automatically invoked when the element is removed from the DOM.
+     * 
+     * References:
+     * - https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#custom_element_lifecycle_callbacks
+     */
+    disconnectedCallback() {
+        console.debug("Cleaning up event listener(s)");
+        if (this.inputEl !== null) {
+            this.inputEl.removeEventListener("input", this._handleInput);
+        }
+    }
 }
 
 /**
@@ -343,6 +379,11 @@ class EndpointSearchWidget extends HTMLElement {
 class EllipsesButton extends HTMLElement {
     constructor() {
         super();
+
+        this.tooltipWrapperEl = null;
+
+        // Ensure that, within our callback methods, the "this" variable refers to this class instance.
+        this.stopEventPropagation = this.stopEventPropagation.bind(this);
     }
 
     connectedCallback() {
@@ -407,12 +448,25 @@ class EllipsesButton extends HTMLElement {
             </span>
         `;
 
-        // Prevent the propagation of click events occurring within the tooltip.
-        // Note: This way, clicking the tooltip doesn't trigger any click handlers
-        //       attached to the container.
-        this.shadowRoot.querySelector(".tooltip-wrapper").addEventListener("click", (event) => {
-            event.stopPropagation();
-        });
+        // Prevent click events on the tooltip from bubbling up to higher-level HTML elements.
+        this.tooltipWrapperEl = this.shadowRoot.querySelector(".tooltip-wrapper");
+        this.tooltipWrapperEl.addEventListener("click", this.stopEventPropagation);
+    }
+
+    /**
+     * Prevents the specified event from bubbling up to higher-level HTML elements.
+     * 
+     * @param {Event} event The event.
+     */
+    stopEventPropagation(event) {
+        event.stopPropagation();
+    }
+
+    disconnectedCallback() {
+        console.debug("Cleaning up event listener(s)");
+        if (this.tooltipWrapperEl !== null) {
+            this.tooltipWrapperEl.removeEventListener("click", this.stopEventPropagation);
+        }
     }
 }
 
