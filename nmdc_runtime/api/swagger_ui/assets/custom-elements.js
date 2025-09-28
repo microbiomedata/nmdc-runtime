@@ -74,18 +74,16 @@ class EndpointSearchWidget extends HTMLElement {
         //       of the seemingly-arbitrarily-chosen values were copied verbatim
         //       from native Swagger UI elements (via a web browser's DevTools).
         //
-        const containerEl = document.createElement("div");
-        containerEl.classList.add("container");
-        containerEl.innerHTML = String.raw`
+        this.shadowRoot.innerHTML = String.raw`
             <style>
-                .container {
+                :root {
                     margin: 0 auto;
                     max-width: 1460px;
                     font-family: sans-serif;
                     font-size: 14px;
                     color: #3b4151;
                 }
-                .inner-container {
+                .container {
                     margin: 20px 20px 0px 20px;
                 }
                 input {
@@ -139,7 +137,7 @@ class EndpointSearchWidget extends HTMLElement {
                 }
             </style>
 
-            <div class="inner-container">
+            <div class="container">
                 <input name="search-term" placeholder="Find an endpoint..." aria-label="Search term for finding an endpoint" />
                 <div class="results-panel">
                     <p class="no-endpoints hidden">No matching endpoints.</p>
@@ -147,10 +145,10 @@ class EndpointSearchWidget extends HTMLElement {
                 </div>
             </div>
         `;
-        this.inputEl = containerEl.querySelector("input");
-        this.resultsPanelEl = containerEl.querySelector(".results-panel");
-        this.noEndpointsMessageEl = containerEl.querySelector(".no-endpoints");
-        this.resultsListEl = containerEl.querySelector(".results-list");
+        this.inputEl = this.shadowRoot.querySelector("input");
+        this.resultsPanelEl = this.shadowRoot.querySelector(".results-panel");
+        this.noEndpointsMessageEl = this.shadowRoot.querySelector(".no-endpoints");
+        this.resultsListEl = this.shadowRoot.querySelector(".results-list");
 
         // Make an array of all the endpoints that Swagger UI knows about. This will be our search index.
         //
@@ -180,9 +178,6 @@ class EndpointSearchWidget extends HTMLElement {
             const inputValue = event.target.value;
             this.updateSearchResults(inputValue);
         });
-
-        // Mount the widget's HTML element tree to the Shadow DOM tree.
-        this.shadowRoot.appendChild(containerEl);
     }
 
     /**
