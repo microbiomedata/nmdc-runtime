@@ -91,7 +91,8 @@ class EndpointSearchWidget extends HTMLElement {
         //
         this.shadowRoot.innerHTML = String.raw`
             <style>
-                :root {
+                :host {
+                    display: block;
                     margin: 0 auto;
                     max-width: 1460px;
                     font-family: sans-serif;
