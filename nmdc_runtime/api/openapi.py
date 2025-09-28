@@ -25,13 +25,13 @@ class OpenAPITag(str, Enum):
     OBJECT_TYPES = "Workflow management: Object types"
     TRIGGERS = "Workflow management: Triggers"
     JOBS = "Workflow management: Jobs"
-    OBJECTS = "System administration: DRS objects"
+    OBJECTS = "Workflow management: DRS objects"
     OPERATIONS = "Workflow management: Operations"
     QUERIES = "Metadata access: Queries"
     METADATA = "Metadata access: Metadata"
     RUNS = "Workflow management: Runs"
     MINTER = "Persistent identifiers"
-    SOFTWARE = "System administration: Software"
+    SYSTEM_ADMINISTRATION = "System administration"
 
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
@@ -266,9 +266,9 @@ Mint and manage persistent identifiers.
 """
 
 tag_descriptions[
-    OpenAPITag.SOFTWARE.value
+    OpenAPITag.SYSTEM_ADMINISTRATION.value
 ] = r"""
-Monitor the software components that make up the Runtime.
+Retrieve information about the software components that make up the Runtime.
 """
 
 # Remove leading and trailing whitespace from each description.
@@ -321,6 +321,10 @@ ordered_tag_descriptors: List[Dict] = [
         "description": tag_descriptions[OpenAPITag.RUNS.value],
     },
     {
+        "name": OpenAPITag.OBJECTS.value,
+        "description": tag_descriptions[OpenAPITag.OBJECTS.value],
+    },
+    {
         "name": OpenAPITag.MINTER.value,
         "description": tag_descriptions[OpenAPITag.MINTER.value],
     },
@@ -329,12 +333,8 @@ ordered_tag_descriptors: List[Dict] = [
         "description": tag_descriptions[OpenAPITag.USERS.value],
     },
     {
-        "name": OpenAPITag.OBJECTS.value,
-        "description": tag_descriptions[OpenAPITag.OBJECTS.value],
-    },
-    {
-        "name": OpenAPITag.SOFTWARE.value,
-        "description": tag_descriptions[OpenAPITag.SOFTWARE.value],
+        "name": OpenAPITag.SYSTEM_ADMINISTRATION.value,
+        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value],
     },
 ]
 
