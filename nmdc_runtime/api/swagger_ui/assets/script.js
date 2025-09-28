@@ -185,7 +185,8 @@ window.addEventListener("nmdcInit", (event) => {
         }
     });
 
-    // Set up the togglers for the tag details.
+    // If the `<ellipses-button>` custom HTML element is available, set up the tag
+    // description details togglers.
     //
     // Note: At the time of this writing, all of our tag descriptions begin with a
     //       single-paragraph summary of the tag. Some of the tag descriptions have
@@ -195,44 +196,39 @@ window.addEventListener("nmdcInit", (event) => {
     //       that have additional paragraphs, we add a toggler button that the user
     //       can press to toggle the visibility of the additional paragraphs.
     //
-    console.debug("Setting up tag description details togglers");
-    const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
-    Array.from(tagSectionEls).forEach(el => {
-        // Check whether the description contains more than one element (i.e. paragraph).
-        const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
-        if (descriptionEl.children.length > 1) {
-            // Wrap the additional elements (i.e. paragraphs) in a hidable `<div>`.
-            const detailsEl = document.createElement("div");
-            detailsEl.classList.add("tag-description-details", "hidden");
-            Array.from(descriptionEl.children).slice(1).forEach(el => {
-                detailsEl.appendChild(el);
-            });
-            descriptionEl.replaceChildren(descriptionEl.firstChild, detailsEl);
+    if (customElements.get("ellipses-button")) {
+        console.debug("Setting up tag description details togglers");
+        const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
+        Array.from(tagSectionEls).forEach(el => {
 
-            // Add a button that toggles the visibility of the tag details.
-            // Note: We use SVG to draw ellipses on the button, rather than
-            //       loading an image or icon.
-            const toggleButtonEl = document.createElement("button");
-            toggleButtonEl.classList.add("tag-description-details-toggler");
-            toggleButtonEl.title = "Toggle details";
-            toggleButtonEl.innerHTML = `
-                <!-- Ellipses -->
-                <svg width="12" height="8" viewBox="0 0 12 8">
-                    <ellipse cx="2" cy="4" rx="1" ry="1" fill="currentColor" />
-                    <ellipse cx="6" cy="4" rx="1" ry="1" fill="currentColor" />
-                    <ellipse cx="10" cy="4" rx="1" ry="1" fill="currentColor" />
-                </svg>
-            `;
-            descriptionEl.firstChild.appendChild(toggleButtonEl);
-            toggleButtonEl.addEventListener("click", (event) => {
-                detailsEl.classList.toggle("hidden");
-                event.stopPropagation();  // avoid expanding the tag section, itself
-            });
-        }
-    });
+            // Check whether the description contains more than one element (i.e. paragraph).
+            const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
+            if (descriptionEl.children.length > 1) {
+
+                // Wrap the additional elements (i.e. paragraphs) in a hidable `<div>`.
+                const detailsEl = document.createElement("div");
+                detailsEl.classList.add("tag-description-details", "hidden");
+                Array.from(descriptionEl.children).slice(1).forEach(el => {
+                    detailsEl.appendChild(el);
+                });
+                descriptionEl.replaceChildren(descriptionEl.firstChild, detailsEl);
+
+                // Add a button that, when clicked, toggles the visibility of the tag
+                // description details (but does not propagate the click event upward,
+                // so the visibility of the containing tag section isn't toggled).
+                const toggleButtonEl = document.createElement("ellipses-button");
+                toggleButtonEl.textContent = "Toggle description details"; // populates the "slot"
+                descriptionEl.firstChild.appendChild(toggleButtonEl);
+                toggleButtonEl.addEventListener("click", (event) => {
+                    detailsEl.classList.toggle("hidden");
+                    event.stopPropagation();
+                });
+            }
+        });
+    };
 
     // If the `<endpoint-search-widget>` custom HTML element is available, add it to the DOM.
-    // Note: That custom HTML element gets defined within the `EndpointSearchWidget.js` script.
+    // Note: That custom HTML element gets defined within the `custom-elements.js` script.
     // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_a_custom_element
     if (customElements.get("endpoint-search-widget")) {
         console.debug("Setting up endpoint search widget");

@@ -98,18 +98,10 @@
 }
 
 /**
- * Hide the portion of the tag description beyond the first element (i.e. paragraph),
- * and makes the ellipses button appear subtle.
+ * Hide the portion of the tag description beyond the first element (i.e. paragraph).
  */
 .tag-description-details.hidden {
     display: none;
-}
-.tag-description-details-toggler {
-    background-color: transparent;
-    border: none;
-}
-.tag-description-details-toggler:hover {
-    color: #1f69c0;
 }
 
 /*****************************************************************************

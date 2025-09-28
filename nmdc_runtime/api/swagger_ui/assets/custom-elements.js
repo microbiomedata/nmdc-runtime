@@ -1,6 +1,16 @@
-// This JavaScript file contains the implementations of various Web Components
-// (which get defined as "custom elements") designed for use with Swagger UI.
-// Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
+/**
+ * This JavaScript file contains the implementations of various Web Components
+ * (which get defined as "custom elements") designed for use with Swagger UI.
+ * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
+ *
+ * Developer notes:
+ * 
+ * 1. Because we define our CSS and HTML within `String.raw` tagged templates,
+ *    the popular "lit-html" extension (if installed) for VS Code will apply
+ *    CSS and HTML syntax highlighting to those strings.
+ *    Docs: https://marketplace.visualstudio.com/items?itemName=bierner.lit-html
+ *
+ *****************************************************************************/
 
 /**
  * Endpoint search widget, implemented as a Web Component.
@@ -31,81 +41,78 @@ class EndpointSearchWidget extends HTMLElement {
         // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#creating_a_shadow_dom
         this.attachShadow({ mode: "open" });
 
-        // Add styles that will be applied to the widget.
+        // Implement the structure and style of the widget.
         //
         // Note: We chose the specific style rules shown below in an attempt to
         //       match the "look and feel" of the Swagger UI page. At least some
         //       of the seemingly-arbitrarily-chosen values were copied verbatim
         //       from native Swagger UI elements (via a web browser's DevTools).
         //
-        const styleEl = document.createElement("style");
-        styleEl.textContent = `
-            .container {
-                margin: 0 auto;
-                max-width: 1460px;
-                font-family: sans-serif;
-                font-size: 14px;
-                color: #3b4151;
-            }
-            .inner-container {
-                margin: 20px 20px 0px 20px;
-            }
-            input {
-                padding: 8px 10px;
-                box-sizing: border-box;
-                border: 1px solid #d9d9d9;
-                border-radius: 4px;
-                width: 100%;
-            }
-            .results-panel {
-                background-color: rgba(0, 0, 0, .05);
-                border-radius: 4px;
-            }
-            .results-panel p.no-endpoints {
-                padding: 26px;
-            }
-            ul {
-                list-style-type: none;
-                padding-left: 26px;
-                padding-right: 26px;
-                font-family: monospace;
-            }
-            ul > li:first-child {
-                padding-top: 26px;
-            }
-            ul > li:last-child {
-                padding-bottom: 26px;
-            }
-            li > a {
-                color: #4990e2;
-                text-decoration: none;
-            }
-            li > a:hover {
-                color: #1f69c0;
-            }
-            li > a .http-method {
-                display: inline-block;
-                min-width: 52px;
-                margin-right: 10px;
-            }
-            .matching-substring {
-                background-color: #f9f871;
-            }
-            .hidden {
-                /* 
-                   Note: When we hide elements via 'display: none', we do not have to also set 'aria-hidden="true"'.
-                   MDN says: 'aria-hidden="true" should not be added when [...] The element [...] is hidden with 'display: none'.
-                   Reference: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-hidden
-                */
-                display: none;
-            }
-        `;
-        this.shadowRoot.appendChild(styleEl);
-
-        // Implement the base HTML structure of the widget.
         const containerEl = document.createElement("div");
         containerEl.classList.add("container");
         containerEl.innerHTML = String.raw`
+            <style>
+                .container {
+                    margin: 0 auto;
+                    max-width: 1460px;
+                    font-family: sans-serif;
+                    font-size: 14px;
+                    color: #3b4151;
+                }
+                .inner-container {
+                    margin: 20px 20px 0px 20px;
+                }
+                input {
+                    padding: 8px 10px;
+                    box-sizing: border-box;
+                    border: 1px solid #d9d9d9;
+                    border-radius: 4px;
+                    width: 100%;
+                }
+                .results-panel {
+                    background-color: rgba(0, 0, 0, .05);
+                    border-radius: 4px;
+                }
+                .results-panel p.no-endpoints {
+                    padding: 26px;
+                }
+                ul {
+                    list-style-type: none;
+                    padding-left: 26px;
+                    padding-right: 26px;
+                    font-family: monospace;
+                }
+                ul > li:first-child {
+                    padding-top: 26px;
+                }
+                ul > li:last-child {
+                    padding-bottom: 26px;
+                }
+                li > a {
+                    color: #4990e2;
+                    text-decoration: none;
+                }
+                li > a:hover {
+                    color: #1f69c0;
+                }
+                li > a .http-method {
+                    display: inline-block;
+                    min-width: 52px;
+                    margin-right: 10px;
+                }
+                .matching-substring {
+                    background-color: #f9f871;
+                }
+                .hidden {
+                    /* 
+                    Note: When we hide elements via 'display: none', we do not have to also set 'aria-hidden="true"'.
+                    MDN says: 'aria-hidden="true" should not be added when [...] The element [...] is hidden with 'display: none'.
+                    Reference: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-hidden
+                    */
+                    display: none;
+                }
+            </style>
+
             <div class="inner-container">
                 <input name="search-term" placeholder="Find an endpoint..." />
                 <div class="results-panel">
@@ -233,6 +240,91 @@ class EndpointSearchWidget extends HTMLElement {
     }
 }
 
-// Register a custom HTML element (i.e. `<endpoint-search-widget>`).
+/**
+ * Ellipses button with tooltip, implemented as a Web Component.
+ * 
+ * The tooltip has a slot, which can be used to specify the tooltip's text.
+ * 
+ * References:
+ * - https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot
+ */
+class EllipsesButton extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        const shadowRoot = this.attachShadow({ mode: "open" });
+        shadowRoot.innerHTML = String.raw`
+            <style>
+                .container {
+                    display: inline-flex;
+                }
+                button {
+                    cursor: pointer;
+                    background-color: transparent;
+                    border: none;
+                }
+                button:hover {
+                    color: #1f69c0;
+                }
+
+                .tooltip-wrapper {
+                    cursor: auto;
+                    display: inline-flex;
+                    align-items: center;
+                    opacity: 0;
+                    transition: opacity 0.2s ease-in-out;
+                }
+                button:hover + .tooltip-wrapper {
+                    opacity: 1;
+                }
+                .tooltip-arrow {
+                    margin-right: -4px;
+                    fill: #f4f4f4;
+                }
+                .tooltip-box {
+                    font-family: sans-serif;
+                    background: #f4f4f4;
+                    color: #333;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+            </style>
+
+            <span class="container">
+                <button aria-describedby="tooltip">
+                    <!-- Ellipses (row of three dots) -->
+                    <svg width="12" height="8" viewBox="0 0 12 8">
+                        <ellipse cx="2" cy="4" rx="1" ry="1" fill="currentColor" />
+                        <ellipse cx="6" cy="4" rx="1" ry="1" fill="currentColor" />
+                        <ellipse cx="10" cy="4" rx="1" ry="1" fill="currentColor" />
+                    </svg>
+                </button>
+
+                <!-- Tooltip (rectangle with left-pointing arrowhead) -->
+                <div class="tooltip-wrapper">
+                    <svg class="tooltip-arrow" width="16" height="24" viewBox="0 0 16 24">
+                        <polygon points="0,12 16,6 16,18" />
+                    </svg>
+                    <div class="tooltip-box">
+                        <slot role="tooltip">...</slot>
+                    </div>
+                </div>
+            </span>
+        `;
+
+        // Prevent the propagation of click events occurring within the tooltip.
+        // Note: This way, clicking the tooltip doesn't trigger any click handlers
+        //       attached to the container.
+        shadowRoot.querySelector(".tooltip-wrapper").addEventListener("click", (event) => {
+            event.stopPropagation();
+        });
+    }
+}
+
+// Register custom HTML elements (i.e. `<endpoint-search-widget>` and `<ellipses-button>`).
 // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#registering_a_custom_element
 customElements.define("endpoint-search-widget", EndpointSearchWidget);
+customElements.define("ellipses-button", EllipsesButton);
