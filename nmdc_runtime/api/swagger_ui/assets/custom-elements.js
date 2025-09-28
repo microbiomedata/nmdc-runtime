@@ -5,17 +5,22 @@
  *
  * Developer notes:
  * 
- * 1. Because we define our CSS and HTML within `String.raw` tagged templates,
- *    the popular "lit-html" extension (if installed) for VS Code will apply
+ * 1. Because we define our CSS and HTML within `String.raw` tagged templates [1],
+ *    the popular "lit-html" extension [2] (if installed) for VS Code will apply
  *    CSS and HTML syntax highlighting to those strings.
- *    Docs: https://marketplace.visualstudio.com/items?itemName=bierner.lit-html
+ * 
+ *    References:
+ *    - [1] https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+ *    - [2] https://marketplace.visualstudio.com/items?itemName=bierner.lit-html
  *
  *****************************************************************************/
 
-// If the Swagger UI JavaScript hasn't been executed yet, throw an error explaining the situation.
+// If FastAPI's Swagger UI JavaScript hasn't been executed yet, throw an error explaining the situation.
 // Note: FastAPI runs the Swagger UI JavaScript in a way that creates a global variable named `ui`.
-if (ui === undefined) {
-    throw new Error("The Swagger UI JavaScript has not been executed yet.");
+// Note: We do a `typeof` check because, if we did `ui === undefined` and `ui` weren't defined,
+//       JavaScript would raise its own `ReferenceError` exception with its own message.
+if (typeof ui === "undefined") {
+    throw new Error("FastAPI's Swagger UI JavaScript has not been executed yet.");
 }
 
 /**
@@ -33,6 +38,13 @@ if (ui === undefined) {
 class EndpointSearchWidget extends HTMLElement {
     constructor() {
         super();
+
+        // Initialize all instance properties.
+        this.inputEl = null;
+        this.resultsPanelEl = null;
+        this.noEndpointsMessageEl = null;
+        this.resultsListEl = null;
+        this.endpoints = [];
     }
 
     /**
@@ -43,8 +55,16 @@ class EndpointSearchWidget extends HTMLElement {
      */
     connectedCallback() {
         // Create a Shadow DOM tree specific to this custom HTML element, so that its styles don't
-        // impact other elements on the page and so styles on the page don't impact this element.
-        // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#creating_a_shadow_dom
+        // impact other elements on the page and so styles on the page don't impact this element. [1]
+        //
+        // Note: This will populate the instance's inherited `this.shadowRoot` property [2]
+        //       with a reference to the root node of this Shadow DOM tree. [3]
+        //
+        // References: 
+        // - [1] https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM#creating_a_shadow_dom
+        // - [2] https://developer.mozilla.org/en-US/docs/Web/API/Element/shadowRoot
+        // - [3] https://developer.mozilla.org/en-US/docs/Web/API/ShadowRoot
+        //
         this.attachShadow({ mode: "open" });
 
         // Implement the structure and style of the widget.
@@ -120,7 +140,7 @@ class EndpointSearchWidget extends HTMLElement {
             </style>
 
             <div class="inner-container">
-                <input name="search-term" placeholder="Find an endpoint..." />
+                <input name="search-term" placeholder="Find an endpoint..." aria-label="Search term for finding an endpoint" />
                 <div class="results-panel">
                     <p class="no-endpoints hidden">No matching endpoints.</p>
                     <ul class="results-list"></ul>
@@ -249,10 +269,10 @@ class EndpointSearchWidget extends HTMLElement {
 /**
  * Ellipses button with tooltip, implemented as a Web Component.
  * 
- * The tooltip has a slot, which can be used to specify the tooltip's text.
+ * The tooltip has a slot [1], which can be used to specify the tooltip's text.
  * 
  * References:
- * - https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot
+ * - [1] https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot
  */
 class EllipsesButton extends HTMLElement {
     constructor() {
@@ -260,8 +280,8 @@ class EllipsesButton extends HTMLElement {
     }
 
     connectedCallback() {
-        const shadowRoot = this.attachShadow({ mode: "open" });
-        shadowRoot.innerHTML = String.raw`
+        this.attachShadow({ mode: "open" });
+        this.shadowRoot.innerHTML = String.raw`
             <style>
                 .container {
                     display: inline-flex;
@@ -324,7 +344,7 @@ class EllipsesButton extends HTMLElement {
         // Prevent the propagation of click events occurring within the tooltip.
         // Note: This way, clicking the tooltip doesn't trigger any click handlers
         //       attached to the container.
-        shadowRoot.querySelector(".tooltip-wrapper").addEventListener("click", (event) => {
+        this.shadowRoot.querySelector(".tooltip-wrapper").addEventListener("click", (event) => {
             event.stopPropagation();
         });
     }
