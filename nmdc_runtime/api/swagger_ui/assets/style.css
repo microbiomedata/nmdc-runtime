@@ -42,7 +42,6 @@
     background-position: -2px -2px;
 }
 
-
 /** 
  * Hides the following text from the Swagger UI modal login form:
  *
@@ -116,6 +115,15 @@
 /*****************************************************************************
  * Customize Swagger UI's default elements.
  *****************************************************************************/
+
+ /* Standardize the line height of the description in the top section of the page. */
+.swagger-ui .information-container .info__description {
+    line-height: 1em;
+}
+/* Slightly deemphasize the version numbers in the description. */
+.swagger-ui .information-container .info__description code {
+    font-weight: normal;
+}
 
 /* Remove the box shadow from the top section of the page. */
 .swagger-ui .scheme-container {

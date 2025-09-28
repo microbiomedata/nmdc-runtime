@@ -340,25 +340,45 @@ ordered_tag_descriptors: List[Dict] = [
 ]
 
 
-def make_api_description(schema_version: str) -> str:
+def make_api_description(api_version: str, schema_version: str) -> str:
     r"""
     Returns an API description into which the specified schema version string has been incorporated.
 
     Args:
+        api_version (str): The version of this Runtime instance.
         schema_version (str): The version of `nmdc-schema` the Runtime is using.
 
     Returns:
         str: The Markdown-formatted API description.
     """
     result = f"""
-The NMDC Runtime API, via on-demand functions and via schedule-based and sensor-based automation,
-supports validation and submission of metadata, as well as orchestration of workflow executions.
+Welcome to the **NMDC Runtime API**, an API you can use to access metadata residing in the NMDC database.
+
+Users having adequate permissions can also use it to generate identifiers, submit metadata,
+and manage workflow executions.
+
+##### Quick start
+
+The endpoints of the NMDC Runtime API are listed below.
+They are organized into sections, each of which can be opened and closed.
+The endpoints, themselves, can also be opened and closed.
+
+Each endpoint—when opened—has a "Try it out" button, which you can press in order to send a request
+to the endpoint directly from this web page. Each endpoint can also be
+[accessed programmatically](https://docs.microbiomedata.org/runtime/nb/api_access_via_python/).
+
+Some endpoints have a padlock icon, which means that the endpoint is only accessible to logged-in users.
+You can log in by clicking the "Authorize" button located directly above the list of endpoints.
+
+##### Contact us
 
 You can [contact us](https://microbiomedata.org/contact/) anytime.
 We continuously refine the API and may be able to streamline your use case.
 
-[NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
+##### Versions
 
-[Documentation](https://docs.microbiomedata.org/runtime/)
+[NMDC Runtime](https://docs.microbiomedata.org/runtime/) version: `{api_version}`
+
+[NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
 """.strip()
     return result

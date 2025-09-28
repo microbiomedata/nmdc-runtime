@@ -258,7 +258,10 @@ orcid_login_url = f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIEN
 app = FastAPI(
     title="NMDC Runtime API",
     version=version("nmdc_runtime"),
-    description=make_api_description(schema_version=version("nmdc_schema")),
+    description=make_api_description(
+        api_version=version("nmdc_runtime"),
+        schema_version=version("nmdc_schema")
+    ),
     openapi_tags=ordered_tag_descriptors,
     lifespan=lifespan,
     docs_url=None,
