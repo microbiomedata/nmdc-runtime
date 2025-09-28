@@ -10,7 +10,6 @@ Notes:
   Now that they are in a separate module, we will be able to edit them more easily.
 """
 
-from html import escape
 from typing import List, Dict
 from enum import Enum
 
