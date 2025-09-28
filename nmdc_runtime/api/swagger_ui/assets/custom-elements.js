@@ -98,6 +98,7 @@ class EndpointSearchWidget extends HTMLElement {
                     border-radius: 4px;
                 }
                 .results-panel p.no-endpoints {
+                    font-size: 14px;
                     padding: 26px;
                 }
                 ul {
@@ -203,6 +204,45 @@ class EndpointSearchWidget extends HTMLElement {
     }
 
     /**
+     * Wraps the part of the full string that matches the test string (case insensitively),
+     * in a `<span>` element having the class "matching-substring".
+     * 
+     * Note: That will allow us to style that part of the string differently from the other parts.
+     * 
+     * @param {string} fullStr The full string.
+     * @param {string} searchTermStr The string to search for within the full string.
+     * @returns {HTMLSpanElement} A `<span>` element containing the full string, with the matching
+     *                            substring—if any—wrapped in a `<span class="matching-substring">`.
+     */
+    _wrapMatchingSubstring(fullStr, searchTermStr) {
+        // Create the HTML elements we'll populate.
+        const fullStrSpanEl = document.createElement("span");
+        const matchingSubstrSpanEl = document.createElement("span");
+        matchingSubstrSpanEl.classList.add("matching-substring");
+
+        // Return early if we know the search term string _cannot_ exist within the full string.
+        if (fullStr.length === 0 || searchTermStr.length === 0 || searchTermStr.length > fullStr.length) {
+            fullStrSpanEl.textContent = fullStr;
+            return fullStrSpanEl;
+        }
+
+        // Lowercase both strings to enable case-insensitive comparison.
+        const fullStrLowercase = fullStr.toLowerCase();
+        const searchTermStrLowercase = searchTermStr.toLowerCase();
+
+        // Locate the (lowercased) substring within the (lowercased) full string.
+        const substrCharIdx = fullStrLowercase.indexOf(searchTermStrLowercase);
+        const preSubstrChars = fullStr.substring(0, substrCharIdx);
+        const substrChars = fullStr.substring(substrCharIdx, substrCharIdx + searchTermStr.length);
+        const postSubstrChars = fullStr.substring(substrCharIdx + searchTermStr.length);
+        matchingSubstrSpanEl.textContent = substrChars;
+
+        // Build the final HTML structure.
+        fullStrSpanEl.replaceChildren(preSubstrChars, matchingSubstrSpanEl, postSubstrChars);
+        return fullStrSpanEl;
+    }
+
+    /**
      * Updates the search results list so it shows the endpoints whose URL paths contain the search term.
      * 
      * @param {string} searchTerm The search term.
@@ -241,16 +281,7 @@ class EndpointSearchWidget extends HTMLElement {
 
             // Wrap the part of the URL path that matches the search term, so that we can
             // style it differently from the rest of the URL path.
-            const urlPathSpanEl = document.createElement("span");
-            const lowercaseUrlPath = matchingEndpoint.urlPath.toLowerCase();
-            const substrCharIdx = lowercaseUrlPath.indexOf(lowercaseSearchTerm);
-            const substrSpanEl = document.createElement("span");
-            const preSubstrChars = matchingEndpoint.urlPath.substring(0, substrCharIdx);
-            const substrChars = matchingEndpoint.urlPath.substring(substrCharIdx, substrCharIdx + searchTerm.length);
-            const postSubstrChars = matchingEndpoint.urlPath.substring(substrCharIdx + searchTerm.length);
-            substrSpanEl.classList.add("matching-substring");
-            substrSpanEl.textContent = substrChars;
-            urlPathSpanEl.append(preSubstrChars, substrSpanEl, postSubstrChars);
+            const urlPathSpanEl = this._wrapMatchingSubstring(matchingEndpoint.urlPath, lowercaseSearchTerm);
 
             // Build a Swagger UI-compliant "deep link" to the corresponding endpoint,
             // using the syntax shown in the Swagger UI "Deep Linking" documentation, at:
