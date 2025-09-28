@@ -194,6 +194,7 @@ class EndpointSearchWidget extends HTMLElement {
      * 
      * References:
      * - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#comparefn
+     * - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
      */
     _sortEndpoints(a, b) {
         if (a.urlPath.localeCompare(b.urlPath) === 0) {
@@ -243,6 +244,24 @@ class EndpointSearchWidget extends HTMLElement {
     }
 
     /**
+     * Returns a Swagger UI-compliant "Deep Link" URL pointing to the specific API endpoint
+     * on a Swagger UI page.
+     * 
+     * @param {string} tagNameStr Name of the tag of the endpoint being linked to.
+     * @param {string} operationIdStr Operation ID of the endpoint being linked to.
+     * @returns {string} A Swagger UI-compliant "Deep Link" URL that points to the
+     *                   specified API endpoint on a Swagger UI page.
+     * 
+     * Reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/deep-linking/#usage
+     */
+    _buildSwaggerUIDeepLinkUrl(tagNameStr, operationIdStr) {
+        const urlWithoutQueryStr = window.location.origin + window.location.pathname;
+        const encodedTagNameStr = encodeURIComponent(tagNameStr);
+        const encodedOperationIdPart = encodeURIComponent(operationIdStr);
+        return `${urlWithoutQueryStr}/#${encodedTagNameStr}/${encodedOperationIdPart}`;
+    }
+
+    /**
      * Updates the search results list so it shows the endpoints whose URL paths contain the search term.
      * 
      * @param {string} searchTerm The search term.
@@ -273,19 +292,13 @@ class EndpointSearchWidget extends HTMLElement {
             this.noEndpointsMessageEl.classList.add("hidden");
         }
 
-        // Build a deep link for each matching endpoint (sorted by URL path, then HTTP method).
-        // Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/localeCompare
+        // Make an array of hyperlinks to the matching endpoints.
         const resultEls = matchingEndpoints.sort(this._sortEndpoints).map(matchingEndpoint => {
-            const liEl = document.createElement("li");
-            const aEl = document.createElement("a");
-
             // Wrap the part of the URL path that matches the search term, so that we can
             // style it differently from the rest of the URL path.
             const urlPathSpanEl = this._wrapMatchingSubstring(matchingEndpoint.urlPath, lowercaseSearchTerm);
-
-            // Build a Swagger UI-compliant "deep link" to the corresponding endpoint,
-            // using the syntax shown in the Swagger UI "Deep Linking" documentation, at:
-            // https://swagger.io/docs/open-source-tools/swagger-ui/usage/deep-linking/#usage
+            
+            // Build a hyperlink that points to the matching endpoint.
             //
             // Note: The reason we don't use something like `scrollTo` or `scrollIntoView`
             //       is that the target element may not be mounted to the DOM right now,
@@ -293,15 +306,16 @@ class EndpointSearchWidget extends HTMLElement {
             //       browser to the "deep link" URL (Swagger UI will automatically expand
             //       the relevant section when the page loads that "deep link" URL).
             //
-            const urlWithoutQueryStr = window.location.origin + window.location.pathname;
-            const tagPart = encodeURIComponent(matchingEndpoint.tag);
-            const operationPart = encodeURIComponent(matchingEndpoint.operationId);
+            const aEl = document.createElement("a");
             const httpMethodSpanEl = document.createElement("span");
             httpMethodSpanEl.classList.add("http-method");  // e.g. "<span class="http-method">GET</span>"
             httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
-            aEl.append(httpMethodSpanEl, urlPathSpanEl);
-            aEl.href = `${urlWithoutQueryStr}/#${tagPart}/${operationPart}`;
-            liEl.appendChild(aEl);
+            aEl.href = this._buildSwaggerUIDeepLinkUrl(matchingEndpoint.tag, matchingEndpoint.operationId);;
+            aEl.replaceChildren(httpMethodSpanEl, urlPathSpanEl);
+            
+            // Return a list item consisting of the hyperlink.
+            const liEl = document.createElement("li");
+            liEl.replaceChildren(aEl);
             return liEl;
         });
         this.resultsListEl.replaceChildren(...resultEls);
