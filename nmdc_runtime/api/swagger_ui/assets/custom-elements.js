@@ -294,7 +294,7 @@ class EllipsesButton extends HTMLElement {
             </style>
 
             <span class="container">
-                <button aria-describedby="tooltip">
+                <button aria-describedby="tooltip" name="ellipses-button">
                     <!-- Ellipses (row of three dots) -->
                     <svg width="12" height="8" viewBox="0 0 12 8">
                         <ellipse cx="2" cy="4" rx="1" ry="1" fill="currentColor" />
