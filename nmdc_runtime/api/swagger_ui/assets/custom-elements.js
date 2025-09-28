@@ -216,29 +216,39 @@ class EndpointSearchWidget extends HTMLElement {
      *                            substring—if any—wrapped in a `<span class="matching-substring">`.
      */
     _wrapMatchingSubstring(fullStr, searchTermStr) {
-        // Create the HTML elements we'll populate.
+        // Create the outer `<span>` element.
         const fullStrSpanEl = document.createElement("span");
-        const matchingSubstrSpanEl = document.createElement("span");
-        matchingSubstrSpanEl.classList.add("matching-substring");
-
+        
         // Return early if we know the search term string _cannot_ exist within the full string.
         if (fullStr.length === 0 || searchTermStr.length === 0 || searchTermStr.length > fullStr.length) {
             fullStrSpanEl.textContent = fullStr;
             return fullStrSpanEl;
         }
-
+        
         // Lowercase both strings to enable case-insensitive comparison.
         const fullStrLowercase = fullStr.toLowerCase();
         const searchTermStrLowercase = searchTermStr.toLowerCase();
-
+        
         // Locate the (lowercased) substring within the (lowercased) full string.
         const substrCharIdx = fullStrLowercase.indexOf(searchTermStrLowercase);
+        
+        // Return early if we know the search term string _doesn't_ exist within the full string.
+        if (substrCharIdx === -1) {
+            fullStrSpanEl.textContent = fullStr;
+            return fullStrSpanEl;
+        }
+        
+        // Split the full string into three parts.
         const preSubstrChars = fullStr.substring(0, substrCharIdx);
-        const substrChars = fullStr.substring(substrCharIdx, substrCharIdx + searchTermStr.length);
+        const substringChars = fullStr.substring(substrCharIdx, substrCharIdx + searchTermStr.length)
         const postSubstrChars = fullStr.substring(substrCharIdx + searchTermStr.length);
-        matchingSubstrSpanEl.textContent = substrChars;
+        
+        // Create and populate the inner `<span>` element containing the matching substring.
+        const matchingSubstrSpanEl = document.createElement("span");
+        matchingSubstrSpanEl.classList.add("matching-substring");
+        matchingSubstrSpanEl.textContent = substringChars;
 
-        // Build the final HTML structure.
+        // Populate the outer `<span>` element.
         fullStrSpanEl.replaceChildren(preSubstrChars, matchingSubstrSpanEl, postSubstrChars);
         return fullStrSpanEl;
     }
@@ -310,7 +320,7 @@ class EndpointSearchWidget extends HTMLElement {
             const httpMethodSpanEl = document.createElement("span");
             httpMethodSpanEl.classList.add("http-method");  // e.g. "<span class="http-method">GET</span>"
             httpMethodSpanEl.textContent = matchingEndpoint.httpMethod;
-            aEl.href = this._buildSwaggerUIDeepLinkUrl(matchingEndpoint.tag, matchingEndpoint.operationId);;
+            aEl.href = this._buildSwaggerUIDeepLinkUrl(matchingEndpoint.tag, matchingEndpoint.operationId);
             aEl.replaceChildren(httpMethodSpanEl, urlPathSpanEl);
             
             // Return a list item consisting of the hyperlink.
