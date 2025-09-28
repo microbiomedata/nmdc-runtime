@@ -361,34 +361,6 @@ def custom_swagger_ui_html(
             "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
         }
     )
-    # TODO: Consider using a "custom layout" instead of injecting HTML snippets via Python.
-    #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
-    #       Note: Custom layouts are specified via the Swagger UI parameter named `layout`, whose
-    #             value identifies a component specified via the Swagger UI parameter named `plugins`;
-    #             but FastAPI serializes each parameter's value to JSON, and the Swagger UI JavaScript
-    #             expects each item in the `plugins` array to be a JavaScript function, not a string;
-    #             so, I think our usage of a custom layout is blocked by a FastAPI limitation. As a
-    #             workaround, we could use the body manipulation technique shown below to put the
-    #             literal JavaScript characters into place in the final HTML document content.
-    #             That would look like this:
-    #             1. In the `swagger_ui_parameters` dictionary, set:
-    #                ```py
-    #                "layout": "CustomLayout",
-    #                "plugins": ["__REPLACE_WITH_NMDC_PLUGINS__"],
-    #                ```
-    #             2. In the final HTML document content replacement section below, do this replacement:
-    #                ```py
-    #                .replace(r'''"plugins": ["__REPLACE_WITH_NMDC_PLUGINS__"],''',
-    #                         r'''"plugins": [() => ({
-    #                                components: {
-    #                                    CustomLayout: (props) => JSON.stringify(props),
-    #                                }
-    #                            })
-    #                         ],''')
-    #                ```
-    #             I have been able to display a custom component that way, but I have _not_ been able
-    #             to get the custom component to display the `BaseLayout` component (i.e. the base
-    #             layout, which includes the core Swagger UI functionality). That's a deal breaker.
     response = get_swagger_ui_html(
         openapi_url=app.openapi_url,
         title=app.title,
@@ -406,6 +378,25 @@ def custom_swagger_ui_html(
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
+        # TODO: Consider using a "custom layout" implemented as a React component.
+        #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
+        #
+        #       Note: Custom layouts are specified via the Swagger UI parameter named `layout`, whose value identifies
+        #             a component that is specified via the Swagger UI parameter named `plugins`. The Swagger UI
+        #             JavaScript code expects each item in the `plugins` array to be a JavaScript function,
+        #             but FastAPI's `get_swagger_ui_html` function serializes each parameter's value into JSON,
+        #             preventing us from specifying a JavaScript function as a value in the `plugins` array.
+        #
+        #             As a workaround, we could use the string `replace`-ment technique shown below to put the literal
+        #             JavaScript characters into place in the final HTML document. Using that approach, I _have_ been
+        #             able to display a custom layout (a custom React component), but I have _not_ been able to get
+        #             that custom layout to display Swagger UI's `BaseLayout` component (which includes the core
+        #             Swagger UI functionality). That's a deal breaker.
+        #
+        .replace(
+            r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"',
+            r"[]"
+        )
         # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
         # Note: We escape the values here so they can be safely used as HTML attribute values.
         .replace(

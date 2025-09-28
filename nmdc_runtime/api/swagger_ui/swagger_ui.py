@@ -13,11 +13,11 @@ base_swagger_ui_parameters: dict = {
     #       response time is short (e.g. 100ms) or long (e.g. 60s);
     #       i.e. not proportional to the actual response time.
     "displayRequestDuration": True,
-    # Expand all sections (i.e. groups of endpoints) by default.
+    # Expand all tag sections (i.e. groups of endpoints) by default.
     # Note: `"list"` expands them, and `"none"` collapses them.
     "docExpansion": "list",
     # Make it so a logged-in user remains logged in even after reloading
-    # the web page (or leaving the web page and coming back to it later).
+    # the web page (or leaving the web page and revisiting it later).
     "persistAuthorization": True,
     # Specify the Swagger UI plugins we want to use (see note below).
     #
