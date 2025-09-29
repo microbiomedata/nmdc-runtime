@@ -402,9 +402,15 @@ class EllipsesButton extends HTMLElement {
                     cursor: pointer;
                     background-color: transparent;
                     border: none;
+                    line-height: 0px;
+                    border-radius: 9999px; /* circle */
+
+                    transition: background-color 0.2s ease-in-out,
+                                color 0.2s ease-in-out;
                 }
                 button:hover {
                     color: #1f69c0;
+                    background-color: #f4f4f4;
                 }
 
                 .tooltip-wrapper {
