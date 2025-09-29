@@ -25,6 +25,7 @@ from nmdc_runtime.util import (
 from nmdc_runtime.mongo_util import (
     AsyncMongoDatabase,
     get_synchronous_mongo_db,
+    get_runtime_mdb,
 )
 
 
@@ -76,13 +77,13 @@ def get_planned_process_collection_names() -> Set[str]:
     return collection_names
 
 
-def mongodump_excluded_collections() -> str:
+async def mongodump_excluded_collections() -> str:
     """
     TODO: Document this function.
     """
-    _mdb = get_mongo_db()
+    _mdb = await get_runtime_mdb()
     schema_view = nmdc_schema_view()
-    collection_names_from_database = _mdb.list_collection_names()
+    collection_names_from_database = await _mdb.raw.list_collection_names()
     collection_names_from_schema = get_collection_names_from_schema(schema_view)
     excluded_collections = " ".join(
         f"--excludeCollection={c}"
