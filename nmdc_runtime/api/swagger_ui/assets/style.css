@@ -98,10 +98,18 @@
 }
 
 /**
- * Hide the portion of the tag description beyond the first element (i.e. paragraph).
+ * In the tag description, hide the details portion (i.e. the portion the user
+ * can toggle the visibility of), and color the hyperlinks the same as in
+ * the overall introductory text at the top of the Swagger UI page.
  */
 .tag-description-details.hidden {
     display: none;
+}
+ .tag-description-details a {
+    color: #4990e2;
+}
+.tag-description-details a:hover {
+    color: #1f69c0;
 }
 
 /*****************************************************************************
