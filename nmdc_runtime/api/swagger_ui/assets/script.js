@@ -222,6 +222,13 @@ window.addEventListener("nmdcInit", (event) => {
                 toggleButtonEl.addEventListener("click", (event) => {
                     detailsEl.classList.toggle("hidden");
                     event.stopPropagation();
+
+                    // Update the button's "is-open" attribute so the button's icon changes.
+                    if (toggleButtonEl.getAttribute("is-open") === "true") {
+                        toggleButtonEl.setAttribute("is-open", "false");
+                    } else {
+                        toggleButtonEl.setAttribute("is-open", "true");
+                    }
                 });
             }
         });

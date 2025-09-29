@@ -378,6 +378,10 @@ class EndpointSearchWidget extends HTMLElement {
  * - [1] https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot
  */
 class EllipsesButton extends HTMLElement {
+    // List the names of HTML attributes this element will respond to.
+    // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#responding_to_attribute_changes
+    static observedAttributes = ["is-open"];
+
     constructor() {
         super();
 
@@ -425,15 +429,24 @@ class EllipsesButton extends HTMLElement {
                     border-radius: 4px;
                     font-size: 11px;
                 }
+                .hidden {
+                    display: none;
+                }
             </style>
 
             <span class="container">
-                <button aria-describedby="tooltip" name="ellipses-button">
+                <button aria-describedby="tooltip" name="toggle-button">
                     <!-- Ellipses (row of three dots) -->
-                    <svg width="12" height="8" viewBox="0 0 12 8">
-                        <ellipse cx="2" cy="4" rx="1" ry="1" fill="currentColor" />
-                        <ellipse cx="6" cy="4" rx="1" ry="1" fill="currentColor" />
-                        <ellipse cx="10" cy="4" rx="1" ry="1" fill="currentColor" />
+                    <svg width="12" height="12" viewBox="0 0 12 12" class="ellipses">
+                        <ellipse cx="2" cy="6" rx="1" ry="1" fill="currentColor" />
+                        <ellipse cx="6" cy="6" rx="1" ry="1" fill="currentColor" />
+                        <ellipse cx="10" cy="6" rx="1" ry="1" fill="currentColor" />
+                    </svg>
+
+                    <!-- X (the symbol for closing) -->
+                    <svg width="12" height="12" viewBox="0 0 12 12" class="cross hidden">
+                        <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1"/>
+                        <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1"/>
                     </svg>
                 </button>
 
@@ -461,6 +474,32 @@ class EllipsesButton extends HTMLElement {
      */
     stopEventPropagation(event) {
         event.stopPropagation();
+    }
+    
+    /**
+     * Handle a change in the value of any HTML attribute whose name is listed
+     * in the `observedAttributes` list.
+     * 
+     * @param {string} attributeName Name of the attribute whose value changed
+     * @param {string} oldValue Value the attribute changed _from_
+     * @param {string} newValue Value the attribute changed _to_
+     * 
+     * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#responding_to_attribute_changes
+     */
+    attributeChangedCallback(attributeName, oldValue, newValue) {
+        // If the "is-open" attribute changed and is "true", set the icon to the "X".
+        // Otherwise, set the icon to the "..." (ellipses).
+        if (attributeName === "is-open") {
+            const ellipsesEl = this.shadowRoot.querySelector("button .ellipses");
+            const crossEl = this.shadowRoot.querySelector("button .cross");
+            if (newValue.toLowerCase() === "true") {
+                ellipsesEl.classList.add("hidden");
+                crossEl.classList.remove("hidden");
+            } else {
+                crossEl.classList.add("hidden");
+                ellipsesEl.classList.remove("hidden");
+            }
+        }
     }
 
     disconnectedCallback() {
