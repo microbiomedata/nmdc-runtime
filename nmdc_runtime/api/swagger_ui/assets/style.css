@@ -138,9 +138,6 @@
     padding-right: 15px;
     margin-bottom: 15px;
 }
-.swagger-ui div.opblock-tag-section:not(.is-open):hover {
-    background-color: rgba(0, 0, 0, 0.01);
-}
 /* Stack the elements of each section header vertically. */
 .swagger-ui .opblock-tag {
     flex-direction: column;
