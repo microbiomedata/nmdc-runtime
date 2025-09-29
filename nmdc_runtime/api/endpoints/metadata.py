@@ -1,13 +1,18 @@
+import asyncio
 import json
+import logging
 import re
 from typing import Annotated
 
 from dagster import ExecuteInProcessResult
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Path
-from gridfs import GridFS, NoFile
+from gridfs import GridFS, NoFile, AsyncGridFS
+
+from nmdc_runtime.api.core.idgen import generate_one_id
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.metadata import _validate_changesheet, df_from_sheet_in
 from nmdc_runtime.api.core.util import API_SITE_CLIENT_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.endpoints.util import (
     _claim_job,
     _request_dagster_run,
@@ -24,12 +29,13 @@ from nmdc_runtime.util import (
     unfreeze,
 )
 from pymongo import ReturnDocument
-from pymongo.database import Database as MongoDatabase
 from starlette import status
 from starlette.responses import StreamingResponse
 from toolz import merge
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 
 async def raw_changesheet_from_uploaded_file(uploaded_file: UploadFile):
@@ -53,15 +59,15 @@ async def validate_changesheet(
     uploaded_file: UploadFile = File(
         ..., description="The changesheet you want the server to validate"
     ),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     Validates a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
     that is in either CSV or TSV format.
     """
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
-    df_change = df_from_sheet_in(sheet_in, mdb)
-    return _validate_changesheet(df_change, mdb)
+    df_change = await df_from_sheet_in(sheet_in, mdb)
+    return await _validate_changesheet(df_change, mdb)
 
 
 @router.post("/metadata/changesheets:submit", response_model=DrsObjectWithTypes)
@@ -69,7 +75,7 @@ async def submit_changesheet(
     uploaded_file: UploadFile = File(
         ..., description="The changesheet you want the server to apply"
     ),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     user: User = Depends(get_current_active_user),
 ):
     r"""
@@ -82,7 +88,7 @@ async def submit_changesheet(
     #       `/metadata/changesheets:submit` action), themselves, so that they don't have to contact an admin
     #       or submit an example changesheet in order to find that out.
 
-    if not check_action_permitted(user.username, "/metadata/changesheets:submit"):
+    if not await check_action_permitted(user.username, "/metadata/changesheets:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -91,19 +97,19 @@ async def submit_changesheet(
             ),
         )
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
-    df_change = df_from_sheet_in(sheet_in, mdb)
-    _ = _validate_changesheet(df_change, mdb)
+    df_change = await df_from_sheet_in(sheet_in, mdb)
+    _ = await _validate_changesheet(df_change, mdb)
 
-    drs_obj_doc = persist_content_and_get_drs_object(
+    drs_obj_doc = await persist_content_and_get_drs_object(
         content=sheet_in.text,
         username=user.username,
         filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
         content_type=sheet_in.content_type,
         description="changesheet",
-        id_ns="changesheets",
+        id_ns="csheet",
     )
 
-    doc_after = mdb.objects.find_one_and_update(
+    doc_after = await mdb.raw["objects"].find_one_and_update(
         {"id": drs_obj_doc["id"]},
         {"$set": {"types": ["metadata-changesheet"]}},
         return_document=ReturnDocument.AFTER,
@@ -121,7 +127,7 @@ async def get_stored_metadata_object(
             examples=["507f1f77bcf86cd799439011"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     This endpoint is subservient to our Data Repository Service (DRS) implementation, i.e. the `/objects/*` endpoints.
@@ -135,9 +141,9 @@ async def get_stored_metadata_object(
     - https://pymongo.readthedocs.io/en/stable/examples/gridfs.html
     - https://www.mongodb.com/docs/manual/core/gridfs/#use-gridfs
     """
-    mdb_fs = GridFS(mdb)
+    mdb_fs = AsyncGridFS(mdb.raw)
     try:
-        grid_out = mdb_fs.get(object_id)
+        grid_out = await mdb_fs.get(object_id)
     except NoFile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -145,18 +151,17 @@ async def get_stored_metadata_object(
         )
     filename, content_type = grid_out.filename, grid_out.content_type
 
-    def iter_grid_out():
-        yield from grid_out
-
     return StreamingResponse(
-        iter_grid_out(),
+        grid_out,
         media_type=content_type,
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
 @router.post("/metadata/json:validate", name="Validate JSON")
-async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mongo_db)):
+async def validate_json_nmdcdb(
+    docs: dict, mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb)
+):
     r"""
     Validate a NMDC JSON Schema "nmdc:Database" object.
 
@@ -166,21 +171,21 @@ async def validate_json_nmdcdb(docs: dict, mdb: MongoDatabase = Depends(get_mong
     whether in the database or the same JSON payload. We call the second step a "referential integrity check."
     """
 
-    return validate_json(docs, mdb, check_inter_document_references=True)
+    return await validate_json(docs, check_inter_document_references=True)
 
 
 @router.post("/metadata/json:submit", name="Submit JSON")
 async def submit_json_nmdcdb(
     docs: dict,
     user: User = Depends(get_current_active_user),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
 
     Submit a NMDC JSON Schema "nmdc:Database" object.
 
     """
-    if not check_action_permitted(user.username, "/metadata/json:submit"):
+    if not await check_action_permitted(user.username, "/metadata/json:submit"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to submit json at this time.",
@@ -188,16 +193,16 @@ async def submit_json_nmdcdb(
 
     # Validate the JSON payload, both (a) the format of each document and
     # (b) the integrity of any inter-document references being introduced.
-    rv = validate_json(docs, mdb, check_inter_document_references=True)
+    rv = await validate_json(docs, check_inter_document_references=True)
     if rv["result"] == "errors":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(rv),
         )
 
-    extra_run_config_data = _ensure_job__metadata_in(docs, user.username, mdb)
+    extra_run_config_data = await _ensure_job__metadata_in(docs, user.username, mdb)
 
-    requested = _request_dagster_run(
+    requested = await _request_dagster_run(
         nmdc_workflow_id="metadata-in-1.0.0",
         nmdc_workflow_inputs=[],  # handled by _request_dagster_run given extra_run_config_data
         extra_run_config_data=extra_run_config_data,
@@ -216,19 +221,24 @@ async def submit_json_nmdcdb(
         )
 
 
-def _ensure_job__metadata_in(
-    docs, username, mdb, client_id=API_SITE_CLIENT_ID, drs_object_exists_ok=False
+async def _ensure_job__metadata_in(
+    docs,
+    username,
+    mdb: RuntimeAsyncMongoDatabase,
+    client_id=API_SITE_CLIENT_ID,
+    drs_object_exists_ok=False,
 ):
-    drs_obj_doc = persist_content_and_get_drs_object(
+    drs_obj_doc = await persist_content_and_get_drs_object(
         content=json.dumps(docs),
         username=username,
         filename=None,
         content_type="application/json",
         description="JSON metadata in",
-        id_ns="json-metadata-in",
+        id_ns="json",
         exists_ok=drs_object_exists_ok,
     )
     job_spec = {
+        "id": (await generate_one_id("job")),
         "workflow": {"id": "metadata-in-1.0.0"},
         "config": {"object_id": drs_obj_doc["id"]},
     }
@@ -236,18 +246,19 @@ def _ensure_job__metadata_in(
         unfreeze(run_config_frozen__normal_env),
         {"ops": {"construct_jobs": {"config": {"base_jobs": [job_spec]}}}},
     )
-    dagster_result: ExecuteInProcessResult = repo.get_job(
-        "ensure_jobs"
-    ).execute_in_process(run_config=run_config)
-    job = Job(**mdb.jobs.find_one(job_spec))
+    logger.debug(f"run_config: {run_config}")
+    dagster_result: ExecuteInProcessResult = await asyncio.to_thread(
+        repo.get_job("ensure_jobs").execute_in_process, run_config=run_config
+    )
+    job = Job(**(await mdb.raw["jobs"].find_one(job_spec)))
     if not dagster_result.success or job is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f'failed to complete metadata-in-1.0.0/{drs_obj_doc["id"]} job',
         )
 
-    site = get_site(mdb, client_id=client_id)
-    operation = _claim_job(job.id, mdb, site)
+    site = await get_site(mdb, client_id=client_id)
+    operation = await _claim_job(job.id, mdb, site)
     return {
         "ops": {
             "get_json_in": {

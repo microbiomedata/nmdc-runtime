@@ -64,6 +64,7 @@ from nmdc_runtime.site.ops import (
     generate_data_generation_set_post_biosample_ingest,
     get_instrument_ids_by_model,
     log_database_ids,
+    delete_old_page_token_ids,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -88,6 +89,7 @@ def hello_mongo():
 @graph
 def housekeeping():
     delete_operations(list_operations(filter_ops_undone_expired()))
+    delete_old_page_token_ids()
 
 
 @graph

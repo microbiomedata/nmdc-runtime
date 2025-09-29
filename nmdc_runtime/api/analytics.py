@@ -4,55 +4,47 @@ under MIT License <https://github.com/tom-draper/api-analytics/blob/main/analyti
 """
 
 from datetime import datetime
-import threading
 from time import time
 from typing import Dict, List
 
+from pymongo.errors import OperationFailure, BulkWriteError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 from toolz import merge
 
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.mongo_util import get_runtime_mdb
 
 # This is a queue of the "request descriptors" that we will eventually insert into the database.
 _requests = []
-_last_posted = datetime.now()
+_last_post_attempt = datetime.now()
 
 
-def _post_requests(collection: str, requests_data: List[Dict], source: str):
+async def _post_requests(collection: str, requests_data: List[Dict], source: str):
     """Inserts the specified request descriptors into the specified MongoDB collection."""
-    mdb = get_mongo_db()
-    mdb[collection].insert_many([merge(d, {"source": source}) for d in requests_data])
+    mdb = await get_runtime_mdb()
+    await mdb.raw[collection].insert_many(
+        [merge(d, {"source": source}) for d in requests_data]
+    )
 
 
-def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
+async def log_request(collection: str, request_data: Dict, source: str = "FastAPI"):
     """Flushes the queue of request descriptors to the database if enough time has passed since the previous time."""
-    global _requests, _last_posted
+    global _requests, _last_post_attempt
     _requests.append(request_data)
     now = datetime.now()
     # flush queue every minute at most
-    if (now - _last_posted).total_seconds() > 60.0:
-        # Note: This use of threading is an attempt to avoid blocking the current thread
-        #       while performing the insertion(s).
-        #
-        # TODO: Is there is a race condition here? If multiple requests arrive at approximately
-        #       the same time, is it possible that each one causes a different thread to be
-        #       started, each with a different (and possibly overlapping) set of requests to
-        #       insert?
-        #
-        # TODO: If the insertion fails, will the requests be lost?
-        #
-        # Note: The author of this function said it may have been a "standard" solution copied
-        #       from some documentation. Indeed, the comment at the top of this module contains
-        #       a link to code on which it was based.
-        #
-        threading.Thread(
-            target=_post_requests, args=(collection, _requests, source)
-        ).start()
-        _requests = []  # empties the queue
-        _last_posted = now
+    if (now - _last_post_attempt).total_seconds() > 60.0:
+        # Note: There is no race condition here because the FastAPI application has a single event loop.
+        # Note: The approach here was based on one linked to at the top of this module.
+        try:
+            await _post_requests(collection, _requests, source)
+            _requests = []  # empties the queue
+            _last_post_attempt = now
+        except (BulkWriteError, OperationFailure):
+            # If insertion fails, retain `_requests` in the queue and retry on the next attempt.
+            _last_post_attempt = now
 
 
 class Analytics(BaseHTTPMiddleware):
@@ -86,5 +78,5 @@ class Analytics(BaseHTTPMiddleware):
             "created_at": datetime.now().isoformat(),
         }
 
-        log_request(self.collection, request_data, "FastAPI")
+        await log_request(self.collection, request_data, "FastAPI")
         return response

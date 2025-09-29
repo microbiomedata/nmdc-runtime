@@ -31,7 +31,7 @@ def can_apply_changesheet_via_job_config():
         filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
         content_type=sheet_in.content_type,
         description="changesheet",
-        id_ns="changesheets",
+        id_ns="csheet",
     )
 
     yield {

@@ -4,16 +4,14 @@ from typing import Annotated
 
 import bson.json_util
 from fastapi import APIRouter, Depends, Query, status, HTTPException
-from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
     get_nonempty_nmdc_schema_collection_names,
-    OverlayDB,
     validate_json,
 )
 from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
@@ -81,7 +79,7 @@ def check_can_aggregate(user: User):
 )
 def run_query(
     cmd: Cmd,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     user: User = Depends(get_current_active_user),
     allow_broken_refs: Annotated[
         bool,
@@ -245,11 +243,8 @@ def run_query(
     return cmd_response
 
 
-_mdb = get_mongo_db()
-
-
-def _run_mdb_cmd(
-    cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False
+async def _run_mdb_cmd(
+    cmd: Cmd, mdb: RuntimeAsyncMongoDatabase, allow_broken_refs: bool = False
 ) -> CommandResponse:
     r"""
     TODO: Document this function.
@@ -407,14 +402,11 @@ def _run_mdb_cmd(
         #       at "apply" time. This will be necessary once the "preview" step
         #       accounts for referential integrity.
         #
-        with OverlayDB(mdb) as odb:
-            odb.apply_updates(
-                collection_name,
-                [u.model_dump(mode="json", exclude="hint") for u in cmd.updates],
-            )
+        async with await mdb.rollback_session() as session:
+            await mdb.raw.command(cmd.model_dump_json(), session=session)
             _ids_to_check = set()
             for spec in update_specs:
-                for doc in mdb[collection_name].find(
+                async for doc in await mdb.raw[collection_name].find(
                     filter=spec["filter"],
                     limit=spec["limit"],
                     projection={
@@ -422,10 +414,12 @@ def _run_mdb_cmd(
                     },  # unique `id` not guaranteed (see e.g. `functional_annotation_agg`)
                 ):
                     _ids_to_check.add(doc["_id"])
-            docs_to_check = odb._top_db[collection_name].find(
-                {"_id": {"$in": list(_ids_to_check)}}
+            docs_to_check = await (
+                await mdb.raw[collection_name]
+                .find({"_id": {"$in": list(_ids_to_check)}})
+                .to_list()
             )
-            rv = validate_json(
+            rv = await validate_json(
                 {collection_name: [strip_oid(d) for d in docs_to_check]}, mdb
             )
             if rv["result"] == "errors":
@@ -528,7 +522,7 @@ def _run_mdb_cmd(
     # Send a command to the database and get the raw response. If the command was a
     # cursor-yielding command, make a new response object in which the raw response's
     # `cursor.firstBatch`/`cursor.nextBatch` value is in a field named `cursor.batch`.
-    # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.command
+    # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#AsyncMongoDatabase.command
     cmd_response_raw: dict = mdb.command(
         bson.json_util.loads(json.dumps(cmd.model_dump(exclude_unset=True)))
     )
@@ -632,7 +626,7 @@ def _run_mdb_cmd(
 
 
 def _run_delete_nonschema(
-    cmd: DeleteCommand, mdb: MongoDatabase = _mdb
+    cmd: DeleteCommand, mdb: RuntimeAsyncMongoDatabase
 ) -> DeleteCommandResponse:
     """
     Performs deletion operations similarly to `_run_mdb_cmd`, but skips

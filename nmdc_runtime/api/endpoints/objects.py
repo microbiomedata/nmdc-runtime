@@ -2,16 +2,15 @@ from typing import List, Annotated
 
 import botocore
 from fastapi import APIRouter, status, Depends, HTTPException, Query
-from gridfs import GridFS
+from gridfs import GridFS, AsyncGridFS
 from pymongo import ReturnDocument
-from pymongo.database import Database as MongoDatabase
 import requests
 from starlette.responses import RedirectResponse
 from toolz import merge
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import S3_ID_NS, presigned_url_to_get, get_s3_client
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
@@ -54,7 +53,7 @@ def supplied_object_id(mdb, client_site, obj_doc):
 @router.post("/objects", status_code=status.HTTP_201_CREATED, response_model=DrsObject)
 def create_object(
     object_in: DrsObjectIn,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     client_site: Site = Depends(get_current_client_site),
 ):
     """Create a new DrsObject.
@@ -81,7 +80,7 @@ def create_object(
         mdb, client_site, object_in.model_dump(exclude_unset=True)
     )
     drs_id = local_part(
-        id_supplied if id_supplied is not None else generate_one_id(mdb, S3_ID_NS)
+        id_supplied if id_supplied is not None else generate_one_id(S3_ID_NS)
     )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
     return _create_object(
@@ -92,7 +91,7 @@ def create_object(
 @router.get("/objects", response_model=ListResponse[DrsObject])
 def list_objects(
     req: Annotated[ListRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return list_resources(req, mdb, "objects")
 
@@ -100,9 +99,9 @@ def list_objects(
 @router.get(
     "/objects/{object_id}", response_model=DrsObject, response_model_exclude_unset=True
 )
-def get_object_info(
+async def get_object_info(
     object_id: DrsId,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     Resolution strategy:
@@ -158,7 +157,7 @@ def get_object_info(
             url_to_try, status_code=status.HTTP_307_TEMPORARY_REDIRECT
         )
 
-    return raise404_if_none(mdb.objects.find_one({"id": object_id}))
+    return raise404_if_none(await mdb.raw["objects"].find_one({"id": object_id}))
 
 
 @router.get(
@@ -181,7 +180,9 @@ def get_ga4gh_object_info(object_id: DrsId):
 
 
 @router.get("/objects/{object_id}/types", response_model=List[ObjectType])
-def list_object_types(object_id: DrsId, mdb: MongoDatabase = Depends(get_mongo_db)):
+def list_object_types(
+    object_id: DrsId, mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb)
+):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}, ["types"]))
     return list(mdb.object_types.find({"id": {"$in": doc.get("types", [])}}))
 
@@ -190,7 +191,7 @@ def list_object_types(object_id: DrsId, mdb: MongoDatabase = Depends(get_mongo_d
 def replace_object_types(
     object_id: str,
     object_type_ids: List[str],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     unknown_type_ids = set(object_type_ids) - set(mdb.object_types.distinct("id"))
     if unknown_type_ids:
@@ -216,13 +217,13 @@ def object_access_id_ok(obj_doc, access_id):
 
 
 @router.get("/objects/{object_id}/access/{access_id}", response_model=AccessURL)
-def get_object_access(
+async def get_object_access(
     object_id: DrsId,
     access_id: str,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
-    obj_doc = raise404_if_none(mdb.objects.find_one({"id": object_id}))
+    obj_doc = raise404_if_none(await mdb.raw["objects"].find_one({"id": object_id}))
     if not object_access_id_ok(obj_doc, access_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -235,8 +236,8 @@ def get_object_access(
         )
         return {"url": url}
     if access_id.startswith("gfs0") and object_id == access_id:
-        mdb_fs = GridFS(mdb)
-        if mdb_fs.exists(_id=access_id):
+        mdb_fs = AsyncGridFS(mdb.raw)
+        if await mdb_fs.exists(_id=access_id):
             return {"url": BASE_URL_EXTERNAL + f"/metadata/stored_files/{access_id}"}
         else:
             raise HTTPException(
@@ -254,7 +255,7 @@ def get_object_access(
 def update_object(
     object_id: str,
     object_patch: DrsObjectIn,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     client_site: Site = Depends(get_current_client_site),
 ):
     doc = raise404_if_none(mdb.objects.find_one({"id": object_id}))

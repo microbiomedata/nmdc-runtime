@@ -2,12 +2,14 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import (
+    get_runtime_mdb,
+    RuntimeAsyncMongoDatabase,
+)
 
 from nmdc_schema.get_nmdc_view import ViewGetter
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
@@ -32,15 +34,15 @@ router = APIRouter()
     response_model=FindResponse,
     response_model_exclude_unset=True,
 )
-def find_studies(
+async def find_studies(
     req: Annotated[FindRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
-    The `GET /studies` endpoint is a general purpose way to retrieve NMDC studies based on parameters provided by the user.
-    Studies can be filtered and sorted based on the applicable [Study attributes](https://microbiomedata.github.io/nmdc-schema/Study/).
+    A general-purpose way to retrieve NMDC studies based on parameters provided by the user.
+    Studies can be filtered and sorted based on the applicable [nmdc:Study](https://w3id.org/nmdc/Study) attributes.
     """
-    return find_resources(req, mdb, "study_set")
+    return await find_resources(req, mdb, "study_set")
 
 
 @router.get(
@@ -57,7 +59,7 @@ def find_study_by_id(
             examples=["nmdc:sty-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     If the study identifier is known, a study can be retrieved directly using the GET /studies/{study_id} endpoint.
@@ -73,7 +75,7 @@ def find_study_by_id(
 )
 def find_biosamples(
     req: Annotated[FindRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     The GET /biosamples endpoint is a general purpose way to retrieve biosample metadata using user-provided filter and sort criteria.
@@ -96,7 +98,7 @@ def find_biosample_by_id(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     If the biosample identifier is known, a biosample can be retrieved directly using the GET /biosamples/{sample_id}.
@@ -112,7 +114,7 @@ def find_biosample_by_id(
 )
 def find_data_objects(
     req: Annotated[FindRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     To retrieve metadata about NMDC data objects (such as files, records, or omics data) the GET /data_objects endpoint
@@ -159,7 +161,7 @@ def find_data_objects_for_study(
             examples=["nmdc:sty-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """This API endpoint is used to retrieve data objects associated with
     all the biosamples associated with a given study. This endpoint makes
@@ -255,7 +257,7 @@ def find_data_object_by_id(
             examples=["nmdc:dobj-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     If the data object identifier is known, the metadata can be retrieved using the GET /data_objects/{data_object_id} endpoint.
@@ -273,7 +275,7 @@ def find_data_object_by_id(
 )
 def find_planned_processes(
     req: Annotated[FindRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     The GET /planned_processes endpoint is a general way to fetch metadata about various planned processes (e.g.
@@ -307,7 +309,7 @@ def find_planned_process_by_id(
             examples=[r"nmdc:wfmag-11-00jn7876.1"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     Returns the document that has the specified `id` and represents an instance of the `PlannedProcess` class
@@ -366,14 +368,14 @@ def find_related_objects_for_workflow_execution(
             examples=["nmdc:wfmgan-11-wdx72h27.1"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """This API endpoint retrieves resources related to the specified WorkflowExecution,
     including DataObjects that are inputs to — or outputs from — it, other WorkflowExecution
     instances that are part of the same pipeline, and related Biosamples and Studies.
 
     :param workflow_execution_id: id of workflow_execution_set instance for which related objects are to be retrieved
-    :param mdb: A PyMongo `Database` instance that can be used to access the MongoDB database
+    :param mdb: A PyMongo`AsyncMongoDatabase` instance that can be used to access the MongoDB database
     :return: Dictionary with data_objects, related_workflow_executions, biosamples, and studies lists
     """
     # Get the specified `WorkflowExecution` document from the database.

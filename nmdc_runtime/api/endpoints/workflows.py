@@ -5,17 +5,18 @@ from typing import Any, List, Set, Annotated
 import pymongo
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Path
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import AsyncMongoDatabase
 from pymongo.errors import BulkWriteError
 from starlette import status
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.endpoints.queries import (
     _run_mdb_cmd,
     check_can_update_and_delete,
     _run_delete_nonschema,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.query import DeleteCommand, DeleteStatement
@@ -36,7 +37,7 @@ router = APIRouter()
 
 @router.get("/workflows", response_model=List[Workflow])
 def list_workflows(
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return list(mdb.workflows.find())
 
@@ -44,14 +45,14 @@ def list_workflows(
 @router.get("/workflows/{workflow_id}", response_model=Workflow)
 def get_workflow(
     workflow_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
 
 
 @router.get("/workflows/{workflow_id}/object_types", response_model=List[ObjectType])
 def list_workflow_object_types(
-    workflow_id: str, mdb: pymongo.database.Database = Depends(get_mongo_db)
+    workflow_id: str, mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb)
 ):
     object_type_ids = [
         doc["object_type_id"] for doc in mdb.triggers.find({"workflow_id": workflow_id})
@@ -61,7 +62,7 @@ def list_workflow_object_types(
 
 @router.get("/workflows/{workflow_id}/capabilities", response_model=List[Capability])
 def list_workflow_capabilities(
-    workflow_id: str, mdb: pymongo.database.Database = Depends(get_mongo_db)
+    workflow_id: str, mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb)
 ):
     doc = raise404_if_none(mdb.workflows.find_one({"id": workflow_id}))
     return list(mdb.capabilities.find({"id": {"$in": doc.get("capability_ids", [])}}))
@@ -71,7 +72,7 @@ def list_workflow_capabilities(
 async def post_activity(
     activity_set: dict[str, Any],
     site: Site = Depends(get_current_client_site),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     DEPRECATED: migrate all workflows from this endpoint to `/workflows/workflow_executions`.
@@ -83,7 +84,7 @@ async def post_activity(
 async def post_workflow_execution(
     workflow_execution_set: dict[str, Any],
     site: Site = Depends(get_current_client_site),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     Post workflow execution set to database and claim job.
@@ -96,7 +97,7 @@ async def post_workflow_execution(
              with the workflow executions submitted.
 
     site: Site
-    mdb: MongoDatabase
+    mdb:AsyncMongoDatabase
 
     Returns
     -------
@@ -150,7 +151,7 @@ async def delete_workflow_execution(
         ),
     ],
     user: User = Depends(get_current_active_user),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     Delete a given workflow execution and its downstream workflow executions, data objects,
@@ -173,7 +174,7 @@ async def delete_workflow_execution(
         ID of the workflow execution to delete
     user : User
         Authenticated user (required)
-    mdb : MongoDatabase
+    mdb :AsyncMongoDatabase
         MongoDB database connection
 
     Returns

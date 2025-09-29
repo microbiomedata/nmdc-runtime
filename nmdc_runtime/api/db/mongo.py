@@ -9,80 +9,26 @@ from uuid import uuid4
 import bson
 from jsonschema import Draft7Validator
 from nmdc_schema.nmdc import Database as NMDCDatabase
-from pymongo.errors import AutoReconnect, OperationFailure
+from pymongo.database import Database as SyncMongoDatabase
 from refscan.lib.Finder import Finder
 from refscan.scanner import scan_outgoing_references
-from tenacity import wait_random_exponential, retry, retry_if_exception_type
-from toolz import merge, unique
 from refscan.lib.helpers import get_collection_names_from_schema
 
-from nmdc_runtime.api.models.query import UpdateStatement, DeleteStatement
-from nmdc_runtime.mongo_util import SessionBoundDatabase
+
 from nmdc_runtime.util import (
     nmdc_schema_view,
     collection_name_to_class_names,
-    ensure_unique_id_indexes,
     get_nmdc_jsonschema_dict,
     nmdc_database_collection_names,
     get_allowed_references,
 )
-from pymongo import MongoClient
-from pymongo.database import Database as MongoDatabase
-
-
-@retry(
-    retry=retry_if_exception_type(AutoReconnect),
-    wait=wait_random_exponential(multiplier=0.5, max=60),
+from nmdc_runtime.mongo_util import (
+    AsyncMongoDatabase,
+    get_synchronous_mongo_db,
 )
-def check_mongo_ok_autoreconnect(mdb: MongoDatabase):
-    r"""
-    Check whether the application can write to the database.
-    """
-    collection = mdb.get_collection("_runtime.healthcheck")
-    collection.insert_one({"status": "ok"})
-    collection.delete_many({"status": "ok"})
-    return True
 
 
-@lru_cache
-def get_mongo_client() -> MongoClient:
-    r"""
-    Returns a `MongoClient` instance you can use to access the MongoDB server specified via environment variables.
-    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html#pymongo.mongo_client.MongoClient
-    """
-    return MongoClient(
-        host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
-        directConnection=True,
-    )
-
-
-@lru_cache
-def get_mongo_db() -> MongoDatabase:
-    r"""
-    Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
-    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
-    """
-    _client = get_mongo_client()
-    mdb = _client[os.getenv("MONGO_DBNAME")]
-    check_mongo_ok_autoreconnect(mdb)
-    return mdb
-
-
-@lru_cache
-def get_session_bound_mongo_db(session=None) -> MongoDatabase:
-    r"""
-    Returns a `Database` instance you can use to access the MongoDB database specified via an environment variable.
-    Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database
-    """
-    _client = get_mongo_client()
-    mdb = _client[os.getenv("MONGO_DBNAME")]
-    check_mongo_ok_autoreconnect(mdb)
-    return SessionBoundDatabase(mdb, session) if session is not None else mdb
-
-
-def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
+def get_nonempty_nmdc_schema_collection_names(mdb: AsyncMongoDatabase) -> Set[str]:
     """
     Returns the names of the collections that (a) exist in the database,
     (b) are described by the schema, and (c) contain at least one document.
@@ -97,7 +43,7 @@ def get_nonempty_nmdc_schema_collection_names(mdb: MongoDatabase) -> Set[str]:
 
 
 @lru_cache
-def activity_collection_names(mdb: MongoDatabase) -> Set[str]:
+def activity_collection_names(mdb: AsyncMongoDatabase) -> Set[str]:
     r"""
     TODO: Document this function.
     """
@@ -182,113 +128,13 @@ def mongorestore_from_dir(mdb, dump_directory, skip_collections=None):
     print("mongorestore_from_dir completed successfully.")
 
 
-class OverlayDBError(Exception):
-    pass
-
-
-class OverlayDB(AbstractContextManager):
-    """Provides a context whereby a base Database is overlaid with a temporary one.
-
-    If you need to run basic simulations of updates to a base database,
-    you don't want to actually commit transactions to the base database.
-
-    For example, to insert or replace (matching on "id") many documents into a collection in order
-    to then validate the resulting total set of collection documents, an OverlayDB writes to
-    an overlay collection that "shadows" the base collection during a "find" query
-    (the "merge_find" method of an OverlayDB object): if a document with `id0` is found in the
-    overlay collection, that id is marked as "seen" and will not also be returned when
-    subsequently scanning the (unmodified) base-database collection.
-
-    Note: The OverlayDB object does not provide a means to perform arbitrary MongoDB queries on the virtual "merged"
-          database. Callers can access the real database via `overlay_db._bottom_db` and the overlaying database via
-          `overlay_db._top_db` and perform arbitrary MongoDB queries on the individual databases that way. Access to
-          the virtual "merged" database is limited to the methods of the `OverlayDB` class, which simulates the
-          "merging" just-in-time to process the method invocation. You can see an example of this in the implementation
-          of the `merge_find` method, which internally accesses both the real database and the overlaying database.
-
-    Mongo "update" commands (as the "apply_updates" method) are simulated by first copying affected
-    documents from a base collection to the overlay, and then applying the updates to the overlay,
-    so that again, base collections are unmodified, and a "merge_find" call will produce a result
-    *as if* the base collection(s) were modified.
-
-    Mongo deletions (as the "delete" method) also copy affected documents from the base collection
-    to the overlay collection, and flag them using the "_deleted" field. In this way, a `merge_find`
-    call will match a relevant document given a suitable filter, and will mark the document's id
-    as "seen" *without* returning the document. Thus, the result is as if the document were deleted.
-
-    Usage:
-    ````
-    with OverlayDB(mdb) as odb:
-        # do stuff, e.g. `odb.replace_or_insert_many(...)`
-    ```
-    """
-
-    def __init__(self, mdb: MongoDatabase):
-        self._bottom_db = mdb
-        self._top_db = self._bottom_db.client.get_database(f"overlay-{uuid4()}")
-        ensure_unique_id_indexes(self._top_db)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._bottom_db.client.drop_database(self._top_db.name)
-
-    def replace_or_insert_many(self, coll_name, documents: list):
-        try:
-            self._top_db[coll_name].insert_many(documents)
-        except OperationFailure as e:
-            raise OverlayDBError(str(e.details))
-
-    def apply_updates(self, coll_name, updates: list):
-        """prepare overlay db and apply updates to it."""
-        assert all(UpdateStatement(**us) for us in updates)
-        for update_spec in updates:
-            for bottom_doc in self._bottom_db[coll_name].find(update_spec["q"]):
-                self._top_db[coll_name].insert_one(bottom_doc)
-        try:
-            self._top_db.command({"update": coll_name, "updates": updates})
-        except OperationFailure as e:
-            raise OverlayDBError(str(e.details))
-
-    def delete(self, coll_name, deletes: list):
-        """ "apply" delete command by flagging docs in overlay database"""
-        assert all(DeleteStatement(**us) for us in deletes)
-        for delete_spec in deletes:
-            for bottom_doc in self._bottom_db[coll_name].find(
-                delete_spec["q"], limit=delete_spec["limit"]
-            ):
-                bottom_doc["_deleted"] = True
-                self._top_db[coll_name].insert_one(bottom_doc)
-
-    def merge_find(self, coll_name, find_spec: dict):
-        """Yield docs first from overlay and then from base db, minding deletion flags."""
-        # ensure projection of "id" and "_deleted"
-        if "projection" in find_spec:
-            proj = find_spec["projection"]
-            if isinstance(proj, dict):
-                proj = merge(proj, {"id": 1, "_deleted": 1})
-            elif isinstance(proj, list):
-                proj = list(unique(proj + ["id", "_deleted"]))
-
-        top_docs = self._top_db[coll_name].find(**find_spec)
-        bottom_docs = self._bottom_db[coll_name].find(**find_spec)
-        top_seen_ids = set()
-        for doc in top_docs:
-            if not doc.get("_deleted"):
-                yield doc
-            top_seen_ids.add(doc["id"])
-
-        for doc in bottom_docs:
-            if doc["id"] not in top_seen_ids:
-                yield doc
-
-
-def validate_json(
-    in_docs: dict, mdb: MongoDatabase, check_inter_document_references: bool = False
+async def validate_json(
+    in_docs: dict,
+    check_inter_document_references: bool = False,
+    mdb: SyncMongoDatabase = None,
 ):
     r"""
-    Checks whether the specified dictionary represents a valid instance of the `Database` class
+    Checks whether the specified dictionary represents a valid instance of the `nmdc:Database` class
     defined in the NMDC Schema. Referential integrity checking is performed on an opt-in basis.
 
     Example dictionary:
@@ -342,12 +188,6 @@ def validate_json(
                 validation_errors[coll_name].append(
                     "all elements of list must be dicts"
                 )
-            if not validation_errors[coll_name]:
-                try:
-                    with OverlayDB(mdb) as odb:
-                        odb.replace_or_insert_many(coll_name, coll_docs)
-                except OverlayDBError as e:
-                    validation_errors[coll_name].append(str(e))
 
     if all(len(v) == 0 for v in validation_errors.values()):
         # Second pass. Try instantiating linkml-sourced dataclass
@@ -358,7 +198,7 @@ def validate_json(
             return {"result": "errors", "detail": str(e)}
 
         # Third pass (if enabled): Check inter-document references.
-        if check_inter_document_references is True:
+        if check_inter_document_references:
             # Prepare to use `refscan`.
             #
             # Note: We check the inter-document references in two stages, which are:
@@ -372,10 +212,10 @@ def validate_json(
             #
             # Note: The reason we do not insert documents into an `OverlayDB` and scan _that_, is that the `OverlayDB`
             #       does not provide a means to perform arbitrary queries against its virtual "merged" database. It
-            #       is not a drop-in replacement for a pymongo's `Database` class, which is the only thing that
+            #       is not a drop-in replacement for a pymongo's`AsyncMongoDatabase` class, which is the only thing that
             #       `refscan`'s `Finder` class accepts.
             #
-            finder = Finder(database=mdb)
+            finder = Finder(database=(mdb or get_synchronous_mongo_db()))
             references = get_allowed_references()
 
             # Iterate over the collections in the JSON payload.

@@ -1,25 +1,26 @@
 from typing import List
 
-import pymongo
 from fastapi import APIRouter, Depends
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.models.capability import Capability
 
 router = APIRouter()
 
 
 @router.get("/capabilities", response_model=List[Capability])
-def list_capabilities(
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+async def list_capabilities(
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
-    return list(mdb.capabilities.find())
+    return await mdb.raw.get_collection("capabilities").find().to_list()
 
 
 @router.get("/capabilities/{capability_id}", response_model=Capability)
-def get_capability(
+async def get_capability(
     capability_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
-    return raise404_if_none(mdb.capabilities.find_one({"id": capability_id}))
+    return raise404_if_none(
+        await mdb.raw.get_collection("capabilities").find_one({"id": capability_id})
+    )

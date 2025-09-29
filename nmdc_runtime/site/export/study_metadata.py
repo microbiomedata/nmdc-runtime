@@ -113,7 +113,7 @@ def export_study_biosamples_as_csv(context: OpExecutionContext, study_export_inf
             filename=filename,
             content_type="text/csv",
             description=f"{study_export_info['study_id']} biosamples",
-            id_ns="study-metadata-export-csv",
+            id_ns="stycsv",
         )
     context.log_event(
         AssetMaterialization(

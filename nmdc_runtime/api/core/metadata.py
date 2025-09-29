@@ -16,7 +16,7 @@ from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import AsyncMongoDatabase, RuntimeAsyncMongoDatabase
 from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
@@ -31,8 +31,8 @@ SchemaPathProperties = namedtuple(
 FilePathOrBuffer = Union[Path, StringIO]
 
 
-def load_changesheet(
-    filename: FilePathOrBuffer, mongodb: MongoDatabase, sep="\t"
+async def load_changesheet(
+    filename: FilePathOrBuffer, mdb: RuntimeAsyncMongoDatabase, sep="\t"
 ) -> pds.DataFrame:
     """
     Creates a datafame from the input file that includes extra columns used for
@@ -46,7 +46,7 @@ def load_changesheet(
     ----------
     filename : FilePathOrBuffer
         Name of the file containing the change sheet.
-    mongodb : MongoDatabase
+    mdb :RuntimeAsyncMongoDatabase
         The Mongo database that the change sheet will update.
     sep : str
         Column separator in file.
@@ -143,7 +143,7 @@ def load_changesheet(
                     df.loc[ix, "path"] = f"{var_dict[group_var]}.{attr}"
 
     # create map between id and collection
-    id_dict = map_id_to_collection(mongodb)
+    id_dict = await map_id_to_collection(mdb)
     # add collection for each id
     df["collection_name"] = ""
     prev_id = ""
@@ -162,7 +162,7 @@ def load_changesheet(
     df["linkml_class"] = ""
     class_name_dict = map_schema_class_names(nmdc)
     for ix, id_, collection_name in df[["group_id", "collection_name"]].itertuples():
-        data = mongodb[collection_name].find_one({"id": id_})
+        data = await mdb.raw[collection_name].find_one({"id": id_})
 
         # find the type of class the data instantiates
         if "type" in list(data.keys()):
@@ -538,12 +538,12 @@ def make_mongo_update_command_dict(
     return update_dict
 
 
-def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
+async def map_id_to_collection(mdb: RuntimeAsyncMongoDatabase) -> Dict:
     """Returns dict using the collection name as a key and the ids of documents as values.
 
     Parameters
     ----------
-    mongodb : MongoDatabase
+    mdb :RuntimeAsyncMongoDatabase
         The Mongo database on which to build the dict.
 
     Returns
@@ -554,12 +554,14 @@ def map_id_to_collection(mongodb: MongoDatabase) -> Dict:
         value: set(id of document)
     """
     collection_names = [
-        name for name in mongodb.list_collection_names() if name.endswith("_set")
+        name
+        for name in (await mdb.raw.list_collection_names())
+        if name.endswith("_set")
     ]
     id_dict = {
-        name: set(mongodb[name].distinct("id"))
+        name: set(await mdb.raw[name].distinct("id"))
         for name in collection_names
-        if "id_1" in mongodb[name].index_information()
+        if "id_1" in (await mdb.raw[name].index_information())
     }
     return id_dict
 
@@ -568,7 +570,7 @@ def get_collection_for_id(
     id_: str, id_map: Dict, replace_underscore: bool = False
 ) -> Optional[str]:
     """
-    Returns the name of the collect that contains the document idenfied by the id.
+    Returns the name of the collect that contains the document identified by the id.
 
     Parameters
     ----------
@@ -589,7 +591,7 @@ def get_collection_for_id(
     """
     for collection_name in id_map:
         if id_ in id_map[collection_name]:
-            if replace_underscore is True:
+            if replace_underscore:
                 return collection_name.replace("_", " ")
             else:
                 return collection_name
@@ -640,8 +642,11 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
     return update_cmd
 
 
-def copy_docs_in_update_cmd(
-    update_cmd, mdb_from: MongoDatabase, mdb_to: MongoDatabase, drop_mdb_to: bool = True
+async def copy_docs_in_update_cmd(
+    update_cmd,
+    mdb_from: RuntimeAsyncMongoDatabase,
+    mdb_to: RuntimeAsyncMongoDatabase,
+    drop_mdb_to: bool = True,
 ) -> Dict[str, str]:
     """
     Copies data between Mongo databases.
@@ -649,10 +654,13 @@ def copy_docs_in_update_cmd(
 
     Parameters
     ----------
-    mdb_from : MongoDatbase
+    mdb_from : RuntimeAsyncMongoDatabase
         Database from which data being copied (i.e., source).
-    mdb_to: MongoDatabase
+    mdb_to : RuntimeAsyncMongoDatabase
         Datbase which data is being copied into (i.e., destination).
+    drop_mdb_to : bool
+        Whether to drop the destination database before copying.
+        Defaults to True.
 
     Returns
     -------
@@ -665,26 +673,28 @@ def copy_docs_in_update_cmd(
         doc_specs[collection_name].append(id_)
 
     if drop_mdb_to:
-        mdb_to.client.drop_database(mdb_to.name)
+        await mdb_to.raw.client.drop_database(mdb_to.raw.name)
     results = {}
     for collection_name, ids in doc_specs.items():
         docs = [
             dissoc(d, "_id")
-            for d in mdb_from[collection_name].find({"id": {"$in": ids}})
+            for d in await mdb_from.raw[collection_name]
+            .find({"id": {"$in": ids}})
+            .to_list()
         ]
         results[collection_name] = (
-            f"{len(mdb_to[collection_name].insert_many(docs).inserted_ids)} docs inserted"
+            f"{len((await mdb_to.raw[collection_name].insert_many(docs)).inserted_ids)} docs inserted"
         )
     return results
 
 
-def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
+async def update_mongo_db(mdb: RuntimeAsyncMongoDatabase, update_cmd: Dict):
     """
     Updates the Mongo database using commands in the update_cmd dict.
 
     Parameters
     ----------
-    mdb : MongoDatabase
+    mdb : RuntimeAsyncMongoDatabase
         Mongo database to be updated.
     update_cmd : Dict
         Contians update commands to be executed.
@@ -702,9 +712,9 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
 
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
-        doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
-        update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
-        doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+        doc_before = dissoc(await mdb.raw[collection_name].find_one({"id": id_}), "_id")
+        update_result = json.loads(bson_dumps(await mdb.raw.command(update_cmd_doc)))
+        doc_after = dissoc(await mdb.raw[collection_name].find_one({"id": id_}), "_id")
         if collection_name in {
             "study_set",
             "biosample_set",
@@ -727,19 +737,23 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
     return results
 
 
-def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
+async def _validate_changesheet(
+    df_change: pd.DataFrame, mdb: RuntimeAsyncMongoDatabase
+):
     update_cmd = mongo_update_command_for(df_change)
-    mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
-    results_of_copy = copy_docs_in_update_cmd(
+    mdb_to_inspect = mdb.shallow_copy_for_dbname_iff_initialized(
+        "nmdc_changesheet_submission_results"
+    )
+    results_of_copy = await copy_docs_in_update_cmd(
         update_cmd,
         mdb_from=mdb,
         mdb_to=mdb_to_inspect,
     )
-    results_of_updates = update_mongo_db(mdb_to_inspect, update_cmd)
+    results_of_updates = await update_mongo_db(mdb_to_inspect, update_cmd)
     rv = {
         "update_cmd": update_cmd,
         "inspection_info": {
-            "mdb_name": mdb_to_inspect.name,
+            "mdb_name": mdb_to_inspect.raw.name,
             "results_of_copy": results_of_copy,
         },
         "results_of_updates": results_of_updates,
@@ -765,7 +779,9 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
     return rv
 
 
-def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFrame:
+async def df_from_sheet_in(
+    sheet_in: ChangesheetIn, mdb: RuntimeAsyncMongoDatabase
+) -> pd.DataFrame:
     content_types = {
         "text/csv": ",",
         "text/tab-separated-values": "\t",
@@ -782,7 +798,7 @@ def df_from_sheet_in(sheet_in: ChangesheetIn, mdb: MongoDatabase) -> pd.DataFram
             ),
         )
     try:
-        df = load_changesheet(StringIO(sheet_in.text), mdb, sep=sep)
+        df = await load_changesheet(StringIO(sheet_in.text), mdb, sep=sep)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return df

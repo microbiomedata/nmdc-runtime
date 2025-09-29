@@ -9,8 +9,9 @@ This module houses logic for the `GET /nmdcschema/linked_instances` endpoint, de
 from typing import Literal, Any
 
 from bson import ObjectId
+from pymongo.asynchronous.collection import AsyncCollection
 from pymongo.collection import Collection as MongoCollection
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import AsyncMongoDatabase, RuntimeAsyncMongoDatabase
 from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str
@@ -35,8 +36,8 @@ def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> s
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
 
 
-def gather_linked_instances(
-    alldocs_collection: MongoCollection,
+async def gather_linked_instances(
+    alldocs_collection: AsyncCollection,
     ids: list[str],
     types: list[str],
 ) -> str:
@@ -49,8 +50,8 @@ def gather_linked_instances(
         ids=ids, types=types
     )
     for direction in ["downstream", "upstream"]:
-        _ = list(
-            alldocs_collection.aggregate(
+        _ = await (
+            await alldocs_collection.aggregate(
                 pipeline_for_direction(
                     ids=ids,
                     types=types,
@@ -59,7 +60,7 @@ def gather_linked_instances(
                 ),
                 allowDiskUse=True,
             )
-        )
+        ).to_list()
     return merge_into_collection_name
 
 
@@ -153,7 +154,7 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
     }
 
 
-def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
+async def hydrated(resources: list[dict], mdb: RuntimeAsyncMongoDatabase) -> list[dict]:
     """Replace each `dict` in `resources` with a hydrated version.
 
     Instead of returning the retrieved "full" documents as is, we merge each one with (a copy of) the corresponding
@@ -167,14 +168,16 @@ def hydrated(resources: list[dict], mdb: MongoDatabase) -> list[dict]:
 
     for type in types_of_resources:
         resource_ids_of_type = [d["id"] for d in resources if d["type"] == type]
-        schema_collection = mdb.get_collection(
+        schema_collection = mdb.raw.get_collection(
             # Note: We are assuming that documents of a given type are only allowed (by the schema) to reside in one
             # collection. Based on that assumption, we will query only the _first_ collection whose name we get from
             # the map. This assumption is continuously verified prior to code deployment via
             # `test_get_class_name_to_collection_names_map_has_one_and_only_one_collection_name_per_class_name`.
             class_name_to_collection_names_map[type.removeprefix("nmdc:")][0]
         )
-        for doc in schema_collection.find({"id": {"$in": resource_ids_of_type}}):
+        async for doc in await schema_collection.find(
+            {"id": {"$in": resource_ids_of_type}}
+        ):
             full_docs_by_id[doc["id"]] = doc
 
     return [merge(r, full_docs_by_id[r["id"]]) for r in resources]

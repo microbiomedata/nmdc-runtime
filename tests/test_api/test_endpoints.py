@@ -559,7 +559,7 @@ def test_submit_changesheet():
         filename=re.sub(r"[^A-Za-z0-9._\-]", "_", sheet_in.name),
         content_type=sheet_in.content_type,
         description="changesheet",
-        id_ns="changesheets",
+        id_ns="csheet",
     )
     mdb.objects.delete_one({"id": drs_obj_doc["id"]})
     assert True

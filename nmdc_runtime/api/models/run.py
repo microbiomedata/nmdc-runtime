@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from dagster_graphql import DagsterGraphQLClient
 from pydantic import BaseModel
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import AsyncMongoDatabase, RuntimeAsyncMongoDatabase
 from toolz import merge
 
 from nmdc_runtime.api.core.idgen import generate_one_id
@@ -77,10 +77,12 @@ def get_dagster_graphql_client() -> DagsterGraphQLClient:
     return DagsterGraphQLClient(hostname=hostname, port_number=port_number)
 
 
-def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: User):
+async def _add_run_requested_event(
+    run_spec: RunUserSpec, mdb: RuntimeAsyncMongoDatabase, user: User
+):
     # XXX what we consider a "job" here, is currently a "workflow" elsewhere...
-    job = raise404_if_none(mdb.workflows.find_one({"id": run_spec.job_id}))
-    run_id = generate_one_id(mdb, "runs")
+    job = raise404_if_none(await mdb.raw["workflows"].find_one({"id": run_spec.job_id}))
+    run_id = await generate_one_id("run")
     event = RunEvent(
         producer=user.username,
         schemaURL=SCHEMA_URL,
@@ -93,19 +95,19 @@ def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: Us
         time=now(as_str=True),
         inputs=run_spec.inputs,
     )
-    mdb.run_events.insert_one(event.model_dump())
+    await mdb.raw["run_events"].insert_one(event.model_dump())
     return run_id
 
 
-def _add_run_started_event(run_id: str, mdb: MongoDatabase):
+async def _add_run_started_event(run_id: str, mdb: RuntimeAsyncMongoDatabase):
     requested: RunEvent = RunEvent(
         **raise404_if_none(
-            mdb.run_events.find_one(
+            await mdb.raw["run_events"].find_one(
                 {"run.id": run_id, "type": "REQUESTED"}, sort=[("time", -1)]
             )
         )
     )
-    mdb.run_events.insert_one(
+    await mdb.raw["run_events"].insert_one(
         RunEvent(
             producer=PRODUCER_URL,
             schemaURL=SCHEMA_URL,
@@ -118,15 +120,15 @@ def _add_run_started_event(run_id: str, mdb: MongoDatabase):
     return run_id
 
 
-def _add_run_fail_event(run_id: str, mdb: MongoDatabase):
+async def _add_run_fail_event(run_id: str, mdb: RuntimeAsyncMongoDatabase):
     requested: RunEvent = RunEvent(
         **raise404_if_none(
-            mdb.run_events.find_one(
+            await mdb.raw["run_events"].find_one(
                 {"run.id": run_id, "type": "REQUESTED"}, sort=[("time", -1)]
             )
         )
     )
-    mdb.run_events.insert_one(
+    await mdb.raw["run_events"].insert_one(
         RunEvent(
             producer=PRODUCER_URL,
             schemaURL=SCHEMA_URL,
@@ -139,15 +141,17 @@ def _add_run_fail_event(run_id: str, mdb: MongoDatabase):
     return run_id
 
 
-def _add_run_complete_event(run_id: str, mdb: MongoDatabase, outputs: List[str]):
+async def _add_run_complete_event(
+    run_id: str, mdb: RuntimeAsyncMongoDatabase, outputs: List[str]
+) -> str:
     started: RunEvent = RunEvent(
         **raise404_if_none(
-            mdb.run_events.find_one(
+            await mdb.raw["run_events"].find_one(
                 {"run.id": run_id, "type": "STARTED"}, sort=[("time", -1)]
             )
         )
     )
-    mdb.run_events.insert_one(
+    await mdb.raw["run_events"].insert_one(
         RunEvent(
             producer=PRODUCER_URL,
             schemaURL=SCHEMA_URL,

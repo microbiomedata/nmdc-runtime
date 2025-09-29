@@ -2,7 +2,7 @@ import json
 import bson.json_util
 from typing import List
 
-from pymongo.database import Database
+from nmdc_runtime.mongo_util import AsyncMongoDatabase
 from refscan.lib.Finder import Finder
 from refscan.lib.helpers import derive_schema_class_name_from_document
 from refscan.scanner import identify_referring_documents, scan_outgoing_references
@@ -38,7 +38,7 @@ def make_violation_message(
 
 
 def simulate_updates_and_check_references(
-    db: Database, update_cmd: UpdateCommand
+    db: AsyncMongoDatabase, update_cmd: UpdateCommand
 ) -> List[str]:
     r"""
     Checks whether, if the specified updates were performed on the specified database,

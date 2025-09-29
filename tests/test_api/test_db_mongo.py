@@ -21,7 +21,7 @@ def _new_collection(mdb):
 
 @pytest.fixture
 def mongo_client():
-    r"""Yields a `MongoClient` instance configured to access the MongoDB server specified via environment variables."""
+    r"""Yields a AsyncMongoClient` instance configured to access the MongoDB server specified via environment variables."""
     yield get_mongo_client()
 
 

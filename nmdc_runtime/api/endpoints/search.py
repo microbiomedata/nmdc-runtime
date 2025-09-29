@@ -1,7 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import AsyncMongoDatabase
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.nmdcschema import strip_oid
@@ -23,7 +23,7 @@ router = APIRouter()
 )
 def data_objects(
     req: DataObjectListRequest = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     filter_ = list_request_filter_to_mongo_filter(req.model_dump(exclude_unset=True))
     max_page_size = filter_.pop("max_page_size", None)

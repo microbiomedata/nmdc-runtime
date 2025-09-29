@@ -5,6 +5,7 @@ from typing import List, Dict, Annotated
 import pymongo
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
+from pymongo.errors import OperationFailure
 from refscan.lib.helpers import (
     get_collection_names_from_schema,
     get_names_of_classes_eligible_for_collection,
@@ -22,14 +23,11 @@ from nmdc_runtime.util import (
     nmdc_database_collection_names,
     nmdc_schema_view,
 )
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from starlette import status
 
 from nmdc_runtime.api.core.metadata import map_id_to_collection, get_collection_for_id
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import (
-    get_mongo_db,
-)
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
     strip_oid,
@@ -55,7 +53,7 @@ def ensure_collection_name_is_known_to_schema(collection_name: str):
 
 
 @router.get("/nmdcschema/version")
-def get_nmdc_schema_version():
+async def get_nmdc_schema_version():
     r"""
     Returns a string indicating which version of the [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/)
     the Runtime is using.
@@ -66,7 +64,7 @@ def get_nmdc_schema_version():
 
 
 @router.get("/nmdcschema/typecodes")
-def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
+async def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
     r"""
     Returns a list of objects, each of which indicates (a) a schema class, and (b) the typecode
     that the minter would use when generating a new ID for an instance of that schema class.
@@ -80,8 +78,8 @@ def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
 
 
 @router.get("/nmdcschema/collection_stats")
-def get_nmdc_database_collection_stats(
-    mdb: MongoDatabase = Depends(get_mongo_db),
+async def get_nmdc_database_collection_stats(
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     To get the NMDC Database MongoDB collection statistics, like the total count of records in a collection or the size
@@ -94,11 +92,11 @@ def get_nmdc_database_collection_stats(
     #   (2) all runtime collections
     # Thus, only retrieve collections from the schema that are present (i.e. having actual documents) in the runtime.
     present_collection_names = set(nmdc_database_collection_names()) & set(
-        mdb.list_collection_names()
+        (await mdb.raw.list_collection_names())
     )
     stats = []
     for n in present_collection_names:
-        for doc in mdb[n].aggregate(
+        async for doc in await mdb.raw[n].aggregate(
             [
                 {"$collStats": {"storageStats": {}}},
                 {
@@ -126,7 +124,7 @@ def get_nmdc_database_collection_stats(
         response_model_exclude_unset=True,
     )
 )
-def get_linked_instances(
+async def get_linked_instances(
     ids: Annotated[
         list[str],
         Query(
@@ -178,7 +176,7 @@ def get_linked_instances(
             examples=[20],
         ),
     ] = 20,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """
     Retrieves database instances that are both (a) linked to any of `ids`, and (b) of a type in `types`.
@@ -223,15 +221,22 @@ def get_linked_instances(
     If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
     """
     if page_token is not None:
-        rv = list_resources(
+        rv = await list_resources(
             req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
         )
-        rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
+        rv["resources"] = (
+            (await hydrated(rv["resources"], mdb)) if hydrate else rv["resources"]
+        )
         rv["resources"] = [strip_oid(d) for d in rv["resources"]]
         return rv
 
-    ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
-    ids_not_found = list(set(ids) - set(ids_found))
+    ids_found = {
+        d["id"]
+        for d in (
+            await mdb.raw["alldocs"].find({"id": {"$in": ids}}, {"id": 1}).to_list()
+        )
+    }
+    ids_not_found = list(set(ids) - ids_found)
     if ids_not_found:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -251,16 +256,18 @@ def get_linked_instances(
             ),
         )
 
-    merge_into_collection_name = gather_linked_instances(
-        alldocs_collection=mdb.alldocs, ids=ids, types=types
+    merge_into_collection_name = await gather_linked_instances(
+        alldocs_collection=mdb.raw.alldocs, ids=ids, types=types
     )
 
-    rv = list_resources(
+    rv = await list_resources(
         ListRequest(page_token=page_token, max_page_size=max_page_size),
         mdb,
         merge_into_collection_name,
     )
-    rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
+    rv["resources"] = (
+        (await hydrated(rv["resources"], mdb)) if hydrate else rv["resources"]
+    )
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 
@@ -270,7 +277,7 @@ def get_linked_instances(
     response_model=Doc,
     response_model_exclude_unset=True,
 )
-def get_by_id(
+async def get_by_id(
     doc_id: Annotated[
         str,
         Path(
@@ -279,22 +286,23 @@ def get_by_id(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     Retrieves the document having the specified `id`, regardless of which schema-described collection it resides in.
     """
-    id_dict = map_id_to_collection(mdb)
+    id_dict = await map_id_to_collection(mdb)
     collection_name = get_collection_for_id(doc_id, id_dict)
     return strip_oid(
         raise404_if_none(
-            collection_name and (mdb[collection_name].find_one({"id": doc_id}))
+            collection_name
+            and (await mdb.raw[collection_name].find_one({"id": doc_id}))
         )
     )
 
 
 @router.get("/nmdcschema/ids/{doc_id}/collection-name")
-def get_collection_name_by_doc_id(
+async def get_collection_name_by_doc_id(
     doc_id: Annotated[
         str,
         Path(
@@ -303,18 +311,18 @@ def get_collection_name_by_doc_id(
             examples=["nmdc:bsm-11-abc123"],
         ),
     ],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
-    Returns the name of the collection, if any, containing the document having the specified `id`.
+     Returns the name of the collection, if any, containing the document having the specified `id`.
 
-    This endpoint uses the NMDC Schema to determine the schema class of which an instance could have
-    the specified value as its `id`; and then uses the NMDC Schema to determine the names of the
-    `Database` slots (i.e. Mongo collection names) that could contain instances of that schema class.
+     This endpoint uses the NMDC Schema to determine the schema class of which an instance could have
+     the specified value as its `id`; and then uses the NMDC Schema to determine the names of the
+    `nmdc:Database` slots (i.e. Mongo collection names) that could contain instances of that schema class.
 
-    This endpoint then searches those Mongo collections for a document having that `id`.
-    If it finds one, it responds with the name of the collection containing the document.
-    If it does not find one, it response with an `HTTP 404 Not Found` response.
+     This endpoint then searches those Mongo collections for a document having that `id`.
+     If it finds one, it responds with the name of the collection containing the document.
+     If it does not find one, it response with an `HTTP 404 Not Found` response.
     """
     # Note: The `nmdc_runtime.api.core.metadata.map_id_to_collection` function is
     #       not used here because that function (a) only processes collections whose
@@ -370,8 +378,8 @@ def get_collection_name_by_doc_id(
     # resides in, if any. If multiple collections contain such a document, report only the first one.
     containing_collection_name = None
     for collection_name in collection_names:
-        collection = mdb.get_collection(name=collection_name)
-        if collection.count_documents(dict(id=doc_id), limit=1) > 0:
+        collection = mdb.raw.get_collection(name=collection_name)
+        if (await collection.count_documents(dict(id=doc_id), limit=1)) > 0:
             containing_collection_name = collection_name
             break
 
@@ -392,7 +400,7 @@ def get_collection_name_by_doc_id(
     response_model=List[str],
     status_code=status.HTTP_200_OK,
 )
-def get_collection_names():
+async def get_collection_names():
     """
     Return all valid NMDC Schema collection names, i.e. the names of the slots of [the nmdc:Database class](
     https://w3id.org/nmdc/Database/) that describe database collections.
@@ -406,7 +414,7 @@ def get_collection_names():
     response_model=ListResponse[Doc],
     response_model_exclude_unset=True,
 )
-def list_from_collection(
+async def list_from_collection(
     collection_name: Annotated[
         str,
         Path(
@@ -416,7 +424,7 @@ def list_from_collection(
         ),
     ],
     req: Annotated[ListRequest, Query()],
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     Retrieves resources that match the specified filter criteria and reside in the specified collection.
@@ -442,7 +450,7 @@ def list_from_collection(
     # raise HTTP_400_BAD_REQUEST on invalid collection_name
     ensure_collection_name_is_known_to_schema(collection_name)
 
-    rv = list_resources(req, mdb, collection_name)
+    rv = await list_resources(req, mdb, collection_name)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 
@@ -452,7 +460,7 @@ def list_from_collection(
     response_model=Doc,
     response_model_exclude_unset=True,
 )
-def get_from_collection_by_id(
+async def get_from_collection_by_id(
     collection_name: Annotated[
         str,
         Path(
@@ -480,7 +488,7 @@ def get_from_collection_by_id(
             ],
         ),
     ] = None,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     r"""
     Retrieves the document having the specified `id`, from the specified collection; optionally, including only the
@@ -493,10 +501,12 @@ def get_from_collection_by_id(
     try:
         return strip_oid(
             raise404_if_none(
-                mdb[collection_name].find_one({"id": doc_id}, projection=projection)
+                await mdb.raw[collection_name].find_one(
+                    {"id": doc_id}, projection=projection
+                )
             )
         )
-    except pymongo.errors.OperationFailure as e:
+    except OperationFailure as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
         )

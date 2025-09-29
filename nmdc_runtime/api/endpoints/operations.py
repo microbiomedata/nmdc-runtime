@@ -1,11 +1,10 @@
 from typing import Annotated
 
-import pymongo
 from fastapi import APIRouter, Depends, status, HTTPException, Query
 from toolz import get_in, merge, assoc
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import raise404_if_none, pick
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources
 from nmdc_runtime.api.models.operation import (
     ListOperationsResponse,
@@ -23,7 +22,7 @@ router = APIRouter()
 @router.get("/operations", response_model=ListOperationsResponse[ResultT, MetadataT])
 def list_operations(
     req: Annotated[ListRequest, Query()],
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return list_resources(req, mdb, "operations")
 
@@ -31,17 +30,17 @@ def list_operations(
 @router.get("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
 def get_operation(
     op_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
     return op
 
 
 @router.patch("/operations/{op_id}", response_model=Operation[ResultT, MetadataT])
-def update_operation(
+async def update_operation(
     op_id: str,
     op_patch: UpdateOperationRequest,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     client_site: Site = Depends(get_current_client_site),
 ):
     """
@@ -55,7 +54,7 @@ def update_operation(
     - model
     """
     # TODO be able to make job "undone" and "redone" to re-trigger downstream ETL.
-    doc_op = raise404_if_none(mdb.operations.find_one({"id": op_id}))
+    doc_op = raise404_if_none(await mdb.raw["operations"].find_one({"id": op_id}))
     site_id_op = get_in(["metadata", "site_id"], doc_op)
     if site_id_op != client_site.id:
         raise HTTPException(
@@ -74,5 +73,5 @@ def update_operation(
             op_patch_metadata,
         ),
     )
-    mdb.operations.replace_one({"id": op_id}, doc_op_patched)
+    await mdb.raw["operations"].replace_one({"id": op_id}, doc_op_patched)
     return doc_op_patched

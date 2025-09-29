@@ -18,7 +18,9 @@ from bson.son import SON
 from frozendict import frozendict
 from linkml_runtime import SchemaView
 from nmdc_schema.get_nmdc_view import ViewGetter
-from pymongo.database import Database as MongoDatabase
+from pymongo.asynchronous.collection import AsyncCollection
+
+from nmdc_runtime.mongo_util import AsyncMongoDatabase, RuntimeAsyncMongoDatabase
 from pymongo.errors import OperationFailure
 from refscan.lib.helpers import (
     identify_references,
@@ -371,32 +373,28 @@ def nmdc_database_collection_names():
     return names
 
 
-def all_docs_have_unique_id(coll) -> bool:
-    first_doc = coll.find_one({}, ["id"])
+async def all_docs_have_unique_id(coll: AsyncCollection) -> bool:
+    first_doc = await coll.find_one({}, ["id"])
     if first_doc is None or "id" not in first_doc:
         # short-circuit exit for empty collection or large collection via first-doc peek.
         return False
 
-    total_count = coll.count_documents({})
-    return (
-        # avoid attempt to fetch large (>16mb) list of distinct IDs,
-        # a limitation of collection.distinct(). Use aggregation pipeline
-        # instead to compute on mongo server, using disk if necessary.
-        next(
-            coll.aggregate(
-                [{"$group": {"_id": "$id"}}, {"$count": "n_unique_ids"}],
-                allowDiskUse=True,
-            )
-        )["n_unique_ids"]
-        == total_count
-    )
+    total_count = await coll.estimated_document_count()
+    # Avoid attempt to fetch large (>16mb) list of distinct IDs, a limitation of collection.distinct().
+    # Instead, use aggregation pipeline to compute on mongo server, using disk if necessary.
+    [doc] = await (
+        await coll.aggregate(
+            [{"$group": {"_id": "$id"}}, {"$count": "n_unique_ids"}], allowDiskUse=True
+        )
+    ).to_list()
+    return doc["n_unique_ids"] == total_count
 
 
 def specialize_activity_set_docs(docs):
     """
     TODO: Document this function.
 
-    TODO: Check whether this function is still necessary, given that the `Database` class
+    TODO: Check whether this function is still necessary, given that the`nmdc:Database` class
           in `nmdc-schema` does not have a slot named `activity_set`.
     """
     validation_errors = {}
@@ -477,13 +475,15 @@ def schema_collection_names_with_id_field() -> Set[str]:
     return target_collection_names
 
 
-def populated_schema_collection_names_with_id_field(mdb: MongoDatabase) -> List[str]:
+def populated_schema_collection_names_with_id_field(
+    mdb: AsyncMongoDatabase,
+) -> List[str]:
     collection_names = sorted(schema_collection_names_with_id_field())
     return [n for n in collection_names if mdb[n].find_one({"id": {"$exists": True}})]
 
 
-def does_collection_have_unique_index_on_id_field(
-    collection_name: str, db: MongoDatabase
+async def does_collection_have_unique_index_on_id_field(
+    collection_name: str, mdb: RuntimeAsyncMongoDatabase
 ) -> bool:
     """Check whether the specified MongoDB collection has a unique index on its `id` field (not `_id`).
 
@@ -497,8 +497,10 @@ def does_collection_have_unique_index_on_id_field(
     # Check whether the specified collection actually exists in the database; and, if it does,
     # whether it is really a _collection_ (as opposed to being a _view_). If it doesn't exist,
     # or it is a view, return `False` right away.
-    collection_infos_cursor = db.list_collections(filter={"name": collection_name})
-    collection_infos = list(collection_infos_cursor)
+    collection_infos_cursor = await mdb.raw.list_collections(
+        filter={"name": collection_name}
+    )
+    collection_infos = await collection_infos_cursor.to_list()
     if len(collection_infos) == 0:
         return False
     collection_info = collection_infos[0]
@@ -506,8 +508,8 @@ def does_collection_have_unique_index_on_id_field(
         return False
 
     # Now that we know we're dealing with a collection, get information about each of its indexes.
-    collection = db.get_collection(collection_name)
-    for index_information in collection.list_indexes():
+    collection = mdb.raw.get_collection(collection_name)
+    async for index_information in await collection.list_indexes():
         # Get the "field_name-direction" pairs that make up this index.
         field_name_and_direction_pairs: SON = index_information["key"]
 
@@ -525,7 +527,7 @@ def does_collection_have_unique_index_on_id_field(
     return False
 
 
-def ensure_unique_id_indexes(mdb: MongoDatabase):
+async def ensure_unique_id_indexes(mdb: RuntimeAsyncMongoDatabase) -> None:
     """Ensure that any collections with an "id" field have an index on "id"."""
 
     # Note: The pipe (i.e. `|`) operator performs a union of the two sets. In this case,
@@ -533,7 +535,8 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
     #       (a) all collections in the real database, and (b) all collections that
     #       the NMDC schema says can contain instances of classes that have an "id" slot.
     candidate_names = (
-        set(mdb.list_collection_names()) | schema_collection_names_with_id_field()
+        set(await mdb.raw.list_collection_names())
+        | schema_collection_names_with_id_field()
     )
     for collection_name in candidate_names:
         if collection_name.startswith("system."):  # reserved by mongodb
@@ -541,16 +544,17 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
 
         # If the collection already has a unique index on `id`, there's no need
         # to check anything else about the collection.
-        if does_collection_have_unique_index_on_id_field(collection_name, mdb):
+        if await does_collection_have_unique_index_on_id_field(collection_name, mdb):
             continue
 
-        if (
-            collection_name in schema_collection_names_with_id_field()
-            or all_docs_have_unique_id(mdb[collection_name])
+        if collection_name in schema_collection_names_with_id_field() or (
+            await all_docs_have_unique_id(mdb.raw[collection_name])
         ):
             # Check if index already exists, and if so, drop it if not unique
             try:
-                existing_indexes = list(mdb[collection_name].list_indexes())
+                existing_indexes = await (
+                    await mdb.raw[collection_name].list_indexes()
+                ).to_list()
                 id_index = next(
                     (idx for idx in existing_indexes if idx["name"] == "id_1"), None
                 )
@@ -558,10 +562,10 @@ def ensure_unique_id_indexes(mdb: MongoDatabase):
                 if id_index:
                     # If index exists but isn't unique, drop it so we can recreate
                     if not id_index.get("unique", False):
-                        mdb[collection_name].drop_index("id_1")
+                        await mdb.raw[collection_name].drop_index("id_1")
 
                 # Create index with unique constraint
-                mdb[collection_name].create_index("id", unique=True)
+                await mdb.raw[collection_name].create_index("id", unique=True)
             except OperationFailure as e:
                 # If error is about index with same name, just continue
                 if "An existing index has the same name" in str(e):
@@ -603,3 +607,84 @@ def decorate_if(condition: bool = False) -> Callable:
         return check_condition
 
     return apply_original_decorator
+
+
+import threading
+from functools import wraps
+from typing import Any, Callable, Dict, Hashable
+
+
+def thread_local_lru_cache(maxsize: int = 128) -> Callable:
+    """Decorator that creates a thread-local cache for function results. Each thread maintains its own separate cache.
+
+    Each thread maintains its own cache using threading.local().
+    Removes least recently used items when maxsize is exceeded (i.e., LRU eviction).
+
+    Motivation: You cannot share `AsyncMongoClient` objects across threads or event loops.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        # Thread-local storage for cache data
+        local_data = threading.local()
+
+        def get_cache() -> Dict[Hashable, Any]:
+            if not hasattr(local_data, "cache"):
+                local_data.cache = {}
+                local_data.access_order = []
+            return local_data.cache
+
+        def get_access_order() -> list:
+            if not hasattr(local_data, "access_order"):
+                local_data.access_order = []
+            return local_data.access_order
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key
+            key = (args, tuple(sorted(kwargs.items())))
+
+            cache = get_cache()
+            access_order = get_access_order()
+
+            # Check if result is cached
+            if key in cache:
+                # Move to end (most recently used)
+                access_order.remove(key)
+                access_order.append(key)
+                return cache[key]
+
+            # Compute result
+            result = func(*args, **kwargs)
+
+            # Add to cache
+            cache[key] = result
+            access_order.append(key)
+
+            # Enforce maxsize using LRU eviction
+            if len(cache) > maxsize:
+                oldest_key = access_order.pop(0)
+                del cache[oldest_key]
+
+            return result
+
+        # Add cache inspection methods
+        def cache_info():
+            cache = get_cache()
+            return {
+                "hits": getattr(local_data, "hits", 0),
+                "misses": getattr(local_data, "misses", 0),
+                "current_size": len(cache),
+                "maxsize": maxsize,
+            }
+
+        def cache_clear():
+            if hasattr(local_data, "cache"):
+                local_data.cache.clear()
+                local_data.access_order.clear()
+
+        wrapper.cache_info = cache_info
+        wrapper.cache_clear = cache_clear
+
+        return wrapper
+
+    return decorator
