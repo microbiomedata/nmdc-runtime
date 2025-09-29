@@ -483,22 +483,22 @@ class EllipsesButton extends HTMLElement {
     }
     
     /**
-     * Handle a change in the value of any HTML attribute whose name is listed
-     * in the `observedAttributes` list.
+     * Handle a change in the value (or the addition, removal, or replacement) of any HTML attribute
+     * whose name is listed in the `observedAttributes` list.
      * 
      * @param {string} attributeName Name of the attribute whose value changed
-     * @param {string} oldValue Value the attribute changed _from_
-     * @param {string} newValue Value the attribute changed _to_
+     * @param {string | null} oldValue Value the attribute changed _from_
+     * @param {string | null} newValue Value the attribute changed _to_
      * 
      * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#responding_to_attribute_changes
      */
     attributeChangedCallback(attributeName, oldValue, newValue) {
-        // If the "is-open" attribute changed and is "true", set the icon to the "X".
-        // Otherwise, set the icon to the "..." (ellipses).
+        // If the "is-open" attribute changed and its value is "true", show the "X" (Castlevania boomerang) icon.
+        // Otherwise, show the "..." (Pac-Man bait) icon.
         if (attributeName === "is-open") {
             const ellipsesEl = this.shadowRoot.querySelector("button .ellipses");
             const crossEl = this.shadowRoot.querySelector("button .cross");
-            if (newValue.toLowerCase() === "true") {
+            if (typeof newValue === "string" && newValue.toLowerCase() === "true") {
                 ellipsesEl.classList.add("hidden");
                 crossEl.classList.remove("hidden");
             } else {
