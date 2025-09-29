@@ -1,9 +1,25 @@
 console.debug("Listening for event: nmdcInit");
-window.addEventListener("nmdcInit", (event) => {{
+window.addEventListener("nmdcInit", (event) => {
     console.debug("Detected event: nmdcInit");
 
     // Get the DOM elements we'll be referencing below.
     const bodyEl = document.querySelector("body");
+
+    // Add the NMDC logo to the top of the page, next to the title.
+    // Note: The logo image will be added as a background image via CSS.
+    const addLogo = () => {
+        console.debug("Adding logo");
+        const headingGroupEl = document.querySelector(".information-container hgroup.main");
+        const titleEl = headingGroupEl.querySelector("h2.title");
+        const openapiSchemaLinkEl = headingGroupEl.querySelector("a.link");
+        const titleWrapperEl = document.createElement("div");
+        const logoEl = document.createElement("div");
+        logoEl.classList.add("nmdc-logo");
+        headingGroupEl.classList.add("nmdc-heading-group");
+        titleWrapperEl.replaceChildren(titleEl, openapiSchemaLinkEl);
+        headingGroupEl.replaceChildren(logoEl, titleWrapperEl);
+    };
+    addLogo();
 
     // If there is a non-empty access token present in the DOM (see `main.py`), create and add a banner
     // displaying the token along with buttons to show/hide it and copy it to the clipboard.
@@ -40,33 +56,33 @@ window.addEventListener("nmdcInit", (event) => {{
 
         // Set up the token visibility toggler.
         console.debug("Setting up token visibility toggler");
-        tokenMaskTogglerEl.addEventListener("click", (event) => {{
-            if (tokenEl.dataset.state == "masked") {{
+        tokenMaskTogglerEl.addEventListener("click", (event) => {
+            if (tokenEl.dataset.state == "masked") {
                 console.debug("Unmasking token");
                 tokenEl.dataset.state = "unmasked";
                 tokenEl.textContent = accessToken;
                 event.target.textContent = "Hide token";
-            }} else {{
+            } else {
                 console.debug("Masking token");
                 tokenEl.dataset.state = "masked";
                 tokenEl.textContent = "***";
                 event.target.textContent = "Show token";
-            }}
-        }});
+            }
+        });
 
         // Set up the token copier.
         // Reference: https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
         console.debug("Setting up token copier");
-        tokenCopierEl.addEventListener("click", async (event) => {{
+        tokenCopierEl.addEventListener("click", async (event) => {
             tokenCopierMessageEl.textContent = "";
-            try {{                            
+            try {
                 await navigator.clipboard.writeText(accessToken);
                 tokenCopierMessageEl.innerHTML = "<span class='nmdc-success'>Copied to clipboard</span>";
-            }} catch (error) {{
+            } catch (error) {
                 console.error(error.message);
                 tokenCopierMessageEl.innerHTML = "<span class='nmdc-error'>Copying failed</span>";
-            }}
-        }});
+            }
+        });
     }
 
     /**
@@ -76,6 +92,7 @@ window.addEventListener("nmdcInit", (event) => {{
      * - Augments the "Logout" button on the `bearerAuth` login form so that, when it is clicked,
      *   it clears and expires the `user_id_token` cookie, and reloads the web page.
      * - Focuses on the username input field whenever the login form appears.
+     * - Adds a "Login with ORCID" widget to the login form.
      * 
      * Reference: https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
      * 
@@ -116,6 +133,27 @@ window.addEventListener("nmdcInit", (event) => {{
                     console.debug(`Unrecognized header: ${el.textContent}`);
             }
         });
+        // Add a "Login with ORCID" widget to the login form.
+        //
+        // TODO: Consider disabling this when the user is already logged in.
+        //
+        // TODO: Consider moving this up next to (or into) the regular "User login" form,
+        //       once our system administrators have implemented a practical process for
+        //       managing "allowances" of users whose usernames are ORCID IDs. Putting it
+        //       at the bottom of the modal (I think) makes it less likely people will use it.
+        //
+        console.debug("Adding ORCID Login widget to login form");
+        const orcidLoginUrl = document.getElementById("nmdc-orcid-login-url")?.getAttribute("data-url");
+        const orcidLoginWidgetEl = document.createElement("div");
+        orcidLoginWidgetEl.classList.add("auth-container", "nmdc-orcid-login");
+        orcidLoginWidgetEl.innerHTML = `
+            <h4>User login with ORCID</h4>
+            <div class="nmdc-orcid-login-icon-link">
+                <img src="/static/ORCID-iD_icon_vector.svg" height="16" width="16"/>
+                <a href="${orcidLoginUrl}">Login with ORCID</a>
+            </div>
+        `;
+        modalContentEl.appendChild(orcidLoginWidgetEl);
 
         console.debug("Focusing on username field if present");
         const usernameInputEl = modalContentEl.querySelector("input#oauth_username");
@@ -146,4 +184,64 @@ window.addEventListener("nmdcInit", (event) => {{
             customizeLoginForm();
         }
     });
-}});
+
+    // If the `<ellipses-button>` custom HTML element is available, set up the tag
+    // description details togglers.
+    //
+    // Note: At the time of this writing, all of our tag descriptions begin with a
+    //       single-paragraph summary of the tag. Some of the tag descriptions have
+    //       additional paragraphs that provide more _details_ about the tag. In an
+    //       attempt to keep the Swagger UI page "initially concise" (only showing
+    //       more information when the user requests it), for the tag descriptions
+    //       that have additional paragraphs, we add a toggler button that the user
+    //       can press to toggle the visibility of the additional paragraphs.
+    //
+    if (customElements.get("ellipses-button")) {
+        console.debug("Setting up tag description details togglers");
+        const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
+        Array.from(tagSectionEls).forEach(el => {
+
+            // Check whether the description contains more than one element (i.e. paragraph).
+            const descriptionEl = el.querySelector("h3 > small > .renderedMarkdown");
+            if (descriptionEl.children.length > 1) {
+
+                // Wrap the additional elements (i.e. paragraphs) in a hidable `<div>`.
+                const detailsEl = document.createElement("div");
+                detailsEl.classList.add("tag-description-details", "hidden");
+                Array.from(descriptionEl.children).slice(1).forEach(el => {
+                    detailsEl.appendChild(el);
+                });
+                descriptionEl.replaceChildren(descriptionEl.firstChild, detailsEl);
+
+                // Add a button that, when clicked, toggles the visibility of the tag
+                // description details (but does not propagate the click event upward,
+                // so the visibility of the containing tag section isn't toggled).
+                const toggleButtonEl = document.createElement("ellipses-button");
+                toggleButtonEl.textContent = "Show details"; // populates the "slot"
+                descriptionEl.firstChild.appendChild(toggleButtonEl);
+                toggleButtonEl.addEventListener("click", (event) => {
+                    detailsEl.classList.toggle("hidden");
+                    event.stopPropagation();
+
+                    // Update the button's "is-open" attribute so the button's icon changes.
+                    if (toggleButtonEl.getAttribute("is-open") === "true") {
+                        toggleButtonEl.setAttribute("is-open", "false");
+                        toggleButtonEl.textContent = "Show details";
+                    } else {
+                        toggleButtonEl.setAttribute("is-open", "true");
+                        toggleButtonEl.textContent = "Hide details";
+                    }
+                });
+            }
+        });
+    };
+
+    // If the `<endpoint-search-widget>` custom HTML element is available, add it to the DOM.
+    // Note: That custom HTML element gets defined within the `custom-elements.js` script.
+    // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_a_custom_element
+    if (customElements.get("endpoint-search-widget")) {
+        console.debug("Setting up endpoint search widget");
+        const endpointSearchWidgetEl = document.createElement("endpoint-search-widget");
+        bodyEl.querySelector(".scheme-container").after(endpointSearchWidgetEl); // put it below the "Authorize" section
+    }
+});
