@@ -83,23 +83,21 @@ def test_get_study_dois():
     dois = translator._get_study_dois(
         {
             "studyForm": {
-                "dataDois": 
-                    [
-                        {
+                "dataDois": [
+                    {
                         "provider": "emsl",
-                        "value" : "10.12345/6789",
-                        },
-                    ],
+                        "value": "10.12345/6789",
+                    },
+                ],
             },
             "multiOmicsForm": {
-                "awardDois":
-                    [
-                        {
+                "awardDois": [
+                    {
                         "provider": "jgi",
-                        "value" : "doi:10.11121314/15161718",
-                        },
-                    ]
-            }
+                        "value": "doi:10.11121314/15161718",
+                    },
+                ]
+            },
         }
     )
     assert dois is not None
@@ -110,7 +108,7 @@ def test_get_study_dois():
     assert dois[0].doi_category == DoiCategoryEnum("dataset_doi")
 
     assert dois[1].doi_value == "doi:10.11121314/15161718"
-    assert dois[1].doi_provider == DoiProviderEnum('jgi')
+    assert dois[1].doi_provider == DoiProviderEnum("jgi")
     assert dois[1].type == "nmdc:Doi"
     assert dois[1].doi_category == DoiCategoryEnum("award_doi")
 
@@ -424,7 +422,12 @@ def test_instruments(test_minter):
 
 @pytest.mark.parametrize(
     "data_file_base",
-    ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data", "soil_sample_link"],
+    [
+        "plant_air_jgi",
+        "nucleotide_sequencing_mapping",
+        "sequencing_data",
+        "soil_sample_link",
+    ],
 )
 def test_get_dataset(test_minter, monkeypatch, data_file_base):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the

@@ -27,8 +27,10 @@ def client_config():
     # For local development outside Docker, try connecting to the Docker-exposed port
     if mongo_host == "mongodb://mongo:27017":
         alternative_host = "mongodb://localhost:27018"
-        logging.info(f"- Inside test: MongoDB host is set to container name. "
-              f"If running test locally (not in Docker), try: {alternative_host}")
+        logging.info(
+            f"- Inside test: MongoDB host is set to container name. "
+            f"If running test locally (not in Docker), try: {alternative_host}"
+        )
 
     return {
         "dbname": mongo_dbname,
@@ -45,13 +47,13 @@ def op_context(client_config, tmp_path):
         op_config={
             "source_ontology": "envo",
             "output_directory": str(tmp_path),
-            "generate_reports": False
-        }
+            "generate_reports": False,
+        },
     )
 
 
 # This test will always run - it doesn't require MongoDB connection
-@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+@patch("nmdc_runtime.site.ops.OntologyLoaderController")
 def test_load_ontology(mock_ontology_loader, op_context):
     """Tests the load_ontology op using mocks to verify parameter passing and method calling"""
     # Setup the mock
@@ -67,7 +69,7 @@ def test_load_ontology(mock_ontology_loader, op_context):
         output_directory=op_context.op_config["output_directory"],
         generate_reports=False,
         mongo_client=op_context.resources.mongo.client,
-        db_name=op_context.resources.mongo.db.name
+        db_name=op_context.resources.mongo.db.name,
     )
 
     # Verify that run_ontology_loader was called
@@ -75,7 +77,6 @@ def test_load_ontology(mock_ontology_loader, op_context):
 
     # The function doesn't have a return value
     assert result is None
-
 
 
 @pytest.mark.skipif(
@@ -89,13 +90,21 @@ def test_load_ontology_integration(op_context):
     mdb = op_context.resources.mongo.db
 
     # Print detail about the MongoDB connection
-    logging.info(f"Connected to MongoDB: {op_context.resources.mongo.db.client.address}")
+    logging.info(
+        f"Connected to MongoDB: {op_context.resources.mongo.db.client.address}"
+    )
 
     # Check if ontology collections exist before running
-    ontology_class_set_before = mdb.get_collection("ontology_class_set").count_documents({})
-    ontology_relation_set_before = mdb.get_collection("ontology_relation_set").count_documents({})
+    ontology_class_set_before = mdb.get_collection(
+        "ontology_class_set"
+    ).count_documents({})
+    ontology_relation_set_before = mdb.get_collection(
+        "ontology_relation_set"
+    ).count_documents({})
 
-    logging.info(f"Before running: {ontology_class_set_before} classes, {ontology_relation_set_before} relations")
+    logging.info(
+        f"Before running: {ontology_class_set_before} classes, {ontology_relation_set_before} relations"
+    )
 
     # Execute the op
     result = load_ontology(op_context)
@@ -106,7 +115,9 @@ def test_load_ontology_integration(op_context):
     logging.info(f"After running: {ontology_class_count} classes")
 
     # 2. Check that ontology_relation_set has entries
-    ontology_relation_count = mdb.get_collection("ontology_relation_set").count_documents({})
+    ontology_relation_count = mdb.get_collection(
+        "ontology_relation_set"
+    ).count_documents({})
     logging.info(f"After running: {ontology_relation_count} relations")
 
     # 3. Check for some known ENVO terms if we have ontology data
@@ -114,7 +125,9 @@ def test_load_ontology_integration(op_context):
     assert ontology_relation_count > 0
 
     sample_envo_id = "ENVO:00000001"  # Example ENVO ID
-    envo_term = mdb.get_collection("ontology_class_set").find_one({"id": sample_envo_id})
+    envo_term = mdb.get_collection("ontology_class_set").find_one(
+        {"id": sample_envo_id}
+    )
     assert envo_term is not None
 
     # 4. Check report files if generate_reports was True
