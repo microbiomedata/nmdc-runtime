@@ -217,7 +217,7 @@ window.addEventListener("nmdcInit", (event) => {
                 // description details (but does not propagate the click event upward,
                 // so the visibility of the containing tag section isn't toggled).
                 const toggleButtonEl = document.createElement("ellipses-button");
-                toggleButtonEl.textContent = "Toggle description details"; // populates the "slot"
+                toggleButtonEl.textContent = "Show details"; // populates the "slot"
                 descriptionEl.firstChild.appendChild(toggleButtonEl);
                 toggleButtonEl.addEventListener("click", (event) => {
                     detailsEl.classList.toggle("hidden");
@@ -226,8 +226,10 @@ window.addEventListener("nmdcInit", (event) => {
                     // Update the button's "is-open" attribute so the button's icon changes.
                     if (toggleButtonEl.getAttribute("is-open") === "true") {
                         toggleButtonEl.setAttribute("is-open", "false");
+                        toggleButtonEl.textContent = "Show details";
                     } else {
                         toggleButtonEl.setAttribute("is-open", "true");
+                        toggleButtonEl.textContent = "Hide details";
                     }
                 });
             }
