@@ -185,6 +185,10 @@ window.addEventListener("nmdcInit", (event) => {
         }
     });
 
+    // If the `EllipsesButton` class is defined, define a corresponding custom HTML element
+    // and set up the tag description details togglers.
+    // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_a_custom_element
+    //
     // If the `<ellipses-button>` custom HTML element is available, set up the tag
     // description details togglers.
     //
@@ -196,8 +200,9 @@ window.addEventListener("nmdcInit", (event) => {
     //       that have additional paragraphs, we add a toggler button that the user
     //       can press to toggle the visibility of the additional paragraphs.
     //
-    if (customElements.get("ellipses-button")) {
+    if (typeof EllipsesButton === "function") {
         console.debug("Setting up tag description details togglers");
+        customElements.define("ellipses-button", EllipsesButton);
         const tagSectionEls = bodyEl.querySelectorAll(".opblock-tag-section");
         Array.from(tagSectionEls).forEach(el => {
 
@@ -236,11 +241,11 @@ window.addEventListener("nmdcInit", (event) => {
         });
     };
 
-    // If the `<endpoint-search-widget>` custom HTML element is available, add it to the DOM.
-    // Note: That custom HTML element gets defined within the `custom-elements.js` script.
+    // If the `EndpointSearchWidget` class is defined, define a corresponding custom HTML element and add it to the DOM.
     // Docs: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#using_a_custom_element
-    if (customElements.get("endpoint-search-widget")) {
+    if (typeof EndpointSearchWidget === "function") {
         console.debug("Setting up endpoint search widget");
+        customElements.define("endpoint-search-widget", EndpointSearchWidget);
         const endpointSearchWidgetEl = document.createElement("endpoint-search-widget");
         bodyEl.querySelector(".scheme-container").after(endpointSearchWidgetEl); // put it below the "Authorize" section
     }
