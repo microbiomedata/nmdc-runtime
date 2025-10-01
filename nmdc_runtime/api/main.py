@@ -372,7 +372,9 @@ def custom_swagger_ui_html(
     style_css: str = Path(assets_dir_path / "style.css").read_text()
     script_js: str = Path(assets_dir_path / "script.js").read_text()
     ellipses_button_js: str = Path(assets_dir_path / "EllipsesButton.js").read_text()
-    endpoint_search_widget_js: str = Path(assets_dir_path / "EndpointSearchWidget.js").read_text()
+    endpoint_search_widget_js: str = Path(
+        assets_dir_path / "EndpointSearchWidget.js"
+    ).read_text()
     content = (
         response.body.decode()
         .replace('"<unquote-safe>', "")
@@ -412,7 +414,7 @@ def custom_swagger_ui_html(
                 style="display: none"
             ></div>
             """,
-            1
+            1,
         )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
         .replace(
@@ -423,7 +425,7 @@ def custom_swagger_ui_html(
                 </style>
             </head>
             """,
-            1
+            1,
         )
         # Inject custom JavaScript scripts immediately before the closing `</body>` tag.
         .replace(
@@ -436,7 +438,7 @@ def custom_swagger_ui_html(
                 </script>
             </body>
             """,
-            1
+            1,
         )
     )
     return HTMLResponse(content=content)
