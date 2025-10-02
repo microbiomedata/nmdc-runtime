@@ -103,7 +103,7 @@ COPY . /code
 # Install the project in editable mode.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    uv sync --active --no-dev
+    uv sync --active --no-dev --compile-bytecode
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
 EXPOSE 8000
@@ -124,7 +124,7 @@ COPY . /opt/dagster/lib
 # Install the project in editable mode.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /opt/dagster/lib && \
-    uv sync --active --no-dev
+    uv sync --active --no-dev --compile-bytecode
 
 # Move Dagster configuration files to the place Dagster expects.
 ENV DAGSTER_HOME="/opt/dagster/dagster_home/"
@@ -154,7 +154,7 @@ COPY . /code
 # Install the project in editable mode, and install development dependencies.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    uv sync --active
+    uv sync --active --compile-bytecode
 
 # Make `wait-for-it.sh` executable.
 RUN chmod +x /code/.docker/wait-for-it.sh
