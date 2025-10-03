@@ -43,4 +43,4 @@ jobs:
       #       file, or due to one of the dependencies becoming unavailable), which can prompt remedial action.
       #
       - name: Build MkDocs site
-        run: uv run mkdocs build -f docs/mkdocs.yml
+        run: uv run --no-sync mkdocs build -f docs/mkdocs.yml
