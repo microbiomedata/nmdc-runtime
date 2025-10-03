@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from urllib.parse import urlencode
 
 import pytest
 import requests
@@ -3193,3 +3194,29 @@ def test_release_job(api_site_client):
         for claim in rv.json()["claims"]
         if claim["site_id"] == api_site_client.site_id
     )
+
+
+def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):
+    """Note: This test was added to demonstrate a bugfix for issue #1255."""
+
+    # Define a filter that we expect to match no documents.
+    filter_ = {"id": "no-such-id"}
+
+    # Confirm it matches no documents.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    assert study_set.count_documents(filter_) == 0
+
+    # Build URL query parameters that include that filter.
+    query_str = urlencode({
+        "filter": filter_,
+        "cursor": "*",
+    })
+
+    # Confirm the API endpoint returns an empty results list and a null "next_cursor" value.
+    response = api_user_client.request("GET", f"/studies?{query_str}")
+    assert response.status_code == 200
+    res_body = response.json()
+    assert res_body["meta"]["count"] == 0
+    assert res_body["meta"]["next_cursor"] is None
+    assert res_body["results"] == []
