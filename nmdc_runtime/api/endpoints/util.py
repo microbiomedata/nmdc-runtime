@@ -407,7 +407,8 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             else:
                 filter_eager = merge(filter_, {"id": {"$gt": last_id}})
             more_results = (
-                mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
+                mdb[collection_name].count_documents(filter=filter_eager, limit=limit)
+                > 0
             )
             # If the `last_id` does not belong to the final document overall, generate
             # a new pagination token and persist it to the database. Otherwise (i.e. if
