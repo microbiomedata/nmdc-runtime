@@ -13,7 +13,7 @@ Reference for contributing to this documentation.
 2. Start the [MkDocs development server](https://www.mkdocs.org/user-guide/cli/#mkdocs-serve).
 
    ```shell
-   uv run mkdocs serve -f docs/mkdocs.yml
+   uv run --no-sync mkdocs serve -f docs/mkdocs.yml
    ```
 
    > The MkDocs development server will be accessible at: [`http://localhost:8000`](http://localhost:8000). It will have live reloading enabled. You can press `Ctrl+C` to terminate the server.
@@ -21,7 +21,7 @@ Reference for contributing to this documentation.
 3. (Optional) Build the MkDocs website.
 
    ```shell
-   uv run mkdocs build -f docs/mkdocs.yml
+   uv run --no-sync mkdocs build -f docs/mkdocs.yml
    ```
 
 ## File tree

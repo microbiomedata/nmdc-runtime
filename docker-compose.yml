@@ -96,7 +96,7 @@ services:
     #       oftentimes modify those files while doing load testing, and those files are
     #       not part of the FastAPI app.
     #       Docs: https://www.uvicorn.org/settings/?h=watch#reloading-with-watchfiles
-    command: ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
+    command: ["uv", "run", "--active", "--no-sync", "uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
     env_file: .env
     # Note: Setting `tty: true` makes it so the console output is in color.
     #       Reference: https://docs.docker.com/reference/cli/docker/container/run/#tty
