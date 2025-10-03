@@ -290,6 +290,8 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
     """Find nmdc schema collection entities that match the FindRequest.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
+
+    TODO: Add type hint for function's return value (see `nmdc_runtime.api.models.util.FindResponse`).
     """
     if req.group_by:
         raise HTTPException(
@@ -386,22 +388,38 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 filter=filter_, limit=limit, sort=sort_for_cursor, projection=projection
             )
         )
-        last_id = results[-1]["id"]
 
-        # Is this the last id overall? Then next_cursor should be None.
-        filter_eager = filter_
-        if "id" in filter_:
-            filter_eager["id"] = merge(filter_["id"], {"$gt": last_id})
+        # Check whether there are any results. If there aren't any, we refrain from
+        # trying to access the `id` of the final one (since it doesn't exist).
+        if len(results) > 0:
+            last_id = results[-1]["id"]
         else:
-            filter_eager = merge(filter_, {"id": {"$gt": last_id}})
-        more_results = (
-            mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
-        )
-        if more_results:
-            token = generate_one_id(mdb, "page_tokens")
-            mdb.page_tokens.insert_one(
-                {"_id": token, "ns": collection_name, "last_id": last_id}
+            last_id = None
+
+        # If we have a `last_id` value other than `None`, we check whether it belongs
+        # to the final document overall (not just the final one on this page). On the
+        # other hand, if `last_id` is `None`, we set the token to `None` (since there
+        # is no "next page" of results to be retrieved).
+        if last_id is not None:
+            filter_eager = filter_
+            if "id" in filter_:
+                filter_eager["id"] = merge(filter_["id"], {"$gt": last_id})
+            else:
+                filter_eager = merge(filter_, {"id": {"$gt": last_id}})
+            more_results = (
+                mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
             )
+            # If the `last_id` does not belong to the final document overall, generate
+            # a new pagination token and persist it to the database. Otherwise (i.e. if
+            # the `last_id` _does_ belong to the final document overall), set the token
+            # to `None` (since there is no "next page" to be retrieved).
+            if more_results:
+                token = generate_one_id(mdb, "page_tokens")
+                mdb.page_tokens.insert_one(
+                    {"_id": token, "ns": collection_name, "last_id": last_id}
+                )
+            else:
+                token = None
         else:
             token = None
 
