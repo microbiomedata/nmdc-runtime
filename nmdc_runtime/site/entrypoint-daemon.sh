@@ -23,4 +23,4 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec uv run --active dagster-daemon run
+exec uv run --active --no-sync dagster-daemon run
