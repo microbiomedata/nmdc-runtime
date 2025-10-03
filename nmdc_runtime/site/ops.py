@@ -43,6 +43,8 @@ from dagster import (
 from gridfs import GridFS
 from linkml_runtime.utils.dictutils import as_simple_dict
 from linkml_runtime.utils.yamlutils import YAMLRoot
+
+from nmdc_runtime.api.core import idgen
 from nmdc_runtime.api.db.mongo import validate_json
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.core.metadata import (
@@ -67,6 +69,7 @@ from nmdc_runtime.api.models.run import (
     _add_run_complete_event,
 )
 from nmdc_runtime.api.models.util import ResultT
+from nmdc_runtime.mongo_util import RuntimeAsyncMongoDatabase
 from nmdc_runtime.site.export.ncbi_xml import NCBISubmissionXML
 from nmdc_runtime.site.export.ncbi_xml_utils import (
     fetch_data_objects_from_biosamples,
@@ -261,12 +264,29 @@ def delete_operations(context, op_docs: list):
 
 
 @op(required_resource_keys={"mongo"})
-def construct_jobs(context: OpExecutionContext) -> List[Job]:
-    mdb: MongoDatabase = context.resources.mongo.db
-    docs = [
-        dict(**base, id=generate_one_id(mdb, "jobs"), created_at=now())
-        for base in context.op_config["base_jobs"]
-    ]
+async def delete_old_page_token_ids(context):
+    mdb = RuntimeAsyncMongoDatabase.from_synchronous_database(
+        context.resources.mongo.db
+    )
+    all_page_token_ids = {
+        d["_id"]
+        for d in await mdb.raw[idgen.collection_name(ns="ptoken")]
+        .find({}, {"_id": 1})
+        .to_list()
+    }
+    active_page_token_ids = {
+        d["_id"] for d in await mdb.raw["page_tokens"].find().to_list()
+    }
+    rv = await mdb.raw[idgen.collection_name(ns="ptoken")].delete_many(
+        {"_id": {"$in": list(all_page_token_ids - active_page_token_ids)}}
+    )
+    context.log.info(f"Deleted {rv.deleted_count} of {len(all_page_token_ids)}")
+
+
+@op(required_resource_keys={"mongo"})
+async def construct_jobs(context: OpExecutionContext) -> List[Job]:
+    # TODO `generate_ids` here using `RuntimeAsyncMongoDatabase.from_synchronous_database(context.resources.mongo.db)`.
+    docs = [dict(**base, created_at=now()) for base in context.op_config["base_jobs"]]
     return [Job(**d) for d in docs]
 
 
@@ -383,7 +403,7 @@ def get_json_in(context):
 
 
 @op(required_resource_keys={"runtime_api_site_client", "mongo"})
-def perform_mongo_updates(context, json_in):
+async def perform_mongo_updates(context, json_in):
     """
     TODO: Document this function.
     """
@@ -395,9 +415,7 @@ def perform_mongo_updates(context, json_in):
     docs, _ = specialize_activity_set_docs(docs)
     context.log.debug(f"{docs}")
 
-    rv = validate_json(
-        docs, mongo.db
-    )  # use *exact* same check as /metadata/json:validate
+    rv = await validate_json(docs)  # use *exact* same check as /metadata/json:validate
     if rv["result"] == "errors":
         raise Failure(str(rv["detail"]))
 
@@ -452,16 +470,21 @@ def _add_schema_docs_with_or_without_replacement(
 
 
 @op(required_resource_keys={"mongo"})
-def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
+async def add_output_run_event(context: OpExecutionContext, outputs: List[str]):
     mdb = context.resources.mongo.db
     run_event_doc = mdb.run_events.find_one(
         {"run.facets.nmdcRuntime_dagsterRunId": context.run_id}
     )
     if run_event_doc:
         nmdc_run_id = run_event_doc["run"]["id"]
-        return _add_run_complete_event(run_id=nmdc_run_id, mdb=mdb, outputs=outputs)
+        return await _add_run_complete_event(
+            run_id=nmdc_run_id,
+            mdb=RuntimeAsyncMongoDatabase.from_synchronous_database(mdb),
+            outputs=outputs,
+        )
     else:
         context.log.info(f"No NMDC RunEvent doc for Dagster Run {context.run_id}")
+        return None
 
 
 @op(
@@ -670,7 +693,7 @@ def export_json_to_drs(
             filename=filename,
             content_type="application/json",
             description=description,
-            id_ns="export-json",
+            id_ns="json",
         )
     context.log_event(
         AssetMaterialization(

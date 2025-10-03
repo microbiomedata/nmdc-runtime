@@ -19,10 +19,11 @@ from nmdc_schema.nmdc import (
     StudyCategoryEnum,
 )
 
+
 class Faker:
     r"""
     A class whose methods can be used to generate fake data for testing.
-    
+
     The class keeps track of how many dictionaries representing instances of
     each schema class it has generated. It uses that information to generate
     unique `id` values for subsequently-generated documents.
@@ -31,7 +32,7 @@ class Faker:
           representing instances of schema classes, as opposed to generating
           the instances, themselves. Also, so far, we've only implemented
           methods for a few specific schema classes (implemented on demand).
-          
+
           In the future, instead of only having methods that return
           dictionaries, we may have methods that return the schema class
           instances, themselves.
@@ -40,7 +41,7 @@ class Faker:
           the signatures of the methods of this class (rather than hard-coding
           type hints in those methods' signatures).
     """
-    
+
     def __init__(self):
         self.counts = {}
 
@@ -53,7 +54,7 @@ class Faker:
               former prefix (i.e. `nmdc:sty-00-1111111`) will be the same as the 111,111th `id` generated for the
               latter prefix (i.e. `nmdc:sty-00-1111111`). We have accepted this limitation in exchange for keeping
               the algorithm simple.
-        
+
         :param prefix: The prefix to use for the `id` value
         :return: The generated `id` value
 
@@ -76,7 +77,6 @@ class Faker:
 
         # Return an `id` based upon that count.
         return f"{prefix}{self.counts[prefix]:06}"
-
 
     def generate_studies(self, quantity: int, **overrides) -> List[dict]:
         """
@@ -105,7 +105,7 @@ class Faker:
         # Test: Generating a study with a referencing field (referential integrity is not checked).
         >>> f.generate_studies(1, part_of=['nmdc:sty-00-no_such_study'])[0]
         {'id': 'nmdc:sty-00-000004', 'type': 'nmdc:Study', 'study_category': 'research_study', 'part_of': ['nmdc:sty-00-no_such_study']}
-        
+
         # Test: Generating an invalid document.
         >>> f.generate_studies(1, study_category='no_such_category')
         Traceback (most recent call last):
@@ -137,8 +137,9 @@ class Faker:
 
         return documents
 
-
-    def generate_biosamples(self, quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
+    def generate_biosamples(
+        self, quantity: int, associated_studies: List[str], **overrides
+    ) -> List[dict]:
         """
         Generates the specified number of schema-compliant `biosample_set` documents.
         The documents comply with schema v11.8.0.
@@ -211,15 +212,20 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `Biosample`.
             instance = Biosample(**params)
-            
+
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
 
-
-    def generate_metagenome_annotations(self, quantity: int, was_informed_by: List[str], has_input: List[str], **overrides) -> List[dict]:
+    def generate_metagenome_annotations(
+        self,
+        quantity: int,
+        was_informed_by: List[str],
+        has_input: List[str],
+        **overrides,
+    ) -> List[dict]:
         """
         Generates the specified number of documents representing `MetagenomeAnnotation` instances,
         which can be stored in the `workflow_execution_set` collection.
@@ -259,7 +265,9 @@ class Faker:
             params = {
                 "id": self.make_unique_id(f"nmdc:wfmgan-00-") + ".1",
                 "type": MetagenomeAnnotation.class_class_curie,
-                "execution_resource": getattr(ExecutionResourceEnum, "NERSC-Perlmutter").text,
+                "execution_resource": getattr(
+                    ExecutionResourceEnum, "NERSC-Perlmutter"
+                ).text,
                 "git_url": "https://www.example.com",
                 "processing_institution": ProcessingInstitutionEnum.NMDC.text,
                 "started_at_time": "2000-01-01 12:00:00",
@@ -270,15 +278,20 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `MetagenomeAnnotation`.
             instance = MetagenomeAnnotation(**params)
-            
+
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
 
-
-    def generate_nucleotide_sequencings(self, quantity: int, associated_studies: List[str], has_input: List[str], **overrides) -> List[dict]:
+    def generate_nucleotide_sequencings(
+        self,
+        quantity: int,
+        associated_studies: List[str],
+        has_input: List[str],
+        **overrides,
+    ) -> List[dict]:
         """
         Generates the specified number of documents representing `NucleotideSequencing` instances,
         which can be stored in the `data_generation_set` collection.
@@ -332,7 +345,7 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `NucleotideSequencing`.
             instance = NucleotideSequencing(**params)
-            
+
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
             documents.append(document)
@@ -389,14 +402,21 @@ class Faker:
 
             # Validate the parameters by attempting to instantiate a `DataObject`.
             instance = DataObject(**params)
-            
+
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
             documents.append(document)
 
         return documents
 
-    def generate_workflow_executions(self, quantity: int, workflow_type: str, was_informed_by: List[str], has_input: List[str], **overrides) -> List[dict]:
+    def generate_workflow_executions(
+        self,
+        quantity: int,
+        workflow_type: str,
+        was_informed_by: List[str],
+        has_input: List[str],
+        **overrides,
+    ) -> List[dict]:
         """
         Generates the specified number of documents representing generic workflow execution instances,
         which can be stored in the `workflow_execution_set` collection.
@@ -447,12 +467,14 @@ class Faker:
             else:
                 # Generic workflow execution ID
                 raise ValueError(f"Unsupported workflow type: '{workflow_type}'")
-            
+
             # Apply any overrides passed in.
             params = {
                 "id": self.make_unique_id(id_prefix) + ".1",
                 "type": workflow_type,
-                "execution_resource": getattr(ExecutionResourceEnum, "NERSC-Perlmutter").text,
+                "execution_resource": getattr(
+                    ExecutionResourceEnum, "NERSC-Perlmutter"
+                ).text,
                 "git_url": "https://www.example.com",
                 "processing_institution": ProcessingInstitutionEnum.NMDC.text,
                 "started_at_time": "2000-01-01 12:00:00",
@@ -469,7 +491,7 @@ class Faker:
             }
             schema_class = wfe_type_to_schema_class_map[workflow_type]
             instance = schema_class(**params)
-            
+
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
             documents.append(document)

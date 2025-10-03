@@ -1,11 +1,10 @@
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
-from pymongo.database import Database as MongoDatabase
 from starlette import status
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.minter.adapters.repository import MongoIDStore, MinterError
 from nmdc_runtime.minter.config import minting_service_id
@@ -29,7 +28,7 @@ service = Entity(id=minting_service_id())
 @router.post("/mint")
 def mint_ids(
     req_mint: AuthenticatedMintingRequest,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ) -> list[str]:
     """Mint one or more (typed) persistent identifiers."""
@@ -59,7 +58,7 @@ def mint_ids(
 @router.get("/resolve/{id_name}")
 def resolve_id(
     id_name: str,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ) -> Identifier:
     """Resolve a (typed) persistent identifier."""
@@ -74,7 +73,7 @@ def resolve_id(
 @router.post("/bind")
 def bind(
     req_bind: AuthenticatedBindingRequest,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ) -> Identifier:
     """Resolve a (typed) persistent identifier."""
@@ -103,7 +102,7 @@ def bind(
 @router.post("/delete")
 def delete(
     req_del: AuthenticatedDeleteRequest,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ):
     """Resolve a (typed) persistent identifier."""

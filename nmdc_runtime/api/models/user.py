@@ -1,10 +1,11 @@
 from typing import List, Optional, Union
 
-import pymongo.database
+
 from fastapi import Depends, HTTPException
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.auth import (
     verify_password,
     SECRET_KEY,
@@ -14,10 +15,7 @@ from nmdc_runtime.api.core.auth import (
     TokenData,
     bearer_scheme,
 )
-
 from nmdc_runtime.api.models.site import get_site
-
-from nmdc_runtime.api.db.mongo import get_mongo_db
 
 
 class User(BaseModel):
@@ -36,22 +34,21 @@ class UserInDB(User):
     hashed_password: str
 
 
-def get_user(mdb, username: str) -> Optional[UserInDB]:
+async def get_user(mdb: RuntimeAsyncMongoDatabase, username: str) -> Optional[UserInDB]:
     r"""
     Returns the user having the specified username.
     """
 
-    user = mdb.users.find_one({"username": username})
-    if user is not None:
-        return UserInDB(**user)
+    user = await mdb.raw["users"].find_one({"username": username})
+    return UserInDB(**user) if user is not None else None
 
 
-def authenticate_user(mdb, username: str, password: str) -> Union[UserInDB, bool]:
+async def authenticate_user(mdb, username: str, password: str) -> Union[UserInDB, bool]:
     r"""
     Returns the user, if any, having the specified username/password combination.
     """
 
-    user = get_user(mdb, username)
+    user = await get_user(mdb, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -62,7 +59,7 @@ def authenticate_user(mdb, username: str, password: str) -> Union[UserInDB, bool
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     bearer_credentials: str = Depends(bearer_scheme),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ) -> UserInDB:
     r"""
     Returns a user based upon the provided token.
@@ -73,7 +70,7 @@ async def get_current_user(
     Raises an exception if the token is invalid.
     """
 
-    if mdb.invalidated_tokens.find_one({"_id": token}):
+    if await mdb.raw["invalidated_tokens"].find_one({"_id": token}):
         raise credentials_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -93,10 +90,10 @@ async def get_current_user(
     # Coerce a "client" into a "user"
     # TODO: consolidate the client/user distinction.
     if subject.startswith("user:"):
-        user = get_user(mdb, username=token_data.subject)
+        user = await get_user(mdb, username=token_data.subject)
     elif subject.startswith("client:"):
         # construct a user from the client_id
-        user = get_client_user(mdb, client_id=token_data.subject)
+        user = await get_client_user(mdb, client_id=token_data.subject)
     else:
         raise credentials_exception
     if user is None:
@@ -104,7 +101,7 @@ async def get_current_user(
     return user
 
 
-def get_client_user(mdb, client_id: str) -> UserInDB:
+async def get_client_user(mdb: RuntimeAsyncMongoDatabase, client_id: str) -> UserInDB:
     r"""
     Returns an ephemeral "user" whose username is the specified `client_id`
     and whose password is the hashed secret of the client; provided that the
@@ -114,7 +111,7 @@ def get_client_user(mdb, client_id: str) -> UserInDB:
     """
 
     # Get the site associated with the identified client.
-    site = get_site(mdb, client_id)
+    site = await get_site(mdb, client_id)
     if site is None:
         raise credentials_exception
 

@@ -5,7 +5,7 @@ from typing import List
 from nmdc_schema.id_helpers import get_typecode_for_future_ids
 
 from nmdc_runtime.util import get_nmdc_jsonschema_dict
-from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.mongo_util import get_runtime_mdb
 
 
 @lru_cache()
@@ -56,7 +56,6 @@ def typecodes() -> List[dict]:
     return rv
 
 
-@lru_cache()
 def shoulders():
     return [
         {
@@ -67,14 +66,14 @@ def shoulders():
     ]
 
 
-@lru_cache
 def services():
     return [{"id": "nmdc:minter_service_11", "name": "central minting service"}]
 
 
-def requesters():
+async def requesters():
     """not cached because sites are created dynamically"""
-    return [{"id": s["id"]} for s in get_mongo_db().sites.find()]
+    mdb = await get_runtime_mdb()
+    return [{"id": s["id"]} for s in (await mdb.raw["sites"].find().to_list())]
 
 
 @lru_cache()

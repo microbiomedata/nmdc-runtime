@@ -1,10 +1,11 @@
 from typing import List, Annotated
 
 import botocore
-import pymongo.database
+
 from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.auth import (
     ClientCredentials,
     get_password_hash,
@@ -17,7 +18,6 @@ from nmdc_runtime.api.core.util import (
     generate_secret,
     API_SITE_ID,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.db.s3 import (
     get_s3_client,
     presigned_url_to_put,
@@ -47,7 +47,7 @@ router = APIRouter()
 @router.post("/sites", status_code=status.HTTP_201_CREATED, response_model=SiteInDB)
 def create_site(
     site: Site,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     user: User = Depends(get_current_active_user),
 ):
     if exists(mdb.sites, {"id": site.id}):
@@ -74,7 +74,7 @@ def create_site(
 )
 def list_sites(
     req: Annotated[ListRequest, Query()],
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return list_resources(req, mdb, "sites")
 
@@ -82,14 +82,14 @@ def list_sites(
 @router.get("/sites/{site_id}", response_model=Site, response_model_exclude_unset=True)
 def get_site(
     site_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return raise404_if_none(mdb.sites.find_one({"id": site_id}))
 
 
 def verify_client_site_pair(
     site_id: str,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     client_site: Site = Depends(get_current_client_site),
 ):
     site = raise404_if_none(
@@ -110,7 +110,7 @@ def verify_client_site_pair(
 def put_object_in_site(
     site_id: str,
     object_in: DrsObjectBase,
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     s3client: botocore.client.BaseClient = Depends(get_s3_client),
 ):
     if site_id != API_SITE_ID:
@@ -119,7 +119,7 @@ def put_object_in_site(
             detail=f"API-mediated object storage for site {site_id} is not enabled.",
         )
     expires_in = 300
-    object_id = generate_one_id(mdb, S3_ID_NS)
+    object_id = generate_one_id(S3_ID_NS)
     url = presigned_url_to_put(
         f"{S3_ID_NS}/{object_id}",
         client=s3client,
@@ -129,7 +129,7 @@ def put_object_in_site(
     # XXX ensures defaults are set, e.g. done:false
     op = Operation[DrsObjectIn, ObjectPutMetadata](
         **{
-            "id": generate_one_id(mdb, "op"),
+            "id": generate_one_id("op"),
             "expire_time": expiry_dt_from_now(days=30, seconds=expires_in),
             "metadata": {
                 "object_id": object_id,
@@ -172,7 +172,7 @@ def generate_credentials_for_site_client(
         ...,
         description="The ID of the site.",
     ),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     user: User = Depends(get_current_active_user),
 ):
     """
@@ -191,7 +191,7 @@ def generate_credentials_for_site_client(
         )
 
     # XXX client_id must not contain a ':' because HTTPBasic auth splits on ':'.
-    client_id = local_part(generate_one_id(mdb, "site_clients"))
+    client_id = local_part(generate_one_id("sitec"))
     client_secret = generate_secret()
     hashed_secret = get_password_hash(client_secret)
     mdb.sites.update_one(

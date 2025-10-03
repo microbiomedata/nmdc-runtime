@@ -11,7 +11,7 @@ from functools import lru_cache
 from typing import Generator, Any
 
 from nmdc_runtime.api.core.util import import_via_dotted_path
-from pymongo import MongoClient, ReplaceOne
+from pymongo import AsyncMongoClient, ReplaceOne
 from pymongo.database import Database as MongoDatabase
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -66,11 +66,11 @@ def api_user_client() -> RuntimeApiUserClient:
     return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
-def minting_request():
+async def minting_request():
     return MintingRequest(
         **{
             "service": services()[0],
-            "requester": requesters()[0],
+            "requester": (await requesters())[0],
             "schema_class": schema_classes()[0],
             "how_many": 1,
         }
@@ -94,7 +94,7 @@ def draft_identifier():
 
 @lru_cache
 def get_mongo_test_db() -> MongoDatabase:
-    _client = MongoClient(
+    _client = AsyncMongoClient(
         host=os.getenv("MONGO_HOST"),
         username=os.getenv("MONGO_USERNAME"),
         password=os.getenv("MONGO_PASSWORD"),
@@ -117,13 +117,12 @@ def get_mongo_test_db() -> MongoDatabase:
     return db
 
 
-@lru_cache()
-def get_test_inmemoryidstore() -> InMemoryIDStore:
+async def get_test_inmemoryidstore() -> InMemoryIDStore:
     return InMemoryIDStore(
         services=services(),
         shoulders=shoulders(),
         typecodes=typecodes(),
-        requesters=requesters(),
+        requesters=(await requesters()),
         schema_classes=schema_classes(),
     )
 

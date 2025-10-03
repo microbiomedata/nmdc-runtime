@@ -15,10 +15,10 @@ from tests.conftest import (
 )
 
 
-def test_minting_request():
-    mr = minting_request()
+async def test_minting_request():
+    mr = await minting_request()
     assert mr.service.id in list(pluck("id", services()))
-    assert mr.requester.id in list(pluck("id", requesters()))
+    assert mr.requester.id in list(pluck("id", (await requesters())))
     assert mr.schema_class.id in list(pluck("id", schema_classes()))
     assert mr.schema_class.id in list(pluck("schema_class", typecodes()))
     assert mr.how_many > 0

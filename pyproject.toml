@@ -86,6 +86,8 @@ dependencies = [
     "unidecode",
     "uvicorn[standard]",
     "requests-cache",
+    # Middleware for correlation IDs, which help to group logs by HTTP request.
+    "asgi-correlation-id>=4.3.4",
 ]
 
 [dependency-groups]

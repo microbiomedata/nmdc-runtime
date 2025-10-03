@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pymongo.database import Database as MongoDatabase
 from starlette import status
 from toolz import concat
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import _request_dagster_run
 from nmdc_runtime.api.models.run import (
     RunSummary,
@@ -20,7 +19,7 @@ router = APIRouter()
 @router.post("/runs", response_model=RunSummary)
 def request_run(
     run_user_spec: RunUserSpec = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     user: User = Depends(get_current_active_user),
 ):
     requested = _request_dagster_run(
@@ -64,7 +63,7 @@ def _get_run_summary(run_id, mdb) -> RunSummary:
 )
 def get_run_summary(
     run_id: str,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return _get_run_summary(run_id, mdb)
 
@@ -72,7 +71,7 @@ def get_run_summary(
 @router.get("/runs/{run_id}/events", response_model=ListResponse[RunEvent])
 def list_events_for_run(
     run_id: str,
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     """List events for run, in reverse chronological order."""
     raise404_if_none(mdb.run_events.find_one({"run.id": run_id}))
@@ -87,7 +86,7 @@ def list_events_for_run(
 def post_run_event(
     run_id: str,
     run_event: RunEvent = Depends(),
-    mdb: MongoDatabase = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     if run_id != run_event.run.id:
         raise HTTPException(

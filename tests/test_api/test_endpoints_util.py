@@ -36,7 +36,9 @@ def test_is_num_matching_docs_within_limit(seeded_db_for_filtered_counting: Data
         assert is_num_matching_docs_within_limit(collection, filter_, -1)
     assert not is_num_matching_docs_within_limit(collection, filter_, 0)
     assert not is_num_matching_docs_within_limit(collection, filter_, 9)
-    assert is_num_matching_docs_within_limit(collection, filter_, 10)  # there are exactly 10
+    assert is_num_matching_docs_within_limit(
+        collection, filter_, 10
+    )  # there are exactly 10
     assert is_num_matching_docs_within_limit(collection, filter_, 11)
 
     # Test: Vary the collection.

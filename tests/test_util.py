@@ -59,7 +59,9 @@ def test_nmdc_jsonschema_using_new_id_scheme():
                     r"^(nmdc):",
                     r"^[a-zA-Z0-9][a-zA-Z0-9_\.]+:",
                 )
-                if not defn["properties"]["id"]["pattern"].startswith(valid_prefix_patterns):
+                if not defn["properties"]["id"]["pattern"].startswith(
+                    valid_prefix_patterns
+                ):
                     pytest.fail(f"{class_name}.id: {defn['properties']['id']}")
 
 

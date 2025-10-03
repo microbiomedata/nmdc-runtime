@@ -1,15 +1,14 @@
 import json
 from typing import Optional, Annotated
 
-from pymongo.database import Database
 from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
 from nmdc_runtime.api.models.job import Job, JobClaim
 from nmdc_runtime.api.models.operation import Operation, MetadataT
@@ -28,7 +27,7 @@ router = APIRouter()
 )
 def list_jobs(
     req: Annotated[ListRequest, Query()],
-    mdb: Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     maybe_site: Optional[Site] = Depends(maybe_get_current_client_site),
 ):
     """List pre-configured workflow jobs.
@@ -45,18 +44,18 @@ def list_jobs(
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
 def get_job_info(
     job_id: str,
-    mdb: Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     return raise404_if_none(mdb.jobs.find_one({"id": job_id}))
 
 
 @router.post("/jobs/{job_id}:claim", response_model=Operation[ResultT, MetadataT])
-def claim_job(
+async def claim_job(
     job_id: str,
-    mdb: Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ):
-    return _claim_job(job_id, mdb, site)
+    return await _claim_job(job_id, mdb, site)
 
 
 @router.post("/jobs/{job_id}:release")
@@ -69,7 +68,7 @@ def release_job(
             examples=["nmdc:f81d4fae-7dec-11d0-a765-00a0c91e6bf6"],
         ),
     ],
-    mdb: Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
     site: Site = Depends(get_current_client_site),
 ) -> Optional[Job]:
     r"""

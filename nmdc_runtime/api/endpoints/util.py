@@ -13,14 +13,17 @@ from bson import json_util
 from dagster import DagsterRunStatus
 from dagster_graphql import DagsterGraphQLClientError
 from fastapi import HTTPException
-from gridfs import GridFS
+from gridfs import AsyncGridFS
+from pymongo.asynchronous.collection import AsyncCollection
+from pymongo.asynchronous.cursor import AsyncCursor
+
 from nmdc_runtime.api.core.idgen import generate_one_id, local_part
 from nmdc_runtime.api.core.util import (
     dotted_path_for,
     expiry_dt_from_now,
     raise404_if_none,
+    now,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.job import Job, JobClaim, JobOperationMetadata
 from nmdc_runtime.api.models.object import (
     DrsId,
@@ -45,7 +48,11 @@ from nmdc_runtime.api.models.util import (
 )
 from nmdc_runtime.util import drs_metadata_for
 from pymongo.collection import Collection as MongoCollection
-from pymongo.database import Database as MongoDatabase
+from nmdc_runtime.mongo_util import (
+    AsyncMongoDatabase,
+    RuntimeAsyncMongoDatabase,
+    get_runtime_mdb,
+)
 from pymongo.errors import DuplicateKeyError
 from starlette import status
 from toolz import assoc_in, concat, dissoc, get_in, merge
@@ -55,8 +62,8 @@ BASE_URL_EXTERNAL = os.getenv("API_HOST_EXTERNAL")
 HOSTNAME_EXTERNAL = BASE_URL_EXTERNAL.split("://", 1)[-1]
 
 
-def is_num_matching_docs_within_limit(
-    collection: MongoCollection, filter_: dict, limit: int
+async def is_num_matching_docs_within_limit(
+    collection: AsyncCollection, filter_: dict, limit: int
 ) -> bool:
     """
     Check whether the number of documents in a MongoDB collection that match
@@ -67,7 +74,7 @@ def is_num_matching_docs_within_limit(
 
     # Count the number of documents matching the filter, but only count up to limit + 1,
     # since that's enough to determine whether the number exceeds the limit.
-    limited_num_matching_docs = collection.count_documents(
+    limited_num_matching_docs = await collection.count_documents(
         filter=filter_,
         limit=limit + 1,
     )
@@ -92,8 +99,8 @@ def check_filter(filter_: str):
     return filter_
 
 
-def list_resources(
-    req: ListRequest, mdb: MongoDatabase, collection_name: str = ""
+async def list_resources(
+    req: ListRequest, mdb: RuntimeAsyncMongoDatabase, collection_name: str = ""
 ) -> dict:
     """
     Returns a dictionary containing the requested MongoDB documents, maybe alongside pagination information.
@@ -112,19 +119,19 @@ def list_resources(
             detail="Must specify a collection name if no page token is supplied.",
         )
     if req.page_token:
-        doc = mdb.page_tokens.find_one({"_id": req.page_token})
+        doc = await mdb.raw["page_tokens"].find_one({"_id": req.page_token})
         if doc is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="`page_token` not found"
             )
         collection_name = doc["ns"]
         last_id = doc["last_id"]
-        mdb.page_tokens.delete_one({"_id": req.page_token})
+        await mdb.raw["page_tokens"].delete_one({"_id": req.page_token})
     else:
         last_id = None
 
     id_field = "id"
-    if "id_1" not in mdb[collection_name].index_information():
+    if "id_1" not in (await mdb.raw[collection_name].index_information()):
         logging.warning(
             f"list_resources: no index set on 'id' for collection {collection_name}"
         )
@@ -149,34 +156,45 @@ def list_resources(
     #       or (b) the number of documents matching the filter can fit on a single page.
     #
     will_paginate = True
-    if max_page_size < 1 or is_num_matching_docs_within_limit(
-        collection=mdb[collection_name], filter_=filter_, limit=max_page_size
+    if max_page_size < 1 or (
+        await is_num_matching_docs_within_limit(
+            collection=mdb.raw[collection_name], filter_=filter_, limit=max_page_size
+        )
     ):
         will_paginate = False
 
     if not will_paginate:
         rv = {
-            "resources": list(
-                mdb[collection_name].find(filter=filter_, projection=projection)
+            "resources": (
+                await mdb.raw[collection_name]
+                .find(filter=filter_, projection=projection)
+                .to_list()
             )
         }
         return rv
     else:
-        resources = list(
-            mdb[collection_name].find(
+        resources = (
+            await mdb.raw[collection_name]
+            .find(
                 filter=filter_,
                 projection=projection,
                 limit=max_page_size,
                 sort=[(id_field, 1)],
                 allow_disk_use=True,
             )
+            .to_list()
         )
         last_id = resources[-1][id_field]
-        token = generate_one_id(mdb, "page_tokens")
+        token = await generate_one_id("ptoken")
         # TODO unify with `/queries:run` query continuation model
         #  => {_id: cursor/token, query: <full query>, last_id: <>, last_modified: <>}
-        mdb.page_tokens.insert_one(
-            {"_id": token, "ns": collection_name, "last_id": last_id}
+        await mdb.raw["page_tokens"].insert_one(
+            {
+                "_id": token,
+                "ns": collection_name,
+                "last_id": last_id,
+                "last_modified": now(),
+            }
         )
         return {"resources": resources, "next_page_token": token}
 
@@ -278,15 +296,17 @@ def strip_oid(doc: dict) -> dict:
     return dissoc(doc, "_id")
 
 
-def timeit(cursor):
+async def timeit(cursor: AsyncCursor):
     """Collect from cursor and return time taken in milliseconds."""
     tic = time_ns()
-    results = list(cursor)
+    results = await cursor.to_list()
     toc = time_ns()
     return results, int(round((toc - tic) / 1e6))
 
 
-def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
+async def find_resources(
+    req: FindRequest, mdb: RuntimeAsyncMongoDatabase, collection_name: str
+):
     """Find nmdc schema collection entities that match the FindRequest.
 
     "resources" is used generically here, as in "Web resources", e.g. Uniform Resource Identifiers (URIs).
@@ -311,7 +331,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
     )
     sort_ = get_mongo_sort(req.sort)
 
-    total_count = mdb[collection_name].count_documents(filter=filter_)
+    total_count = await mdb.raw[collection_name].count_documents(filter=filter_)
 
     if req.page:
         skip = (req.page - 1) * req.per_page
@@ -331,8 +351,8 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
                 ),
             )
         limit = req.per_page
-        results, db_response_time_ms = timeit(
-            mdb[collection_name].find(
+        results, db_response_time_ms = await timeit(
+            mdb.raw[collection_name].find(
                 filter=filter_,
                 skip=skip,
                 limit=limit,
@@ -357,13 +377,15 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
     else:  # req.cursor is not None
         if req.cursor != "*":
-            doc = mdb.page_tokens.find_one({"_id": req.cursor, "ns": collection_name})
+            doc = await mdb.raw["page_tokens"].find_one(
+                {"_id": req.cursor, "ns": collection_name}
+            )
             if doc is None:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Bad cursor value"
                 )
             last_id = doc["last_id"]
-            mdb.page_tokens.delete_one({"_id": req.cursor})
+            await mdb.raw["page_tokens"].delete_one({"_id": req.cursor})
         else:
             last_id = None
 
@@ -373,7 +395,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
             else:
                 filter_ = merge(filter_, {"id": {"$gt": last_id}})
 
-        if "id_1" not in mdb[collection_name].index_information():
+        if "id_1" not in (await mdb.raw[collection_name].index_information()):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cursor-based pagination is not enabled for this resource.",
@@ -381,8 +403,8 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
         limit = req.per_page
         sort_for_cursor = (sort_ or []) + [("id", 1)]
-        results, db_response_time_ms = timeit(
-            mdb[collection_name].find(
+        results, db_response_time_ms = await timeit(
+            mdb.raw[collection_name].find(
                 filter=filter_, limit=limit, sort=sort_for_cursor, projection=projection
             )
         )
@@ -395,11 +417,14 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
         else:
             filter_eager = merge(filter_, {"id": {"$gt": last_id}})
         more_results = (
-            mdb[collection_name].count_documents(filter=filter_eager, limit=limit) > 0
+            await mdb.raw[collection_name].count_documents(
+                filter=filter_eager, limit=limit
+            )
+            > 0
         )
         if more_results:
-            token = generate_one_id(mdb, "page_tokens")
-            mdb.page_tokens.insert_one(
+            token = await generate_one_id("ptoken")
+            await mdb.raw["page_tokens"].insert_one(
                 {"_id": token, "ns": collection_name, "last_id": last_id}
             )
         else:
@@ -424,7 +449,7 @@ def find_resources(req: FindRequest, mdb: MongoDatabase, collection_name: str):
 
 
 def find_resources_spanning(
-    req: FindRequest, mdb: MongoDatabase, collection_names: Set[str]
+    req: FindRequest, mdb: AsyncMongoDatabase, collection_names: Set[str]
 ):
     """Find nmdc schema collection entities -- here, across multiple collections -- that match the FindRequest.
 
@@ -477,13 +502,13 @@ def exists(collection: MongoCollection, filter_: dict):
     return collection.count_documents(filter_) > 0
 
 
-def persist_content_and_get_drs_object(
+async def persist_content_and_get_drs_object(
     content: str,
     description: str,
     username="(anonymous)",
     filename=None,
     content_type="application/json",
-    id_ns="json-metadata-in",
+    id_ns="json",
     exists_ok=False,
 ):
     """Persist a Data Repository Service (DRS) object.
@@ -494,14 +519,14 @@ def persist_content_and_get_drs_object(
 
     Reference: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes
     """
-    mdb = get_mongo_db()
-    drs_id = local_part(generate_one_id(mdb, ns=id_ns, shoulder="gfs0"))
+    mdb = await get_runtime_mdb()
+    drs_id = local_part(await generate_one_id(ns=id_ns, shoulder="gfs0"))
     filename = filename or drs_id
     PortableFilename(filename)  # validates
     DrsId(drs_id)  # validates
 
-    mdb_fs = GridFS(mdb)
-    mdb_fs.put(
+    mdb_fs = AsyncGridFS(mdb.raw)
+    await mdb_fs.put(
         content,
         _id=drs_id,
         filename=filename,
@@ -530,7 +555,7 @@ def persist_content_and_get_drs_object(
             )
         )
     self_uri = f"drs://{HOSTNAME_EXTERNAL}/{drs_id}"
-    return _create_object(
+    return await _create_object(
         mdb,
         object_in,
         mgr_site="nmdc-runtime",
@@ -540,8 +565,8 @@ def persist_content_and_get_drs_object(
     )
 
 
-def _create_object(
-    mdb: MongoDatabase,
+async def _create_object(
+    mdb: RuntimeAsyncMongoDatabase,
     object_in: DrsObjectIn,
     mgr_site,
     drs_id,
@@ -557,11 +582,11 @@ def _create_object(
     doc = drs_obj.model_dump(exclude_unset=True)
     doc["_mgr_site"] = mgr_site  # manager site
     try:
-        mdb.objects.insert_one(doc)
+        await mdb.raw["objects"].insert_one(doc)
     except DuplicateKeyError as e:
         if e.details["keyPattern"] == {"checksums.type": 1, "checksums.checksum": 1}:
             if exists_ok:
-                return mdb.objects.find_one(
+                return await mdb.raw["objects"].find_one(
                     {
                         "checksums": {
                             "$elemMatch": {
@@ -584,11 +609,11 @@ def _create_object(
     return doc
 
 
-def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
+async def _claim_job(job_id: str, mdb: RuntimeAsyncMongoDatabase, site: Site):
     r"""
     TODO: Document this function.
     """
-    job_doc = raise404_if_none(mdb.jobs.find_one({"id": job_id}))
+    job_doc = raise404_if_none(await mdb.raw["jobs"].find_one({"id": job_id}))
     job = Job(**job_doc)
     # check that site satisfies the job's workflow's required capabilities.
     capabilities_required = job.workflow.capability_ids or []
@@ -601,7 +626,7 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
 
     # For now, allow site to claim same job multiple times,
     # to re-submit results given same job input config.
-    job_op_for_site = mdb.operations.find_one(
+    job_op_for_site = await mdb.raw["operations"].find_one(
         {"metadata.job.id": job.id, "metadata.site_id": site.id}
     )
     if job_op_for_site is not None:
@@ -617,7 +642,7 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
         # )
         pass
 
-    op_id = generate_one_id(mdb, "op")
+    op_id = await generate_one_id("op")
     job.claims = (job.claims or []) + [JobClaim(op_id=op_id, site_id=site.id)]
     op = Operation[ResultT, JobOperationMetadata](
         **{
@@ -636,8 +661,10 @@ def _claim_job(job_id: str, mdb: MongoDatabase, site: Site):
             },
         }
     )
-    mdb.operations.insert_one(op.model_dump())
-    mdb.jobs.replace_one({"id": job.id}, job.model_dump(exclude_unset=True))
+    await mdb.raw["operations"].insert_one(op.model_dump())
+    await mdb.raw["jobs"].replace_one(
+        {"id": job.id}, job.model_dump(exclude_unset=True)
+    )
 
     return op.model_dump(exclude_unset=True)
 
@@ -656,7 +683,6 @@ def ensure_run_config_data(
     nmdc_workflow_id: str,
     nmdc_workflow_inputs: List[str],
     run_config_data: dict,
-    mdb: MongoDatabase,
     user: User,
 ):
     r"""
@@ -716,11 +742,11 @@ def inputs_for(nmdc_workflow_id, run_config_data):
         ]
 
 
-def _request_dagster_run(
+async def _request_dagster_run(
     nmdc_workflow_id: str,
     nmdc_workflow_inputs: List[str],
     extra_run_config_data: dict,
-    mdb: MongoDatabase,
+    mdb: RuntimeAsyncMongoDatabase,
     user: User,
     repository_location_name=None,
     repository_name=None,
@@ -733,11 +759,11 @@ def _request_dagster_run(
     dagster_job_name = map_nmdc_workflow_id_to_dagster_job_name()[nmdc_workflow_id]
 
     extra_run_config_data = ensure_run_config_data(
-        nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, mdb, user
+        nmdc_workflow_id, nmdc_workflow_inputs, extra_run_config_data, user
     )
 
     # add REQUESTED RunEvent
-    nmdc_run_id = _add_run_requested_event(
+    nmdc_run_id = await _add_run_requested_event(
         run_spec=RunUserSpec(
             job_id=nmdc_workflow_id,
             run_config=extra_run_config_data,
@@ -757,8 +783,8 @@ def _request_dagster_run(
         )
 
         # add STARTED RunEvent
-        _add_run_started_event(run_id=nmdc_run_id, mdb=mdb)
-        mdb.run_events.find_one_and_update(
+        await _add_run_started_event(run_id=nmdc_run_id, mdb=mdb)
+        await mdb.raw["run_events"].find_one_and_update(
             filter={"run.id": nmdc_run_id, "type": "STARTED"},
             update={"$set": {"run.facets.nmdcRuntime_dagsterRunId": dagster_run_id}},
             sort=[("time", -1)],
@@ -767,7 +793,7 @@ def _request_dagster_run(
         return {"type": "success", "detail": {"run_id": nmdc_run_id}}
     except DagsterGraphQLClientError as exc:
         # add FAIL RunEvent
-        _add_run_fail_event(run_id=nmdc_run_id, mdb=mdb)
+        await _add_run_fail_event(run_id=nmdc_run_id, mdb=mdb)
 
         return {
             "type": "error",
@@ -787,10 +813,10 @@ def _get_dagster_run_status(run_id: str):
         return {"type": "error", "detail": str(exc)}
 
 
-def check_action_permitted(username: str, action: str):
+async def check_action_permitted(username: str, action: str):
     """Returns True if a Mongo database action is "allowed" and "not denied"."""
-    db: MongoDatabase = get_mongo_db()
+    db: RuntimeAsyncMongoDatabase = await get_runtime_mdb()
     filter_ = {"username": username, "action": action}
-    denied = db["_runtime.api.deny"].find_one(filter_) is not None
-    allowed = db["_runtime.api.allow"].find_one(filter_) is not None
+    denied = (await db.raw["_runtime.api.deny"].find_one(filter_)) is not None
+    allowed = (await db.raw["_runtime.api.allow"].find_one(filter_)) is not None
     return (not denied) and allowed

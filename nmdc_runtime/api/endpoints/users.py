@@ -2,13 +2,14 @@ import json
 from datetime import timedelta
 from typing import Annotated
 
-import pymongo.database
+
 import requests
 from fastapi import Depends, APIRouter, HTTPException, status, Cookie
 from jose import jws, JWTError
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, PlainTextResponse
 
+from nmdc_runtime.mongo_util import get_runtime_mdb, RuntimeAsyncMongoDatabase
 from nmdc_runtime.api.core.auth import (
     OAuth2PasswordOrClientCredentialsRequestForm,
     Token,
@@ -23,7 +24,6 @@ from nmdc_runtime.api.core.auth import (
 )
 from nmdc_runtime.api.core.auth import get_password_hash
 from nmdc_runtime.api.core.util import generate_secret
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import authenticate_site_client
 from nmdc_runtime.api.models.user import UserInDB, UserIn, get_user
@@ -71,10 +71,10 @@ async def get_orcid_jwt(user_id_token: Annotated[str | None, Cookie()] = None):
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordOrClientCredentialsRequestForm = Depends(),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     if form_data.grant_type == "password":
-        user = authenticate_user(mdb, form_data.username, form_data.password)
+        user = await authenticate_user(mdb, form_data.username, form_data.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -101,15 +101,15 @@ async def login_for_access_token(
                 if issuer != ORCID_BASE_URL:
                     raise credentials_exception
                 subject: str = payload.get("sub")
-                user = get_user(mdb, subject)
+                user = await get_user(mdb, subject)
                 if user is None:
-                    mdb.users.insert_one(
+                    await mdb.raw["users"].insert_one(
                         UserInDB(
                             username=subject,
                             hashed_password=get_password_hash(generate_secret()),
                         ).model_dump(exclude_unset=True)
                     )
-                    user = get_user(mdb, subject)
+                    user = await get_user(mdb, subject)
                 assert user is not None, "failed to create orcid user"
                 access_token_expires = timedelta(**ACCESS_TOKEN_EXPIRES.model_dump())
                 access_token = create_access_token(
@@ -120,7 +120,7 @@ async def login_for_access_token(
             except JWTError:
                 raise credentials_exception
         else:  # form_data.client_secret
-            site = authenticate_site_client(
+            site = await authenticate_site_client(
                 mdb, form_data.client_id, form_data.client_secret
             )
             if not site:
@@ -171,7 +171,7 @@ def check_can_create_user(requester: User):
 def create_user(
     user_in: UserIn,
     requester: User = Depends(get_current_active_user),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     check_can_create_user(requester)
     mdb.users.insert_one(
@@ -193,7 +193,7 @@ def create_user(
 def update_user(
     user_in: UserIn,
     requester: User = Depends(get_current_active_user),
-    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    mdb: RuntimeAsyncMongoDatabase = Depends(get_runtime_mdb),
 ):
     check_can_create_user(requester)
     username = user_in.username

@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from html import escape
@@ -9,10 +10,12 @@ from pathlib import Path
 import fastapi
 import requests
 import uvicorn
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
+from pymongo.errors import OperationFailure
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
@@ -21,7 +24,16 @@ from scalar_fastapi import get_scalar_api_reference
 from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.api.middleware import PyinstrumentMiddleware
-from nmdc_runtime.config import IS_SCALAR_ENABLED
+from nmdc_runtime.api.models.query_continuation import (
+    COLLECTION_NAME_FOR_QUERY_CONTINUATIONS,
+)
+from nmdc_runtime.config import IS_SCALAR_ENABLED, environ
+from nmdc_runtime.logger import configure_logging
+from nmdc_runtime.mongo_util import (
+    RuntimeAsyncMongoDatabase,
+    _runtime_mdb_singleton,
+    get_runtime_mdb,
+)
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
@@ -34,7 +46,6 @@ from nmdc_runtime.api.core.auth import (
     ORCID_NMDC_CLIENT_ID,
     ORCID_BASE_URL,
 )
-from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
     capabilities,
     find,
@@ -64,7 +75,6 @@ from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
-
 api_router = APIRouter()
 api_router.include_router(find.router, tags=[OpenAPITag.METADATA_ACCESS.value])
 api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA_ACCESS.value])
@@ -83,23 +93,27 @@ api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
 
 
-def ensure_initial_resources_on_boot():
+logger = logging.getLogger(__name__)
+
+
+async def ensure_initial_resources_on_boot(mdb: RuntimeAsyncMongoDatabase):
     """ensure these resources are loaded when (re-)booting the system."""
-    mdb = get_mongo_db()
 
     collections = ["workflows", "capabilities", "object_types", "triggers"]
     for collection_name in collections:
-        mdb[collection_name].create_index("id", unique=True)
+        await mdb.raw[collection_name].create_index("id", unique=True)
         collection_boot = import_module(f"nmdc_runtime.api.boot.{collection_name}")
 
         for model in collection_boot.construct():
             doc = model.model_dump()
-            mdb[collection_name].replace_one({"id": doc["id"]}, doc, upsert=True)
+            await mdb.raw[collection_name].replace_one(
+                {"id": doc["id"]}, doc, upsert=True
+            )
 
     username = os.getenv("API_ADMIN_USER")
-    admin_ok = mdb.users.count_documents(({"username": username})) > 0
+    admin_ok = await mdb.raw["users"].count_documents(({"username": username})) > 0
     if not admin_ok:
-        mdb.users.replace_one(
+        await mdb.raw["users"].replace_one(
             {"username": username},
             UserInDB(
                 username=username,
@@ -108,13 +122,13 @@ def ensure_initial_resources_on_boot():
             ).model_dump(exclude_unset=True),
             upsert=True,
         )
-        mdb.users.create_index("username", unique=True)
+        await mdb.raw["users"].create_index("username", unique=True)
 
     site_id = os.getenv("API_SITE_ID")
-    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) > 0
+    runtime_site_ok = (await mdb.raw["sites"].count_documents(({"id": site_id}))) > 0
     if not runtime_site_ok:
         client_id = os.getenv("API_SITE_CLIENT_ID")
-        mdb.sites.replace_one(
+        await mdb.raw["sites"].replace_one(
             {"id": site_id},
             SiteInDB(
                 id=site_id,
@@ -130,29 +144,38 @@ def ensure_initial_resources_on_boot():
             upsert=True,
         )
 
-    ensure_unique_id_indexes(mdb)
+    await mdb.raw[COLLECTION_NAME_FOR_QUERY_CONTINUATIONS].create_index(
+        {"last_modified": 1}, expireAfterSeconds=3600
+    )
+    await mdb.raw["page_tokens"].create_index(
+        {"last_modified": 1}, expireAfterSeconds=3600
+    )
+
+    await ensure_unique_id_indexes(mdb)
 
     # No two object documents can have the same checksum of the same type.
-    mdb.objects.create_index(
+    await mdb.raw["objects"].create_index(
         [("checksums.type", 1), ("checksums.checksum", 1)], unique=True
     )
 
     # Minting resources
-    minter_bootstrap()
+    await minter_bootstrap()
 
 
-def ensure_type_field_is_indexed():
+async def ensure_type_field_is_indexed():
     r"""
     Ensures that each schema-described collection has an index on its `type` field.
     """
 
-    mdb = get_mongo_db()
+    mdb = await get_runtime_mdb()
     schema_view = nmdc_schema_view()
     for collection_name in get_collection_names_from_schema(schema_view):
-        mdb.get_collection(collection_name).create_index("type", background=True)
+        await mdb.raw.get_collection(collection_name).create_index(
+            "type", background=True
+        )
 
 
-def ensure_attribute_indexes():
+async def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
     `entity_attributes_to_index` dictionary, has an index on each field identified by the value
@@ -167,7 +190,7 @@ def ensure_attribute_indexes():
     ```
     """
 
-    mdb = get_mongo_db()
+    mdb = await get_runtime_mdb()
     for collection_name, index_specs in entity_attributes_to_index.items():
         for spec in index_specs:
             if not isinstance(spec, str):
@@ -175,10 +198,12 @@ def ensure_attribute_indexes():
                     "only supports basic single-key ascending index specs at this time."
                 )
 
-            mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
+            await mdb.raw[collection_name].create_index(
+                [(spec, 1)], name=spec, background=True
+            )
 
 
-def ensure_default_api_perms():
+async def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
     specific actions, and creates MongoDB indexes to speed up allowance queries.
@@ -186,8 +211,8 @@ def ensure_default_api_perms():
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
 
-    db = get_mongo_db()
-    if db["_runtime.api.allow"].count_documents({}):
+    db = await get_runtime_mdb()
+    if await db.raw["_runtime.api.allow"].estimated_document_count():
         return
 
     allowances = {
@@ -223,15 +248,23 @@ async def lifespan(app: FastAPI):
     > You can define logic (code) that should be executed before the application starts up. This means that
     > this code will be executed once, before the application starts receiving requests.
     """
-    ensure_initial_resources_on_boot()
-    ensure_attribute_indexes()
-    ensure_type_field_is_indexed()
-    ensure_default_api_perms()
+    configure_logging()
+    logger.debug("Configured logging.")
+
+    mdb: RuntimeAsyncMongoDatabase = await get_runtime_mdb()
+    await ensure_initial_resources_on_boot(mdb)
+    await ensure_attribute_indexes()
+    await ensure_type_field_is_indexed()
+    await ensure_default_api_perms()
 
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
+    logger.debug("Identifying schema-allowed references...")
     get_allowed_references()  # we ignore the return value here
 
     yield
+
+    if _runtime_mdb_singleton:
+        await _runtime_mdb_singleton.close()
 
 
 @api_router.get("/", include_in_schema=False)
@@ -267,7 +300,9 @@ app = FastAPI(
 )
 app.include_router(api_router)
 
-
+app.add_middleware(
+    lambda app_: CorrelationIdMiddleware(app_)
+)  # Wrap CorrelationIdMiddleware as a factory to satisfy Starlette's typing
 app.add_middleware(
     CORSMiddleware,
     # Allow requests from client-side web apps hosted in local development environments, on microbiomedata.org, and on GitHub Pages.

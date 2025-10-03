@@ -4,8 +4,7 @@ from typing import Union
 
 from pymongo import ReturnDocument
 from toolz import merge
-from pymongo.database import Database as MongoDatabase
-
+from nmdc_runtime.mongo_util import AsyncMongoDatabase, RuntimeAsyncMongoDatabase
 
 from nmdc_runtime.minter.domain.model import (
     Identifier,
@@ -131,31 +130,35 @@ class InMemoryIDStore(IDStore):
                 raise MinterError("Status not 'draft'. Can't delete.")
 
 
-class MongoIDStore(abc.ABC):
-    def __init__(self, mdb: MongoDatabase):
-        self.db = mdb
+class MongoIDStore(IDStore):
+    def __init__(self, mdb: RuntimeAsyncMongoDatabase):
+        self.mdb = mdb
 
-    def mint(self, req_mint: MintingRequest) -> list[Identifier]:
+    async def mint(self, req_mint: MintingRequest) -> list[Identifier]:
         """
         TODO: Document this method.
         """
 
-        if not self.db["minter.services"].find_one({"id": req_mint.service.id}):
+        if not await self.mdb.raw["minter.services"].find_one(
+            {"id": req_mint.service.id}
+        ):
             raise MinterError(f"Unknown service {req_mint.service.id}")
-        if not self.db["minter.requesters"].find_one({"id": req_mint.requester.id}):
+        if not await self.mdb.raw["minter.requesters"].find_one(
+            {"id": req_mint.requester.id}
+        ):
             raise MinterError(f"Unknown requester {req_mint.requester.id}")
-        if not self.db["minter.schema_classes"].find_one(
+        if not await self.mdb.raw["minter.schema_classes"].find_one(
             {"id": req_mint.schema_class.id}
         ):
             raise MinterError(f"Unknown schema class {req_mint.schema_class.id}")
-        typecode = self.db["minter.typecodes"].find_one(
+        typecode = await self.mdb.raw["minter.typecodes"].find_one(
             {"schema_class": req_mint.schema_class.id}
         )
         if not typecode:
             raise MinterError(
                 detail=f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
             )
-        shoulder = self.db["minter.shoulders"].find_one(
+        shoulder = await self.mdb.raw["minter.shoulders"].find_one(
             {"assigned_to": req_mint.service.id}
         )
         collected = []
@@ -169,7 +172,7 @@ class MongoIDStore(abc.ABC):
             id_names = list(id_names)
             taken = {
                 d["id"]
-                for d in self.db["minter.id_records"].find(
+                async for d in self.mdb.raw["minter.id_records"].find(
                     {"id": {"$in": id_names}}, {"id": 1}
                 )
             }
@@ -187,13 +190,15 @@ class MongoIDStore(abc.ABC):
                     )
                     for id_name in not_taken
                 ]
-                self.db["minter.id_records"].insert_many([i.model_dump() for i in ids])
+                await self.mdb.raw["minter.id_records"].insert_many(
+                    [i.model_dump() for i in ids]
+                )
                 collected.extend(ids)
             if len(collected) == req_mint.how_many:
                 break
         return collected
 
-    def bind(self, req_bind: BindingRequest) -> Identifier:
+    async def bind(self, req_bind: BindingRequest) -> Identifier:
         """Associate the specified arbitrary metadata with the specified ID.
 
         TODO: Do not allow users to bind identifiers minted by _other_ users.
@@ -204,7 +209,7 @@ class MongoIDStore(abc.ABC):
 
         match id_stored.status:
             case Status.draft:
-                return self.db["minter.id_records"].find_one_and_update(
+                return await self.mdb.raw["minter.id_records"].find_one_and_update(
                     {"id": id_stored.id},
                     {"$set": {"bindings": req_bind.metadata_record}},
                     return_document=ReturnDocument.AFTER,
@@ -214,11 +219,13 @@ class MongoIDStore(abc.ABC):
                     detail="Status not 'draft'. Can't change bound metadata"
                 )
 
-    def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
+    async def resolve(self, req_res: ResolutionRequest) -> Union[Identifier, None]:
         """Get the metadata that is bound to the specified identifier."""
         match re.match(r"nmdc:([^-]+)-([^-]+)-.*", req_res.id_name).groups():
             case (_, _):
-                doc = self.db["minter.id_records"].find_one({"id": req_res.id_name})
+                doc = await self.mdb.raw["minter.id_records"].find_one(
+                    {"id": req_res.id_name}
+                )
                 # TODO if draft ID, check requester
                 #
                 #      Note: The above "TODO" comment is about checking whether the user that wants to
@@ -229,7 +236,7 @@ class MongoIDStore(abc.ABC):
             case _:
                 raise MinterError("Invalid ID name")
 
-    def delete(self, req_del: DeleteRequest):
+    async def delete(self, req_del: DeleteRequest):
         """Delete an identifier that is still in the draft state.
 
         Note: You can mint (draft) as many IDs as you want. As long as you don't bind them
@@ -237,12 +244,12 @@ class MongoIDStore(abc.ABC):
 
         TODO: Do not allow users to delete identifiers minted by _other_ users.
         """
-        id_stored = self.resolve(req_del)
+        id_stored = await self.resolve(req_del)
         if id_stored is None:
             raise MinterError(f"ID {req_del.id_name} is unknown")
 
         match id_stored.status:
             case Status.draft:
-                self.db["minter.id_records"].delete_one({"id": id_stored.id})
+                await self.mdb.raw["minter.id_records"].delete_one({"id": id_stored.id})
             case _:
                 raise MinterError("Status not 'draft'. Can't delete.")

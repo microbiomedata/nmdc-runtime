@@ -9,6 +9,8 @@ TODO: Move all environment variable reads into this module and update references
 from typing import Set
 import os
 
+from dotenv import dotenv_values
+
 
 def is_env_var_true(name: str, default: str = "false") -> bool:
     r"""
@@ -54,3 +56,6 @@ IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
 # Feature flag that can be used to enable/disable performance profiling,
 # which can be activated via the `?profile=true` URL query parameter.
 IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")
+
+
+environ = dotenv_values(".env")
