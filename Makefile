@@ -100,6 +100,17 @@ nersc-mongo-tunnels:
 DEV_STACK_HOST_MACHINE_PORT_MONGO:=$(shell cat .env | grep DEV_STACK_HOST_MACHINE_PORT_MONGO= | cut -d= -f2)
 
 mongorestore-nmdc-db:
+	@echo "Checking environment variables..."
+	@for env_var_name in NERSC_USERNAME MONGO_REMOTE_DUMP_DIR DEV_STACK_HOST_MACHINE_PORT_MONGO; do \
+		if [ -z "$${!env_var_name}" ]; then \
+			echo "Error: Environment variable '$${env_var_name}' is undefined or empty."; \
+			exit 1; \
+		fi; \
+	done
+	@echo "Environment variables are OK."
+	#
+	# Proceed to download a Mongo dump from the NERSC filesystem and restore it into the local development stack.
+	#
 	mkdir -p /tmp/remote-mongodump/nmdc
 	# Optionally, manually update MONGO_REMOTE_DUMP_DIR env var:
 	# ```bash
