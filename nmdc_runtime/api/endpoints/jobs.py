@@ -49,6 +49,7 @@ def list_jobs(
         req.filter = json.dumps({"claims.site_id": {"$ne": maybe_site.id}})
     return list_resources(req, mdb, "jobs")
 
+
 @router.post("/jobs", response_model=Job, status_code=status.HTTP_201_CREATED)
 def create_job(
     job_data: dict = Body(...),
@@ -127,7 +128,7 @@ def create_job(
       ]
     }
     ```
-   
+
 
     """
     _ = site  # must be authenticated
