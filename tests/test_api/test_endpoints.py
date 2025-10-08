@@ -3234,7 +3234,7 @@ def test_create_job(api_site_client):
         # Submit the job creation request
         response = api_site_client.request(
             "POST",
-            "/jobs:create",
+            "/jobs",
             job,
         )
         print(response.json())
@@ -3262,6 +3262,5 @@ def test_create_job(api_site_client):
         print(e)
         raise e
         
-    finally:
-        # clean up jobs
-        jobs_collection.delete_many({"id": created_job["id"]})
+    # clean up jobs
+    jobs_collection.delete_many({"id": created_job["id"]})
