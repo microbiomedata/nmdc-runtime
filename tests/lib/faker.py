@@ -475,3 +475,86 @@ class Faker:
             documents.append(document)
 
         return documents
+    
+    def generate_jobs(self, quantity: int) -> List[dict]:
+        """
+        Generates the specified number of documents representing job instances,
+        which can be stored in the `jobs` collection.
+        The documents comply with schema v11.10.0rc3.
+
+        :param quantity: Number of documents to create
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> jobs = f.generate_jobs(1, workflow_id='wf id')
+        >>> len(jobs)
+        1
+        >>> jobs[0]['id']
+        'nmdc:123'
+        >>> jobs[0]['workflow']['id']
+        'wf id'
+        >>> jobs[0]['config']['git_repo']
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            document = {
+                "workflow": {
+                    "id": self.make_unique_id("nmdc:wfe-"),
+                },
+                "id": self.make_unique_id("nmdc:"),
+                "created_at": "date",
+                "config": {
+                    "git_repo": "https://www.example.com",
+                    "release": "v1.1.0",
+                    "wdl": "workflow.wdl",
+                    "activity_id": self.make_unique_id("nmdc:wfmgan-"),
+                    "activity_set": "activity_set_name",
+                    "was_informed_by": [
+                        self.make_unique_id("nmdc:omprc-"),
+                    ],
+                    "trigger_activity": self.make_unique_id("nmdc:wfmgas-"),
+                    "iteration": 1,
+                    "input_prefix": "input_prefix",
+                    "inputs": {
+                        "input_file": "file link",
+                        "imgap_project_id": "project id",
+                        "proj": self.make_unique_id("nmdc:wfmgan-"),
+                    },
+                    "input_data_objects": [
+                        {
+                            "id": self.make_unique_id("nmdc:dobj-"),
+                            "name": "data object name",
+                            "description": "data object description",
+                            "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-123/nmdc:wfmgas-11-123/nmdc_wfmgas-11-123_contigs.fna",
+                            "md5_checksum": "123",
+                            "file_size_bytes": 123,
+                            "data_object_type": "Assembly Contigs",
+                        }
+                    ],
+                    "activity": {
+                        "name": "Metagenome Annotation Analysis Activity",
+                        "type": "nmdc:MetagenomeAnnotationActivity"
+                    },
+                    "outputs": [
+                        {
+                            "output": "proteins_faa",
+                            "data_object_type": "Annotation Amino Acid FASTA",
+                            "description": "FASTA Amino Acid File",
+                            "name": "FASTA amino acid file for annotated proteins",
+                            "id": "nmdc:dobj-11-123"
+                        }
+                    ]
+                },
+                "claims": [
+                    {
+                        "op_id": "nmdc:123",
+                        "site_id": "NERSC"
+                    }
+                ]
+            }
+
+            documents.append(document)
+
+        return documents
+

@@ -3220,3 +3220,48 @@ def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_clien
     assert res_body["meta"]["count"] == 0
     assert res_body["meta"]["next_cursor"] is None
     assert res_body["results"] == []
+
+
+def test_create_job(api_site_client):
+    """Test creating a new job via POST /jobs endpoint."""
+    mdb = get_mongo_db()
+    faker = Faker()
+    
+    #  create fake jobs
+    job = faker.generate_jobs(1)[0]
+    
+    try:
+        # Submit the job creation request
+        response = api_site_client.request(
+            "POST",
+            "/jobs:create",
+            job,
+        )
+        print(response.json())
+        # Verify the response
+        assert response.status_code == 201
+        created_job = response.json()
+        
+        # Verify the job has required fields
+        assert "id" in created_job
+        assert created_job["id"].startswith("nmdc:")
+        assert "created_at" in created_job
+        assert created_job["workflow"]["id"] == "Metagenome Annotation: v1.1.0"
+        assert created_job["config"]["git_repo"] == "https://github.com/microbiomedata/mg_annotation"
+        
+        # Verify the job was actually inserted into the database
+        jobs_collection = mdb.get_collection("jobs")
+        db_job = jobs_collection.find_one({"id": created_job["id"]})
+        assert db_job is not None
+        assert db_job["workflow"]["id"] == "Metagenome Annotation: v1.1.0"
+        
+        # Clean up: remove the created job
+        jobs_collection.delete_one({"id": created_job["id"]})
+    
+    except Exception as e:
+        print(e)
+        raise e
+        
+    finally:
+        # clean up jobs
+        jobs_collection.delete_many({"id": created_job["id"]})
