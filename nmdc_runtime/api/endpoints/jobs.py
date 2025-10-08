@@ -13,7 +13,11 @@ from nmdc_runtime.api.core.util import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.endpoints.util import list_resources, _claim_job, check_action_permitted
+from nmdc_runtime.api.endpoints.util import (
+    list_resources,
+    _claim_job,
+    check_action_permitted,
+)
 from nmdc_runtime.api.models.job import Job, JobClaim
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.operation import Operation, MetadataT
@@ -53,20 +57,20 @@ def create_job(
 ):
     """
     Create a new workflow job record.
-    
+
     This endpoint creates a new job that defines a workflow execution request. The job includes:
-    
+
     - **Workflow Information**: Identifies the specific workflow to be executed
     - **Configuration**: Detailed parameters including input/output specifications, repository information, and execution parameters
     - **Claims**: Optional site assignments for job execution
-    
+
     The system will automatically generate a unique job ID and creation timestamp if not provided.
-    
+
     **Required Permissions**: Only users with specific job creation permissions can use this endpoint.
-    
+
     **Example request bodies:**
     - Minimal job creation:
-    
+
     ```json
     {
       "workflow": {
@@ -127,42 +131,42 @@ def create_job(
 
     """
     _ = site  # must be authenticated
-    
-    
+
     # Generate a unique ID for the job
     job_data["id"] = generate_one_id(mdb, "jobs")
-    
+
     # Set created_at timestamp if not provided
     if "created_at" not in job_data:
         job_data["created_at"] = datetime.now(timezone.utc)
-    
+
     # Validate the job data structure
     try:
         job = Job(**job_data)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid job data: {str(e)}"
+            detail=f"Invalid job data: {str(e)}",
         )
     # convert back to dict after validation
     job_dict = job.model_dump(exclude_unset=True)
-    
+
     # Insert the job into the database
     try:
         result = mdb.jobs.insert_one(job_dict)
         if not result.inserted_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create job"
+                detail="Failed to create job",
             )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail=f"Database error: {str(e)}",
         )
-    
+
     # Return the created job
     return job
+
 
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
 def get_job_info(
