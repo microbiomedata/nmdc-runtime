@@ -112,12 +112,10 @@ def get_type_collections() -> dict:
 
 
 def without_id_patterns(nmdc_jsonschema):
-    rv = deepcopy(nmdc_jsonschema)
-    for cls_, spec in rv["$defs"].items():
-        if "properties" in spec:
-            if "id" in spec["properties"]:
-                spec["properties"]["id"].pop("pattern", None)
-    return rv
+    # !!! Return the unmodified schema !!!
+    # This is an experimental change to determine if removing the ID pattern exception would cause
+    # any issues in practice. If not, we can remove this function and the associated logic.
+    return nmdc_jsonschema
 
 
 @lru_cache
