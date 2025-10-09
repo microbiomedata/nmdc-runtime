@@ -3235,7 +3235,6 @@ def test_create_job(api_site_client):
             "/jobs",
             job,
         )
-        print("request res:", response.json())
         # Verify the response
         assert response.status_code == 201
         created_job = response.json()
