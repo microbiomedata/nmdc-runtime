@@ -2925,7 +2925,7 @@ requires-dist = [
     { name = "linkml" },
     { name = "linkml-runtime" },
     { name = "lxml" },
-    { name = "nmdc-schema", specifier = "==11.11.1" },
+    { name = "nmdc-schema", specifier = "==11.12.0" },
     { name = "ontology-loader", specifier = "==0.2.2" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
@@ -2970,7 +2970,7 @@ docs = [
 
 [[package]]
 name = "nmdc-schema"
-version = "11.11.1"
+version = "11.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2987,9 +2987,9 @@ dependencies = [
     { name = "rdflib" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/3a/9d6ef0f7618eefbe59ae497cc2d35f745562a7b1d6061a9c37b7835ad0d7/nmdc_schema-11.11.1.tar.gz", hash = "sha256:fbf290e3991ba192ad45a90d2aeaa4db364e4be2041392d80f234617a26e5460", size = 679182, upload-time = "2025-09-19T01:08:59.522Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/8b/1feb45355a815916098545af8d2e33bfee10e6c93257718175b3c76a9dfe/nmdc_schema-11.12.0.tar.gz", hash = "sha256:281025869d382191936376d4dd689aea0d55e0cd284ad36ff18174744455724c", size = 700270, upload-time = "2025-10-09T17:14:56.866Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/d9/08134cdec2260ade3048cdae87b47e693b3c2e7003d9810b744d82381ea1/nmdc_schema-11.11.1-py3-none-any.whl", hash = "sha256:5df7e14f997f48a221620472b27938c12310d76308bbfb184a53a59c05de74db", size = 743976, upload-time = "2025-09-19T01:08:57.35Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/9b/3c0edae594b81761a22732865062b80fd4d0e01a5f169dfeca760d37b7ae/nmdc_schema-11.12.0-py3-none-any.whl", hash = "sha256:7f9e0ec89db6bc4067fe5fdb6d1153a5319e998075ae98d7373d37939b174d61", size = 768129, upload-time = "2025-10-09T17:14:55.214Z" },
 ]
 
 [[package]]

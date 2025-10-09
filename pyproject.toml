@@ -57,7 +57,7 @@ dependencies = [
     "ontology-loader == 0.2.2",
     # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema == 11.11.1",
+    "nmdc-schema==11.12.0",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",
