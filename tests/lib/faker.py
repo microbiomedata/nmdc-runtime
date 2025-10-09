@@ -1,5 +1,5 @@
 from typing import List
-
+from datetime import datetime
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
@@ -18,6 +18,7 @@ from nmdc_schema.nmdc import (
     Study,
     StudyCategoryEnum,
 )
+from nmdc_runtime.api.models.job import Job
 
 class Faker:
     r"""
@@ -503,7 +504,6 @@ class Faker:
                     "id": self.make_unique_id("nmdc:wfe-"),
                 },
                 "id": self.make_unique_id("nmdc:"),
-                "created_at": "date",
                 "config": {
                     "git_repo": "https://www.example.com",
                     "release": "v1.1.0",
@@ -553,8 +553,10 @@ class Faker:
                     }
                 ]
             }
-
-            documents.append(document)
+            # conform to Job model
+            job = Job(**document)
+            job_dict = job.model_dump(exclude_unset=True)
+            documents.append(job_dict)
 
         return documents
 

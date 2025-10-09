@@ -1,6 +1,4 @@
 import json
-import uuid
-from datetime import datetime, timezone
 from typing import Optional, Annotated
 
 from pymongo.database import Database
@@ -135,10 +133,6 @@ def create_job(
     # Generate a unique ID for the job
     job_data["id"] = generate_one_id(mdb, "jobs")
 
-    # Set created_at timestamp if not provided
-    if "created_at" not in job_data:
-        job_data["created_at"] = datetime.now(timezone.utc)
-
     # Validate the job data structure
     try:
         job = Job(**job_data)
@@ -149,16 +143,18 @@ def create_job(
         )
     # convert back to dict after validation
     job_dict = job.model_dump(exclude_unset=True)
-
+    print("About to insert job:")
     # Insert the job into the database
     try:
         result = mdb.jobs.insert_one(job_dict)
+        print("Result of insertion:", result)
         if not result.inserted_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create job",
             )
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database error: {str(e)}",

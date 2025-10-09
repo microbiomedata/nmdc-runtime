@@ -3246,14 +3246,14 @@ def test_create_job(api_site_client):
         assert "id" in created_job
         assert created_job["id"].startswith("nmdc:")
         assert "created_at" in created_job
-        assert created_job["workflow"]["id"] == "Metagenome Annotation: v1.1.0"
-        assert created_job["config"]["git_repo"] == "https://github.com/microbiomedata/mg_annotation"
+        assert created_job["workflow"]["id"] == "nmdc:wfe-000001"
+        assert created_job["config"]["git_repo"] == "https://www.example.com"
         
         # Verify the job was actually inserted into the database
         jobs_collection = mdb.get_collection("jobs")
         db_job = jobs_collection.find_one({"id": created_job["id"]})
         assert db_job is not None
-        assert db_job["workflow"]["id"] == "Metagenome Annotation: v1.1.0"
+        assert db_job["workflow"]["id"] == "nmdc:wfe-000001"
         
         # Clean up: remove the created job
         jobs_collection.delete_one({"id": created_job["id"]})
