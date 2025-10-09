@@ -11,10 +11,7 @@ from nmdc_runtime.api.core.util import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.endpoints.util import (
-    list_resources,
-    _claim_job
-)
+from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
 from nmdc_runtime.api.models.job import Job, JobClaim
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
