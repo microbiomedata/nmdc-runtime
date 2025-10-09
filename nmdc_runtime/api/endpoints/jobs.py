@@ -2,7 +2,7 @@ import json
 from typing import Optional, Annotated
 
 from pymongo.database import Database
-from fastapi import APIRouter, Depends, Query, HTTPException, Path, Body
+from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
 
@@ -13,11 +13,9 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.endpoints.util import (
     list_resources,
-    _claim_job,
-    check_action_permitted,
+    _claim_job
 )
 from nmdc_runtime.api.models.job import Job, JobClaim
-from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
     Site,
