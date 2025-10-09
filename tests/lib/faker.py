@@ -477,24 +477,24 @@ class Faker:
 
         return documents
     
-    def generate_jobs(self, quantity: int) -> List[dict]:
+    def generate_jobs(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing job instances,
         which can be stored in the `jobs` collection.
         The documents comply with schema v11.10.0rc3.
 
         :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
         :return: The generated documents
 
         >>> f = Faker()
-        >>> jobs = f.generate_jobs(1, workflow_id='wf id')
+        >>> jobs = f.generate_jobs(1)
         >>> len(jobs)
         1
-        >>> jobs[0]['id']
-        'nmdc:123'
         >>> jobs[0]['workflow']['id']
-        'wf id'
+        'nmdc:wfe-000001'
         >>> jobs[0]['config']['git_repo']
+        'https://www.example.com'
         """
         documents = []
         for i in range(quantity):
@@ -503,7 +503,6 @@ class Faker:
                 "workflow": {
                     "id": self.make_unique_id("nmdc:wfe-"),
                 },
-                "id": self.make_unique_id("nmdc:"),
                 "config": {
                     "git_repo": "https://www.example.com",
                     "release": "v1.1.0",
@@ -551,12 +550,9 @@ class Faker:
                         "op_id": "nmdc:123",
                         "site_id": "NERSC"
                     }
-                ]
+                ],
+                **overrides,
             }
-            # conform to Job model
-            job = Job(**document)
-            job_dict = job.model_dump(exclude_unset=True)
-            documents.append(job_dict)
+            documents.append(document)
 
         return documents
-

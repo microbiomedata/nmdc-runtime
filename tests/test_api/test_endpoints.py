@@ -3226,10 +3226,8 @@ def test_create_job(api_site_client):
     """Test creating a new job via POST /jobs endpoint."""
     mdb = get_mongo_db()
     faker = Faker()
-    
     #  create fake jobs
     job = faker.generate_jobs(1)[0]
-    
     try:
         # Submit the job creation request
         response = api_site_client.request(
@@ -3237,7 +3235,7 @@ def test_create_job(api_site_client):
             "/jobs",
             job,
         )
-        print(response.json())
+        print("request res:", response.json())
         # Verify the response
         assert response.status_code == 201
         created_job = response.json()

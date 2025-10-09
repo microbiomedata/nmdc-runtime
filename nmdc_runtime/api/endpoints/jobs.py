@@ -48,9 +48,9 @@ def list_jobs(
     return list_resources(req, mdb, "jobs")
 
 
-@router.post("/jobs", response_model=Job, status_code=status.HTTP_201_CREATED)
+@router.post("/jobs", response_model=Job)
 def create_job(
-    job_data: dict = Body(...),
+    job_data: dict,
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ):
@@ -144,7 +144,7 @@ def create_job(
         )
     # convert back to dict after validation
     job_dict = job.model_dump(exclude_unset=True)
-    print("About to insert job:")
+
     # Insert the job into the database
     try:
         result = mdb.jobs.insert_one(job_dict)
