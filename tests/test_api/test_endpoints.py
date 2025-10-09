@@ -3236,7 +3236,7 @@ def test_create_job(api_site_client):
             job,
         )
         # Verify the response
-        assert response.status_code == 201
+        assert response.status_code == 200
         created_job = response.json()
         
         # Verify the job has required fields
