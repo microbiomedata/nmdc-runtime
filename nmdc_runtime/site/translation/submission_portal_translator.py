@@ -286,7 +286,10 @@ class SubmissionPortalTranslator(Translator):
         return [self._ensure_curie(emsl_project_id, default_prefix="emsl.project")]
 
     def _get_quantity_value(
-        self, raw_value: Optional[str | int | float], slot_definition: SlotDefinition, unit: Optional[str] = None
+        self,
+        raw_value: Optional[str | int | float],
+        slot_definition: SlotDefinition,
+        unit: Optional[str] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Construct a nmdc:QuantityValue from a raw value string"""
 
@@ -300,7 +303,9 @@ class SubmissionPortalTranslator(Translator):
         # If the raw_value is numeric, directly construct a QuantityValue with the inferred unit.
         if isinstance(raw_value, (int, float)):
             if unit is None:
-                raise ValueError(f"While processing value for slot {slot_definition.name}, a numeric value was provided but no unit could be inferred.")
+                raise ValueError(
+                    f"While processing value for slot {slot_definition.name}, a numeric value was provided but no unit could be inferred."
+                )
             # Constructing a Decimal directly from a float will maintain the full precision of the
             # float (i.e. numbers like 0.5 cannot be represented exactly). Converting the float to
             # a string first and then constructing the Decimal from that string will give a more
