@@ -1,6 +1,7 @@
 import logging
 import re
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional, Union
 from nmdc_schema import nmdc
 
@@ -69,13 +70,13 @@ class Translator(ABC):
             # having group 2 means the value is a range like "0 - 1". Either
             # group 1 or group 2 might be the minimum especially when handling
             # negative ranges like "0 - -1"
-            num_1 = float(match.group(1))
-            num_2 = float(match.group(2))
+            num_1 = Decimal(match.group(1))
+            num_2 = Decimal(match.group(2))
             quantity_value_kwargs["has_minimum_numeric_value"] = min(num_1, num_2)
             quantity_value_kwargs["has_maximum_numeric_value"] = max(num_1, num_2)
         else:
             # otherwise we just have a single numeric value
-            quantity_value_kwargs["has_numeric_value"] = float(match.group(1))
+            quantity_value_kwargs["has_numeric_value"] = Decimal(match.group(1))
 
         if unit:
             # a unit was manually specified
