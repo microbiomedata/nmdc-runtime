@@ -89,21 +89,24 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  release:
-    needs: build
+  # TEMPORARILY COMMENTED OUT IN ORDER TO NOT INTERFERE WITH NERSC'S 
+  # DEBUGGING OF SPIN STABILITY ISSUES
+
+  # release:
+  #   needs: build
 
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        deployment: [ runtime-api, dagster-dagit, dagster-daemon ]
+  #   strategy:
+  #     matrix:
+  #       deployment: [ runtime-api, dagster-dagit, dagster-daemon ]
 
-    steps:
-      - name: Redeploy ${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}
-        if: ${{ env.IS_ORIGINAL_REPO }}
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
-          method: POST
-          bearerToken: ${{ secrets.RANCHER_TOKEN }}
+  #   steps:
+  #     - name: Redeploy ${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}
+  #       if: ${{ env.IS_ORIGINAL_REPO }}
+  #       uses: fjogeleit/http-request-action@v1
+  #       with:
+  #         url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
+  #         method: POST
+  #         bearerToken: ${{ secrets.RANCHER_TOKEN }}
