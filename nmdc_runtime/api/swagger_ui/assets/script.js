@@ -10,7 +10,7 @@ window.addEventListener("nmdcInit", (event) => {
     const addLogo = () => {
         console.debug("Adding logo");
         const headingGroupEl = document.querySelector(".information-container hgroup.main");
-        const titleEl = headingGroupEl.querySelector("h2.title");
+        const titleEl = headingGroupEl.querySelector(".title");
         const openapiSchemaLinkEl = headingGroupEl.querySelector("a.link");
         const titleWrapperEl = document.createElement("div");
         const logoEl = document.createElement("div");
