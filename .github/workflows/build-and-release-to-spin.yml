@@ -13,6 +13,9 @@ on:
       - '**.py'
       - 'pyproject.toml'
       - 'uv.lock'
+      # CSS and JavaScript used to customize Swagger UI page:
+      - 'nmdc_runtime/api/swagger_ui/assets/**/*.css'
+      - 'nmdc_runtime/api/swagger_ui/assets/**/*.js'
 
 env:
   # We don't want to do certain steps if this is running in a fork
