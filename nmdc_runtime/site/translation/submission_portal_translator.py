@@ -2,6 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 from functools import lru_cache
 from importlib import resources
@@ -285,9 +286,37 @@ class SubmissionPortalTranslator(Translator):
         return [self._ensure_curie(emsl_project_id, default_prefix="emsl.project")]
 
     def _get_quantity_value(
-        self, raw_value: Optional[str], unit: Optional[str] = None
+        self,
+        raw_value: Optional[str | int | float],
+        slot_definition: SlotDefinition,
+        unit: Optional[str] = None,
     ) -> Union[nmdc.QuantityValue, None]:
         """Construct a nmdc:QuantityValue from a raw value string"""
+
+        # If the storage_units annotation is present on the slot and it only contains one unit (i.e.
+        # not a pipe-separated list of units) then use that unit.
+        if "storage_units" in slot_definition.annotations:
+            storage_units = slot_definition.annotations["storage_units"].value
+            if storage_units and "|" not in storage_units:
+                unit = storage_units
+
+        # If the raw_value is numeric, directly construct a QuantityValue with the inferred unit.
+        if isinstance(raw_value, (int, float)):
+            if unit is None:
+                raise ValueError(
+                    f"While processing value for slot {slot_definition.name}, a numeric value was provided but no unit could be inferred."
+                )
+            # Constructing a Decimal directly from a float will maintain the full precision of the
+            # float (i.e. numbers like 0.5 cannot be represented exactly). Converting the float to
+            # a string first and then constructing the Decimal from that string will give a more
+            # expected value.
+            value_as_str = str(raw_value)
+            return nmdc.QuantityValue(
+                has_raw_value=value_as_str,
+                has_numeric_value=Decimal(value_as_str),
+                has_unit=unit,
+                type="nmdc:QuantityValue",
+            )
 
         return self._parse_quantity_value(raw_value, unit)
 
@@ -621,6 +650,7 @@ class SubmissionPortalTranslator(Translator):
         elif slot.range == "QuantityValue":
             transformed_value = self._get_quantity_value(
                 value,
+                slot,
                 unit=unit,
             )
         elif slot.range == "ControlledIdentifiedTermValue":
