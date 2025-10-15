@@ -1080,3 +1080,42 @@ class SubmissionPortalTranslator(Translator):
                 database.data_generation_set.append(nucleotide_sequencing)
 
         return database
+
+    @staticmethod
+    def set_study_images(
+        nmdc_study: nmdc.Study,
+        pi_image_url: Optional[str],
+        primary_study_image_url: Optional[str],
+        study_images_url: Optional[list[str]],
+    ) -> None:
+        """Set images for a study based on provided URLs."""
+
+        if pi_image_url:
+            if not nmdc_study.principal_investigator:
+                nmdc_study.principal_investigator = nmdc.PersonValue(
+                    type="nmdc:PersonValue"
+                )
+            nmdc_study.principal_investigator.profile_image_url = pi_image_url
+
+        if primary_study_image_url:
+            if not nmdc_study.study_image:
+                nmdc_study.study_image = []
+            nmdc_study.study_image.append(
+                nmdc.ImageValue(
+                    type="nmdc:ImageValue",
+                    url=primary_study_image_url,
+                    display_order=0,
+                )
+            )
+
+        if study_images_url:
+            if not nmdc_study.study_image:
+                nmdc_study.study_image = []
+            for idx, image_url in enumerate(study_images_url, start=1):
+                nmdc_study.study_image.append(
+                    nmdc.ImageValue(
+                        type="nmdc:ImageValue",
+                        url=image_url,
+                        display_order=idx,
+                    )
+                )
