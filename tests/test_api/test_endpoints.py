@@ -3254,3 +3254,23 @@ def test_create_job(api_site_client):
     # 🧹 Clean up: Delete the inserted job.
     jobs_collection.delete_many({"id": created_job["id"]})
     assert jobs_collection.count_documents({}) == num_jobs_initial
+
+
+def test_create_invalid_job(api_site_client):
+    """Test creating an invalid job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Define a dictionary representing an invalid `Job`.
+    invalid_job: dict = {"i_am_missing": "some_required_fields"}
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    with pytest.raises(requests.HTTPError) as exc_info:
+        _ = api_site_client.request("POST", "/jobs", invalid_job)
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Verify no job was created.
+    assert jobs_collection.count_documents({}) == num_jobs_initial
