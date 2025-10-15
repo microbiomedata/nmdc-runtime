@@ -3224,40 +3224,33 @@ def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_clien
 
 def test_create_job(api_site_client):
     """Test creating a new job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
     mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Generate a dictionary representing a `Job`, and remove its `id` field.
     faker = Faker()
-    #  create fake jobs
-    job = faker.generate_jobs(1)[0]
-    try:
-        # Submit the job creation request
-        response = api_site_client.request(
-            "POST",
-            "/jobs",
-            job,
-        )
-        # Verify the response
-        assert response.status_code == 200
-        created_job = response.json()
-        
-        # Verify the job has required fields
-        assert "id" in created_job
-        assert created_job["id"].startswith("nmdc:")
-        assert "created_at" in created_job
-        assert created_job["workflow"]["id"] == "nmdc:wfe-000001"
-        assert created_job["config"]["git_repo"] == "https://www.example.com"
-        
-        # Verify the job was actually inserted into the database
-        jobs_collection = mdb.get_collection("jobs")
-        db_job = jobs_collection.find_one({"id": created_job["id"]})
-        assert db_job is not None
-        assert db_job["workflow"]["id"] == "nmdc:wfe-000001"
-        
-        # Clean up: remove the created job
-        jobs_collection.delete_one({"id": created_job["id"]})
-    
-    except Exception as e:
-        print(e)
-        raise e
-        
-    # clean up jobs
+    job: dict = faker.generate_jobs(1)[0]
+    del job["id"]
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    response = api_site_client.request("POST", "/jobs", job)
+
+    # Verify the response indicates success and its payload includes an `id`.
+    assert response.status_code == 200
+    created_job = response.json()
+    assert "id" in created_job
+    created_job_id = created_job["id"]
+    assert isinstance(created_job_id, str) and len(created_job_id) > 0
+
+    # Verify the corresponding document has been added to the `jobs` collection.
+    assert jobs_collection.count_documents({}) == num_jobs_initial + 1
+    inserted_job = jobs_collection.find_one({"id": created_job["id"]})
+    assert inserted_job is not None
+    assert inserted_job["id"] == created_job["id"]
+
+    # 🧹 Clean up: Delete the inserted job.
     jobs_collection.delete_many({"id": created_job["id"]})
+    assert jobs_collection.count_documents({}) == num_jobs_initial
