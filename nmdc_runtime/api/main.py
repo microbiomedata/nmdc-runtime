@@ -361,7 +361,14 @@ def custom_swagger_ui_html(
             "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
         }
     )
+    # Pin the Swagger UI version to avoid breaking changes (to our own JavaScript code that depends on Swagger UI internals).
+    # Note: version `5.29.4` was released on October 10, 2025.
+    pinned_swagger_ui_version = "5.29.4"
+    swagger_ui_css_url = f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{pinned_swagger_ui_version}/swagger-ui.css"
+    swagger_ui_js_url = f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{pinned_swagger_ui_version}/swagger-ui-bundle.js"
     response = get_swagger_ui_html(
+        swagger_css_url=swagger_ui_css_url,
+        swagger_js_url=swagger_ui_js_url,
         openapi_url=app.openapi_url,
         title=app.title,
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
