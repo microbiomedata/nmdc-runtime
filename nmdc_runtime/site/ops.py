@@ -637,6 +637,31 @@ def translate_portal_submission_to_nmdc_schema_database(
     return database
 
 
+@op(required_resource_keys={"nmdc_portal_api_client"})
+def add_public_image_urls(
+    context: OpExecutionContext, database: nmdc.Database, submission_id: str
+) -> nmdc.Database:
+    client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+
+    if len(database.study_set) != 1:
+        raise Failure(
+            description="Expected exactly one study in the database to add public image URLs."
+        )
+
+    study_id = database.study_set[0].id
+    public_images = client.make_submission_images_public(
+        submission_id, study_id=study_id
+    )
+    SubmissionPortalTranslator.set_study_images(
+        database.study_set[0],
+        public_images.get("pi_image_url"),
+        public_images.get("primary_study_image_url"),
+        public_images.get("study_image_urls"),
+    )
+
+    return database
+
+
 @op
 def nmdc_schema_database_export_filename(study: Dict[str, Any]) -> str:
     source_id = None

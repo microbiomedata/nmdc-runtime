@@ -15,6 +15,7 @@ from nmdc_schema.nmdc import (
     DoiProviderEnum,
     DoiCategoryEnum,
     UnitEnum,
+    Study,
 )
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
@@ -531,3 +532,31 @@ def test_parse_sample_link():
 
     parsed = translator._parse_sample_link("Pooling:sample1, sample2")
     assert parsed == ("Pooling", ["sample1", "sample2"])
+
+
+def test_set_study_images():
+    study = Study(
+        id="nmdc:study-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study"
+    )
+
+    SubmissionPortalTranslator.set_study_images(
+        study,
+        pi_image_url="http://www.example.org/pi_image.jpg",
+        primary_study_image_url="http://www.example.org/primary_study_image.jpg",
+        study_images_url=[
+            "http://www.example.org/study_image1.jpg",
+            "http://www.example.org/study_image2.jpg",
+        ]
+    )
+
+    assert study.principal_investigator.profile_image_url == "http://www.example.org/pi_image.jpg"
+    assert study.study_image is not None
+    assert len(study.study_image) == 3
+    assert study.study_image[0].url == "http://www.example.org/primary_study_image.jpg"
+    assert study.study_image[0].display_order == 0
+    assert study.study_image[1].url == "http://www.example.org/study_image1.jpg"
+    assert study.study_image[1].display_order == 1
+    assert study.study_image[2].url == "http://www.example.org/study_image2.jpg"
+    assert study.study_image[2].display_order == 2

@@ -64,6 +64,7 @@ from nmdc_runtime.site.ops import (
     generate_data_generation_set_post_biosample_ingest,
     get_instrument_ids_by_model,
     log_database_ids,
+    add_public_image_urls,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -239,6 +240,7 @@ def ingest_metadata_submission():
         instrument_mapping=instrument_mapping,
         study_id=study_id,
     )
+    database = add_public_image_urls(database, submission_id)
 
     log_database_ids(database)
 
