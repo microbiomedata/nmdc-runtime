@@ -3220,3 +3220,64 @@ def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_clien
     assert res_body["meta"]["count"] == 0
     assert res_body["meta"]["next_cursor"] is None
     assert res_body["results"] == []
+
+
+def test_create_job(api_site_client):
+    """Test creating a new job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Generate a dictionary representing a `Job`, remove its `id` and `created_at` fields
+    # (since those aren't part of the `JobIn` model), and add an extra field to it (which
+    # the `JobIn` model is currently configured to _ignore_, but not _forbid_).
+    faker = Faker()
+    job_name = "Job A"
+    job: dict = faker.generate_jobs(1, name=job_name)[0]
+    del job["id"]
+    del job["created_at"]
+    job["extra_field"] = "value"
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    response = api_site_client.request("POST", "/jobs", job)
+
+    # Verify the response indicates success and its payload has the field and values we expect.
+    assert response.status_code == status.HTTP_201_CREATED
+    created_job = response.json()
+    assert isinstance(created_job["id"], str) and len(created_job["id"]) > 0
+    assert isinstance(created_job["created_at"], str) and len(created_job["created_at"]) > 0
+    assert created_job["name"] == job_name  # optional field was preserved
+    assert "extra_field" not in created_job  # unrecognized field was discarded
+
+    # Verify the corresponding document has been added to the `jobs` collection.
+    assert jobs_collection.count_documents({}) == num_jobs_initial + 1
+    inserted_job = jobs_collection.find_one({"id": created_job["id"]})
+    assert inserted_job is not None
+    assert inserted_job["id"] == created_job["id"]
+    assert inserted_job["name"] == created_job["name"]
+
+    # 🧹 Clean up: Delete the inserted job.
+    jobs_collection.delete_many({"id": created_job["id"]})
+    assert jobs_collection.count_documents({}) == num_jobs_initial
+
+
+def test_create_invalid_job(api_site_client):
+    """Test creating an invalid job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Define a dictionary representing an invalid `Job`.
+    invalid_job: dict = {"i_am_missing": "some_required_fields"}
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    with pytest.raises(requests.HTTPError) as exc_info:
+        _ = api_site_client.request("POST", "/jobs", invalid_job)
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Verify no job was created.
+    assert jobs_collection.count_documents({}) == num_jobs_initial

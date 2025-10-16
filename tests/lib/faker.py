@@ -1,5 +1,4 @@
 from typing import List
-
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
@@ -18,6 +17,8 @@ from nmdc_schema.nmdc import (
     Study,
     StudyCategoryEnum,
 )
+
+from nmdc_runtime.api.models.job import Job
 
 class Faker:
     r"""
@@ -472,6 +473,59 @@ class Faker:
             
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
+            documents.append(document)
+
+        return documents
+    
+    def generate_jobs(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `Job` instances,
+        which can be stored in the `jobs` collection.
+        
+        Note: The `Job` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> jobs = f.generate_jobs(1)
+        >>> len(jobs)
+        1
+        >>> isinstance(jobs[0]["id"], str)
+        True
+
+        # Test: Adding an optional field.
+        >>> job = f.generate_jobs(1, name="my_job")[0]
+        >>> job["name"]
+        'my_job'
+
+        # Test: Adding an invalid value.
+        >>> f.generate_jobs(1, name=[])
+        Traceback (most recent call last):
+            ...
+        pydantic_core._pydantic_core.ValidationError: 1 validation error for Job
+        name
+          Input should be a valid string [type=string_type, input_value=[], input_type=list]
+            For further information visit https://errors.pydantic.dev/2.11/v/string_type
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "id": self.make_unique_id("job-"),
+                "name": "arbitrary_string",
+                "config": {},
+                "claims": [],
+                "workflow": {"id": "arbitrary_string"},
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `Job`.
+            instance = Job(**params)
+            
+            # Dump the instance to a `dict` using the Pydantic's model's `model_dump()` method.
+            document = instance.model_dump()
             documents.append(document)
 
         return documents
