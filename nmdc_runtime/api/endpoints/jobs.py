@@ -45,7 +45,10 @@ def list_jobs(
     return list_resources(req, mdb, "jobs")
 
 
-@router.post("/jobs")
+@router.post(
+    "/jobs",
+    status_code=status.HTTP_201_CREATED,
+)
 def create_job(
     job_in: JobIn,
     mdb: Database = Depends(get_mongo_db),

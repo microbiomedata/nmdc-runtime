@@ -521,11 +521,11 @@ class Faker:
                 "workflow": {"id": "arbitrary_string"},
                 **overrides,
             }
-            # Validate the parameters by attempting to instantiate a `DataObject`.
+            # Validate the parameters by attempting to instantiate a `Job`.
             instance = Job(**params)
             
-            # Dump the instance to a `dict` (technically, to a `JsonObj`).
-            document = json_dumper.to_dict(instance)
+            # Dump the instance to a `dict` using the Pydantic's model's `model_dump()` method.
+            document = instance.model_dump()
             documents.append(document)
 
         return documents

@@ -42,7 +42,9 @@ class JobIn(JobBase):
     config: Dict[str, Any] = Field(
         ..., description="Configuration of the associated workflow", examples=[{}]
     )
-    claims: List[JobClaim] = Field([], description="Claims of the job", examples=[[]])
+    claims: List[JobClaim] = Field(
+        default_factory=list, description="Claims of the job", examples=[[]]
+    )
 
 
 class JobExecution(BaseModel):

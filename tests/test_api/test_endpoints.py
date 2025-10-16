@@ -3244,7 +3244,7 @@ def test_create_job(api_site_client):
     response = api_site_client.request("POST", "/jobs", job)
 
     # Verify the response indicates success and its payload has the field and values we expect.
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_201_CREATED
     created_job = response.json()
     assert isinstance(created_job["id"], str) and len(created_job["id"]) > 0
     assert isinstance(created_job["created_at"], str) and len(created_job["created_at"]) > 0
