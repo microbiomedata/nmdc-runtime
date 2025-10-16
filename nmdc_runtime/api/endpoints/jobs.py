@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Optional, Annotated
 
 from pymongo.database import Database
@@ -12,7 +13,7 @@ from nmdc_runtime.api.core.util import (
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
 from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
-from nmdc_runtime.api.models.job import Job, JobClaim
+from nmdc_runtime.api.models.job import Job, JobClaim, JobIn
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
     Site,
@@ -43,120 +44,50 @@ def list_jobs(
     return list_resources(req, mdb, "jobs")
 
 
-@router.post("/jobs", response_model=Job)
+@router.post("/jobs")
 def create_job(
-    job_data: dict,
+    job_in: JobIn,
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
-):
+) -> Job:
     """
-    Create a new workflow job record.
+    Create a workflow job.
 
-    This endpoint creates a new job that defines a workflow execution request. The job includes:
+    A workflow job is a resource that decouples the configuration of a workflow from the execution of that workflow.
 
-    - **Workflow Information**: Identifies the specific workflow to be executed
-    - **Configuration**: Detailed parameters including input/output specifications, repository information, and execution parameters
-    - **Claims**: Optional site assignments for job execution
-
-    The system will automatically generate a unique job ID and creation timestamp if not provided.
-
-    **Required Permissions**: Only users with specific job creation permissions can use this endpoint.
-
-    **Example request bodies:**
-    - Minimal job creation:
-
-    ```json
-    {
-      "workflow": {
-        "id": "wf id"
-      },
-      "created_at": "date",
-      "config": {
-        "git_repo": "https://github.com/",
-        "release": "v1.1.0",
-        "wdl": "annotation_full.wdl",
-        "activity_id": "nmdc:wfmgan-123",
-        "activity_set": "metagenome_annotation_activity_set",
-        "was_informed_by": [
-          "nmdc:omprc-11-123"
-        ],
-        "trigger_activity": "nmdc:wfmgas-11-123",
-        "iteration": 2,
-        "input_prefix": "annotation",
-        "inputs": {
-          "input_file": "file link",
-          "imgap_project_id": "project id",
-          "proj": "nmdc:wfmgan-11-123"
-        },
-        "input_data_objects": [
-          {
-            "id": "nmdc:dobj-11-123",
-            "name": "data object name",
-            "description": "data object description",
-            "url": "https://data.microbiomedata.org/data/nmdc:omprc-11-123/nmdc:wfmgas-11-123/nmdc_wfmgas-11-123_contigs.fna",
-            "md5_checksum": "123",
-            "file_size_bytes": 123,
-            "data_object_type": "Assembly Contigs"
-          }
-        ],
-        "activity": {
-          "name": "Metagenome Annotation Analysis Activity for {id}",
-          "type": "nmdc:MetagenomeAnnotationActivity"
-        },
-        "outputs": [
-          {
-            "output": "output",
-            "data_object_type": "Annotation Amino Acid FASTA",
-            "description": "description of output",
-            "name": "output name",
-            "id": "nmdc:dobj-123"
-          }
-        ]
-      },
-      "claims": [
-        {
-          "op_id": "nmdc:123",
-          "site_id": "NERSC"
-        }
-      ]
-    }
-    ```
-
-
+    **Permissions:** This endpoint is only accessible to site clients.
     """
+
     _ = site  # must be authenticated
 
-    # Generate a unique ID for the job
-    job_data["id"] = generate_one_id(mdb, "jobs")
+    # Generate a unique ID for the job.
+    job_id = generate_one_id(mdb, "jobs")
 
-    # Validate the job data structure
+    # Validate the job.
     try:
-        job = Job(**job_data)
+        job_without_id: dict = job_in.model_dump()
+        job = Job(**job_without_id, id=job_id)
     except Exception as e:
+        validation_error = str(e)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid job data: {str(e)}",
+            detail=f"Invalid job. Details: {validation_error}",
         )
-    # convert back to dict after validation
-    job_dict = job.model_dump(exclude_unset=True)
 
-    # Insert the job into the database
+    # Insert the job into the database.
     try:
+        job_dict = job.model_dump(exclude_unset=True)
         result = mdb.jobs.insert_one(job_dict)
-        print("Result of insertion:", result)
         if not result.inserted_id:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create job",
-            )
+            raise Exception("Failed to insert job into database.")
     except Exception as e:
-        print(e)
+        logging.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}",
+            detail="Failed to create job.",
         )
 
-    # Return the created job
+    # Return the job that was created.
     return job
 
 

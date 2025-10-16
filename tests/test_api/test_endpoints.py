@@ -3232,7 +3232,8 @@ def test_create_job(api_site_client):
 
     # Generate a dictionary representing a `Job`, and remove its `id` field.
     faker = Faker()
-    job: dict = faker.generate_jobs(1)[0]
+    job_name = "Job A"
+    job: dict = faker.generate_jobs(1, name=job_name)[0]
     del job["id"]
 
     # Send the dictionary as JSON to the API endpoint to create a new job.
@@ -3244,12 +3245,15 @@ def test_create_job(api_site_client):
     assert "id" in created_job
     created_job_id = created_job["id"]
     assert isinstance(created_job_id, str) and len(created_job_id) > 0
+    assert "name" in created_job
+    assert created_job["name"] == job_name
 
     # Verify the corresponding document has been added to the `jobs` collection.
     assert jobs_collection.count_documents({}) == num_jobs_initial + 1
     inserted_job = jobs_collection.find_one({"id": created_job["id"]})
     assert inserted_job is not None
     assert inserted_job["id"] == created_job["id"]
+    assert inserted_job["name"] == created_job["name"]
 
     # 🧹 Clean up: Delete the inserted job.
     jobs_collection.delete_many({"id": created_job["id"]})
