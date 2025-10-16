@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import json
 import logging
 from typing import Optional, Annotated
@@ -63,15 +64,18 @@ def create_job(
     # Generate a unique ID for the job.
     job_id = generate_one_id(mdb, "jobs")
 
+    # Generate a timestamp for the job's `created_at` field.
+    created_at = datetime.now(timezone.utc)
+
     # Validate the job.
     try:
-        job_without_id: dict = job_in.model_dump()
-        job = Job(**job_without_id, id=job_id)
+        job_in_dict = job_in.model_dump()
+        job = Job(**job_in_dict, id=job_id, created_at=created_at)
     except Exception as e:
-        validation_error = str(e)
+        error_message = str(e)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid job. Details: {validation_error}",
+            detail=f"Invalid job. Details: {error_message}",
         )
 
     # Insert the job into the database.

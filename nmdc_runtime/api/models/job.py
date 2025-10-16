@@ -29,7 +29,6 @@ class Job(JobBase):
 
 class JobIn(JobBase):
     """Payload of an HTTP request to create a `Job`."""
-    created_at: Optional[datetime.datetime] = None
     config: Dict[str, Any]
     claims: List[JobClaim] = []
 
