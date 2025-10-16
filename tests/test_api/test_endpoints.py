@@ -3230,23 +3230,26 @@ def test_create_job(api_site_client):
     jobs_collection = mdb.get_collection("jobs")
     num_jobs_initial = jobs_collection.count_documents({})
 
-    # Generate a dictionary representing a `Job`, and remove its `id` field.
+    # Generate a dictionary representing a `Job`, remove its `id` and `created_at` fields
+    # (since those aren't part of the `JobIn` model), and add an extra field to it (which
+    # the `JobIn` model is currently configured to _ignore_, but not _forbid_).
     faker = Faker()
     job_name = "Job A"
     job: dict = faker.generate_jobs(1, name=job_name)[0]
     del job["id"]
+    del job["created_at"]
+    job["extra_field"] = "value"
 
     # Send the dictionary as JSON to the API endpoint to create a new job.
     response = api_site_client.request("POST", "/jobs", job)
 
-    # Verify the response indicates success and its payload includes an `id`.
+    # Verify the response indicates success and its payload has the field and values we expect.
     assert response.status_code == 200
     created_job = response.json()
-    assert "id" in created_job
-    created_job_id = created_job["id"]
-    assert isinstance(created_job_id, str) and len(created_job_id) > 0
-    assert "name" in created_job
-    assert created_job["name"] == job_name
+    assert isinstance(created_job["id"], str) and len(created_job["id"]) > 0
+    assert isinstance(created_job["created_at"], str) and len(created_job["created_at"]) > 0
+    assert created_job["name"] == job_name  # optional field was preserved
+    assert "extra_field" not in created_job  # unrecognized field was discarded
 
     # Verify the corresponding document has been added to the `jobs` collection.
     assert jobs_collection.count_documents({}) == num_jobs_initial + 1

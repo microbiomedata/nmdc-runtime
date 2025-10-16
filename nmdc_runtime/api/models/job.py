@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, Dict, Any, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nmdc_runtime.api.models.operation import Metadata as OperationMetadata
 from nmdc_runtime.api.models.workflow import Workflow
@@ -9,8 +9,8 @@ from nmdc_runtime.api.models.workflow import Workflow
 
 class JobBase(BaseModel):
     workflow: Workflow
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = Field(None, description="Name of the job", examples=["Some job"])
+    description: Optional[str] = Field(None, description="Description of the job", examples=["Some description"])
 
 
 class JobClaim(BaseModel):
@@ -29,8 +29,13 @@ class Job(JobBase):
 
 class JobIn(JobBase):
     """Payload of an HTTP request to create a `Job`."""
-    config: Dict[str, Any]
-    claims: List[JobClaim] = []
+    # Consider forbidding extra fields (once the workflow automation developers have
+    # updated the client code accordingly).
+    # See: https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.extra
+    ##model_config = ConfigDict(extra="forbid")
+
+    config: Dict[str, Any] = Field(..., description="Configuration of the associated workflow", examples=[{}])
+    claims: List[JobClaim] = Field([], description="Claims of the job", examples=[[]])
 
 
 class JobExecution(BaseModel):
