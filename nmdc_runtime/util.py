@@ -1,12 +1,11 @@
+import importlib.resources
 import json
 import mimetypes
 import os
-import pkgutil
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from functools import lru_cache
-from io import BytesIO
 from itertools import chain
 from pathlib import Path
 from typing import Callable, List, Optional, Set, Dict
@@ -113,15 +112,17 @@ def get_type_collections() -> dict:
 
 
 @lru_cache
-def get_nmdc_jsonschema_dict():
+def get_nmdc_jsonschema_path() -> Path:
+    """Get path to NMDC JSON Schema file."""
+    with importlib.resources.path("nmdc_schema", "nmdc_materialized_patterns.schema.json") as p:
+        return p
+
+
+@lru_cache()
+def get_nmdc_jsonschema_dict() -> dict:
     """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
-    return json.loads(
-        BytesIO(
-            pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
-        )
-        .getvalue()
-        .decode("utf-8")
-    )
+    with open(get_nmdc_jsonschema_path(), "r") as f:
+        return json.load(f)
 
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
@@ -299,7 +300,12 @@ def get_nmdc_schema_validator() -> Validator:
     return Validator(
         schema_view.schema,
         validation_plugins=[
-            JsonschemaValidationPlugin(closed=True),
+            JsonschemaValidationPlugin(
+                closed=True,
+                # Since the `nmdc-schema` package exports a pre-built JSON Schema file, use that
+                # instead of relying on the plugin to generate one on the fly.
+                json_schema_path=get_nmdc_jsonschema_path()
+            ),
             NmdcSchemaValidationPlugin(),
         ],
     )
