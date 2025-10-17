@@ -7,7 +7,6 @@ from typing import Set
 from uuid import uuid4
 
 import bson
-from jsonschema import Draft7Validator
 from nmdc_schema.nmdc import Database as NMDCDatabase
 from pymongo.errors import AutoReconnect, OperationFailure
 from refscan.lib.Finder import Finder
@@ -22,9 +21,9 @@ from nmdc_runtime.util import (
     nmdc_schema_view,
     collection_name_to_class_names,
     ensure_unique_id_indexes,
-    get_nmdc_jsonschema_dict,
     nmdc_database_collection_names,
     get_allowed_references,
+    get_nmdc_schema_validator,
 )
 from pymongo import MongoClient
 from pymongo.database import Database as MongoDatabase
@@ -311,7 +310,7 @@ def validate_json(
                                             the database. In other words, set this to `True` if you want this
                                             function to perform referential integrity checks.
     """
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
+    validator = get_nmdc_schema_validator()
     docs = deepcopy(in_docs)
     validation_errors = {}
 
@@ -333,7 +332,9 @@ def validate_json(
                 ]
                 continue
 
-        errors = list(validator.iter_errors({coll_name: coll_docs}))
+        errors = list(
+            validator.iter_results({coll_name: coll_docs}, target_class="Database")
+        )
         validation_errors[coll_name] = [e.message for e in errors]
         if coll_docs:
             if not isinstance(coll_docs, list):

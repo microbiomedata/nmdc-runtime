@@ -1,39 +1,18 @@
 import os
 import tarfile
-from copy import deepcopy
 
-import json
 import sys
 from pathlib import Path
 
-import fastjsonschema
 import pytest
-from fastjsonschema import JsonSchemaValueException, JsonSchemaException
 
-from jsonschema import ValidationError, Draft7Validator
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
-from pymongo.database import Database as MongoDatabase
-from pymongo.write_concern import WriteConcern
+from nmdc_runtime.util import get_nmdc_jsonschema_dict, get_nmdc_schema_validator
 import requests
 
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import get_mongo
 
 REPO_ROOT = Path(__file__).parent.parent
-
-
-def without_id_patterns(nmdc_jsonschema):
-    rv = deepcopy(nmdc_jsonschema)
-    for cls_, spec in rv["$defs"].items():
-        if "properties" in spec:
-            if "id" in spec["properties"]:
-                spec["properties"]["id"].pop("pattern", None)
-    return rv
-
-
-nmdc_jsonschema_validator = fastjsonschema.compile(
-    without_id_patterns(get_nmdc_jsonschema_dict())
-)
 
 
 def test_nmdc_jsonschema_using_new_id_scheme():
@@ -70,18 +49,14 @@ def test_iterate_collection():
     collection = db[collection_name]
 
     # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
-    validate_schema = fastjsonschema.compile(get_nmdc_jsonschema_dict())
+    validator = get_nmdc_schema_validator()
     try:
         for count, doc in enumerate(collection.find({}, {"_id": 0})):
             print(len(doc))
-            validate_schema({"study_set": [doc]})
+            report = validator.validate({"study_set": [doc]}, target_class="Database")
+            if len(report.results) > 0:
+                raise ValueError("\n".join(r.message for r in report.results))
             # validate({"study_set": [doc]}, get_nmdc_jsonschema_dict())
-    except JsonSchemaException as je:
-        print(str(je))
-        # assert False, str(je)
-    except ValidationError as ve:
-        # print(ve.message)
-        assert False, ve.message
     except Exception as e:
         # print(e)
         assert False, str(e)
@@ -95,7 +70,7 @@ def test_multiple_errors():
 
     # collection.insert_one({"id": "1234", "foo": "bar", "baz": "buzz", "name": 5})
     # validate_schema = fastjsonschema.compile(get_nmdc_jsonschema_dict())
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
+    validator = get_nmdc_schema_validator()
     validation_errors = []
 
     for doc in collection.find({}, {"_id": 0}):
@@ -103,9 +78,9 @@ def test_multiple_errors():
         try:
             # fastjsonschema doesn't handle multiple errors!
             # validate_schema({"study_set": [doc]})
-            errors = list(validator.iter_errors({"study_set": [doc]}))
-            if len(errors) > 0:
-                errors = {doc["id"]: [e.message for e in errors]}
+            report = validator.validate({"study_set": [doc]}, target_class="Database")
+            if len(report.results) > 0:
+                errors = {doc["id"]: [e.message for e in report.results]}
                 validation_errors.append(errors)
         except Exception as exception:
             print(str(exception))

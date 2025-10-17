@@ -1,6 +1,5 @@
 from dagster import op, AssetMaterialization, AssetKey, MetadataValue
-from jsonschema import Draft7Validator
-from nmdc_runtime.util import get_nmdc_jsonschema_dict
+from nmdc_runtime.util import get_nmdc_schema_validator
 from toolz import dissoc
 
 from nmdc_runtime.site.resources import mongo_resource
@@ -61,19 +60,19 @@ def validate_mongo_collection(context, collection_name: str):
     collection = mongo_db[collection_name]  # get mongo collection
     db_set = collection_name.split(".")[0]
 
-    validator = Draft7Validator(get_nmdc_jsonschema_dict())
+    validator = get_nmdc_schema_validator()
     validation_errors = []
 
     for count, doc in enumerate(collection.find()):
         # add logging for progress?
         # e.g.: if count % 1000 == 0: context.log.info(“done X of Y")
         doc = dissoc(doc, "_id")  # dissoc _id
-        errors = list(validator.iter_errors({f"{db_set}": [doc]}))
-        if len(errors) > 0:
+        report = validator.validate({f"{db_set}": [doc]}, target_class="Database")
+        if len(report.results) > 0:
             if "id" in doc.keys():
-                errors = {doc["id"]: [e.message for e in errors]}
+                errors = {doc["id"]: [r.message for r in report.results]}
             else:
-                errors = {f"missing id ({count})": [e.message for e in errors]}
+                errors = {f"missing id ({count})": [r.message for r in report.results]}
             validation_errors.append(errors)
 
     return {"collection_name": collection_name, "errors": validation_errors}
