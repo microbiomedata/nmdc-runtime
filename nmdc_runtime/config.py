@@ -54,3 +54,9 @@ IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
 # Feature flag that can be used to enable/disable performance profiling,
 # which can be activated via the `?profile=true` URL query parameter.
 IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")
+
+# Feature flag that can be used to enable/disable the measurement and
+# logging of HTTP response times to the console.
+IS_RESPONSE_TIME_LOGGING_ENABLED: bool = is_env_var_true(
+    "IS_RESPONSE_TIME_LOGGING_ENABLED", default="false"
+)
