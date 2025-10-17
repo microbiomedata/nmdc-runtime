@@ -12,7 +12,6 @@ from bson.json_util import dumps as bson_dumps
 import pandas as pd
 import pandas as pds
 from fastapi import HTTPException
-from jsonschema import Draft7Validator
 from linkml_runtime.utils.schemaview import SchemaView
 from nmdc_schema import nmdc
 from nmdc_schema.nmdc_data import get_nmdc_schema_definition
@@ -21,7 +20,7 @@ from starlette import status
 from toolz.dicttoolz import dissoc, assoc_in, get_in
 
 from nmdc_runtime.api.models.metadata import ChangesheetIn
-from nmdc_runtime.util import get_nmdc_jsonschema_dict, collection_name_to_class_names
+from nmdc_runtime.util import collection_name_to_class_names, get_nmdc_schema_validator
 
 # custom named tuple to hold path property information
 SchemaPathProperties = namedtuple(
@@ -687,7 +686,7 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
     mdb : MongoDatabase
         Mongo database to be updated.
     update_cmd : Dict
-        Contians update commands to be executed.
+        Contains update commands to be executed.
 
     Returns
     -------
@@ -695,32 +694,20 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
         Information about what was updated in the Mongo database.
     """
     results = []
-    validator_strict = Draft7Validator(get_nmdc_jsonschema_dict())
-    validator_noidpatterns = Draft7Validator(
-        get_nmdc_jsonschema_dict(enforce_id_patterns=False)
-    )
-
+    validator = get_nmdc_schema_validator()
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
         doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
         update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
         doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
-        if collection_name in {
-            "study_set",
-            "biosample_set",
-            "omics_processing_set",
-        } and id_.split(":")[0] in {"gold", "emsl", "igsn"}:
-            validator = validator_noidpatterns
-        else:
-            validator = validator_strict
-        errors = list(validator.iter_errors({collection_name: [doc_after]}))
+        report = validator.validate({collection_name: [doc_after]}, target_class="Database")
         results.append(
             {
                 "id": id_,
                 "doc_before": doc_before,
                 "update_info": update_result,
                 "doc_after": doc_after,
-                "validation_errors": [e.message for e in errors],
+                "validation_errors": [e.message for e in report.results],
             }
         )
 
