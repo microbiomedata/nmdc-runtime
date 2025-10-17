@@ -114,7 +114,9 @@ def get_type_collections() -> dict:
 @lru_cache
 def get_nmdc_jsonschema_path() -> Path:
     """Get path to NMDC JSON Schema file."""
-    with importlib.resources.path("nmdc_schema", "nmdc_materialized_patterns.schema.json") as p:
+    with importlib.resources.path(
+        "nmdc_schema", "nmdc_materialized_patterns.schema.json"
+    ) as p:
         return p
 
 
@@ -304,7 +306,7 @@ def get_nmdc_schema_validator() -> Validator:
                 closed=True,
                 # Since the `nmdc-schema` package exports a pre-built JSON Schema file, use that
                 # instead of relying on the plugin to generate one on the fly.
-                json_schema_path=get_nmdc_jsonschema_path()
+                json_schema_path=get_nmdc_jsonschema_path(),
             ),
             NmdcSchemaValidationPlugin(),
         ],

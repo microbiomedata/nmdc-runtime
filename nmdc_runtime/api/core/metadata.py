@@ -700,7 +700,9 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
         doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
         update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
         doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
-        report = validator.validate({collection_name: [doc_after]}, target_class="Database")
+        report = validator.validate(
+            {collection_name: [doc_after]}, target_class="Database"
+        )
         results.append(
             {
                 "id": id_,
