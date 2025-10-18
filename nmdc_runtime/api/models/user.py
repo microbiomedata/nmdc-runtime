@@ -112,15 +112,16 @@ async def get_current_user(
         if not (
             isinstance(subject, str)
             and subject.startswith(("user:", "client:"))
-            and len(subject.split(":", 1)[1]) > 0  # there are characters after first colon
+            and len(subject.split(":", 1)[1])
+            > 0  # there are characters after first colon
         ):
             raise invalid_subject_exception
         username = subject.split(":", 1)[1]
         token_data = TokenData(subject=username)
-    except (ExpiredSignatureError) as e:
+    except ExpiredSignatureError as e:
         logging.exception(e)
         raise expired_token_exception
-    except (JWTClaimsError) as e:
+    except JWTClaimsError as e:
         logging.exception(e)
         raise invalid_claims_exception
     except (JWTError, AttributeError) as e:
@@ -141,7 +142,9 @@ async def get_current_user(
         user = None
 
     if user is None:
-        logging.warning(f"Failed to resolve token subject '{token_data.subject}' to a user.")
+        logging.warning(
+            f"Failed to resolve token subject '{token_data.subject}' to a user."
+        )
         raise invalid_subject_exception
     return user
 
