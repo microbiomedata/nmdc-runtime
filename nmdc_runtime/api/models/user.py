@@ -77,27 +77,27 @@ async def get_current_user(
 
     # Define some exceptions, which contain actionable—but not sensitive—information.
     invalid_subject_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Access token is invalid. Please log in again. Details: The access token contains an invalid subject.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalid_claims_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Access token is invalid. Please log in again. Details: The access token contains invalid claims.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalid_token_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Access token is invalid. Please log in again.",  # no details
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalidated_token_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Access token has been invalidated. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     expired_token_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Access token has expired. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
