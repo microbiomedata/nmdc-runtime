@@ -1,9 +1,11 @@
+import logging
 from typing import List, Optional, Union
 
 import pymongo.database
-from fastapi import Depends, HTTPException
-from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from jose import jwt
 from pydantic import BaseModel
+from jose.exceptions import ExpiredSignatureError, JWTClaimsError, JWTError
 
 from nmdc_runtime.api.core.auth import (
     verify_password,
@@ -73,34 +75,74 @@ async def get_current_user(
     Raises an exception if the token is invalid.
     """
 
+    # Define some exceptions, which contain actionable—but not sensitive—information.
+    invalid_subject_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access token is invalid. Please log in again. Details: The access token contains an invalid subject.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    invalid_claims_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access token is invalid. Please log in again. Details: The access token contains invalid claims.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    invalid_token_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access token is invalid. Please log in again.",  # no details
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    invalidated_token_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access token has been invalidated. Please log in again.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    expired_token_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access token has expired. Please log in again.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     if mdb.invalidated_tokens.find_one({"_id": token}):
-        raise credentials_exception
+        raise invalidated_token_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        subject: str = payload.get("sub")
-        if subject is None:
-            raise credentials_exception
-        if not subject.startswith("user:") and not subject.startswith("client:"):
-            raise credentials_exception
 
-        # subject is in the form "user:foo" or "client:bar"
+        # Confirm the subject is a string having the format "user:..." or "client:...".
+        subject: Optional[str] = payload.get("sub", None)
+        if not (
+            isinstance(subject, str)
+            and subject.startswith(("user:", "client:"))
+            and len(subject.split(":", 1)[1]) > 0  # there are characters after first colon
+        ):
+            raise invalid_subject_exception
         username = subject.split(":", 1)[1]
         token_data = TokenData(subject=username)
+    except (ExpiredSignatureError) as e:
+        logging.exception(e)
+        raise expired_token_exception
+    except (JWTClaimsError) as e:
+        logging.exception(e)
+        raise invalid_claims_exception
     except (JWTError, AttributeError) as e:
-        print(f"jwt error: {e}")
-        raise credentials_exception
+        logging.exception(e)
+        raise invalid_token_exception
 
     # Coerce a "client" into a "user"
     # TODO: consolidate the client/user distinction.
-    if subject.startswith("user:"):
+    if not isinstance(token_data.subject, str):
+        raise invalid_subject_exception
+    elif subject.startswith("user:"):
         user = get_user(mdb, username=token_data.subject)
     elif subject.startswith("client:"):
         # construct a user from the client_id
         user = get_client_user(mdb, client_id=token_data.subject)
     else:
-        raise credentials_exception
+        # Note: We already validate the subject's prefix above, so we expect this case to never occur.
+        user = None
+
     if user is None:
-        raise credentials_exception
+        logging.warning(f"Failed to resolve token subject '{token_data.subject}' to a user.")
+        raise invalid_subject_exception
     return user
 
 
