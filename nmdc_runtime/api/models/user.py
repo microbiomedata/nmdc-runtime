@@ -103,7 +103,7 @@ async def get_current_user(
     )
     invalid_or_missing_token_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Access token is invalid or absent. Please log in again.",
+        detail="Access token is invalid or missing. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
