@@ -113,20 +113,9 @@ async def get_current_user(
     elif mdb.invalidated_tokens.find_one({"_id": token}):
         raise invalidated_token_exception
 
+    # Validate the signature of the JWT and extract its payload.
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
-        # Confirm the subject is a string having the format "user:..." or "client:...".
-        subject: Optional[str] = payload.get("sub", None)
-        if not (
-            isinstance(subject, str)
-            and subject.startswith(("user:", "client:"))
-            and len(subject.split(":", 1)[1])
-            > 0  # there are characters after first colon
-        ):
-            raise invalid_subject_exception
-        username = subject.split(":", 1)[1]
-        token_data = TokenData(subject=username)
     except ExpiredSignatureError as e:
         logging.exception(e)
         raise expired_token_exception
@@ -137,13 +126,29 @@ async def get_current_user(
         logging.exception(e)
         raise invalid_token_exception
 
+    # Extract the prefix and the username from the subject.
+    subject: Optional[str] = payload.get("sub", None)
+    if isinstance(subject, str):
+        if subject.startswith("user:"):
+            subject_prefix = "user:"
+        elif subject.startswith("client:"):
+            subject_prefix = "client:"
+        else:
+            raise invalid_subject_exception  # invalid prefix
+        username = subject.removeprefix(subject_prefix)
+        if username == "":
+            raise invalid_subject_exception  # nothing follows prefix
+    else:
+        raise invalid_subject_exception  # not a string
+    token_data = TokenData(subject=username)
+
     # Coerce a "client" into a "user"
     # TODO: consolidate the client/user distinction.
     if not isinstance(token_data.subject, str):
         raise invalid_subject_exception
-    elif subject.startswith("user:"):
+    elif subject_prefix == "user:":
         user = get_user(mdb, username=token_data.subject)
-    elif subject.startswith("client:"):
+    elif subject_prefix == "client:":
         # construct a user from the client_id
         user = get_client_user(mdb, client_id=token_data.subject)
     else:
