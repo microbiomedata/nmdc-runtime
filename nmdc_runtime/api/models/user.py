@@ -101,9 +101,18 @@ async def get_current_user(
         detail="Access token has expired. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    invalid_or_missing_token_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Access token is invalid or absent. Please log in again.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    if mdb.invalidated_tokens.find_one({"_id": token}):
+    # Check whether there is a token, and whether it has been invalidated.
+    if token is None:
+        raise invalid_or_missing_token_exception
+    elif mdb.invalidated_tokens.find_one({"_id": token}):
         raise invalidated_token_exception
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 

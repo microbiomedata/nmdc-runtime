@@ -117,6 +117,9 @@ def get_access_token_expiration(token) -> datetime:
 
 
 class OAuth2PasswordOrClientCredentialsBearer(OAuth2):
+    """
+    TODO: Document this undocumented class.
+    """
     def __init__(
         self,
         tokenUrl: str,
