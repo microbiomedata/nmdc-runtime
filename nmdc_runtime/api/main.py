@@ -203,7 +203,7 @@ def ensure_default_api_perms():
         "/metadata/json:submit": [
             "admin",
         ],
-        "wf_file_staging:run": [
+        "/wf_file_staging:run": [
             "admin",
         ],
     }
