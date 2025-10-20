@@ -36,7 +36,8 @@ def check_can_run_wf_file_staging_endpoints(user: User):
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
 def list_globus_records(
-    req: Annotated[ListRequest, Query()], mdb: Database = Depends(get_mongo_db),
+    req: Annotated[ListRequest, Query()],
+    mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
