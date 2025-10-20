@@ -46,7 +46,6 @@ dependencies = [
     # Note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models.
     # Docs: https://fastapi.tiangolo.com/
     "fastapi >= 0.115.0",
-    "fastjsonschema",
     "frozendict",
     "git-root",
     "jq",
