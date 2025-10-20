@@ -28,7 +28,8 @@ def check_can_run_wf_file_staging_endpoints(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only specific users are allowed to issue wf_file_staging commands.",
         )
-    
+
+
 @router.get(
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
