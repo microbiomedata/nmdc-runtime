@@ -33,8 +33,7 @@ def check_can_run_wf_file_staging_endpoints(user: User):
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
 def list_globus_records(
-    req: Annotated[ListRequest, Query()],
-    mdb: Database = Depends(get_mongo_db)
+    req: Annotated[ListRequest, Query()], mdb: Database = Depends(get_mongo_db)
 ):
     return list_resources(req, mdb, "globus")
 
@@ -46,6 +45,7 @@ def get_globus(
 ):
     op = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
     return op
+
 
 @router.patch("/globus/{task_id}", response_model=Globus)
 def update_object(
