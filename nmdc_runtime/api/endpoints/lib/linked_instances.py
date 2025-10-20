@@ -6,6 +6,7 @@ This module houses logic for the `GET /nmdcschema/linked_instances` endpoint, de
 
 """
 
+from datetime import timedelta
 from typing import Literal, Any
 
 from bson import ObjectId
@@ -13,7 +14,8 @@ from pymongo.collection import Collection as MongoCollection
 from pymongo.database import Database as MongoDatabase
 from toolz import merge
 
-from nmdc_runtime.api.core.util import hash_from_str
+from nmdc_runtime.api.core.util import hash_from_str, now
+from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
 
 
@@ -33,6 +35,17 @@ def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
 def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> str:
     """A name for a temporary mongo collection to store linked instances in service of an API request."""
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
+
+
+def drop_stale_temp_linked_instances_collections() -> None:
+    """Drop any temporary linked-instances collections that were generated earlier than one day ago."""
+    mdb = get_mongo_db()
+    one_day_ago = now() - timedelta(days=1)
+    for collection_name in mdb.list_collection_names(
+        filter={"name": {"$regex": r"^_runtime.tmp.linked_instances\..*"}}
+    ):
+        if ObjectId(collection_name.split(".")[-1]).generation_time < one_day_ago:
+            mdb.drop_collection(collection_name)
 
 
 def gather_linked_instances(
