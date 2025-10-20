@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from toolz import merge
 
 from nmdc_runtime.api.core.util import raise404_if_none, HTTPException, status
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
@@ -12,6 +13,7 @@ from nmdc_runtime.api.models.site import (
     Site,
     get_current_client_site,
 )
+
 from nmdc_runtime.api.models.wfe_file_stages import Globus
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
@@ -34,8 +36,12 @@ def check_can_run_wf_file_staging_endpoints(user: User):
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
 def list_globus_records(
-    req: Annotated[ListRequest, Query()], mdb: Database = Depends(get_mongo_db)
+    req: Annotated[ListRequest, Query()], mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
     return list_resources(req, mdb, "globus")
 
 
@@ -43,7 +49,10 @@ def list_globus_records(
 def get_globus(
     task_id: str,
     mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
     op = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
     return op
 
@@ -53,7 +62,11 @@ def update_object(
     object_id: str,
     object_patch: Globus,
     mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
     doc = raise404_if_none(mdb.globus.find_one({"id": object_id}))
     doc_globus_patched = merge(doc, object_patch.model_dump(exclude_unset=True))
     mdb.globus.replace_one({"id": object_id}, doc_globus_patched)
