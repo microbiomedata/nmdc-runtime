@@ -27,7 +27,6 @@ def check_can_run_wf_file_staging_endpoints(user: User):
             detail="Only specific users are allowed to issue wf_file_staging commands.",
         )
 
-
 @router.get(
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
@@ -41,6 +40,22 @@ def list_globus_records(
 
     return list_resources(req, mdb, "globus")
 
+@router.post(
+    "/globus",
+    status_code=status.HTTP_201_CREATED,
+    response_model=Globus,
+)
+def create_globus_record(
+    globus_in: Globus,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
+    globus_dict = globus_in.model_dump()
+    mdb.globus.insert_one(globus_dict)
+    return globus_dict
 
 @router.get("/globus/{task_id}", response_model=Globus)
 def get_globus(
@@ -52,9 +67,7 @@ def get_globus(
     print(f"Getting Globus record for task_id: {task_id}")
     check_can_run_wf_file_staging_endpoints(user)
     print("Permission check passed.")
-    op = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
-    print(f"Found Globus record: {op}")
-    return op
+    return raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
 
 
 @router.patch("/globus/{task_id}", response_model=Globus)
@@ -67,7 +80,7 @@ def update_globus(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    doc = raise404_if_none(mdb.globus.find_one({"id": task_id}))
+    doc = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
-    mdb.globus.replace_one({"id": task_id}, doc_globus_patched)
+    mdb.globus.replace_one({"task_id": task_id}, doc_globus_patched)
     return doc_globus_patched

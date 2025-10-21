@@ -3352,3 +3352,36 @@ def test_get_globus_records(api_user_client):
     # Clean up: Delete the inserted Globus record.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
+
+def test_create_globus_record(api_user_client):
+    """Test creating a new Globus record via POST /globus endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging:run",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    globus = mdb.get_collection("globus")
+
+    # Seed the `globus` collection with a document.
+    faker = Faker()
+    globus_records = faker.generate_globus_records(1)
+    seeded_record = globus_records[0]
+    response = api_user_client.request(
+        "POST",
+        f"/globus",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records) == 1
+    assert retrieved_records["resources"][0]["task_id"] == seeded_record["task_id"]
+    assert retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
+
+    # Clean up: Delete the inserted Globus record.
+    allowances_collection.delete_many(allow_spec)
+    globus.delete_many({"task_id": seeded_record["task_id"]})
