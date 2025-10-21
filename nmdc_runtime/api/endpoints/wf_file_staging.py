@@ -9,10 +9,6 @@ from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
-from nmdc_runtime.api.models.site import (
-    Site,
-    get_current_client_site,
-)
 
 from nmdc_runtime.api.models.wfe_file_stages import Globus
 from nmdc_runtime.api.models.user import User
@@ -45,29 +41,32 @@ def list_globus_records(
     return list_resources(req, mdb, "globus")
 
 
-@router.get("/globus/{task_id}", response_model=ListResponse[Globus])
+@router.get("/globus/{task_id}", response_model=Globus)
 def get_globus(
     task_id: str,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
+    print(f"Getting Globus record for task_id: {task_id}")
     check_can_run_wf_file_staging_endpoints(user)
+    print("Permission check passed.")
     op = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
+    print(f"Found Globus record: {op}")
     return op
 
 
 @router.patch("/globus/{task_id}", response_model=Globus)
-def update_object(
-    object_id: str,
-    object_patch: Globus,
+def update_globus(
+    task_id: str,
+    globus_patch: Globus,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    doc = raise404_if_none(mdb.globus.find_one({"id": object_id}))
-    doc_globus_patched = merge(doc, object_patch.model_dump(exclude_unset=True))
-    mdb.globus.replace_one({"id": object_id}, doc_globus_patched)
+    doc = raise404_if_none(mdb.globus.find_one({"id": task_id}))
+    doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
+    mdb.globus.replace_one({"id": task_id}, doc_globus_patched)
     return doc_globus_patched

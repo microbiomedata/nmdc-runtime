@@ -50,6 +50,7 @@ from nmdc_runtime.api.endpoints import (
     triggers,
     users,
     workflows,
+    wf_file_staging,
 )
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
@@ -81,6 +82,7 @@ api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
 
 
 def ensure_initial_resources_on_boot():

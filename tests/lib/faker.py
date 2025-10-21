@@ -19,6 +19,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
+from nmdc_runtime.api.models.wfe_file_stages import Globus
 
 class Faker:
     r"""
@@ -473,6 +474,42 @@ class Faker:
             
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
+            documents.append(document)
+
+        return documents
+    
+    def generate_globus_records(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `Globus` instances,
+        which can be stored in the `globus` collection.
+        
+        Note: The `Globus` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+        
+        >>> f = Faker()
+        >>> globus_records = f.generate_globus_records(1)
+        >>> len(globus_records)
+        1
+        >>> isinstance(globus_records[0]['id'], str)
+        True
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "task_id": "arbitrary_string",
+                "task_status": "SUCCEEDED",
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `Globus`.
+            instance = Globus(**params)
+            
+            # Dump the instance to a `dict`
+            document = instance.model_dump()
             documents.append(document)
 
         return documents
