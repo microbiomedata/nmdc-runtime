@@ -67,9 +67,7 @@ def get_globus(
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
-    print(f"Getting Globus record for task_id: {task_id}")
     check_can_run_wf_file_staging_endpoints(user)
-    print("Permission check passed.")
     return raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
 
 
