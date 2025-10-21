@@ -27,6 +27,7 @@ def check_can_run_wf_file_staging_endpoints(user: User):
             detail="Only specific users are allowed to issue wf_file_staging commands.",
         )
 
+
 @router.get(
     "/globus", response_model=ListResponse[Globus], response_model_exclude_unset=True
 )
@@ -39,6 +40,7 @@ def list_globus_records(
     check_can_run_wf_file_staging_endpoints(user)
 
     return list_resources(req, mdb, "globus")
+
 
 @router.post(
     "/globus",
@@ -56,6 +58,7 @@ def create_globus_record(
     globus_dict = globus_in.model_dump()
     mdb.globus.insert_one(globus_dict)
     return globus_dict
+
 
 @router.get("/globus/{task_id}", response_model=Globus)
 def get_globus(
