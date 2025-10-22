@@ -19,7 +19,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
 
 class Faker:
     r"""
@@ -502,7 +502,7 @@ class Faker:
             # Apply any overrides passed in.
             params = {
                 "task_id": self.make_unique_id("globus-task-"),
-                "task_status": "SUCCEEDED",
+                "task_status": GlobusTaskStatus.SUCCEEDED,
                 **overrides,
             }
             # Validate the parameters by attempting to instantiate a `GlobusTask`.
