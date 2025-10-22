@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from enum import Enum
 
+
 class GlobusTaskStatus(str, Enum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
@@ -9,6 +10,7 @@ class GlobusTaskStatus(str, Enum):
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
+
 
 class GlobusTask(BaseModel):
     """
