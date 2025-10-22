@@ -1,10 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class Globus(BaseModel):
+class GlobusTask(BaseModel):
     """
     Represents a Globus file transfer configuration.
     """
 
-    task_id: str
-    task_status: str
+    task_id: str = Field( 
+        ..., description="ID from Globus of the task", examples=["Some task id"] 
+    ) 
+    task_status: str = Field( 
+        ..., description="Status of the globus task.", examples=["Some status"] 
+    ) 
