@@ -498,7 +498,7 @@ class Faker:
         True
         """
         documents = []
-        for i in range(quantity):
+        for _ in range(quantity):
             # Apply any overrides passed in.
             params = {
                 "task_id": self.make_unique_id("globus-task-"),
