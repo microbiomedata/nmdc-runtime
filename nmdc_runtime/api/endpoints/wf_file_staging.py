@@ -10,7 +10,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
 
-from nmdc_runtime.api.models.wfe_file_stages import Globus
+from nmdc_runtime.api.models.wfe_file_stages import Globus, SequencingProject
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -87,3 +87,51 @@ def update_globus(
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
     mdb.globus.replace_one({"task_id": task_id}, doc_globus_patched)
     return doc_globus_patched
+
+
+
+@router.get(
+    "/sequencing-project", response_model=ListResponse[SequencingProject], response_model_exclude_unset=True
+)
+def list_sequencing_project_records(
+    req: Annotated[ListRequest, Query()],
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
+    return list_resources(req, mdb, "sequencing_project")
+
+
+@router.post(
+    "/sequencing-project",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SequencingProject,
+)
+def create_sequencing_record(
+    sequencing_project_in: SequencingProject,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
+    sequencing_project_dict = sequencing_project_in.model_dump()
+    mdb.sequencing_project.insert_one(sequencing_project_dict)
+    return sequencing_project_dict
+
+
+@router.get("/sequencing-project/{project_name}", response_model=SequencingProject)
+def get_sequencing_project(
+    project_name: str,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    print(f"Getting Globus record for task_id: {project_name}")
+    check_can_run_wf_file_staging_endpoints(user)
+    print("Permission check passed.")
+    return raise404_if_none(mdb.sequencingproject.find_one({"project_name": project_name}))
+
+
