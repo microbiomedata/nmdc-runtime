@@ -32,7 +32,7 @@ def test_admin_user_perms(test_db):
     allowances_after = list(allowances_collection.find({}))
 
     expected_allowances = set(
-        ["/metadata/changesheets:submit", "/queries:run(query_cmd:DeleteCommand)", "/queries:run(query_cmd:AggregateCommand)", "/metadata/json:submit"]
+        ["/metadata/changesheets:submit", "/queries:run(query_cmd:DeleteCommand)", "/queries:run(query_cmd:AggregateCommand)", "/metadata/json:submit", "/wf_file_staging"]
     )
     actual_allowances = set(
         allowance["action"] for allowance in allowances_after if allowance["username"] == "admin"

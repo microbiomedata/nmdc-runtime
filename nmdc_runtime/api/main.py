@@ -180,6 +180,17 @@ def ensure_attribute_indexes():
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
 
 
+def ensure_globus_tasks_id_is_indexed():
+    """
+    Ensures that the `globus` collection has an index on its `task_id` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb.wf_file_staging.globus_tasks.create_index(
+        "task_id", background=True, unique=True
+    )
+
+
 def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
@@ -205,7 +216,7 @@ def ensure_default_api_perms():
         "/metadata/json:submit": [
             "admin",
         ],
-        "/wf_file_staging:run": [
+        "/wf_file_staging": [
             "admin",
         ],
     }
@@ -232,7 +243,7 @@ async def lifespan(app: FastAPI):
     ensure_attribute_indexes()
     ensure_type_field_is_indexed()
     ensure_default_api_perms()
-
+    ensure_globus_tasks_id_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 

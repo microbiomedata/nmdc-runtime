@@ -1,20 +1,25 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from enum import Enum
 
 
-class Globus(BaseModel):
+class GlobusTaskStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+
+
+class GlobusTask(BaseModel):
     """
     Represents a Globus file transfer configuration.
     """
 
-    task_id: str
-    task_status: str
-
-
-class SequencingProject(BaseModel):
-    """
-    Represents metadata for a sequencing project.
-    """
-    project_name: str
-    proposal_id: str
-    nmdc_study_id: str
-    analysis_projects_dir: str
+    task_id: str = Field(
+        ..., description="ID from Globus of the task", examples=["Some task id"]
+    )
+    task_status: str = Field(
+        ..., description="Status of the Globus task.", examples=["Some status"]
+    )

@@ -19,7 +19,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import Globus
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
 
 class Faker:
     r"""
@@ -478,12 +478,12 @@ class Faker:
 
         return documents
     
-    def generate_globus_records(self, quantity: int, **overrides) -> List[dict]:
+    def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
         """
-        Generates the specified number of documents representing `Globus` instances,
+        Generates the specified number of documents representing `GlobusTask` instances,
         which can be stored in the `globus` collection.
         
-        Note: The `Globus` class is NOT defined in the NMDC Schema. It is an ad hoc
+        Note: The `GlobusTask` class is NOT defined in the NMDC Schema. It is an ad hoc
               class defined locally, in the `nmdc_runtime.api.models` module.
 
         :param quantity: Number of documents to create
@@ -491,22 +491,22 @@ class Faker:
         :return: The generated documents
         
         >>> f = Faker()
-        >>> globus_records = f.generate_globus_records(1)
-        >>> len(globus_records)
+        >>> globus_tasks = f.generate_globus_tasks(1)
+        >>> len(globus_tasks)
         1
-        >>> isinstance(globus_records[0]['id'], str)
+        >>> isinstance(globus_tasks[0]['task_id'], str)
         True
         """
         documents = []
-        for i in range(quantity):
+        for _ in range(quantity):
             # Apply any overrides passed in.
             params = {
-                "task_id": "arbitrary_string",
-                "task_status": "SUCCEEDED",
+                "task_id": self.make_unique_id("globus-task-"),
+                "task_status": GlobusTaskStatus.SUCCEEDED,
                 **overrides,
             }
-            # Validate the parameters by attempting to instantiate a `Globus`.
-            instance = Globus(**params)
+            # Validate the parameters by attempting to instantiate a `GlobusTask`.
+            instance = GlobusTask(**params)
             
             # Dump the instance to a `dict`
             document = instance.model_dump()

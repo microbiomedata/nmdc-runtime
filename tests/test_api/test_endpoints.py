@@ -3282,33 +3282,30 @@ def test_create_invalid_job(api_site_client):
     # Verify no job was created.
     assert jobs_collection.count_documents({}) == num_jobs_initial
 
-def test_get_globus_record_by_id(api_user_client):
-    """Test retrieving a Globus record by its ID via GET /globus/{task_id} endpoint."""
+def test_get_globus_tasks_by_id(api_user_client):
+    """Test retrieving a Globus task by its ID via GET /wf_file_staging/globus_tasks/{task_id} endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
-    globus_records = faker.generate_globus_records(1)
+    globus_records = faker.generate_globus_tasks(1)
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
-    try:
-        print(f"Calling API to get Globus record with task_id: {seeded_record['task_id']}")
-        id = seeded_record['task_id']
-        response = api_user_client.request(
-            "GET",
-            f"/globus/{id}",
-        )
-    except Exception as e:
-        print(f"Error during API request: {e}")
-        raise
+
+    id = seeded_record['task_id']
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/globus_tasks/{id}",
+    )
+
 
     # Verify the response indicates success and its payload matches the seeded record.
     assert response.status_code == status.HTTP_200_OK
@@ -3316,73 +3313,73 @@ def test_get_globus_record_by_id(api_user_client):
     assert retrieved_record["task_id"] == seeded_record["task_id"]
     assert retrieved_record["task_status"] == seeded_record["task_status"]
 
-    # Clean up: Delete the inserted Globus record.
+    # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
 
-def test_get_globus_records(api_user_client):
-    """Test retrieving all Globus records via GET /globus endpoint."""
+def test_get_globus_tasks(api_user_client):
+    """Test retrieving all Globus tasks via GET /wf_file_staging/globus_tasks endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
-    globus_records = faker.generate_globus_records(1)
+    globus_records = faker.generate_globus_tasks(3)
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "GET",
-        f"/globus",
+        f"/wf_file_staging/globus_tasks",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
     assert response.status_code == status.HTTP_200_OK
     retrieved_records = response.json()
-    assert len(retrieved_records) == 1
+    assert len(retrieved_records["resources"]) == 3
     assert retrieved_records["resources"][0]["task_id"] == seeded_record["task_id"]
     assert retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
 
-    # Clean up: Delete the inserted Globus record.
+    # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
-    globus.delete_many({"task_id": seeded_record["task_id"]})
+    # delete all inserted records
+    globus.delete_many({})
 
-def test_create_globus_record(api_user_client):
-    """Test creating a new Globus record via POST /globus endpoint."""
+def test_create_globus_task(api_user_client):
+    """Test creating a new Globus task via POST /wf_file_staging/globus_tasks endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
-    # Seed the `globus` collection with a document.
+    # Generate a `globus` record to act as the request payload.
     faker = Faker()
-    globus_records = faker.generate_globus_records(1)
+    globus_records = faker.generate_globus_tasks(1)
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "POST",
-        f"/globus",
+        f"/wf_file_staging/globus_tasks",
         seeded_record,
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 201
     retrieved_records = response.json()
-    assert len(retrieved_records) == 1
-    assert retrieved_records["resources"][0]["task_id"] == seeded_record["task_id"]
-    assert retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
+    assert retrieved_records["task_id"] == seeded_record["task_id"]
+    assert retrieved_records["task_status"] == seeded_record["task_status"]
 
-    # Clean up: Delete the inserted Globus record.
+    # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
 
