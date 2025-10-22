@@ -29,7 +29,7 @@ def check_can_run_wf_file_staging_endpoints(user: User):
 
 
 @router.get(
-    "/globus",
+    "/wf_file_staging/globus_task",
     response_model=ListResponse[GlobusTask],
     response_model_exclude_unset=True,
 )
@@ -45,7 +45,7 @@ def list_globus_records(
 
 
 @router.post(
-    "/globus",
+    "/wf_file_staging/globus_task",
     status_code=status.HTTP_201_CREATED,
     response_model=GlobusTask,
 )
@@ -57,7 +57,7 @@ def create_globus_record(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
-    existing = mdb.globus.find_one({"task_id": globus_in.task_id})
+    existing = mdb.wf_file_staging.globus_task.find_one({"task_id": globus_in.task_id})
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -68,7 +68,7 @@ def create_globus_record(
         print(f"Warning: Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum.")
 
     globus_dict = globus_in.model_dump()
-    mdb.globus.insert_one(globus_dict)
+    mdb.wf_file_staging.globus_task.insert_one(globus_dict)
     return globus_dict
 
 
@@ -80,7 +80,7 @@ def get_globus(
 ):
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-    return raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
+    return raise404_if_none(mdb.wf_file_staging.globus_task.find_one({"task_id": task_id}))
 
 
 @router.patch("/globus/{task_id}", response_model=GlobusTask)
@@ -99,7 +99,7 @@ def update_globus(
             detail="task_id in path and body must match.",
         )
 
-    doc = raise404_if_none(mdb.globus.find_one({"task_id": task_id}))
+    doc = raise404_if_none(mdb.wf_file_staging.globus_task.find_one({"task_id": task_id}))
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
-    mdb.globus.replace_one({"task_id": task_id}, doc_globus_patched)
+    mdb.wf_file_staging.globus_task.replace_one({"task_id": task_id}, doc_globus_patched)
     return doc_globus_patched

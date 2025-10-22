@@ -3336,7 +3336,7 @@ def test_get_globus_records(api_user_client):
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "GET",
-        f"/globus",
+        f"/wf_file_staging/globus_task",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
@@ -3369,7 +3369,7 @@ def test_create_globus_task(api_user_client):
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "POST",
-        f"/globus",
+        f"/wf_file_staging/globus_task",
         seeded_record,
     )
 

@@ -186,7 +186,7 @@ def ensure_globus_task_id_is_indexed():
     """
 
     mdb = get_mongo_db()
-    mdb.globus.create_index("task_id", background=True, unique=True)
+    mdb.wf_file_staging.globus_task.create_index("task_id", background=True, unique=True)
 
 
 def ensure_default_api_perms():
