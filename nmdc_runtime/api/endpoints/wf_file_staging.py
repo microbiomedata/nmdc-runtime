@@ -10,7 +10,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
 
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -63,6 +63,10 @@ def create_globus_record(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Globus task with task_id {globus_in.task_id} already exists.",
         )
+    # check the status exists in the Enum, if not log a warning
+    if globus_in.task_status not in GlobusTaskStatus.__members__.values():
+        print(f"Warning: Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum.")
+
     globus_dict = globus_in.model_dump()
     mdb.globus.insert_one(globus_dict)
     return globus_dict
