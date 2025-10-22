@@ -3292,7 +3292,7 @@ def test_get_globus_record_by_id(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_task")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
@@ -3327,7 +3327,7 @@ def test_get_globus_records(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_task")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
@@ -3361,7 +3361,7 @@ def test_create_globus_task(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("globus")
+    globus = mdb.get_collection("wf_file_staging.globus_task")
 
     # Generate a `globus` record to act as the request payload.
     faker = Faker()
