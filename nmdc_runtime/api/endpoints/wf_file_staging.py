@@ -29,7 +29,9 @@ def check_can_run_wf_file_staging_endpoints(user: User):
 
 
 @router.get(
-    "/globus", response_model=ListResponse[GlobusTask], response_model_exclude_unset=True
+    "/globus",
+    response_model=ListResponse[GlobusTask],
+    response_model_exclude_unset=True,
 )
 def list_globus_records(
     req: Annotated[ListRequest, Query()],

@@ -179,6 +179,7 @@ def ensure_attribute_indexes():
 
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
 
+
 def ensure_globus_task_id_is_indexed():
     """
     Ensures that the `globus` collection has an index on its `task_id` field and that the index is unique.
@@ -186,6 +187,7 @@ def ensure_globus_task_id_is_indexed():
 
     mdb = get_mongo_db()
     mdb.globus.create_index("task_id", background=True, unique=True)
+
 
 def ensure_default_api_perms():
     """
