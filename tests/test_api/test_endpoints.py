@@ -3299,16 +3299,13 @@ def test_get_globus_record_by_id(api_user_client):
     globus_records = faker.generate_globus_records(1)
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
-    try:
-        print(f"Calling API to get Globus task with task_id: {seeded_record['task_id']}")
-        id = seeded_record['task_id']
-        response = api_user_client.request(
-            "GET",
-            f"/globus/{id}",
-        )
-    except Exception as e:
-        print(f"Error during API request: {e}")
-        raise
+
+    id = seeded_record['task_id']
+    response = api_user_client.request(
+        "GET",
+        f"/globus/{id}",
+    )
+
 
     # Verify the response indicates success and its payload matches the seeded record.
     assert response.status_code == status.HTTP_200_OK
