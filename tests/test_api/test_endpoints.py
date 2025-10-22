@@ -3282,7 +3282,7 @@ def test_create_invalid_job(api_site_client):
     # Verify no job was created.
     assert jobs_collection.count_documents({}) == num_jobs_initial
 
-def test_get_globus_record_by_id(api_user_client):
+def test_get_globus_task_by_id(api_user_client):
     """Test retrieving a Globus task by its ID via GET /globus/{task_id} endpoint."""
 
     mdb = get_mongo_db()
@@ -3317,7 +3317,7 @@ def test_get_globus_record_by_id(api_user_client):
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
 
-def test_get_globus_records(api_user_client):
+def test_get_globus_tasks(api_user_client):
     """Test retrieving all Globus tasks via GET /globus endpoint."""
 
     mdb = get_mongo_db()

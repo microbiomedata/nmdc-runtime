@@ -41,7 +41,7 @@ def list_globus_records(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    return list_resources(req, mdb, "globus")
+    return list_resources(req, mdb, "wf_file_staging.globus_task")
 
 
 @router.post(

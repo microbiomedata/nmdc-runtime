@@ -21,5 +21,5 @@ class GlobusTask(BaseModel):
         ..., description="ID from Globus of the task", examples=["Some task id"]
     )
     task_status: str = Field(
-        ..., description="Status of the globus task.", examples=["Some status"]
+        ..., description="Status of the Globus task.", examples=["Some status"]
     )
