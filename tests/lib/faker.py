@@ -19,7 +19,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, SequencingProject
 
 class Faker:
     r"""
@@ -538,9 +538,9 @@ class Faker:
             # Apply any overrides passed in.
             params = {
                 "project_name": "arbitrary_string",
+                "description": "arbitrary_string",
                 "proposal_id": "arbitrary_string",
-                "nmdc_study_id": "arbitrary_string",
-                "analysis_projects_dir": "arbitrary_string",
+                "nmdc_study_id": "arbitrary_string"
                 **overrides,
             }
             # Validate the parameters by attempting to instantiate a `SequencingProject`.
