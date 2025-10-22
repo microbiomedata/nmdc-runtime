@@ -153,7 +153,7 @@ def get_sequencing_project(
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
-    print(f"Getting Globus record for task_id: {project_name}")
+    print(f"Getting SequencingProject record for project_name: {project_name}")
     check_can_run_wf_file_staging_endpoints(user)
     print("Permission check passed.")
     return raise404_if_none(mdb.sequencingproject.find_one({"project_name": project_name}))
