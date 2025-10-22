@@ -82,7 +82,9 @@ def get_globus(
 ):
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-    return raise404_if_none(mdb.wf_file_staging.globus_task.find_one({"task_id": task_id}))
+    return raise404_if_none(
+        mdb.wf_file_staging.globus_task.find_one({"task_id": task_id})
+    )
 
 
 @router.patch("/globus/{task_id}", response_model=GlobusTask)
@@ -101,7 +103,11 @@ def update_globus(
             detail="task_id in path and body must match.",
         )
 
-    doc = raise404_if_none(mdb.wf_file_staging.globus_task.find_one({"task_id": task_id}))
+    doc = raise404_if_none(
+        mdb.wf_file_staging.globus_task.find_one({"task_id": task_id})
+    )
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
-    mdb.wf_file_staging.globus_task.replace_one({"task_id": task_id}, doc_globus_patched)
+    mdb.wf_file_staging.globus_task.replace_one(
+        {"task_id": task_id}, doc_globus_patched
+    )
     return doc_globus_patched
