@@ -514,6 +514,45 @@ class Faker:
 
         return documents
     
+    def generate_sequencing_projects(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `SequencingProject` instances,
+        which can be stored in the `sequencing_project` collection.
+        
+        Note: The `SequencingProject` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> sequencing_projects = f.generate_sequencing_projects(1)
+        >>> len(sequencing_projects)
+        1
+        >>> isinstance(sequencing_projects[0]['project_name'], str)
+        True
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "project_name": "arbitrary_string",
+                "proposal_id": "arbitrary_string",
+                "nmdc_study_id": "arbitrary_string",
+                "analysis_projects_dir": "arbitrary_string",
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `SequencingProject`.
+            instance = SequencingProject(**params)
+            
+            # Dump the instance to a `dict`
+            document = instance.model_dump()
+            documents.append(document)
+
+        return documents
+    
+    
     def generate_jobs(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `Job` instances,
