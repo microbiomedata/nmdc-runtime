@@ -65,7 +65,9 @@ def create_globus_record(
         )
     # check the status exists in the Enum, if not log a warning
     if globus_in.task_status not in GlobusTaskStatus.__members__.values():
-        print(f"Warning: Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum.")
+        print(
+            f"Warning: Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum."
+        )
 
     globus_dict = globus_in.model_dump()
     mdb.wf_file_staging.globus_task.insert_one(globus_dict)
