@@ -478,7 +478,7 @@ class Faker:
 
         return documents
     
-    def generate_globus_records(self, quantity: int, **overrides) -> List[dict]:
+    def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `GlobusTask` instances,
         which can be stored in the `globus` collection.
@@ -491,10 +491,10 @@ class Faker:
         :return: The generated documents
         
         >>> f = Faker()
-        >>> globus_records = f.generate_globus_records(1)
-        >>> len(globus_records)
+        >>> globus_tasks = f.generate_globus_tasks(1)
+        >>> len(globus_tasks)
         1
-        >>> isinstance(globus_records[0]['id'], str)
+        >>> isinstance(globus_tasks[0]['task_id'], str)
         True
         """
         documents = []

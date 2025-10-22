@@ -29,11 +29,11 @@ def check_can_run_wf_file_staging_endpoints(user: User):
 
 
 @router.get(
-    "/wf_file_staging/globus_task",
+    "/wf_file_staging/globus_tasks",
     response_model=ListResponse[GlobusTask],
     response_model_exclude_unset=True,
 )
-def list_globus_records(
+def list_globus_tasks(
     req: Annotated[ListRequest, Query()],
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
@@ -41,15 +41,15 @@ def list_globus_records(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    return list_resources(req, mdb, "wf_file_staging.globus_task")
+    return list_resources(req, mdb, "wf_file_staging.globus_tasks")
 
 
 @router.post(
-    "/wf_file_staging/globus_task",
+    "/wf_file_staging/globus_tasks",
     status_code=status.HTTP_201_CREATED,
     response_model=GlobusTask,
 )
-def create_globus_record(
+def create_globus_tasks(
     globus_in: GlobusTask,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
@@ -57,7 +57,7 @@ def create_globus_record(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
-    existing = mdb.wf_file_staging.globus_task.find_one({"task_id": globus_in.task_id})
+    existing = mdb.wf_file_staging.globus_tasks.find_one({"task_id": globus_in.task_id})
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -70,12 +70,12 @@ def create_globus_record(
         )
 
     globus_dict = globus_in.model_dump()
-    mdb.wf_file_staging.globus_task.insert_one(globus_dict)
+    mdb.wf_file_staging.globus_tasks.insert_one(globus_dict)
     return globus_dict
 
 
-@router.get("/globus/{task_id}", response_model=GlobusTask)
-def get_globus(
+@router.get("/wf_file_staging/globus_tasks/{task_id}", response_model=GlobusTask)
+def get_globus_tasks(
     task_id: str,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
@@ -83,12 +83,12 @@ def get_globus(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     return raise404_if_none(
-        mdb.wf_file_staging.globus_task.find_one({"task_id": task_id})
+        mdb.wf_file_staging.globus_tasks.find_one({"task_id": task_id})
     )
 
 
-@router.patch("/globus/{task_id}", response_model=GlobusTask)
-def update_globus(
+@router.patch("/wf_file_staging/globus_tasks/{task_id}", response_model=GlobusTask)
+def update_globus_tasks(
     task_id: str,
     globus_patch: GlobusTask,
     mdb: Database = Depends(get_mongo_db),
@@ -104,10 +104,10 @@ def update_globus(
         )
 
     doc = raise404_if_none(
-        mdb.wf_file_staging.globus_task.find_one({"task_id": task_id})
+        mdb.wf_file_staging.globus_tasks.find_one({"task_id": task_id})
     )
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
-    mdb.wf_file_staging.globus_task.replace_one(
+    mdb.wf_file_staging.globus_tasks.replace_one(
         {"task_id": task_id}, doc_globus_patched
     )
     return doc_globus_patched

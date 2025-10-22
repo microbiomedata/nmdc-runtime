@@ -3282,8 +3282,8 @@ def test_create_invalid_job(api_site_client):
     # Verify no job was created.
     assert jobs_collection.count_documents({}) == num_jobs_initial
 
-def test_get_globus_task_by_id(api_user_client):
-    """Test retrieving a Globus task by its ID via GET /globus/{task_id} endpoint."""
+def test_get_globus_tasks_by_id(api_user_client):
+    """Test retrieving a Globus task by its ID via GET /wf_file_staging/globus_tasks/{task_id} endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
@@ -3292,18 +3292,18 @@ def test_get_globus_task_by_id(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("wf_file_staging.globus_task")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
-    globus_records = faker.generate_globus_records(1)
+    globus_records = faker.generate_globus_tasks(1)
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
 
     id = seeded_record['task_id']
     response = api_user_client.request(
         "GET",
-        f"/globus/{id}",
+        f"/wf_file_staging/globus_tasks/{id}",
     )
 
 
@@ -3318,7 +3318,7 @@ def test_get_globus_task_by_id(api_user_client):
     globus.delete_many({"task_id": seeded_record["task_id"]})
 
 def test_get_globus_tasks(api_user_client):
-    """Test retrieving all Globus tasks via GET /globus endpoint."""
+    """Test retrieving all Globus tasks via GET /wf_file_staging/globus_tasks endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
@@ -3327,16 +3327,16 @@ def test_get_globus_tasks(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("wf_file_staging.globus_task")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
-    globus_records = faker.generate_globus_records(3)
+    globus_records = faker.generate_globus_tasks(3)
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "GET",
-        f"/wf_file_staging/globus_task",
+        f"/wf_file_staging/globus_tasks",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
@@ -3352,7 +3352,7 @@ def test_get_globus_tasks(api_user_client):
     globus.delete_many({})
 
 def test_create_globus_task(api_user_client):
-    """Test creating a new Globus task via POST /globus endpoint."""
+    """Test creating a new Globus task via POST /wf_file_staging/globus_tasks endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
@@ -3361,15 +3361,15 @@ def test_create_globus_task(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("wf_file_staging.globus_task")
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
     # Generate a `globus` record to act as the request payload.
     faker = Faker()
-    globus_records = faker.generate_globus_records(1)
+    globus_records = faker.generate_globus_tasks(1)
     seeded_record = globus_records[0]
     response = api_user_client.request(
         "POST",
-        f"/wf_file_staging/globus_task",
+        f"/wf_file_staging/globus_tasks",
         seeded_record,
     )
 
