@@ -186,7 +186,7 @@ def ensure_globus_tasks_id_is_indexed():
     """
 
     mdb = get_mongo_db()
-    mdb['wf_file_staging.globus_tasks'].create_index(
+    mdb["wf_file_staging.globus_tasks"].create_index(
         "task_id", background=True, unique=True
     )
 

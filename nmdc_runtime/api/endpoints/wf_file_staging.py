@@ -58,7 +58,9 @@ def create_globus_tasks(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
-    existing = mdb['wf_file_staging.globus_tasks'].find_one({"task_id": globus_in.task_id})
+    existing = mdb["wf_file_staging.globus_tasks"].find_one(
+        {"task_id": globus_in.task_id}
+    )
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -71,7 +73,7 @@ def create_globus_tasks(
         )
 
     globus_dict = globus_in.model_dump()
-    mdb['wf_file_staging.globus_tasks'].insert_one(globus_dict)
+    mdb["wf_file_staging.globus_tasks"].insert_one(globus_dict)
     return globus_dict
 
 
@@ -84,7 +86,7 @@ def get_globus_tasks(
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     return raise404_if_none(
-        mdb['wf_file_staging.globus_tasks'].find_one({"task_id": task_id})
+        mdb["wf_file_staging.globus_tasks"].find_one({"task_id": task_id})
     )
 
 
@@ -105,10 +107,10 @@ def update_globus_tasks(
         )
 
     doc = raise404_if_none(
-        mdb['wf_file_staging.globus_tasks'].find_one({"task_id": task_id})
+        mdb["wf_file_staging.globus_tasks"].find_one({"task_id": task_id})
     )
     doc_globus_patched = merge(doc, globus_patch.model_dump(exclude_unset=True))
-    mdb['wf_file_staging.globus_tasks'].replace_one(
+    mdb["wf_file_staging.globus_tasks"].replace_one(
         {"task_id": task_id}, doc_globus_patched
     )
     return doc_globus_patched
