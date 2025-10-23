@@ -115,7 +115,7 @@ def update_globus_tasks(
 
 
 @router.get(
-    "/sequencing-project", response_model=ListResponse[SequencingProject], response_model_exclude_unset=True
+    "/wf_file_staging/sequencing-project", response_model=ListResponse[SequencingProject], response_model_exclude_unset=True
 )
 def list_sequencing_project_records(
     req: Annotated[ListRequest, Query()],
@@ -129,7 +129,7 @@ def list_sequencing_project_records(
 
 
 @router.post(
-    "/sequencing-project",
+    "/wf_file_staging/sequencing-project",
     status_code=status.HTTP_201_CREATED,
     response_model=SequencingProject,
 )
@@ -146,7 +146,7 @@ def create_sequencing_record(
     return sequencing_project_dict
 
 
-@router.get("/sequencing-project/{project_name}", response_model=SequencingProject)
+@router.get("/wf_file_staging/sequencing-project/{project_name}", response_model=SequencingProject)
 def get_sequencing_project(
     project_name: str,
     mdb: Database = Depends(get_mongo_db),
