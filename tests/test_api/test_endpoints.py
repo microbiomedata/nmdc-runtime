@@ -3390,29 +3390,28 @@ def test_create_sequencing_project_record(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     sequencing_project = mdb.get_collection("sequencingproject")
 
     # Seed the `globus` collection with a document.
     faker = Faker()
-    sequencing_project_records = faker.generate_sequencing_projects(1)
+    sequencing_project_records = faker.generate_sequencing_projects(4)
     seeded_record = sequencing_project_records[0]
     response = api_user_client.request(
         "POST",
-        f"/sequencing-project",
+        f"/wf_file_staging/sequencing-project",
         seeded_record,
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 201
     retrieved_records = response.json()
-    assert len(retrieved_records) == 1
-    assert retrieved_records["resources"][0]["project_name"] == seeded_record["project_name"]
-    assert retrieved_records["resources"][0]["proposal_id"] == seeded_record["proposal_id"]
-    assert retrieved_records["resources"][0]["nmdc_study_id"] == seeded_record["nmdc_study_id"]
-    assert retrieved_records["resources"][0]["analysis_projects_dir"] == seeded_record["analysis_projects_dir"]
+    assert retrieved_records["project_name"] == seeded_record["project_name"]
+    assert retrieved_records["proposal_id"] == seeded_record["proposal_id"]
+    assert retrieved_records["nmdc_study_id"] == seeded_record["nmdc_study_id"]
+    assert retrieved_records["description"] == seeded_record["description"]
 
     # Clean up: Delete the inserted SequencingProject record.
     allowances_collection.delete_many(allow_spec)
@@ -3426,7 +3425,7 @@ def test_get_sequencing_project_by_name(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     sequencing_project = mdb.get_collection("sequencingproject")
@@ -3441,7 +3440,7 @@ def test_get_sequencing_project_by_name(api_user_client):
         project_name = seeded_record['project_name']
         response = api_user_client.request(
             "GET", 
-            f"/sequencing-project/{project_name}",
+            f"/wf_file_staging/sequencing-project/{project_name}",
         )
     except Exception as e:
         print(f"Error during API request: {e}")
@@ -3451,9 +3450,9 @@ def test_get_sequencing_project_by_name(api_user_client):
     assert response.status_code == status.HTTP_200_OK
     retrieved_record = response.json()
     assert retrieved_record["project_name"] == seeded_record["project_name"]
+    assert retrieved_record["description"] == seeded_record["description"]
     assert retrieved_record["proposal_id"] == seeded_record["proposal_id"]
     assert retrieved_record["nmdc_study_id"] == seeded_record["nmdc_study_id"]
-    assert retrieved_record["analysis_projects_dir"] == seeded_record["analysis_projects_dir"]
 
     # Clean up: Delete the inserted SequencingProject record.
     allowances_collection.delete_many(allow_spec)
@@ -3467,7 +3466,7 @@ def test_get_sequencing_project_records(api_user_client):
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/wf_file_staging:run",
+        "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     sequencing_project = mdb.get_collection("sequencingproject")
@@ -3479,7 +3478,7 @@ def test_get_sequencing_project_records(api_user_client):
     seeded_record = sequencing_project_records[0]
     response = api_user_client.request(
         "GET",
-        f"/sequencing-project",
+        f"/wf_file_staging/sequencing-project",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
@@ -3487,9 +3486,9 @@ def test_get_sequencing_project_records(api_user_client):
     retrieved_records = response.json()
     assert len(retrieved_records) == 1
     assert retrieved_records["resources"][0]["project_name"] == seeded_record["project_name"]
+    assert retrieved_records["resources"][0]["description"] == seeded_record["description"]
     assert retrieved_records["resources"][0]["proposal_id"] == seeded_record["proposal_id"]
     assert retrieved_records["resources"][0]["nmdc_study_id"] == seeded_record  ["nmdc_study_id"]
-    assert retrieved_records["resources"][0]["analysis_projects_dir"] == seeded_record["analysis_projects_dir"]
 
     # Clean up: Delete the inserted Globus record.
     allowances_collection.delete_many(allow_spec)
