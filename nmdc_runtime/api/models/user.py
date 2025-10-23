@@ -73,22 +73,25 @@ async def get_current_user(
     whose username is the site client's `client_id`.
 
     Raises an exception if the token is invalid.
+
+    Reference: The following web page contains information about JWT claims:
+               https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-token-claims
     """
 
     # Define some exceptions, which contain actionable—but not sensitive—information.
     invalid_subject_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Access token is invalid. Please log in again. Details: The access token contains an invalid subject.",
+        detail="Access token is invalid. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalid_claims_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Access token is invalid. Please log in again. Details: The access token contains invalid claims.",
+        detail="Access token is invalid. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalid_token_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Access token is invalid. Please log in again.",  # no details
+        detail="Access token is invalid. Please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     invalidated_token_exception = HTTPException(
@@ -134,17 +137,21 @@ async def get_current_user(
         elif subject.startswith("client:"):
             subject_prefix = "client:"
         else:
-            raise invalid_subject_exception  # invalid prefix
+            logging.warning("The subject contains an invalid prefix.")
+            raise invalid_subject_exception
         username = subject.removeprefix(subject_prefix)
         if username == "":
-            raise invalid_subject_exception  # nothing follows prefix
+            logging.warning("The subject contains nothing after the prefix.")
+            raise invalid_subject_exception
     else:
-        raise invalid_subject_exception  # not a string
+        logging.warning("The subject is not a string.")
+        raise invalid_subject_exception
     token_data = TokenData(subject=username)
 
     # Coerce a "client" into a "user"
     # TODO: consolidate the client/user distinction.
     if not isinstance(token_data.subject, str):
+        logging.warning("The subject is not a string.")
         raise invalid_subject_exception
     elif subject_prefix == "user:":
         user = get_user(mdb, username=token_data.subject)
@@ -153,6 +160,7 @@ async def get_current_user(
         user = get_client_user(mdb, client_id=token_data.subject)
     else:
         # Note: We already validate the subject's prefix above, so we expect this case to never occur.
+        logging.warning("The subject prefix is not something we recognize.")
         user = None
 
     if user is None:
