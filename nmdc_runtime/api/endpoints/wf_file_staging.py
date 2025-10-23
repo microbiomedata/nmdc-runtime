@@ -3,6 +3,7 @@ from pymongo.database import Database
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from toolz import merge
+import logging
 
 from nmdc_runtime.api.core.util import raise404_if_none, HTTPException, status
 from nmdc_runtime.api.models.user import User, get_current_active_user
@@ -65,8 +66,8 @@ def create_globus_tasks(
         )
     # check the status exists in the Enum, if not log a warning
     if globus_in.task_status not in GlobusTaskStatus.__members__.values():
-        print(
-            f"Warning: Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum."
+        logging.warning(
+            f"Globus task status {globus_in.task_status} does not exist in GlobusTaskStatus enum."
         )
 
     globus_dict = globus_in.model_dump()
