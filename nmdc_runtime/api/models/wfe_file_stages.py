@@ -24,19 +24,24 @@ class GlobusTask(BaseModel):
         ..., description="Status of the Globus task.", examples=["Some status"]
     )
 
+
 class SequencingProject(BaseModel):
     """
     Represents a sequencing project with its associated metadata.
     """
 
     project_name: str = Field(
-        ..., description="Name of the sequencing project", examples=["Human Genome Project"]
+        ...,
+        description="Name of the sequencing project",
+        examples=["Human Genome Project"],
     )
     description: str = Field(
-        ..., description="Detailed description of the sequencing project", examples=["A project to sequence the human genome."]
+        ...,
+        description="Detailed description of the sequencing project",
+        examples=["A project to sequence the human genome."],
     )
-    proposal_id: str = Field(
-        ..., description="JGI proposal ID", examples=["503568"])
-    
-    nmdc_study_id: str= Field(
-        ..., description="NMDC study ID", examples=["nmdc:sty-11-28tm5d36"])
+    proposal_id: str = Field(..., description="JGI proposal ID", examples=["503568"])
+
+    nmdc_study_id: str = Field(
+        ..., description="NMDC study ID", examples=["nmdc:sty-11-28tm5d36"]
+    )

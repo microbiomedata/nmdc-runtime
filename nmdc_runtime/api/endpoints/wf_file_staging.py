@@ -10,7 +10,11 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
 
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, SequencingProject
+from nmdc_runtime.api.models.wfe_file_stages import (
+    GlobusTask,
+    GlobusTaskStatus,
+    SequencingProject,
+)
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -113,9 +117,10 @@ def update_globus_tasks(
     return doc_globus_patched
 
 
-
 @router.get(
-    "/wf_file_staging/sequencing-project", response_model=ListResponse[SequencingProject], response_model_exclude_unset=True
+    "/wf_file_staging/sequencing-project",
+    response_model=ListResponse[SequencingProject],
+    response_model_exclude_unset=True,
 )
 def list_sequencing_project_records(
     req: Annotated[ListRequest, Query()],
@@ -146,7 +151,10 @@ def create_sequencing_record(
     return sequencing_project_dict
 
 
-@router.get("/wf_file_staging/sequencing-project/{project_name}", response_model=SequencingProject)
+@router.get(
+    "/wf_file_staging/sequencing-project/{project_name}",
+    response_model=SequencingProject,
+)
 def get_sequencing_project(
     project_name: str,
     mdb: Database = Depends(get_mongo_db),
@@ -156,6 +164,6 @@ def get_sequencing_project(
     print(f"Getting SequencingProject record for project_name: {project_name}")
     check_can_run_wf_file_staging_endpoints(user)
     print("Permission check passed.")
-    return raise404_if_none(mdb.sequencingproject.find_one({"project_name": project_name}))
-
-
+    return raise404_if_none(
+        mdb.sequencingproject.find_one({"project_name": project_name})
+    )
