@@ -540,7 +540,7 @@ class Faker:
                 "project_name": "arbitrary_string",
                 "description": "arbitrary_string",
                 "proposal_id": "arbitrary_string",
-                "nmdc_study_id": "arbitrary_string"
+                "nmdc_study_id": "arbitrary_string",
                 **overrides,
             }
             # Validate the parameters by attempting to instantiate a `SequencingProject`.
