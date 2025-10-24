@@ -3382,3 +3382,69 @@ def test_create_globus_task(api_user_client):
     # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
+
+def test_get_jgi_samples(api_user_client):
+    """Test retrieving all JGI samples via GET /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Seed the `jgi_samples` collection with a document.
+    faker = Faker()
+    jgi_records = faker.generate_jgi_samples(3)
+    jgi_samples.insert_many(jgi_records)
+    seeded_record = jgi_records[0]
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/jgi_samples",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records["resources"]) == 3
+    assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["resources"][0]["file_status"] == seeded_record["file_status"]
+
+    # Clean up: Delete the inserted Globus task.
+    allowances_collection.delete_many(allow_spec)
+    # delete all inserted records
+    jgi_samples.delete_many({})
+
+def test_create_jgi_sample(api_user_client):
+    """Test creating a new JGI sample via POST /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
+
+    # Generate a `globus` record to act as the request payload.
+    faker = Faker()
+    globus_records = faker.generate_jgi_samples(1)
+    seeded_record = globus_records[0]
+    response = api_user_client.request(
+        "POST",
+        f"/wf_file_staging/globus_tasks",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == 201
+    retrieved_records = response.json()
+    assert retrieved_records["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["file_status"] == seeded_record["file_status"]
+
+    # Clean up: Delete the inserted Globus task.
+    allowances_collection.delete_many(allow_spec)
+    globus.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
