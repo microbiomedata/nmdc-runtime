@@ -11,7 +11,7 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources
 
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -114,3 +114,84 @@ def update_globus_tasks(
         {"task_id": task_id}, doc_globus_patched
     )
     return doc_globus_patched
+
+@router.get(
+    "/wf_file_staging/globus_tasks",
+    response_model=ListResponse[GlobusTask],
+    response_model_exclude_unset=True,
+)
+def list_globus_tasks(
+    req: Annotated[ListRequest, Query()],
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
+    return list_resources(req, mdb, "wf_file_staging.globus_tasks")
+
+
+@router.post(
+    "/wf_file_staging/globus_tasks",
+    status_code=status.HTTP_201_CREATED,
+    response_model=GlobusTask,
+)
+def create_jgi_samples(
+    jgi_in: JGISample,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+    # check if record with same task_id already exists
+    existing = mdb["wf_file_staging.jgi_samples"].find_one(
+        {"jdp_file_id": jgi_in.jdp_file_id}
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"JGI sample with jdp_file_id {jgi_in.jdp_file_id} already exists.",
+        )
+
+    sample_dict = jgi_in.model_dump()
+    mdb["wf_file_staging.jgi_samples"].insert_one(sample_dict)
+    return sample_dict
+
+
+@router.get("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=JGISample)
+def get_jgi_samples(
+    jdp_file_id: str,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+    return raise404_if_none(
+        mdb["wf_file_staging.jgi_samples"].find_one({"jdp_file_id": jdp_file_id})
+    )
+
+
+@router.patch("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=GlobusTask)
+def update_jgi_samples(
+    jdp_file_id: str,
+    sample_patch: JGISample,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    # check for permissions first
+    check_can_run_wf_file_staging_endpoints(user)
+
+    if jdp_file_id != sample_patch.jdp_file_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="jdp_file_id in path and body must match.",
+        )
+
+    doc = raise404_if_none(
+        mdb["wf_file_staging.jgi_samples"].find_one({"jdp_file_id": jdp_file_id})
+    )
+    doc_sample_patched = merge(doc, sample_patch.model_dump(exclude_unset=True))
+    mdb["wf_file_staging.jgi_samples"].replace_one(
+        {"jdp_file_id": jdp_file_id}, doc_sample_patched
+    )
+    return doc_sample_patched
