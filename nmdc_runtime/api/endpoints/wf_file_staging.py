@@ -9,7 +9,7 @@ from nmdc_runtime.api.core.util import raise404_if_none, HTTPException, status
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
-from nmdc_runtime.api.endpoints.util import list_resources
+from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
 
 from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
 from nmdc_runtime.api.models.user import User
@@ -132,7 +132,7 @@ def list_globus_tasks(
 
 
 @router.post(
-    "/wf_file_staging/globus_tasks",
+    "/wf_file_staging/jgi_samples",
     status_code=status.HTTP_201_CREATED,
     response_model=GlobusTask,
 )
@@ -158,17 +158,18 @@ def create_jgi_samples(
     return sample_dict
 
 
-@router.get("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=JGISample)
-def get_jgi_samples(
-    jdp_file_id: str,
+@router.get("/wf_file_staging/jgi_samples",response_model=ListResponse[JGISample],response_model_exclude_unset=True)
+def list_jgi_samples(
+    req: Annotated[ListRequest, Query()],
     mdb: Database = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
 ):
-    # check for permissions first
-    check_can_run_wf_file_staging_endpoints(user)
-    return raise404_if_none(
-        mdb["wf_file_staging.jgi_samples"].find_one({"jdp_file_id": jdp_file_id})
-    )
+    r"""
+    Retrieves JGI Sample records that match the specified filter criteria.
+    """
+
+    rv = list_resources(req, mdb, "wf_file_staging.jgi_samples")
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.patch("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=GlobusTask)
