@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 from enum import Enum
-from datetime import datetime
+import datetime
 
 class GlobusTaskStatus(str, Enum):
     ACTIVE = "ACTIVE"
@@ -28,6 +29,9 @@ class JGISample(BaseModel):
     """
     Represents a JGI Sample for workflow file staging.
     """
+    jdp_file_id: str = Field(
+        ..., description="JDP File ID", examples=["Some JDP File ID"]
+    )
     ap_gold_id: str = Field(
         ..., description="AP Gold ID", examples=["Some AP Gold ID"]
     )
@@ -55,15 +59,12 @@ class JGISample(BaseModel):
     file_size: int = Field(
         ..., description="File Size", examples=[123456]
     )
-    jdp_file_id: str = Field(
-        ..., description="JDP File ID", examples=["Some JDP File ID"]
-    )
-    md5sum: str = Field(
+    md5sum: Optional[str] = Field(
         None, description="MD5 Sum", examples=["Some MD5 Sum"]
     )
     analysis_project_id: str = Field(
         ..., description="Analysis Project ID", examples=["Some Analysis Project ID"]
     )
-    create_date: datetime = Field(default_factory=datetime.now, description="Creation Date", examples=["2023-01-01T00:00:00Z"])
-    update_date: datetime = Field(None, description="Update Date", examples=["2023-01-01T00:00:00Z"])
-    request_id: int = Field(default=0, description="Request ID", examples=[1])
+    create_date: str = Field(..., description="Creation Date", examples=["2023-01-01T00:00:00Z"])
+    update_date: Optional[str] = Field(None, description="Update Date", examples=["2023-01-01T00:00:00Z"])
+    request_id: int = Field(..., description="Request ID", examples=[1])

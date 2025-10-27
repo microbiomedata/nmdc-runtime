@@ -1,4 +1,5 @@
 from typing import List
+import datetime
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
@@ -530,7 +531,7 @@ class Faker:
         >>> jgi_samples = f.generate_jgi_samples(1)
         >>> len(jgi_samples)
         1
-        >>> isinstance(jgi_samples[0]['id'], str)
+        >>> isinstance(jgi_samples[0]['jdp_file_id'], str)
         True
         """
         documents = []
@@ -546,18 +547,17 @@ class Faker:
                 "seq_id": "test_seq_id",
                 "file_name": "test_file.fastq",
                 "file_status": "READY",
-                "file_size": 1000000,
-                "md5sum": "abc123",
+                "file_size": 1000,
                 "analysis_project_id": "test_analysis_project",
-                "create_date": "2000-01-01 12:00:00",
                 "request_id": 1,
+                "create_date": datetime.datetime.now().isoformat(),
                 **overrides,
             }
             # Validate the parameters by attempting to instantiate a `JGISample`.
             instance = JGISample(**params)
             
             # Dump the instance to a `dict`
-            document = instance.model_dump()
+            document = instance.model_dump(mode='json')
             documents.append(document)
 
         return documents

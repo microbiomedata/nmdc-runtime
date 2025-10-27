@@ -3427,15 +3427,16 @@ def test_create_jgi_sample(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("wf_file_staging.globus_tasks")
+    globus = mdb.get_collection("wf_file_staging.jgi_samples")
 
     # Generate a `globus` record to act as the request payload.
     faker = Faker()
     globus_records = faker.generate_jgi_samples(1)
     seeded_record = globus_records[0]
+    
     response = api_user_client.request(
         "POST",
-        f"/wf_file_staging/globus_tasks",
+        f"/wf_file_staging/jgi_samples",
         seeded_record,
     )
 

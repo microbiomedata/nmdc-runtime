@@ -134,13 +134,14 @@ def list_globus_tasks(
 @router.post(
     "/wf_file_staging/jgi_samples",
     status_code=status.HTTP_201_CREATED,
-    response_model=GlobusTask,
+    response_model=JGISample,
 )
 def create_jgi_samples(
     jgi_in: JGISample,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
@@ -153,7 +154,7 @@ def create_jgi_samples(
             detail=f"JGI sample with jdp_file_id {jgi_in.jdp_file_id} already exists.",
         )
 
-    sample_dict = jgi_in.model_dump()
+    sample_dict = jgi_in.model_dump(exclude_unset=True)
     mdb["wf_file_staging.jgi_samples"].insert_one(sample_dict)
     return sample_dict
 
@@ -172,7 +173,7 @@ def list_jgi_samples(
     return rv
 
 
-@router.patch("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=GlobusTask)
+@router.patch("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=JGISample)
 def update_jgi_samples(
     jdp_file_id: str,
     sample_patch: JGISample,
