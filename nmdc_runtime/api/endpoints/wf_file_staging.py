@@ -141,6 +141,9 @@ def create_jgi_samples(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """
+    Create a JGI Sample.
+    """
 
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
@@ -165,7 +168,7 @@ def list_jgi_samples(
     mdb: Database = Depends(get_mongo_db),
 ):
     r"""
-    Retrieves JGI Sample records that match the specified filter criteria.
+    Retrieves JGI Sample records that match the specified filter criteria. Uses Mongo-like filters.
     """
 
     rv = list_resources(req, mdb, "wf_file_staging.jgi_samples")
@@ -180,6 +183,9 @@ def update_jgi_samples(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """
+    Update a JGI Sample record by the jdp_file_id. 
+    """
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
