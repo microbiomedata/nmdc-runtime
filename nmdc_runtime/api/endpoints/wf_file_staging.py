@@ -11,7 +11,11 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
 
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
+from nmdc_runtime.api.models.wfe_file_stages import (
+    GlobusTask,
+    GlobusTaskStatus,
+    JGISample,
+)
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -115,6 +119,7 @@ def update_globus_tasks(
     )
     return doc_globus_patched
 
+
 @router.get(
     "/wf_file_staging/globus_tasks",
     response_model=ListResponse[GlobusTask],
@@ -159,7 +164,11 @@ def create_jgi_samples(
     return sample_dict
 
 
-@router.get("/wf_file_staging/jgi_samples",response_model=ListResponse[JGISample],response_model_exclude_unset=True)
+@router.get(
+    "/wf_file_staging/jgi_samples",
+    response_model=ListResponse[JGISample],
+    response_model_exclude_unset=True,
+)
 def list_jgi_samples(
     req: Annotated[ListRequest, Query()],
     mdb: Database = Depends(get_mongo_db),
