@@ -3433,7 +3433,6 @@ def test_create_jgi_sample(api_user_client):
     faker = Faker()
     globus_records = faker.generate_jgi_samples(1)
     seeded_record = globus_records[0]
-    
     response = api_user_client.request(
         "POST",
         f"/wf_file_staging/jgi_samples",

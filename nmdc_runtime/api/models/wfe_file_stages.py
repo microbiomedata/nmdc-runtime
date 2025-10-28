@@ -65,6 +65,6 @@ class JGISample(BaseModel):
     analysis_project_id: str = Field(
         ..., description="Analysis Project ID", examples=["Some Analysis Project ID"]
     )
-    create_date: str = Field(..., description="Creation Date", examples=["2023-01-01T00:00:00Z"])
-    update_date: Optional[str] = Field(None, description="Update Date", examples=["2023-01-01T00:00:00Z"])
+    create_date: datetime.datetime = Field(..., description="Creation Date", examples=["2023-01-01T00:00:00Z"])
+    update_date: Optional[datetime.datetime] = Field(None, description="Update Date", examples=["2023-01-01T00:00:00Z"])
     request_id: int = Field(..., description="Request ID", examples=[1])
