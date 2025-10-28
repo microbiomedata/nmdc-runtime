@@ -3,6 +3,7 @@ from typing import Optional
 from enum import Enum
 import datetime
 
+
 class GlobusTaskStatus(str, Enum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
@@ -25,46 +26,40 @@ class GlobusTask(BaseModel):
         ..., description="Status of the Globus task.", examples=["Some status"]
     )
 
+
 class JGISample(BaseModel):
     """
     Represents a JGI Sample for workflow file staging.
     """
+
     jdp_file_id: str = Field(
         ..., description="JDP File ID", examples=["Some JDP File ID"]
     )
-    ap_gold_id: str = Field(
-        ..., description="AP Gold ID", examples=["Some AP Gold ID"]
-    )
-    study_id: str = Field(
-        ..., description="Study ID", examples=["Some Study ID"]
-    )
-    its_ap_id: int = Field(
-        ..., description="ITS AP ID", examples=[12345]
-    )
+    ap_gold_id: str = Field(..., description="AP Gold ID", examples=["Some AP Gold ID"])
+    study_id: str = Field(..., description="Study ID", examples=["Some Study ID"])
+    its_ap_id: int = Field(..., description="ITS AP ID", examples=[12345])
     project_name: str = Field(
         ..., description="Project Name", examples=["Some Project Name"]
     )
     biosample_id: str = Field(
         ..., description="Biosample ID", examples=["Some Biosample ID"]
     )
-    seq_id: str = Field(
-        ..., description="Sequence ID", examples=["Some Sequence ID"]
-    )
-    file_name: str = Field(
-        ..., description="File Name", examples=["some_file.fastq"]
-    )
+    seq_id: str = Field(..., description="Sequence ID", examples=["Some Sequence ID"])
+    file_name: str = Field(..., description="File Name", examples=["some_file.fastq"])
     file_status: str = Field(
         ..., description="File Status", examples=["Some File Status"]
     )
-    file_size: int = Field(
-        ..., description="File Size", examples=[123456]
-    )
+    file_size: int = Field(..., description="File Size", examples=[123456])
     md5sum: Optional[str] = Field(
         None, description="MD5 Sum", examples=["Some MD5 Sum"]
     )
     analysis_project_id: str = Field(
         ..., description="Analysis Project ID", examples=["Some Analysis Project ID"]
     )
-    create_date: datetime.datetime = Field(..., description="Creation Date", examples=["2023-01-01T00:00:00Z"])
-    update_date: Optional[datetime.datetime] = Field(None, description="Update Date", examples=["2023-01-01T00:00:00Z"])
+    create_date: datetime.datetime = Field(
+        ..., description="Creation Date", examples=["2023-01-01T00:00:00Z"]
+    )
+    update_date: Optional[datetime.datetime] = Field(
+        None, description="Update Date", examples=["2023-01-01T00:00:00Z"]
+    )
     request_id: int = Field(..., description="Request ID", examples=[1])
