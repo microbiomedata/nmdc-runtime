@@ -193,7 +193,7 @@ def update_jgi_samples(
     user: User = Depends(get_current_active_user),
 ):
     """
-    Update a JGI Sample record by the jdp_file_id. 
+    Update a JGI Sample record by the jdp_file_id.
     """
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
