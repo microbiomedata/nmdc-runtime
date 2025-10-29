@@ -14,6 +14,7 @@ from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
 from nmdc_runtime.api.models.wfe_file_stages import (
     GlobusTask,
     GlobusTaskStatus,
+    JDPFileStatus,
     JGISample,
 )
 from nmdc_runtime.api.models.user import User
@@ -144,6 +145,15 @@ def create_jgi_sample(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"JGI sample with jdp_file_id {jgi_in.jdp_file_id} already exists.",
+        )
+    # check the status exists in the enum, if not log a warning
+    if jgi_in.jdp_file_status not in JDPFileStatus.__members__.values():
+        logging.warning(
+            f"JDP file status {jgi_in.jdp_file_status} does not exist in JDPFileStatus enum."
+        )
+    if jgi_in.globus_file_status not in GlobusTaskStatus.__members__.values():
+        logging.warning(
+            f"Globus file status {jgi_in.globus_file_status} does not exist in GlobusTaskStatus enum."
         )
 
     sample_dict = jgi_in.model_dump(exclude_unset=True)

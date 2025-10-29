@@ -3410,7 +3410,7 @@ def test_get_jgi_samples(api_user_client):
     retrieved_records = response.json()
     assert len(retrieved_records["resources"]) == 3
     assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
-    assert retrieved_records["resources"][0]["file_status"] == seeded_record["file_status"]
+    assert retrieved_records["resources"][0]["jdp_file_status"] == seeded_record["jdp_file_status"]
 
     # Clean up: Delete the inserted allowance.
     allowances_collection.delete_many(allow_spec)
@@ -3443,7 +3443,7 @@ def test_create_jgi_sample(api_user_client):
     assert response.status_code == 201
     retrieved_records = response.json()
     assert retrieved_records["jdp_file_id"] == seeded_record["jdp_file_id"]
-    assert retrieved_records["file_status"] == seeded_record["file_status"]
+    assert retrieved_records["jdp_file_status"] == seeded_record["jdp_file_status"]
 
     # Clean up: Delete the inserted data.
     allowances_collection.delete_many(allow_spec)
@@ -3478,7 +3478,7 @@ def test_create_multiple_jgi_samples(api_user_client):
         assert response.status_code == 201
         retrieved_records = response.json()
         assert retrieved_records["jdp_file_id"] == record["jdp_file_id"]
-        assert retrieved_records["file_status"] == record["file_status"]
+        assert retrieved_records["jdp_file_status"] == record["jdp_file_status"]
     
     assert jgi_samples_collection.count_documents({}) == 3
     # Clean up: Delete the inserted data.

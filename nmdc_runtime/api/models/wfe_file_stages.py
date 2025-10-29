@@ -13,6 +13,12 @@ class GlobusTaskStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
 
+class JDPFileStatus(str, Enum):
+    RESTORED = "RESTORED"
+    PURGED = "PURGED"
+    READY = "READY"
+    EXPIRED = "EXPIRED"
+
 
 class GlobusTask(BaseModel):
     """
@@ -29,32 +35,35 @@ class GlobusTask(BaseModel):
 
 class JGISample(BaseModel):
     """
-    Represents a JGI Sample for workflow file staging.
+    Represents a JGI Sample for workflow file staging. Information from JDP, Gold, and Globus is gathered on these records.
     """
 
     jdp_file_id: str = Field(
-        ..., description="JDP File ID", examples=["Some JDP File ID"]
+        ..., description="JGI Data Portal File ID", examples=["6011bc6e117e5d4b9d2b2073"]
     )
-    ap_gold_id: str = Field(..., description="AP Gold ID", examples=["Some AP Gold ID"])
-    study_id: str = Field(..., description="Study ID", examples=["Some Study ID"])
-    its_ap_id: int = Field(..., description="ITS AP ID", examples=[12345])
-    project_name: str = Field(
-        ..., description="Project Name", examples=["Some Project Name"]
+    ap_gold_id: str = Field(..., description="Gold Analysis Project ID", examples=["Ga0307276"])
+    gold_study_id: str = Field(..., description="Gold Study ID", examples=["Gs0135149"])
+    its_ap_id: str = Field(..., description="ITS Analysis Project ID from the JDP", examples=["1196479.0"])
+    sequencing_project_name: str = Field(
+        ..., description="Sequencing project name. This relates to a record in the `/wf_staging_file/sequencing_project` endpoints.", examples=["Some Project Name"]
     )
-    biosample_id: str = Field(
-        ..., description="Biosample ID", examples=["nmdc:bsm-00-000001"]
+    gold_biosample_id: str = Field(
+        ..., description="Gold Biosample ID", examples=["Gb0191643"]
     )
-    seq_id: str = Field(..., description="Sequence ID", examples=["Some Sequence ID"])
-    file_name: str = Field(..., description="File Name", examples=["some_file.fastq"])
-    file_status: str = Field(
-        ..., description="File Status", examples=["Some File Status"]
+    gold_seq_id: str = Field(..., description="Gold Sequence ID", examples=["1196479"])
+    file_name: str = Field(..., description="File Name", examples=["filename.tar.gz"])
+    jdp_file_status: str = Field(
+        ..., description="File staging status. Grabbed from the JDP file restoration endpoint.", examples=["RESTORED"]
     )
-    file_size: int = Field(..., description="File Size", examples=[123456])
+    globus_file_status: str = Field(
+        ..., description="File staging status. Recieved from Globus when the file state is queried.", examples=["ACTIVE"]
+    )
+    jdp_file_size: int = Field(..., description="File size in bytes from JDP.", examples=[123456])
     md5sum: Optional[str] = Field(
         None, description="MD5 Sum", examples=["D43F2404CA13E22594E5C8B04D3BBB81"]
     )
-    analysis_project_id: str = Field(
-        ..., description="Analysis Project ID", examples=["Some Analysis Project ID"]
+    jgi_ap_id: str = Field(
+        ..., description="JGI Analysis Project ID", examples=["1196479"]
     )
     create_date: datetime.datetime = Field(
         ..., description="Creation Date", examples=["2023-01-01T00:00:00Z"]
@@ -62,4 +71,4 @@ class JGISample(BaseModel):
     update_date: Optional[datetime.datetime] = Field(
         None, description="Update Date", examples=["2023-01-01T00:00:00Z"]
     )
-    request_id: int = Field(..., description="Request ID", examples=[1])
+    request_id: int = Field(..., description="Request ID from the JGI data portal after a request to have the files restored from tape is submitted.", examples=[1])
