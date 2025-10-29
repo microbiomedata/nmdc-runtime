@@ -169,6 +169,7 @@ def create_jgi_sample(
             detail=f"Error during insertion: {str(e)}",
         )
 
+
 @router.get(
     "/wf_file_staging/jgi_samples",
     response_model=ListResponse[JGISample],
