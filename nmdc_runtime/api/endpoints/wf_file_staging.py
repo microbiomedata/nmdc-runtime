@@ -151,13 +151,12 @@ def create_jgi_sample(
         mdb["wf_file_staging.jgi_samples"].insert_one(sample_dict)
         return sample_dict
     except Exception as e:
-        logging.error(f"Error during jgi sample insertion: {str(e)}", exc_info=True
-        )
+        logging.error(f"Error during jgi sample insertion: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error during insertion: {str(e)}",
         )
-    
+
 
 @router.get(
     "/wf_file_staging/jgi_samples",
@@ -202,7 +201,9 @@ def update_jgi_samples(
     doc_jgi_sample_original = raise404_if_none(
         mdb["wf_file_staging.jgi_samples"].find_one({"jdp_file_id": jdp_file_id})
     )
-    doc_jgi_sample_patched = merge(doc_jgi_sample_original, jgi_sample_patch.model_dump(exclude_unset=True))
+    doc_jgi_sample_patched = merge(
+        doc_jgi_sample_original, jgi_sample_patch.model_dump(exclude_unset=True)
+    )
     mdb["wf_file_staging.jgi_samples"].replace_one(
         {"jdp_file_id": jdp_file_id}, doc_jgi_sample_patched
     )
