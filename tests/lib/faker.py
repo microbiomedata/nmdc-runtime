@@ -1,4 +1,5 @@
 from typing import List
+import datetime
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
@@ -19,7 +20,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
 
 class Faker:
     r"""
@@ -481,7 +482,7 @@ class Faker:
     def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `GlobusTask` instances,
-        which can be stored in the `globus` collection.
+        which can be stored in the `wf_file_staging.globus_tasks` collection.
         
         Note: The `GlobusTask` class is NOT defined in the NMDC Schema. It is an ad hoc
               class defined locally, in the `nmdc_runtime.api.models` module.
@@ -510,6 +511,55 @@ class Faker:
             
             # Dump the instance to a `dict`
             document = instance.model_dump()
+            documents.append(document)
+
+        return documents
+
+    def generate_jgi_samples(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `JGISample` instances,
+        which can be stored in the `wf_file_staging.jgi_samples` collection.
+
+        Note: The `JGISample` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+        
+        >>> f = Faker()
+        >>> jgi_samples = f.generate_jgi_samples(1)
+        >>> len(jgi_samples)
+        1
+        >>> isinstance(jgi_samples[0]['jdp_file_id'], str)
+        True
+        """
+        documents = []
+        for _ in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "jdp_file_id": self.make_unique_id("jgi-sample-"),
+                "ap_gold_id": "test_ap_gold_id",
+                "gold_study_id": "test_study_id", 
+                "its_ap_id": "12345",
+                "sequencing_project_name": "test_project",
+                "gold_biosample_id": "test_biosample_id",
+                "gold_seq_id": "test_seq_id",
+                "file_name": "test_file.fastq",
+                "globus_file_status": "READY",
+                "jdp_file_status" : "RESTORED",
+                "jdp_file_size": 1000,
+                "analysis_project_id": "test_analysis_project",
+                "jgi_ap_id" : "54321",
+                "request_id": 1,
+                "create_date": datetime.datetime.now().isoformat(),
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `JGISample`.
+            instance = JGISample(**params)
+            
+            # Dump the instance to a `dict`
+            document = instance.model_dump(mode='json')
             documents.append(document)
 
         return documents

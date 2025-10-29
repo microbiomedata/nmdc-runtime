@@ -182,12 +182,23 @@ def ensure_attribute_indexes():
 
 def ensure_globus_tasks_id_is_indexed():
     """
-    Ensures that the `globus` collection has an index on its `task_id` field and that the index is unique.
+    Ensures that the `wf_file_staging.globus_tasks` collection has an index on its `task_id` field and that the index is unique.
     """
 
     mdb = get_mongo_db()
     mdb["wf_file_staging.globus_tasks"].create_index(
         "task_id", background=True, unique=True
+    )
+
+
+def ensure_jgi_samples_id_is_indexed():
+    """
+    Ensures that the `wf_file_staging.jgi_samples` collection has an index on its `jdp_file_id` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb["wf_file_staging.jgi_samples"].create_index(
+        "jdp_file_id", background=True, unique=True
     )
 
 
