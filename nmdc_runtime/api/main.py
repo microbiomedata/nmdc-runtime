@@ -190,6 +190,7 @@ def ensure_globus_tasks_id_is_indexed():
         "task_id", background=True, unique=True
     )
 
+
 def ensure_jgi_samples_id_is_indexed():
     """
     Ensures that the `wf_file_staging.jgi_samples` collection has an index on its `jdp_file_id` field and that the index is unique.
