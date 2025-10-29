@@ -118,7 +118,9 @@ def list_globus_tasks(
     """Get a list of `GlobusTask`s."""
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-    return list_resources(req, mdb, "wf_file_staging.globus_tasks")
+    rv = list_resources(req, mdb, "wf_file_staging.globus_tasks")
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.post(
@@ -166,7 +168,6 @@ def create_jgi_sample(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error during insertion: {str(e)}",
         )
-
 
 @router.get(
     "/wf_file_staging/jgi_samples",
