@@ -3363,7 +3363,7 @@ def test_create_globus_task(api_user_client):
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
-    # Generate a `globus` record to act as the request payload.
+    # Generate a `jgi_sample` dictionary to act as the request payload.
     faker = Faker()
     globus_records = faker.generate_globus_tasks(1)
     seeded_record = globus_records[0]
@@ -3395,11 +3395,11 @@ def test_get_jgi_samples(api_user_client):
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     jgi_samples = mdb.get_collection("wf_file_staging.jgi_samples")
 
-    # Seed the `jgi_samples` collection with a document.
+    # Seed the `jgi_samples` collection with some documents.
     faker = Faker()
-    jgi_records = faker.generate_jgi_samples(3)
-    jgi_samples.insert_many(jgi_records)
-    seeded_record = jgi_records[0]
+    jgi_sample_records = faker.generate_jgi_samples(3)
+    jgi_samples.insert_many(jgi_sample_records)
+    seeded_record = jgi_sample_records[0]
     response = api_user_client.request(
         "GET",
         f"/wf_file_staging/jgi_samples",
@@ -3412,7 +3412,7 @@ def test_get_jgi_samples(api_user_client):
     assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
     assert retrieved_records["resources"][0]["file_status"] == seeded_record["file_status"]
 
-    # Clean up: Delete the inserted Globus task.
+    # Clean up: Delete the inserted allowance.
     allowances_collection.delete_many(allow_spec)
     # delete all inserted records
     jgi_samples.delete_many({})
@@ -3427,12 +3427,12 @@ def test_create_jgi_sample(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    globus = mdb.get_collection("wf_file_staging.jgi_samples")
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
 
-    # Generate a `globus` record to act as the request payload.
+    # Generate a `wf_file_staging.jgi_samples` record to act as the request payload.
     faker = Faker()
-    globus_records = faker.generate_jgi_samples(1)
-    seeded_record = globus_records[0]
+    jgi_samples = faker.generate_jgi_samples(1)
+    seeded_record = jgi_samples[0]
     response = api_user_client.request(
         "POST",
         f"/wf_file_staging/jgi_samples",
@@ -3445,6 +3445,42 @@ def test_create_jgi_sample(api_user_client):
     assert retrieved_records["jdp_file_id"] == seeded_record["jdp_file_id"]
     assert retrieved_records["file_status"] == seeded_record["file_status"]
 
-    # Clean up: Delete the inserted Globus task.
+    # Clean up: Delete the inserted data.
     allowances_collection.delete_many(allow_spec)
-    globus.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
+    jgi_samples_collection.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
+
+def test_create_multiple_jgi_samples(api_user_client):
+    """
+    Test creating multiple JGI samples via POST /wf_file_staging/jgi_samples endpoint. 
+    This is to test the validation in the endpoint.
+    """
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Generate multiple `wf_file_staging.jgi_samples` records
+    faker = Faker()
+    jgi_samples = faker.generate_jgi_samples(3)
+    for record in jgi_samples:
+        response = api_user_client.request(
+            "POST",
+            f"/wf_file_staging/jgi_samples",
+            record,
+        )
+
+        # Verify the response indicates success and its payload matches the seeded record.
+        assert response.status_code == 201
+        retrieved_records = response.json()
+        assert retrieved_records["jdp_file_id"] == record["jdp_file_id"]
+        assert retrieved_records["file_status"] == record["file_status"]
+    
+    assert jgi_samples_collection.count_documents({}) == 3
+    # Clean up: Delete the inserted data.
+    allowances_collection.delete_many(allow_spec)
+    jgi_samples_collection.delete_many({})

@@ -482,7 +482,7 @@ class Faker:
     def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `GlobusTask` instances,
-        which can be stored in the `globus_tasks` collection.
+        which can be stored in the `wf_file_staging.globus_tasks` collection.
         
         Note: The `GlobusTask` class is NOT defined in the NMDC Schema. It is an ad hoc
               class defined locally, in the `nmdc_runtime.api.models` module.
@@ -518,7 +518,7 @@ class Faker:
     def generate_jgi_samples(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `JGISample` instances,
-        which can be stored in the `jgi_samples` collection.
+        which can be stored in the `wf_file_staging.jgi_samples` collection.
 
         Note: The `JGISample` class is NOT defined in the NMDC Schema. It is an ad hoc
               class defined locally, in the `nmdc_runtime.api.models` module.

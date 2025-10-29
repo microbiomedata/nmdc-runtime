@@ -42,7 +42,7 @@ class JGISample(BaseModel):
         ..., description="Project Name", examples=["Some Project Name"]
     )
     biosample_id: str = Field(
-        ..., description="Biosample ID", examples=["Some Biosample ID"]
+        ..., description="Biosample ID", examples=["nmdc:bsm-00-000001"]
     )
     seq_id: str = Field(..., description="Sequence ID", examples=["Some Sequence ID"])
     file_name: str = Field(..., description="File Name", examples=["some_file.fastq"])
@@ -51,7 +51,7 @@ class JGISample(BaseModel):
     )
     file_size: int = Field(..., description="File Size", examples=[123456])
     md5sum: Optional[str] = Field(
-        None, description="MD5 Sum", examples=["Some MD5 Sum"]
+        None, description="MD5 Sum", examples=["D43F2404CA13E22594E5C8B04D3BBB81"]
     )
     analysis_project_id: str = Field(
         ..., description="Analysis Project ID", examples=["Some Analysis Project ID"]

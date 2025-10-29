@@ -33,22 +33,6 @@ def check_can_run_wf_file_staging_endpoints(user: User):
         )
 
 
-@router.get(
-    "/wf_file_staging/globus_tasks",
-    response_model=ListResponse[GlobusTask],
-    response_model_exclude_unset=True,
-)
-def list_globus_tasks(
-    req: Annotated[ListRequest, Query()],
-    mdb: Database = Depends(get_mongo_db),
-    user: User = Depends(get_current_active_user),
-):
-    # check for permissions first
-    check_can_run_wf_file_staging_endpoints(user)
-
-    return list_resources(req, mdb, "wf_file_staging.globus_tasks")
-
-
 @router.post(
     "/wf_file_staging/globus_tasks",
     status_code=status.HTTP_201_CREATED,
@@ -130,9 +114,9 @@ def list_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Get a list of `GlobusTask`s."""
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-
     return list_resources(req, mdb, "wf_file_staging.globus_tasks")
 
 
@@ -141,7 +125,7 @@ def list_globus_tasks(
     status_code=status.HTTP_201_CREATED,
     response_model=JGISample,
 )
-def create_jgi_samples(
+def create_jgi_sample(
     jgi_in: JGISample,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
@@ -152,7 +136,7 @@ def create_jgi_samples(
 
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-    # check if record with same task_id already exists
+    # check if record with same jdp_file_id already exists
     existing = mdb["wf_file_staging.jgi_samples"].find_one(
         {"jdp_file_id": jgi_in.jdp_file_id}
     )
@@ -163,9 +147,17 @@ def create_jgi_samples(
         )
 
     sample_dict = jgi_in.model_dump(exclude_unset=True)
-    mdb["wf_file_staging.jgi_samples"].insert_one(sample_dict)
-    return sample_dict
-
+    try:
+        mdb["wf_file_staging.jgi_samples"].insert_one(sample_dict)
+        return sample_dict
+    except Exception as e:
+        logging.error(f"Error during jgi sample insertion: {str(e)}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during insertion: {str(e)}",
+        )
+    
 
 @router.get(
     "/wf_file_staging/jgi_samples",
@@ -175,10 +167,13 @@ def create_jgi_samples(
 def list_jgi_samples(
     req: Annotated[ListRequest, Query()],
     mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
 ):
     r"""
     Retrieves JGI Sample records that match the specified filter criteria. Uses Mongo-like filters.
     """
+    # perm check
+    check_can_run_wf_file_staging_endpoints(user)
 
     rv = list_resources(req, mdb, "wf_file_staging.jgi_samples")
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
@@ -188,27 +183,27 @@ def list_jgi_samples(
 @router.patch("/wf_file_staging/jgi_samples/{jdp_file_id}", response_model=JGISample)
 def update_jgi_samples(
     jdp_file_id: str,
-    sample_patch: JGISample,
+    jgi_sample_patch: JGISample,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
     """
-    Update a JGI Sample record by the jdp_file_id.
+    Update a JGI Sample record by its jdp_file_id.
     """
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    if jdp_file_id != sample_patch.jdp_file_id:
+    if jdp_file_id != jgi_sample_patch.jdp_file_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="jdp_file_id in path and body must match.",
+            detail="Cannot modify jdp_file_id (jdp_file_id in path and body must match).",
         )
 
-    doc = raise404_if_none(
+    doc_jgi_sample_original = raise404_if_none(
         mdb["wf_file_staging.jgi_samples"].find_one({"jdp_file_id": jdp_file_id})
     )
-    doc_sample_patched = merge(doc, sample_patch.model_dump(exclude_unset=True))
+    doc_jgi_sample_patched = merge(doc_jgi_sample_original, jgi_sample_patch.model_dump(exclude_unset=True))
     mdb["wf_file_staging.jgi_samples"].replace_one(
-        {"jdp_file_id": jdp_file_id}, doc_sample_patched
+        {"jdp_file_id": jdp_file_id}, doc_jgi_sample_patched
     )
-    return doc_sample_patched
+    return doc_jgi_sample_patched
