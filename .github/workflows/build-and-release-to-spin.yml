@@ -48,6 +48,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Generate tags and labels for the Docker container images.
+      #
+      # Note: The `type=sha,format=long` line makes it so every image is tagged with the Git commit hash.
+      #       We do this so people can reference (i.e. pin) a specific image version, even ones not tagged
+      #       with a version number via the `type=semver,pattern={{version}}` line. (The other tags may
+      #       refer to different image versions over time, so they cannot be used for this purpose.)
+      #
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -61,6 +68,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=raw,value=prod,enable=${{ env.IS_PROD_RELEASE }}
+            type=sha,format=long
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
