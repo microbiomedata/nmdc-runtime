@@ -16,7 +16,7 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     GlobusTaskStatus,
     JDPFileStatus,
     JGISample,
-    SequencingProject
+    SequencingProject,
 )
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
@@ -222,6 +222,7 @@ def update_jgi_samples(
     )
     return doc_jgi_sample_patched
 
+
 @router.get(
     "/wf_file_staging/sequencing-project",
     response_model=ListResponse[SequencingProject],
@@ -266,9 +267,13 @@ def get_sequencing_project(
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
-    print(f"Getting SequencingProject record for sequencing_project_name: {sequencing_project_name}")
+    print(
+        f"Getting SequencingProject record for sequencing_project_name: {sequencing_project_name}"
+    )
     check_can_run_wf_file_staging_endpoints(user)
     print("Permission check passed.")
     return raise404_if_none(
-        mdb.sequencingproject.find_one({"sequencing_project_name": sequencing_project_name})
+        mdb.sequencingproject.find_one(
+            {"sequencing_project_name": sequencing_project_name}
+        )
     )

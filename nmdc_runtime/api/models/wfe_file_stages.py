@@ -33,6 +33,7 @@ class GlobusTask(BaseModel):
         ..., description="Status of the Globus task.", examples=["Some status"]
     )
 
+
 class JGISample(BaseModel):
     """
     Represents a JGI Sample for workflow file staging. Information from JDP, Gold, and Globus is gathered on these records.
@@ -91,6 +92,7 @@ class JGISample(BaseModel):
         examples=[1],
     )
 
+
 class SequencingProject(BaseModel):
     """
     Represents a JGI sequencing project with its associated metadata.
@@ -106,7 +108,9 @@ class SequencingProject(BaseModel):
         description="Detailed description of the sequencing project",
         examples=["A project to sequence the human genome."],
     )
-    jgi_proposal_id: str = Field(..., description="JGI proposal ID", examples=["503568"])
+    jgi_proposal_id: str = Field(
+        ..., description="JGI proposal ID", examples=["503568"]
+    )
 
     nmdc_study_id: str = Field(
         ..., description="NMDC study ID", examples=["nmdc:sty-11-28tm5d36"]
