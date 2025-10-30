@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 from enum import Enum
+import datetime
 
 
 class GlobusTaskStatus(str, Enum):
@@ -10,6 +12,13 @@ class GlobusTaskStatus(str, Enum):
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
+
+
+class JDPFileStatus(str, Enum):
+    RESTORED = "RESTORED"
+    PURGED = "PURGED"
+    READY = "READY"
+    EXPIRED = "EXPIRED"
 
 
 class GlobusTask(BaseModel):
