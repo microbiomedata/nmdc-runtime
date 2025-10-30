@@ -20,7 +20,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample, SequencingProject
 
 class Faker:
     r"""
@@ -629,16 +629,16 @@ class Faker:
         >>> sequencing_projects = f.generate_sequencing_projects(1)
         >>> len(sequencing_projects)
         1
-        >>> isinstance(sequencing_projects[0]['project_name'], str)
+        >>> isinstance(sequencing_projects[0]['sequencing_project_name'], str)
         True
         """
         documents = []
         for i in range(quantity):
             # Apply any overrides passed in.
             params = {
-                "project_name": "arbitrary_string",
-                "description": "arbitrary_string",
-                "proposal_id": "arbitrary_string",
+                "sequencing_project_name": "arbitrary_string",
+                "sequencing_project_description": "arbitrary_string",
+                "jgi_proposal_id": "arbitrary_string",
                 "nmdc_study_id": "arbitrary_string",
                 **overrides,
             }
