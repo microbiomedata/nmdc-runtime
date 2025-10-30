@@ -3484,3 +3484,114 @@ def test_create_multiple_jgi_samples(api_user_client):
     # Clean up: Delete the inserted data.
     allowances_collection.delete_many(allow_spec)
     jgi_samples_collection.delete_many({})
+
+
+def test_create_sequencing_project_record(api_user_client):
+    """Test creating a new Sequencing Project record via POST /sequencing_projects endpoint."""
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    sequencing_project = mdb.get_collection("sequencingproject")
+
+    # Seed the `globus` collection with a document.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(4)
+    seeded_record = sequencing_project_records[0]
+    response = api_user_client.request(
+        "POST",
+        f"/wf_file_staging/sequencing-project",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == 201
+    retrieved_records = response.json()
+    assert retrieved_records["sequencing_project_name"] == seeded_record["sequencing_project_name"]
+    assert retrieved_records["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
+    assert retrieved_records["nmdc_study_id"] == seeded_record["nmdc_study_id"]
+    assert retrieved_records["sequencing_project_description"] == seeded_record["sequencing_project_description"]
+
+    # Clean up: Delete the inserted SequencingProject record.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
+
+
+def test_get_sequencing_project_by_name(api_user_client):
+    """Test retrieving a SequencingProject record by its sequencing_project_name via GET /sequencing-project/{sequencing_project_name} endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    sequencing_project = mdb.get_collection("sequencingproject")
+
+    # Seed the `globus` collection with a document.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(1)
+    sequencing_project.insert_many(sequencing_project_records)
+    seeded_record = sequencing_project_records[0]
+    try:
+        print(f"Calling API to get SequencingProject record with sequencing_project_name: {seeded_record['sequencing_project_name']}")
+        sequencing_project_name = seeded_record['sequencing_project_name']
+        response = api_user_client.request(
+            "GET", 
+            f"/wf_file_staging/sequencing-project/{sequencing_project_name}",
+        )
+    except Exception as e:
+        print(f"Error during API request: {e}")
+        raise
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_record = response.json()
+    assert retrieved_record["sequencing_project_name"] == seeded_record["sequencing_project_name"]
+    assert retrieved_record["sequencing_project_description"] == seeded_record["sequencing_project_description"]
+    assert retrieved_record["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
+    assert retrieved_record["nmdc_study_id"] == seeded_record["nmdc_study_id"]
+
+    # Clean up: Delete the inserted SequencingProject record.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
+
+
+def test_get_sequencing_project_records(api_user_client):
+    """Test retrieving all Globus records via GET /globus endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    sequencing_project = mdb.get_collection("sequencingproject")
+
+    # Seed the `sequencingproject` collection with a document.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(1)
+    sequencing_project.insert_many(sequencing_project_records)
+    seeded_record = sequencing_project_records[0]
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/sequencing-project",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records) == 1
+    assert retrieved_records["resources"][0]["sequencing_project_name"] == seeded_record["sequencing_project_name"]
+    assert retrieved_records["resources"][0]["sequencing_project_description"] == seeded_record["sequencing_project_description"]
+    assert retrieved_records["resources"][0]["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
+    assert retrieved_records["resources"][0]["nmdc_study_id"] == seeded_record  ["nmdc_study_id"]
+
+    # Clean up: Delete the inserted Globus record.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
