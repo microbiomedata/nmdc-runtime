@@ -1084,6 +1084,11 @@ def _add_linked_instances_to_alldocs(
         "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
         "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
         "uses_calibration",  # when a `nmdc:CalibrationInformation`is part of a `nmdc:PlannedProcess`.
+        # Note: I don't think of superseding something as being either upstream or downstream of that thing;
+        #       but this function requires every document-reference-ranged slot to be accounted for in one
+        #       list or the other, and the superseding thing does arise _later_ than the thing it supersedes,
+        #       so I have opted to treat the superseding thing as being downstream.
+        "superseded_by",  # when a `nmdc:WorkflowExecution` or `nmdc:DataObject` is superseded by a `nmdc:WorkflowExecution`.
     ]
 
     unique_document_reference_ranged_slot_names = set()

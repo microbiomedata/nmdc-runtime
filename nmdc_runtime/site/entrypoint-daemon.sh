@@ -23,4 +23,7 @@ file_env() {
 file_env "MONGO_PASSWORD"
 file_env "DAGSTER_POSTGRES_PASSWORD"
 
-exec uv run --active --no-sync dagster-daemon run
+# Note: The `--no-sync` flag has no effect when used outside of a project,
+#       so we omit it from this command. If we were to include it here, uv
+#       would display a warning saying exactly that.
+exec uv run --active dagster-daemon run

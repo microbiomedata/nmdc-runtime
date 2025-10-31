@@ -1,3 +1,10 @@
+# Update the `uv.lock` file to reflect the `pyproject.toml` file.
+# Note: Run this from the Docker host, not from within a container.
+# Reference: https://docs.astral.sh/uv/concepts/projects/sync/#syncing-the-environment
+.PHONY: uv.lock
+uv.lock:
+	docker compose run --rm -it fastapi uv sync --active --all-groups
+
 # Spin up the development stack.
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
