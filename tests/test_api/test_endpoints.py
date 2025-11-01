@@ -3598,7 +3598,12 @@ def test_get_sequencing_project_records(api_user_client):
     response_payload = response.json()
     retrieved_records = response_payload["resources"]
     assert len(retrieved_records) == 3
-    assert set(sequencing_project_records) == set(retrieved_records)
+
+    # Verify that all seeded records are present in the retrieved records (although
+    # we do not know the order in which we will have retrieved them).
+    seeded_names = {item["sequencing_project_name"] for item in sequencing_project_records}
+    retrieved_names = {item["sequencing_project_name"] for item in retrieved_records}
+    assert seeded_names == retrieved_names
 
     # Clean up: Delete the inserted allowance and the `JGISequencingProject`.
     allowances_collection.delete_many(allow_spec)
