@@ -3595,7 +3595,8 @@ def test_get_sequencing_project_records(api_user_client):
 
     # Verify the response indicates success and its payload reflects the seeded data.
     assert response.status_code == status.HTTP_200_OK
-    retrieved_records = response.json()
+    response_payload = response.json()
+    retrieved_records = response_payload["resources"]
     assert len(retrieved_records) == 3
     assert set(sequencing_project_records) == set(retrieved_records)
 
