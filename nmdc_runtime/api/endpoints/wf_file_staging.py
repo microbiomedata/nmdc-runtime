@@ -44,6 +44,8 @@ def create_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Create a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
@@ -72,6 +74,8 @@ def get_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Retrieve a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     return raise404_if_none(
@@ -86,6 +90,8 @@ def update_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Update a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
@@ -116,6 +122,7 @@ def list_globus_tasks(
     user: User = Depends(get_current_active_user),
 ):
     """Get a list of `GlobusTask`s."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     rv = list_resources(req, mdb, "wf_file_staging.globus_tasks")
@@ -232,6 +239,8 @@ def list_sequencing_project_records(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Get a list of `JGISequencingProject`s."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
@@ -248,6 +257,8 @@ def create_sequencing_record(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Create a `JGISequencingProject`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
@@ -265,6 +276,8 @@ def get_sequencing_project(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Retrieve a `JGISequencingProject`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     
