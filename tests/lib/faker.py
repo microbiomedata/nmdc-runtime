@@ -20,7 +20,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample, SequencingProject
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample, JGISequencingProject
 
 class Faker:
     r"""
@@ -599,7 +599,7 @@ class Faker:
                 **overrides,
             }
             # Validate the parameters by attempting to instantiate a `SequencingProject`.
-            instance = SequencingProject(**params)
+            instance = JGISequencingProject(**params)
 
             # Dump the instance to a `dict`
             document = instance.model_dump()

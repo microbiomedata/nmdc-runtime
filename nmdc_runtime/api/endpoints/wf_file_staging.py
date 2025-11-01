@@ -16,7 +16,7 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     GlobusTaskStatus,
     JDPFileStatus,
     JGISample,
-    SequencingProject,
+    JGISequencingProject,
 )
 from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
@@ -225,7 +225,7 @@ def update_jgi_samples(
 
 @router.get(
     "/wf_file_staging/sequencing-project",
-    response_model=ListResponse[SequencingProject],
+    response_model=ListResponse[JGISequencingProject],
     response_model_exclude_unset=True,
 )
 def list_sequencing_project_records(
@@ -242,10 +242,10 @@ def list_sequencing_project_records(
 @router.post(
     "/wf_file_staging/sequencing-project",
     status_code=status.HTTP_201_CREATED,
-    response_model=SequencingProject,
+    response_model=JGISequencingProject,
 )
 def create_sequencing_record(
-    sequencing_project_in: SequencingProject,
+    sequencing_project_in: JGISequencingProject,
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
@@ -259,7 +259,7 @@ def create_sequencing_record(
 
 @router.get(
     "/wf_file_staging/sequencing-project/{sequencing_project_name}",
-    response_model=SequencingProject,
+    response_model=JGISequencingProject,
 )
 def get_sequencing_project(
     sequencing_project_name: str,

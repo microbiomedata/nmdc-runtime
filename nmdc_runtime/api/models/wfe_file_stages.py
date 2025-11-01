@@ -93,9 +93,9 @@ class JGISample(BaseModel):
     )
 
 
-class SequencingProject(BaseModel):
+class JGISequencingProject(BaseModel):
     """
-    Represents a JGI sequencing project with its associated metadata.
+    A representation of a JGI sequencing project and its associated metadata.
     """
 
     sequencing_project_name: str = Field(
@@ -111,7 +111,6 @@ class SequencingProject(BaseModel):
     jgi_proposal_id: str = Field(
         ..., description="JGI proposal ID", examples=["503568"]
     )
-
     nmdc_study_id: str = Field(
         ..., description="NMDC study ID", examples=["nmdc:sty-11-28tm5d36"]
     )
