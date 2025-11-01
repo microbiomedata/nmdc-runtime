@@ -4,6 +4,12 @@ from enum import Enum
 import datetime
 
 
+class WorkflowFileStagingCollectionName(str, Enum):
+    """The name of a MongoDB collection related to workflow file staging."""
+
+    JGI_SEQUENCING_PROJECTS = "wf_file_staging.jgi_sequencing_projects"
+
+
 class GlobusTaskStatus(str, Enum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"

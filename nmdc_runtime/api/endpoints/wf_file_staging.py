@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pymongo.database import Database
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query
 from toolz import merge
 import logging
 
@@ -17,6 +16,7 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     JDPFileStatus,
     JGISample,
     JGISequencingProject,
+    WorkflowFileStagingCollectionName as CollectionName,
 )
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
@@ -241,10 +241,9 @@ def list_sequencing_project_records(
 ):
     """Get a list of `JGISequencingProject`s."""
 
-    # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
-    return list_resources(req, mdb, "sequencing_project")
+    return list_resources(req, mdb, CollectionName.JGI_SEQUENCING_PROJECTS.value)
 
 
 @router.post(
@@ -259,11 +258,10 @@ def create_sequencing_record(
 ):
     """Create a `JGISequencingProject`."""
 
-    # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
     sequencing_project_dict = sequencing_project_in.model_dump()
-    mdb.sequencing_project.insert_one(sequencing_project_dict)
+    mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(sequencing_project_dict)
     return sequencing_project_dict
 
 
@@ -278,11 +276,10 @@ def get_sequencing_project(
 ):
     """Retrieve a `JGISequencingProject`."""
 
-    # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
-    
+
     return raise404_if_none(
-        mdb.sequencingproject.find_one(
+        mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
             {"sequencing_project_name": sequencing_project_name}
         )
     )
