@@ -261,7 +261,9 @@ def create_sequencing_record(
     check_can_run_wf_file_staging_endpoints(user)
 
     sequencing_project_dict = sequencing_project_in.model_dump()
-    mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(sequencing_project_dict)
+    mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(
+        sequencing_project_dict
+    )
     return sequencing_project_dict
 
 
