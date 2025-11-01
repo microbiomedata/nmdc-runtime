@@ -223,7 +223,7 @@ def update_jgi_samples(
 
 
 @router.get(
-    "/wf_file_staging/sequencing-project",
+    "/wf_file_staging/jgi_sequencing_projects",
     response_model=ListResponse[JGISequencingProject],
     response_model_exclude_unset=True,
 )
@@ -239,7 +239,7 @@ def list_sequencing_project_records(
 
 
 @router.post(
-    "/wf_file_staging/sequencing-project",
+    "/wf_file_staging/jgi_sequencing_projects",
     status_code=status.HTTP_201_CREATED,
     response_model=JGISequencingProject,
 )
@@ -257,7 +257,7 @@ def create_sequencing_record(
 
 
 @router.get(
-    "/wf_file_staging/sequencing-project/{sequencing_project_name}",
+    "/wf_file_staging/jgi_sequencing_projects/{sequencing_project_name}",
     response_model=JGISequencingProject,
 )
 def get_sequencing_project(
@@ -267,7 +267,7 @@ def get_sequencing_project(
 ):
     # check for permissions first
     print(
-        f"Getting SequencingProject record for sequencing_project_name: {sequencing_project_name}"
+        f"Getting JGISequencingProject record for sequencing_project_name: {sequencing_project_name}"
     )
     check_can_run_wf_file_staging_endpoints(user)
     print("Permission check passed.")

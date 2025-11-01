@@ -3503,7 +3503,7 @@ def test_create_sequencing_project_record(api_user_client):
     seeded_record = sequencing_project_records[0]
     response = api_user_client.request(
         "POST",
-        f"/wf_file_staging/sequencing-project",
+        "/wf_file_staging/jgi_sequencing_projects",
         seeded_record,
     )
 
@@ -3515,13 +3515,13 @@ def test_create_sequencing_project_record(api_user_client):
     assert retrieved_records["nmdc_study_id"] == seeded_record["nmdc_study_id"]
     assert retrieved_records["sequencing_project_description"] == seeded_record["sequencing_project_description"]
 
-    # Clean up: Delete the inserted SequencingProject record.
+    # Clean up: Delete the inserted JGISequencingProject record.
     allowances_collection.delete_many(allow_spec)
     sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
 
 
 def test_get_sequencing_project_by_name(api_user_client):
-    """Test retrieving a SequencingProject record by its sequencing_project_name via GET /sequencing-project/{sequencing_project_name} endpoint."""
+    """Test retrieving a JGISequencingProject record by its sequencing_project_name via GET /jgi_sequencing_projects/{sequencing_project_name} endpoint."""
 
     mdb = get_mongo_db()
     allowances_collection = mdb.get_collection("_runtime.api.allow")
@@ -3538,11 +3538,11 @@ def test_get_sequencing_project_by_name(api_user_client):
     sequencing_project.insert_many(sequencing_project_records)
     seeded_record = sequencing_project_records[0]
     try:
-        print(f"Calling API to get SequencingProject record with sequencing_project_name: {seeded_record['sequencing_project_name']}")
+        print(f"Calling API to get JGISequencingProject record with sequencing_project_name: {seeded_record['sequencing_project_name']}")
         sequencing_project_name = seeded_record['sequencing_project_name']
         response = api_user_client.request(
             "GET", 
-            f"/wf_file_staging/sequencing-project/{sequencing_project_name}",
+            f"/wf_file_staging/jgi_sequencing_projects/{sequencing_project_name}",
         )
     except Exception as e:
         print(f"Error during API request: {e}")
@@ -3556,7 +3556,7 @@ def test_get_sequencing_project_by_name(api_user_client):
     assert retrieved_record["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
     assert retrieved_record["nmdc_study_id"] == seeded_record["nmdc_study_id"]
 
-    # Clean up: Delete the inserted SequencingProject record.
+    # Clean up: Delete the inserted JGISequencingProject record.
     allowances_collection.delete_many(allow_spec)
     sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
 
@@ -3580,7 +3580,7 @@ def test_get_sequencing_project_records(api_user_client):
     seeded_record = sequencing_project_records[0]
     response = api_user_client.request(
         "GET",
-        f"/wf_file_staging/sequencing-project",
+        "/wf_file_staging/jgi_sequencing_projects",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
