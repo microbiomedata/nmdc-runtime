@@ -266,11 +266,8 @@ def get_sequencing_project(
     user: User = Depends(get_current_active_user),
 ):
     # check for permissions first
-    print(
-        f"Getting JGISequencingProject record for sequencing_project_name: {sequencing_project_name}"
-    )
     check_can_run_wf_file_staging_endpoints(user)
-    print("Permission check passed.")
+    
     return raise404_if_none(
         mdb.sequencingproject.find_one(
             {"sequencing_project_name": sequencing_project_name}
