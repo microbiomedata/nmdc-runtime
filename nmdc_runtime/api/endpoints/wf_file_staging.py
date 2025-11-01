@@ -18,7 +18,6 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     JGISample,
     JGISequencingProject,
 )
-from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
 router = APIRouter()
