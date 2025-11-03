@@ -202,6 +202,17 @@ def ensure_jgi_samples_id_is_indexed():
     )
 
 
+def ensure_sequencing_project_name_is_indexed():
+    """
+    Ensures that the `wf_file_staging.sequencing_projects` collection has an index on its `sequencing_project_name` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb["wf_file_staging.sequencing_projects"].create_index(
+        "sequencing_project_name", background=True, unique=True
+    )
+
+
 def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
