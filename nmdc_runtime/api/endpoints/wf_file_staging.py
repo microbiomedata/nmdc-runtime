@@ -259,7 +259,7 @@ def create_sequencing_record(
     """Create a `JGISequencingProject`."""
 
     check_can_run_wf_file_staging_endpoints(user)
-    existing = mdb["wf_file_staging.jgisequencing_projects"].find_one(
+    existing = mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
         {"sequencing_project_name": sequencing_project_in.sequencing_project_name}
     )
     if existing is not None:
