@@ -265,7 +265,7 @@ def create_sequencing_record(
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_description} already exists.",
+            detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_name} already exists.",
         )
     sequencing_project_dict = sequencing_project_in.model_dump()
     mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(
