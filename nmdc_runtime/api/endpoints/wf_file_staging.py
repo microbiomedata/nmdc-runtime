@@ -259,7 +259,14 @@ def create_sequencing_record(
     """Create a `JGISequencingProject`."""
 
     check_can_run_wf_file_staging_endpoints(user)
-
+    existing = mdb["wf_file_staging.jgisequencing_projects"].find_one(
+        {"sequencing_project_name": sequencing_project_in.sequencing_project_name}
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_description} already exists.",
+        )
     sequencing_project_dict = sequencing_project_in.model_dump()
     mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(
         sequencing_project_dict
