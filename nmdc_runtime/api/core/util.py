@@ -52,9 +52,14 @@ def raise404_if_none(doc, detail="Not found"):
     return doc
 
 
-def now(as_str=False):
-    dt = datetime.now(timezone.utc)
-    return dt.isoformat() if as_str else dt
+def now() -> datetime:
+    """Get a `datetime` representing the current time in UTC."""
+    return datetime.now(timezone.utc)
+
+
+def now_str() -> str:
+    """Get an ISO string representing the current time in UTC."""
+    return now().isoformat()
 
 
 def expiry_dt_from_now(days=0, hours=0, minutes=0, seconds=0):
