@@ -186,7 +186,9 @@ def get_linked_instances(
     mdb: MongoDatabase = Depends(get_mongo_db),
     # FastAPI will inject this `background_tasks` argument, to which we can add background tasks
     # for FastAPI to run after it returns the HTTP response.
-    # Reference: https://fastapi.tiangolo.com/tutorial/background-tasks/
+    # References:
+    # - https://fastapi.tiangolo.com/tutorial/background-tasks/ (RE: `BackgroundTasks`)
+    # - https://stackoverflow.com/a/68807219 (RE: how to specify it after some optional parameters)
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     """
