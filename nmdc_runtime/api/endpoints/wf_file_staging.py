@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pymongo.database import Database
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query
 from toolz import merge
 import logging
 
@@ -16,8 +15,9 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     GlobusTaskStatus,
     JDPFileStatus,
     JGISample,
+    JGISequencingProject,
+    WorkflowFileStagingCollectionName as CollectionName,
 )
-from nmdc_runtime.api.models.user import User
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 
 router = APIRouter()
@@ -44,6 +44,8 @@ def create_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Create a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     # check if record with same task_id already exists
@@ -72,6 +74,8 @@ def get_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Retrieve a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     return raise404_if_none(
@@ -86,6 +90,8 @@ def update_globus_tasks(
     mdb: Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
 ):
+    """Update a `GlobusTask`."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
 
@@ -116,6 +122,7 @@ def list_globus_tasks(
     user: User = Depends(get_current_active_user),
 ):
     """Get a list of `GlobusTask`s."""
+
     # check for permissions first
     check_can_run_wf_file_staging_endpoints(user)
     rv = list_resources(req, mdb, "wf_file_staging.globus_tasks")
@@ -220,3 +227,68 @@ def update_jgi_samples(
         {"jdp_file_id": jdp_file_id}, doc_jgi_sample_patched
     )
     return doc_jgi_sample_patched
+
+
+@router.get(
+    "/wf_file_staging/jgi_sequencing_projects",
+    response_model=ListResponse[JGISequencingProject],
+    response_model_exclude_unset=True,
+)
+def list_sequencing_project_records(
+    req: Annotated[ListRequest, Query()],
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    """Get a list of `JGISequencingProject`s."""
+
+    check_can_run_wf_file_staging_endpoints(user)
+
+    return list_resources(req, mdb, CollectionName.JGI_SEQUENCING_PROJECTS.value)
+
+
+@router.post(
+    "/wf_file_staging/jgi_sequencing_projects",
+    status_code=status.HTTP_201_CREATED,
+    response_model=JGISequencingProject,
+)
+def create_sequencing_record(
+    sequencing_project_in: JGISequencingProject,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    """Create a `JGISequencingProject`."""
+
+    check_can_run_wf_file_staging_endpoints(user)
+    existing = mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
+        {"sequencing_project_name": sequencing_project_in.sequencing_project_name}
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_name} already exists.",
+        )
+    sequencing_project_dict = sequencing_project_in.model_dump()
+    mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(
+        sequencing_project_dict
+    )
+    return sequencing_project_dict
+
+
+@router.get(
+    "/wf_file_staging/jgi_sequencing_projects/{sequencing_project_name}",
+    response_model=JGISequencingProject,
+)
+def get_sequencing_project(
+    sequencing_project_name: str,
+    mdb: Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    """Retrieve a `JGISequencingProject`."""
+
+    check_can_run_wf_file_staging_endpoints(user)
+
+    return raise404_if_none(
+        mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
+            {"sequencing_project_name": sequencing_project_name}
+        )
+    )

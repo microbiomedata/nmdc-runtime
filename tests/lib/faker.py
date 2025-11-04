@@ -20,7 +20,7 @@ from nmdc_schema.nmdc import (
 )
 
 from nmdc_runtime.api.models.job import Job
-from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample, JGISequencingProject
 
 class Faker:
     r"""
@@ -342,6 +342,7 @@ class Faker:
 
         return documents
 
+
     def generate_data_objects(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `DataObject` instances,
@@ -398,6 +399,7 @@ class Faker:
             documents.append(document)
 
         return documents
+
 
     def generate_workflow_executions(self, quantity: int, workflow_type: str, was_informed_by: List[str], has_input: List[str], **overrides) -> List[dict]:
         """
@@ -478,7 +480,8 @@ class Faker:
             documents.append(document)
 
         return documents
-    
+
+
     def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `GlobusTask` instances,
@@ -514,6 +517,7 @@ class Faker:
             documents.append(document)
 
         return documents
+
 
     def generate_jgi_samples(self, quantity: int, **overrides) -> List[dict]:
         """
@@ -563,7 +567,47 @@ class Faker:
             documents.append(document)
 
         return documents
-    
+
+
+    def generate_sequencing_projects(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `SequencingProject` instances,
+        which can be stored in the `sequencing_project` collection.
+        
+        Note: The `SequencingProject` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> sequencing_projects = f.generate_sequencing_projects(1)
+        >>> len(sequencing_projects)
+        1
+        >>> isinstance(sequencing_projects[0]['sequencing_project_name'], str)
+        True
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "sequencing_project_name": f"arbitrary_string-{i+1}",
+                "sequencing_project_description": "arbitrary_string",
+                "jgi_proposal_id": "arbitrary_string",
+                "nmdc_study_id": "arbitrary_string",
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `SequencingProject`.
+            instance = JGISequencingProject(**params)
+
+            # Dump the instance to a `dict`
+            document = instance.model_dump()
+            documents.append(document)
+
+        return documents
+
+
     def generate_jobs(self, quantity: int, **overrides) -> List[dict]:
         """
         Generates the specified number of documents representing `Job` instances,

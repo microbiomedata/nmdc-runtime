@@ -17,7 +17,7 @@ from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
-
+from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
 from nmdc_runtime import config
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.api.middleware import PyinstrumentMiddleware
@@ -202,6 +202,17 @@ def ensure_jgi_samples_id_is_indexed():
     )
 
 
+def ensure_sequencing_project_name_is_indexed():
+    """
+    Ensures that the `wf_file_staging.sequencing_projects` collection has an index on its `sequencing_project_name` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb[WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value].create_index(
+        "sequencing_project_name", background=True, unique=True
+    )
+
+
 def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
@@ -255,6 +266,7 @@ async def lifespan(app: FastAPI):
     ensure_type_field_is_indexed()
     ensure_default_api_perms()
     ensure_globus_tasks_id_is_indexed()
+    ensure_sequencing_project_name_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 

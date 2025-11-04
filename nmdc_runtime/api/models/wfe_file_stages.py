@@ -4,6 +4,12 @@ from enum import Enum
 import datetime
 
 
+class WorkflowFileStagingCollectionName(str, Enum):
+    """The name of a MongoDB collection related to workflow file staging."""
+
+    JGI_SEQUENCING_PROJECTS = "wf_file_staging.jgi_sequencing_projects"
+
+
 class GlobusTaskStatus(str, Enum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
@@ -90,4 +96,27 @@ class JGISample(BaseModel):
         ...,
         description="Request ID from the JGI data portal after a request to have the files restored from tape is submitted.",
         examples=[1],
+    )
+
+
+class JGISequencingProject(BaseModel):
+    """
+    A representation of a JGI sequencing project and its associated metadata.
+    """
+
+    sequencing_project_name: str = Field(
+        ...,
+        description="Name of the sequencing project that we can refer to while staging files.",
+        examples=["Human Genome Project"],
+    )
+    sequencing_project_description: str = Field(
+        ...,
+        description="Detailed description of the sequencing project",
+        examples=["A project to sequence the human genome."],
+    )
+    jgi_proposal_id: str = Field(
+        ..., description="JGI proposal ID", examples=["503568"]
+    )
+    nmdc_study_id: str = Field(
+        ..., description="NMDC study ID", examples=["nmdc:sty-11-28tm5d36"]
     )
