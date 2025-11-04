@@ -3,14 +3,12 @@ import re
 from typing import List, Dict, Annotated
 
 import pymongo
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query
 from pydantic import AfterValidator
 from refscan.lib.helpers import (
     get_collection_names_from_schema,
     get_names_of_classes_eligible_for_collection,
 )
-from starlette.background import BackgroundTask
 
 from nmdc_runtime.api.endpoints.lib.linked_instances import (
     gather_linked_instances,
@@ -186,6 +184,10 @@ def get_linked_instances(
         ),
     ] = 20,
     mdb: MongoDatabase = Depends(get_mongo_db),
+    # FastAPI will inject this `background_tasks` argument, to which we can add background tasks
+    # for FastAPI to run after it returns the HTTP response.
+    # Reference: https://fastapi.tiangolo.com/tutorial/background-tasks/
+    background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     """
     Retrieves database instances that are both (a) linked to any of `ids`, and (b) of a type in `types`.
@@ -229,14 +231,14 @@ def get_linked_instances(
     [nmdc:Sample](https://w3id.org/nmdc/Sample), etc. -- may be given.
     If no value for `types` is given, then all [nmdc:NamedThing](https://w3id.org/nmdc/NamedThing)s are returned.
     """
-    background_task = BackgroundTask(drop_stale_temp_linked_instances_collections)
+    background_tasks.add_task(drop_stale_temp_linked_instances_collections)
     if page_token is not None:
         rv = list_resources(
             req=ListRequest(page_token=page_token, max_page_size=max_page_size), mdb=mdb
         )
         rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
         rv["resources"] = [strip_oid(d) for d in rv["resources"]]
-        return JSONResponse(rv, background=background_task)
+        return rv
 
     ids_found = [d["id"] for d in mdb.alldocs.find({"id": {"$in": ids}}, {"id": 1})]
     ids_not_found = list(set(ids) - set(ids_found))
@@ -271,7 +273,7 @@ def get_linked_instances(
     )
     rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
-    return JSONResponse(rv, background=background_task)
+    return rv
 
 
 @router.get(
