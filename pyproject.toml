@@ -46,7 +46,6 @@ dependencies = [
     # Note: FastAPI 0.115.0 introduced support for encapsulating request _query_ parameters in Pydantic models.
     # Docs: https://fastapi.tiangolo.com/
     "fastapi >= 0.115.0",
-    "fastjsonschema",
     "frozendict",
     "git-root",
     "jq",
@@ -55,9 +54,10 @@ dependencies = [
     "linkml-runtime",
     "lxml",
     "ontology-loader == 0.2.2",
-    # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
+    # We use `nmdc-schema` to interpret data residing in—and validate data
+    # destined for—the NMDC database (i.e. the MongoDB database named `nmdc`).
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema == 11.11.1",
+    "nmdc-schema==11.13.0",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",

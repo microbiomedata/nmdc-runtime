@@ -85,13 +85,17 @@ ENV PATH="/root/.local/bin/:$PATH"
 #       instead of when the container is running. By default, `uv` defers this compilation
 #       to "import time," whereas `pip` (by default) performs it at "install time" (like this).
 #
+# Note: We use `--locked` so that `uv sync` exits with an error if the `uv.lock` file isn't _already_
+#       up to date. By default, `uv sync` would automatically update the lock file if necessary.
+#       Reference: https://docs.astral.sh/uv/reference/cli/#uv-sync--locked
+#
 ENV VIRTUAL_ENV="/venv"
 RUN mkdir -p "${VIRTUAL_ENV}"
 COPY ./pyproject.toml /code/pyproject.toml
 COPY ./uv.lock        /code/uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project --compile-bytecode
+    UV_LINK_MODE=copy uv sync --active --no-dev --no-install-project --compile-bytecode --locked
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS fastapi
@@ -103,12 +107,18 @@ COPY . /code
 # Install the project in editable mode.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    uv sync --active --no-dev
+    uv sync --active --no-dev --compile-bytecode --locked
 
 # Use Uvicorn to serve the FastAPI app on port 8000.
+#
+# Note: We include the `--no-sync` option to prevent `uv run` from automatically syncing dependencies.
+#       If it were to sync dependencies at this point, it would install development dependencies, since
+#       we exclude them above, but they are listed in uv's `default-groups` configuration by default.
+#       This is explained at: https://github.com/astral-sh/uv/issues/12558#issuecomment-2764611918
+#
 EXPOSE 8000
 WORKDIR /code
-CMD ["uv", "run", "--active", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--active", "--no-sync", "uvicorn", "nmdc_runtime.api.main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 # ────────────────────────────────────────────────────────────────────────────┐
 FROM base AS dagster
@@ -124,7 +134,7 @@ COPY . /opt/dagster/lib
 # Install the project in editable mode.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /opt/dagster/lib && \
-    uv sync --active --no-dev
+    uv sync --active --no-dev --compile-bytecode --locked
 
 # Move Dagster configuration files to the place Dagster expects.
 ENV DAGSTER_HOME="/opt/dagster/dagster_home/"
@@ -154,7 +164,7 @@ COPY . /code
 # Install the project in editable mode, and install development dependencies.
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /code && \
-    uv sync --active
+    uv sync --active --compile-bytecode --locked
 
 # Make `wait-for-it.sh` executable.
 RUN chmod +x /code/.docker/wait-for-it.sh

@@ -4,11 +4,11 @@ services:
   #
   # > This service runs the postgres DB used by dagster for run storage, schedule storage,
   # > and event log storage.
-  # > Tests use `postgres:11` image.
+  # > Tests use `postgres:17` image.
   # > https://github.com/dagster-io/dagster/blob/0.11.9/python_modules/libraries/dagster-postgres/dagster_postgres_tests/docker-compose.yml
   #
   dagster-postgresql:
-    image: postgres:11
+    image: postgres:17
     environment:
       POSTGRES_USER: "postgres_user"
       POSTGRES_PASSWORD: "postgres_password"

@@ -1,3 +1,10 @@
+# Update the `uv.lock` file to reflect the `pyproject.toml` file.
+# Note: Run this from the Docker host, not from within a container.
+# Reference: https://docs.astral.sh/uv/concepts/projects/sync/#syncing-the-environment
+.PHONY: uv.lock
+uv.lock:
+	docker compose run --rm -it fastapi uv sync --active --all-groups
+
 # Spin up the development stack.
 up-dev:
 	docker compose up --build --force-recreate --detach --remove-orphans
@@ -45,7 +52,7 @@ reset-db-test:
 run-test:
 	docker compose --file docker-compose.test.yml exec -it test \
 		./.docker/wait-for-it.sh fastapi:8000 --strict --timeout=300 -- \
-			uv run --active \
+			uv run --active --no-sync \
 				pytest --cov=nmdc_runtime \
 				       --doctest-modules \
 				       --ignore=util/load_testing \
@@ -60,16 +67,16 @@ test: down-test up-test run-test
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
-	uv run --active black nmdc_runtime
+	uv run --active --no-sync black nmdc_runtime
 
 # Lint Python code using `flake8`.
 # TODO: Migrate from `flake8` to `ruff`.
 lint:
 	# Python syntax errors or undefined names
-	uv run --active flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
+	uv run --active --no-sync flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --extend-ignore=F722 \
 		./nmdc_runtime ./tests
 	# exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-	uv run --active flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
+	uv run --active --no-sync flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 \
 		--statistics --extend-exclude="./build/" --extend-ignore=F722 \
 		./nmdc_runtime ./tests
 
@@ -100,6 +107,17 @@ nersc-mongo-tunnels:
 DEV_STACK_HOST_MACHINE_PORT_MONGO:=$(shell cat .env | grep DEV_STACK_HOST_MACHINE_PORT_MONGO= | cut -d= -f2)
 
 mongorestore-nmdc-db:
+	@echo "Checking environment variables..."
+	@for env_var_name in NERSC_USERNAME MONGO_REMOTE_DUMP_DIR DEV_STACK_HOST_MACHINE_PORT_MONGO; do \
+		if [ -z "$${!env_var_name}" ]; then \
+			echo "Error: Environment variable '$${env_var_name}' is undefined or empty."; \
+			exit 1; \
+		fi; \
+	done
+	@echo "Environment variables are OK."
+	#
+	# Proceed to download a Mongo dump from the NERSC filesystem and restore it into the local development stack.
+	#
 	mkdir -p /tmp/remote-mongodump/nmdc
 	# Optionally, manually update MONGO_REMOTE_DUMP_DIR env var:
 	# ```bash
@@ -122,7 +140,7 @@ mongorestore-nmdc-db:
 		--drop --nsInclude='nmdc.*' --gzip --dir /tmp/remote-mongodump
 
 quick-blade:
-	uv run --active python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
+	uv run --active --no-sync python -c "from nmdc_runtime.api.core.idgen import generate_id; print(f'nmdc:nt-11-{generate_id(length=8, split_every=0)}')"
 
 # List of Make targets that do not represent files being created.
 # Note: I think _most_ of the targets in this Makefile meet that criterion,

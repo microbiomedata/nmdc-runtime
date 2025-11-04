@@ -1,5 +1,5 @@
 from typing import List
-
+import datetime
 from linkml_runtime.dumpers import json_dumper
 from nmdc_schema.nmdc import (
     Biosample,
@@ -18,6 +18,9 @@ from nmdc_schema.nmdc import (
     Study,
     StudyCategoryEnum,
 )
+
+from nmdc_runtime.api.models.job import Job
+from nmdc_runtime.api.models.wfe_file_stages import GlobusTask, GlobusTaskStatus, JGISample
 
 class Faker:
     r"""
@@ -472,6 +475,144 @@ class Faker:
             
             # Dump the instance to a `dict` (technically, to a `JsonObj`).
             document = json_dumper.to_dict(instance)
+            documents.append(document)
+
+        return documents
+    
+    def generate_globus_tasks(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `GlobusTask` instances,
+        which can be stored in the `wf_file_staging.globus_tasks` collection.
+        
+        Note: The `GlobusTask` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+        
+        >>> f = Faker()
+        >>> globus_tasks = f.generate_globus_tasks(1)
+        >>> len(globus_tasks)
+        1
+        >>> isinstance(globus_tasks[0]['task_id'], str)
+        True
+        """
+        documents = []
+        for _ in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "task_id": self.make_unique_id("globus-task-"),
+                "task_status": GlobusTaskStatus.SUCCEEDED,
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `GlobusTask`.
+            instance = GlobusTask(**params)
+            
+            # Dump the instance to a `dict`
+            document = instance.model_dump()
+            documents.append(document)
+
+        return documents
+
+    def generate_jgi_samples(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `JGISample` instances,
+        which can be stored in the `wf_file_staging.jgi_samples` collection.
+
+        Note: The `JGISample` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+        
+        >>> f = Faker()
+        >>> jgi_samples = f.generate_jgi_samples(1)
+        >>> len(jgi_samples)
+        1
+        >>> isinstance(jgi_samples[0]['jdp_file_id'], str)
+        True
+        """
+        documents = []
+        for _ in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "jdp_file_id": self.make_unique_id("jgi-sample-"),
+                "ap_gold_id": "test_ap_gold_id",
+                "gold_study_id": "test_study_id", 
+                "its_ap_id": "12345",
+                "sequencing_project_name": "test_project",
+                "gold_biosample_id": "test_biosample_id",
+                "gold_seq_id": "test_seq_id",
+                "file_name": "test_file.fastq",
+                "globus_file_status": "READY",
+                "jdp_file_status" : "RESTORED",
+                "jdp_file_size": 1000,
+                "analysis_project_id": "test_analysis_project",
+                "jgi_ap_id" : "54321",
+                "request_id": 1,
+                "create_date": datetime.datetime.now().isoformat(),
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `JGISample`.
+            instance = JGISample(**params)
+            
+            # Dump the instance to a `dict`
+            document = instance.model_dump(mode='json')
+            documents.append(document)
+
+        return documents
+    
+    def generate_jobs(self, quantity: int, **overrides) -> List[dict]:
+        """
+        Generates the specified number of documents representing `Job` instances,
+        which can be stored in the `jobs` collection.
+        
+        Note: The `Job` class is NOT defined in the NMDC Schema. It is an ad hoc
+              class defined locally, in the `nmdc_runtime.api.models` module.
+
+        :param quantity: Number of documents to create
+        :param overrides: Fields, if any, to add or override in each document
+        :return: The generated documents
+
+        >>> f = Faker()
+        >>> jobs = f.generate_jobs(1)
+        >>> len(jobs)
+        1
+        >>> isinstance(jobs[0]["id"], str)
+        True
+
+        # Test: Adding an optional field.
+        >>> job = f.generate_jobs(1, name="my_job")[0]
+        >>> job["name"]
+        'my_job'
+
+        # Test: Adding an invalid value.
+        >>> f.generate_jobs(1, name=[])
+        Traceback (most recent call last):
+            ...
+        pydantic_core._pydantic_core.ValidationError: 1 validation error for Job
+        name
+          Input should be a valid string [type=string_type, input_value=[], input_type=list]
+            For further information visit https://errors.pydantic.dev/2.11/v/string_type
+        """
+        documents = []
+        for i in range(quantity):
+            # Apply any overrides passed in.
+            params = {
+                "id": self.make_unique_id("job-"),
+                "name": "arbitrary_string",
+                "config": {},
+                "claims": [],
+                "workflow": {"id": "arbitrary_string"},
+                **overrides,
+            }
+            # Validate the parameters by attempting to instantiate a `Job`.
+            instance = Job(**params)
+            
+            # Dump the instance to a `dict` using the Pydantic's model's `model_dump()` method.
+            document = instance.model_dump()
             documents.append(document)
 
         return documents

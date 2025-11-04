@@ -1,22 +1,22 @@
+import importlib.resources
 import json
 import mimetypes
 import os
-import pkgutil
 from collections import defaultdict
 from collections.abc import Iterable
-from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
-from io import BytesIO
 from itertools import chain
 from pathlib import Path
 from typing import Callable, List, Optional, Set, Dict
 
-import fastjsonschema
 import requests
 from bson.son import SON
 from frozendict import frozendict
+from linkml.validator import Validator
+from linkml.validator.plugins import JsonschemaValidationPlugin
 from linkml_runtime import SchemaView
+from nmdc_schema import NmdcSchemaValidationPlugin
 from nmdc_schema.get_nmdc_view import ViewGetter
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import OperationFailure
@@ -111,41 +111,23 @@ def get_type_collections() -> dict:
     return mappings
 
 
-def without_id_patterns(nmdc_jsonschema):
-    rv = deepcopy(nmdc_jsonschema)
-    for cls_, spec in rv["$defs"].items():
-        if "properties" in spec:
-            if "id" in spec["properties"]:
-                spec["properties"]["id"].pop("pattern", None)
-    return rv
-
-
 @lru_cache
-def get_nmdc_jsonschema_dict(enforce_id_patterns=True):
+def get_nmdc_jsonschema_path() -> Path:
+    """Get path to NMDC JSON Schema file."""
+    with importlib.resources.path(
+        "nmdc_schema", "nmdc_materialized_patterns.schema.json"
+    ) as p:
+        return p
+
+
+@lru_cache()
+def get_nmdc_jsonschema_dict() -> dict:
     """Get NMDC JSON Schema with materialized patterns (for identifier regexes)."""
-    d = json.loads(
-        BytesIO(
-            pkgutil.get_data("nmdc_schema", "nmdc_materialized_patterns.schema.json")
-        )
-        .getvalue()
-        .decode("utf-8")
-    )
-    return d if enforce_id_patterns else without_id_patterns(d)
-
-
-@lru_cache
-def get_nmdc_jsonschema_validator(enforce_id_patterns=True):
-    return fastjsonschema.compile(
-        get_nmdc_jsonschema_dict(enforce_id_patterns=enforce_id_patterns)
-    )
+    with open(get_nmdc_jsonschema_path(), "r") as f:
+        return json.load(f)
 
 
 nmdc_jsonschema = get_nmdc_jsonschema_dict()
-nmdc_jsonschema_validator = get_nmdc_jsonschema_validator()
-nmdc_jsonschema_noidpatterns = get_nmdc_jsonschema_dict(enforce_id_patterns=False)
-nmdc_jsonschema_validator_noidpatterns = get_nmdc_jsonschema_validator(
-    enforce_id_patterns=False
-)
 
 REPO_ROOT_DIR = Path(__file__).parent.parent
 
@@ -312,6 +294,23 @@ def nmdc_activity_collection_names():
 @lru_cache
 def nmdc_schema_view():
     return ViewGetter().get_view()
+
+
+@lru_cache()
+def get_nmdc_schema_validator() -> Validator:
+    schema_view = nmdc_schema_view()
+    return Validator(
+        schema_view.schema,
+        validation_plugins=[
+            JsonschemaValidationPlugin(
+                closed=True,
+                # Since the `nmdc-schema` package exports a pre-built JSON Schema file, use that
+                # instead of relying on the plugin to generate one on the fly.
+                json_schema_path=get_nmdc_jsonschema_path(),
+            ),
+            NmdcSchemaValidationPlugin(),
+        ],
+    )
 
 
 @lru_cache

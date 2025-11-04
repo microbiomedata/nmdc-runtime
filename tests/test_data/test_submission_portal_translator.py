@@ -1,10 +1,12 @@
 import datetime
+from decimal import Decimal
 from pathlib import Path
 import random
 
 import yaml
 from linkml_runtime.dumpers import json_dumper
 import pytest
+from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema.nmdc import (
     InstrumentModelEnum,
     InstrumentVendorEnum,
@@ -13,6 +15,7 @@ from nmdc_schema.nmdc import (
     DoiProviderEnum,
     DoiCategoryEnum,
     UnitEnum,
+    Study,
 )
 
 from nmdc_runtime.site.translation.submission_portal_translator import (
@@ -151,48 +154,91 @@ def test_get_has_credit_associations():
 def test_get_quantity_value():
     translator = SubmissionPortalTranslator()
 
-    with pytest.raises(ValueError, match="has_unit must be supplied"):
-        translator._get_quantity_value("3.5")
+    mock_slot = SlotDefinition(
+        name="mock_slot",
+    )
 
-    qv = translator._get_quantity_value("0-.1 m")
+    with pytest.raises(ValueError, match="has_unit must be supplied"):
+        translator._get_quantity_value("3.5", mock_slot)
+
+    qv = translator._get_quantity_value("0-.1 m", mock_slot)
     assert qv is not None
     assert qv.has_raw_value == "0-.1 m"
     assert qv.has_numeric_value is None
-    assert qv.has_minimum_numeric_value == 0
-    assert qv.has_maximum_numeric_value == 0.1
+    assert qv.has_minimum_numeric_value == Decimal("0")
+    assert qv.has_maximum_numeric_value == Decimal("0.1")
     assert qv.has_unit == UnitEnum("m")
 
-    qv = translator._get_quantity_value("1.2 [ppm]")
+    qv = translator._get_quantity_value("1.2 [ppm]", mock_slot)
     assert qv is not None
     assert qv.has_raw_value == "1.2 [ppm]"
-    assert qv.has_numeric_value == 1.2
+    assert qv.has_numeric_value == Decimal("1.2")
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
     assert qv.has_unit == UnitEnum("[ppm]")
 
-    qv = translator._get_quantity_value("98.6Cel")
+    qv = translator._get_quantity_value("98.6Cel", mock_slot)
     assert qv is not None
     assert qv.has_raw_value == "98.6Cel"
-    assert qv.has_numeric_value == 98.6
+    assert qv.has_numeric_value == Decimal("98.6")
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
     assert qv.has_unit == UnitEnum("Cel")
 
-    qv = translator._get_quantity_value("-80", unit="Cel")
+    qv = translator._get_quantity_value("-80", mock_slot, unit="Cel")
     assert qv is not None
     assert qv.has_raw_value == "-80"
-    assert qv.has_numeric_value == -80
+    assert qv.has_numeric_value == Decimal("-80")
     assert qv.has_minimum_numeric_value is None
     assert qv.has_maximum_numeric_value is None
     assert qv.has_unit == UnitEnum("Cel")
 
-    qv = translator._get_quantity_value("-90 - -100m", unit="m")
+    qv = translator._get_quantity_value("-90 - -100m", mock_slot, unit="m")
     assert qv is not None
     assert qv.has_raw_value == "-90 - -100m"
     assert qv.has_numeric_value is None
-    assert qv.has_minimum_numeric_value == -100
-    assert qv.has_maximum_numeric_value == -90
+    assert qv.has_minimum_numeric_value == Decimal("-100")
+    assert qv.has_maximum_numeric_value == Decimal("-90")
     assert qv.has_unit == UnitEnum("m")
+
+
+def test_get_quantity_value_with_storage_units():
+    translator = SubmissionPortalTranslator()
+
+    # A slot with a single unit in storage_units annotation should use that unit
+    single_unit_slot = SlotDefinition(
+        name="single_unit_slot",
+        annotations=[
+            {
+                "tag": "storage_units",
+                "value": "Cel",
+            }
+        ]
+    )
+    qv = translator._get_quantity_value(-80, single_unit_slot)
+    assert qv is not None
+    assert qv.has_raw_value == "-80"
+    assert qv.has_numeric_value == Decimal("-80")
+    assert qv.has_unit == UnitEnum("Cel")
+
+    # A slot with multiple units in storage_units annotation should not assume a unit
+    multi_unit_slot = SlotDefinition(
+        name="multi_unit_slot",
+        annotations=[
+            {
+                "tag": "storage_units",
+                "value": "g|mg|kg",
+            }
+        ]
+    )
+    qv = translator._get_quantity_value("0.5 kg", multi_unit_slot)
+    assert qv is not None
+    assert qv.has_raw_value == "0.5 kg"
+    assert qv.has_numeric_value == Decimal("0.5")
+    assert qv.has_unit == UnitEnum("kg")
+
+    with pytest.raises(ValueError, match="has_unit must be supplied"):
+        translator._get_quantity_value("3.5", multi_unit_slot)
 
 
 def test_get_gold_study_identifiers():
@@ -426,7 +472,7 @@ def test_instruments(test_minter):
     "data_file_base",
     ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data", "soil_sample_link"],
 )
-def test_get_dataset(test_minter, monkeypatch, data_file_base):
+def test_get_database(test_minter, monkeypatch, data_file_base):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
     # current date. In order to compare with a static expected output we need to patch
     # the datetime.now() call to return a predefined date.
@@ -486,3 +532,31 @@ def test_parse_sample_link():
 
     parsed = translator._parse_sample_link("Pooling:sample1, sample2")
     assert parsed == ("Pooling", ["sample1", "sample2"])
+
+
+def test_set_study_images():
+    study = Study(
+        id="nmdc:study-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study"
+    )
+
+    SubmissionPortalTranslator.set_study_images(
+        study,
+        pi_image_url="http://www.example.org/pi_image.jpg",
+        primary_study_image_url="http://www.example.org/primary_study_image.jpg",
+        study_images_url=[
+            "http://www.example.org/study_image1.jpg",
+            "http://www.example.org/study_image2.jpg",
+        ]
+    )
+
+    assert study.principal_investigator.profile_image_url == "http://www.example.org/pi_image.jpg"
+    assert study.study_image is not None
+    assert len(study.study_image) == 3
+    assert study.study_image[0].url == "http://www.example.org/primary_study_image.jpg"
+    assert study.study_image[0].display_order == 0
+    assert study.study_image[1].url == "http://www.example.org/study_image1.jpg"
+    assert study.study_image[1].display_order == 1
+    assert study.study_image[2].url == "http://www.example.org/study_image2.jpg"
+    assert study.study_image[2].display_order == 2

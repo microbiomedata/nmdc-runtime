@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from urllib.parse import urlencode
 
 import pytest
 import requests
@@ -3193,3 +3194,293 @@ def test_release_job(api_site_client):
         for claim in rv.json()["claims"]
         if claim["site_id"] == api_site_client.site_id
     )
+
+
+def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):
+    """Note: This test was added to demonstrate a bugfix for issue #1255."""
+
+    # Define a filter that we expect to match no documents.
+    filter_ = {"id": "no-such-id"}
+
+    # Confirm it matches no documents.
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    assert study_set.count_documents(filter_) == 0
+
+    # Build URL query parameters that include that filter.
+    query_str = urlencode({
+        "filter": filter_,
+        "cursor": "*",
+    })
+
+    # Confirm the API endpoint returns an empty results list and a null "next_cursor" value.
+    response = api_user_client.request("GET", f"/studies?{query_str}")
+    assert response.status_code == 200
+    res_body = response.json()
+    assert res_body["meta"]["count"] == 0
+    assert res_body["meta"]["next_cursor"] is None
+    assert res_body["results"] == []
+
+
+def test_create_job(api_site_client):
+    """Test creating a new job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Generate a dictionary representing a `Job`, remove its `id` and `created_at` fields
+    # (since those aren't part of the `JobIn` model), and add an extra field to it (which
+    # the `JobIn` model is currently configured to _ignore_, but not _forbid_).
+    faker = Faker()
+    job_name = "Job A"
+    job: dict = faker.generate_jobs(1, name=job_name)[0]
+    del job["id"]
+    del job["created_at"]
+    job["extra_field"] = "value"
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    response = api_site_client.request("POST", "/jobs", job)
+
+    # Verify the response indicates success and its payload has the field and values we expect.
+    assert response.status_code == status.HTTP_201_CREATED
+    created_job = response.json()
+    assert isinstance(created_job["id"], str) and len(created_job["id"]) > 0
+    assert isinstance(created_job["created_at"], str) and len(created_job["created_at"]) > 0
+    assert created_job["name"] == job_name  # optional field was preserved
+    assert "extra_field" not in created_job  # unrecognized field was discarded
+
+    # Verify the corresponding document has been added to the `jobs` collection.
+    assert jobs_collection.count_documents({}) == num_jobs_initial + 1
+    inserted_job = jobs_collection.find_one({"id": created_job["id"]})
+    assert inserted_job is not None
+    assert inserted_job["id"] == created_job["id"]
+    assert inserted_job["name"] == created_job["name"]
+
+    # 🧹 Clean up: Delete the inserted job.
+    jobs_collection.delete_many({"id": created_job["id"]})
+    assert jobs_collection.count_documents({}) == num_jobs_initial
+
+
+def test_create_invalid_job(api_site_client):
+    """Test creating an invalid job via POST /jobs endpoint."""
+
+    # Count the number of `jobs` in the collection.
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+    num_jobs_initial = jobs_collection.count_documents({})
+
+    # Define a dictionary representing an invalid `Job`.
+    invalid_job: dict = {"i_am_missing": "some_required_fields"}
+
+    # Send the dictionary as JSON to the API endpoint to create a new job.
+    with pytest.raises(requests.HTTPError) as exc_info:
+        _ = api_site_client.request("POST", "/jobs", invalid_job)
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Verify no job was created.
+    assert jobs_collection.count_documents({}) == num_jobs_initial
+
+def test_get_globus_tasks_by_id(api_user_client):
+    """Test retrieving a Globus task by its ID via GET /wf_file_staging/globus_tasks/{task_id} endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
+
+    # Seed the `globus` collection with a document.
+    faker = Faker()
+    globus_records = faker.generate_globus_tasks(1)
+    globus.insert_many(globus_records)
+    seeded_record = globus_records[0]
+
+    id = seeded_record['task_id']
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/globus_tasks/{id}",
+    )
+
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_record = response.json()
+    assert retrieved_record["task_id"] == seeded_record["task_id"]
+    assert retrieved_record["task_status"] == seeded_record["task_status"]
+
+    # Clean up: Delete the inserted Globus task.
+    allowances_collection.delete_many(allow_spec)
+    globus.delete_many({"task_id": seeded_record["task_id"]})
+
+def test_get_globus_tasks(api_user_client):
+    """Test retrieving all Globus tasks via GET /wf_file_staging/globus_tasks endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
+
+    # Seed the `globus` collection with a document.
+    faker = Faker()
+    globus_records = faker.generate_globus_tasks(3)
+    globus.insert_many(globus_records)
+    seeded_record = globus_records[0]
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/globus_tasks",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records["resources"]) == 3
+    assert retrieved_records["resources"][0]["task_id"] == seeded_record["task_id"]
+    assert retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
+
+    # Clean up: Delete the inserted Globus task.
+    allowances_collection.delete_many(allow_spec)
+    # delete all inserted records
+    globus.delete_many({})
+
+def test_create_globus_task(api_user_client):
+    """Test creating a new Globus task via POST /wf_file_staging/globus_tasks endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    globus = mdb.get_collection("wf_file_staging.globus_tasks")
+
+    # Generate a `jgi_sample` dictionary to act as the request payload.
+    faker = Faker()
+    globus_records = faker.generate_globus_tasks(1)
+    seeded_record = globus_records[0]
+    response = api_user_client.request(
+        "POST",
+        f"/wf_file_staging/globus_tasks",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == 201
+    retrieved_records = response.json()
+    assert retrieved_records["task_id"] == seeded_record["task_id"]
+    assert retrieved_records["task_status"] == seeded_record["task_status"]
+
+    # Clean up: Delete the inserted Globus task.
+    allowances_collection.delete_many(allow_spec)
+    globus.delete_many({"task_id": seeded_record["task_id"]})
+
+def test_get_jgi_samples(api_user_client):
+    """Test retrieving all JGI samples via GET /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Seed the `jgi_samples` collection with some documents.
+    faker = Faker()
+    jgi_sample_records = faker.generate_jgi_samples(3)
+    jgi_samples.insert_many(jgi_sample_records)
+    seeded_record = jgi_sample_records[0]
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/jgi_samples",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records["resources"]) == 3
+    assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["resources"][0]["jdp_file_status"] == seeded_record["jdp_file_status"]
+
+    # Clean up: Delete the inserted allowance.
+    allowances_collection.delete_many(allow_spec)
+    # delete all inserted records
+    jgi_samples.delete_many({})
+
+def test_create_jgi_sample(api_user_client):
+    """Test creating a new JGI sample via POST /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Generate a `wf_file_staging.jgi_samples` record to act as the request payload.
+    faker = Faker()
+    jgi_samples = faker.generate_jgi_samples(1)
+    seeded_record = jgi_samples[0]
+    response = api_user_client.request(
+        "POST",
+        f"/wf_file_staging/jgi_samples",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == 201
+    retrieved_records = response.json()
+    assert retrieved_records["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["jdp_file_status"] == seeded_record["jdp_file_status"]
+
+    # Clean up: Delete the inserted data.
+    allowances_collection.delete_many(allow_spec)
+    jgi_samples_collection.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
+
+def test_create_multiple_jgi_samples(api_user_client):
+    """
+    Test creating multiple JGI samples via POST /wf_file_staging/jgi_samples endpoint. 
+    This is to test the validation in the endpoint.
+    """
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Generate multiple `wf_file_staging.jgi_samples` records
+    faker = Faker()
+    jgi_samples = faker.generate_jgi_samples(3)
+    for record in jgi_samples:
+        response = api_user_client.request(
+            "POST",
+            f"/wf_file_staging/jgi_samples",
+            record,
+        )
+
+        # Verify the response indicates success and its payload matches the seeded record.
+        assert response.status_code == 201
+        retrieved_records = response.json()
+        assert retrieved_records["jdp_file_id"] == record["jdp_file_id"]
+        assert retrieved_records["jdp_file_status"] == record["jdp_file_status"]
+    
+    assert jgi_samples_collection.count_documents({}) == 3
+    # Clean up: Delete the inserted data.
+    allowances_collection.delete_many(allow_spec)
+    jgi_samples_collection.delete_many({})

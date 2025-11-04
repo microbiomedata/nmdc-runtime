@@ -50,32 +50,39 @@ from nmdc_runtime.api.endpoints import (
     triggers,
     users,
     workflows,
+    wf_file_staging,
 )
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.openapi import ordered_tag_descriptors, make_api_description
+from nmdc_runtime.api.openapi import (
+    OpenAPITag,
+    ordered_tag_descriptors,
+    make_api_description,
+)
+from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 
 api_router = APIRouter()
-api_router.include_router(users.router, tags=["users"])
-api_router.include_router(operations.router, tags=["operations"])
-api_router.include_router(sites.router, tags=["sites"])
-api_router.include_router(jobs.router, tags=["jobs"])
-api_router.include_router(objects.router, tags=["objects"])
-api_router.include_router(capabilities.router, tags=["capabilities"])
-api_router.include_router(triggers.router, tags=["triggers"])
-api_router.include_router(workflows.router, tags=["workflows"])
-api_router.include_router(object_types.router, tags=["object types"])
-api_router.include_router(queries.router, tags=["queries"])
-api_router.include_router(metadata.router, tags=["metadata"])
-api_router.include_router(nmdcschema.router, tags=["metadata"])
-api_router.include_router(find.router, tags=["find"])
-api_router.include_router(runs.router, tags=["runs"])
-api_router.include_router(minter_router, prefix="/pids", tags=["minter"])
+api_router.include_router(find.router, tags=[OpenAPITag.METADATA_ACCESS.value])
+api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA_ACCESS.value])
+api_router.include_router(queries.router, tags=[OpenAPITag.METADATA_ACCESS.value])
+api_router.include_router(metadata.router, tags=[OpenAPITag.METADATA_ACCESS.value])
+api_router.include_router(sites.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(workflows.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(capabilities.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(object_types.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(triggers.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(jobs.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(objects.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
+api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
 
 
 def ensure_initial_resources_on_boot():
@@ -173,6 +180,28 @@ def ensure_attribute_indexes():
             mdb[collection_name].create_index([(spec, 1)], name=spec, background=True)
 
 
+def ensure_globus_tasks_id_is_indexed():
+    """
+    Ensures that the `wf_file_staging.globus_tasks` collection has an index on its `task_id` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb["wf_file_staging.globus_tasks"].create_index(
+        "task_id", background=True, unique=True
+    )
+
+
+def ensure_jgi_samples_id_is_indexed():
+    """
+    Ensures that the `wf_file_staging.jgi_samples` collection has an index on its `jdp_file_id` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb["wf_file_staging.jgi_samples"].create_index(
+        "jdp_file_id", background=True, unique=True
+    )
+
+
 def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
@@ -196,6 +225,9 @@ def ensure_default_api_perms():
             "admin",
         ],
         "/metadata/json:submit": [
+            "admin",
+        ],
+        "/wf_file_staging": [
             "admin",
         ],
     }
@@ -222,7 +254,7 @@ async def lifespan(app: FastAPI):
     ensure_attribute_indexes()
     ensure_type_field_is_indexed()
     ensure_default_api_perms()
-
+    ensure_globus_tasks_id_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
@@ -237,7 +269,7 @@ async def root():
     )
 
 
-@api_router.get("/version")
+@api_router.get("/version", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
 async def get_versions():
     return {
         "nmdc-runtime": version("nmdc_runtime"),
@@ -246,12 +278,15 @@ async def get_versions():
     }
 
 
+# Build an ORCID Login URL for the Swagger UI page, based upon some environment variables.
+orcid_login_url = f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code"
+
+
 app = FastAPI(
     title="NMDC Runtime API",
     version=version("nmdc_runtime"),
     description=make_api_description(
-        schema_version=version("nmdc_schema"),
-        orcid_login_url=f"{ORCID_BASE_URL}/oauth/authorize?client_id={ORCID_NMDC_CLIENT_ID}&response_type=code&scope=openid&redirect_uri={BASE_URL_EXTERNAL}/orcid_code",
+        api_version=version("nmdc_runtime"), schema_version=version("nmdc_schema")
     ),
     openapi_tags=ordered_tag_descriptors,
     lifespan=lifespan,
@@ -332,13 +367,6 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
-    # Note: Setting `persistAuthorization` to `True` makes it so a logged-in user remains logged-in
-    #       even after reloading the web page (or leaving the website and coming back to it later).
-    # Reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/#parameters
-    swagger_ui_parameters: dict = {
-        "withCredentials": True,
-        "persistAuthorization": True,
-    }
     onComplete = ""
     if access_token is not None:
         onComplete += f"ui.preauthorizeApiKey('bearerAuth', '{access_token}');"
@@ -352,6 +380,7 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
+    swagger_ui_parameters = base_swagger_ui_parameters.copy()
     # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
     #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
     swagger_ui_parameters.update(
@@ -359,9 +388,14 @@ def custom_swagger_ui_html(
             "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
         }
     )
-    # Note: Consider using a "custom layout" instead of injecting HTML snippets via Python.
-    #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
+    # Pin the Swagger UI version to avoid breaking changes (to our own JavaScript code that depends on Swagger UI internals).
+    # Note: version `5.29.4` was released on October 10, 2025.
+    pinned_swagger_ui_version = "5.29.4"
+    swagger_ui_css_url = f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{pinned_swagger_ui_version}/swagger-ui.css"
+    swagger_ui_js_url = f"https://cdn.jsdelivr.net/npm/swagger-ui-dist@{pinned_swagger_ui_version}/swagger-ui-bundle.js"
     response = get_swagger_ui_html(
+        swagger_css_url=swagger_ui_css_url,
+        swagger_js_url=swagger_ui_js_url,
         openapi_url=app.openapi_url,
         title=app.title,
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
@@ -371,15 +405,34 @@ def custom_swagger_ui_html(
     assets_dir_path = Path(__file__).parent / "swagger_ui" / "assets"
     style_css: str = Path(assets_dir_path / "style.css").read_text()
     script_js: str = Path(assets_dir_path / "script.js").read_text()
+    ellipses_button_js: str = Path(assets_dir_path / "EllipsesButton.js").read_text()
+    endpoint_search_widget_js: str = Path(
+        assets_dir_path / "EndpointSearchWidget.js"
+    ).read_text()
     content = (
         response.body.decode()
         .replace('"<unquote-safe>', "")
         .replace('</unquote-safe>"', "")
         .replace("<double-quote>", '"')
         .replace("</double-quote>", '"')
-        # Inject an HTML element containing the access token (or an empty string, if there is no access token)
-        # as the value of an HTML5 data-* attribute. This makes the access token (or the empty string)
-        # available to JavaScript code running on the web page (e.g., `swagger_ui/assets/script.js`).
+        # TODO: Consider using a "custom layout" implemented as a React component.
+        #       Reference: https://github.com/swagger-api/swagger-ui/blob/master/docs/customization/custom-layout.md
+        #
+        #       Note: Custom layouts are specified via the Swagger UI parameter named `layout`, whose value identifies
+        #             a component that is specified via the Swagger UI parameter named `plugins`. The Swagger UI
+        #             JavaScript code expects each item in the `plugins` array to be a JavaScript function,
+        #             but FastAPI's `get_swagger_ui_html` function serializes each parameter's value into JSON,
+        #             preventing us from specifying a JavaScript function as a value in the `plugins` array.
+        #
+        #             As a workaround, we could use the string `replace`-ment technique shown below to put the literal
+        #             JavaScript characters into place in the final HTML document. Using that approach, I _have_ been
+        #             able to display a custom layout (a custom React component), but I have _not_ been able to get
+        #             that custom layout to display Swagger UI's `BaseLayout` component (which includes the core
+        #             Swagger UI functionality). That's a deal breaker.
+        #
+        .replace(r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"', r"[]")
+        # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
+        # Note: We escape the values here so they can be safely used as HTML attribute values.
         .replace(
             "</head>",
             f"""
@@ -389,12 +442,38 @@ def custom_swagger_ui_html(
                 data-token="{escape(access_token if access_token is not None else '')}"
                 style="display: none"
             ></div>
+            <div
+                id="nmdc-orcid-login-url"
+                data-url="{escape(orcid_login_url)}"
+                style="display: none"
+            ></div>
             """,
+            1,
         )
         # Inject a custom CSS stylesheet immediately before the closing `</head>` tag.
-        .replace("</head>", f"<style>\n{style_css}\n</style>\n</head>")
-        # Inject a custom JavaScript script immediately before the closing `</body>` tag.
-        .replace("</body>", f"<script>\n{script_js}\n</script>\n</body>")
+        .replace(
+            "</head>",
+            f"""
+                <style>
+                    {style_css}
+                </style>
+            </head>
+            """,
+            1,
+        )
+        # Inject custom JavaScript scripts immediately before the closing `</body>` tag.
+        .replace(
+            "</body>",
+            f"""
+                <script>
+                    {ellipses_button_js}
+                    {endpoint_search_widget_js}
+                    {script_js}
+                </script>
+            </body>
+            """,
+            1,
+        )
     )
     return HTMLResponse(content=content)
 

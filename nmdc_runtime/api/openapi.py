@@ -10,237 +10,169 @@ Notes:
   Now that they are in a separate module, we will be able to edit them more easily.
 """
 
-from html import escape
 from typing import List, Dict
+from enum import Enum
+
+
+class OpenAPITag(str, Enum):
+    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+
+    MINTER = "Persistent identifiers"
+    SYSTEM_ADMINISTRATION = "System administration"
+    WORKFLOWS = "Workflow management"
+    METADATA_ACCESS = "Metadata access"
+    USERS = "User accounts"
+
 
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
 
 tag_descriptions[
-    "sites"
+    OpenAPITag.METADATA_ACCESS.value
 ] = r"""
-A site corresponds to a physical place that may participate in job execution.
+Retrieve and manage metadata.
 
-A site may register data objects and capabilities with NMDC. It may claim jobs to execute, and it may
-update job operations with execution info.
+The metadata access endpoints fall into several subcategories:
 
-A site must be able to service requests for any data objects it has registered.
-
-A site may expose a "put object" custom method for authorized users. This method facilitates an
-operation to upload an object to the site and have the site register that object with the runtime
-system.
+- **Find**: Find a few types of metadata, using a simplified syntax.
+    - Each endpoint deals with a predetermined type of metadata; i.e., [studies](https://w3id.org/nmdc/Study/), [biosamples](https://w3id.org/nmdc/Biosample/), [data objects](https://w3id.org/nmdc/DataObject/), [planned processes](https://w3id.org/nmdc/PlannedProcess/), or [workflow executions](https://w3id.org/nmdc/WorkflowExecution/).
+- **NMDC schema**: Examine the [NMDC schema](https://microbiomedata.github.io/nmdc-schema/), itself, and use schema-related terminology to find metadata of any type.
+- **Queries**: Find, update, and delete metadata using [MongoDB commands](https://www.mongodb.com/docs/manual/reference/command/#user-commands).
+- **Changesheets**: Modify metadata by uploading [changesheets](https://docs.microbiomedata.org/runtime/howto-guides/author-changesheets/).
+- **JSON operations**: Insert or update metadata by submitting a JSON document representing a [Database](https://w3id.org/nmdc/Database/).
 """
 
 tag_descriptions[
-    "workflows"
+    OpenAPITag.WORKFLOWS.value
 ] = r"""
-A workflow is a template for creating jobs.
+Manage workflows and their execution.
 
-Workflow jobs are typically created by the system via trigger associations between
-workflows and object types. A workflow may also require certain capabilities of sites
-in order for those sites to claim workflow jobs.
+The workflow management endpoints fall into several subcategories:
+
+- **Sites**: Register compute sites that can execute workflows, and generate credentials for them.
+    - A site corresponds to a physical place that may participate in job execution.
+    - A site may register data objects and capabilities with the Runtime. It may claim jobs to execute, and it may update job operations with execution info.
+    - A site must be able to service requests for any data objects it has registered.
+    - A site may expose a "put object" custom method for authorized users. This method facilitates an operation to upload an object to the site and have the site register that object with the Runtime system.
+- **Workflows**: Manage workflow templates, which serve as blueprints for job execution.
+    - A workflow is a template for creating jobs.
+    - Workflow jobs are typically created by the system via triggers, which are associations between workflows and data object types.
+- **Capabilities**: Manage the technical requirements that sites must meet to execute specific workflows.
+    - A workflow may require a site that executes it to have specific capabilities.
+    - These capabilities may go beyond the simple ability to access the data objects registered with the Runtime system.
+    - Sites register their capabilities, and sites are only able to claim workflow jobs if those sites have the capabilities required by the workflow.
+- **Object types**: Manage the types of data objects whose creation can trigger job creation and, eventually, workflow execution.
+    - A data object type is an annotation that can be applied to data objects.
+    - A data object may have one or more types. Those types can be associated with workflows, through triggers.
+- **Triggers**: Define associations between workflows and object types to enable automatic job creation.
+    - A [trigger](https://docs.microbiomedata.org/runtime/howto-guides/create-triggers/) is an association between a workflow and a data object type.
+    - When a data object is [annotated with a type](https://docs.microbiomedata.org/runtime/nb/queue_and_trigger_data_jobs/#use-case-annotate-a-known-object-with-a-type-that-will-trigger-a-workflow)—which may occur shortly after object registration—the Runtime will check—via trigger associations—whether it is due to create any jobs.
+- **Jobs**: Manage the [claiming](https://docs.microbiomedata.org/runtime/howto-guides/claim-and-run-jobs/) and status of workflow executions.
+    - A job is a resource that decouples the configuration of a workflow, from execution of that workflow.
+    - Rather than directly creating a workflow operation, the Runtime creates a job that pairs a workflow with its configuration. Then, a site can claim the job—by its ID—and execute the associated workflow without doing additional configuration.
+    - A job can have multiple executions. All executions of all jobs of a given workflow, make up that workflow's executions.
+    - A site that already has a compatible job execution result can preempt the unnecessary creation of a job by _pre-claiming_ it. This will return like a claim, and now the site can register known data object inputs for the job without the risk of the Runtime creating a claimable job of the pre-claimed type.
+- **Objects**: Manage the Data Repository Service (DRS) objects that are inputs and outputs of workflow executions.
+    - A [Data Repository Service (DRS) object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes) represents content necessary for—or content produced by—job execution.
+    - An object may be a *blob* (analogous to a file) or a *bundle* (analogous to a folder). Sites register objects, and sites must ensure that these objects are accessible to the "NMDC data broker."
+    - An object may be annotated with one or more object types, useful for triggering workflows.
+- **Operations**: Track and monitor the real-time execution status of claimed jobs, including progress updates and error handling.
+    - An operation is a resource for tracking the execution of a job.
+    - When a job is claimed by a site for execution, an operation resource is created.
+    - An operation is like a "promise," in that it should eventually resolve to either a successful result—i.e., an execution resource—or to an error.
+    - An operation is parameterized to return a result type, and a metadata type for storing progress information, that are both particular to the job type.
+    - Operations may be paused, resumed, and/or cancelled.
+    - Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that execution resources have longer lifetimes/not expire, so that information about successful results of operations are available.
+- **Runs**: _(work in progress)_ Execute simple jobs and report execution events back to the Runtime.
+    - Run simple jobs.
+    - For off-site job runs, keep the Runtime appraised of run events.
 """
 
 tag_descriptions[
-    "users"
+    OpenAPITag.USERS.value
 ] = r"""
-Endpoints for user identification.
-
-Currently, accounts for use with the Runtime API are created manually by system administrators.
+Create and manage user accounts.
 """
 
 tag_descriptions[
-    "capabilities"
+    OpenAPITag.MINTER.value
 ] = r"""
-A workflow may require an executing site to have particular capabilities.
-
-These capabilities go beyond the simple ability to access the data object resources registered with
-the runtime system. Sites register their capabilities, and sites are only able to claim workflow
-jobs if they are known to have the capabilities required by the workflow.
+Mint and manage persistent identifiers.
 """
 
 tag_descriptions[
-    "object types"
+    OpenAPITag.SYSTEM_ADMINISTRATION.value
 ] = r"""
-An object type is an object annotation that is useful for triggering workflows.
-
-A data object may be annotated with one or more types, which in turn can be associated with
-workflows through trigger resources.
-
-The data-object type system may be used to trigger workflow jobs on a subset of data objects when a
-new version of a workflow is deployed. This could be done by minting a special object type for the
-occasion, annotating the subset of data objects with that type, and registering the association of
-object type to workflow via a trigger resource.
-"""
-
-tag_descriptions[
-    "triggers"
-] = r"""
-A trigger is an association between a workflow and a data object type.
-
-When a data object is annotated with a type, perhaps shortly after object registration, the NMDC
-Runtime will check, via trigger associations, for potential new jobs to create for any workflows.
-"""
-
-tag_descriptions[
-    "jobs"
-] = r"""
-A job is a resource that isolates workflow configuration from execution.
-
-Rather than directly creating a workflow operation by supplying a workflow ID along with
-configuration, NMDC creates a job that pairs a workflow with configuration. Then, a site can claim a
-job ID, allowing the site to execute the intended workflow without additional configuration.
-
-A job can have multiple executions, and a workflow's executions are precisely the executions of all
-jobs created for that workflow.
-
-A site that already has a compatible job execution result can preempt the unnecessary creation of a
-job by pre-claiming it. This will return like a claim, and now the site can register known data
-object inputs for the job without the risk of the runtime system creating a claimable job of the
-pre-claimed type.
-"""
-
-tag_descriptions[
-    "objects"
-] = r"""
-A [Data Repository Service (DRS)
-object](https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.1.0/docs/#_drs_datatypes)
-represents content necessary for a workflow job to execute, and/or output from a job execution.
-
-An object may be a *blob*, analogous to a file, or a *bundle*, analogous to a folder. Sites register
-objects, and sites must ensure that these objects are accessible to the NMDC data broker.
-
-An object may be associated with one or more object types, useful for triggering workflows.
-"""
-
-tag_descriptions[
-    "operations"
-] = r"""
-An operation is a resource for tracking the execution of a job.
-
-When a job is claimed by a site for execution, an operation resource is created.
-
-An operation is akin to a "promise" or "future" in that it should eventually resolve to either a
-successful result, i.e. an execution resource, or to an error.
-
-An operation is parameterized to return a result type, and a metadata type for storing progress
-information, that are both particular to the job type.
-
-Operations may be paused, resumed, and/or cancelled.
-
-Operations may expire, i.e. not be stored indefinitely. In this case, it is recommended that
-execution resources have longer lifetimes / not expire, so that information about successful results
-of operations are available.
-"""
-
-tag_descriptions[
-    "queries"
-] = r"""
-A query is an operation (find, update, etc.) against the metadata store.
-
-Metadata -- for studies, biosamples, omics processing, etc. -- is used by sites to execute jobs,
-as the parameterization of job executions may depend not only on the content of data objects, but
-also on objects' associated metadata.
-
-Also, the function of many workflows is to extract or produce new metadata. Such metadata products
-should be registered as data objects, and they may also be supplied by sites to the runtime system
-as an update query (if the latter is not done, the runtime system will sense the new metadata and
-issue an update query).
-"""
-
-tag_descriptions[
-    "metadata"
-] = r"""
-The [metadata endpoints](https://api.microbiomedata.org/docs#/metadata) can be used to get and filter
-metadata from collection set types (including 
-[studies](https://w3id.org/nmdc/Study/), 
-[biosamples](https://w3id.org/nmdc/Biosample/), 
-[planned processes](https://w3id.org/nmdc/PlannedProcess/), and 
-[data objects](https://w3id.org/nmdc/DataObject/) 
-as discussed in the __find__ section).
-<br/>
- 
-The __metadata__ endpoints allow users to retrieve metadata from the NMDC database using the various
-GET endpoints  that are slightly different than the __find__ endpoints, but some can be used similarly.
-As with the __find__ endpoints,  parameters for the __metadata__ endpoints that do not have a
-red ___* required___ next to them are optional. <br/>
-
-Unlike the compact syntax used in the __find__  endpoints, the syntax for the filter parameter of
-the metadata endpoints
-uses [MongoDB-like language querying](https://www.mongodb.com/docs/manual/tutorial/query-documents/).
-"""
-
-tag_descriptions[
-    "find"
-] = r"""
-The [find endpoints](https://api.microbiomedata.org/docs#/find) are provided with NMDC metadata entities
-already specified - where metadata about [studies](https://w3id.org/nmdc/Study),
-[biosamples](https://w3id.org/nmdc/Biosample), [data objects](https://w3id.org/nmdc/DataObject/),
-and [planned processes](https://w3id.org/nmdc/PlannedProcess/) can be retrieved using GET requests.
-<br/>
-
-Each endpoint is unique and requires the applicable attribute names to be known in order to structure a query
-in a meaningful way.  Parameters that do not have a red ___* required___ label next to them are optional.
-"""
-
-# TODO: Explain the extent to which the `runs` endpoints are a work in progress.
-tag_descriptions[
-    "runs"
-] = r"""
-**WORK IN PROGRESS**
-
-Run simple jobs.
-
-For off-site job runs, keep the Runtime appraised of run events.
+Retrieve information about the software components that make up the Runtime.
 """
 
 # Remove leading and trailing whitespace from each description.
 for name, description in tag_descriptions.items():
     tag_descriptions[name] = description.strip()
 
-ordered_tag_descriptors: List[Dict[str, str]] = [
-    {"name": "sites", "description": tag_descriptions["sites"]},
-    {"name": "users", "description": tag_descriptions["users"]},
-    {"name": "workflows", "description": tag_descriptions["workflows"]},
-    {"name": "capabilities", "description": tag_descriptions["capabilities"]},
-    {"name": "object types", "description": tag_descriptions["object types"]},
-    {"name": "triggers", "description": tag_descriptions["triggers"]},
-    {"name": "jobs", "description": tag_descriptions["jobs"]},
-    {"name": "objects", "description": tag_descriptions["objects"]},
-    {"name": "operations", "description": tag_descriptions["operations"]},
-    {"name": "queries", "description": tag_descriptions["queries"]},
-    {"name": "metadata", "description": tag_descriptions["metadata"]},
-    {"name": "find", "description": tag_descriptions["find"]},
-    {"name": "runs", "description": tag_descriptions["runs"]},
+ordered_tag_descriptors: List[Dict] = [
+    {
+        "name": OpenAPITag.METADATA_ACCESS.value,
+        "description": tag_descriptions[OpenAPITag.METADATA_ACCESS.value],
+    },
+    {
+        "name": OpenAPITag.WORKFLOWS.value,
+        "description": tag_descriptions[OpenAPITag.WORKFLOWS.value],
+    },
+    {
+        "name": OpenAPITag.MINTER.value,
+        "description": tag_descriptions[OpenAPITag.MINTER.value],
+    },
+    {
+        "name": OpenAPITag.USERS.value,
+        "description": tag_descriptions[OpenAPITag.USERS.value],
+    },
+    {
+        "name": OpenAPITag.SYSTEM_ADMINISTRATION.value,
+        "description": tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value],
+    },
 ]
 
 
-def make_api_description(schema_version: str, orcid_login_url: str) -> str:
+def make_api_description(api_version: str, schema_version: str) -> str:
     r"""
-    Returns an API description into which the specified schema version and
-    ORCID login URL have been incorporated.
+    Returns an API description into which the specified schema version string has been incorporated.
 
     Args:
+        api_version (str): The version of this Runtime instance.
         schema_version (str): The version of `nmdc-schema` the Runtime is using.
-        orcid_login_url (str): The URL at which a user could login via ORCID.
 
     Returns:
         str: The Markdown-formatted API description.
     """
     result = f"""
-The NMDC Runtime API, via on-demand functions and via schedule-based and sensor-based automation,
-supports validation and submission of metadata, as well as orchestration of workflow executions.
+Welcome to the **NMDC Runtime API**, an API you can use to [access metadata](https://docs.microbiomedata.org/howto_guides/api_gui/) residing in the NMDC database.
+
+Users having adequate permissions can also use it to generate identifiers, submit metadata,
+and manage workflow executions.
+
+##### Quick start
+
+The endpoints of the NMDC Runtime API are listed below.
+They are organized into sections, each of which can be opened and closed.
+The endpoints, themselves, can also be opened and closed.
+
+Each endpoint—when opened—has a "Try it out" button, which you can press in order to send a request
+to the endpoint directly from this web page. Each endpoint can also be
+[accessed programmatically](https://docs.microbiomedata.org/runtime/nb/api_access_via_python/).
+
+Some endpoints have a padlock icon, which means that the endpoint is only accessible to logged-in users.
+You can log in by clicking the "Authorize" button located directly above the list of endpoints.
+
+##### Contact us
 
 You can [contact us](https://microbiomedata.org/contact/) anytime.
 We continuously refine the API and may be able to streamline your use case.
 
+##### Versions
+
+[NMDC Runtime](https://docs.microbiomedata.org/runtime/) version: `{api_version}`
+
 [NMDC Schema](https://microbiomedata.github.io/nmdc-schema/) version: `{schema_version}`
-
-[Documentation](https://docs.microbiomedata.org/runtime/)
-
-<img src="/static/ORCIDiD_icon128x128.png" height="18" width="18"/>
-<a href="{escape(orcid_login_url)}" title="Login with ORCID">
-    Login with ORCID
-</a>
 """.strip()
     return result

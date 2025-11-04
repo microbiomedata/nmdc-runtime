@@ -14,7 +14,6 @@ from dagster import (
     StringSource,
     InitResourceContext,
 )
-from fastjsonschema import JsonSchemaValueException
 from frozendict import frozendict
 from linkml_runtime.dumpers import json_dumper
 from pydantic import BaseModel, AnyUrl
@@ -27,7 +26,7 @@ from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
 from nmdc_runtime.api.models.util import ListRequest
 from nmdc_runtime.site.normalization.gold import normalize_gold_id
-from nmdc_runtime.util import unfreeze, nmdc_jsonschema_validator_noidpatterns
+from nmdc_runtime.util import unfreeze, get_nmdc_schema_validator
 from nmdc_schema import nmdc
 
 
@@ -466,6 +465,17 @@ class NmdcPortalApiClient:
         response.raise_for_status()
         return response.json()
 
+    def make_submission_images_public(
+        self, submission_id: str, *, study_id: str
+    ) -> Dict[str, Any]:
+        response = self._request(
+            "POST",
+            f"/api/metadata_submission/{submission_id}/image/make_public",
+            json={"study_id": study_id},
+        )
+        response.raise_for_status()
+        return response.json()
+
 
 @resource(
     config_schema={
@@ -523,46 +533,46 @@ class MongoDB:
         """
         TODO: Document this function.
         """
-        try:
-            if validate:
-                nmdc_jsonschema_validator_noidpatterns(docs)
-            rv = {}
-            for collection_name, collection_docs in docs.items():
-                # If `collection_docs` is empty, abort this iteration.
-                #
-                # Note: We do this because the `bulk_write` method called below will raise
-                #       an `InvalidOperation` exception if it is passed 0 operations.
-                #
-                # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.bulk_write
-                #
-                if len(collection_docs) == 0:
-                    continue
+        if validate:
+            validator = get_nmdc_schema_validator()
+            # Fail fast on first validation error.
+            for result in validator.iter_results(docs, target_class="Database"):
+                raise ValueError(result.message)
+        rv = {}
+        for collection_name, collection_docs in docs.items():
+            # If `collection_docs` is empty, abort this iteration.
+            #
+            # Note: We do this because the `bulk_write` method called below will raise
+            #       an `InvalidOperation` exception if it is passed 0 operations.
+            #
+            # Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html#pymongo.collection.Collection.bulk_write
+            #
+            if len(collection_docs) == 0:
+                continue
 
-                rv[collection_name] = self.db[collection_name].bulk_write(
-                    [
-                        (
-                            ReplaceOne({"id": d["id"]}, d, upsert=True)
-                            if replace
-                            else InsertOne(d)
-                        )
-                        for d in collection_docs
-                    ]
-                )
-                now = datetime.now(timezone.utc)
-                self.db.txn_log.insert_many(
-                    [
-                        {
-                            "tgt": {"id": d.get("id"), "c": collection_name},
-                            "type": "upsert",
-                            "ts": now,
-                            # "dtl": {},
-                        }
-                        for d in collection_docs
-                    ]
-                )
-            return rv
-        except JsonSchemaValueException as e:
-            raise ValueError(e.message)
+            rv[collection_name] = self.db[collection_name].bulk_write(
+                [
+                    (
+                        ReplaceOne({"id": d["id"]}, d, upsert=True)
+                        if replace
+                        else InsertOne(d)
+                    )
+                    for d in collection_docs
+                ]
+            )
+            now = datetime.now(timezone.utc)
+            self.db.txn_log.insert_many(
+                [
+                    {
+                        "tgt": {"id": d.get("id"), "c": collection_name},
+                        "type": "upsert",
+                        "ts": now,
+                        # "dtl": {},
+                    }
+                    for d in collection_docs
+                ]
+            )
+        return rv
 
 
 @resource(
