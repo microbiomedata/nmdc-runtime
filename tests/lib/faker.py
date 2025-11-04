@@ -592,7 +592,7 @@ class Faker:
         for i in range(quantity):
             # Apply any overrides passed in.
             params = {
-                "sequencing_project_name": "arbitrary_string",
+                "sequencing_project_name": f"arbitrary_string-{i+1}",
                 "sequencing_project_description": "arbitrary_string",
                 "jgi_proposal_id": "arbitrary_string",
                 "nmdc_study_id": "arbitrary_string",
