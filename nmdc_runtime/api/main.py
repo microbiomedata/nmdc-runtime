@@ -267,6 +267,7 @@ async def lifespan(app: FastAPI):
     ensure_default_api_perms()
     ensure_globus_tasks_id_is_indexed()
     ensure_sequencing_project_name_is_indexed()
+    ensure_jgi_samples_id_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
