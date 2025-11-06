@@ -54,3 +54,14 @@ IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
 # Feature flag that can be used to enable/disable performance profiling,
 # which can be activated via the `?profile=true` URL query parameter.
 IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")
+
+# Sentry configuration
+# Sentry DSN (Data Source Name) for error tracking and performance monitoring.
+SENTRY_DSN: str = os.environ.get("SENTRY_DSN", "")
+
+# Sentry environment name to differentiate between deployments (e.g., production, staging, dev).
+# Reference: https://docs.sentry.io/concepts/key-terms/environments/#creating-environments
+SENTRY_ENVIRONMENT: str = os.environ.get("SENTRY_ENVIRONMENT", "unknown")
+
+# Feature flag to enable/disable Sentry SDK initialization.
+IS_SENTRY_ENABLED: bool = is_env_var_true("IS_SENTRY_ENABLED", default="false")
