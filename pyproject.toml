@@ -79,7 +79,7 @@ dependencies = [
     #       Reference: https://pypi.org/project/scalar-fastapi/
     "scalar-fastapi >= 1.4.1, < 2.0.0",
     # Note: We use `sentry-sdk` for error tracking and performance monitoring.
-    #       Docs: https://docs.sentry.io/platforms/python/
+    #       Docs: https://docs.sentry.io/platforms/python/integrations/fastapi/
     "sentry-sdk[fastapi] >= 2.0.0, < 3.0.0",
     "tenacity",
     "toolz",
