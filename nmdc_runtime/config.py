@@ -65,3 +65,15 @@ SENTRY_ENVIRONMENT: str = os.environ.get("SENTRY_ENVIRONMENT", "unknown")
 
 # Feature flag to enable/disable Sentry SDK initialization.
 IS_SENTRY_ENABLED: bool = is_env_var_true("IS_SENTRY_ENABLED", default="false")
+
+# Sentry traces sample rate (0.0 to 1.0). Controls what percentage of transactions are sent to Sentry.
+# Default is 0.1 (10%) to avoid excessive data in production.
+SENTRY_TRACES_SAMPLE_RATE: float = float(
+    os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+)
+
+# Sentry profiles sample rate (0.0 to 1.0). Controls what percentage of transactions are profiled.
+# Default is 0.1 (10%) to avoid performance impact in production.
+SENTRY_PROFILES_SAMPLE_RATE: float = float(
+    os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.1")
+)

@@ -1,5 +1,6 @@
 """Tests for nmdc_runtime.config module."""
 
+import importlib
 import os
 import pytest
 from nmdc_runtime import config
@@ -12,8 +13,6 @@ class TestSentryConfig:
         """Test that SENTRY_DSN defaults to empty string when not set."""
         monkeypatch.delenv("SENTRY_DSN", raising=False)
         # Reload the config module to apply the change
-        import importlib
-
         importlib.reload(config)
         assert config.SENTRY_DSN == ""
 
@@ -21,16 +20,12 @@ class TestSentryConfig:
         """Test that SENTRY_DSN reads from environment variable."""
         test_dsn = "https://example@sentry.io/123456"
         monkeypatch.setenv("SENTRY_DSN", test_dsn)
-        import importlib
-
         importlib.reload(config)
         assert config.SENTRY_DSN == test_dsn
 
     def test_sentry_environment_default_unknown(self, monkeypatch):
         """Test that SENTRY_ENVIRONMENT defaults to 'unknown' when not set."""
         monkeypatch.delenv("SENTRY_ENVIRONMENT", raising=False)
-        import importlib
-
         importlib.reload(config)
         assert config.SENTRY_ENVIRONMENT == "unknown"
 
@@ -38,42 +33,56 @@ class TestSentryConfig:
         """Test that SENTRY_ENVIRONMENT reads from environment variable."""
         test_env = "production"
         monkeypatch.setenv("SENTRY_ENVIRONMENT", test_env)
-        import importlib
-
         importlib.reload(config)
         assert config.SENTRY_ENVIRONMENT == test_env
 
     def test_is_sentry_enabled_default_false(self, monkeypatch):
         """Test that IS_SENTRY_ENABLED defaults to False when not set."""
         monkeypatch.delenv("IS_SENTRY_ENABLED", raising=False)
-        import importlib
-
         importlib.reload(config)
         assert config.IS_SENTRY_ENABLED is False
 
     def test_is_sentry_enabled_true(self, monkeypatch):
         """Test that IS_SENTRY_ENABLED is True when set to 'true'."""
         monkeypatch.setenv("IS_SENTRY_ENABLED", "true")
-        import importlib
-
         importlib.reload(config)
         assert config.IS_SENTRY_ENABLED is True
 
     def test_is_sentry_enabled_false(self, monkeypatch):
         """Test that IS_SENTRY_ENABLED is False when set to 'false'."""
         monkeypatch.setenv("IS_SENTRY_ENABLED", "false")
-        import importlib
-
         importlib.reload(config)
         assert config.IS_SENTRY_ENABLED is False
 
     def test_is_sentry_enabled_case_insensitive(self, monkeypatch):
         """Test that IS_SENTRY_ENABLED is case-insensitive."""
         monkeypatch.setenv("IS_SENTRY_ENABLED", "TRUE")
-        import importlib
-
         importlib.reload(config)
         assert config.IS_SENTRY_ENABLED is True
+
+    def test_sentry_traces_sample_rate_default(self, monkeypatch):
+        """Test that SENTRY_TRACES_SAMPLE_RATE defaults to 0.1 when not set."""
+        monkeypatch.delenv("SENTRY_TRACES_SAMPLE_RATE", raising=False)
+        importlib.reload(config)
+        assert config.SENTRY_TRACES_SAMPLE_RATE == 0.1
+
+    def test_sentry_traces_sample_rate_from_env(self, monkeypatch):
+        """Test that SENTRY_TRACES_SAMPLE_RATE reads from environment variable."""
+        monkeypatch.setenv("SENTRY_TRACES_SAMPLE_RATE", "0.5")
+        importlib.reload(config)
+        assert config.SENTRY_TRACES_SAMPLE_RATE == 0.5
+
+    def test_sentry_profiles_sample_rate_default(self, monkeypatch):
+        """Test that SENTRY_PROFILES_SAMPLE_RATE defaults to 0.1 when not set."""
+        monkeypatch.delenv("SENTRY_PROFILES_SAMPLE_RATE", raising=False)
+        importlib.reload(config)
+        assert config.SENTRY_PROFILES_SAMPLE_RATE == 0.1
+
+    def test_sentry_profiles_sample_rate_from_env(self, monkeypatch):
+        """Test that SENTRY_PROFILES_SAMPLE_RATE reads from environment variable."""
+        monkeypatch.setenv("SENTRY_PROFILES_SAMPLE_RATE", "0.75")
+        importlib.reload(config)
+        assert config.SENTRY_PROFILES_SAMPLE_RATE == 0.75
 
 
 class TestIsEnvVarTrue:

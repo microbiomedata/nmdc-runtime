@@ -74,12 +74,12 @@ if config.IS_SENTRY_ENABLED and config.SENTRY_DSN:
     sentry_sdk.init(
         dsn=config.SENTRY_DSN,
         environment=config.SENTRY_ENVIRONMENT,
-        # Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
-        # We recommend adjusting this value in production.
-        traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100% of sampled transactions.
-        # We recommend adjusting this value in production.
-        profiles_sample_rate=1.0,
+        # Percentage of transactions to capture for performance monitoring.
+        # Adjustable via SENTRY_TRACES_SAMPLE_RATE environment variable.
+        traces_sample_rate=config.SENTRY_TRACES_SAMPLE_RATE,
+        # Percentage of sampled transactions to profile.
+        # Adjustable via SENTRY_PROFILES_SAMPLE_RATE environment variable.
+        profiles_sample_rate=config.SENTRY_PROFILES_SAMPLE_RATE,
         integrations=[
             FastApiIntegration(),
         ],
