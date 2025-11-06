@@ -48,6 +48,7 @@ def list_jobs(
 @router.post(
     "/jobs",
     status_code=status.HTTP_201_CREATED,
+    response_model_exclude_unset=True,
 )
 def create_job(
     job_in: JobIn,
@@ -70,21 +71,22 @@ def create_job(
     # Generate a timestamp for the job's `created_at` field.
     created_at = datetime.now(timezone.utc)
 
-    # Validate the job.
+    # Validate the request payload, combined with the generated ID and timestamp.
+    job_in_dict: dict = job_in.model_dump(exclude_unset=True)
     try:
-        job_in_dict = job_in.model_dump()
-        job = Job(**job_in_dict, id=job_id, created_at=created_at)
+        validated_job = Job(**job_in_dict, id=job_id, created_at=created_at)
     except Exception as e:
-        error_message = str(e)
+        error_message = f"Invalid job. Details: {str(e)}"
+        logging.warning(error_message)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid job. Details: {error_message}",
+            detail=error_message,
         )
 
-    # Insert the job into the database.
+    # Insert the validated job into the database.
+    validated_job_dict: dict = validated_job.model_dump(exclude_unset=True)
     try:
-        job_dict = job.model_dump(exclude_unset=True)
-        result = mdb.jobs.insert_one(job_dict)
+        result = mdb.jobs.insert_one(validated_job_dict)
         if not result.inserted_id:
             raise Exception("Failed to insert job into database.")
     except Exception as e:
@@ -94,8 +96,8 @@ def create_job(
             detail="Failed to create job.",
         )
 
-    # Return the job that was created.
-    return job
+    # Return the job that was created (i.e. inserted into the database).
+    return validated_job
 
 
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
