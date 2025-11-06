@@ -63,7 +63,7 @@ def get_float_from_env(name: str, default: float) -> float:
     >>> get_float_from_env(name, 0.5)
     Traceback (most recent call last):
         ...
-    ValueError: Invalid float value 'invalid' for environment variable 'EXAMPLE_FLOAT_VAR'. Expected a number between 0.0 and 1.0.
+    ValueError: Invalid float value 'invalid' for environment variable 'EXAMPLE_FLOAT_VAR'. Expected a numeric value.
     """
     value_str = os.environ.get(name)
     if value_str is None:
@@ -74,7 +74,7 @@ def get_float_from_env(name: str, default: float) -> float:
     except ValueError:
         raise ValueError(
             f"Invalid float value '{value_str}' for environment variable '{name}'. "
-            f"Expected a number between 0.0 and 1.0."
+            f"Expected a numeric value."
         )
 
 
