@@ -117,3 +117,28 @@ class TestIsEnvVarTrue:
         """Test that non-boolean strings return False."""
         monkeypatch.setenv("TEST_VAR", "potato")
         assert config.is_env_var_true("TEST_VAR") is False
+
+
+class TestGetFloatFromEnv:
+    """Tests for the get_float_from_env utility function."""
+
+    def test_get_float_from_env_undefined(self, monkeypatch):
+        """Test that default value is used when environment variable is undefined."""
+        monkeypatch.delenv("TEST_FLOAT", raising=False)
+        assert config.get_float_from_env("TEST_FLOAT", 0.5) == 0.5
+
+    def test_get_float_from_env_valid_value(self, monkeypatch):
+        """Test that valid float values are parsed correctly."""
+        monkeypatch.setenv("TEST_FLOAT", "0.75")
+        assert config.get_float_from_env("TEST_FLOAT", 0.5) == 0.75
+
+    def test_get_float_from_env_invalid_value(self, monkeypatch):
+        """Test that invalid float values raise ValueError with helpful message."""
+        monkeypatch.setenv("TEST_FLOAT", "invalid")
+        with pytest.raises(ValueError, match="Invalid float value 'invalid'"):
+            config.get_float_from_env("TEST_FLOAT", 0.5)
+
+    def test_get_float_from_env_integer_value(self, monkeypatch):
+        """Test that integer strings are correctly parsed as floats."""
+        monkeypatch.setenv("TEST_FLOAT", "1")
+        assert config.get_float_from_env("TEST_FLOAT", 0.5) == 1.0

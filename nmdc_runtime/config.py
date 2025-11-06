@@ -43,6 +43,41 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).lower() in lowercase_true_strings
 
 
+def get_float_from_env(name: str, default: float) -> float:
+    r"""
+    Safely retrieves a float value from an environment variable.
+
+    If the environment variable is not set, returns the default value.
+    If the environment variable contains an invalid float, raises a
+    ValueError with a helpful error message.
+
+    >>> import os
+    >>> name = "EXAMPLE_FLOAT_VAR"
+    >>> os.unsetenv(name)  # Undefined
+    >>> get_float_from_env(name, 0.5)
+    0.5
+    >>> os.environ[name] = "0.75"
+    >>> get_float_from_env(name, 0.5)
+    0.75
+    >>> os.environ[name] = "invalid"
+    >>> get_float_from_env(name, 0.5)
+    Traceback (most recent call last):
+        ...
+    ValueError: Invalid float value 'invalid' for environment variable 'EXAMPLE_FLOAT_VAR'. Expected a number between 0.0 and 1.0.
+    """
+    value_str = os.environ.get(name)
+    if value_str is None:
+        return default
+
+    try:
+        return float(value_str)
+    except ValueError:
+        raise ValueError(
+            f"Invalid float value '{value_str}' for environment variable '{name}'. "
+            f"Expected a number between 0.0 and 1.0."
+        )
+
+
 # Feature flag to enable/disable the `/nmdcschema/linked_instances` endpoint and the tests that target it.
 IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
     "IS_LINKED_INSTANCES_ENDPOINT_ENABLED", default="true"
@@ -68,12 +103,12 @@ IS_SENTRY_ENABLED: bool = is_env_var_true("IS_SENTRY_ENABLED", default="false")
 
 # Sentry traces sample rate (0.0 to 1.0). Controls what percentage of transactions are sent to Sentry.
 # Default is 0.1 (10%) to avoid excessive data in production.
-SENTRY_TRACES_SAMPLE_RATE: float = float(
-    os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+SENTRY_TRACES_SAMPLE_RATE: float = get_float_from_env(
+    "SENTRY_TRACES_SAMPLE_RATE", default=0.1
 )
 
 # Sentry profiles sample rate (0.0 to 1.0). Controls what percentage of transactions are profiled.
 # Default is 0.1 (10%) to avoid performance impact in production.
-SENTRY_PROFILES_SAMPLE_RATE: float = float(
-    os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.1")
+SENTRY_PROFILES_SAMPLE_RATE: float = get_float_from_env(
+    "SENTRY_PROFILES_SAMPLE_RATE", default=0.1
 )
