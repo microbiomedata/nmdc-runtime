@@ -19,7 +19,7 @@ from nmdc_runtime.api.endpoints.util import (
     _create_object,
     HOSTNAME_EXTERNAL,
     BASE_URL_EXTERNAL,
-    strip_oid
+    strip_oid,
 )
 from nmdc_runtime.api.models.object import (
     DrsId,
