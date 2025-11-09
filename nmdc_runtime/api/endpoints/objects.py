@@ -18,7 +18,9 @@ from nmdc_runtime.api.endpoints.util import (
     _create_object,
     HOSTNAME_EXTERNAL,
     BASE_URL_EXTERNAL,
+    strip_oid,
 )
+from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObject,
@@ -89,12 +91,17 @@ def create_object(
     )
 
 
-@router.get("/objects", response_model=ListResponse[DrsObject])
+# Note: We use the generic `Doc` class—instead of the `DrsObject` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `DrsObject` class says are required.
+@router.get("/objects", response_model=ListResponse[Doc])
 def list_objects(
     req: Annotated[ListRequest, Query()],
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    return list_resources(req, mdb, "objects")
+    rv = list_resources(req, mdb, "objects")
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.get(

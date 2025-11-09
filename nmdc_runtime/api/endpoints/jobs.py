@@ -7,14 +7,14 @@ from pymongo.database import Database
 from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
-
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
+from nmdc_runtime.api.endpoints.util import list_resources, _claim_job, strip_oid
 from nmdc_runtime.api.models.job import Job, JobClaim, JobIn
+from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
     Site,
@@ -26,8 +26,11 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse, ResultT
 router = APIRouter()
 
 
+# Note: We use the generic `Doc` class—instead of the `Job` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `Job` class says are required.
 @router.get(
-    "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
+    "/jobs", response_model=ListResponse[Doc], response_model_exclude_unset=True
 )
 def list_jobs(
     req: Annotated[ListRequest, Query()],
@@ -42,7 +45,9 @@ def list_jobs(
     """
     if isinstance(maybe_site, Site) and req.filter is None:
         req.filter = json.dumps({"claims.site_id": {"$ne": maybe_site.id}})
-    return list_resources(req, mdb, "jobs")
+    rv = list_resources(req, mdb, "jobs")
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.post(
