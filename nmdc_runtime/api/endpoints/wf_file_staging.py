@@ -5,12 +5,15 @@ from toolz import merge
 import logging
 
 from nmdc_runtime.api.core.util import raise404_if_none, HTTPException, status
-from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.util import ListRequest, ListResponse
-from nmdc_runtime.api.endpoints.util import list_resources, strip_oid
+from nmdc_runtime.api.endpoints.util import (
+    check_action_permitted,
+    list_resources,
+    strip_oid,
+)
 from nmdc_runtime.api.models.metadata import Doc
-
+from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.util import ListRequest, ListResponse
 from nmdc_runtime.api.models.wfe_file_stages import (
     GlobusTask,
     GlobusTaskStatus,
@@ -19,7 +22,6 @@ from nmdc_runtime.api.models.wfe_file_stages import (
     JGISequencingProject,
     WorkflowFileStagingCollectionName as CollectionName,
 )
-from nmdc_runtime.api.endpoints.util import check_action_permitted
 
 router = APIRouter()
 
@@ -112,6 +114,9 @@ def update_globus_tasks(
     return doc_globus_patched
 
 
+# Note: We use the generic `Doc` class—instead of the `GlobusTask` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `GlobusTask` class says are required.
 @router.get(
     "/wf_file_staging/globus_tasks",
     response_model=ListResponse[Doc],
@@ -178,6 +183,9 @@ def create_jgi_sample(
         )
 
 
+# Note: We use the generic `Doc` class—instead of the `JGISample` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `JGISample` class says are required.
 @router.get(
     "/wf_file_staging/jgi_samples",
     response_model=ListResponse[Doc],
@@ -230,6 +238,9 @@ def update_jgi_samples(
     return doc_jgi_sample_patched
 
 
+# Note: We use the generic `Doc` class—instead of the `JGISequencingProject` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `JGISequencingProject` class says are required.
 @router.get(
     "/wf_file_staging/jgi_sequencing_projects",
     response_model=ListResponse[Doc],

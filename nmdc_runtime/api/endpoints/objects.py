@@ -8,7 +8,6 @@ from pymongo.database import Database as MongoDatabase
 import requests
 from starlette.responses import RedirectResponse
 from toolz import merge
-from nmdc_runtime.api.models.metadata import Doc
 
 from nmdc_runtime.api.core.idgen import decode_id, generate_one_id, local_part
 from nmdc_runtime.api.core.util import raise404_if_none, API_SITE_ID
@@ -21,6 +20,7 @@ from nmdc_runtime.api.endpoints.util import (
     BASE_URL_EXTERNAL,
     strip_oid,
 )
+from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.object import (
     DrsId,
     DrsObject,
@@ -91,6 +91,9 @@ def create_object(
     )
 
 
+# Note: We use the generic `Doc` class—instead of the `DrsObject` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `DrsObject` class says are required.
 @router.get("/objects", response_model=ListResponse[Doc])
 def list_objects(
     req: Annotated[ListRequest, Query()],
