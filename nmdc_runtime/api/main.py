@@ -113,9 +113,19 @@ def ensure_initial_resources_on_boot():
         mdb.users.create_index("username", unique=True)
 
     site_id = os.getenv("API_SITE_ID")
-    runtime_site_ok = mdb.sites.count_documents(({"id": site_id})) > 0
-    if not runtime_site_ok:
-        client_id = os.getenv("API_SITE_CLIENT_ID")
+    client_id = os.getenv("API_SITE_CLIENT_ID")
+    client_secret = os.getenv("API_SITE_CLIENT_SECRET")
+    
+    # Check if site exists and if client credentials are not default values
+    runtime_site_exists = mdb.sites.count_documents(({"id": site_id})) > 0
+    credentials_are_not_default = (
+        client_id != "generateme" and 
+        client_secret != "generateme" and 
+        client_id is not None and 
+        client_secret is not None
+    )
+    
+    if not runtime_site_exists or credentials_are_not_default:
         mdb.sites.replace_one(
             {"id": site_id},
             SiteInDB(
@@ -123,9 +133,7 @@ def ensure_initial_resources_on_boot():
                 clients=[
                     SiteClientInDB(
                         id=client_id,
-                        hashed_secret=get_password_hash(
-                            os.getenv("API_SITE_CLIENT_SECRET")
-                        ),
+                        hashed_secret=get_password_hash(client_secret),
                     )
                 ],
             ).model_dump(),
@@ -215,41 +223,34 @@ def ensure_sequencing_project_name_is_indexed():
 
 def ensure_default_api_perms():
     """
-    Ensures that specific users (currently only "admin") are allowed to perform
-    specific actions, and creates MongoDB indexes to speed up allowance queries.
+    Ensures that specific users (currently only "admin") and the configured site client
+    are allowed to perform specific actions, and creates MongoDB indexes to speed up allowance queries.
 
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
 
     db = get_mongo_db()
-    if db["_runtime.api.allow"].count_documents({}):
-        return
-
+    client_id = os.getenv("API_SITE_CLIENT_ID")
+    
+    # List of users who should have permissions
+    admin_users = ["admin"]
+    client_users = [client_id] if client_id and client_id != "generateme" else []
+    
     allowances = {
-        "/metadata/changesheets:submit": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:DeleteCommand)": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:AggregateCommand)": [
-            "admin",
-        ],
-        "/metadata/json:submit": [
-            "admin",
-        ],
-        "/wf_file_staging": [
-            "admin",
-        ],
+        "/metadata/changesheets:submit": admin_users,
+        "/queries:run(query_cmd:DeleteCommand)": admin_users,
+        "/queries:run(query_cmd:AggregateCommand)": admin_users + client_users,
+        "/metadata/json:submit": admin_users,
+        "/wf_file_staging": admin_users,
     }
-    for doc in [
-        {"username": username, "action": action}
-        for action, usernames in allowances.items()
-        for username in usernames
-    ]:
-        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-        db["_runtime.api.allow"].create_index("username")
-        db["_runtime.api.allow"].create_index("action")
+    
+    for action, usernames in allowances.items():
+        for username in usernames:
+            doc = {"username": username, "action": action}
+            db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
+    
+    db["_runtime.api.allow"].create_index("username")
+    db["_runtime.api.allow"].create_index("action")
 
 
 @asynccontextmanager
