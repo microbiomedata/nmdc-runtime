@@ -115,16 +115,16 @@ def ensure_initial_resources_on_boot():
     site_id = os.getenv("API_SITE_ID")
     client_id = os.getenv("API_SITE_CLIENT_ID")
     client_secret = os.getenv("API_SITE_CLIENT_SECRET")
-    
+
     # Check if site exists and if client credentials are not default values
     runtime_site_exists = mdb.sites.count_documents(({"id": site_id})) > 0
     credentials_are_not_default = (
-        client_id != "generateme" and 
-        client_secret != "generateme" and 
-        client_id is not None and 
-        client_secret is not None
+        client_id != "generateme"
+        and client_secret != "generateme"
+        and client_id is not None
+        and client_secret is not None
     )
-    
+
     if not runtime_site_exists or credentials_are_not_default:
         mdb.sites.replace_one(
             {"id": site_id},
@@ -231,11 +231,11 @@ def ensure_default_api_perms():
 
     db = get_mongo_db()
     client_id = os.getenv("API_SITE_CLIENT_ID")
-    
+
     # List of users who should have permissions
     admin_users = ["admin"]
     client_users = [client_id] if client_id and client_id != "generateme" else []
-    
+
     allowances = {
         "/metadata/changesheets:submit": admin_users,
         "/queries:run(query_cmd:DeleteCommand)": admin_users,
@@ -243,12 +243,12 @@ def ensure_default_api_perms():
         "/metadata/json:submit": admin_users,
         "/wf_file_staging": admin_users,
     }
-    
+
     for action, usernames in allowances.items():
         for username in usernames:
             doc = {"username": username, "action": action}
             db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-    
+
     db["_runtime.api.allow"].create_index("username")
     db["_runtime.api.allow"].create_index("action")
 
