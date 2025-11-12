@@ -1,4 +1,4 @@
-name: Build Docker images and release to Spin
+name: Build Docker images and release to Spin and GKE
 
 on:
   push:
@@ -99,7 +99,12 @@ jobs:
 
   # Use the Rancher API to redeploy the specified deployments,
   # causing them to use the newly-pushed container images.
+  #
+  # Note: This `release` job is the Spin counterpart to the subsequently-added `restart-dev-deployments` job below.
+  #       TODO: Standardize the jobs' names, if we keep this `release` job long term.
+  #
   release:
+    name: Restart deployments on Spin
     needs: build
     runs-on: ubuntu-latest
 
@@ -115,3 +120,13 @@ jobs:
           url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
           method: POST
           bearerToken: ${{ secrets.RANCHER_TOKEN }}
+
+  # Trigger a remotely-defined GHA workflow that uses Argo CD to restart
+  # the (dev) deployments hosted on Google Kubernetes Engine (GKE), causing
+  # Kubernetes to pull and use the newly-built-and-pushed container images.
+  restart-dev-deployments:
+    name: Restart (dev) deployments on GKE
+    needs: [ build ]
+    permissions: { contents: read }
+    if: env.IS_ORIGINAL_REPO == 'true' && env.IS_PROD_RELEASE != 'true'
+    uses: microbiomedata/nmdc-cloud-deployment/.github/workflows/argocd-restart-runtime.yaml@main
