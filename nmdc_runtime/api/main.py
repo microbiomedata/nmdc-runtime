@@ -65,6 +65,26 @@ from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
+# Initialize Sentry SDK for error tracking and performance monitoring
+# Reference: https://docs.sentry.io/platforms/python/integrations/fastapi/
+if config.IS_SENTRY_ENABLED and config.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+    sentry_sdk.init(
+        dsn=config.SENTRY_DSN,
+        environment=config.SENTRY_ENVIRONMENT,
+        # Percentage of transactions to capture for performance monitoring.
+        # Adjustable via SENTRY_TRACES_SAMPLE_RATE environment variable.
+        traces_sample_rate=config.SENTRY_TRACES_SAMPLE_RATE,
+        # Percentage of sampled transactions to profile.
+        # Adjustable via SENTRY_PROFILES_SAMPLE_RATE environment variable.
+        profiles_sample_rate=config.SENTRY_PROFILES_SAMPLE_RATE,
+        integrations=[
+            FastApiIntegration(),
+        ],
+    )
+
 
 api_router = APIRouter()
 api_router.include_router(find.router, tags=[OpenAPITag.METADATA_ACCESS.value])
