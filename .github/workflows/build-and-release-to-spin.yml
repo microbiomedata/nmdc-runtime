@@ -128,5 +128,10 @@ jobs:
     name: Restart (dev) deployments on GKE
     needs: [ build ]
     permissions: { contents: read }
-    if: env.IS_ORIGINAL_REPO == 'true' && env.IS_PROD_RELEASE != 'true'
+    # Note: The `jobs.<job_id>.if` key doesn't have access to the `env` context, but does have access to
+    #       the `github` context, so we effectively re-derive the values of `env.IS_ORIGINAL_REPO` and
+    #       `env.IS_PROD_RELEASE` from the `github` context here.
+    #       Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+    #   ┏━━━━━━━━━━━━━━━ IS_ORIGINAL_REPO ━━━━━━━━━━━━━━━┓ and ┏━━━━━━━ not IS_PROD_RELEASE ━━━━━━━┓
+    if: github.repository == 'microbiomedata/nmdc-runtime' && !startsWith(github.ref, 'refs/tags/v')
     uses: microbiomedata/nmdc-cloud-deployment/.github/workflows/argocd-restart-runtime.yaml@main
