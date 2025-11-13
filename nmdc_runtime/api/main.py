@@ -36,6 +36,7 @@ from nmdc_runtime.api.core.auth import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
+    allowances,
     capabilities,
     find,
     jobs,
@@ -82,6 +83,9 @@ api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(
+    allowances.router, tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value]
+)
 api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
 
 
@@ -222,6 +226,14 @@ def ensure_default_api_perms():
     """
 
     db = get_mongo_db()
+
+    # Create indexes for the allowances collection
+    # Create individual indexes for username and action
+    db["_runtime.api.allow"].create_index("username")
+    db["_runtime.api.allow"].create_index("action")
+    # Create unique composite index on (username, action)
+    db["_runtime.api.allow"].create_index([("username", 1), ("action", 1)], unique=True)
+
     if db["_runtime.api.allow"].count_documents({}):
         return
 
@@ -248,8 +260,6 @@ def ensure_default_api_perms():
         for username in usernames
     ]:
         db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-        db["_runtime.api.allow"].create_index("username")
-        db["_runtime.api.allow"].create_index("action")
 
 
 @asynccontextmanager
