@@ -11,6 +11,7 @@ from nmdc_runtime.api.models.allowance import Allowance, AllowanceActions
 
 router = APIRouter()
 
+
 def check_can_run_allowances_endpoints(user: User):
     """
     Check if the user is permitted to run the allowances endpoints in this file.
@@ -20,6 +21,7 @@ def check_can_run_allowances_endpoints(user: User):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users are allowed to issue /allowances commands.",
         )
+
 
 @router.get("/allowances", response_model=List[Allowance])
 def list_allowances(
@@ -92,7 +94,9 @@ def create_allowance(
 @router.delete("/allowances", status_code=status.HTTP_204_NO_CONTENT)
 def delete_allowance(
     username: str = Query(..., description="Username for the allowance to delete"),
-    action: AllowanceActions = Query(..., description="Action for the allowance to delete"),
+    action: AllowanceActions = Query(
+        ..., description="Action for the allowance to delete"
+    ),
     user: User = Depends(get_current_active_user),
     mdb: Database = Depends(get_mongo_db),
 ):
@@ -113,7 +117,7 @@ def delete_allowance(
 
     return {
         "result": "success",
-        "detail": f"Allowance for user {username} and action {action} deleted successfully"
+        "detail": f"Allowance for user {username} and action {action} deleted successfully",
     }
 
 

@@ -52,7 +52,7 @@ from nmdc_runtime.api.endpoints import (
     users,
     workflows,
     wf_file_staging,
-    allowances
+    allowances,
 )
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
@@ -160,13 +160,17 @@ def ensure_type_field_is_indexed():
     for collection_name in get_collection_names_from_schema(schema_view):
         mdb.get_collection(collection_name).create_index("type", background=True)
 
+
 def ensure_allowance_is_indexed():
     """Creates a unique index for the runtime.api.allow 'username' and 'action' columns, ensuring there is a unique composite index on fields username,action"""
     mdb = get_mongo_db()
     mdb["_runtime.api.allow"].create_index("username")
     mdb["_runtime.api.allow"].create_index("action")
     # ensure unique composite index on (username, action)
-    mdb["_runtime.api.allow"].create_index([("username", 1), ("action", 1)], unique=True)
+    mdb["_runtime.api.allow"].create_index(
+        [("username", 1), ("action", 1)], unique=True
+    )
+
 
 def ensure_attribute_indexes():
     r"""
@@ -236,7 +240,7 @@ def ensure_default_api_perms():
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
-    
+
     default_users = ["admin"]
 
     for action in AllowanceActions:
