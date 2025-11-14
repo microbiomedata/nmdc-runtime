@@ -121,17 +121,21 @@ jobs:
           method: POST
           bearerToken: ${{ secrets.RANCHER_TOKEN }}
 
-  # Trigger a remotely-defined GHA workflow that uses Argo CD to restart
-  # the (dev) deployments hosted on Google Kubernetes Engine (GKE), causing
-  # Kubernetes to pull and use the newly-built-and-pushed container images.
-  restart-dev-deployments:
-    name: Restart (dev) deployments on GKE
-    needs: [ build ]
-    permissions: { contents: read }
-    # Note: The `jobs.<job_id>.if` key doesn't have access to the `env` context, but does have access to
-    #       the `github` context, so we effectively re-derive the values of `env.IS_ORIGINAL_REPO` and
-    #       `env.IS_PROD_RELEASE` from the `github` context here.
-    #       Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
-    #   ┏━━━━━━━━━━━━━━━ IS_ORIGINAL_REPO ━━━━━━━━━━━━━━━┓ and ┏━━━━━━━ not IS_PROD_RELEASE ━━━━━━━┓
-    if: github.repository == 'microbiomedata/nmdc-runtime' && !startsWith(github.ref, 'refs/tags/v')
-    uses: microbiomedata/nmdc-cloud-deployment/.github/workflows/argocd-restart-runtime.yaml@main
+################# Commented-out to un-break this workflow ###################
+#
+#  # Trigger a remotely-defined GHA workflow that uses Argo CD to restart
+#  # the (dev) deployments hosted on Google Kubernetes Engine (GKE), causing
+#  # Kubernetes to pull and use the newly-built-and-pushed container images.
+#  restart-dev-deployments:
+#    name: Restart (dev) deployments on GKE
+#    needs: [ build ]
+#    permissions: { contents: read }
+#    # Note: The `jobs.<job_id>.if` key doesn't have access to the `env` context, but does have access to
+#    #       the `github` context, so we effectively re-derive the values of `env.IS_ORIGINAL_REPO` and
+#    #       `env.IS_PROD_RELEASE` from the `github` context here.
+#    #       Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+#    #   ┏━━━━━━━━━━━━━━━ IS_ORIGINAL_REPO ━━━━━━━━━━━━━━━┓ and ┏━━━━━━━ not IS_PROD_RELEASE ━━━━━━━┓
+#    if: github.repository == 'microbiomedata/nmdc-runtime' && !startsWith(github.ref, 'refs/tags/v')
+#    uses: microbiomedata/nmdc-cloud-deployment/.github/workflows/argocd-restart-runtime.yaml@main
+#
+#############################################################################
