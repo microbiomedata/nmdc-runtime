@@ -71,6 +71,14 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
+    def _has_insdc_biosample_identifier(self, biosample: dict) -> bool:
+        """
+        Check if a biosample has INSDC biosample identifiers asserted.
+        Returns True if the biosample has insdc_biosample_identifiers field with values.
+        """
+        insdc_ids = biosample.get("insdc_biosample_identifiers", [])
+        return isinstance(insdc_ids, list) and len(insdc_ids) > 0
+
     def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
@@ -191,6 +199,13 @@ class NCBISubmissionXML:
 
         # Process pooled sample groups - create one <Action> block per pooling process
         for pooling_process_id, group_data in pooling_groups.items():
+            # Skip if any biosample in the pool has INSDC identifiers
+            if any(
+                self._has_insdc_biosample_identifier(biosample)
+                for biosample in group_data["biosamples"]
+            ):
+                continue
+
             self._create_pooled_biosample_action(
                 group_data["biosamples"],
                 group_data["pooling_info"],
@@ -203,6 +218,10 @@ class NCBISubmissionXML:
 
         # Process individual biosamples
         for biosample in individual_biosamples:
+            # Skip if biosample has INSDC identifiers
+            if self._has_insdc_biosample_identifier(biosample):
+                continue
+
             attributes = {}
             sample_id_value = None
             env_package = None
