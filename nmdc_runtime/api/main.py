@@ -52,11 +52,13 @@ from nmdc_runtime.api.endpoints import (
     users,
     workflows,
     wf_file_staging,
+    allowances
 )
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
+from nmdc_runtime.api.models.allowance import AllowanceActions
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
     ordered_tag_descriptors,
@@ -87,6 +89,7 @@ api_router.include_router(
     allowances.router, tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value]
 )
 api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(allowances.router, tags=[OpenAPITag.USERS.value])
 
 
 def ensure_initial_resources_on_boot():
@@ -157,6 +160,13 @@ def ensure_type_field_is_indexed():
     for collection_name in get_collection_names_from_schema(schema_view):
         mdb.get_collection(collection_name).create_index("type", background=True)
 
+def ensure_allowance_is_indexed():
+    """Creates a unique index for the runtime.api.allow 'username' and 'action' columns, ensuring there is a unique composite index on fields username,action"""
+    mdb = get_mongo_db()
+    mdb["_runtime.api.allow"].create_index("username")
+    mdb["_runtime.api.allow"].create_index("action")
+    # ensure unique composite index on (username, action)
+    mdb["_runtime.api.allow"].create_index([("username", 1), ("action", 1)], unique=True)
 
 def ensure_attribute_indexes():
     r"""
@@ -221,45 +231,18 @@ def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
     specific actions, and creates MongoDB indexes to speed up allowance queries.
-
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
-
     db = get_mongo_db()
-
-    # Create indexes for the allowances collection
-    # Create individual indexes for username and action
-    db["_runtime.api.allow"].create_index("username")
-    db["_runtime.api.allow"].create_index("action")
-    # Create unique composite index on (username, action)
-    db["_runtime.api.allow"].create_index([("username", 1), ("action", 1)], unique=True)
-
     if db["_runtime.api.allow"].count_documents({}):
         return
+    
+    default_users = ["admin"]
 
-    allowances = {
-        "/metadata/changesheets:submit": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:DeleteCommand)": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:AggregateCommand)": [
-            "admin",
-        ],
-        "/metadata/json:submit": [
-            "admin",
-        ],
-        "/wf_file_staging": [
-            "admin",
-        ],
-    }
-    for doc in [
-        {"username": username, "action": action}
-        for action, usernames in allowances.items()
-        for username in usernames
-    ]:
-        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
+    for action in AllowanceActions:
+        for username in default_users:
+            doc = {"username": username, "action": action.value}
+            db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
 
 
 @asynccontextmanager
@@ -278,6 +261,7 @@ async def lifespan(app: FastAPI):
     ensure_globus_tasks_id_is_indexed()
     ensure_sequencing_project_name_is_indexed()
     ensure_jgi_samples_id_is_indexed()
+    ensure_allowance_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
