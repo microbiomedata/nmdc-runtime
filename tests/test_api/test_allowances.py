@@ -76,7 +76,7 @@ def test_list_all_allowances(test_setup):
 
     # Get all allowances
     rv = requests.get(
-        f"{base_url}/admin/allowances",
+        f"{base_url}/allowances",
         headers=headers,
     )
 
@@ -104,7 +104,7 @@ def test_list_allowances_by_username(test_setup):
 
     # Get allowances for test_user_1
     rv = requests.get(
-        f"{base_url}/admin/allowances?username=test_user_1",
+        f"{base_url}/allowances?username=test_user_1",
         headers=headers,
     )
 
@@ -131,7 +131,7 @@ def test_list_allowances_by_action(test_setup):
 
     # Get allowances for /test/action1
     rv = requests.get(
-        f"{base_url}/admin/allowances?action=/test/action1",
+        f"{base_url}/allowances?action=/test/action1",
         headers=headers,
     )
 
@@ -154,7 +154,7 @@ def test_list_allowance_by_username_and_action(test_setup):
 
     # Get specific allowance
     rv = requests.get(
-        f"{base_url}/admin/allowances?username=test_user_1&action=/test/action1",
+        f"{base_url}/allowances?username=test_user_1&action=/test/action1",
         headers=headers,
     )
 
@@ -177,7 +177,7 @@ def test_create_allowance(test_setup):
         "action": "/test/action1",
     }
     rv = requests.post(
-        f"{base_url}/admin/allowances",
+        f"{base_url}/allowances",
         headers=headers,
         json=allowance_data,
     )
@@ -217,7 +217,7 @@ def test_create_duplicate_allowance(test_setup):
         "action": "/test/action1",
     }
     rv = requests.post(
-        f"{base_url}/admin/allowances",
+        f"{base_url}/allowances",
         headers=headers,
         json=allowance_data,
     )
@@ -241,7 +241,7 @@ def test_delete_allowance(test_setup):
 
     # Delete the allowance
     rv = requests.delete(
-        f"{base_url}/admin/allowances?username=test_user_1&action=/test/action1",
+        f"{base_url}/allowances?username=test_user_1&action=/test/action1",
         headers=headers,
     )
 
@@ -264,7 +264,7 @@ def test_delete_nonexistent_allowance(test_setup):
 
     # Try to delete non-existent allowance
     rv = requests.delete(
-        f"{base_url}/admin/allowances?username=nonexistent&action=/nonexistent/action",
+        f"{base_url}/allowances?username=nonexistent&action=/nonexistent/action",
         headers=headers,
     )
 
@@ -288,7 +288,7 @@ def test_list_valid_actions(test_setup):
 
     # Get valid actions
     rv = requests.get(
-        f"{base_url}/admin/allowances/actions",
+        f"{base_url}/allowances/actions",
         headers=headers,
     )
 
@@ -308,10 +308,10 @@ def test_allowances_require_authentication(test_setup):
 
     # Test without authentication headers
     endpoints_and_methods = [
-        ("GET", f"{base_url}/admin/allowances"),
-        ("POST", f"{base_url}/admin/allowances"),
-        ("DELETE", f"{base_url}/admin/allowances?username=test&action=/test"),
-        ("GET", f"{base_url}/admin/allowances/actions"),
+        ("GET", f"{base_url}/allowances"),
+        ("POST", f"{base_url}/allowances"),
+        ("DELETE", f"{base_url}/allowances?username=test&action=/test"),
+        ("GET", f"{base_url}/allowances/actions"),
     ]
 
     for method, url in endpoints_and_methods:
@@ -356,14 +356,14 @@ def test_delete_allowance_missing_parameters(test_setup):
 
     # Try to delete without action parameter
     rv = requests.delete(
-        f"{base_url}/admin/allowances?username=test_user_1",
+        f"{base_url}/allowances?username=test_user_1",
         headers=headers,
     )
     assert rv.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Try to delete without username parameter
     rv = requests.delete(
-        f"{base_url}/admin/allowances?action=/test/action1",
+        f"{base_url}/allowances?action=/test/action1",
         headers=headers,
     )
     assert rv.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
