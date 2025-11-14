@@ -5,42 +5,19 @@ import requests
 from starlette import status
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.site.resources import get_mongo, RuntimeApiUserClient
-from nmdc_runtime.site.repository import run_config_frozen__normal_env
-from tests.test_api.test_endpoints import ensure_test_resources
-
-
-@pytest.fixture(scope="module")
-def test_setup():
-    """Setup test resources and return necessary data."""
-    mdb = get_mongo(run_config_frozen__normal_env).db
-    rs = ensure_test_resources(mdb)
-    base_url = os.getenv("API_HOST")
-
-    # Get authentication token
-    rv = requests.post(
-        base_url + "/token",
-        data={
-            "grant_type": "password",
-            "username": rs["user"]["username"],
-            "password": rs["user"]["password"],
-        },
-    )
-    token = rv.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-
-    return {
-        "base_url": base_url,
-        "headers": headers,
-        "mdb": mdb,
-        "username": rs["user"]["username"],
-    }
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_allowances(test_setup):
+def cleanup_test_allowances(api_user_client):
     """Cleanup test allowances before and after each test."""
-    mdb = test_setup["mdb"]
+    mdb = get_mongo_db()
+    # grant /allowances permissions to api_user_client
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/allowances",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     # Clean up before test
     mdb["_runtime.api.allow"].delete_many(
         {"username": {"$in": ["test_user_1", "test_user_2", "test_user_3"]}}
@@ -58,13 +35,12 @@ def cleanup_test_allowances(test_setup):
     mdb["_runtime.api.allow"].delete_many(
         {"action": {"$in": ["/test/action1", "/test/action2", "/test/action3"]}}
     )
+    mdb["_runtime.api.allow"].delete_one(allow_spec)
 
 
-def test_list_all_allowances(test_setup):
+def test_list_all_allowances(api_user_client):
     """Test listing all allowances."""
-    base_url = test_setup["base_url"]
-    headers = test_setup["headers"]
-    mdb = test_setup["mdb"]
+    mdb = get_mongo_db()
 
     # Create some test allowances
     test_allowances = [
@@ -75,10 +51,14 @@ def test_list_all_allowances(test_setup):
         mdb["_runtime.api.allow"].insert_one(allowance)
 
     # Get all allowances
-    rv = requests.get(
-        f"{base_url}/allowances",
-        headers=headers,
-    )
+    try:
+        rv = api_user_client.request(
+            "GET",
+            "/allowances",
+        )
+    except Exception as e:
+        print(f"API request failed: {str(e)}")
+        raise
 
     assert rv.status_code == status.HTTP_200_OK
     allowances = rv.json()
