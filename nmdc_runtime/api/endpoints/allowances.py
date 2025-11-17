@@ -13,6 +13,7 @@ from nmdc_runtime.api.endpoints.util import (
 )
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
@@ -31,9 +32,7 @@ def check_can_run_allowances_endpoints(user: User):
 
 @router.get("/allowances")
 def list_allowances(
-    username: Optional[str] = Query(
-        None, description="Filter allowances by username"
-    ),
+    username: Optional[str] = Query(None, description="Filter allowances by username"),
     action: Optional[AllowanceActions] = Query(
         None, description="Filter allowances by action"
     ),
@@ -56,10 +55,10 @@ def list_allowances(
     if action:
         filter_criteria["action"] = action.value
     allowances = list(
-            mdb["_runtime.api.allow"].find(
-                filter=filter_criteria,
-            )
+        mdb["_runtime.api.allow"].find(
+            filter=filter_criteria,
         )
+    )
     rv = {}
     rv["resources"] = [strip_oid(d) for d in allowances]
     return rv
