@@ -7,7 +7,13 @@ from nmdc_runtime.api.endpoints.util import check_action_permitted
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.allowance import Allowance, AllowanceActions
+from nmdc_runtime.api.endpoints.util import (
+    check_action_permitted,
+    strip_oid,
+)
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
 
@@ -23,10 +29,14 @@ def check_can_run_allowances_endpoints(user: User):
         )
 
 
-@router.get("/allowances", response_model=List[Allowance])
+@router.get("/allowances")
 def list_allowances(
-    username: Optional[str] = Query(None, description="Filter by username"),
-    action: Optional[AllowanceActions] = Query(None, description="Filter by action"),
+    username: Optional[str] = Query(
+        None, description="Filter allowances by username"
+    ),
+    action: Optional[AllowanceActions] = Query(
+        None, description="Filter allowances by action"
+    ),
     user: User = Depends(get_current_active_user),
     mdb: Database = Depends(get_mongo_db),
 ):
@@ -40,17 +50,19 @@ def list_allowances(
 
     """
     check_can_run_allowances_endpoints(user)
-    # Build the filter based on provided query parameters
-    filter_dict = {}
-    if username is not None:
-        filter_dict["username"] = username
-    if action is not None:
-        filter_dict["action"] = action
-
-    # Query the database
-    allowances = list(mdb["_runtime.api.allow"].find(filter_dict, {"_id": 0}))
-
-    return allowances
+    filter_criteria = {}
+    if username:
+        filter_criteria["username"] = username
+    if action:
+        filter_criteria["action"] = action.value
+    allowances = list(
+            mdb["_runtime.api.allow"].find(
+                filter=filter_criteria,
+            )
+        )
+    rv = {}
+    rv["resources"] = [strip_oid(d) for d in allowances]
+    return rv
 
 
 @router.post(
