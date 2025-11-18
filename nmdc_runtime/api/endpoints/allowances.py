@@ -1,28 +1,25 @@
 from typing import List, Optional
 
 from pymongo.database import Database
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 
 from nmdc_runtime.api.endpoints.util import check_action_permitted
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.api.models.allowance import Allowance, AllowanceActions
+from nmdc_runtime.api.models.allowance import Allowance, AllowanceAction
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
 )
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 router = APIRouter()
 
 
-def check_can_run_allowances_endpoints(user: User):
+def check_can_manage_allowances(user: User):
     """
     Check if the user is permitted to run the allowances endpoints in this file.
     """
-    if not check_action_permitted(user.username, "/allowances"):
+    if not check_action_permitted(user.username, AllowanceAction.MANAGE_ALLOWANCES.value):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users are allowed to issue /allowances commands.",
@@ -34,7 +31,7 @@ def list_allowances(
     username: Optional[str] = Query(
         None, description="Filter allowances by username"
     ),
-    action: Optional[AllowanceActions] = Query(
+    action: Optional[AllowanceAction] = Query(
         None, description="Filter allowances by action"
     ),
     user: User = Depends(get_current_active_user),
@@ -49,7 +46,7 @@ def list_allowances(
     - If neither is provided, returns all allowances.
 
     """
-    check_can_run_allowances_endpoints(user)
+    check_can_manage_allowances(user)
     filter_criteria = {}
     if username:
         filter_criteria["username"] = username
@@ -76,12 +73,14 @@ def create_allowance(
     """
     Create an allowance for a specific user and action.
 
-    **Note:** This endpoint is only accessible to authenticated users.
+    **Note:** This endpoint is only accessible to admins.
     """
-    check_can_run_allowances_endpoints(user)
+    check_can_manage_allowances(user)
+    # Create the allowance
+    doc = {"username": allowance.username, "action": allowance.action}
     # Check if the allowance already exists
     existing = mdb["_runtime.api.allow"].find_one(
-        {"username": allowance.username, "action": allowance.action}
+        doc
     )
 
     if existing:
@@ -89,9 +88,7 @@ def create_allowance(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Allowance already exists for user '{allowance.username}' and action '{allowance.action}'",
         )
-
-    # Create the allowance
-    doc = {"username": allowance.username, "action": allowance.action}
+    
     try:
         mdb["_runtime.api.allow"].insert_one(doc)
     except Exception as e:
@@ -105,9 +102,9 @@ def create_allowance(
 
 @router.delete("/allowances", status_code=status.HTTP_204_NO_CONTENT)
 def delete_allowance(
-    username: str = Query(..., description="Username for the allowance to delete"),
-    action: AllowanceActions = Query(
-        ..., description="Action for the allowance to delete"
+    username: str = Query(..., description="Username of the allowance to delete"),
+    action: AllowanceAction = Query(
+        ..., description="Action of the allowance to delete"
     ),
     user: User = Depends(get_current_active_user),
     mdb: Database = Depends(get_mongo_db),
@@ -115,7 +112,7 @@ def delete_allowance(
     """
     Delete an allowance for a specific user and action.
     """
-    check_can_run_allowances_endpoints(user)
+    check_can_manage_allowances(user)
     # Attempt to delete the allowance
     result = mdb["_runtime.api.allow"].delete_one(
         {"username": username, "action": action}
@@ -127,20 +124,16 @@ def delete_allowance(
             detail=f"No allowance found for user '{username}' and action '{action}'",
         )
 
-    return {
-        "result": "success",
-        "detail": f"Allowance for user {username} and action {action} deleted successfully",
-    }
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/allowances/actions", response_model=List[str])
+@router.get("/allowances/actions", response_model=List[AllowanceAction])
 def list_valid_actions(
     user: User = Depends(get_current_active_user),
 ):
     """
-    Get all valid actions (distinct action values from the allowances collection).
-
+    Get all of the actions that can be in allowances
     """
-    check_can_run_allowances_endpoints(user)
+    check_can_manage_allowances(user)
 
-    return sorted([action.value for action in AllowanceActions])
+    return sorted([action.value for action in AllowanceAction])

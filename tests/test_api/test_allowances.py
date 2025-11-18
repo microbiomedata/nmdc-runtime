@@ -5,18 +5,23 @@ import requests
 from starlette import status
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.allowance import AllowanceActions
+from nmdc_runtime.api.models.allowance import AllowanceAction
 
 
 @pytest.fixture(autouse=True)
 def cleanup_test_allowances(api_user_client):
     """Cleanup test allowances before and after each test."""
     mdb = get_mongo_db()
-    # grant /allowances permissions to api_user_client
+
+    
     allowances_collection = mdb.get_collection("_runtime.api.allow")
+    # get existing allowances in the db, delete them, and re-insert after test
+    allowances_docs = list(allowances_collection.find({}))
+    allowances_collection.delete_many({})
+    # grant MANAGE_ALLOWANCES permissions to api_user_client
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/allowances",
+        "action": AllowanceAction.MANAGE_ALLOWANCES.value,
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     # Clean up before test
@@ -37,6 +42,13 @@ def cleanup_test_allowances(api_user_client):
         {"action": {"$in": ["/test/action1", "/test/action2", "/test/action3"]}}
     )
     allowances_collection.delete_one(allow_spec)
+    #insert back the original allowance for api_user_client
+    for doc in allowances_docs:
+        allowances_collection.replace_one(
+            {"username": doc["username"], "action": doc["action"]},
+            doc,
+            upsert=True,
+        )
 
 
 
@@ -98,22 +110,22 @@ def test_list_allowances_by_action(api_user_client):
     # Create test allowances
     allowances_collection.insert_many(
         [
-            {"username": "test_user_1", "action": AllowanceActions.SUBMIT.value},
-            {"username": "test_user_2", "action": AllowanceActions.SUBMIT.value},
-            {"username": "test_user_3", "action": AllowanceActions.DELETE.value},
+            {"username": "test_user_1", "action": AllowanceAction.SUBMIT_CHANGESHEET.value},
+            {"username": "test_user_2", "action": AllowanceAction.SUBMIT_CHANGESHEET.value},
+            {"username": "test_user_3", "action": AllowanceAction.DELETE_DATA.value},
         ]
     )
 
-    # Get allowances for /test/action1
+    # Get allowances for AllowanceAction.SUBMIT_CHANGESHEET
     rv = api_user_client.request(
         "GET",
-        f"/allowances?action={AllowanceActions.SUBMIT.value}",
+        f"/allowances?action={AllowanceAction.SUBMIT_CHANGESHEET.value}",
     )
 
     assert rv.status_code == status.HTTP_200_OK
     allowances = rv.json()
-    assert len(allowances["resources"]) == 3
-    assert all(a["action"] == AllowanceActions.SUBMIT.value for a in allowances["resources"])
+    assert len(allowances["resources"]) == 2
+    assert all(a["action"] == AllowanceAction.SUBMIT_CHANGESHEET.value for a in allowances["resources"])
 
 
 
@@ -125,22 +137,22 @@ def test_list_allowance_by_username_and_action(api_user_client):
     # Create test allowance
     allowances_collection.insert_many(
         [
-        {"username": "test_user_1", "action": AllowanceActions.SUBMIT.value},
-        {"username": "test_user_1", "action": AllowanceActions.DELETE.value},
-    ]
+            {"username": "test_user_1", "action": AllowanceAction.SUBMIT_CHANGESHEET.value},
+            {"username": "test_user_1", "action": AllowanceAction.DELETE_DATA.value},
+        ]
     )
 
     # Get specific allowance
     rv = api_user_client.request(
         "GET",
-        f"/allowances?username=test_user_1&action={AllowanceActions.SUBMIT.value}",
+        f"/allowances?username=test_user_1&action={AllowanceAction.SUBMIT_CHANGESHEET.value}",
     )
 
     assert rv.status_code == status.HTTP_200_OK
     allowances = rv.json()
     assert len(allowances["resources"]) == 1
     assert allowances["resources"][0]["username"] == "test_user_1"
-    assert allowances["resources"][0]["action"] == AllowanceActions.SUBMIT.value
+    assert allowances["resources"][0]["action"] == AllowanceAction.SUBMIT_CHANGESHEET.value
 
 
 def test_create_allowance(api_user_client):
@@ -151,10 +163,10 @@ def test_create_allowance(api_user_client):
     # Create allowance
     allowance_data = {
         "username": "test_user_1",
-        "action": AllowanceActions.SUBMIT.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
     }
     # assert allowance_data does not already exist
-    assert ( allowances_collection.count_documents(allowance_data) == 0)
+    assert allowances_collection.count_documents(allowance_data) == 0
     rv = api_user_client.request(
         "POST",
         "/allowances",
@@ -164,13 +176,13 @@ def test_create_allowance(api_user_client):
     assert rv.status_code == status.HTTP_201_CREATED
     created = rv.json()
     assert created["username"] == "test_user_1"
-    assert created["action"] == AllowanceActions.SUBMIT.value
+    assert created["action"] == AllowanceAction.SUBMIT_CHANGESHEET.value
 
     # Verify it was created in the database
     db_allowance = allowances_collection.find_one(
         {
             "username": "test_user_1",
-            "action": AllowanceActions.SUBMIT.value,
+            "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
         }
     )
     assert db_allowance is not None
@@ -185,22 +197,23 @@ def test_create_duplicate_allowance(api_user_client):
     allowances_collection.insert_one(
         {
             "username": "test_user_1",
-            "action": AllowanceActions.SUBMIT.value,
+            "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
         }
     )
 
     # Try to create duplicate
     allowance_data = {
         "username": "test_user_1",
-        "action": AllowanceActions.SUBMIT.value,
+        "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
     }
-    rv = api_user_client.request(
-        "POST",
-        "/allowances",
-        allowance_data
-    )
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+        api_user_client.request(
+            "POST",
+            "/allowances",
+            allowance_data
+        )
 
-    assert rv.status_code == status.HTTP_409_CONFLICT
+    assert exc_info.value.response.status_code == status.HTTP_409_CONFLICT
 
 
 def test_delete_allowance(api_user_client):
@@ -212,20 +225,20 @@ def test_delete_allowance(api_user_client):
     allowances_collection.insert_one(
         {
             "username": "test_user_1",
-            "action":  AllowanceActions.SUBMIT.value,
+            "action":  AllowanceAction.SUBMIT_CHANGESHEET.value,
         }
     )
 
     allowance_data = {
         "username": "test_user_1",
-        "action":  AllowanceActions.SUBMIT.value,
+        "action":  AllowanceAction.SUBMIT_CHANGESHEET.value,
     }
 
     assert ( allowances_collection.count_documents(allowance_data) == 1)
     # Delete the allowance
     rv = api_user_client.request(
         "DELETE",
-        f"/allowances?username=test_user_1&action={AllowanceActions.SUBMIT.value}"
+        f"/allowances?username=test_user_1&action={AllowanceAction.SUBMIT_CHANGESHEET.value}"
     )
 
     assert rv.status_code == status.HTTP_204_NO_CONTENT
@@ -234,7 +247,7 @@ def test_delete_allowance(api_user_client):
     db_allowance = allowances_collection.find_one(
         {
             "username": "test_user_1",
-            "action": AllowanceActions.SUBMIT.value,
+            "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
         }
     )
     assert db_allowance is None
@@ -246,7 +259,7 @@ def test_delete_nonexistent_allowance(api_user_client):
     with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "DELETE",
-            f"/allowances?username=nonexistent&action={AllowanceActions.SUBMIT.value}"
+            f"/allowances?username=nonexistent&action={AllowanceAction.SUBMIT_CHANGESHEET.value}"
         )
 
     assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
@@ -263,7 +276,7 @@ def test_list_valid_actions(api_user_client):
     assert rv.status_code == status.HTTP_200_OK
     actions = rv.json()
     # Should include our test actions plus any default ones
-    for action in AllowanceActions:
+    for action in AllowanceAction:
         assert action.value in actions
     # Should be sorted
     assert actions == sorted(actions)

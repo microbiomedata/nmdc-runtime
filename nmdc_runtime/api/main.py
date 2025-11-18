@@ -52,13 +52,12 @@ from nmdc_runtime.api.endpoints import (
     users,
     workflows,
     wf_file_staging,
-    allowances,
 )
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
-from nmdc_runtime.api.models.allowance import AllowanceActions
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
     ordered_tag_descriptors,
@@ -85,9 +84,6 @@ api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
-api_router.include_router(
-    allowances.router, tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value]
-)
 api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(allowances.router, tags=[OpenAPITag.USERS.value])
 
@@ -162,7 +158,11 @@ def ensure_type_field_is_indexed():
 
 
 def ensure_allowance_is_indexed():
-    """Creates a unique index for the runtime.api.allow 'username' and 'action' columns, ensuring there is a unique composite index on fields username,action"""
+    """
+    Creates indexes in the `_runtime.api.allow` collection; specifically, of
+    the 'username' field, of the 'action' field, and of the combination of
+    those two fields.
+    """
     mdb = get_mongo_db()
     mdb["_runtime.api.allow"].create_index("username")
     mdb["_runtime.api.allow"].create_index("action")
@@ -243,7 +243,7 @@ def ensure_default_api_perms():
 
     default_users = ["admin"]
 
-    for action in AllowanceActions:
+    for action in AllowanceAction:
         for username in default_users:
             doc = {"username": username, "action": action.value}
             db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
