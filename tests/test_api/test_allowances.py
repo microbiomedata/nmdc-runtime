@@ -1,5 +1,3 @@
-import os
-
 import pytest
 import requests
 from starlette import status
@@ -207,12 +205,11 @@ def test_create_duplicate_allowance(api_user_client):
         "action": AllowanceAction.SUBMIT_CHANGESHEET.value,
     }
     with pytest.raises(requests.exceptions.HTTPError) as exc_info:
-        api_user_client.request(
+        _ = api_user_client.request(
             "POST",
             "/allowances",
             allowance_data
         )
-
     assert exc_info.value.response.status_code == status.HTTP_409_CONFLICT
 
 

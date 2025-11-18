@@ -1,16 +1,17 @@
+import logging
 from typing import List, Optional
 
 from pymongo.database import Database
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 
-from nmdc_runtime.api.endpoints.util import check_action_permitted
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.api.models.allowance import Allowance, AllowanceAction
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
 )
+from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.allowance import Allowance, AllowanceAction
+
 
 router = APIRouter()
 
@@ -28,9 +29,7 @@ def check_can_manage_allowances(user: User):
 
 @router.get("/allowances")
 def list_allowances(
-    username: Optional[str] = Query(
-        None, description="Filter allowances by username"
-    ),
+    username: Optional[str] = Query(None, description="Filter allowances by username"),
     action: Optional[AllowanceAction] = Query(
         None, description="Filter allowances by action"
     ),
@@ -53,10 +52,10 @@ def list_allowances(
     if action:
         filter_criteria["action"] = action.value
     allowances = list(
-            mdb["_runtime.api.allow"].find(
-                filter=filter_criteria,
-            )
+        mdb["_runtime.api.allow"].find(
+            filter=filter_criteria,
         )
+    )
     rv = {}
     rv["resources"] = [strip_oid(d) for d in allowances]
     return rv
