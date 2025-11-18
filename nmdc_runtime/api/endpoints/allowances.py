@@ -20,7 +20,9 @@ def check_can_manage_allowances(user: User):
     """
     Check if the user is permitted to run the allowances endpoints in this file.
     """
-    if not check_action_permitted(user.username, AllowanceAction.MANAGE_ALLOWANCES.value):
+    if not check_action_permitted(
+        user.username, AllowanceAction.MANAGE_ALLOWANCES.value
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users are allowed to issue /allowances commands.",
@@ -78,16 +80,14 @@ def create_allowance(
     # Create the allowance
     doc = {"username": allowance.username, "action": allowance.action}
     # Check if the allowance already exists
-    existing = mdb["_runtime.api.allow"].find_one(
-        doc
-    )
+    existing = mdb["_runtime.api.allow"].find_one(doc)
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Allowance already exists for user '{allowance.username}' and action '{allowance.action}'",
         )
-    
+
     try:
         mdb["_runtime.api.allow"].insert_one(doc)
     except Exception as e:
