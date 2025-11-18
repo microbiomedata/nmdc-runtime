@@ -192,13 +192,13 @@ def test_create_duplicate_allowance(api_user_client):
         "username": "test_user_1",
         "action": AllowanceActions.SUBMIT.value,
     }
-    rv = api_user_client.request(
-        "POST",
-        "/allowances",
-        allowance_data
-    )
-
-    assert rv.status_code == status.HTTP_409_CONFLICT
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+        _ = api_user_client.request(
+            "POST",
+            "/allowances",
+            allowance_data
+        )
+    assert exc_info.value.response.status_code == status.HTTP_409_CONFLICT
 
 
 def test_delete_allowance(api_user_client):
