@@ -1,18 +1,17 @@
+import logging
 from typing import List, Optional
 
 from pymongo.database import Database
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from nmdc_runtime.api.endpoints.util import check_action_permitted
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.models.user import User, get_current_active_user
-from nmdc_runtime.api.models.allowance import Allowance, AllowanceActions
 from nmdc_runtime.api.endpoints.util import (
     check_action_permitted,
     strip_oid,
 )
+from nmdc_runtime.api.models.user import User, get_current_active_user
+from nmdc_runtime.api.models.allowance import Allowance, AllowanceActions
 
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 

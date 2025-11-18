@@ -1,5 +1,3 @@
-import os
-
 import pytest
 import requests
 from starlette import status
