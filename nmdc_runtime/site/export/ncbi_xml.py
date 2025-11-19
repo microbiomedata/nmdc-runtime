@@ -519,6 +519,10 @@ class NCBISubmissionXML:
 
                         formatted_value = handler(item)
 
+                        # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                        if json_key == "geo_loc_name":
+                            formatted_value = unidecode(formatted_value)
+
                         # For pooled samples, we typically want the first value or aggregate appropriately
                         if xml_key not in aggregated_attributes:
                             aggregated_attributes[xml_key] = formatted_value
@@ -542,6 +546,13 @@ class NCBISubmissionXML:
                     if "term" in value and "id" in value["term"]:
                         value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
                     aggregated_attributes[xml_key] = value
+                    continue
+
+                # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                if json_key == "geo_loc_name":
+                    formatted_value = handler(value)
+                    formatted_value = unidecode(formatted_value)
+                    aggregated_attributes[xml_key] = formatted_value
                     continue
 
                 formatted_value = handler(value)
