@@ -404,6 +404,7 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                        if not (key == "soil_horizon" and attributes[key] == "M horizon")
                     ]
                     + [
                         self.set_element(
@@ -646,6 +647,7 @@ class NCBISubmissionXML:
                         "Attribute", filtered_attributes[key], {"attribute_name": key}
                     )
                     for key in sorted(filtered_attributes)
+                    if not (key == "soil_horizon" and filtered_attributes[key] == "M horizon")
                 ]
                 + [
                     self.set_element(
