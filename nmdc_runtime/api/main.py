@@ -36,6 +36,7 @@ from nmdc_runtime.api.core.auth import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
+    allowances,
     capabilities,
     find,
     jobs,
@@ -56,6 +57,7 @@ from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
 from nmdc_runtime.api.models.util import entity_attributes_to_index
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
     ordered_tag_descriptors,
@@ -83,6 +85,7 @@ api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
 api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(allowances.router, tags=[OpenAPITag.USERS.value])
 
 
 def ensure_initial_resources_on_boot():
@@ -154,6 +157,21 @@ def ensure_type_field_is_indexed():
         mdb.get_collection(collection_name).create_index("type", background=True)
 
 
+def ensure_allowance_is_indexed():
+    """
+    Creates indexes in the `_runtime.api.allow` collection; specifically, of
+    the 'username' field, of the 'action' field, and of the combination of
+    those two fields.
+    """
+    mdb = get_mongo_db()
+    mdb["_runtime.api.allow"].create_index("username")
+    mdb["_runtime.api.allow"].create_index("action")
+    # ensure unique composite index on (username, action)
+    mdb["_runtime.api.allow"].create_index(
+        [("username", 1), ("action", 1)], unique=True
+    )
+
+
 def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
@@ -217,39 +235,18 @@ def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
     specific actions, and creates MongoDB indexes to speed up allowance queries.
-
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
-
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
 
-    allowances = {
-        "/metadata/changesheets:submit": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:DeleteCommand)": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:AggregateCommand)": [
-            "admin",
-        ],
-        "/metadata/json:submit": [
-            "admin",
-        ],
-        "/wf_file_staging": [
-            "admin",
-        ],
-    }
-    for doc in [
-        {"username": username, "action": action}
-        for action, usernames in allowances.items()
-        for username in usernames
-    ]:
-        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-        db["_runtime.api.allow"].create_index("username")
-        db["_runtime.api.allow"].create_index("action")
+    default_users = ["admin"]
+
+    for action in AllowanceAction:
+        for username in default_users:
+            doc = {"username": username, "action": action.value}
+            db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
 
 
 @asynccontextmanager
@@ -268,6 +265,7 @@ async def lifespan(app: FastAPI):
     ensure_globus_tasks_id_is_indexed()
     ensure_sequencing_project_name_is_indexed()
     ensure_jgi_samples_id_is_indexed()
+    ensure_allowance_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
