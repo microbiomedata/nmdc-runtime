@@ -74,7 +74,7 @@ def create_allowance(
     check_can_manage_allowances(user)
 
     doc = {"username": allowance.username, "action": allowance.action}
-    
+
     # If such an allowance already exists, return an error response.
     if mdb["_runtime.api.allow"].count_documents(doc, limit=1) > 0:
         raise HTTPException(
