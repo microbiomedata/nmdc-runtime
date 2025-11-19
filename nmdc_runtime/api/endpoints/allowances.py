@@ -5,10 +5,7 @@ from pymongo.database import Database
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.util import (
-    check_action_permitted,
-    strip_oid,
-)
+from nmdc_runtime.api.endpoints.util import check_action_permitted, strip_oid
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.allowance import Allowance, AllowanceAction
 
@@ -18,18 +15,18 @@ router = APIRouter()
 
 def check_can_manage_allowances(user: User):
     """
-    Check if the user is permitted to run the allowances endpoints in this file.
+    Raises an exception if the specified user cannot manage allowances.
     """
     if not check_action_permitted(
         user.username, AllowanceAction.MANAGE_ALLOWANCES.value
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admin users are allowed to issue /allowances commands.",
+            detail="Only admin users can manage allowances.",
         )
 
 
-@router.get("/allowances")
+@router.get("/admin/allowances")
 def list_allowances(
     username: Optional[str] = Query(None, description="Filter allowances by username"),
     action: Optional[AllowanceAction] = Query(
@@ -64,7 +61,7 @@ def list_allowances(
 
 
 @router.post(
-    "/allowances", response_model=Allowance, status_code=status.HTTP_201_CREATED
+    "/admin/allowances", response_model=Allowance, status_code=status.HTTP_201_CREATED
 )
 def create_allowance(
     allowance: Allowance,
@@ -73,16 +70,13 @@ def create_allowance(
 ):
     """
     Create an allowance for a specific user and action.
-
-    **Note:** This endpoint is only accessible to admins.
     """
     check_can_manage_allowances(user)
-    # Create the allowance
-    doc = {"username": allowance.username, "action": allowance.action}
-    # Check if the allowance already exists
-    existing = mdb["_runtime.api.allow"].find_one(doc)
 
-    if existing:
+    doc = {"username": allowance.username, "action": allowance.action}
+    
+    # If such an allowance already exists, return an error response.
+    if mdb["_runtime.api.allow"].count_documents(doc, limit=1) > 0:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Allowance already exists for user '{allowance.username}' and action '{allowance.action}'",
@@ -91,15 +85,16 @@ def create_allowance(
     try:
         mdb["_runtime.api.allow"].insert_one(doc)
     except Exception as e:
+        logging.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create allowance: {str(e)}",
+            detail="Failed to create allowance.",
         )
 
     return Allowance(**doc)
 
 
-@router.delete("/allowances", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/allowances", status_code=status.HTTP_204_NO_CONTENT)
 def delete_allowance(
     username: str = Query(..., description="Username of the allowance to delete"),
     action: AllowanceAction = Query(
@@ -126,7 +121,7 @@ def delete_allowance(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/allowances/actions", response_model=List[AllowanceAction])
+@router.get("/admin/allowances/actions", response_model=List[AllowanceAction])
 def list_valid_actions(
     user: User = Depends(get_current_active_user),
 ):
