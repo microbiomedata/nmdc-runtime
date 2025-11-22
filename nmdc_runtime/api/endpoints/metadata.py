@@ -56,7 +56,7 @@ async def validate_changesheet(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     r"""
-    Validates a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    Validates a [changesheet](https://docs.microbiomedata.org/runtime/howto-guides/author-changesheets/)
     that is in either CSV or TSV format.
     """
     sheet_in = await raw_changesheet_from_uploaded_file(uploaded_file)
@@ -73,7 +73,7 @@ async def submit_changesheet(
     user: User = Depends(get_current_active_user),
 ):
     r"""
-    Applies a [changesheet](https://microbiomedata.github.io/nmdc-runtime/howto-guides/author-changesheets/)
+    Applies a [changesheet](https://docs.microbiomedata.org/runtime/howto-guides/author-changesheets/)
     that is in either CSV or TSV format.
 
     **Note:** This endpoint is only accessible to users that have been granted access by a Runtime administrator.
