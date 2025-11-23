@@ -72,7 +72,9 @@ from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 # If the app is configured to use Sentry, initialize the Sentry SDK now.
 # Reference: https://docs.sentry.io/platforms/python/integrations/fastapi/
 if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
-    logging.info(f"Initializing Sentry SDK (Sentry environment: {config.SENTRY_ENVIRONMENT}).")
+    logging.info(
+        f"Initializing Sentry SDK (Sentry environment: {config.SENTRY_ENVIRONMENT})."
+    )
     logging.debug(f"Sentry traces sample rate: {config.SENTRY_TRACES_SAMPLE_RATE}")
     logging.debug(f"Sentry profiles sample rate: {config.SENTRY_PROFILES_SAMPLE_RATE}")
     sentry_sdk.init(
@@ -354,7 +356,9 @@ async def favicon():
     return FileResponse(favicon_path)
 
 
-@decorate_if(condition=config.IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
+@decorate_if(condition=config.IS_SCALAR_ENABLED)(
+    app.get("/scalar", include_in_schema=False)
+)
 async def get_scalar_html():
     r"""
     Returns the HTML markup for an interactive API docs web page
