@@ -1,4 +1,5 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from html import escape
 from importlib import import_module
@@ -8,20 +9,21 @@ from pathlib import Path
 
 import fastapi
 import requests
+import sentry_sdk
 import uvicorn
 from fastapi import APIRouter, FastAPI, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from starlette import status
-from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
-from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
+from starlette import status
+from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
+
 from nmdc_runtime import config
+from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.api.middleware import PyinstrumentMiddleware
-from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
@@ -66,6 +68,27 @@ from nmdc_runtime.api.openapi import (
 from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+
+
+# If the app is configured to use Sentry, initialize the Sentry SDK now.
+#
+# Note: The FastAPI integration will be automatically enabled, since we list `fastapi`
+#       as a dependency in `pyproject.toml`. If we eventually decide to configure the
+#       integration differently from its defaults, we can follow the instructions at:
+#       https://docs.sentry.io/platforms/python/integrations/fastapi/#configure
+#
+if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
+    logging.info(
+        f"Initializing Sentry SDK (Sentry environment: {config.SENTRY_ENVIRONMENT})."
+    )
+    logging.debug(f"Sentry traces sample rate: {config.SENTRY_TRACES_SAMPLE_RATE}")
+    logging.debug(f"Sentry profiles sample rate: {config.SENTRY_PROFILES_SAMPLE_RATE}")
+    sentry_sdk.init(
+        dsn=config.SENTRY_DSN,
+        environment=config.SENTRY_ENVIRONMENT,
+        traces_sample_rate=config.SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=config.SENTRY_PROFILES_SAMPLE_RATE,
+    )
 
 
 api_router = APIRouter()
@@ -334,7 +357,9 @@ async def favicon():
     return FileResponse(favicon_path)
 
 
-@decorate_if(condition=IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
+@decorate_if(condition=config.IS_SCALAR_ENABLED)(
+    app.get("/scalar", include_in_schema=False)
+)
 async def get_scalar_html():
     r"""
     Returns the HTML markup for an interactive API docs web page
