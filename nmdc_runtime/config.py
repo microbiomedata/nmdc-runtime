@@ -76,9 +76,13 @@ SENTRY_ENVIRONMENT: str = os.environ.get("SENTRY_ENVIRONMENT", "unknown")
 # The percentage of all transactions (0.0 is 0%, 1.0 is 100%) that you want Sentry
 # to _capture_ (i.e., you want to be sent to Sentry).
 # Docs: https://docs.sentry.io/platforms/python/tracing/#configure
-SENTRY_TRACES_SAMPLE_RATE: float = float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0"))
+SENTRY_TRACES_SAMPLE_RATE: float = float(
+    os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0")
+)
 
 # The percentage of sampled transactions (0.0 is 0%, 1.0 is 100%) that you want Sentry
 # to _profile_ (i.e., about which you want to send even more details to Sentry).
 # Docs: https://docs.sentry.io/platforms/python/profiling/#managing-profile-sampling-rates
-SENTRY_PROFILES_SAMPLE_RATE: float = float(os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.0"))
+SENTRY_PROFILES_SAMPLE_RATE: float = float(
+    os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.0")
+)
