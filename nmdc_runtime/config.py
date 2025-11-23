@@ -43,41 +43,6 @@ def is_env_var_true(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).lower() in lowercase_true_strings
 
 
-def get_float_from_env(name: str, default: float) -> float:
-    r"""
-    Safely retrieves a float value from an environment variable.
-
-    If the environment variable is not set, returns the default value.
-    If the environment variable contains an invalid float, raises a
-    ValueError with a helpful error message.
-
-    >>> import os
-    >>> name = "EXAMPLE_FLOAT_VAR"
-    >>> os.unsetenv(name)  # Undefined
-    >>> get_float_from_env(name, 0.5)
-    0.5
-    >>> os.environ[name] = "0.75"
-    >>> get_float_from_env(name, 0.5)
-    0.75
-    >>> os.environ[name] = "invalid"
-    >>> get_float_from_env(name, 0.5)
-    Traceback (most recent call last):
-        ...
-    ValueError: Invalid float value 'invalid' for environment variable 'EXAMPLE_FLOAT_VAR'. Expected a numeric value.
-    """
-    value_str = os.environ.get(name)
-    if value_str is None:
-        return default
-
-    try:
-        return float(value_str)
-    except ValueError:
-        raise ValueError(
-            f"Invalid float value '{value_str}' for environment variable '{name}'. "
-            f"Expected a numeric value."
-        )
-
-
 # Feature flag to enable/disable the `/nmdcschema/linked_instances` endpoint and the tests that target it.
 IS_LINKED_INSTANCES_ENDPOINT_ENABLED: bool = is_env_var_true(
     "IS_LINKED_INSTANCES_ENDPOINT_ENABLED", default="true"
@@ -90,25 +55,30 @@ IS_SCALAR_ENABLED: bool = is_env_var_true("IS_SCALAR_ENABLED", default="true")
 # which can be activated via the `?profile=true` URL query parameter.
 IS_PROFILING_ENABLED: bool = is_env_var_true("IS_PROFILING_ENABLED", default="false")
 
-# Sentry configuration
-# Sentry DSN (Data Source Name) for error tracking and performance monitoring.
-SENTRY_DSN: str = os.environ.get("SENTRY_DSN", "")
+# ────────────────────────────────────────────────────────────────────────────┐
+# Sentry
+# ────────────────────────────────────────────────────────────────────────────┘
 
-# Sentry environment name to differentiate between deployments (e.g., production, staging, dev).
-# Reference: https://docs.sentry.io/concepts/key-terms/environments/#creating-environments
-SENTRY_ENVIRONMENT: str = os.environ.get("SENTRY_ENVIRONMENT", "unknown")
-
-# Feature flag to enable/disable Sentry SDK initialization.
+# Feature flag to enable (true) or disable (false) the Sentry integration. When this
+# is false, none of the other `SENTRY_*` environment variables come into play.
 IS_SENTRY_ENABLED: bool = is_env_var_true("IS_SENTRY_ENABLED", default="false")
 
-# Sentry traces sample rate (0.0 to 1.0). Controls what percentage of transactions are sent to Sentry.
-# Default is 0.1 (10%) to avoid excessive data in production.
-SENTRY_TRACES_SAMPLE_RATE: float = get_float_from_env(
-    "SENTRY_TRACES_SAMPLE_RATE", default=0.1
-)
+# The Sentry DSN (Data Source Name) you want the Sentry SDK to use. This URL is specific
+# to a Sentry project and can be obtained from the Sentry project's dashboard.
+# Docs: https://docs.sentry.io/concepts/key-terms/dsn-explainer/
+SENTRY_DSN: str = os.environ.get("SENTRY_DSN", "")
 
-# Sentry profiles sample rate (0.0 to 1.0). Controls what percentage of transactions are profiled.
-# Default is 0.1 (10%) to avoid performance impact in production.
-SENTRY_PROFILES_SAMPLE_RATE: float = get_float_from_env(
-    "SENTRY_PROFILES_SAMPLE_RATE", default=0.1
-)
+# The name of the environment (e.g., "production", "development", "local", "unknown")
+# on Sentry within which you want data sent from this application instance to be stored.
+# Docs: https://docs.sentry.io/platforms/python/configuration/environments/
+SENTRY_ENVIRONMENT: str = os.environ.get("SENTRY_ENVIRONMENT", "unknown")
+
+# The percentage of all transactions (0.0 is 0%, 1.0 is 100%) that you want Sentry
+# to _capture_ (i.e., you want to be sent to Sentry).
+# Docs: https://docs.sentry.io/platforms/python/tracing/#configure
+SENTRY_TRACES_SAMPLE_RATE: float = float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0"))
+
+# The percentage of sampled transactions (0.0 is 0%, 1.0 is 100%) that you want Sentry
+# to _profile_ (i.e., about which you want to send even more details to Sentry).
+# Docs: https://docs.sentry.io/platforms/python/profiling/#managing-profile-sampling-rates
+SENTRY_PROFILES_SAMPLE_RATE: float = float(os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.0"))
