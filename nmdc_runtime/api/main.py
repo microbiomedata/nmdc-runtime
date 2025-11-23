@@ -17,7 +17,6 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
 from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
@@ -70,7 +69,12 @@ from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
 
 # If the app is configured to use Sentry, initialize the Sentry SDK now.
-# Reference: https://docs.sentry.io/platforms/python/integrations/fastapi/
+#
+# Note: The FastAPI integration will be automatically enabled, since we list `fastapi`
+#       as a dependency in `pyproject.toml`. If we eventually decide to configure the
+#       integration differently from its defaults, we can follow the instructions at:
+#       https://docs.sentry.io/platforms/python/integrations/fastapi/#configure
+#
 if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
     logging.info(
         f"Initializing Sentry SDK (Sentry environment: {config.SENTRY_ENVIRONMENT})."
@@ -82,7 +86,6 @@ if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
         environment=config.SENTRY_ENVIRONMENT,
         traces_sample_rate=config.SENTRY_TRACES_SAMPLE_RATE,
         profiles_sample_rate=config.SENTRY_PROFILES_SAMPLE_RATE,
-        integrations=[FastApiIntegration()],
     )
 
 
