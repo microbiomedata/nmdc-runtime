@@ -404,6 +404,9 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                        if not (
+                            key == "soil_horizon" and attributes[key] == "M horizon"
+                        )
                     ]
                     + [
                         self.set_element(
@@ -516,6 +519,10 @@ class NCBISubmissionXML:
 
                         formatted_value = handler(item)
 
+                        # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                        if json_key == "geo_loc_name":
+                            formatted_value = unidecode(formatted_value)
+
                         # For pooled samples, we typically want the first value or aggregate appropriately
                         if xml_key not in aggregated_attributes:
                             aggregated_attributes[xml_key] = formatted_value
@@ -539,6 +546,13 @@ class NCBISubmissionXML:
                     if "term" in value and "id" in value["term"]:
                         value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
                     aggregated_attributes[xml_key] = value
+                    continue
+
+                # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                if json_key == "geo_loc_name":
+                    formatted_value = handler(value)
+                    formatted_value = unidecode(formatted_value)
+                    aggregated_attributes[xml_key] = formatted_value
                     continue
 
                 formatted_value = handler(value)
@@ -646,6 +660,10 @@ class NCBISubmissionXML:
                         "Attribute", filtered_attributes[key], {"attribute_name": key}
                     )
                     for key in sorted(filtered_attributes)
+                    if not (
+                        key == "soil_horizon"
+                        and filtered_attributes[key] == "M horizon"
+                    )
                 ]
                 + [
                     self.set_element(
