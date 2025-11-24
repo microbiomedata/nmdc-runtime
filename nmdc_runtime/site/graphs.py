@@ -128,6 +128,9 @@ def apply_changesheet():
 
 @graph
 def apply_metadata_in():
+    """
+    TODO: Document this function.
+    """
     # Note: We use `_` as a "placeholder" variable.
     outputs = perform_mongo_updates(get_json_in())
     _ = add_output_run_event(outputs)
