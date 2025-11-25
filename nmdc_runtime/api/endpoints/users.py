@@ -161,6 +161,18 @@ def check_can_create_user(requester: User):
         )
 
 
+def is_admin(user: User):
+    """Checks whether the specified user is an admin of the Runtime."""
+
+    if isinstance(user.site_admin, list):
+        # Check whether the specified user is an admin of the special
+        # site whose administrators are all Runtime admins. This is
+        # what distinguishes a Runtime admin from a regular user.
+        special_site_name = "nmdc-runtime-useradmin"
+        return special_site_name in user.site_admin
+    return False
+
+
 @router.post(
     "/users",
     status_code=status.HTTP_201_CREATED,

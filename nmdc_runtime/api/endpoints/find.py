@@ -1,7 +1,10 @@
+import csv
 import logging
+from io import StringIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
 from nmdc_schema.get_nmdc_view import ViewGetter
@@ -12,12 +15,14 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
 )
 from nmdc_runtime.api.endpoints.nmdcschema import get_linked_instances
+from nmdc_runtime.api.endpoints.users import is_admin
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
     find_resources_spanning,
 )
 from nmdc_runtime.api.models.metadata import Doc
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
@@ -120,6 +125,59 @@ def find_data_objects(
     attributes.
     """
     return find_resources(req, mdb, "data_object_set")
+
+
+@router.get(
+    "/admin/data_object_urls",
+    status_code=status.HTTP_200_OK,
+    name="Get Data Object URLs",
+    description="(Admins only) Download a TSV-formatted report consisting of the URL of each `DataObject` that is an output of any `WorkflowExecution`.",
+)
+def get_data_object_report(
+    user: User = Depends(get_current_active_user),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+    prefix: str = Query(
+        "",
+        description="If not empty, the file will include only the URLs that begin with this prefix",
+    ),
+):
+    if not is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Runtime administrators can access this resource.",
+        )
+
+    # Get the URL of every `DataObject` that is the output of any `WorkflowExecution`.
+    data_object_urls = set()
+    wfe_output_ids = mdb.workflow_execution_set.distinct("has_output")
+    for data_object in mdb.data_object_set.find({"id": {"$in": wfe_output_ids}}):
+        if "url" in data_object and len(data_object["url"].strip()) > 0:
+            if len(prefix.strip()) > 0:
+                if data_object["url"].startswith(prefix):
+                    data_object_urls.add(data_object["url"])
+            else:
+                data_object_urls.add(data_object["url"])
+
+    # Build the report as an in-memory TSV "file" (buffer).
+    # Reference: https://docs.python.org/3/library/csv.html#csv.writer
+    data_rows = [[url] for url in sorted(data_object_urls)]
+    buffer = StringIO()
+    writer = csv.writer(buffer, delimiter="\t", lineterminator="\n")
+    writer.writerows(data_rows)
+
+    # Reset the buffer's internal file pointer to the beginning of the buffer, so that,
+    # when we stream the buffer's contents later, all of its contents are included.
+    buffer.seek(0)
+
+    # Stream the buffer's contents to the HTTP client as a downloadable TSV file.
+    filename = "data-object-urls.tsv"
+    response = StreamingResponse(
+        buffer,
+        media_type="text/tab-separated-values",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+    return response
 
 
 @router.get(
