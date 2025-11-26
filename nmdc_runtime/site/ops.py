@@ -997,6 +997,7 @@ def load_ontology(context: OpExecutionContext):
 
 
 def _add_linked_instances_to_alldocs(
+    mdb: MongoDatabase,
     temp_collection: MongoCollection,
     context: OpExecutionContext,
     document_reference_ranged_slots_by_type: dict,
@@ -1011,6 +1012,7 @@ def _add_linked_instances_to_alldocs(
     considered upstream of a Biosample even though the link `associated_studies` goes from a Biosample to a Study.
 
     Args:
+        mdb: The MongoDB database
         temp_collection: The temporary MongoDB collection to process
         context: The Dagster execution context for logging
         document_reference_ranged_slots_by_type: Dictionary mapping document types to their reference-ranged slot names
@@ -1030,7 +1032,23 @@ def _add_linked_instances_to_alldocs(
     relationship_triples: Set[Tuple[str, str, str]] = set()
 
     # Collect relationship triples.
+    #
+    # Every time we've iterated over 1000 documents, we check whether a newer materialization
+    # of the `alldocs` collection has begun. If it has, we raise an exception that the caller
+    # can catch.
+    #
+    num_docs_processed = 0
+    threshold_for_staleness_check = 1000
     for doc in temp_collection.find():
+        
+        if num_docs_processed % threshold_for_staleness_check == 0:
+            # If a newer materialization of the `alldocs` collection has started, raise an exception.
+            if check_whether_newer_alldocs_materialization_started(mdb, temp_collection.name):
+                context.log.warning("Detected a newer materialization.")
+                raise ValueError("Detected a newer materialization.")
+            else:
+                context.log.debug("Did not detect a newer materialization.")
+
         doc_id = doc["id"]
         # Store the full type with prefix intact
         doc_type = doc["type"]
@@ -1106,9 +1124,24 @@ def _add_linked_instances_to_alldocs(
 
     # Construct, and update documents with, `_upstream` and `_downstream` field values.
     #
+    # Every time we've iterated over 1000 triples, we check whether a newer materialization
+    # of the `alldocs` collection has begun. If it has, we raise an exception that the caller
+    # can catch.
+    #
+    num_triples_processed = 0
+    threshold_for_staleness_check = 1000
+    #
     # manage batching of MongoDB `bulk_write` operations
     bulk_operations, update_count = [], 0
     for doc_id, slot, ref_id in relationship_triples:
+
+        if num_triples_processed % threshold_for_staleness_check == 0:
+            # If a newer materialization of the `alldocs` collection has started, raise an exception.
+            if check_whether_newer_alldocs_materialization_started(mdb, temp_collection.name):
+                context.log.warning("Detected a newer materialization.")
+                raise ValueError("Detected a newer materialization.")
+            else:
+                context.log.debug("Did not detect a newer materialization.")
 
         # Determine in which respective fields to push this relationship
         # for the subject (doc) and object (ref) of this triple.
@@ -1161,6 +1194,48 @@ def _add_linked_instances_to_alldocs(
         update_count += len(bulk_operations)
 
     context.log.info(f"Pushed {update_count} updates in total")
+
+
+def check_whether_newer_alldocs_materialization_started(
+        mdb: MongoDatabase,
+        my_collection_name: str,
+) -> bool:
+    """
+    Checks whether the process of materializing a newer `alldocs` collection has begun.
+
+    Note: When the `alldocs` collection is being materialized, a temporary collection named
+          `tmp.alldocs.{objectId}` gets created in the MongoDB database, where `{objectId}`
+          decodes to a timestamp indicating when that temporary collection was created; which
+          also effectively indicates when the process of copying data from the source of truth
+          collections began.
+
+    This function checks whether a collection named `tmp.alldocs.{objectId}` exists in
+    the MongoDB database, where {objectId} decodes to a timestamp that is later than the
+    one to which the specified collection name (passed into this function) decodes.
+    
+    Returns `True` if so, otherwise `False`. That return value can be used to influence whether
+    to stop creating an `alldocs` collection based upon stale data.
+    """
+    # Decode my own collection name into a timestamp.
+    my_object_id_str = my_collection_name.removeprefix("tmp.alldocs.")
+    my_object_id = ObjectId(my_object_id_str)
+    my_timestamp: float = my_object_id.generation_time.timestamp()
+
+    # Get the relevant collection names (i.e. `tmp.alldocs.{objectId}`).
+    collection_names = mdb.list_collection_names(
+        filter={"name": {"$regex": r"^tmp\.alldocs\.[0-9a-fA-F]{24}$"}}
+    )
+    for collection_name in collection_names:
+        # Decode this collection name into a timestamp.
+        object_id_str = collection_name.removeprefix("tmp.alldocs.")
+        object_id = ObjectId(object_id_str)
+        timestamp: float = object_id.generation_time.timestamp()
+
+        # Check whether this timestamp is newer than my own.
+        if timestamp > my_timestamp:
+            return True
+        
+    return False
 
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
@@ -1239,6 +1314,15 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
     for coll_name in collection_names:
+
+        # If a newer materialization of the `alldocs` collection has started, abort this materialization.
+        if check_whether_newer_alldocs_materialization_started(mdb, temp_alldocs_collection_name):
+            context.log.warning("Canceling this materialization in favor of a newer one.")
+            temp_alldocs_collection.drop()
+            return -1  # return early, without failing
+        else:
+            context.log.debug("Did not detect a newer materialization.")
+
         context.log.info(f"{coll_name=}")
         write_operations = []
         documents_processed_counter = 0
@@ -1295,9 +1379,17 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
 
     # Add related-ids fields to enable efficient relationship traversal
     context.log.info("Adding fields for related ids to documents...")
-    _add_linked_instances_to_alldocs(
-        temp_alldocs_collection, context, document_reference_ranged_slots_by_type
-    )
+
+    # If a `ValueError` is raised within the `try` block, abort the materialization process.
+    try:
+        _add_linked_instances_to_alldocs(
+            mdb, temp_alldocs_collection, context, document_reference_ranged_slots_by_type
+        )
+    except ValueError as e:
+        context.log.warning(f"Canceling this materialization. Details: {e}")
+        temp_alldocs_collection.drop()
+        return -1  # return early, without failing
+
     context.log.info("Creating {`_upstream`,`_downstream`} indexes...")
     temp_alldocs_collection.create_index("_upstream.id")
     temp_alldocs_collection.create_index("_downstream.id")
