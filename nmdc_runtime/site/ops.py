@@ -1040,10 +1040,12 @@ def _add_linked_instances_to_alldocs(
     num_docs_processed = 0
     threshold_for_staleness_check = 1000
     for doc in temp_collection.find():
-        
+
         if num_docs_processed % threshold_for_staleness_check == 0:
             # If a newer materialization of the `alldocs` collection has started, raise an exception.
-            if check_whether_newer_alldocs_materialization_started(mdb, temp_collection.name):
+            if check_whether_newer_alldocs_materialization_started(
+                mdb, temp_collection.name
+            ):
                 context.log.warning("Detected a newer materialization.")
                 raise ValueError("Detected a newer materialization.")
             else:
@@ -1137,7 +1139,9 @@ def _add_linked_instances_to_alldocs(
 
         if num_triples_processed % threshold_for_staleness_check == 0:
             # If a newer materialization of the `alldocs` collection has started, raise an exception.
-            if check_whether_newer_alldocs_materialization_started(mdb, temp_collection.name):
+            if check_whether_newer_alldocs_materialization_started(
+                mdb, temp_collection.name
+            ):
                 context.log.warning("Detected a newer materialization.")
                 raise ValueError("Detected a newer materialization.")
             else:
@@ -1197,8 +1201,8 @@ def _add_linked_instances_to_alldocs(
 
 
 def check_whether_newer_alldocs_materialization_started(
-        mdb: MongoDatabase,
-        my_collection_name: str,
+    mdb: MongoDatabase,
+    my_collection_name: str,
 ) -> bool:
     """
     Checks whether the process of materializing a newer `alldocs` collection has begun.
@@ -1212,7 +1216,7 @@ def check_whether_newer_alldocs_materialization_started(
     This function checks whether a collection named `tmp.alldocs.{objectId}` exists in
     the MongoDB database, where {objectId} decodes to a timestamp that is later than the
     one to which the specified collection name (passed into this function) decodes.
-    
+
     Returns `True` if so, otherwise `False`. That return value can be used to influence whether
     to stop creating an `alldocs` collection based upon stale data.
     """
@@ -1234,7 +1238,7 @@ def check_whether_newer_alldocs_materialization_started(
         # Check whether this timestamp is newer than my own.
         if timestamp > my_timestamp:
             return True
-        
+
     return False
 
 
@@ -1316,8 +1320,12 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     for coll_name in collection_names:
 
         # If a newer materialization of the `alldocs` collection has started, abort this materialization.
-        if check_whether_newer_alldocs_materialization_started(mdb, temp_alldocs_collection_name):
-            context.log.warning("Canceling this materialization in favor of a newer one.")
+        if check_whether_newer_alldocs_materialization_started(
+            mdb, temp_alldocs_collection_name
+        ):
+            context.log.warning(
+                "Canceling this materialization in favor of a newer one."
+            )
             temp_alldocs_collection.drop()
             return -1  # return early, without failing
         else:
@@ -1383,7 +1391,10 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # If a `ValueError` is raised within the `try` block, abort the materialization process.
     try:
         _add_linked_instances_to_alldocs(
-            mdb, temp_alldocs_collection, context, document_reference_ranged_slots_by_type
+            mdb,
+            temp_alldocs_collection,
+            context,
+            document_reference_ranged_slots_by_type,
         )
     except ValueError as e:
         context.log.warning(f"Canceling this materialization. Details: {e}")
