@@ -116,6 +116,13 @@ from toolz import get_in, valfilter, identity
 BULK_WRITE_BATCH_SIZE = 2000
 
 
+class NewerMaterializationDetectedException(Exception):
+    """
+    Custom exception indicating a newer materialization of the `alldocs` collection was detected.
+    """
+    pass
+
+
 @op
 def hello(context):
     """
@@ -1012,7 +1019,7 @@ def _add_linked_instances_to_alldocs(
     considered upstream of a Biosample even though the link `associated_studies` goes from a Biosample to a Study.
 
     Args:
-        mdb: The MongoDB database
+        mdb: The MongoDB database we can use to get collection names
         temp_collection: The temporary MongoDB collection to process
         context: The Dagster execution context for logging
         document_reference_ranged_slots_by_type: Dictionary mapping document types to their reference-ranged slot names
@@ -1047,7 +1054,7 @@ def _add_linked_instances_to_alldocs(
                 mdb, temp_collection.name
             ):
                 context.log.warning("Detected a newer materialization.")
-                raise ValueError("Detected a newer materialization.")
+                raise NewerMaterializationDetectedException()
             else:
                 context.log.debug("Did not detect a newer materialization.")
 
@@ -1072,6 +1079,8 @@ def _add_linked_instances_to_alldocs(
                     id_to_type_map[ref_doc["id"]] = ref_doc["type"]
                 for ref_id in refs:
                     relationship_triples.add((doc_id, slot, ref_id))
+
+        num_docs_processed += 1
 
     context.log.info(
         f"Found {len(id_to_type_map)} documents, with "
@@ -1143,7 +1152,7 @@ def _add_linked_instances_to_alldocs(
                 mdb, temp_collection.name
             ):
                 context.log.warning("Detected a newer materialization.")
-                raise ValueError("Detected a newer materialization.")
+                raise NewerMaterializationDetectedException()
             else:
                 context.log.debug("Did not detect a newer materialization.")
 
@@ -1192,6 +1201,8 @@ def _add_linked_instances_to_alldocs(
             )
             bulk_operations = []
 
+        num_triples_processed += 1
+
     # Execute any remaining operations
     if bulk_operations:
         temp_collection.bulk_write(bulk_operations)
@@ -1207,6 +1218,11 @@ def check_whether_newer_alldocs_materialization_started(
     """
     Checks whether the process of materializing a newer `alldocs` collection has begun.
 
+    Args:
+        mdb (MongoDatabase): The MongoDB database to query for collection names.
+        my_collection_name (str): The name of the current temporary collection in the format
+            'tmp.alldocs.{objectId}', where '{objectId}' is a 24-character hex string.
+
     Note: When the `alldocs` collection is being materialized, a temporary collection named
           `tmp.alldocs.{objectId}` gets created in the MongoDB database, where `{objectId}`
           decodes to a timestamp indicating when that temporary collection was created; which
@@ -1217,8 +1233,13 @@ def check_whether_newer_alldocs_materialization_started(
     the MongoDB database, where {objectId} decodes to a timestamp that is later than the
     one to which the specified collection name (passed into this function) decodes.
 
-    Returns `True` if so, otherwise `False`. That return value can be used to influence whether
-    to stop creating an `alldocs` collection based upon stale data.
+    Returns:
+        bool: True if a collection named 'tmp.alldocs.{objectId}' exists in the database
+              with a timestamp later than that of `my_collection_name`, indicating that a newer
+              materialization process has started. False otherwise.
+
+    The return value can be used to influence whether to stop creating an `alldocs` collection
+    based upon stale data.
     """
     # Decode my own collection name into a timestamp.
     my_object_id_str = my_collection_name.removeprefix("tmp.alldocs.")
@@ -1388,7 +1409,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # Add related-ids fields to enable efficient relationship traversal
     context.log.info("Adding fields for related ids to documents...")
 
-    # If a `ValueError` is raised within the `try` block, abort the materialization process.
+    # If a `NewerMaterializationDetectedException` is raised within the `try` block, abort the materialization process.
     try:
         _add_linked_instances_to_alldocs(
             mdb,
@@ -1396,8 +1417,8 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
             context,
             document_reference_ranged_slots_by_type,
         )
-    except ValueError as e:
-        context.log.warning(f"Canceling this materialization. Details: {e}")
+    except NewerMaterializationDetectedException:
+        context.log.warning("Canceling this materialization in favor of a newer one.")
         temp_alldocs_collection.drop()
         return -1  # return early, without failing
 
