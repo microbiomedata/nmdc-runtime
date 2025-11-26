@@ -120,6 +120,7 @@ class NewerMaterializationDetectedException(Exception):
     """
     Custom exception indicating a newer materialization of the `alldocs` collection was detected.
     """
+
     pass
 
 
