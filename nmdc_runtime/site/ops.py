@@ -1182,9 +1182,8 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
-    The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
-    `nmdc_runtime.site.repository.ensure_alldocs_daily`. The collection is also updated as part of various workflows,
-    such as when applying a changesheet or metadata updates (see `nmdc_runtime.site.graphs`).
+    The `alldocs` collection is scheduled to be updated hourly via a scheduled job defined as
+    `nmdc_runtime.site.repository.ensure_alldocs_hourly`.
 
     The `alldocs` collection is used primarily by API endpoints like `/data_objects/study/{study_id}` and
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find
