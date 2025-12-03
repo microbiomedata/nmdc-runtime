@@ -111,9 +111,10 @@ housekeeping_weekly = ScheduleDefinition(
     job=housekeeping.to_job(**preset_normal),
 )
 
-ensure_alldocs_daily = ScheduleDefinition(
-    name="daily_ensure_alldocs",
-    cron_schedule="0 3 * * *",
+# Note: A cron schedule of `0 * * * *` means "every hour".
+ensure_alldocs_hourly = ScheduleDefinition(
+    name="hourly_ensure_alldocs",
+    cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
     job=ensure_alldocs.to_job(**preset_normal),
 )
@@ -427,7 +428,7 @@ def repo():
     ]
     schedules = [
         housekeeping_weekly,
-        ensure_alldocs_daily,
+        ensure_alldocs_hourly,
         load_envo_ontology_weekly,
         load_uberon_ontology_weekly,
         load_po_ontology_weekly,
