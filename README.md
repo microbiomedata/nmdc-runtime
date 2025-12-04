@@ -127,6 +127,46 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+
+### Customize `.env` variables when using the nmdc-runtime-dev stack
+
+Some environment variables have a special purpose during the first boot of the Runtime; specifically, API_SITE_CLIENT_ID and API_SITE_CLIENT_SECRET, which dictate the credentials for the base site's site client. If you want to change those values AFTER the first boot, follow these steps: 
+
+1. Stop the Runtime container by running `make down-dev`
+2. Delete the base site from the dev Mongo database. There are two ways to do this.
+   1. Using a Mongo client (like MongoDB Compass or Studio 3T), go to the `sites` collection and delete the document whose id matches the value of the API_SITE_ID environment variable. For example, if the API_SITE_ID is set to "nmdc-runtime" in your `.env` file you can use this in your Mongo client:
+      ```python
+      db.sites.deleteOne({
+      id: 'nmdc-runtime'
+      });
+      ```
+   2. You can also run these commands via docker exec commands:
+      To get a list of the existing sites:
+      ```bash
+      docker exec nmdc-runtime-dev-mongo-1 mongosh --username admin --password root --authenticationDatabase admin nmdc --eval "db.sites.find({id:'nmdc-runtime'}).pretty()"
+      ```
+      To delete the desired document:
+      ```bash
+      docker exec nmdc-runtime-dev-mongo-1 mongosh --username admin --password root --authenticationDatabase admin nmdc --eval "db.sites.deleteOne({id:'nmdc-runtime'})"
+      ```
+
+      > Note: Options `--username` and `--password` are set via the `.env` file via fields `API_ADMIN_USER` & `API_ADMIN_PASS`. Options for `--authenticationDatabase` are set via `MONGO_USERNAME` & `MONGO_DBNAME`
+
+3. Customize the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables by setting them in your `.env` file.
+4. Start the Runtime `make up-dev`
+
+The Runtime will create the site with the specified client_id and client_secret.
+
+You can then use your client_ and client_seceret to get tokens and make authenticated requests:
+```bash
+curl --location 'http://localhost:8000/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'grant_type=client_credentials' \
+--data-urlencode 'client_id=yourclientid' \
+--data-urlencode 'client_secret=yourclientsecret'
+```
+Gather the access_token and use as normal in further API calls.
+
 ### Dependency management
 
 We use [`uv`](https://docs.astral.sh/uv/) to manage dependencies of the application. Here's how you can use `uv` both on your host machine and within a container in the Docker Compose stack.
