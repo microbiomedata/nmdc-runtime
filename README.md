@@ -133,7 +133,7 @@ http://127.0.0.1:8000/redoc/.
 
 Some environment variables in the `.env` file are only processed during the first boot of the FastAPI container; e.g., the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables, which dictate the credentials of the base site's site client.
 
-To people that want the base site's site client credentials to have specific values (e.g., to match something in a dependent application), we recommend customizing those environment variables **before** starting up the FastAPI container.
+To people who want the base site's site client credentials to have specific values (e.g., to match something in a dependent application), we recommend customizing those environment variables **before** starting up the FastAPI container.
 
 In case you have already started up the FastAPI container (this is common), all is not lost! You can still customize the credentials—here's how:
 
@@ -142,9 +142,10 @@ In case you have already started up the FastAPI container (this is common), all 
 3. Use that Mongo client to delete the base site from the `sites` collection in the `nmdc` database.
 
    ```js
-   // You can get the ID of the base site, from the `API_SITE_ID` environment variable.
+   // Replace "site-id" with the ID of the base site, which you can get
+   // from the `API_SITE_ID` environment variable in your `.env` file.
    db.getCollection("sites").deleteOne({
-      id: "name-of-the-site",  // e.g. "nmdc-runtime"
+      id: "site-id",  // e.g. "nmdc-runtime"
    });
    ```
 
