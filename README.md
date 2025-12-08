@@ -113,6 +113,8 @@ The following command could be useful to you, either directly or as a template (
 make nersc-mongo-tunnels
 ```
 
+**Before you spin up the stack**, consider customizing the base site's site client credentials as described in the section below. Note that the default credentials are sufficient for most developers.
+
 Finally, spin up the Docker Compose stack.
 
 ```bash
@@ -127,45 +129,29 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
 
+### (Optional) Customize the base site's site client credentials
 
-### Customize `.env` variables when using the nmdc-runtime-dev stack
+Some environment variables in the `.env` file are only processed during the first boot of the FastAPI container; e.g., the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables, which dictate the credentials of the base site's site client.
 
-Some environment variables have a special purpose during the first boot of the Runtime; specifically, API_SITE_CLIENT_ID and API_SITE_CLIENT_SECRET, which dictate the credentials for the base site's site client. If you want to change those values AFTER the first boot, follow these steps: 
+To people that want the base site's site client credentials to have specific values (e.g., to match something in a dependent application), we recommend customizing those environment variables **before** starting up the FastAPI container.
 
-1. Stop the Runtime container by running `make down-dev`
-2. Delete the base site from the dev Mongo database. There are two ways to do this.
-   1. Using a Mongo client (like MongoDB Compass or Studio 3T), go to the `sites` collection and delete the document whose id matches the value of the API_SITE_ID environment variable. For example, if the API_SITE_ID is set to "nmdc-runtime" in your `.env` file you can use this in your Mongo client:
-      ```python
-      db.sites.deleteOne({
-      id: 'nmdc-runtime'
-      });
-      ```
-   2. You can also run these commands via docker exec commands:
-      To get a list of the existing sites:
-      ```bash
-      docker exec nmdc-runtime-dev-mongo-1 mongosh --username admin --password root --authenticationDatabase admin nmdc --eval "db.sites.find({id:'nmdc-runtime'}).pretty()"
-      ```
-      To delete the desired document:
-      ```bash
-      docker exec nmdc-runtime-dev-mongo-1 mongosh --username admin --password root --authenticationDatabase admin nmdc --eval "db.sites.deleteOne({id:'nmdc-runtime'})"
-      ```
+In case you have already started up the FastAPI container (this is common), all is not lost! You can still customize the credentials—here's how:
 
-      > Note: Options `--username` and `--password` are set via the `.env` file via fields `API_ADMIN_USER` & `API_ADMIN_PASS`. Options for `--authenticationDatabase` are set via `MONGO_USERNAME` & `MONGO_DBNAME`
+1. Stop the containers that depend upon Mongo: `$ docker compose stop fastapi dagster-daemon dagster-dagit`
+2. Use a Mongo client (e.g. MongoDB Compass) to connect to the Mongo server running in the `mongo` container.
+3. Use that Mongo client to delete the base site from the `sites` collection in the `nmdc` database.
 
-3. Customize the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables by setting them in your `.env` file.
-4. Start the Runtime `make up-dev`
+   ```js
+   // You can get the ID of the base site, from the `API_SITE_ID` environment variable.
+   db.getCollection("sites").deleteOne({
+      id: "name-of-the-site",  // e.g. "nmdc-runtime"
+   });
+   ```
 
-The Runtime will create the site with the specified client_id and client_secret.
+4. Customize the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables in your `.env` file.
+5. Restart the containers you stopped earlier: `$ docker compose start fastapi dagster-daemon dagster-dagit`
 
-You can then use your client_ and client_seceret to get tokens and make authenticated requests:
-```bash
-curl --location 'http://localhost:8000/token' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'grant_type=client_credentials' \
---data-urlencode 'client_id=yourclientid' \
---data-urlencode 'client_secret=yourclientsecret'
-```
-Gather the access_token and use as normal in further API calls.
+When the FastAPI application starts up, it will create a site client having the specified `client_id` and `client_secret`.
 
 ### Dependency management
 
