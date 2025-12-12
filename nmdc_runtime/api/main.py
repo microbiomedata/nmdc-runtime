@@ -317,9 +317,13 @@ def get_health() -> HealthResponse:
     r"""Get system health information."""
 
     # Check whether our database connection "sees" a collection we expect to exist.
-    mdb = get_mongo_db()
-    filter_ = {"name": "_runtime.api.allow"}
-    is_database_healthy = len(mdb.list_collection_names(filter=filter_)) > 0
+    collection_name = "_runtime.api.allow"
+    try:
+        mdb = get_mongo_db()
+        collection_names = mdb.list_collection_names(filter={"name": collection_name})
+        is_database_healthy = collection_name in collection_names
+    except Exception:
+        is_database_healthy = False
 
     # Return a health response.
     return HealthResponse(
