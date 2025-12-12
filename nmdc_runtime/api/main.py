@@ -58,7 +58,7 @@ from nmdc_runtime.api.endpoints import (
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
-from nmdc_runtime.api.models.util import entity_attributes_to_index
+from nmdc_runtime.api.models.util import HealthResponse, entity_attributes_to_index
 from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
@@ -310,6 +310,22 @@ async def get_versions():
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
+
+
+@api_router.get("/health")
+def get_health() -> HealthResponse:
+    r"""Get system health information."""
+
+    # Check whether our database connection "sees" a collection we expect to exist.
+    mdb = get_mongo_db()
+    filter_ = {"name": "_runtime.api.allow"}
+    is_database_healthy = len(mdb.list_collection_names(filter=filter_)) > 0
+
+    # Return a health response.
+    return HealthResponse(
+        web_server=True,
+        database=is_database_healthy,
+    )
 
 
 # Build an ORCID Login URL for the Swagger UI page, based upon some environment variables.
