@@ -11,7 +11,7 @@ import fastapi
 import requests
 import sentry_sdk
 import uvicorn
-from fastapi import APIRouter, FastAPI, Cookie
+from fastapi import APIRouter, FastAPI, Cookie, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
@@ -313,10 +313,13 @@ async def get_versions():
 
 
 @api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
-def get_health() -> HealthResponse:
+def get_health(response: Response) -> HealthResponse:
     r"""Get system health information."""
 
-    # Check whether our database connection "sees" a collection we expect to exist.
+    # Declare that our web server is healthy.
+    is_web_server_healthy = True
+
+    # Check whether our database connection is healthy (i.e. we see a "known-to-exist" collection).
     collection_name = "_runtime.api.allow"
     try:
         mdb = get_mongo_db()
@@ -325,9 +328,12 @@ def get_health() -> HealthResponse:
     except Exception:
         is_database_healthy = False
 
+    # Set the HTTP response code accordingly.
+    response.status_code = status.HTTP_200_OK if all([is_database_healthy, is_web_server_healthy]) else status.HTTP_503_SERVICE_UNAVAILABLE
+
     # Return a health response.
     return HealthResponse(
-        web_server=True,
+        web_server=is_web_server_healthy,
         database=is_database_healthy,
     )
 
