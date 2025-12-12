@@ -1,6 +1,6 @@
 from typing import TypeVar, List, Optional, Generic, Annotated
 
-from pydantic import model_validator, Field, BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ResultT = TypeVar("ResultT")
 
@@ -258,3 +258,22 @@ entity_attributes_to_index = {
         "config.activity_id",
     },
 }
+
+
+class HealthResponse(BaseModel):
+    r"""A response containing system health information."""
+
+    # Raise a `ValidationError` if extra parameters are passed in when instantiating this class.
+    # Docs: https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.extra
+    model_config = ConfigDict(extra="forbid")
+
+    web_server: bool = Field(
+        ...,
+        title="Web server health",
+        description="Whether the web server is up and running",
+    )
+    database: bool = Field(
+        ...,
+        title="Database health",
+        description="Whether the web server can access the database server",
+    )

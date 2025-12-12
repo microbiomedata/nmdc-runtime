@@ -11,7 +11,7 @@ import fastapi
 import requests
 import sentry_sdk
 import uvicorn
-from fastapi import APIRouter, FastAPI, Cookie
+from fastapi import APIRouter, FastAPI, Cookie, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
@@ -58,7 +58,7 @@ from nmdc_runtime.api.endpoints import (
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
-from nmdc_runtime.api.models.util import entity_attributes_to_index
+from nmdc_runtime.api.models.util import HealthResponse, entity_attributes_to_index
 from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
@@ -310,6 +310,36 @@ async def get_versions():
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
+
+
+@api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
+def get_health(response: Response) -> HealthResponse:
+    r"""Get system health information."""
+
+    # Declare that our web server is healthy.
+    is_web_server_healthy = True
+
+    # Check whether our database connection is healthy (i.e. we see a "known-to-exist" collection).
+    collection_name = "_runtime.api.allow"
+    try:
+        mdb = get_mongo_db()
+        collection_names = mdb.list_collection_names(filter={"name": collection_name})
+        is_database_healthy = collection_name in collection_names
+    except Exception:
+        is_database_healthy = False
+
+    # Set the HTTP response code accordingly.
+    response.status_code = (
+        status.HTTP_200_OK
+        if all([is_database_healthy, is_web_server_healthy])
+        else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
+
+    # Return a health response.
+    return HealthResponse(
+        web_server=is_web_server_healthy,
+        database=is_database_healthy,
+    )
 
 
 # Build an ORCID Login URL for the Swagger UI page, based upon some environment variables.

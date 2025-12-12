@@ -1,7 +1,11 @@
 import pytest
+from fastapi import status
+
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.main import ensure_default_api_perms
 from nmdc_runtime.api.models.allowance import AllowanceAction
+from nmdc_runtime.site.resources import RuntimeApiUserClient
+
 
 @pytest.fixture
 def test_db():
@@ -35,3 +39,13 @@ def test_admin_user_perms(test_db):
     expected_actions = set(a.value for a in AllowanceAction)
     actual_actions = set(allowance["action"] for allowance in allowances_after)
     assert actual_actions == expected_actions
+
+
+def test_health(api_user_client: RuntimeApiUserClient):
+    """Check whether the health endpoint says the system is healthy."""
+
+    response = api_user_client.request(method="get", url_path="/health")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["web_server"] is True
+    assert data["database"] is True
