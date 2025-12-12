@@ -312,7 +312,7 @@ async def get_versions():
     }
 
 
-@api_router.get("/health")
+@api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
 def get_health() -> HealthResponse:
     r"""Get system health information."""
 
