@@ -329,7 +329,11 @@ def get_health(response: Response) -> HealthResponse:
         is_database_healthy = False
 
     # Set the HTTP response code accordingly.
-    response.status_code = status.HTTP_200_OK if all([is_database_healthy, is_web_server_healthy]) else status.HTTP_503_SERVICE_UNAVAILABLE
+    response.status_code = (
+        status.HTTP_200_OK
+        if all([is_database_healthy, is_web_server_healthy])
+        else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
 
     # Return a health response.
     return HealthResponse(
