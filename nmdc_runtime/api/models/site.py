@@ -33,6 +33,21 @@ class SiteInDB(Site):
     clients: List[SiteClientInDB] = []
 
 
+class SiteClientSecretUpdate(BaseModel):
+    """
+    Request body model for updating a site client's secret.
+
+    This model is used by the PATCH /admin/site_clients/{site_client_id} endpoint
+    to validate the request body when an admin updates a site client's secret.
+
+    Attributes:
+        secret: The new secret (password) for the site client. Must be non-empty.
+                The secret will be hashed using bcrypt before being stored in the database.
+    """
+
+    secret: str
+
+
 def get_site(mdb, client_id: str) -> Optional[SiteInDB]:
     r"""
     Returns the site, if any, for which the specified `client_id` was generated.
