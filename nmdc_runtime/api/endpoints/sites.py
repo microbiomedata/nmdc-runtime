@@ -24,7 +24,11 @@ from nmdc_runtime.api.db.s3 import (
     presigned_url_to_get,
     S3_ID_NS,
 )
-from nmdc_runtime.api.endpoints.util import exists, list_resources, check_action_permitted
+from nmdc_runtime.api.endpoints.util import (
+    exists,
+    list_resources,
+    check_action_permitted,
+)
 from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.models.object import (
     AccessMethod,
@@ -239,7 +243,9 @@ def update_site_client_secret(
     - A message indicating success
     """
     # Check if user has permission to manage site clients
-    if not check_action_permitted(user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value):
+    if not check_action_permitted(
+        user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admin users with /admin/site_clients allowance can update site client secrets.",
