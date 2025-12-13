@@ -10,6 +10,7 @@ class AllowanceAction(str, Enum):
     SUBMIT_JSON = "/metadata/json:submit"
     WF_FILE_STAGING = "/wf_file_staging"
     MANAGE_ALLOWANCES = "/admin/allowances"
+    MANAGE_SITE_CLIENTS = "/admin/site_clients"
 
 
 class Allowance(BaseModel):

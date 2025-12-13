@@ -24,7 +24,8 @@ from nmdc_runtime.api.db.s3 import (
     presigned_url_to_get,
     S3_ID_NS,
 )
-from nmdc_runtime.api.endpoints.util import exists, list_resources
+from nmdc_runtime.api.endpoints.util import exists, list_resources, check_action_permitted
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.models.object import (
     AccessMethod,
     AccessURL,
@@ -36,6 +37,7 @@ from nmdc_runtime.api.models.site import (
     get_current_client_site,
     Site,
     SiteInDB,
+    SiteClientSecretUpdate,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
@@ -202,4 +204,77 @@ def generate_credentials_for_site_client(
     return {
         "client_id": client_id,
         "client_secret": client_secret,
+    }
+
+
+@router.patch(
+    "/admin/site_clients/{site_client_id}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+)
+def update_site_client_secret(
+    site_client_id: str = Path(
+        ...,
+        description="The ID of the site client whose secret will be updated.",
+    ),
+    secret_update: SiteClientSecretUpdate = ...,
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+):
+    """
+    Update the secret for a site client.
+
+    This endpoint allows Runtime admins to update the secret (password) for an existing site client.
+    The new secret will be hashed before being stored in the database.
+
+    **Requirements:**
+    - The user must have the `/admin/site_clients` allowance
+    - The secret must be non-empty
+    - The site client must exist
+
+    **Request Body:**
+    - `secret`: The new secret (password) for the site client
+
+    **Response:**
+    - A message indicating success
+    """
+    # Check if user has permission to manage site clients
+    if not check_action_permitted(user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin users with /admin/site_clients allowance can update site client secrets.",
+        )
+
+    # Validate that the secret is not empty
+    if not secret_update.secret or not secret_update.secret.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Secret cannot be empty.",
+        )
+
+    # Check if the site client exists
+    site = mdb.sites.find_one({"clients.id": site_client_id})
+    if not site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No site client found with ID '{site_client_id}'.",
+        )
+
+    # Hash the new secret
+    hashed_secret = get_password_hash(secret_update.secret)
+
+    # Update the hashed_secret for the specific client in the site document
+    result = mdb.sites.update_one(
+        {"clients.id": site_client_id},
+        {"$set": {"clients.$.hashed_secret": hashed_secret}},
+    )
+
+    if result.modified_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update secret for site client '{site_client_id}'.",
+        )
+
+    return {
+        "message": f"Successfully updated secret for site client '{site_client_id}'.",
     }

@@ -33,6 +33,10 @@ class SiteInDB(Site):
     clients: List[SiteClientInDB] = []
 
 
+class SiteClientSecretUpdate(BaseModel):
+    secret: str
+
+
 def get_site(mdb, client_id: str) -> Optional[SiteInDB]:
     r"""
     Returns the site, if any, for which the specified `client_id` was generated.
