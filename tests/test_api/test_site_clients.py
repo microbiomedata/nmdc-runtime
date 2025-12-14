@@ -72,6 +72,14 @@ def test_update_site_client_secret(
 
     site_client_id = "__test_site_client_id"
 
+    # Get the initial hashed secret.
+    site_client = mdb.sites.find_one(
+        {"clients.id": site_client_id},
+        {"clients.$": 1},
+    )["clients"][0]
+    assert site_client["id"] == site_client_id
+    initial_hashed_secret = site_client["hashed_secret"]
+
     # Test: When we omit the "secret" from the payload, we get an HTTP 204.
     response = api_user_client.request(
         "PATCH",
@@ -80,14 +88,14 @@ def test_update_site_client_secret(
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    # Test: When the new secret is too short, we get an HTTP 400.
+    # Test: When the new secret is too short, we get an HTTP 422.
     with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "PATCH",
             f"/admin/site_clients/{site_client_id}",
             {"secret": "2short"},
         )
-    assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # Test: Update the secret successfully.
     new_secret = "my_new_secret!"
@@ -97,9 +105,14 @@ def test_update_site_client_secret(
         {"secret": new_secret},
     )
     assert response.status_code == status.HTTP_200_OK
-    updated_site_client = mdb.sites.find_one(
+
+    # Confirm the secret was updated.
+    site_client = mdb.sites.find_one(
         {"clients.id": site_client_id},
         {"clients.$": 1},
     )["clients"][0]
-    assert updated_site_client["id"] == site_client_id
-    assert verify_password(new_secret, updated_site_client["hashed_secret"])
+    assert site_client["id"] == site_client_id
+    new_hashed_secret = site_client["hashed_secret"]
+    assert new_hashed_secret != initial_hashed_secret
+    assert not verify_password(new_secret, initial_hashed_secret)
+    assert verify_password(new_secret, new_hashed_secret)
