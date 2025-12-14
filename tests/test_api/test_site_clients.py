@@ -24,7 +24,7 @@ def api_user_client_with_site_client_management_allowance(api_user_client):
     }
 
     allowances_coll = mdb.get_collection("_runtime.api.allow")
-    
+
     # Grant the allowance.
     allowances_coll.insert_one(allowance)
 
@@ -37,7 +37,7 @@ def api_user_client_with_site_client_management_allowance(api_user_client):
 @pytest.fixture()
 def db_containing_site_client():
     """Yields a database containing a site with a site client."""
-    
+
     mdb = get_mongo_db()
 
     # Create a test site having a site client having a known secret.
