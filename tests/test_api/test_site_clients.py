@@ -71,6 +71,7 @@ def test_update_site_client_secret(
     mdb = db_containing_site_client  # concise alias
 
     site_client_id = "__test_site_client_id"
+    nonexistent_site_client_id = "__nonexistent_site_client_id"
 
     # Get the initial hashed secret.
     site_client = mdb.sites.find_one(
@@ -81,12 +82,22 @@ def test_update_site_client_secret(
     initial_hashed_secret = site_client["hashed_secret"]
 
     # Test: When we omit the "secret" from the payload, we get an HTTP 204.
+    #       The request is valid, but it's effectively a "no op" kind of patch.
     response = api_user_client.request(
         "PATCH",
         f"/admin/site_clients/{site_client_id}",
         {},
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Test: When the site client doesn't exist, we get an HTTP 404.
+    with pytest.raises(requests.exceptions.HTTPError) as exc_info:
+        api_user_client.request(
+            "PATCH",
+            f"/admin/site_clients/{nonexistent_site_client_id}",
+            {"secret": "my_new_secret!"},
+        )
+    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
 
     # Test: When the new secret is too short, we get an HTTP 422.
     with pytest.raises(requests.exceptions.HTTPError) as exc_info:
@@ -97,7 +108,7 @@ def test_update_site_client_secret(
         )
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # Test: Update the secret successfully.
+    # Test: When the secret is updated successfully, we get an HTTP 200.
     new_secret = "my_new_secret!"
     response = api_user_client.request(
         "PATCH",
@@ -106,7 +117,7 @@ def test_update_site_client_secret(
     )
     assert response.status_code == status.HTTP_200_OK
 
-    # Confirm the secret was updated.
+    # Confirm the secret was updated in the database.
     site_client = mdb.sites.find_one(
         {"clients.id": site_client_id},
         {"clients.$": 1},
