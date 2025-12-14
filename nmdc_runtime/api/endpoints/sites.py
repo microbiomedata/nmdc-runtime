@@ -2,7 +2,7 @@ from typing import List, Annotated
 
 import botocore
 import pymongo.database
-from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, Response, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
@@ -24,7 +24,12 @@ from nmdc_runtime.api.db.s3 import (
     presigned_url_to_get,
     S3_ID_NS,
 )
-from nmdc_runtime.api.endpoints.util import exists, list_resources
+from nmdc_runtime.api.endpoints.util import (
+    exists,
+    list_resources,
+    check_action_permitted,
+)
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.models.object import (
     AccessMethod,
     AccessURL,
@@ -36,6 +41,7 @@ from nmdc_runtime.api.models.site import (
     get_current_client_site,
     Site,
     SiteInDB,
+    SiteClientPatchIn,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
@@ -203,3 +209,62 @@ def generate_credentials_for_site_client(
         "client_id": client_id,
         "client_secret": client_secret,
     }
+
+
+@router.patch(
+    "/admin/site_clients/{site_client_id}",
+    status_code=status.HTTP_200_OK,
+)
+def update_site_client(
+    body: SiteClientPatchIn,
+    site_client_id: str = Path(
+        ...,
+        description="The ID of the site client you want to update",
+    ),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+    user: User = Depends(get_current_active_user),
+) -> Response:
+    """
+    Update a site client.
+    """
+
+    # Check whether the user is allowed to manage site clients.
+    if not check_action_permitted(
+        user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to update site clients.",
+        )
+
+    # Check whether the specified site client exists.
+    if mdb.sites.count_documents({"clients.id": site_client_id}) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The specified site client does not exist.",
+        )
+
+    # If the user specified a secret, update the specified site client with it.
+    if body.secret is not None:
+
+        # Hash the secret.
+        hashed_secret = get_password_hash(body.secret)
+
+        # Store the hashed secret in the `hashed_secret` field of the site client.
+        #
+        # Note: The `clients.$.hashed_secret` key refers to the `hashed_secret` field
+        #       of the first element (in the `clients` array) that matched the filter.
+        #       Docs: https://www.mongodb.com/docs/manual/reference/operator/update/positional/
+        #
+        result = mdb.sites.update_one(
+            {"clients.id": site_client_id},
+            {"$set": {"clients.$.hashed_secret": hashed_secret}},
+        )
+        if result.modified_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update secret of site client '{site_client_id}'.",
+            )
+        return Response(content=f"Site client '{site_client_id}' has been updated.")
+    else:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)

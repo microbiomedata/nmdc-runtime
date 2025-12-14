@@ -3,7 +3,7 @@ from typing import List, Optional
 import pymongo.database
 from fastapi import Depends
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from nmdc_runtime.api.core.auth import (
     verify_password,
@@ -31,6 +31,22 @@ class SiteClientInDB(BaseModel):
 
 class SiteInDB(Site):
     clients: List[SiteClientInDB] = []
+
+
+class SiteClientPatchIn(BaseModel):
+    """
+    A request payload used to patch (i.e. partially update) a site client.
+    """
+
+    # Forbid extra fields.
+    model_config = ConfigDict(extra="forbid")
+
+    secret: Optional[str] = Field(
+        None,
+        description="The secret you want the site client to have.",
+        min_length=8,
+        examples=["new_secret_42!"],
+    )
 
 
 def get_site(mdb, client_id: str) -> Optional[SiteInDB]:
