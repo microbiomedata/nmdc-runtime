@@ -268,6 +268,5 @@ def update_site_client(
         return {"message": f"Site client '{site_client_id}' has been updated."}
     else:
         raise HTTPException(
-            status_code=status.HTTP_204_NO_CONTENT,
-            detail="No updates were specified."
+            status_code=status.HTTP_204_NO_CONTENT, detail="No updates were specified."
         )

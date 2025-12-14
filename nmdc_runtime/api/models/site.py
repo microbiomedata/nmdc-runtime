@@ -45,7 +45,7 @@ class SiteClientPatchIn(BaseModel):
         None,
         description="The secret you want the site client to have.",
         min_length=8,
-        examples=["new_secret_42!"]
+        examples=["new_secret_42!"],
     )
 
 
