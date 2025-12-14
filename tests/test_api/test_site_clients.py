@@ -27,9 +27,9 @@ def api_user_client_with_site_client_management_allowance(api_user_client):
     
     # Grant the allowance.
     allowances_coll.insert_one(allowance)
-    
+
     yield api_user_client
-    
+
     # Cleanup: Revoke the allowance.
     allowances_coll.delete_one(allowance)
 

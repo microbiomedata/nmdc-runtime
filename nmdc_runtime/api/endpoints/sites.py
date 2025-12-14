@@ -2,7 +2,7 @@ from typing import List, Annotated
 
 import botocore
 import pymongo.database
-from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, Response, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
 
 from nmdc_runtime.api.core.auth import (
@@ -223,7 +223,7 @@ def update_site_client(
     ),
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
-) -> dict:
+) -> Response:
     """
     Update a site client.
     """
@@ -265,8 +265,6 @@ def update_site_client(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to update secret of site client '{site_client_id}'.",
             )
-        return {"message": f"Site client '{site_client_id}' has been updated."}
+        return Response(content=f"Site client '{site_client_id}' has been updated.")
     else:
-        raise HTTPException(
-            status_code=status.HTTP_204_NO_CONTENT, detail="No updates were specified."
-        )
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
