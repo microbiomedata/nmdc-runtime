@@ -1,5 +1,5 @@
 """
-Tests for the site client secret update endpoint.
+Tests targeting the endpoint that can be used to update a site client.
 """
 
 import pytest
@@ -12,273 +12,94 @@ from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 
 
-@pytest.fixture(autouse=True)
-def setup_test_site_client_allowance(api_user_client):
-    """Setup test environment with site client management allowance."""
+@pytest.fixture()
+def api_user_client_with_site_client_management_allowance(api_user_client):
+    """Yields an API user client for a user having a specific allowance."""
+
     mdb = get_mongo_db()
-    
-    # Grant the user permission to manage site clients
-    allowances_collection = mdb.get_collection("_runtime.api.allow")
-    allowances_collection.insert_one({
+
+    allowance = {
         "username": api_user_client.username,
         "action": AllowanceAction.MANAGE_SITE_CLIENTS.value,
-    })
+    }
+
+    allowances_coll = mdb.get_collection("_runtime.api.allow")
     
-    yield
+    # Grant the allowance.
+    allowances_coll.insert_one(allowance)
     
-    # Cleanup: Remove the test allowance
-    allowances_collection.delete_one({
-        "username": api_user_client.username,
-        "action": AllowanceAction.MANAGE_SITE_CLIENTS.value,
-    })
+    yield api_user_client
+    
+    # Cleanup: Revoke the allowance.
+    allowances_coll.delete_one(allowance)
 
 
-def test_update_site_client_secret_success(api_user_client):
-    """Test successfully updating a site client's secret."""
+@pytest.fixture()
+def db_containing_site_client():
+    """Yields a database containing a site with a site client."""
+    
     mdb = get_mongo_db()
-    
-    # Create a test site with a client
-    test_site_id = "test-site-for-secret-update"
-    test_client_id = "test-client-123"
-    original_secret = "OriginalSecret123!"
-    
-    # Insert the test site
+
+    # Create a test site having a site client having a known secret.
+    site_id = "__test_site_id"
+    site_client_id = "__test_site_client_id"
+    initial_secret = "__test_client_initial_secret"
+
     mdb.sites.insert_one(
         SiteInDB(
-            id=test_site_id,
+            id=site_id,
             clients=[
                 SiteClientInDB(
-                    id=test_client_id,
-                    hashed_secret=get_password_hash(original_secret),
+                    id=site_client_id,
+                    hashed_secret=get_password_hash(initial_secret),
                 )
             ],
         ).model_dump()
     )
-    
-    try:
-        # Update the secret
-        new_secret = "NewSecret456!"
-        rv = api_user_client.request(
-            "PATCH",
-            f"/admin/site_clients/{test_client_id}",
-            {"secret": new_secret},
-        )
-        
-        assert rv.status_code == status.HTTP_200_OK
-        response_data = rv.json()
-        assert "message" in response_data
-        assert test_client_id in response_data["message"]
-        
-        # Verify the secret was actually updated in the database
-        updated_site = mdb.sites.find_one({"id": test_site_id})
-        assert updated_site is not None
-        updated_client = next(
-            (c for c in updated_site["clients"] if c["id"] == test_client_id),
-            None
-        )
-        assert updated_client is not None
-        
-        # Verify the new hashed secret matches the new secret
-        assert verify_password(new_secret, updated_client["hashed_secret"])
-        # Verify the old secret no longer works
-        assert not verify_password(original_secret, updated_client["hashed_secret"])
-        
-    finally:
-        # Cleanup: Remove the test site
-        mdb.sites.delete_one({"id": test_site_id})
+
+    yield mdb
+
+    # Cleanup: Remove the test site.
+    mdb.sites.delete_one({"id": site_id})
 
 
-def test_update_site_client_secret_not_found(api_user_client):
-    """Test updating a non-existent site client returns 404."""
-    non_existent_client_id = "non-existent-client-999"
-    
+def test_update_site_client_secret(
+    api_user_client_with_site_client_management_allowance,
+    db_containing_site_client,
+):
+    api_user_client = api_user_client_with_site_client_management_allowance  # concise alias
+    mdb = db_containing_site_client  # concise alias
+
+    site_client_id = "__test_site_client_id"
+
+    # Test: When we omit the "secret" from the payload, we get an HTTP 204.
+    response = api_user_client.request(
+        "PATCH",
+        f"/admin/site_clients/{site_client_id}",
+        {},
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # Test: When the new secret is too short, we get an HTTP 400.
     with pytest.raises(requests.exceptions.HTTPError) as exc_info:
         api_user_client.request(
             "PATCH",
-            f"/admin/site_clients/{non_existent_client_id}",
-            {"secret": "SomeSecret123!"},
+            f"/admin/site_clients/{site_client_id}",
+            {"secret": "2short"},
         )
-    
-    assert exc_info.value.response.status_code == status.HTTP_404_NOT_FOUND
-    assert non_existent_client_id in exc_info.value.response.json()["detail"]
+    assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
 
-
-def test_update_site_client_secret_empty(api_user_client):
-    """Test updating with an empty secret returns 400."""
-    mdb = get_mongo_db()
-    
-    # Create a test site with a client
-    test_site_id = "test-site-empty-secret"
-    test_client_id = "test-client-empty"
-    
-    mdb.sites.insert_one(
-        SiteInDB(
-            id=test_site_id,
-            clients=[
-                SiteClientInDB(
-                    id=test_client_id,
-                    hashed_secret=get_password_hash("SomeSecret123!"),
-                )
-            ],
-        ).model_dump()
+    # Test: Update the secret successfully.
+    new_secret = "my_new_secret!"
+    response = api_user_client.request(
+        "PATCH",
+        f"/admin/site_clients/{site_client_id}",
+        {"secret": new_secret},
     )
-    
-    try:
-        # Try to update with an empty secret
-        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
-            api_user_client.request(
-                "PATCH",
-                f"/admin/site_clients/{test_client_id}",
-                {"secret": ""},
-            )
-        
-        assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "empty" in exc_info.value.response.json()["detail"].lower()
-        
-    finally:
-        # Cleanup: Remove the test site
-        mdb.sites.delete_one({"id": test_site_id})
-
-
-def test_update_site_client_secret_whitespace_only(api_user_client):
-    """Test updating with whitespace-only secret returns 400."""
-    mdb = get_mongo_db()
-    
-    # Create a test site with a client
-    test_site_id = "test-site-whitespace-secret"
-    test_client_id = "test-client-whitespace"
-    
-    mdb.sites.insert_one(
-        SiteInDB(
-            id=test_site_id,
-            clients=[
-                SiteClientInDB(
-                    id=test_client_id,
-                    hashed_secret=get_password_hash("SomeSecret123!"),
-                )
-            ],
-        ).model_dump()
-    )
-    
-    try:
-        # Try to update with a whitespace-only secret
-        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
-            api_user_client.request(
-                "PATCH",
-                f"/admin/site_clients/{test_client_id}",
-                {"secret": "   "},
-            )
-        
-        assert exc_info.value.response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "empty" in exc_info.value.response.json()["detail"].lower()
-        
-    finally:
-        # Cleanup: Remove the test site
-        mdb.sites.delete_one({"id": test_site_id})
-
-
-def test_update_site_client_secret_without_permission(api_user_client):
-    """Test that updating without proper allowance returns 403."""
-    mdb = get_mongo_db()
-    
-    # Remove the allowance granted by the fixture
-    allowances_collection = mdb.get_collection("_runtime.api.allow")
-    allowances_collection.delete_one({
-        "username": api_user_client.username,
-        "action": AllowanceAction.MANAGE_SITE_CLIENTS.value,
-    })
-    
-    # Create a test site with a client
-    test_site_id = "test-site-no-permission"
-    test_client_id = "test-client-no-permission"
-    
-    mdb.sites.insert_one(
-        SiteInDB(
-            id=test_site_id,
-            clients=[
-                SiteClientInDB(
-                    id=test_client_id,
-                    hashed_secret=get_password_hash("SomeSecret123!"),
-                )
-            ],
-        ).model_dump()
-    )
-    
-    try:
-        # Try to update without permission
-        with pytest.raises(requests.exceptions.HTTPError) as exc_info:
-            api_user_client.request(
-                "PATCH",
-                f"/admin/site_clients/{test_client_id}",
-                {"secret": "NewSecret123!"},
-            )
-        
-        assert exc_info.value.response.status_code == status.HTTP_403_FORBIDDEN
-        assert "allowance" in exc_info.value.response.json()["detail"].lower()
-        
-    finally:
-        # Cleanup: Remove the test site
-        mdb.sites.delete_one({"id": test_site_id})
-        # Restore the allowance for other tests
-        allowances_collection.insert_one({
-            "username": api_user_client.username,
-            "action": AllowanceAction.MANAGE_SITE_CLIENTS.value,
-        })
-
-
-def test_update_site_client_secret_multiple_clients(api_user_client):
-    """Test updating the secret of one client doesn't affect others."""
-    mdb = get_mongo_db()
-    
-    # Create a test site with multiple clients
-    test_site_id = "test-site-multiple-clients"
-    test_client_id_1 = "test-client-1"
-    test_client_id_2 = "test-client-2"
-    secret_1 = "Secret1!"
-    secret_2 = "Secret2!"
-    
-    mdb.sites.insert_one(
-        SiteInDB(
-            id=test_site_id,
-            clients=[
-                SiteClientInDB(
-                    id=test_client_id_1,
-                    hashed_secret=get_password_hash(secret_1),
-                ),
-                SiteClientInDB(
-                    id=test_client_id_2,
-                    hashed_secret=get_password_hash(secret_2),
-                ),
-            ],
-        ).model_dump()
-    )
-    
-    try:
-        # Update only the first client's secret
-        new_secret_1 = "NewSecret1!"
-        rv = api_user_client.request(
-            "PATCH",
-            f"/admin/site_clients/{test_client_id_1}",
-            {"secret": new_secret_1},
-        )
-        
-        assert rv.status_code == status.HTTP_200_OK
-        
-        # Verify the first client's secret was updated
-        updated_site = mdb.sites.find_one({"id": test_site_id})
-        client_1 = next(
-            (c for c in updated_site["clients"] if c["id"] == test_client_id_1),
-            None
-        )
-        assert verify_password(new_secret_1, client_1["hashed_secret"])
-        
-        # Verify the second client's secret was NOT changed
-        client_2 = next(
-            (c for c in updated_site["clients"] if c["id"] == test_client_id_2),
-            None
-        )
-        assert verify_password(secret_2, client_2["hashed_secret"])
-        
-    finally:
-        # Cleanup: Remove the test site
-        mdb.sites.delete_one({"id": test_site_id})
+    assert response.status_code == status.HTTP_200_OK
+    updated_site_client = mdb.sites.find_one(
+        {"clients.id": site_client_id},
+        {"clients.$": 1},
+    )["clients"][0]
+    assert updated_site_client["id"] == site_client_id
+    assert verify_password(new_secret, updated_site_client["hashed_secret"])

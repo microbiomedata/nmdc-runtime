@@ -3,7 +3,7 @@ from typing import List, Optional
 import pymongo.database
 from fastapi import Depends
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from nmdc_runtime.api.core.auth import (
     verify_password,
@@ -33,19 +33,20 @@ class SiteInDB(Site):
     clients: List[SiteClientInDB] = []
 
 
-class SiteClientSecretUpdate(BaseModel):
+class SiteClientPatchIn(BaseModel):
     """
-    Request body model for updating a site client's secret.
-
-    This model is used by the PATCH /admin/site_clients/{site_client_id} endpoint
-    to validate the request body when an admin updates a site client's secret.
-
-    Attributes:
-        secret: The new secret (password) for the site client. Must be non-empty.
-                The secret will be hashed using bcrypt before being stored in the database.
+    A request payload used to patch (i.e. partially update) a site client.
     """
 
-    secret: str
+    # Forbid extra fields.
+    model_config = ConfigDict(extra="forbid")
+
+    secret: Optional[str] = Field(
+        None,
+        description="The secret you want the site client to have.",
+        min_length=8,
+        examples=["new_secret_42!"]
+    )
 
 
 def get_site(mdb, client_id: str) -> Optional[SiteInDB]:

@@ -41,7 +41,7 @@ from nmdc_runtime.api.models.site import (
     get_current_client_site,
     Site,
     SiteInDB,
-    SiteClientSecretUpdate,
+    SiteClientPatchIn,
 )
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.api.models.util import ListResponse, ListRequest
@@ -213,74 +213,61 @@ def generate_credentials_for_site_client(
 
 @router.patch(
     "/admin/site_clients/{site_client_id}",
-    response_model=dict,
     status_code=status.HTTP_200_OK,
 )
-def update_site_client_secret(
+def update_site_client(
+    body: SiteClientPatchIn,
     site_client_id: str = Path(
         ...,
-        description="The ID of the site client whose secret will be updated.",
+        description="The ID of the site client you want to update",
     ),
-    secret_update: SiteClientSecretUpdate = ...,
     mdb: pymongo.database.Database = Depends(get_mongo_db),
     user: User = Depends(get_current_active_user),
-):
+) -> dict:
     """
-    Update the secret for a site client.
-
-    This endpoint allows Runtime admins to update the secret (password) for an existing site client.
-    The new secret will be hashed before being stored in the database.
-
-    **Requirements:**
-    - The user must have the `/admin/site_clients` allowance
-    - The secret must be non-empty
-    - The site client must exist
-
-    **Request Body:**
-    - `secret`: The new secret (password) for the site client
-
-    **Response:**
-    - A message indicating success
+    Update a site client.
     """
-    # Check if user has permission to manage site clients
+
+    # Check whether the user is allowed to manage site clients.
     if not check_action_permitted(
         user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admin users with /admin/site_clients allowance can update site client secrets.",
+            detail="You are not allowed to update site clients.",
         )
 
-    # Validate that the secret is not empty
-    if not secret_update.secret or not secret_update.secret.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Secret cannot be empty.",
-        )
-
-    # Check if the site client exists
-    site = mdb.sites.find_one({"clients.id": site_client_id})
-    if not site:
+    # Check whether the specified site client exists.
+    if mdb.sites.count_documents({"clients.id": site_client_id}) == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No site client found with ID '{site_client_id}'.",
+            detail="The specified site client does not exist.",
         )
 
-    # Hash the new secret
-    hashed_secret = get_password_hash(secret_update.secret)
+    # If the user specified a secret, update the specified site client with it.
+    if body.secret is not None:
 
-    # Update the hashed_secret for the specific client in the site document
-    result = mdb.sites.update_one(
-        {"clients.id": site_client_id},
-        {"$set": {"clients.$.hashed_secret": hashed_secret}},
-    )
+        # Hash the secret.
+        hashed_secret = get_password_hash(body.secret)
 
-    if result.modified_count == 0:
+        # Store the hashed secret in the `hashed_secret` field of the site client.
+        #
+        # Note: The `clients.$.hashed_secret` key refers to the `hashed_secret` field
+        #       of the first element (in the `clients` array) that matched the filter.
+        #       Docs: https://www.mongodb.com/docs/manual/reference/operator/update/positional/
+        #
+        result = mdb.sites.update_one(
+            {"clients.id": site_client_id},
+            {"$set": {"clients.$.hashed_secret": hashed_secret}},
+        )
+        if result.modified_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update secret of site client '{site_client_id}'.",
+            )
+        return {"message": f"Site client '{site_client_id}' has been updated."}
+    else:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update secret for site client '{site_client_id}'.",
+            status_code=status.HTTP_204_NO_CONTENT,
+            detail="No updates were specified."
         )
-
-    return {
-        "message": f"Successfully updated secret for site client '{site_client_id}'.",
-    }
