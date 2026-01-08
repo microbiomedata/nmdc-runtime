@@ -1,6 +1,7 @@
-from typing import List, Annotated
+from typing import Annotated
 
 import botocore
+from fastapi.responses import PlainTextResponse
 import pymongo.database
 from fastapi import APIRouter, Depends, Response, status, HTTPException, Path, Query
 from starlette.status import HTTP_403_FORBIDDEN
@@ -265,6 +266,8 @@ def update_site_client(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to update secret of site client '{site_client_id}'.",
             )
-        return Response(content=f"Site client '{site_client_id}' has been updated.")
+        return PlainTextResponse(
+            content=f"Site client '{site_client_id}' has been updated."
+        )
     else:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
