@@ -266,6 +266,8 @@ def update_site_client(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to update secret of site client '{site_client_id}'.",
             )
-        return PlainTextResponse(content=f"Site client '{site_client_id}' has been updated.")
+        return PlainTextResponse(
+            content=f"Site client '{site_client_id}' has been updated."
+        )
     else:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
