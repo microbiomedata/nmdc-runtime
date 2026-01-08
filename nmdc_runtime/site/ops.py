@@ -643,9 +643,15 @@ def add_public_image_urls(
 ) -> nmdc.Database:
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
 
-    if len(database.study_set) != 1:
-        raise Failure(
-            description="Expected exactly one study in the database to add public image URLs."
+    if database.study_set is None or len(database.study_set) == 0:
+        context.log.info(
+            "No studies in nmdc.Database; skipping public image URL addition."
+        )
+        return database
+
+    if len(database.study_set) > 1:
+        context.log.warning(
+            "Multiple studies in nmdc.Database; only adding public image URLs for the first study."
         )
 
     study_id = database.study_set[0].id
