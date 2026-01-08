@@ -644,7 +644,9 @@ def add_public_image_urls(
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
 
     if database.study_set is None or len(database.study_set) == 0:
-        context.log.info("No studies in nmdc.Database; skipping public image URL addition.")
+        context.log.info(
+            "No studies in nmdc.Database; skipping public image URL addition."
+        )
         return database
 
     if len(database.study_set) > 1:
