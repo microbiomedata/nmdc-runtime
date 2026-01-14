@@ -153,6 +153,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
+# TODO: Consider using the normal "allowance" system instead of relying on a special site.
 def check_can_create_user(requester: User):
     if "nmdc-runtime-useradmin" not in requester.site_admin:
         raise HTTPException(
