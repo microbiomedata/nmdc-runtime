@@ -1,68 +1,76 @@
-# User/Site Login and Authentication
+# Logging into the Runtime API
 
-## Log in as a User
+## Log in as a user
 
-Open <https://api.microbiomedata.org/docs> and click on the `Authorize` button near the top of
-the page:
+Open [api.microbiomedata.org/docs](https://api.microbiomedata.org/docs) and click on
+the "Authorize" button located above the list of endpoints:
 
 ![auth button](../img/auth-button.png)
 
-In the modal dialog, enter your given `username` and `password` in the first form, and click
-`Authorize`:
+In the modal dialog that appears, locate the section entitled "User login"
+and—in that section—enter your username and password, then click
+the "Authorize" button located below those fields.
 
-![auth-username](../img/auth-username.png)
-
-Once authorized, hit `Close` to get back to the interactive API documentation:
+When you are logged in, the "username" field will turn into read-only text
+and the "password" field will turn into asterisks, as shown here:
 
 ![auth-close-modal](../img/auth-close-modal.png)
 
-## Create a User
+Once you're logged in, click the "Close" button to close the modal and return
+focus to the API documentation.
 
-!!! info 
-    You need to be already logged in to create a new user.
-    Also, only users `aclum`, `dwinston`, `scanon`, and `scholia` can create new users at this time.
+## Create a user
 
-Go to [POST /users](https://api.microbiomedata.org/docs#/users/create_user_users_post), and
+> **Important:** Only Runtime administrators (i.e. Runtime users that are admins of the special site
+named "`nmdc-runtime-useradmin`") can create users.
+
+Go to [`POST /users`](https://api.microbiomedata.org/docs#/User%20accounts/Create_User_users_post), and
 click the `Try it out` button. In the request body, the only required fields are `username` and
 `password`. If you know the `id`s of any sites you would like the new user to administer, enter
 those as an array value for the `site_admin` field.
 
-<!-- TODO: Consider hosting an instance of Snappass on Spin instead of relying on an externally-hosted one. -->
-
-Share a new user's password securely with them. For example, a free instance of the open-source
-[snappass](https://github.com/pinterest/snappass) web app is hosted by `dwinston` at
-<https://snappass.polyneme.xyz/>. This will generate a one-time link that you can email, send via
+Share the new user's password securely with them. For example, a free instance of the open-source
+[snappass](https://github.com/pinterest/snappass) web app is hosted by Polyneme at
+[snappass.polyneme.xyz](https://snappass.polyneme.xyz). This will generate a one-time link that you can email, send via
 Slack message, etc. to the new user.
 
-## Create a Site Client
+## Create a site client
 
 If you administer one or more sites, you can generate credentials for a site client that will act on
-behalf of the site. This is used for managing certain API resources -- rather than a person being
-responsible for a resource, a site is, and users that administer the site can come and go.
+behalf of the site. This is used for managing certain API resources—rather than
+an _individual person_ being responsible for a resource, a _site_ is responsible for it,
+allowing for users that _administer_ that site to "come and go" over time.
 
-Once logged in, you can use [GET
-/users/me](https://api.microbiomedata.org/docs#/users/read_users_me_users_me__get) to see the
-`id`s of sites you can administer. Example response:
+Once logged in, you can use [`GET /users/me`](https://api.microbiomedata.org/docs#/User%20accounts/Get_User_Information_users_me_get) to see
+the `id`s of sites you can administer. Example response:
 
 ```json
 {
-  "username": "dwinston",
+  "username": "alice_the_admin",
   "site_admin": [
-    "dwinston-laptop",
-    "nmdc-runtime-useradmin",
-    "dwinston-cloud"
+    "alice-laptop",
+    "nmdc-runtime-useradmin"
   ]
 }
 ```
 
-You can create your own sites via [POST
-/sites](https://api.microbiomedata.org/docs#/sites/create_site_sites_post). If the `id` you
-request already exists, you will get an error response. Do not worry about setting `capability_ids`;
-those can be set later.
+```json
+{
+  "username": "bob_the_bioinformatician",
+  "site_admin": [
+    "bob-laptop"
+  ]
+}
+```
 
-Once you have identified a site for which to generate credentials, use [POST
-/sites/{site_id}:generateCredentials](https://api.microbiomedata.org/docs#/sites/generate_credentials_for_site_client_sites__site_id__generateCredentials_post)
-to do so. The response will look something like
+You can create a site via [`POST /sites`](https://api.microbiomedata.org/docs#/Workflow%20management/create_site_sites_post).
+If the `id` you request is already in use (i.e. already exists), you will get an error response.
+We suggest ignoring `capability_ids` for now; that can be populated later.
+
+Once you have identified the site you want to generate credentials for, you can use use
+the [`POST /sites/{site_id}:generateCredentials`](https://api.microbiomedata.org/docs#/Workflow%20management/generate_credentials_for_site_client_sites__site_id__generateCredentials_post)
+endpoint to do so. The response will contain the credentials for the generated site client,
+which will look something like this:
 
 ```json
 {
@@ -71,17 +79,23 @@ to do so. The response will look something like
 }
 ```
 
-Save this information like you saved your username and password.
+Store these two values securely for future use. Treat the `client_secret` value, specifically,
+like you would treat a password.
 
-## Log in as a Site
+## Log in as a site client
 
-Click on the `Authorize` button near the top of <https://api.microbiomedata.org/docs>. You may
-need to `Logout` first. Scroll all the way down to the second form, the one with only two fields,
-`client_id` and `client_secret`:
+Now that you have site client credentials, you can log in as the associated site.
 
-![auth-client-id](../img/auth-client-id.png)
+Open [api.microbiomedata.org/docs](https://api.microbiomedata.org/docs) and click on
+the "Authorize" button located above the list of endpoints:
 
-Note that the form is for the `clientCredentials` flow, whereas the first form is for the `password`
-flow. In this clientCredentials form, enter your site client credentials and `Authorize`. You are
-now logged in as a site client.
+![auth button](../img/auth-button.png)
 
+In the modal dialog that appears, if any sections show that you are already logged in,
+click the "Logout" button in each of those sections before continuing.
+
+Next, locate the section entitled "Site client login"
+and—in that section—enter your `client_id` and `client_secret` values, then click
+the "Authorize" button located below those fields.
+
+You are now logged in as a site client.
