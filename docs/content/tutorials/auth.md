@@ -67,7 +67,7 @@ You can create a site via [`POST /sites`](https://api.microbiomedata.org/docs#/W
 If the `id` you request is already in use (i.e. already exists), you will get an error response.
 We suggest ignoring `capability_ids` for now; that can be populated later.
 
-Once you have identified the site you want to generate credentials for, you can use use
+Once you have identified the site you want to generate credentials for, you can use
 the [`POST /sites/{site_id}:generateCredentials`](https://api.microbiomedata.org/docs#/Workflow%20management/generate_credentials_for_site_client_sites__site_id__generateCredentials_post)
 endpoint to do so. The response will contain the credentials for the generated site client,
 which will look something like this:
