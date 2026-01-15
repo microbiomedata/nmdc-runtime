@@ -3,6 +3,7 @@ from typing import Union
 
 import pandas as pd
 from nmdc_schema import nmdc
+from linkml_runtime.linkml_model.types import Double
 
 
 def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float, None]:
@@ -121,7 +122,7 @@ def _create_text_value(value: str = None) -> nmdc.TextValue:
     return nmdc.TextValue(has_raw_value=value, type="nmdc:TextValue")
 
 
-def _create_double_value(value: str = None) -> nmdc.Double:
+def _create_double_value(value: str = None) -> Double:
     """
     Create a Double object with the specified value.
 
@@ -131,7 +132,7 @@ def _create_double_value(value: str = None) -> nmdc.Double:
     """
     if value is None or math.isnan(value):
         return None
-    return nmdc.Double(value, type="nmdc:Double")
+    return Double(value, type="nmdc:Double")
 
 
 def _create_geolocation_value(

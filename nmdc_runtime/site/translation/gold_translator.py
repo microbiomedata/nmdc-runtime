@@ -1,8 +1,10 @@
 import collections
 import re
 from typing import List, Tuple, Union
+
 from nmdc_schema import nmdc
 import pandas as pd
+from linkml_runtime.linkml_model.types import Double
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
@@ -325,14 +327,14 @@ class GoldStudyTranslator(Translator):
             elif minimum_numeric_value is not None and maximum_numeric_value is None:
                 return nmdc.QuantityValue(
                     has_raw_value=minimum_numeric_value,
-                    has_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_numeric_value=Double(minimum_numeric_value),
                     has_unit=unit,
                     type="nmdc:QuantityValue",
                 )
             else:
                 return nmdc.QuantityValue(
-                    has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
-                    has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
+                    has_minimum_numeric_value=Double(minimum_numeric_value),
+                    has_maximum_numeric_value=Double(maximum_numeric_value),
                     has_unit=unit,
                     type="nmdc:QuantityValue",
                 )
