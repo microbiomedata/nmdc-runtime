@@ -1,9 +1,8 @@
 import math
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 from nmdc_schema import nmdc
-from linkml_runtime.linkml_model.types import Double
 
 
 def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float, None]:
@@ -103,6 +102,7 @@ def _create_quantity_value(
     measurement value like organic Carbon Nitrogen ratio.
     :return: Numeric value and unit stored together in nested QuantityValue object.
     """
+    # FIXME: `math.isnan()` does not accept string arguments.
     if numeric_value is None or math.isnan(numeric_value):
         return None
     return nmdc.QuantityValue(
@@ -122,17 +122,31 @@ def _create_text_value(value: str = None) -> nmdc.TextValue:
     return nmdc.TextValue(has_raw_value=value, type="nmdc:TextValue")
 
 
-def _create_double_value(value: str = None) -> Double:
+def _create_float_value(value: Optional[str] = None) -> Optional[nmdc.Float]:
     """
-    Create a Double object with the specified value.
+    Create a `Float` instance having the specified value.
 
-    :param value: Values from a column which typically records numeric
-    (double) values like pH.
-    :return: String (possibly) cast/converted to nmdc Double object.
+    Note: You can use this to generate a value for the `Biosample` class's `pH` slot,
+          which has a range of `Float`, according to its documentation:
+          https://microbiomedata.github.io/nmdc-schema/ph/#properties
+
+    :param value: The string from which you want to create a `Float` instance
+    :return: The `Float` instance or `None`
     """
-    if value is None or math.isnan(value):
+    # First, check whether the value is `None`.
+    if value is None:
         return None
-    return Double(value, type="nmdc:Double")
+
+    # Then, check whether the value resolves to `NaN`.
+    try:
+        value_as_float = float(value)
+        if math.isnan(value_as_float):
+            raise ValueError
+    except (TypeError, ValueError):
+        return None
+
+    # Finally, create and return the `Float` instance.
+    return nmdc.Float(value)
 
 
 def _create_geolocation_value(
@@ -149,6 +163,7 @@ def _create_geolocation_value(
     :return: Latitude and Longitude values wrapped in nmdc GeolocationValue
     object.
     """
+    # FIXME: `math.isnan()` does not accept string arguments.
     if (
         latitude is None
         or math.isnan(latitude)
