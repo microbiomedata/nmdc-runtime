@@ -3,7 +3,6 @@ from typing import Optional, Union
 
 import pandas as pd
 from nmdc_schema import nmdc
-from linkml_runtime.linkml_model.types import Double
 
 
 def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float, None]:
@@ -121,20 +120,6 @@ def _create_text_value(value: str = None) -> nmdc.TextValue:
     if value is None:
         return None
     return nmdc.TextValue(has_raw_value=value, type="nmdc:TextValue")
-
-
-def _create_double_value(value: str = None) -> Double:
-    """
-    Create a Double object with the specified value.
-
-    :param value: Values from a column which typically records numeric
-    (double) values.
-    :return: String (possibly) cast/converted to nmdc Double object.
-    """
-    # FIXME: `math.isnan()` does not accept string arguments.
-    if value is None or math.isnan(value):
-        return None
-    return Double(value, type="nmdc:Double")
 
 
 def _create_float_value(value: Optional[str] = None) -> Optional[nmdc.Float]:
