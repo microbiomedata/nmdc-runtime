@@ -92,8 +92,8 @@ class JGISample(BaseModel):
     update_date: Optional[datetime.datetime] = Field(
         None, description="Update Date", examples=["2023-01-01T00:00:00Z"]
     )
-    request_id: int = Field(
-        ...,
+    request_id: Optional[int] = Field(
+        None,
         description="Request ID from the JGI data portal after a request to have the files restored from tape is submitted.",
         examples=[1],
     )
