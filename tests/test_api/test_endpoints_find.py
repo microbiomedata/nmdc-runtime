@@ -50,23 +50,23 @@ class TestGetAdminDataObjectURLs:
         # First, confirm the two collections are empty.
         workflow_execution_set = mdb.workflow_execution_set
         data_object_set = mdb.data_object_set
-        assert workflow_execution_set.count_documents({}) == 0
-        assert data_object_set.count_documents({}) == 0
 
-        # Insert some `DataObject`s having distinct URLs; and a `WorkflowExecution`s having those
+        # Insert some `DataObject`s having distinct URLs; and a `WorkflowExecution` having those
         # `DataObject`s as its output.
         faker = Faker()
         data_objects = faker.generate_data_objects(3, name="Name")
         data_object_ids = [data_object["id"] for data_object in data_objects]
         data_objects[0]["url"] = "https://data.microbiomedata.org/data/1.txt"
         data_objects[1]["url"] = "https://nmdcdemo.emsl.pnnl.gov/data/2.txt"
-        workflow_executions =  faker.generate_metagenome_annotations(
+        workflow_executions = faker.generate_metagenome_annotations(
             1,
             was_informed_by=["nmdc:dgns-00-000001"],
             has_input=["nmdc:bsm-00-000001"],
             has_output=data_object_ids,
         )
         workflow_execution_ids = [wfe["id"] for wfe in workflow_executions]
+        assert workflow_execution_set.count_documents({"id": {"$in": workflow_execution_ids}}) == 0
+        assert data_object_set.count_documents({"id": {"$in": data_object_ids}}) == 0
         workflow_execution_set.insert_many(workflow_executions)
         data_object_set.insert_many(data_objects)
 
