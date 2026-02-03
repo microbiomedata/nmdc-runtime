@@ -168,7 +168,8 @@ def get_data_object_report(
         #       verbatim, regardless of any special meaning they might have in regex.
         url_filter["$regex"] = f"^{re.escape(prefix)}"
     for data_object in mdb.data_object_set.find(
-        {"id": {"$in": wfe_output_ids}, "url": url_filter}
+        filter={"id": {"$in": wfe_output_ids}, "url": url_filter},
+        projection={"url": True, "_id": False},
     ):
         data_object_urls.add(data_object["url"])
 
