@@ -64,7 +64,7 @@ class TestGetAdminDataObjectURLs:
             1,
             was_informed_by=["nmdc:dgns-00-000001"],
             has_input=["nmdc:bsm-00-000001"],
-            has_output=data_object_ids,  # all WFEs will reference the same DOs
+            has_output=data_object_ids,
         )
         workflow_execution_ids = [wfe["id"] for wfe in workflow_executions]
         workflow_execution_set.insert_many(workflow_executions)
