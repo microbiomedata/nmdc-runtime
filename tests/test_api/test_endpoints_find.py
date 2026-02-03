@@ -46,8 +46,6 @@ class TestGetAdminDataObjectURLs:
     @pytest.fixture
     def db_having_data_objects_outputted_by_wfes(self):
         mdb = get_mongo_db()
-
-        # First, confirm the two collections are empty.
         workflow_execution_set = mdb.workflow_execution_set
         data_object_set = mdb.data_object_set
 
