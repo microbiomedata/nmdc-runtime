@@ -167,7 +167,9 @@ def get_data_object_report(
         # Note: We use `re.escape()` to ensure that characters like "?", "+", etc., get compared
         #       verbatim, regardless of any special meaning they might have in regex.
         url_filter["$regex"] = f"^{re.escape(prefix)}"
-    for data_object in mdb.data_object_set.find({"id": {"$in": wfe_output_ids}, "url": url_filter}):
+    for data_object in mdb.data_object_set.find(
+        {"id": {"$in": wfe_output_ids}, "url": url_filter}
+    ):
         data_object_urls.add(data_object["url"])
 
     # If no such URLs were found (e.g. if the prefix was "foobar"), return an HTTP 204 response.
