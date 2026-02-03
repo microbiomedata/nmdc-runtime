@@ -3,7 +3,7 @@ import logging
 from io import StringIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
@@ -131,7 +131,7 @@ def find_data_objects(
     "/admin/data_object_urls",
     status_code=status.HTTP_200_OK,
     name="Get Data Object URLs",
-    description="(Admins only) Download a TSV-formatted report consisting of the URL of each `DataObject` that is an output of any `WorkflowExecution`.",
+    description="(Admins only) Download a TSV-formatted report consisting of the distinct URLs of all `DataObject`s that are outputs of any `WorkflowExecution`s.",
     responses={
         status.HTTP_200_OK: {"description": "TSV file containing DataObject URLs"},
         status.HTTP_204_NO_CONTENT: {
@@ -169,7 +169,7 @@ def get_data_object_report(
 
     # If no such URLs were found (e.g. if the prefix was "foobar"), return an HTTP 204 response.
     if len(data_object_urls) == 0:
-        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     # Build the report as an in-memory TSV "file" (buffer), with one URL per row.
     # Reference: https://docs.python.org/3/library/csv.html#csv.writer
