@@ -153,10 +153,7 @@ def get_data_object_report(
     data_object_urls = set()
     wfe_output_ids = mdb.workflow_execution_set.distinct("has_output")
     for data_object in mdb.data_object_set.find(
-        {
-            "id": {"$in": wfe_output_ids},
-            "url": {"$exists": True, "$type": "string"}
-        }
+        {"id": {"$in": wfe_output_ids}, "url": {"$exists": True, "$type": "string"}}
     ):
         if len(prefix) == 0 or data_object["url"].startswith(prefix):
             data_object_urls.add(data_object["url"])
