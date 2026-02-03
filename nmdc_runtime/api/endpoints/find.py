@@ -132,6 +132,11 @@ def find_data_objects(
     status_code=status.HTTP_200_OK,
     name="Get Data Object URLs",
     description="(Admins only) Download a TSV-formatted report consisting of the URL of each `DataObject` that is an output of any `WorkflowExecution`.",
+    responses={
+        status.HTTP_200_OK: {"description": "TSV file containing DataObject URLs"},
+        status.HTTP_204_NO_CONTENT: {"description": "No DataObject URLs found matching the specified criteria"},
+        status.HTTP_403_FORBIDDEN: {"description": "User is not authorized to access this resource"},
+    }
 )
 def get_data_object_report(
     user: User = Depends(get_current_active_user),
