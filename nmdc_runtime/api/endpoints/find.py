@@ -138,7 +138,8 @@ def get_data_object_report(
     mdb: MongoDatabase = Depends(get_mongo_db),
     prefix: str = Query(
         "",
-        description="If not empty, the file will include only the URLs that begin with this prefix",
+        description="A prefix, if any, a URL must begin with in order to be included in the report",
+        example="https://data.microbiomedata.org",
     ),
 ):
     if not is_admin(user):
@@ -147,23 +148,28 @@ def get_data_object_report(
             detail="Only Runtime administrators can access this resource.",
         )
 
-    # Get the URL of every `DataObject` that is the output of any `WorkflowExecution`.
+    # Get the URL of every `DataObject` that is the output of any `WorkflowExecution` and has a URL;
+    # filtering out URLs that don't begin with the specified prefix (if one was specified).
     data_object_urls = set()
     wfe_output_ids = mdb.workflow_execution_set.distinct("has_output")
-    for data_object in mdb.data_object_set.find({"id": {"$in": wfe_output_ids}}):
-        if "url" in data_object and len(data_object["url"].strip()) > 0:
-            if len(prefix.strip()) > 0:
-                if data_object["url"].startswith(prefix):
-                    data_object_urls.add(data_object["url"])
-            else:
-                data_object_urls.add(data_object["url"])
+    for data_object in mdb.data_object_set.find(
+        {
+            "id": {"$in": wfe_output_ids},
+            "url": {"$exists": True, "$type": "string"}
+        }
+    ):
+        if len(prefix) == 0 or data_object["url"].startswith(prefix):
+            data_object_urls.add(data_object["url"])
 
-    # Build the report as an in-memory TSV "file" (buffer).
+    # If no such URLs were found (e.g. if the prefix was "foobar"), return an HTTP 204 response.
+    if len(data_object_urls) == 0:
+        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+
+    # Build the report as an in-memory TSV "file" (buffer), with one URL per row.
     # Reference: https://docs.python.org/3/library/csv.html#csv.writer
-    data_rows = [[url] for url in sorted(data_object_urls)]
     buffer = StringIO()
     writer = csv.writer(buffer, delimiter="\t", lineterminator="\n")
-    writer.writerows(data_rows)
+    writer.writerows([[url] for url in sorted(data_object_urls)])
 
     # Reset the buffer's internal file pointer to the beginning of the buffer, so that,
     # when we stream the buffer's contents later, all of its contents are included.
