@@ -1,5 +1,6 @@
 import csv
 import logging
+import re
 from io import StringIO
 from typing import Annotated
 
@@ -161,11 +162,13 @@ def get_data_object_report(
     # filtering out URLs that don't begin with the specified prefix (if one was specified).
     data_object_urls = set()
     wfe_output_ids = mdb.workflow_execution_set.distinct("has_output")
-    for data_object in mdb.data_object_set.find(
-        {"id": {"$in": wfe_output_ids}, "url": {"$exists": True, "$type": "string"}}
-    ):
-        if len(prefix) == 0 or data_object["url"].startswith(prefix):
-            data_object_urls.add(data_object["url"])
+    url_filter = {"$exists": True, "$type": "string"}
+    if len(prefix) > 0:
+        # Note: We use `re.escape()` to ensure that characters like "?", "+", etc., get compared
+        #       verbatim, regardless of any special meaning they might have in regex.
+        url_filter["$regex"] = f"^{re.escape(prefix)}"
+    for data_object in mdb.data_object_set.find({"id": {"$in": wfe_output_ids}, "url": url_filter}):
+        data_object_urls.add(data_object["url"])
 
     # If no such URLs were found (e.g. if the prefix was "foobar"), return an HTTP 204 response.
     if len(data_object_urls) == 0:
