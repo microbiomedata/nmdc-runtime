@@ -155,7 +155,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 # TODO: Consider using the normal "allowance" system instead of relying on a special site.
 def check_can_create_user(requester: User):
-    if "nmdc-runtime-useradmin" not in requester.site_admin:
+    if not is_admin(requester):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="only admins for site nmdc-runtime-useradmin are allowed to create users.",
