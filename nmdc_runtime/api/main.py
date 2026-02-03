@@ -1,4 +1,5 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from html import escape
 from importlib import import_module
@@ -8,20 +9,21 @@ from pathlib import Path
 
 import fastapi
 import requests
+import sentry_sdk
 import uvicorn
-from fastapi import APIRouter, FastAPI, Cookie
+from fastapi import APIRouter, FastAPI, Cookie, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
-from starlette import status
-from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 from refscan.lib.helpers import get_collection_names_from_schema
 from scalar_fastapi import get_scalar_api_reference
+from starlette import status
+from starlette.responses import RedirectResponse, HTMLResponse, FileResponse
 
 from nmdc_runtime import config
+from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
 from nmdc_runtime.api.analytics import Analytics
 from nmdc_runtime.api.middleware import PyinstrumentMiddleware
-from nmdc_runtime.config import IS_SCALAR_ENABLED
 from nmdc_runtime.util import (
     decorate_if,
     get_allowed_references,
@@ -36,6 +38,7 @@ from nmdc_runtime.api.core.auth import (
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints import (
+    allowances,
     capabilities,
     find,
     jobs,
@@ -55,7 +58,8 @@ from nmdc_runtime.api.endpoints import (
 from nmdc_runtime.api.endpoints.util import BASE_URL_EXTERNAL
 from nmdc_runtime.api.models.site import SiteClientInDB, SiteInDB
 from nmdc_runtime.api.models.user import UserInDB
-from nmdc_runtime.api.models.util import entity_attributes_to_index
+from nmdc_runtime.api.models.util import HealthResponse, entity_attributes_to_index
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.openapi import (
     OpenAPITag,
     ordered_tag_descriptors,
@@ -64,6 +68,27 @@ from nmdc_runtime.api.openapi import (
 from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
+
+
+# If the app is configured to use Sentry, initialize the Sentry SDK now.
+#
+# Note: The FastAPI integration will be automatically enabled, since we list `fastapi`
+#       as a dependency in `pyproject.toml`. If we eventually decide to configure the
+#       integration differently from its defaults, we can follow the instructions at:
+#       https://docs.sentry.io/platforms/python/integrations/fastapi/#configure
+#
+if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
+    logging.info(
+        f"Initializing Sentry SDK (Sentry environment: {config.SENTRY_ENVIRONMENT})."
+    )
+    logging.debug(f"Sentry traces sample rate: {config.SENTRY_TRACES_SAMPLE_RATE}")
+    logging.debug(f"Sentry profiles sample rate: {config.SENTRY_PROFILES_SAMPLE_RATE}")
+    sentry_sdk.init(
+        dsn=config.SENTRY_DSN,
+        environment=config.SENTRY_ENVIRONMENT,
+        traces_sample_rate=config.SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=config.SENTRY_PROFILES_SAMPLE_RATE,
+    )
 
 
 api_router = APIRouter()
@@ -83,6 +108,7 @@ api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
 api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
 api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
 api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
+api_router.include_router(allowances.router, tags=[OpenAPITag.USERS.value])
 
 
 def ensure_initial_resources_on_boot():
@@ -154,6 +180,21 @@ def ensure_type_field_is_indexed():
         mdb.get_collection(collection_name).create_index("type", background=True)
 
 
+def ensure_allowance_is_indexed():
+    """
+    Creates indexes in the `_runtime.api.allow` collection; specifically, of
+    the 'username' field, of the 'action' field, and of the combination of
+    those two fields.
+    """
+    mdb = get_mongo_db()
+    mdb["_runtime.api.allow"].create_index("username")
+    mdb["_runtime.api.allow"].create_index("action")
+    # ensure unique composite index on (username, action)
+    mdb["_runtime.api.allow"].create_index(
+        [("username", 1), ("action", 1)], unique=True
+    )
+
+
 def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
@@ -182,7 +223,7 @@ def ensure_attribute_indexes():
 
 def ensure_globus_tasks_id_is_indexed():
     """
-    Ensures that the `globus` collection has an index on its `task_id` field and that the index is unique.
+    Ensures that the `wf_file_staging.globus_tasks` collection has an index on its `task_id` field and that the index is unique.
     """
 
     mdb = get_mongo_db()
@@ -191,43 +232,44 @@ def ensure_globus_tasks_id_is_indexed():
     )
 
 
+def ensure_jgi_samples_id_is_indexed():
+    """
+    Ensures that the `wf_file_staging.jgi_samples` collection has an index on its `jdp_file_id` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb["wf_file_staging.jgi_samples"].create_index(
+        "jdp_file_id", background=True, unique=True
+    )
+
+
+def ensure_sequencing_project_name_is_indexed():
+    """
+    Ensures that the `wf_file_staging.sequencing_projects` collection has an index on its `sequencing_project_name` field and that the index is unique.
+    """
+
+    mdb = get_mongo_db()
+    mdb[WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value].create_index(
+        "sequencing_project_name", background=True, unique=True
+    )
+
+
 def ensure_default_api_perms():
     """
     Ensures that specific users (currently only "admin") are allowed to perform
     specific actions, and creates MongoDB indexes to speed up allowance queries.
-
     Note: If a MongoDB index already exists, the call to `create_index` does nothing.
     """
-
     db = get_mongo_db()
     if db["_runtime.api.allow"].count_documents({}):
         return
 
-    allowances = {
-        "/metadata/changesheets:submit": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:DeleteCommand)": [
-            "admin",
-        ],
-        "/queries:run(query_cmd:AggregateCommand)": [
-            "admin",
-        ],
-        "/metadata/json:submit": [
-            "admin",
-        ],
-        "/wf_file_staging": [
-            "admin",
-        ],
-    }
-    for doc in [
-        {"username": username, "action": action}
-        for action, usernames in allowances.items()
-        for username in usernames
-    ]:
-        db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
-        db["_runtime.api.allow"].create_index("username")
-        db["_runtime.api.allow"].create_index("action")
+    default_users = ["admin"]
+
+    for action in AllowanceAction:
+        for username in default_users:
+            doc = {"username": username, "action": action.value}
+            db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
 
 
 @asynccontextmanager
@@ -244,6 +286,9 @@ async def lifespan(app: FastAPI):
     ensure_type_field_is_indexed()
     ensure_default_api_perms()
     ensure_globus_tasks_id_is_indexed()
+    ensure_sequencing_project_name_is_indexed()
+    ensure_jgi_samples_id_is_indexed()
+    ensure_allowance_is_indexed()
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
@@ -265,6 +310,36 @@ async def get_versions():
         "fastapi": fastapi.__version__,
         "nmdc-schema": version("nmdc_schema"),
     }
+
+
+@api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
+def get_health(response: Response) -> HealthResponse:
+    r"""Get system health information."""
+
+    # Declare that our web server is healthy.
+    is_web_server_healthy = True
+
+    # Check whether our database connection is healthy (i.e. we see a "known-to-exist" collection).
+    collection_name = "_runtime.api.allow"
+    try:
+        mdb = get_mongo_db()
+        collection_names = mdb.list_collection_names(filter={"name": collection_name})
+        is_database_healthy = collection_name in collection_names
+    except Exception:
+        is_database_healthy = False
+
+    # Set the HTTP response code accordingly.
+    response.status_code = (
+        status.HTTP_200_OK
+        if all([is_database_healthy, is_web_server_healthy])
+        else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
+
+    # Return a health response.
+    return HealthResponse(
+        web_server=is_web_server_healthy,
+        database=is_database_healthy,
+    )
 
 
 # Build an ORCID Login URL for the Swagger UI page, based upon some environment variables.
@@ -312,7 +387,9 @@ async def favicon():
     return FileResponse(favicon_path)
 
 
-@decorate_if(condition=IS_SCALAR_ENABLED)(app.get("/scalar", include_in_schema=False))
+@decorate_if(condition=config.IS_SCALAR_ENABLED)(
+    app.get("/scalar", include_in_schema=False)
+)
 async def get_scalar_html():
     r"""
     Returns the HTML markup for an interactive API docs web page

@@ -71,6 +71,14 @@ class NCBISubmissionXML:
             element.append(child)
         return element
 
+    def _has_insdc_biosample_identifier(self, biosample: dict) -> bool:
+        """
+        Check if a biosample has INSDC biosample identifiers asserted.
+        Returns True if the biosample has insdc_biosample_identifiers field with values.
+        """
+        insdc_ids = biosample.get("insdc_biosample_identifiers", [])
+        return isinstance(insdc_ids, list) and len(insdc_ids) > 0
+
     def set_description(self, email, first, last, org, date=None):
         date = date or datetime.datetime.now().strftime("%Y-%m-%d")
         description = self.set_element(
@@ -191,6 +199,13 @@ class NCBISubmissionXML:
 
         # Process pooled sample groups - create one <Action> block per pooling process
         for pooling_process_id, group_data in pooling_groups.items():
+            # Skip if any biosample in the pool has INSDC identifiers
+            if any(
+                self._has_insdc_biosample_identifier(biosample)
+                for biosample in group_data["biosamples"]
+            ):
+                continue
+
             self._create_pooled_biosample_action(
                 group_data["biosamples"],
                 group_data["pooling_info"],
@@ -203,6 +218,10 @@ class NCBISubmissionXML:
 
         # Process individual biosamples
         for biosample in individual_biosamples:
+            # Skip if biosample has INSDC identifiers
+            if self._has_insdc_biosample_identifier(biosample):
+                continue
+
             attributes = {}
             sample_id_value = None
             env_package = None
@@ -385,6 +404,9 @@ class NCBISubmissionXML:
                             "Attribute", attributes[key], {"attribute_name": key}
                         )
                         for key in sorted(attributes)
+                        if not (
+                            key == "soil_horizon" and attributes[key] == "M horizon"
+                        )
                     ]
                     + [
                         self.set_element(
@@ -497,6 +519,10 @@ class NCBISubmissionXML:
 
                         formatted_value = handler(item)
 
+                        # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                        if json_key == "geo_loc_name":
+                            formatted_value = unidecode(formatted_value)
+
                         # For pooled samples, we typically want the first value or aggregate appropriately
                         if xml_key not in aggregated_attributes:
                             aggregated_attributes[xml_key] = formatted_value
@@ -520,6 +546,13 @@ class NCBISubmissionXML:
                     if "term" in value and "id" in value["term"]:
                         value = re.findall(r"\d+", value["term"]["id"].split(":")[1])[0]
                     aggregated_attributes[xml_key] = value
+                    continue
+
+                # Special handling for "geo_loc_name" - convert unicode to closest ASCII characters
+                if json_key == "geo_loc_name":
+                    formatted_value = handler(value)
+                    formatted_value = unidecode(formatted_value)
+                    aggregated_attributes[xml_key] = formatted_value
                     continue
 
                 formatted_value = handler(value)
@@ -627,6 +660,10 @@ class NCBISubmissionXML:
                         "Attribute", filtered_attributes[key], {"attribute_name": key}
                     )
                     for key in sorted(filtered_attributes)
+                    if not (
+                        key == "soil_horizon"
+                        and filtered_attributes[key] == "M horizon"
+                    )
                 ]
                 + [
                     self.set_element(

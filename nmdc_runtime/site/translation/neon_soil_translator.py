@@ -14,7 +14,7 @@ from nmdc_runtime.site.translation.neon_utils import (
     _create_quantity_value,
     _create_timestamp_value,
     _create_text_value,
-    _create_double_value,
+    _create_float_value,
 )
 
 
@@ -176,7 +176,7 @@ class NeonSoilDataTranslator(Translator):
             carb_nitro_ratio=_create_quantity_value(
                 biosample_row["CNratio"].values[0], "ratio"
             ),
-            ph=_create_double_value(biosample_row["soilInWaterpH"].values[0]),
+            ph=_create_float_value(biosample_row["soilInWaterpH"].values[0]),
             water_content=(
                 [f"{biosample_row['soilMoisture'].values[0]} g of water/g of dry soil"]
                 if not biosample_row["soilMoisture"].isna().any()

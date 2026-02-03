@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 
 import pytest
 import requests
-from _pytest.fixtures import FixtureRequest
 from dagster import build_op_context
 from nmdc_runtime.config import IS_LINKED_INSTANCES_ENDPOINT_ENABLED
 from starlette import status
@@ -24,6 +23,7 @@ from nmdc_runtime.api.models.job import Job, JobOperationMetadata
 from nmdc_runtime.api.models.metadata import ChangesheetIn
 from nmdc_runtime.api.models.site import SiteInDB, SiteClientInDB
 from nmdc_runtime.api.models.user import UserInDB, UserIn, User
+from nmdc_runtime.api.models.wfe_file_stages import WorkflowFileStagingCollectionName
 from nmdc_runtime.site.ops import materialize_alldocs
 from nmdc_runtime.site.repository import run_config_frozen__normal_env
 from nmdc_runtime.site.resources import (
@@ -3363,7 +3363,7 @@ def test_create_globus_task(api_user_client):
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
     globus = mdb.get_collection("wf_file_staging.globus_tasks")
 
-    # Generate a `globus` record to act as the request payload.
+    # Generate a `jgi_sample` dictionary to act as the request payload.
     faker = Faker()
     globus_records = faker.generate_globus_tasks(1)
     seeded_record = globus_records[0]
@@ -3382,3 +3382,229 @@ def test_create_globus_task(api_user_client):
     # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
+
+def test_get_jgi_samples(api_user_client):
+    """Test retrieving all JGI samples via GET /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Seed the `jgi_samples` collection with some documents.
+    faker = Faker()
+    jgi_sample_records = faker.generate_jgi_samples(3)
+    jgi_samples.insert_many(jgi_sample_records)
+    seeded_record = jgi_sample_records[0]
+    response = api_user_client.request(
+        "GET",
+        f"/wf_file_staging/jgi_samples",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_records = response.json()
+    assert len(retrieved_records["resources"]) == 3
+    assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["resources"][0]["jdp_file_status"] == seeded_record["jdp_file_status"]
+
+    # Clean up: Delete the inserted allowance.
+    allowances_collection.delete_many(allow_spec)
+    # delete all inserted records
+    jgi_samples.delete_many({})
+
+def test_create_jgi_sample(api_user_client):
+    """Test creating a new JGI sample via POST /wf_file_staging/jgi_samples endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Generate a `wf_file_staging.jgi_samples` record to act as the request payload.
+    faker = Faker()
+    jgi_samples = faker.generate_jgi_samples(1)
+    seeded_record = jgi_samples[0]
+    response = api_user_client.request(
+        "POST",
+        f"/wf_file_staging/jgi_samples",
+        seeded_record,
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == 201
+    retrieved_records = response.json()
+    assert retrieved_records["jdp_file_id"] == seeded_record["jdp_file_id"]
+    assert retrieved_records["jdp_file_status"] == seeded_record["jdp_file_status"]
+
+    # Clean up: Delete the inserted data.
+    allowances_collection.delete_many(allow_spec)
+    jgi_samples_collection.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
+
+def test_create_multiple_jgi_samples(api_user_client):
+    """
+    Test creating multiple JGI samples via POST /wf_file_staging/jgi_samples endpoint. 
+    This is to test the validation in the endpoint.
+    """
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    jgi_samples_collection = mdb.get_collection("wf_file_staging.jgi_samples")
+
+    # Generate multiple `wf_file_staging.jgi_samples` records
+    faker = Faker()
+    jgi_samples = faker.generate_jgi_samples(3)
+    for record in jgi_samples:
+        response = api_user_client.request(
+            "POST",
+            f"/wf_file_staging/jgi_samples",
+            record,
+        )
+
+        # Verify the response indicates success and its payload matches the seeded record.
+        assert response.status_code == 201
+        retrieved_records = response.json()
+        assert retrieved_records["jdp_file_id"] == record["jdp_file_id"]
+        assert retrieved_records["jdp_file_status"] == record["jdp_file_status"]
+    
+    assert jgi_samples_collection.count_documents({}) == 3
+    # Clean up: Delete the inserted data.
+    allowances_collection.delete_many(allow_spec)
+    jgi_samples_collection.delete_many({})
+
+
+def test_create_sequencing_project_record(api_user_client):
+    """Test creating a new Sequencing Project record via POST /sequencing_projects endpoint."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+
+    # Create a `JGISequencingProject` dictionary to act as the request payload.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(4)
+    sequencing_project_to_create = sequencing_project_records[0]
+
+    # Confirm a `JGISequencingProject` having the name we're about to use doesn't already exist.
+    # TODO: What does the developer expect to happen when multiple `JGISequencingProject`s have the same `sequencing_project_name` value?
+    sequencing_projects_collection = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
+    assert sequencing_projects_collection.count_documents({
+        "sequencing_project_name": sequencing_project_to_create["sequencing_project_name"]
+    }) == 0
+
+    # Use the endpoint-under-test to insert the `JGISequencingProject`.
+    response = api_user_client.request(
+        "POST",
+        "/wf_file_staging/jgi_sequencing_projects",
+        sequencing_project_to_create,
+    )
+
+    # Verify the response indicates success and its payload reflects the request payload.
+    assert response.status_code == status.HTTP_201_CREATED
+    retrieved_records = response.json()
+    assert retrieved_records["sequencing_project_name"] == sequencing_project_to_create["sequencing_project_name"]
+    assert retrieved_records["jgi_proposal_id"] == sequencing_project_to_create["jgi_proposal_id"]
+    assert retrieved_records["nmdc_study_id"] == sequencing_project_to_create["nmdc_study_id"]
+    assert retrieved_records["sequencing_project_description"] == sequencing_project_to_create["sequencing_project_description"]
+
+    # Clean up: Delete the allowance and the `JGISequencingProject`.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_projects_collection.delete_many({"sequencing_project_name": sequencing_project_to_create["sequencing_project_name"]})
+
+
+def test_get_sequencing_project_by_name(api_user_client):
+    """Test retrieving a `JGISequencingProject` by its `sequencing_project_name` value."""
+
+    # TODO: What does the developer expect to happen when multiple `JGISequencingProject`s have the same `sequencing_project_name` value?
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    sequencing_projects_collection = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
+
+    # Seed the sequencing projects collection with a document having a specific name.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(1)
+    sequencing_projects_collection.insert_many(sequencing_project_records)
+    seeded_record = sequencing_project_records[0]
+    sequencing_project_name = seeded_record['sequencing_project_name']
+
+    # Retrieve the `JGISequencingProject` via the endpoint-under-test.
+    response = api_user_client.request(
+        "GET", 
+        f"/wf_file_staging/jgi_sequencing_projects/{sequencing_project_name}",
+    )
+
+    # Verify the response indicates success and its payload matches the seeded record.
+    assert response.status_code == status.HTTP_200_OK
+    retrieved_record = response.json()
+    assert retrieved_record["sequencing_project_name"] == seeded_record["sequencing_project_name"]
+    assert retrieved_record["sequencing_project_description"] == seeded_record["sequencing_project_description"]
+    assert retrieved_record["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
+    assert retrieved_record["nmdc_study_id"] == seeded_record["nmdc_study_id"]
+
+    # Clean up: Delete the allowance and the `JGISequencingProject`.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_projects_collection.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
+
+
+def test_get_sequencing_project_records(api_user_client):
+    """Test retrieving all JGISequencingProjects."""
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/wf_file_staging",
+    }
+    allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
+    sequencing_project = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
+
+    # Seed the sequencing projects collection with some documents.
+    faker = Faker()
+    sequencing_project_records = faker.generate_sequencing_projects(3)
+    sequencing_project.insert_many(sequencing_project_records)
+    seeded_record = sequencing_project_records[0]
+
+    # Retrieve all `JGISequencingProject` records via the endpoint-under-test.
+    response = api_user_client.request(
+        "GET",
+        "/wf_file_staging/jgi_sequencing_projects",
+    )
+
+    # Verify the response indicates success and its payload reflects the seeded data.
+    assert response.status_code == status.HTTP_200_OK
+    response_payload = response.json()
+    retrieved_records = response_payload["resources"]
+    assert len(retrieved_records) == 3
+
+    # Verify that all seeded records are present in the retrieved records (although
+    # we do not know the order in which we will have retrieved them).
+    seeded_names = {item["sequencing_project_name"] for item in sequencing_project_records}
+    retrieved_names = {item["sequencing_project_name"] for item in retrieved_records}
+    assert seeded_names == retrieved_names
+
+    # Clean up: Delete the inserted allowance and the `JGISequencingProject`.
+    allowances_collection.delete_many(allow_spec)
+    sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})

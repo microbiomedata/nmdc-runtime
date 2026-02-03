@@ -9,7 +9,7 @@ from pymongo.database import Database as MongoDatabase
 from toolz import merge
 
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.core.util import now, raise404_if_none, pick
+from nmdc_runtime.api.core.util import now, now_str, raise404_if_none, pick
 from nmdc_runtime.api.models.user import User
 
 PRODUCER_URL_BASE_DEFAULT = (
@@ -90,7 +90,7 @@ def _add_run_requested_event(run_spec: RunUserSpec, mdb: MongoDatabase, user: Us
             {"producer": PRODUCER_URL, "schemaURL": SCHEMA_URL},
         ),
         type=RunEventType.REQUESTED,
-        time=now(as_str=True),
+        time=now_str(),
         inputs=run_spec.inputs,
     )
     mdb.run_events.insert_one(event.model_dump())
@@ -112,7 +112,7 @@ def _add_run_started_event(run_id: str, mdb: MongoDatabase):
             run=requested.run,
             job=requested.job,
             type=RunEventType.STARTED,
-            time=now(as_str=True),
+            time=now_str(),
         ).model_dump()
     )
     return run_id
@@ -133,7 +133,7 @@ def _add_run_fail_event(run_id: str, mdb: MongoDatabase):
             run=requested.run,
             job=requested.job,
             type=RunEventType.FAIL,
-            time=now(as_str=True),
+            time=now_str(),
         ).model_dump()
     )
     return run_id
@@ -154,7 +154,7 @@ def _add_run_complete_event(run_id: str, mdb: MongoDatabase, outputs: List[str])
             run=started.run,
             job=started.job,
             type=RunEventType.COMPLETE,
-            time=now(as_str=True),
+            time=now_str(),
             outputs=outputs,
         ).model_dump()
     )

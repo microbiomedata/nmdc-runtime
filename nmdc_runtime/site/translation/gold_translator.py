@@ -1,6 +1,7 @@
 import collections
 import re
 from typing import List, Tuple, Union
+
 from nmdc_schema import nmdc
 import pandas as pd
 
@@ -325,14 +326,14 @@ class GoldStudyTranslator(Translator):
             elif minimum_numeric_value is not None and maximum_numeric_value is None:
                 return nmdc.QuantityValue(
                     has_raw_value=minimum_numeric_value,
-                    has_numeric_value=nmdc.Double(minimum_numeric_value),
+                    has_numeric_value=nmdc.Decimal(minimum_numeric_value),
                     has_unit=unit,
                     type="nmdc:QuantityValue",
                 )
             else:
                 return nmdc.QuantityValue(
-                    has_minimum_numeric_value=nmdc.Double(minimum_numeric_value),
-                    has_maximum_numeric_value=nmdc.Double(maximum_numeric_value),
+                    has_minimum_numeric_value=nmdc.Decimal(minimum_numeric_value),
+                    has_maximum_numeric_value=nmdc.Decimal(maximum_numeric_value),
                     has_unit=unit,
                     type="nmdc:QuantityValue",
                 )

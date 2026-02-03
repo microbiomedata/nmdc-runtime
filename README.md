@@ -113,6 +113,8 @@ The following command could be useful to you, either directly or as a template (
 make nersc-mongo-tunnels
 ```
 
+**Before you spin up the stack**, consider customizing the base site's site client credentials as described in the section below. Note that the default credentials are sufficient for most developers.
+
 Finally, spin up the Docker Compose stack.
 
 ```bash
@@ -126,6 +128,31 @@ The Dagit web server is viewable at http://127.0.0.1:3000/.
 
 The FastAPI service is viewable at http://127.0.0.1:8000/ -- e.g., rendered documentation at
 http://127.0.0.1:8000/redoc/.
+
+### (Optional) Customize the base site's site client credentials
+
+Some environment variables in the `.env` file are only processed during the first boot of the FastAPI container; e.g., the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables, which dictate the credentials of the base site's site client.
+
+To people who want the base site's site client credentials to have specific values (e.g., to match something in a dependent application), we recommend customizing those environment variables **before** starting up the FastAPI container.
+
+In case you have already started up the FastAPI container (this is common), all is not lost! You can still customize the credentials—here's how:
+
+1. Stop the containers that depend upon Mongo: `$ docker compose stop fastapi dagster-daemon dagster-dagit`
+2. Use a Mongo client (e.g. MongoDB Compass) to connect to the Mongo server running in the `mongo` container.
+3. Use that Mongo client to delete the base site from the `sites` collection in the `nmdc` database.
+
+   ```js
+   // Replace "site-id" with the ID of the base site, which you can get
+   // from the `API_SITE_ID` environment variable in your `.env` file.
+   db.getCollection("sites").deleteOne({
+      id: "site-id",  // e.g. "nmdc-runtime"
+   });
+   ```
+
+4. Customize the `API_SITE_CLIENT_ID` and `API_SITE_CLIENT_SECRET` environment variables in your `.env` file.
+5. Restart the containers you stopped earlier: `$ docker compose start fastapi dagster-daemon dagster-dagit`
+
+When the FastAPI application starts up, it will create a site client having the specified `client_id` and `client_secret`.
 
 ### Dependency management
 

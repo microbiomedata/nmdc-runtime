@@ -202,9 +202,9 @@ def get_data_object_report(
     description=(
         "Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
         "<br /><br />"  # newlines
-        "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
+        "**Note:** The data returned by this API endpoint can be up to 60 minutes out of date "
         "with respect to the NMDC database. That's because the cache that underlies this API "
-        "endpoint gets refreshed to match the NMDC database once every 24 hours."
+        "endpoint gets refreshed to match the NMDC database once every 60 minutes."
     ),
 )
 def find_data_objects_for_study(
@@ -406,9 +406,9 @@ def find_planned_process_by_id(
         "(e) all the other `WorkflowExecution`s that are part of the same processing pipeline "
         "as the specified `WorkflowExecution`."
         "<br /><br />"  # newlines
-        "**Note:** The data returned by this API endpoint can be up to 24 hours out of date "
+        "**Note:** The data returned by this API endpoint can be up to 60 minutes out of date "
         "with respect to the NMDC database. That's because the cache that underlies this API "
-        "endpoint gets refreshed to match the NMDC database once every 24 hours."
+        "endpoint gets refreshed to match the NMDC database once every 60 minutes."
     ),
 )
 def find_related_objects_for_workflow_execution(

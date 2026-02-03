@@ -643,9 +643,15 @@ def add_public_image_urls(
 ) -> nmdc.Database:
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
 
-    if len(database.study_set) != 1:
-        raise Failure(
-            description="Expected exactly one study in the database to add public image URLs."
+    if database.study_set is None or len(database.study_set) == 0:
+        context.log.info(
+            "No studies in nmdc.Database; skipping public image URL addition."
+        )
+        return database
+
+    if len(database.study_set) > 1:
+        context.log.warning(
+            "Multiple studies in nmdc.Database; only adding public image URLs for the first study."
         )
 
     study_id = database.study_set[0].id
@@ -1084,6 +1090,11 @@ def _add_linked_instances_to_alldocs(
         "has_output",  # when a `nmdc:NamedThing` is downstream of a `nmdc:PlannedProcess`.
         "in_manifest",  # when a `nmdc:Manifest` is downstream of a `nmdc:DataObject`.
         "uses_calibration",  # when a `nmdc:CalibrationInformation`is part of a `nmdc:PlannedProcess`.
+        # Note: I don't think of superseding something as being either upstream or downstream of that thing;
+        #       but this function requires every document-reference-ranged slot to be accounted for in one
+        #       list or the other, and the superseding thing does arise _later_ than the thing it supersedes,
+        #       so I have opted to treat the superseding thing as being downstream.
+        "superseded_by",  # when a `nmdc:WorkflowExecution` or `nmdc:DataObject` is superseded by a `nmdc:WorkflowExecution`.
     ]
 
     unique_document_reference_ranged_slot_names = set()
@@ -1177,9 +1188,8 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     6. Add indexes for `id`, relationship fields, and `{_upstream,_downstream}{.id,(.type, .id)}` (compound) indexes.
     7. Finally, atomically replace the existing `alldocs` collection with the temporary one.
 
-    The `alldocs` collection is scheduled to be updated daily via a scheduled job defined as
-    `nmdc_runtime.site.repository.ensure_alldocs_daily`. The collection is also updated as part of various workflows,
-    such as when applying a changesheet or metadata updates (see `nmdc_runtime.site.graphs`).
+    The `alldocs` collection is scheduled to be updated hourly via a scheduled job defined as
+    `nmdc_runtime.site.repository.ensure_alldocs_hourly`.
 
     The `alldocs` collection is used primarily by API endpoints like `/data_objects/study/{study_id}` and
     `/workflow_executions/{workflow_execution_id}/related_resources` that need to perform graph traversal to find

@@ -54,9 +54,10 @@ dependencies = [
     "linkml-runtime",
     "lxml",
     "ontology-loader == 0.2.2",
-    # We use `nmdc-schema` to interpret the data residing in the MongoDB database.
+    # We use `nmdc-schema` to interpret data residing in—and validate data
+    # destined for—the NMDC database (i.e. the MongoDB database named `nmdc`).
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema==11.12.1",
+    "nmdc-schema==11.15.1",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",
@@ -77,6 +78,9 @@ dependencies = [
     # Note: We use `scalar-fastapi` to integrate Scalar API documentation with FastAPI.
     #       Reference: https://pypi.org/project/scalar-fastapi/
     "scalar-fastapi >= 1.4.1, < 2.0.0",
+    # Note: We use `sentry-sdk[fastapi]` to facilitate communication with Sentry.
+    #       Docs: https://docs.sentry.io/platforms/python/integrations/fastapi/
+    "sentry-sdk[fastapi] >= 2.0.0, < 3.0.0",
     "tenacity",
     "toolz",
     "tqdm",

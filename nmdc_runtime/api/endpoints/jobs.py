@@ -7,14 +7,14 @@ from pymongo.database import Database
 from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
-
 from nmdc_runtime.api.core.util import (
     raise404_if_none,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.core.idgen import generate_one_id
-from nmdc_runtime.api.endpoints.util import list_resources, _claim_job
+from nmdc_runtime.api.endpoints.util import list_resources, _claim_job, strip_oid
 from nmdc_runtime.api.models.job import Job, JobClaim, JobIn
+from nmdc_runtime.api.models.metadata import Doc
 from nmdc_runtime.api.models.operation import Operation, MetadataT
 from nmdc_runtime.api.models.site import (
     Site,
@@ -26,8 +26,11 @@ from nmdc_runtime.api.models.util import ListRequest, ListResponse, ResultT
 router = APIRouter()
 
 
+# Note: We use the generic `Doc` class—instead of the `Job` class—to describe the response
+#       because this endpoint (via `ListRequest`) supports projection, which can be used to omit
+#       fields from the response, even fields the `Job` class says are required.
 @router.get(
-    "/jobs", response_model=ListResponse[Job], response_model_exclude_unset=True
+    "/jobs", response_model=ListResponse[Doc], response_model_exclude_unset=True
 )
 def list_jobs(
     req: Annotated[ListRequest, Query()],
@@ -42,12 +45,15 @@ def list_jobs(
     """
     if isinstance(maybe_site, Site) and req.filter is None:
         req.filter = json.dumps({"claims.site_id": {"$ne": maybe_site.id}})
-    return list_resources(req, mdb, "jobs")
+    rv = list_resources(req, mdb, "jobs")
+    rv["resources"] = [strip_oid(d) for d in rv["resources"]]
+    return rv
 
 
 @router.post(
     "/jobs",
     status_code=status.HTTP_201_CREATED,
+    response_model_exclude_unset=True,
 )
 def create_job(
     job_in: JobIn,
@@ -70,21 +76,22 @@ def create_job(
     # Generate a timestamp for the job's `created_at` field.
     created_at = datetime.now(timezone.utc)
 
-    # Validate the job.
+    # Validate the request payload, combined with the generated ID and timestamp.
+    job_in_dict: dict = job_in.model_dump(exclude_unset=True)
     try:
-        job_in_dict = job_in.model_dump()
-        job = Job(**job_in_dict, id=job_id, created_at=created_at)
+        validated_job = Job(**job_in_dict, id=job_id, created_at=created_at)
     except Exception as e:
-        error_message = str(e)
+        error_message = f"Invalid job. Details: {str(e)}"
+        logging.warning(error_message)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid job. Details: {error_message}",
+            detail=error_message,
         )
 
-    # Insert the job into the database.
+    # Insert the validated job into the database.
+    validated_job_dict: dict = validated_job.model_dump(exclude_unset=True)
     try:
-        job_dict = job.model_dump(exclude_unset=True)
-        result = mdb.jobs.insert_one(job_dict)
+        result = mdb.jobs.insert_one(validated_job_dict)
         if not result.inserted_id:
             raise Exception("Failed to insert job into database.")
     except Exception as e:
@@ -94,8 +101,8 @@ def create_job(
             detail="Failed to create job.",
         )
 
-    # Return the job that was created.
-    return job
+    # Return the job that was created (i.e. inserted into the database).
+    return validated_job
 
 
 @router.get("/jobs/{job_id}", response_model=Job, response_model_exclude_unset=True)
