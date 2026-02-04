@@ -1,7 +1,11 @@
+import csv
 import logging
+import re
+from io import StringIO
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
 from nmdc_schema.get_nmdc_view import ViewGetter
@@ -12,12 +16,14 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
 )
 from nmdc_runtime.api.endpoints.nmdcschema import get_linked_instances
+from nmdc_runtime.api.endpoints.users import is_admin
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
     strip_oid,
     find_resources_spanning,
 )
 from nmdc_runtime.api.models.metadata import Doc
+from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
@@ -120,6 +126,92 @@ def find_data_objects(
     attributes.
     """
     return find_resources(req, mdb, "data_object_set")
+
+
+@router.get(
+    "/admin/data_object_urls",
+    status_code=status.HTTP_200_OK,
+    name="Get Data Object URLs",
+    description="(Admins only) Download a TSV-formatted report consisting of the distinct URLs of all `DataObject`s that are outputs of any `WorkflowExecution`s.",
+    responses={
+        status.HTTP_200_OK: {"description": "TSV file containing DataObject URLs"},
+        status.HTTP_204_NO_CONTENT: {
+            "description": "No DataObject URLs found meet the specified criteria"
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "description": "User is not authorized to access this resource"
+        },
+    },
+)
+def get_data_object_report(
+    user: User = Depends(get_current_active_user),
+    mdb: MongoDatabase = Depends(get_mongo_db),
+    prefix: str = Query(
+        "",
+        description="A prefix, if any, a URL must begin with in order to be included in the report",
+        example="https://data.microbiomedata.org",
+    ),
+):
+    if not is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Runtime administrators can access this resource.",
+        )
+
+    # Get the URL of every `DataObject` that is the output of any `WorkflowExecution` and has a URL;
+    # filtering out URLs that don't begin with the specified prefix (if one was specified).
+    #
+    # Note: We use an aggregation pipeline instead of `distinct()` because the latter has a
+    #       16 MB limit on the size of the result set, whereas the former does not.
+    #
+    data_object_urls = set()
+    wfe_output_id_docs = mdb.workflow_execution_set.aggregate(
+        [
+            # Split each element of each `has_output` array into its own document
+            # whose `has_output` field consists of that element.
+            # Example: {"has_output": "nmdc:dobj-00-0001"}, {"has_output": "nmdc:dobj-00-0002"}, etc.
+            {"$unwind": "$has_output"},
+            # Group the resulting documents by their common `has_output` value,
+            # so we end up with one document per distinct `has_output` value.
+            # Example: {"_id": "nmdc:dobj-00-0001"}, {"_id": "nmdc:dobj-00-0002"}, etc.
+            {"$group": {"_id": "$has_output"}},
+        ]
+    )
+    wfe_output_ids = [doc["_id"] for doc in wfe_output_id_docs]
+    url_filter = {"$exists": True, "$type": "string"}
+    if len(prefix) > 0:
+        # Note: We use `re.escape()` to ensure that characters like "?", "+", etc., get compared
+        #       verbatim, regardless of any special meaning they might have in regex.
+        url_filter["$regex"] = f"^{re.escape(prefix)}"
+    for data_object in mdb.data_object_set.find(
+        filter={"id": {"$in": wfe_output_ids}, "url": url_filter},
+        projection={"url": True, "_id": False},
+    ):
+        data_object_urls.add(data_object["url"])
+
+    # If no such URLs were found (e.g. if the prefix was "foobar"), return an HTTP 204 response.
+    if len(data_object_urls) == 0:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    # Build the report as an in-memory TSV "file" (buffer), with one URL per row.
+    # Reference: https://docs.python.org/3/library/csv.html#csv.writer
+    buffer = StringIO()
+    writer = csv.writer(buffer, delimiter="\t", lineterminator="\n")
+    writer.writerows([[url] for url in sorted(data_object_urls)])
+
+    # Reset the buffer's internal file pointer to the beginning of the buffer, so that,
+    # when we stream the buffer's contents later, all of its contents are included.
+    buffer.seek(0)
+
+    # Stream the buffer's contents to the HTTP client as a downloadable TSV file.
+    filename = "data-object-urls.tsv"
+    response = StreamingResponse(
+        buffer,
+        media_type="text/tab-separated-values",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+    return response
 
 
 @router.get(

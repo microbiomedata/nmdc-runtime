@@ -155,11 +155,23 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 # TODO: Consider using the normal "allowance" system instead of relying on a special site.
 def check_can_create_user(requester: User):
-    if "nmdc-runtime-useradmin" not in requester.site_admin:
+    if not is_admin(requester):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="only admins for site nmdc-runtime-useradmin are allowed to create users.",
         )
+
+
+def is_admin(user: User):
+    """Checks whether the specified user is an admin of the Runtime."""
+
+    if isinstance(user.site_admin, list):
+        # Check whether the specified user is an admin of the special
+        # site whose administrators are all Runtime admins. This is
+        # what distinguishes a Runtime admin from a regular user.
+        special_site_name = "nmdc-runtime-useradmin"
+        return special_site_name in user.site_admin
+    return False
 
 
 @router.post(
