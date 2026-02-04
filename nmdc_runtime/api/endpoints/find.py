@@ -165,16 +165,18 @@ def get_data_object_report(
     #       16 MB limit on the size of the result set, whereas the former does not.
     #
     data_object_urls = set()
-    wfe_output_id_docs = mdb.workflow_execution_set.aggregate([
-        # Split each element of each `has_output` array into its own document
-        # whose `has_output` field consists of that element.
-        # Example: {"has_output": "nmdc:dobj-00-0001"}, {"has_output": "nmdc:dobj-00-0002"}, etc.
-        {"$unwind": "$has_output"},
-        # Group the resulting documents by their common `has_output` value,
-        # so we end up with one document per distinct `has_output` value.
-        # Example: {"_id": "nmdc:dobj-00-0001"}, {"_id": "nmdc:dobj-00-0002"}, etc.
-        {"$group": {"_id": "$has_output"}},
-    ])
+    wfe_output_id_docs = mdb.workflow_execution_set.aggregate(
+        [
+            # Split each element of each `has_output` array into its own document
+            # whose `has_output` field consists of that element.
+            # Example: {"has_output": "nmdc:dobj-00-0001"}, {"has_output": "nmdc:dobj-00-0002"}, etc.
+            {"$unwind": "$has_output"},
+            # Group the resulting documents by their common `has_output` value,
+            # so we end up with one document per distinct `has_output` value.
+            # Example: {"_id": "nmdc:dobj-00-0001"}, {"_id": "nmdc:dobj-00-0002"}, etc.
+            {"$group": {"_id": "$has_output"}},
+        ]
+    )
     wfe_output_ids = [doc["_id"] for doc in wfe_output_id_docs]
     url_filter = {"$exists": True, "$type": "string"}
     if len(prefix) > 0:
