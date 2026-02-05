@@ -96,7 +96,7 @@ services:
 
   # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
   mongo-init:
-    image: mongo:8.0.4
+    image: mongo:8.2.3
     volumes:
       - .docker/wait-for-it.sh:/wait-for-it.sh:ro
       - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
@@ -106,7 +106,7 @@ services:
 
   # MongoDB server used by the FastAPI application.
   mongo:
-    image: mongo:8.0.4
+    image: mongo:8.2.3
     ports:
       - "${TEST_STACK_HOST_MACHINE_PORT_MONGO}:27017"
     restart: unless-stopped
