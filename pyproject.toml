@@ -57,7 +57,7 @@ dependencies = [
     # We use `nmdc-schema` to interpret data residing in—and validate data
     # destined for—the NMDC database (i.e. the MongoDB database named `nmdc`).
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema==11.16.0",
+    "nmdc-schema==11.16.1",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",
