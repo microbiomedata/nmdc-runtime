@@ -234,7 +234,7 @@ def get_data_object_report(
     #       as opposed to the derived description that was written for an audience of `nmdc-runtime` developers.
     #
     description=(
-        "Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
+        "Gets all `DataObject`s related to all `Biosample`s associated with the specified `Study`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 60 minutes out of date "
         "with respect to the NMDC database. That's because the cache that underlies this API "
@@ -273,9 +273,19 @@ def find_data_objects_for_study(
         detail="Study not found",
     )
 
+    # Get the IDs of all the `Biosample`s associated with the specified `Study`.
+    # Note: Getting the IDs this way is much faster than doing it via `get_linked_instances`.
+    logging.info(f"Getting Biosamples associated with Study {study_id}")
+    biosample_ids = []
+    for doc in mdb.get_collection("biosample_set").find(
+        {"associated_studies": {"$in": [study_id]}}, {"id": 1, "_id": 0}
+    ):
+        biosample_ids.append(doc["id"])
+    logging.info(f"Found {len(biosample_ids)} Biosamples associated with Study {study_id}")
+
     # Use the `get_linked_instances` function—which is the function that
     # underlies the `/nmdcschema/linked_instances` API endpoint—to get all
-    # the `Biosample`s that are downstream of the specified `Study`.
+    # the `DataObject`s that are downstream of any of those `Biosample`s.
     #
     # Note: The `get_linked_instances` function requires that a `max_page_size`
     #       integer argument be passed in. In our case, we want to get _all_ of
@@ -289,18 +299,6 @@ def find_data_objects_for_study(
     #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
     #
     large_max_page_size: int = 1_000_000_000_000
-    linked_biosamples_result: dict = get_linked_instances(
-        ids=[study_id],
-        types=["nmdc:Biosample"],
-        hydrate=False,  # we'll only use their `id` values
-        page_token=None,
-        max_page_size=large_max_page_size,
-        mdb=mdb,
-    )
-    biosample_ids = [d["id"] for d in linked_biosamples_result.get("resources", [])]
-    logging.debug(f"Found {len(biosample_ids)} Biosamples for Study {study_id}")
-
-    # Get all the `DataObject`s that are downstream from any of those `Biosample`s.
     data_objects_by_biosample_id = {}
     linked_data_objects_result: dict = get_linked_instances(
         ids=biosample_ids,
@@ -310,6 +308,7 @@ def find_data_objects_for_study(
         max_page_size=large_max_page_size,
         mdb=mdb,
     )
+    logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects linked to those Biosamples")
     for data_object in linked_data_objects_result.get("resources", []):
         upstream_biosample_id = data_object["_downstream_of"][0]
         if upstream_biosample_id not in data_objects_by_biosample_id.keys():
