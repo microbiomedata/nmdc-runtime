@@ -6,6 +6,7 @@ This module houses logic for the `GET /nmdcschema/linked_instances` endpoint, de
 
 """
 
+import logging
 from datetime import timedelta
 from typing import Literal, Any
 
@@ -58,29 +59,31 @@ def gather_linked_instances(
     Run an aggregation pipeline over `alldocs_collection` that collects ∈`types` instances linked to `ids`.
     The pipeline is run twice, once for each of {"downstream", "upstream"} directions.
     """
-    merge_into_collection_name = temp_linked_instances_collection_name(
+    name_of_collection_to_merge_into = temp_linked_instances_collection_name(
         ids=ids, types=types
     )
     for direction in ["downstream", "upstream"]:
+        logging.info(f"Gathering {direction} linked instances...")
         _ = list(
             alldocs_collection.aggregate(
                 pipeline_for_direction(
                     ids=ids,
                     types=types,
                     direction=direction,
-                    merge_into_collection_name=merge_into_collection_name,
+                    name_of_collection_to_merge_into=name_of_collection_to_merge_into,
                 ),
                 allowDiskUse=True,
             )
         )
-    return merge_into_collection_name
+        logging.info(f"Done gathering {direction} linked instances.")
+    return name_of_collection_to_merge_into
 
 
 def pipeline_for_direction(
     ids: list[str],
     types: list[str],
     direction: Literal["downstream", "upstream"],
-    merge_into_collection_name: str,
+    name_of_collection_to_merge_into: str,
     alldocs_collection_name: str = "alldocs",
 ) -> list:
     """A pure function that returns the aggregation pipeline for `direction`.
@@ -98,7 +101,7 @@ def pipeline_for_direction(
     ) + [
         {"$project": {"id": 1, "type": 1, f"_{direction}_of": 1}},
         pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
-            merge_into_collection_name=merge_into_collection_name, direction=direction
+            name_of_collection_to_merge_into=name_of_collection_to_merge_into, direction=direction
         ),
     ]
 
@@ -138,7 +141,7 @@ def pipeline_for_instances_linked_to_ids_by_direction(
 
 
 def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
-    merge_into_collection_name: str,
+    name_of_collection_to_merge_into: str,
     direction: Literal["downstream", "upstream"],
 ) -> dict[str, Any]:
     """
@@ -147,7 +150,7 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
     """
     return {
         "$merge": {
-            "into": merge_into_collection_name,
+            "into": name_of_collection_to_merge_into,
             "on": "_id",
             "whenMatched": [
                 {

@@ -1,4 +1,5 @@
 from importlib.metadata import version
+import logging
 import re
 from typing import List, Dict, Annotated
 
@@ -264,16 +265,24 @@ def get_linked_instances(
             ),
         )
 
-    merge_into_collection_name = gather_linked_instances(
+    logging.info("Gathering linked instances...")
+    name_of_collection_to_merge_into = gather_linked_instances(
         alldocs_collection=mdb.alldocs, ids=ids, types=types
     )
+    logging.info(f"Gathered linked instances into collection: {name_of_collection_to_merge_into}")
 
+    logging.info("Listing linked instances...")
     rv = list_resources(
         ListRequest(page_token=page_token, max_page_size=max_page_size),
         mdb,
-        merge_into_collection_name,
+        name_of_collection_to_merge_into,
     )
+    logging.info("Listed linked instances.")
+
+    logging.info("Hydrating linked instances...")
     rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
+    logging.info("Hydrated linked instances.")
+
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 

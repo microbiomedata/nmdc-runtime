@@ -275,13 +275,13 @@ def find_data_objects_for_study(
 
     # Get the IDs of all the `Biosample`s associated with the specified `Study`.
     # Note: Getting the IDs this way is much faster than doing it via `get_linked_instances`.
-    logging.info(f"Getting Biosamples associated with Study {study_id}")
+    logging.info(f"Finding Biosamples associated with Study '{study_id}'")
     biosample_ids = []
     for doc in mdb.get_collection("biosample_set").find(
         {"associated_studies": {"$in": [study_id]}}, {"id": 1, "_id": 0}
     ):
         biosample_ids.append(doc["id"])
-    logging.info(f"Found {len(biosample_ids)} Biosamples associated with Study {study_id}")
+    logging.info(f"Found {len(biosample_ids)} Biosamples.")
 
     # Use the `get_linked_instances` function—which is the function that
     # underlies the `/nmdcschema/linked_instances` API endpoint—to get all
@@ -308,7 +308,7 @@ def find_data_objects_for_study(
         max_page_size=large_max_page_size,
         mdb=mdb,
     )
-    logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects linked to those Biosamples")
+    logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects")
     for data_object in linked_data_objects_result.get("resources", []):
         upstream_biosample_id = data_object["_downstream_of"][0]
         if upstream_biosample_id not in data_objects_by_biosample_id.keys():
