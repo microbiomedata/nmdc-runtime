@@ -609,7 +609,9 @@ def decorate_if(condition: bool = False) -> Callable:
 
 
 @contextmanager
-def duration_logger(log_fn: Callable[[str], None] = logging.debug, task_name: str = "Task"):
+def duration_logger(
+    log_fn: Callable[[str], None] = logging.debug, task_name: str = "Task"
+):
     """
     Context manager that developers can use (via `with`) to measure how long a task takes to perform
     and log that duration via the specified function (e.g. `logging.info`, `print`).

@@ -317,7 +317,9 @@ def find_data_objects_for_study(
             max_page_size=large_max_page_size,
             mdb=mdb,
         )
-        logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects.")
+        logging.info(
+            f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects."
+        )
     for data_object in linked_data_objects_result.get("resources", []):
         upstream_biosample_id = data_object["_downstream_of"][0]
         if upstream_biosample_id not in data_objects_by_biosample_id.keys():

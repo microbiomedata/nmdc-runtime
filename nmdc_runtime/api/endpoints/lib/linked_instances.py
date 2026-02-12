@@ -17,7 +17,11 @@ from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.util import duration_logger, get_class_name_to_collection_names_map, nmdc_schema_view
+from nmdc_runtime.util import (
+    duration_logger,
+    get_class_name_to_collection_names_map,
+    nmdc_schema_view,
+)
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -100,7 +104,8 @@ def pipeline_for_direction(
     ) + [
         {"$project": {"id": 1, "type": 1, f"_{direction}_of": 1}},
         pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
-            name_of_collection_to_merge_into=name_of_collection_to_merge_into, direction=direction
+            name_of_collection_to_merge_into=name_of_collection_to_merge_into,
+            direction=direction,
         ),
     ]
 
