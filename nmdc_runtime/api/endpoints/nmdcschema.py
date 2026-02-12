@@ -21,6 +21,7 @@ from nmdc_runtime.minter.config import typecodes
 from nmdc_runtime.minter.domain.model import check_valid_ids
 from nmdc_runtime.util import (
     decorate_if,
+    duration_logger,
     nmdc_database_collection_names,
     nmdc_schema_view,
 )
@@ -265,23 +266,20 @@ def get_linked_instances(
             ),
         )
 
-    logging.info("Gathering linked instances...")
-    name_of_collection_to_merge_into = gather_linked_instances(
-        alldocs_collection=mdb.alldocs, ids=ids, types=types
-    )
-    logging.info(f"Gathered linked instances into collection: {name_of_collection_to_merge_into}")
+    with duration_logger(logging.info, "Gathering linked instances"):
+        name_of_collection_to_merge_into = gather_linked_instances(
+            alldocs_collection=mdb.alldocs, ids=ids, types=types
+        )
 
-    logging.info("Listing linked instances...")
-    rv = list_resources(
-        ListRequest(page_token=page_token, max_page_size=max_page_size),
-        mdb,
-        name_of_collection_to_merge_into,
-    )
-    logging.info("Listed linked instances.")
+    with duration_logger(logging.info, "Listing linked instances"):
+        rv = list_resources(
+            ListRequest(page_token=page_token, max_page_size=max_page_size),
+            mdb,
+            name_of_collection_to_merge_into,
+        )
 
-    logging.info("Hydrating linked instances...")
-    rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
-    logging.info("Hydrated linked instances.")
+    with duration_logger(logging.info, "Hydrating linked instances"):
+        rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
 
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv

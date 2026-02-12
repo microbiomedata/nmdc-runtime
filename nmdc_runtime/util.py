@@ -1,5 +1,7 @@
+from contextlib import contextmanager
 import importlib.resources
 import json
+import logging
 import mimetypes
 import os
 from collections import defaultdict
@@ -8,6 +10,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
+from time import perf_counter
 from typing import Callable, List, Optional, Set, Dict
 
 import requests
@@ -603,3 +606,29 @@ def decorate_if(condition: bool = False) -> Callable:
         return check_condition
 
     return apply_original_decorator
+
+
+@contextmanager
+def duration_logger(log_fn: Callable[[str], None] = logging.debug, task_name: str = "Task"):
+    """
+    Context manager that developers can use (via `with`) to measure how long a task takes to perform
+    and log that duration via the specified function (e.g. `logging.info`, `print`).
+
+    Example usage:
+    ```
+    with duration_logger(logger.info, "Doing the thing"):
+        do_thing()
+    ```
+    """
+
+    log_fn(f"{task_name}: Starting.")
+    start_time = perf_counter()
+
+    # Note: We use `try/finally` here to ensure that we always log the duration,
+    #       even if the task (to which we yield) raises an exception.
+    try:
+        yield  # the task
+    finally:
+        end_time = perf_counter()
+        duration_sec = end_time - start_time
+        log_fn(f"{task_name}: Finished in {round(duration_sec, 1)} seconds.")

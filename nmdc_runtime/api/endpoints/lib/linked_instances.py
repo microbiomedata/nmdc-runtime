@@ -17,7 +17,7 @@ from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
+from nmdc_runtime.util import duration_logger, get_class_name_to_collection_names_map, nmdc_schema_view
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -63,19 +63,18 @@ def gather_linked_instances(
         ids=ids, types=types
     )
     for direction in ["downstream", "upstream"]:
-        logging.info(f"Gathering {direction} linked instances...")
-        _ = list(
-            alldocs_collection.aggregate(
-                pipeline_for_direction(
-                    ids=ids,
-                    types=types,
-                    direction=direction,
-                    name_of_collection_to_merge_into=name_of_collection_to_merge_into,
-                ),
-                allowDiskUse=True,
+        with duration_logger(logging.info, f"Gathering {direction} linked instances"):
+            _ = list(
+                alldocs_collection.aggregate(
+                    pipeline_for_direction(
+                        ids=ids,
+                        types=types,
+                        direction=direction,
+                        name_of_collection_to_merge_into=name_of_collection_to_merge_into,
+                    ),
+                    allowDiskUse=True,
+                )
             )
-        )
-        logging.info(f"Done gathering {direction} linked instances.")
     return name_of_collection_to_merge_into
 
 
