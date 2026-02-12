@@ -303,8 +303,7 @@ def find_data_objects_for_study(
     #        held constant, neither changing `hydrate` to `False` nor decreasing the `max_page_size`
     #        to half of the actual number of linked instances has any practical effect on the
     #        function's execution time, which is dominated by the time it takes MongoDB to run the
-    #        aggregation pipeline that gathers downstream the linked instances. So, no need to tune
-    #        those two parameters.
+    #        aggregation pipeline that gathers the downstream linked instances.
     #
     with duration_logger(logging.info, "Finding DataObjects linked to Biosamples"):
         large_max_page_size: int = 1_000_000_000_000
