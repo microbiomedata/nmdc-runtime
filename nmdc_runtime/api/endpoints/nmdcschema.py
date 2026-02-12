@@ -271,14 +271,14 @@ def get_linked_instances(
             alldocs_collection=mdb.alldocs, ids=ids, types=types
         )
 
-    with duration_logger(logging.info, "Listing linked instances"):
+    with duration_logger(logging.debug, "Listing linked instances"):
         rv = list_resources(
             ListRequest(page_token=page_token, max_page_size=max_page_size),
             mdb,
             temp_linked_instances_collection_name,
         )
 
-    with duration_logger(logging.info, "Hydrating linked instances"):
+    with duration_logger(logging.debug, "Hydrating linked instances"):
         rv["resources"] = hydrated(rv["resources"], mdb) if hydrate else rv["resources"]
 
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]

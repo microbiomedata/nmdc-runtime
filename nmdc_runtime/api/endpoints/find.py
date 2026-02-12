@@ -299,8 +299,8 @@ def find_data_objects_for_study(
     if num_biosample_ids <= num_ids_per_batch:
         biosample_id_batches = [biosample_ids]  # a single batch
     else:
-        # Make batches of `Biosample` IDs, where each batch has `num_ids_per_batch` IDs (except for
-        # the final batch, which may have fewer).
+        # Make batches of `Biosample` IDs, where each batch has `num_ids_per_batch` IDs
+        # (except for the final batch, which may have fewer).
         for i in range(0, num_biosample_ids, num_ids_per_batch):
             biosample_ids_batch = biosample_ids[i : i + num_ids_per_batch]
             biosample_id_batches.append(biosample_ids_batch)
@@ -359,6 +359,8 @@ def find_data_objects_for_study(
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
     # which did not use the `get_linked_instances` function under the hood.
+    num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
+    logging.info(f"Found a total of {num_data_objects} DataObjects.")
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
         biosample_data_objects.append(
             {
