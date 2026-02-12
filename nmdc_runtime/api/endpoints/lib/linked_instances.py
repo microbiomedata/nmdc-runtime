@@ -37,7 +37,9 @@ def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
     )[:8]
 
 
-def generate_temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> str:
+def generate_temp_linked_instances_collection_name(
+    ids: list[str], types: list[str]
+) -> str:
     """A name for a temporary mongo collection to store linked instances in service of an API request."""
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
 
@@ -63,8 +65,8 @@ def gather_linked_instances(
     Run an aggregation pipeline over `alldocs_collection` that collects ∈`types` instances linked to `ids`.
     The pipeline is run twice, once for each of {"downstream", "upstream"} directions.
     """
-    temp_linked_instances_collection_name = generate_temp_linked_instances_collection_name(
-        ids=ids, types=types
+    temp_linked_instances_collection_name = (
+        generate_temp_linked_instances_collection_name(ids=ids, types=types)
     )
     for direction in ["downstream", "upstream"]:
         with duration_logger(logging.info, f"Gathering {direction} linked instances"):

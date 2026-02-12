@@ -286,7 +286,7 @@ def find_data_objects_for_study(
     logging.info(f"Found {num_biosample_ids} Biosamples.")
 
     # Divide the `Biosample` IDs into batches.
-    # 
+    #
     # Note: This is a performance optimization of the `get_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
     #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes
