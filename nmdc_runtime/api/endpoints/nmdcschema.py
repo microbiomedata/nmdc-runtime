@@ -267,7 +267,7 @@ def get_linked_instances(
         )
 
     with duration_logger(logging.info, "Gathering linked instances"):
-        name_of_collection_to_merge_into = gather_linked_instances(
+        temp_linked_instances_collection_name = gather_linked_instances(
             alldocs_collection=mdb.alldocs, ids=ids, types=types
         )
 
@@ -275,7 +275,7 @@ def get_linked_instances(
         rv = list_resources(
             ListRequest(page_token=page_token, max_page_size=max_page_size),
             mdb,
-            name_of_collection_to_merge_into,
+            temp_linked_instances_collection_name,
         )
 
     with duration_logger(logging.info, "Hydrating linked instances"):
