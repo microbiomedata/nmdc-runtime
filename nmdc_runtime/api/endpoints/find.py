@@ -28,6 +28,7 @@ from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
 )
+from nmdc_runtime.util import duration_logger
 
 
 router = APIRouter()
@@ -298,17 +299,25 @@ def find_data_objects_for_study(
     #
     #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
     #
-    large_max_page_size: int = 1_000_000_000_000
-    data_objects_by_biosample_id = {}
-    linked_data_objects_result: dict = get_linked_instances(
-        ids=biosample_ids,
-        types=["nmdc:DataObject"],
-        hydrate=True,  # we want the full `DataObject` documents
-        page_token=None,
-        max_page_size=large_max_page_size,
-        mdb=mdb,
-    )
-    logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects")
+    # Notes: Regarding the performance of the `get_linked_instances` function; with everything else
+    #        held constant, neither changing `hydrate` to `False` nor decreasing the `max_page_size`
+    #        to half of the actual number of linked instances has any practical effect on the
+    #        function's execution time, which is dominated by the time it takes MongoDB to run the
+    #        aggregation pipeline that gathers downstream the linked instances. So, no need to tune
+    #        those two parameters.
+    #
+    with duration_logger(logging.info, "Finding DataObjects linked to Biosamples"):
+        large_max_page_size: int = 1_000_000_000_000
+        data_objects_by_biosample_id = {}
+        linked_data_objects_result: dict = get_linked_instances(
+            ids=biosample_ids,
+            types=["nmdc:DataObject"],
+            hydrate=True,  # we want the full `DataObject` documents
+            page_token=None,
+            max_page_size=large_max_page_size,
+            mdb=mdb,
+        )
+        logging.info(f"Found {len(linked_data_objects_result.get('resources', []))} DataObjects.")
     for data_object in linked_data_objects_result.get("resources", []):
         upstream_biosample_id = data_object["_downstream_of"][0]
         if upstream_biosample_id not in data_objects_by_biosample_id.keys():
