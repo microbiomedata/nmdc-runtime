@@ -355,7 +355,7 @@ def find_data_objects_for_study(
                 data_object.pop("_downstream_of", None)
 
                 # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
-                # upstream of it, of which there may be multiple (meaning that the same` DataObject`
+                # upstream of it, of which there may be multiple (meaning that the same `DataObject`
                 # may appear multiple times in the API response, but in different lists).
                 for upstream_biosample_id in upstream_biosample_ids:
                     if upstream_biosample_id not in data_objects_by_biosample_id.keys():
