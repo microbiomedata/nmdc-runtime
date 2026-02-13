@@ -261,11 +261,11 @@ def find_data_objects_for_study(
     :param study_id: NMDC study id for which data objects are to be retrieved
     :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
     :return: List of dictionaries, each of which has a `biosample_id` entry
-        and a `data_object_set` entry. The value of the `biosample_id` entry
-        is the `Biosample`'s `id`. The value of the `data_object_set` entry
+        and a `data_objects` entry. The value of the `biosample_id` entry
+        is the `Biosample`'s `id`. The value of the `data_objects` entry
         is a list of the `DataObject`s associated with that `Biosample`.
-        A given data object may appear multiple times in the return value,
-        but not more than once per Biosample-specific list.
+        If a given `DataObject` is related to multiple `Biosample`s,
+        it will appear in _each_ of those `Biosample`s' lists.
     """
     biosample_data_objects = []
 
@@ -291,10 +291,10 @@ def find_data_objects_for_study(
     #
     # Note: This is a performance optimization of the `get_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
-    #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes
-    #       all 5260 IDs would take approximately 50 seconds, whereas 5 consecutive invocations
-    #       that each process approximately 1000 IDs would, altogether, take only approximately
-    #       20 seconds (and having more, smaller batches would take roughly that same duration).
+    #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes all 5260 IDs
+    #       would take approximately 50 seconds, whereas 5 consecutive invocations that each process
+    #       approximately 1000 IDs would, altogether, take only approximately 20 seconds (and that
+    #       having more, even smaller batches would still take roughly that same duration).
     #
     num_ids_per_batch = 1000  # this can be "tuned"
     biosample_id_batches = []
