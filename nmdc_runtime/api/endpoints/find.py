@@ -287,7 +287,7 @@ def find_data_objects_for_study(
     num_biosample_ids = len(biosample_ids)
     logging.debug(f"Found {num_biosample_ids} Biosamples.")
 
-    # Divide the `Biosample` IDs into batches.
+    # Divide the `Biosample` IDs into batches (returning early if there are no such IDs).
     #
     # Note: This is a performance optimization of the `get_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
@@ -298,6 +298,8 @@ def find_data_objects_for_study(
     #
     num_ids_per_batch = 1000  # this can be "tuned"
     biosample_id_batches = []
+    if num_biosample_ids == 0:
+        return biosample_data_objects  # no need to proceed further if there are no biosample IDs
     if num_biosample_ids <= num_ids_per_batch:
         biosample_id_batches = [biosample_ids]  # a single batch
     else:
