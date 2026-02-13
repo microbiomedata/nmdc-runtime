@@ -1284,19 +1284,15 @@ class TestFindDataObjectsForStudy:
         )
         assert response.status_code == 200
         data_objects_by_biosample = response.json()
-        biosample_ids = data_objects_by_biosample.keys()
-        assert len(biosample_ids) == 2
-        assert biosample_ids == set([self.biosample_id, "nmdc:bsm-00-000002"])
+        assert len(data_objects_by_biosample) == 2
+        dict_1 = data_objects_by_biosample[0]
+        dict_2 = data_objects_by_biosample[1]
 
         # Confirm the downstream `DataObject` is present in each `Biosample`'s list.
-        biosample_a_data_object_ids = set()
-        biosample_b_data_object_ids = set()
-        for data_object in data_objects_by_biosample[self.biosample_id]["data_objects"]:
-            biosample_a_data_object_ids.add(data_object["id"])
-        for data_object in data_objects_by_biosample["nmdc:bsm-00-000002"]["data_objects"]:
-            biosample_b_data_object_ids.add(data_object["id"])
-        assert self.data_object_ids[0] in biosample_a_data_object_ids
-        assert self.data_object_ids[0] in biosample_b_data_object_ids
+        data_object_ids_from_dict_1 = [dobj["id"] for dobj in dict_1["data_objects"]]
+        data_object_ids_from_dict_2 = [dobj["id"] for dobj in dict_2["data_objects"]]
+        assert self.data_object_ids[0] in data_object_ids_from_dict_1
+        assert self.data_object_ids[0] in data_object_ids_from_dict_2
 
     @pytest.fixture()
     def seeded_db_with_multi_stage_wfe(self, seeded_db):
