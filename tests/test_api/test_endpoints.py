@@ -1224,6 +1224,81 @@ class TestFindDataObjectsForStudy:
         ) == set([dobj["id"] for dobj in received_data_objects])
 
     @pytest.fixture()
+    def seeded_db_having_data_object_downstream_from_multiple_biosamples(self, seeded_db):
+        """
+        This fixture inserts a second `Biosample` (`biosample_b`) upstream of a `DataObject`.
+
+        ```mermaid
+        graph
+            biosample_b --> |associated_studies| study
+            data_generation --> |has_input| biosample_b
+            workflow_execution --> |has_input| biosample_b
+        ```
+        """
+
+        faker = Faker()
+        biosample_b = faker.generate_biosamples(1, id="nmdc:bsm-00-000002", associated_studies=[self.study_id])[0]
+        workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
+        workflow_execution_set.update_one(
+            {"id": self.workflow_execution_ids[0]},
+            {"$push": {"has_input": biosample_b["id"]}},
+        )
+        data_generation_set = seeded_db.get_collection(name="data_generation_set")
+        data_generation_set.update_one(
+            {"id": self.data_generation_id},
+            {"$push": {"has_input": biosample_b["id"]}},
+        )
+        biosample_set = seeded_db.get_collection(name="biosample_set")
+        assert biosample_set.count_documents({"id": biosample_b["id"]}) == 0
+        biosample_set.insert_one(biosample_b)
+
+        # Update the `alldocs` collection, which is a cache used by the endpoint under test.
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+        yield seeded_db
+
+        # Clean up: Delete the documents we created within this fixture, from the database.
+        workflow_execution_set.update_one(
+            {"id": self.workflow_execution_ids[0]},
+            {"$pull": {"has_input": biosample_b["id"]}},
+        )
+        data_generation_set.update_one(
+            {"id": self.data_generation_id},
+            {"$pull": {"has_input": biosample_b["id"]}},
+        )
+        biosample_set.delete_one({"id": biosample_b["id"]})
+        ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
+
+    def test_it_includes_same_data_object_in_each_upstream_biosample_list(
+            self, api_site_client, seeded_db_having_data_object_downstream_from_multiple_biosamples
+        ):
+        """
+        This test is focused on the scenario where a given `DataObject` is downstream from two
+        `Biosamples` associated with the specified `Study`. This test confirms the `DataObject`
+        appears twice in the response payload (i.e. once in each `Biosample`'s list).
+        """
+
+        # Confirm the endpoint responds with the data objects we expect.
+        response = api_site_client.request(
+            "GET", f"/data_objects/study/{self.study_id}"
+        )
+        assert response.status_code == 200
+        data_objects_by_biosample = response.json()
+        biosample_ids = data_objects_by_biosample.keys()
+        assert len(biosample_ids) == 2
+        assert biosample_ids == set([self.biosample_id, "nmdc:bsm-00-000002"])
+
+        # Confirm the downstream `DataObject` is present in each `Biosample`'s list.
+        biosample_a_data_object_ids = set()
+        biosample_b_data_object_ids = set()
+        for data_object in data_objects_by_biosample[self.biosample_id]["data_objects"]:
+            biosample_a_data_object_ids.add(data_object["id"])
+        for data_object in data_objects_by_biosample["nmdc:bsm-00-000002"]["data_objects"]:
+            biosample_b_data_object_ids.add(data_object["id"])
+        assert self.data_object_ids[0] in biosample_a_data_object_ids
+        assert self.data_object_ids[0] in biosample_b_data_object_ids
+
+    @pytest.fixture()
     def seeded_db_with_multi_stage_wfe(self, seeded_db):
         r"""
         Fixture that seeds the database with a second `WorkflowExecution`, which takes the output
