@@ -264,6 +264,8 @@ def find_data_objects_for_study(
         and a `data_object_set` entry. The value of the `biosample_id` entry
         is the `Biosample`'s `id`. The value of the `data_object_set` entry
         is a list of the `DataObject`s associated with that `Biosample`.
+        A given data object may appear multiple times in the return value,
+        but not more than once per Biosample-specific list.
     """
     biosample_data_objects = []
 
@@ -329,7 +331,7 @@ def find_data_objects_for_study(
     #        function's execution time, which is dominated by the time it takes MongoDB to run the
     #        aggregation pipeline that gathers the downstream linked instances.
     #
-    with duration_logger(logging.info, "Finding DataObjects linked to Biosamples"):
+    with duration_logger(logging.info, "Finding DataObjects downstream of those Biosamples"):
         large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
         for biosample_id_batch in biosample_id_batches:
@@ -344,23 +346,27 @@ def find_data_objects_for_study(
             linked_data_objects = linked_data_objects_result.get("resources", [])
             logging.info(f"Found {len(linked_data_objects)} DataObjects.")
 
-            # For each `DataObject`, strip away the fields injected by `get_linked_instances` and
-            # store the `DataObject` in the list keyed by the ID of its upstream `Biosample`.
+            # For each `DataObject`, strip away extra fields and add it to the API response.
             for data_object in linked_data_objects:
-                upstream_biosample_id = data_object["_downstream_of"][0]
-                if upstream_biosample_id not in data_objects_by_biosample_id.keys():
-                    data_objects_by_biosample_id[upstream_biosample_id] = []
 
                 # Strip away the metadata fields injected by `get_linked_instances()`.
+                upstream_biosample_ids = data_object["_downstream_of"]  # preserve its value
                 data_object.pop("_upstream_of", None)
                 data_object.pop("_downstream_of", None)
-                data_objects_by_biosample_id[upstream_biosample_id].append(data_object)
+
+                # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
+                # upstream of it, of which there may be multiple (meaning that the same` DataObject`
+                # may appear multiple times in the API response, but in different lists).
+                for upstream_biosample_id in upstream_biosample_ids:
+                    if upstream_biosample_id not in data_objects_by_biosample_id.keys():
+                        data_objects_by_biosample_id[upstream_biosample_id] = []
+                    data_objects_by_biosample_id[upstream_biosample_id].append(data_object)
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
     # which did not use the `get_linked_instances` function under the hood.
     num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
-    logging.info(f"Found a total of {num_data_objects} DataObjects.")
+    logging.info(f"Found a total of {num_data_objects} DataObjects (not deduplicated).")
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
         biosample_data_objects.append(
             {
