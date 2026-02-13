@@ -331,7 +331,9 @@ def find_data_objects_for_study(
     #        function's execution time, which is dominated by the time it takes MongoDB to run the
     #        aggregation pipeline that gathers the downstream linked instances.
     #
-    with duration_logger(logging.info, "Finding DataObjects downstream of those Biosamples"):
+    with duration_logger(
+        logging.info, "Finding DataObjects downstream of those Biosamples"
+    ):
         large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
         for biosample_id_batch in biosample_id_batches:
@@ -350,7 +352,9 @@ def find_data_objects_for_study(
             for data_object in linked_data_objects:
 
                 # Strip away the metadata fields injected by `get_linked_instances()`.
-                upstream_biosample_ids = data_object["_downstream_of"]  # preserve its value
+                upstream_biosample_ids = data_object[
+                    "_downstream_of"
+                ]  # preserve its value
                 data_object.pop("_upstream_of", None)
                 data_object.pop("_downstream_of", None)
 
@@ -360,7 +364,9 @@ def find_data_objects_for_study(
                 for upstream_biosample_id in upstream_biosample_ids:
                     if upstream_biosample_id not in data_objects_by_biosample_id.keys():
                         data_objects_by_biosample_id[upstream_biosample_id] = []
-                    data_objects_by_biosample_id[upstream_biosample_id].append(data_object)
+                    data_objects_by_biosample_id[upstream_biosample_id].append(
+                        data_object
+                    )
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
