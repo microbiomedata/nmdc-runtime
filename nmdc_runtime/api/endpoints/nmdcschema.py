@@ -266,7 +266,7 @@ def get_linked_instances(
             ),
         )
 
-    with duration_logger(logging.info, "Gathering linked instances"):
+    with duration_logger(logging.debug, "Gathering linked instances"):
         temp_linked_instances_collection_name = gather_linked_instances(
             alldocs_collection=mdb.alldocs, ids=ids, types=types
         )

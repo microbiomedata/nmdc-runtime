@@ -278,14 +278,14 @@ def find_data_objects_for_study(
 
     # Get the IDs of all the `Biosample`s associated with the specified `Study`.
     # Note: Getting the IDs this way is faster than doing it via `get_linked_instances`.
-    logging.info(f"Finding Biosamples associated with Study '{study_id}'")
+    logging.debug(f"Finding Biosamples associated with Study '{study_id}'")
     biosample_ids = []
     for doc in mdb.get_collection("biosample_set").find(
         {"associated_studies": {"$in": [study_id]}}, {"id": 1, "_id": 0}
     ):
         biosample_ids.append(doc["id"])
     num_biosample_ids = len(biosample_ids)
-    logging.info(f"Found {num_biosample_ids} Biosamples.")
+    logging.debug(f"Found {num_biosample_ids} Biosamples.")
 
     # Divide the `Biosample` IDs into batches.
     #
@@ -306,13 +306,13 @@ def find_data_objects_for_study(
         for i in range(0, num_biosample_ids, num_ids_per_batch):
             biosample_ids_batch = biosample_ids[i : i + num_ids_per_batch]
             biosample_id_batches.append(biosample_ids_batch)
-    logging.info(
+    logging.debug(
         f"Divided {num_biosample_ids} Biosample IDs into {len(biosample_id_batches)} batches: "
         + " + ".join([str(len(batch)) for batch in biosample_id_batches])
     )
 
     # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
-    # API endpoint—to get all the `DataObject`s that are downstream of any of those `Biosample`s.
+    # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
     #
     # Note: The `get_linked_instances` function requires that a `max_page_size`
     #       integer argument be passed in. In our case, we want to get _all_ of
@@ -323,16 +323,11 @@ def find_data_objects_for_study(
     #       think it will account for all cases in practice (e.g., a study having
     #       a trillion biosamples or a trillion data objects).
     #
-    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
-    #
-    # Notes: Regarding the performance of the `get_linked_instances` function; with everything else
-    #        held constant, neither changing `hydrate` to `False` nor decreasing the `max_page_size`
-    #        to half of the actual number of linked instances has any practical effect on the
-    #        function's execution time, which is dominated by the time it takes MongoDB to run the
-    #        aggregation pipeline that gathers the downstream linked instances.
+    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
+    #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
     #
     with duration_logger(
-        logging.info, "Finding DataObjects downstream of those Biosamples"
+        logging.debug, f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples"
     ):
         large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
@@ -346,7 +341,7 @@ def find_data_objects_for_study(
                 mdb=mdb,
             )
             linked_data_objects = linked_data_objects_result.get("resources", [])
-            logging.info(f"Found {len(linked_data_objects)} DataObjects.")
+            logging.debug(f"Found {len(linked_data_objects)} DataObjects.")
 
             # For each `DataObject`, strip away extra fields and add it to the API response.
             for data_object in linked_data_objects:
