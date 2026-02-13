@@ -327,7 +327,8 @@ def find_data_objects_for_study(
     #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
     #
     with duration_logger(
-        logging.debug, f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples"
+        logging.debug,
+        f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
     ):
         large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
