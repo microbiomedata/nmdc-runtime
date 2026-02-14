@@ -314,10 +314,12 @@ def find_data_objects_for_study(
         + " + ".join([str(len(batch)) for batch in biosample_id_batches])
     )
 
-    def process_batch_of_biosample_ids(biosample_id_batch: List[str]) -> Dict[str, List[dict]]:
+    def process_batch_of_biosample_ids(
+        biosample_id_batch: List[str],
+    ) -> Dict[str, List[dict]]:
         """
-        Helper function that processes one batch of `Biosample` IDs and returns a dictionary 
-        mapping each `Biosample` ID in the batch to a list of the `DataObject`s that are 
+        Helper function that processes one batch of `Biosample` IDs and returns a dictionary
+        mapping each `Biosample` ID in the batch to a list of the `DataObject`s that are
         downstream of that `Biosample`.
         """
 
@@ -361,36 +363,51 @@ def find_data_objects_for_study(
             # upstream of it, of which there may be multiple (meaning that the same `DataObject`
             # may appear multiple times in the API response, but in different lists).
             for upstream_biosample_id in upstream_biosample_ids:
-                if upstream_biosample_id not in data_objects_by_biosample_id_in_batch.keys():
+                if (
+                    upstream_biosample_id
+                    not in data_objects_by_biosample_id_in_batch.keys()
+                ):
                     data_objects_by_biosample_id_in_batch[upstream_biosample_id] = []
                 data_objects_by_biosample_id_in_batch[upstream_biosample_id].append(
                     data_object
                 )
         return data_objects_by_biosample_id_in_batch
-    
+
     # Process all batches in parallel instead of serially (this is a performance optimization).
     with duration_logger(
         logging.debug,
         f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
     ):
         data_objects_by_biosample_id = {}
-        max_num_batches_in_parallel = min(8, len(biosample_id_batches))  # this can be "tuned"
-        with ThreadPoolExecutor(max_workers=max_num_batches_in_parallel) as thread_pool_executor:
+        max_num_batches_in_parallel = min(
+            8, len(biosample_id_batches)
+        )  # this can be "tuned"
+        with ThreadPoolExecutor(
+            max_workers=max_num_batches_in_parallel
+        ) as thread_pool_executor:
             future_to_biosample_id_batch_map: Dict[Future, list] = dict()
             for biosample_id_batch in biosample_id_batches:
-                future: Future = thread_pool_executor.submit(process_batch_of_biosample_ids, biosample_id_batch)
-                
+                future: Future = thread_pool_executor.submit(
+                    process_batch_of_biosample_ids, biosample_id_batch
+                )
+
                 # Keep track of which "future" corresponds to this batch of `Biosample` IDs.
                 future_to_biosample_id_batch_map[future] = biosample_id_batch
 
             # Whenever the thread pool executor finishes processing a given batch (at which point,
             # the "future" corresponding to that batch will be completed), add that batch's results
             # to the overall result.
-            for finished_future in as_completed(future_to_biosample_id_batch_map.keys()):
+            for finished_future in as_completed(
+                future_to_biosample_id_batch_map.keys()
+            ):
                 biosample_id_batch = future_to_biosample_id_batch_map[finished_future]
-                logging.debug(f"Finished processing batch of {len(biosample_id_batch)} `Biosample` IDs.")
+                logging.debug(
+                    f"Finished processing batch of {len(biosample_id_batch)} `Biosample` IDs."
+                )
                 data_objects_by_biosample_id_in_batch = finished_future.result()
-                data_objects_by_biosample_id.update(data_objects_by_biosample_id_in_batch)
+                data_objects_by_biosample_id.update(
+                    data_objects_by_biosample_id_in_batch
+                )
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
