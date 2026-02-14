@@ -5,7 +5,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from io import StringIO
 from typing import Annotated, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query, Response, status
 from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
@@ -17,6 +17,7 @@ from nmdc_runtime.api.db.mongo import (
     get_nonempty_nmdc_schema_collection_names,
 )
 from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    drop_stale_temp_linked_instances_collections,
     gather_linked_instances,
     hydrated,
 )
@@ -256,6 +257,7 @@ def find_data_objects_for_study(
             examples=["nmdc:sty-11-abc123"],
         ),
     ],
+    background_tasks: BackgroundTasks,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data objects associated with
@@ -271,6 +273,13 @@ def find_data_objects_for_study(
         If a given `DataObject` is related to multiple `Biosample`s,
         it will appear in _each_ of those `Biosample`s' lists.
     """
+
+    # Add a background task to clean up obsolete "linked instances" collections from MongoDB,
+    # given that this endpoint causes some to be generated. Note that, since this is a
+    # background task, it will not block the processing of the incoming HTTP request.
+    # Reference: https://fastapi.tiangolo.com/tutorial/background-tasks/
+    background_tasks.add_task(drop_stale_temp_linked_instances_collections)
+
     biosample_data_objects = []
 
     # Respond with an error if the specified `Study` does not exist.
