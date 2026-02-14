@@ -355,7 +355,7 @@ def find_data_objects_for_study(
             mdb.get_collection(temp_linked_instances_collection_name).find({})
         )
         linked_data_objects = hydrated(linked_data_objects_dehydrated, mdb)
-        logging.debug(f"Found {len(linked_data_objects)} DataObjects in this branch.")
+        logging.debug(f"Found {len(linked_data_objects)} DataObjects in this batch.")
 
         # For each `DataObject`, strip away extra fields and add it to the result for this batch.
         for data_object in linked_data_objects:
