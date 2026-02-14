@@ -28,6 +28,7 @@ from nmdc_runtime.api.models.util import (
     FindResponse,
     FindRequest,
 )
+from nmdc_runtime.util import duration_logger
 
 
 router = APIRouter()
@@ -234,7 +235,7 @@ def get_data_object_report(
     #       as opposed to the derived description that was written for an audience of `nmdc-runtime` developers.
     #
     description=(
-        "Gets all `DataObject`s related to all `Biosample`s related to the specified `Study`."
+        "Gets all `DataObject`s related to all `Biosample`s associated with the specified `Study`."
         "<br /><br />"  # newlines
         "**Note:** The data returned by this API endpoint can be up to 60 minutes out of date "
         "with respect to the NMDC database. That's because the cache that underlies this API "
@@ -260,9 +261,11 @@ def find_data_objects_for_study(
     :param study_id: NMDC study id for which data objects are to be retrieved
     :param mdb: PyMongo connection, defaults to Depends(get_mongo_db)
     :return: List of dictionaries, each of which has a `biosample_id` entry
-        and a `data_object_set` entry. The value of the `biosample_id` entry
-        is the `Biosample`'s `id`. The value of the `data_object_set` entry
+        and a `data_objects` entry. The value of the `biosample_id` entry
+        is the `Biosample`'s `id`. The value of the `data_objects` entry
         is a list of the `DataObject`s associated with that `Biosample`.
+        If a given `DataObject` is related to multiple `Biosample`s,
+        it will appear in _each_ of those `Biosample`s' lists.
     """
     biosample_data_objects = []
 
@@ -273,9 +276,45 @@ def find_data_objects_for_study(
         detail="Study not found",
     )
 
-    # Use the `get_linked_instances` function—which is the function that
-    # underlies the `/nmdcschema/linked_instances` API endpoint—to get all
-    # the `Biosample`s that are downstream of the specified `Study`.
+    # Get the IDs of all the `Biosample`s associated with the specified `Study`.
+    # Note: Getting the IDs this way is faster than doing it via `get_linked_instances`.
+    logging.debug(f"Finding Biosamples associated with Study '{study_id}'")
+    biosample_ids = []
+    for doc in mdb.get_collection("biosample_set").find(
+        {"associated_studies": {"$in": [study_id]}}, {"id": 1, "_id": 0}
+    ):
+        biosample_ids.append(doc["id"])
+    num_biosample_ids = len(biosample_ids)
+    logging.debug(f"Found {num_biosample_ids} Biosamples.")
+
+    # Divide the `Biosample` IDs into batches (returning early if there are no such IDs).
+    #
+    # Note: This is a performance optimization of the `get_linked_instances` function usage below.
+    #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
+    #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes all 5260 IDs
+    #       would take approximately 50 seconds, whereas 5 consecutive invocations that each process
+    #       approximately 1000 IDs would, altogether, take only approximately 20 seconds (and that
+    #       having more, even smaller batches would still take roughly that same duration).
+    #
+    num_ids_per_batch = 1000  # this can be "tuned"
+    biosample_id_batches = []
+    if num_biosample_ids == 0:
+        return biosample_data_objects  # no need to proceed further if there are no biosample IDs
+    if num_biosample_ids <= num_ids_per_batch:
+        biosample_id_batches = [biosample_ids]  # a single batch
+    else:
+        # Make batches of `Biosample` IDs, where each batch has `num_ids_per_batch` IDs
+        # (except for the final batch, which may have fewer).
+        for i in range(0, num_biosample_ids, num_ids_per_batch):
+            biosample_ids_batch = biosample_ids[i : i + num_ids_per_batch]
+            biosample_id_batches.append(biosample_ids_batch)
+    logging.debug(
+        f"Divided {num_biosample_ids} Biosample IDs into {len(biosample_id_batches)} batches: "
+        + " + ".join([str(len(batch)) for batch in biosample_id_batches])
+    )
+
+    # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
+    # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
     #
     # Note: The `get_linked_instances` function requires that a `max_page_size`
     #       integer argument be passed in. In our case, we want to get _all_ of
@@ -286,43 +325,52 @@ def find_data_objects_for_study(
     #       think it will account for all cases in practice (e.g., a study having
     #       a trillion biosamples or a trillion data objects).
     #
-    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit.
+    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
+    #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
     #
-    large_max_page_size: int = 1_000_000_000_000
-    linked_biosamples_result: dict = get_linked_instances(
-        ids=[study_id],
-        types=["nmdc:Biosample"],
-        hydrate=False,  # we'll only use their `id` values
-        page_token=None,
-        max_page_size=large_max_page_size,
-        mdb=mdb,
-    )
-    biosample_ids = [d["id"] for d in linked_biosamples_result.get("resources", [])]
-    logging.debug(f"Found {len(biosample_ids)} Biosamples for Study {study_id}")
+    with duration_logger(
+        logging.debug,
+        f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
+    ):
+        large_max_page_size: int = 1_000_000_000_000
+        data_objects_by_biosample_id = {}
+        for biosample_id_batch in biosample_id_batches:
+            linked_data_objects_result: dict = get_linked_instances(
+                ids=biosample_id_batch,
+                types=["nmdc:DataObject"],
+                hydrate=True,  # we want the full `DataObject` documents
+                page_token=None,
+                max_page_size=large_max_page_size,
+                mdb=mdb,
+            )
+            linked_data_objects = linked_data_objects_result.get("resources", [])
+            logging.debug(f"Found {len(linked_data_objects)} DataObjects.")
 
-    # Get all the `DataObject`s that are downstream from any of those `Biosample`s.
-    data_objects_by_biosample_id = {}
-    linked_data_objects_result: dict = get_linked_instances(
-        ids=biosample_ids,
-        types=["nmdc:DataObject"],
-        hydrate=True,  # we want the full `DataObject` documents
-        page_token=None,
-        max_page_size=large_max_page_size,
-        mdb=mdb,
-    )
-    for data_object in linked_data_objects_result.get("resources", []):
-        upstream_biosample_id = data_object["_downstream_of"][0]
-        if upstream_biosample_id not in data_objects_by_biosample_id.keys():
-            data_objects_by_biosample_id[upstream_biosample_id] = []
+            # For each `DataObject`, strip away extra fields and add it to the API response.
+            for data_object in linked_data_objects:
 
-        # Strip away the metadata fields injected by `get_linked_instances()`.
-        data_object.pop("_upstream_of", None)
-        data_object.pop("_downstream_of", None)
-        data_objects_by_biosample_id[upstream_biosample_id].append(data_object)
+                # Strip away the metadata fields injected by `get_linked_instances()`.
+                upstream_biosample_ids = data_object[
+                    "_downstream_of"
+                ]  # preserve its value
+                data_object.pop("_upstream_of", None)
+                data_object.pop("_downstream_of", None)
+
+                # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
+                # upstream of it, of which there may be multiple (meaning that the same `DataObject`
+                # may appear multiple times in the API response, but in different lists).
+                for upstream_biosample_id in upstream_biosample_ids:
+                    if upstream_biosample_id not in data_objects_by_biosample_id.keys():
+                        data_objects_by_biosample_id[upstream_biosample_id] = []
+                    data_objects_by_biosample_id[upstream_biosample_id].append(
+                        data_object
+                    )
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
     # which did not use the `get_linked_instances` function under the hood.
+    num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
+    logging.info(f"Found a total of {num_data_objects} DataObjects (not deduplicated).")
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
         biosample_data_objects.append(
             {

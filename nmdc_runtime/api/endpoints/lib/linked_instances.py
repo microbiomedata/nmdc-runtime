@@ -6,6 +6,7 @@ This module houses logic for the `GET /nmdcschema/linked_instances` endpoint, de
 
 """
 
+import logging
 from datetime import timedelta
 from typing import Literal, Any
 
@@ -16,7 +17,11 @@ from toolz import merge
 
 from nmdc_runtime.api.core.util import hash_from_str, now
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.util import get_class_name_to_collection_names_map, nmdc_schema_view
+from nmdc_runtime.util import (
+    duration_logger,
+    get_class_name_to_collection_names_map,
+    nmdc_schema_view,
+)
 
 
 def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
@@ -32,7 +37,9 @@ def hash_from_ids_and_types(ids: list[str], types: list[str]) -> str:
     )[:8]
 
 
-def temp_linked_instances_collection_name(ids: list[str], types: list[str]) -> str:
+def generate_temp_linked_instances_collection_name(
+    ids: list[str], types: list[str]
+) -> str:
     """A name for a temporary mongo collection to store linked instances in service of an API request."""
     return f"_runtime.tmp.linked_instances.{hash_from_ids_and_types(ids=ids,types=types)}.{ObjectId()}"
 
@@ -58,29 +65,30 @@ def gather_linked_instances(
     Run an aggregation pipeline over `alldocs_collection` that collects ∈`types` instances linked to `ids`.
     The pipeline is run twice, once for each of {"downstream", "upstream"} directions.
     """
-    merge_into_collection_name = temp_linked_instances_collection_name(
-        ids=ids, types=types
+    temp_linked_instances_collection_name = (
+        generate_temp_linked_instances_collection_name(ids=ids, types=types)
     )
     for direction in ["downstream", "upstream"]:
-        _ = list(
-            alldocs_collection.aggregate(
-                pipeline_for_direction(
-                    ids=ids,
-                    types=types,
-                    direction=direction,
-                    merge_into_collection_name=merge_into_collection_name,
-                ),
-                allowDiskUse=True,
+        with duration_logger(logging.info, f"Gathering {direction} linked instances"):
+            _ = list(
+                alldocs_collection.aggregate(
+                    pipeline_for_direction(
+                        ids=ids,
+                        types=types,
+                        direction=direction,
+                        name_of_collection_to_merge_into=temp_linked_instances_collection_name,
+                    ),
+                    allowDiskUse=True,
+                )
             )
-        )
-    return merge_into_collection_name
+    return temp_linked_instances_collection_name
 
 
 def pipeline_for_direction(
     ids: list[str],
     types: list[str],
     direction: Literal["downstream", "upstream"],
-    merge_into_collection_name: str,
+    name_of_collection_to_merge_into: str,
     alldocs_collection_name: str = "alldocs",
 ) -> list:
     """A pure function that returns the aggregation pipeline for `direction`.
@@ -98,7 +106,8 @@ def pipeline_for_direction(
     ) + [
         {"$project": {"id": 1, "type": 1, f"_{direction}_of": 1}},
         pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
-            merge_into_collection_name=merge_into_collection_name, direction=direction
+            name_of_collection_to_merge_into=name_of_collection_to_merge_into,
+            direction=direction,
         ),
     ]
 
@@ -138,7 +147,7 @@ def pipeline_for_instances_linked_to_ids_by_direction(
 
 
 def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_direction(
-    merge_into_collection_name: str,
+    name_of_collection_to_merge_into: str,
     direction: Literal["downstream", "upstream"],
 ) -> dict[str, Any]:
     """
@@ -147,7 +156,7 @@ def pipeline_stage_for_merging_instances_and_grouping_link_provenance_by_directi
     """
     return {
         "$merge": {
-            "into": merge_into_collection_name,
+            "into": name_of_collection_to_merge_into,
             "on": "_id",
             "whenMatched": [
                 {

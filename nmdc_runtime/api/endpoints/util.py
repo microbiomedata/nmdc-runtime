@@ -127,9 +127,12 @@ def list_resources(
     if "id_1" not in mdb[collection_name].index_information():
         # Note: This warning is displayed for the "functional_annotation_agg" and
         #       "users" collections, for example.
-        logging.warning(
-            f"list_resources: no index set on 'id' for collection {collection_name}"
-        )
+        if collection_name.startswith("_runtime.tmp.linked_instances."):
+            pass  # suppress warning in this case
+        else:
+            logging.warning(
+                f"list_resources: no index set on 'id' for collection {collection_name}"
+            )
         id_field = "_id"
 
     max_page_size = req.max_page_size
