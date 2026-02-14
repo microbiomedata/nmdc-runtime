@@ -1,10 +1,20 @@
 import csv
 import logging
 import re
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from io import StringIO
-from typing import Annotated
+from typing import Annotated, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Response,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
@@ -15,7 +25,11 @@ from nmdc_runtime.api.db.mongo import (
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.nmdcschema import get_linked_instances
+from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    drop_stale_temp_linked_instances_collections,
+    gather_linked_instances,
+    hydrated,
+)
 from nmdc_runtime.api.endpoints.users import is_admin
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
@@ -252,6 +266,7 @@ def find_data_objects_for_study(
             examples=["nmdc:sty-11-abc123"],
         ),
     ],
+    background_tasks: BackgroundTasks,
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
     """This API endpoint is used to retrieve data objects associated with
@@ -267,6 +282,13 @@ def find_data_objects_for_study(
         If a given `DataObject` is related to multiple `Biosample`s,
         it will appear in _each_ of those `Biosample`s' lists.
     """
+
+    # Add a background task to clean up obsolete "linked instances" collections from MongoDB,
+    # given that this endpoint causes some to be generated. Note that, since this is a
+    # background task, it will not block the processing of the incoming HTTP request.
+    # Reference: https://fastapi.tiangolo.com/tutorial/background-tasks/
+    background_tasks.add_task(drop_stale_temp_linked_instances_collections)
+
     biosample_data_objects = []
 
     # Respond with an error if the specified `Study` does not exist.
@@ -289,14 +311,12 @@ def find_data_objects_for_study(
 
     # Divide the `Biosample` IDs into batches (returning early if there are no such IDs).
     #
-    # Note: This is a performance optimization of the `get_linked_instances` function usage below.
+    # Note: This is a performance optimization of the `gather_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
-    #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes all 5260 IDs
-    #       would take approximately 50 seconds, whereas 5 consecutive invocations that each process
-    #       approximately 1000 IDs would, altogether, take only approximately 20 seconds (and that
-    #       having more, even smaller batches would still take roughly that same duration).
+    #       is "nmdc:sty-11-34xj1150", we found that processing the IDs in batches took less time,
+    #       in total, than processing them in a single batch.
     #
-    num_ids_per_batch = 1000  # this can be "tuned"
+    num_ids_per_batch = 500  # this can be "tuned"
     biosample_id_batches = []
     if num_biosample_ids == 0:
         return biosample_data_objects  # no need to proceed further if there are no biosample IDs
@@ -313,64 +333,104 @@ def find_data_objects_for_study(
         + " + ".join([str(len(batch)) for batch in biosample_id_batches])
     )
 
-    # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
-    # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
-    #
-    # Note: The `get_linked_instances` function requires that a `max_page_size`
-    #       integer argument be passed in. In our case, we want to get _all_ of
-    #       the instances. Python has no "infinity" integer; and, even if it did,
-    #       if we were to specify too large of an integer, we'd get this error:
-    #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
-    #       So, as a workaround, we pass in a number that is large enough that we
-    #       think it will account for all cases in practice (e.g., a study having
-    #       a trillion biosamples or a trillion data objects).
-    #
-    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
-    #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
-    #
+    def process_batch_of_biosample_ids(
+        biosample_id_batch: List[str],
+    ) -> Dict[str, List[dict]]:
+        """
+        Helper function that processes one batch of `Biosample` IDs and returns a dictionary
+        mapping each `Biosample` ID in the batch to a list of the `DataObject`s that are
+        downstream of that `Biosample`.
+        """
+
+        # Use the `gather_linked_instances` and `hydrated` functions—which underlie the
+        # `/nmdcschema/linked_instances` API endpoint—to get the `DataObject`s that are
+        # downstream of the `Biosample`s whose IDs are in this batch.
+        data_objects_by_biosample_id_in_batch: dict = {}
+        temp_linked_instances_collection_name: str = gather_linked_instances(
+            alldocs_collection=mdb.get_collection("alldocs"),
+            ids=biosample_id_batch,
+            types=["nmdc:DataObject"],
+        )
+        linked_data_objects_dehydrated = list(
+            mdb.get_collection(temp_linked_instances_collection_name).find({})
+        )
+        linked_data_objects = hydrated(linked_data_objects_dehydrated, mdb)
+        logging.debug(f"Found {len(linked_data_objects)} DataObjects in this batch.")
+
+        # For each `DataObject`, strip away extra fields and add it to the result for this batch.
+        for data_object in linked_data_objects:
+
+            # Strip away the `_id` field injected by MongoDB.
+            data_object.pop("_id", None)
+
+            # Strip away the metadata fields injected by `gather_linked_instances()`.
+            upstream_biosample_ids = data_object["_downstream_of"]  # preserve its value
+            data_object.pop("_upstream_of", None)
+            data_object.pop("_downstream_of", None)
+
+            # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
+            # upstream of it, of which there may be multiple (meaning that the same `DataObject`
+            # may appear multiple times in the API response, but in different lists).
+            for upstream_biosample_id in upstream_biosample_ids:
+                if (
+                    upstream_biosample_id
+                    not in data_objects_by_biosample_id_in_batch.keys()
+                ):
+                    data_objects_by_biosample_id_in_batch[upstream_biosample_id] = []
+                data_objects_by_biosample_id_in_batch[upstream_biosample_id].append(
+                    data_object
+                )
+        return data_objects_by_biosample_id_in_batch
+
+    # Process multiple batches in parallel instead of serially (this is a performance optimization).
     with duration_logger(
-        logging.debug,
+        logging.info,
         f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
     ):
-        large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
-        for biosample_id_batch in biosample_id_batches:
-            linked_data_objects_result: dict = get_linked_instances(
-                ids=biosample_id_batch,
-                types=["nmdc:DataObject"],
-                hydrate=True,  # we want the full `DataObject` documents
-                page_token=None,
-                max_page_size=large_max_page_size,
-                mdb=mdb,
-            )
-            linked_data_objects = linked_data_objects_result.get("resources", [])
-            logging.debug(f"Found {len(linked_data_objects)} DataObjects.")
+        max_num_batches_in_parallel = min(
+            8, len(biosample_id_batches)
+        )  # this can be "tuned"
+        with ThreadPoolExecutor(
+            max_workers=max_num_batches_in_parallel
+        ) as thread_pool_executor:
+            future_to_biosample_id_batch_map: Dict[Future, list] = dict()
+            for biosample_id_batch in biosample_id_batches:
+                future: Future = thread_pool_executor.submit(
+                    process_batch_of_biosample_ids, biosample_id_batch
+                )
 
-            # For each `DataObject`, strip away extra fields and add it to the API response.
-            for data_object in linked_data_objects:
+                # Keep track of which "future" corresponds to this batch of `Biosample` IDs.
+                future_to_biosample_id_batch_map[future] = biosample_id_batch
 
-                # Strip away the metadata fields injected by `get_linked_instances()`.
-                upstream_biosample_ids = data_object[
-                    "_downstream_of"
-                ]  # preserve its value
-                data_object.pop("_upstream_of", None)
-                data_object.pop("_downstream_of", None)
+            # Whenever the thread pool executor finishes processing a given batch (at which point,
+            # the "future" corresponding to that batch will be completed), add that batch's results
+            # to the overall result.
+            for finished_future in as_completed(
+                future_to_biosample_id_batch_map.keys()
+            ):
+                biosample_id_batch = future_to_biosample_id_batch_map[finished_future]
+                logging.debug(
+                    f"Finished processing batch of {len(biosample_id_batch)} `Biosample` IDs."
+                )
+                data_objects_by_biosample_id_in_batch = finished_future.result()
+                data_objects_by_biosample_id.update(
+                    data_objects_by_biosample_id_in_batch
+                )
 
-                # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
-                # upstream of it, of which there may be multiple (meaning that the same `DataObject`
-                # may appear multiple times in the API response, but in different lists).
-                for upstream_biosample_id in upstream_biosample_ids:
-                    if upstream_biosample_id not in data_objects_by_biosample_id.keys():
-                        data_objects_by_biosample_id[upstream_biosample_id] = []
-                    data_objects_by_biosample_id[upstream_biosample_id].append(
-                        data_object
-                    )
+    # To facilitate debugging, determine how many distinct `DataObject`s we will be returning.
+    all_data_object_ids = set()
+    for data_objects in data_objects_by_biosample_id.values():
+        for data_object in data_objects:
+            all_data_object_ids.add(data_object["id"])
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
-    # which did not use the `get_linked_instances` function under the hood.
+    # which did not use the `gather_linked_instances` function under the hood.
     num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
-    logging.info(f"Found a total of {num_data_objects} DataObjects (not deduplicated).")
+    logging.info(
+        f"Returning {num_data_objects} DataObjects ({len(all_data_object_ids)} distinct)."
+    )
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
         biosample_data_objects.append(
             {

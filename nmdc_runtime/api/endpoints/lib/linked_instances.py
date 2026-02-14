@@ -69,7 +69,7 @@ def gather_linked_instances(
         generate_temp_linked_instances_collection_name(ids=ids, types=types)
     )
     for direction in ["downstream", "upstream"]:
-        with duration_logger(logging.info, f"Gathering {direction} linked instances"):
+        with duration_logger(logging.debug, f"Gathering {direction} linked instances"):
             _ = list(
                 alldocs_collection.aggregate(
                     pipeline_for_direction(
