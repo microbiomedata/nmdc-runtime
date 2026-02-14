@@ -418,11 +418,19 @@ def find_data_objects_for_study(
                     data_objects_by_biosample_id_in_batch
                 )
 
+    # To facilitate debugging, determine how many distinct `DataObject`s we will be returning.
+    all_data_object_ids = set()
+    for data_objects in data_objects_by_biosample_id.values():
+        for data_object in data_objects:
+            all_data_object_ids.add(data_object["id"])
+
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
     # which did not use the `gather_linked_instances` function under the hood.
     num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
-    logging.info(f"Found a total of {num_data_objects} DataObjects (not deduplicated).")
+    logging.info(
+        f"Returning {num_data_objects} DataObjects ({len(all_data_object_ids)} distinct)."
+    )
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
         biosample_data_objects.append(
             {
