@@ -1,8 +1,9 @@
 import csv
 import logging
 import re
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from io import StringIO
-from typing import Annotated
+from typing import Annotated, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from fastapi.responses import StreamingResponse
@@ -313,58 +314,83 @@ def find_data_objects_for_study(
         + " + ".join([str(len(batch)) for batch in biosample_id_batches])
     )
 
-    # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
-    # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
-    #
-    # Note: The `get_linked_instances` function requires that a `max_page_size`
-    #       integer argument be passed in. In our case, we want to get _all_ of
-    #       the instances. Python has no "infinity" integer; and, even if it did,
-    #       if we were to specify too large of an integer, we'd get this error:
-    #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
-    #       So, as a workaround, we pass in a number that is large enough that we
-    #       think it will account for all cases in practice (e.g., a study having
-    #       a trillion biosamples or a trillion data objects).
-    #
-    #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
-    #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
-    #
+    def process_batch_of_biosample_ids(biosample_id_batch: List[str]) -> Dict[str, List[dict]]:
+        """
+        Helper function that processes one batch of `Biosample` IDs and returns a dictionary 
+        mapping each `Biosample` ID in the batch to a list of the `DataObject`s that are 
+        downstream of that `Biosample`.
+        """
+
+        # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
+        # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
+        #
+        # Note: The `get_linked_instances` function requires that a `max_page_size`
+        #       integer argument be passed in. In our case, we want to get _all_ of
+        #       the instances. Python has no "infinity" integer; and, even if it did,
+        #       if we were to specify too large of an integer, we'd get this error:
+        #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
+        #       So, as a workaround, we pass in a number that is large enough that we
+        #       think it will account for all cases in practice (e.g., a study having
+        #       a trillion biosamples or a trillion data objects).
+        #
+        #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
+        #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
+        #
+        large_max_page_size: int = 1_000_000_000_000
+        data_objects_by_biosample_id_in_batch = {}
+        linked_data_objects_result: dict = get_linked_instances(
+            ids=biosample_id_batch,
+            types=["nmdc:DataObject"],
+            hydrate=True,  # we want the full `DataObject` documents
+            page_token=None,
+            max_page_size=large_max_page_size,
+            mdb=mdb,
+        )
+        linked_data_objects = linked_data_objects_result.get("resources", [])
+        logging.debug(f"Found {len(linked_data_objects)} DataObjects in this branch.")
+
+        # For each `DataObject`, strip away extra fields and add it to the result for this batch.
+        for data_object in linked_data_objects:
+
+            # Strip away the metadata fields injected by `get_linked_instances()`.
+            upstream_biosample_ids = data_object["_downstream_of"]  # preserve its value
+            data_object.pop("_upstream_of", None)
+            data_object.pop("_downstream_of", None)
+
+            # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
+            # upstream of it, of which there may be multiple (meaning that the same `DataObject`
+            # may appear multiple times in the API response, but in different lists).
+            for upstream_biosample_id in upstream_biosample_ids:
+                if upstream_biosample_id not in data_objects_by_biosample_id_in_batch.keys():
+                    data_objects_by_biosample_id_in_batch[upstream_biosample_id] = []
+                data_objects_by_biosample_id_in_batch[upstream_biosample_id].append(
+                    data_object
+                )
+        return data_objects_by_biosample_id_in_batch
+    
+    # Process all batches in parallel instead of serially (this is a performance optimization).
     with duration_logger(
         logging.debug,
         f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
     ):
-        large_max_page_size: int = 1_000_000_000_000
         data_objects_by_biosample_id = {}
-        for biosample_id_batch in biosample_id_batches:
-            linked_data_objects_result: dict = get_linked_instances(
-                ids=biosample_id_batch,
-                types=["nmdc:DataObject"],
-                hydrate=True,  # we want the full `DataObject` documents
-                page_token=None,
-                max_page_size=large_max_page_size,
-                mdb=mdb,
-            )
-            linked_data_objects = linked_data_objects_result.get("resources", [])
-            logging.debug(f"Found {len(linked_data_objects)} DataObjects.")
+        max_num_batches_in_parallel = min(8, len(biosample_id_batches))  # this can be "tuned"
+        with ThreadPoolExecutor(max_workers=max_num_batches_in_parallel) as thread_pool_executor:
+            future_to_biosample_id_batch_map: Dict[Future, list] = dict()
+            for biosample_id_batch in biosample_id_batches:
+                future: Future = thread_pool_executor.submit(process_batch_of_biosample_ids, biosample_id_batch)
+                
+                # Keep track of which "future" corresponds to this batch of `Biosample` IDs.
+                future_to_biosample_id_batch_map[future] = biosample_id_batch
 
-            # For each `DataObject`, strip away extra fields and add it to the API response.
-            for data_object in linked_data_objects:
-
-                # Strip away the metadata fields injected by `get_linked_instances()`.
-                upstream_biosample_ids = data_object[
-                    "_downstream_of"
-                ]  # preserve its value
-                data_object.pop("_upstream_of", None)
-                data_object.pop("_downstream_of", None)
-
-                # Store the `DataObject` in the list keyed by the `id` of each `Biosample` that is
-                # upstream of it, of which there may be multiple (meaning that the same `DataObject`
-                # may appear multiple times in the API response, but in different lists).
-                for upstream_biosample_id in upstream_biosample_ids:
-                    if upstream_biosample_id not in data_objects_by_biosample_id.keys():
-                        data_objects_by_biosample_id[upstream_biosample_id] = []
-                    data_objects_by_biosample_id[upstream_biosample_id].append(
-                        data_object
-                    )
+            # Whenever the thread pool executor finishes processing a given batch (at which point,
+            # the "future" corresponding to that batch will be completed), add that batch's results
+            # to the overall result.
+            for finished_future in as_completed(future_to_biosample_id_batch_map.keys()):
+                biosample_id_batch = future_to_biosample_id_batch_map[finished_future]
+                logging.debug(f"Finished processing batch of {len(biosample_id_batch)} `Biosample` IDs.")
+                data_objects_by_biosample_id_in_batch = finished_future.result()
+                data_objects_by_biosample_id.update(data_objects_by_biosample_id_in_batch)
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
