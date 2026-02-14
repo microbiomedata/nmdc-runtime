@@ -382,9 +382,9 @@ def find_data_objects_for_study(
                 )
         return data_objects_by_biosample_id_in_batch
 
-    # Process all batches in parallel instead of serially (this is a performance optimization).
+    # Process multiple batches in parallel instead of serially (this is a performance optimization).
     with duration_logger(
-        logging.debug,
+        logging.info,
         f"Finding DataObjects downstream of those {num_biosample_ids} Biosamples",
     ):
         data_objects_by_biosample_id = {}
