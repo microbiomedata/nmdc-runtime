@@ -292,12 +292,10 @@ def find_data_objects_for_study(
     #
     # Note: This is a performance optimization of the `get_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
-    #       is "nmdc:sty-11-34xj1150", we found that a single invocation that processes all 5260 IDs
-    #       would take approximately 50 seconds, whereas 5 consecutive invocations that each process
-    #       approximately 1000 IDs would, altogether, take only approximately 20 seconds (and that
-    #       having more, even smaller batches would still take roughly that same duration).
+    #       is "nmdc:sty-11-34xj1150", we found that processing the IDs in batches took less time,
+    #       in total, than processing them in a single batch.
     #
-    num_ids_per_batch = 1000  # this can be "tuned"
+    num_ids_per_batch = 500  # this can be "tuned"
     biosample_id_batches = []
     if num_biosample_ids == 0:
         return biosample_data_objects  # no need to proceed further if there are no biosample IDs
