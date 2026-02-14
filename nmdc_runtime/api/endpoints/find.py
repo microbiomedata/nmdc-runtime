@@ -16,7 +16,7 @@ from nmdc_runtime.api.db.mongo import (
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.nmdcschema import get_linked_instances
+from nmdc_runtime.api.endpoints.lib.linked_instances import gather_linked_instances, hydrated
 from nmdc_runtime.api.endpoints.users import is_admin
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
@@ -290,7 +290,7 @@ def find_data_objects_for_study(
 
     # Divide the `Biosample` IDs into batches (returning early if there are no such IDs).
     #
-    # Note: This is a performance optimization of the `get_linked_instances` function usage below.
+    # Note: This is a performance optimization of the `gather_linked_instances` function usage below.
     #       In our (local) testing with the 5260 `Biosample`s associated with the `Study` whose ID
     #       is "nmdc:sty-11-34xj1150", we found that processing the IDs in batches took less time,
     #       in total, than processing them in a single batch.
@@ -321,38 +321,28 @@ def find_data_objects_for_study(
         downstream of that `Biosample`.
         """
 
-        # Use the `get_linked_instances` function—which underlies the `/nmdcschema/linked_instances`
-        # API endpoint—to get all the `DataObject`s that are downstream of each of those `Biosample`s.
-        #
-        # Note: The `get_linked_instances` function requires that a `max_page_size`
-        #       integer argument be passed in. In our case, we want to get _all_ of
-        #       the instances. Python has no "infinity" integer; and, even if it did,
-        #       if we were to specify too large of an integer, we'd get this error:
-        #       > "OverflowError: MongoDB can only handle up to 8-byte ints"
-        #       So, as a workaround, we pass in a number that is large enough that we
-        #       think it will account for all cases in practice (e.g., a study having
-        #       a trillion biosamples or a trillion data objects).
-        #
-        #       TODO: Update the `get_linked_instances` function to optionally impose _no_ limit; or,
-        #             invoke a lower-level function that is, itself, invoked by `get_linked_instances`.
-        #
-        large_max_page_size: int = 1_000_000_000_000
-        data_objects_by_biosample_id_in_batch = {}
-        linked_data_objects_result: dict = get_linked_instances(
+        # Use the `gather_linked_instances` and `hydrated` functions—which underlie the
+        # `/nmdcschema/linked_instances` API endpoint—to get the `DataObject`s that are
+        # downstream of the `Biosample`s whose IDs are in this batch.
+        data_objects_by_biosample_id_in_batch: dict = {}
+        temp_linked_instances_collection_name: str = gather_linked_instances(
+            alldocs_collection=mdb.get_collection("alldocs"),
             ids=biosample_id_batch,
             types=["nmdc:DataObject"],
-            hydrate=True,  # we want the full `DataObject` documents
-            page_token=None,
-            max_page_size=large_max_page_size,
-            mdb=mdb,
         )
-        linked_data_objects = linked_data_objects_result.get("resources", [])
+        linked_data_objects_dehydrated = list(
+            mdb.get_collection(temp_linked_instances_collection_name).find({})
+        )
+        linked_data_objects = hydrated(linked_data_objects_dehydrated, mdb)
         logging.debug(f"Found {len(linked_data_objects)} DataObjects in this branch.")
 
         # For each `DataObject`, strip away extra fields and add it to the result for this batch.
         for data_object in linked_data_objects:
 
-            # Strip away the metadata fields injected by `get_linked_instances()`.
+            # Strip away the `_id` field injected by MongoDB.
+            data_object.pop("_id", None)
+
+            # Strip away the metadata fields injected by `gather_linked_instances()`.
             upstream_biosample_ids = data_object["_downstream_of"]  # preserve its value
             data_object.pop("_upstream_of", None)
             data_object.pop("_downstream_of", None)
@@ -409,7 +399,7 @@ def find_data_objects_for_study(
 
     # Convert the `data_objects_by_biosample_id` dictionary into a list of dicts;
     # i.e., into the format returned by the initial version of this API endpoint,
-    # which did not use the `get_linked_instances` function under the hood.
+    # which did not use the `gather_linked_instances` function under the hood.
     num_data_objects = sum(len(dobs) for dobs in data_objects_by_biosample_id.values())
     logging.info(f"Found a total of {num_data_objects} DataObjects (not deduplicated).")
     for biosample_id, data_objects in data_objects_by_biosample_id.items():
