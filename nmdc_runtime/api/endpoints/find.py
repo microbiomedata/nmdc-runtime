@@ -5,7 +5,16 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from io import StringIO
 from typing import Annotated, Dict, List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Response,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pymongo.database import Database as MongoDatabase
 
