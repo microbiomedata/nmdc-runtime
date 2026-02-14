@@ -16,7 +16,10 @@ from nmdc_runtime.api.db.mongo import (
     get_planned_process_collection_names,
     get_nonempty_nmdc_schema_collection_names,
 )
-from nmdc_runtime.api.endpoints.lib.linked_instances import gather_linked_instances, hydrated
+from nmdc_runtime.api.endpoints.lib.linked_instances import (
+    gather_linked_instances,
+    hydrated,
+)
 from nmdc_runtime.api.endpoints.users import is_admin
 from nmdc_runtime.api.endpoints.util import (
     find_resources,
