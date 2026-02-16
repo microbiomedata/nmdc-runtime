@@ -1,6 +1,6 @@
 /**
  * This JavaScript script creates a replica set of which the MongoDB instance
- * running the script is the role member.
+ * running the script is the sole member.
  * 
  * Note: Running in replica set mode is necessary in order to use MongoDB transactions.
  * 
