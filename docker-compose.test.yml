@@ -101,9 +101,16 @@ services:
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
-      - ./.docker/mongo/01-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - ./.docker/mongo/docker-entrypoint-initdb.d/01-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - ./.docker/mongo/check_health.sh:/check_health.sh:ro
       - ./tests/nmdcdb:/nmdcdb_dump:ro
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
+    healthcheck:
+      test: ["CMD", "bash", "/check_health.sh"]
+      interval: 5s  # how often to check the health
+      timeout: 5s  # how long to wait for the health check command to complete
+      retries: 1  # number of consecutive failures to qualify the service as unhealthy
+      start_period: 20s  # time to wait before starting to count health check failures
 
   # Test runner.
   test:
