@@ -71,7 +71,6 @@ MOCK_PORTAL_SUBMISSION = {
 }
 
 
-@pytest.mark.xfail(reason="ValueError from schema migration.")
 def test_translate_metadata_submission_to_nmdc_schema_database():
     """Smoke test for translate_metadata_submission_to_nmdc_schema_database job"""
 
