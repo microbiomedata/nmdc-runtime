@@ -81,12 +81,14 @@ def main(just_schema_collections):
 
     # Build authentication-related CLI options, based upon environment variables.
     auth_options = ""
-    username = os.getenv('MONGO_USERNAME')
-    password = os.getenv('MONGO_PASSWORD')
+    username = os.getenv("MONGO_USERNAME")
+    password = os.getenv("MONGO_PASSWORD")
     username_option = f"-u '{username}'" if username else ""
     password_option = f"-p '{password}'" if password else ""
     if username and password:
-        auth_options = f"{username_option} {password_option} --authenticationDatabase admin"
+        auth_options = (
+            f"{username_option} {password_option} --authenticationDatabase admin"
+        )
 
     n_colls = len(collection_names)
     heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
