@@ -25,15 +25,13 @@ def main():
 
     with TemporaryDirectory() as tmpdirname:
         # Build authentication-related CLI options, based upon environment variables.
-        auth_options = ""
         username = os.getenv("MONGO_USERNAME")
         password = os.getenv("MONGO_PASSWORD")
-        username_option = f"-u '{username}'" if username else ""
-        password_option = f"-p '{password}'" if password else ""
-        if username and password:
-            auth_options = (
-                f"{username_option} {password_option} --authenticationDatabase admin"
-            )
+        auth_db_option = "--authenticationDatabase admin"
+        username_option = f'-u "{username}"' if username else ""
+        password_option = f'-p "{password}"' if password else ""
+        auth_options: str = " ".join([auth_db_option, username_option, password_option])
+        auth_options_safe_for_logs: str = " ".join([auth_db_option, username_option])
 
         for coll_name, docs in schema_db.items():
             if coll_name not in collection_names:
@@ -49,9 +47,7 @@ def main():
                 f"-d \"{os.getenv('MONGO_DBNAME')}\" -c {coll_name} "
                 f"--file {file_path} --drop"
             )
-            print(
-                cmd.replace(auth_options, username_option)
-            )  # omits the password portion
+            print(auth_options_safe_for_logs)
             subprocess.run(
                 cmd,
                 shell=True,
