@@ -41,40 +41,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4 # update version to maintain consistency across workflows
-    # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
-    #
-    # Note: This is to prevent MongoDB from reporting the error:
-    #       > "permissions on /path/to/keyfile are too open"
-    #
-    # Note: This involves making the file be readable _only_ by the OS user that MongoDB runs as.
-    #
-    #       In containers using the `mongo` image, that user is named `mongodb` and has a
-    #       UID of `999`. That user belongs to a group named `mongodb`, whose GID is `999`.
-    #       You can verify this by looking at the Dockerfile layers on Docker Hub.
-    #       Reference: https://hub.docker.com/layers/library/mongo/8.0.5/images/sha256-90bf5066fed8a3cd59345d963922bc5cb557d4b4b2a0e38dfd9ee299c405741b
-    #
-    #       The GHA Runner will allow me to `chmod 600` the file, but not `chown 999:999` it.
-    #       Since the GHA Runner will not allow me to `chown` the file, I use a Docker container
-    #       to (effectively) accomplish that. Since—after I use the Docker container to change
-    #       the file's owner—the GHA Runner will not allow me to then `chmod` the file, I opt to
-    #       accomplish that within the Docker container as well.
-    #
-    #       The reason—within the Docker container—I do not `chmod` or `chown` the original file
-    #       directly, is that I am under the impression that ownership/permission changes made
-    #       within a container to mounted files that already exist on the host will not be seen
-    #       by the host. I have not found official documentation supporting this yet.
-    #       TODO: Include a reference about changing mounted file's permission within container.
-    #
-    - name: Restrict access to MongoDB keyfile
-      run: |
-        mkdir _tmp
-        docker run --rm \
-          -v ./.docker/mongoKeyFile:/mongoKeyFile \
-          -v ./_tmp:/out \
-          alpine \
-          sh -c 'cp /mongoKeyFile /out/mongoKeyFile && chmod 600 /out/mongoKeyFile && chown 999:999 /out/mongoKeyFile'
-        mv _tmp/mongoKeyFile ./.docker/mongoKeyFile
-        rmdir _tmp
     - name: Build and start containers upon which test runner depends
       run: make up-test
     # When running this GHA workflow job with the "Enable debug logging" checkbox marked
