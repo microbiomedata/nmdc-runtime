@@ -64,14 +64,22 @@ def main(just_schema_collections):
         ["--excludeCollection=" + c for c in collections_excluded]
     )
 
+    # Build authentication-related CLI options, based upon environment variables.
+    auth_options = ""
+    username = os.getenv('MONGO_USERNAME')
+    password = os.getenv('MONGO_PASSWORD')
+    username_option = f"-u '{username}'" if username else ""
+    password_option = f"-p '{password}'" if password else ""
+    if username and password:
+        auth_options = f"{username_option} {password_option} --authenticationDatabase admin"
+
     cmd = (
         f"mongodump --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
-        f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
-        f"--authenticationDatabase admin "
+        f"{auth_options} "
         f"-d \"{os.getenv('MONGO_DBNAME')}\" --gzip --out={out_dir} "
         f"{collections_excluded_str}"
     )
-    print(cmd.replace(f"-p \"{os.getenv('MONGO_PASSWORD')}\"", ""))
+    print(cmd.replace(auth_options, username_option))  # omits the password portion
     subprocess.run(
         cmd,
         shell=True,

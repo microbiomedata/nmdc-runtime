@@ -49,10 +49,12 @@ def get_mongo_client() -> MongoClient:
     Returns a `MongoClient` instance you can use to access the MongoDB server specified via environment variables.
     Reference: https://pymongo.readthedocs.io/en/stable/api/pymongo/mongo_client.html#pymongo.mongo_client.MongoClient
     """
+    username = os.getenv("MONGO_USERNAME")
+    password = os.getenv("MONGO_PASSWORD")
     return MongoClient(
         host=os.getenv("MONGO_HOST"),
-        username=os.getenv("MONGO_USERNAME"),
-        password=os.getenv("MONGO_PASSWORD"),
+        username=username if username else None,
+        password=password if password else None,
         directConnection=True,
     )
 

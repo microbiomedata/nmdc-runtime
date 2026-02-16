@@ -79,18 +79,26 @@ def main(just_schema_collections):
     )
     os.makedirs(str(out_dir), exist_ok=True)
 
+    # Build authentication-related CLI options, based upon environment variables.
+    auth_options = ""
+    username = os.getenv('MONGO_USERNAME')
+    password = os.getenv('MONGO_PASSWORD')
+    username_option = f"-u '{username}'" if username else ""
+    password_option = f"-p '{password}'" if password else ""
+    if username and password:
+        auth_options = f"{username_option} {password_option} --authenticationDatabase admin"
+
     n_colls = len(collection_names)
     heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
     for i, collname in enumerate(collection_names):
         filepath = out_dir.joinpath(collname + ".jsonl")
         cmd = (
             f"mongoexport --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
-            f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
-            f"--authenticationDatabase admin "
+            f"{auth_options} "
             f"-d \"{os.getenv('MONGO_DBNAME')}\" -c {collname} "
             f"-o {filepath} "
         )
-        print(cmd.replace(f"-p \"{os.getenv('MONGO_PASSWORD')}\"", ""))
+        print(cmd.replace(auth_options, username_option))  # omits the password portion
         if collname not in heavy_collection_names:
             tic = datetime.now(timezone.utc)
             print(f"[{i + 1}/{n_colls}] {collname} export started at {tic.isoformat()}")
