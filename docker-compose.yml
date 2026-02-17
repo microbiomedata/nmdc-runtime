@@ -106,7 +106,6 @@ services:
       - "${DEV_STACK_HOST_MACHINE_PORT_MONGO}:27017"
     restart: unless-stopped
     # Configure MongoDB to run in replica set mode, so we can use MongoDB transactions.
-    # Note: MongoDB authentication is disabled for local development/testing.
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
