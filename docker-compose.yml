@@ -64,7 +64,7 @@ services:
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
       dagster-postgresql: { condition: service_started }
-      mongo: { condition: service_started }
+      mongo: { condition: service_healthy }
     volumes:
       - .:/opt/dagster/lib
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
@@ -86,7 +86,7 @@ services:
       #       from being mounted at this location within the container.
       - /code/.venv
     depends_on:
-      mongo: { condition: service_started }
+      mongo: { condition: service_healthy }
     # Note: We use `--reload-exclude` to prevent Uvicorn from restarting the FastAPI
     #       app whenever files in the `util/load_testing/` directory change. Developers
     #       oftentimes modify those files while doing load testing, and those files are
