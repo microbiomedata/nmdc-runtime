@@ -16,7 +16,7 @@ fi
 
 mongodump -v -h "${MONGO_HOST}" "${AUTH_OPTIONS[@]}" \
     -d "${MONGO_DBNAME}" \
-    --gzip -o $HOME/nmdcdb-mongodump/nmdcdb/$(date +"%Y-%m-%dT%H")/ \
+    --gzip -o "${HOME}/nmdcdb-mongodump/nmdcdb/$(date +'%Y-%m-%dT%H')/" \
     --excludeCollectionsWithPrefix="_runtime" \
     --excludeCollectionsWithPrefix="_tmp" \
     --excludeCollectionsWithPrefix="fs." \

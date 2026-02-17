@@ -16,4 +16,4 @@ fi
 
 mongorestore -h "${MONGO_HOST}" "${AUTH_OPTIONS[@]}" \
      --gzip --drop \
-    $HOME/nmdcdb-mongodump/nmdcdb/2024-07-29_20-12-07/
+    "${HOME}/nmdcdb-mongodump/nmdcdb/2024-07-29_20-12-07/"
