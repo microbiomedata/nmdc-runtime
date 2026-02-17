@@ -79,18 +79,29 @@ def main(just_schema_collections):
     )
     os.makedirs(str(out_dir), exist_ok=True)
 
+    # Build authentication-related CLI options, based upon environment variables.
+    username = os.getenv("MONGO_USERNAME")
+    password = os.getenv("MONGO_PASSWORD")
+    auth_db_option = "--authenticationDatabase admin"
+    username_option = f'-u "{username}"' if username else ""
+    password_option = f'-p "{password}"' if password else ""
+    auth_options: str = " ".join([auth_db_option, username_option, password_option])
+    auth_options_safe_for_logs: str = " ".join([auth_db_option, username_option])
+
     n_colls = len(collection_names)
     heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
     for i, collname in enumerate(collection_names):
         filepath = out_dir.joinpath(collname + ".jsonl")
+        # TODO: Consider specifying the pieces of the command as strings in a list—rather than as
+        #       substrings of a string—so as to prevent misinterpretation of them by the shell
+        #       (e.g. due to an environment variable containing quotation marks).
         cmd = (
             f"mongoexport --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
-            f"-u \"{os.getenv('MONGO_USERNAME')}\" -p \"{os.getenv('MONGO_PASSWORD')}\" "
-            f"--authenticationDatabase admin "
+            f"{auth_options} "
             f"-d \"{os.getenv('MONGO_DBNAME')}\" -c {collname} "
             f"-o {filepath} "
         )
-        print(cmd.replace(f"-p \"{os.getenv('MONGO_PASSWORD')}\"", ""))
+        print(auth_options_safe_for_logs)
         if collname not in heavy_collection_names:
             tic = datetime.now(timezone.utc)
             print(f"[{i + 1}/{n_colls}] {collname} export started at {tic.isoformat()}")

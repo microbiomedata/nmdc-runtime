@@ -115,11 +115,13 @@ async def post_workflow_execution(
                 detail=str(rv),
             )
         # create mongodb instance for dagster
+        username = os.getenv("MONGO_USERNAME")
+        password = os.getenv("MONGO_PASSWORD")
         mongo_resource = MongoDB(
             host=os.getenv("MONGO_HOST"),
             dbname=os.getenv("MONGO_DBNAME"),
-            username=os.getenv("MONGO_USERNAME"),
-            password=os.getenv("MONGO_PASSWORD"),
+            username=username if username else None,
+            password=password if password else None,
         )
         mongo_resource.add_docs(workflow_execution_set, validate=False, replace=True)
         return {"message": "jobs accepted"}
