@@ -92,6 +92,9 @@ def main(just_schema_collections):
     heavy_collection_names = {"functional_annotation_set", "genome_feature_set"}
     for i, collname in enumerate(collection_names):
         filepath = out_dir.joinpath(collname + ".jsonl")
+        # TODO: Consider specifying the pieces of the command as strings in a list—rather than as
+        #       substrings of a string—so as to prevent misinterpretation of them by the shell
+        #       (e.g. due to an environment variable containing quotation marks).
         cmd = (
             f"mongoexport --host \"{os.getenv('MONGO_HOST').replace('mongodb://','')}\" "
             f"{auth_options} "
