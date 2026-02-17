@@ -110,7 +110,7 @@ services:
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
-      - ./.docker/mongo/docker-entrypoint-initdb.d/01-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - ./.docker/mongo/docker-entrypoint-initdb.d/01-initialize-replica-set.js:/docker-entrypoint-initdb.d/01-initialize-replica-set.js:ro
       - ./.docker/mongo/check_health.sh:/check_health.sh:ro
       - ./tests/nmdcdb:/nmdcdb_dump:ro
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro

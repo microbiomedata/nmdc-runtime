@@ -29,7 +29,6 @@ mongosh --quiet --eval '
     if (rs.status().ok === 1) {
       quit(0);
     }
-
     quit(1);
   } catch {
     quit(1);
