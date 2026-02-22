@@ -225,6 +225,12 @@ class TestRemoveFromSupersessionChain:
         # Clean up.
         db["workflow_execution_set"].delete_many({"id": {"$in": wfe_ids}})
 
+    def test_removing_wfe_a_removes_its_superseded_by_field(self, db_and_supersession_chain):
+        db, wfe_a, _, _ = db_and_supersession_chain
+        assert "superseded_by" in db["workflow_execution_set"].find_one({"id": wfe_a["id"]})
+        remove_from_supersession_chain(workflow_execution=wfe_a, db=db)
+        assert "superseded_by" not in db["workflow_execution_set"].find_one({"id": wfe_a["id"]})
+
     def test_removing_wfe_a_leaves_wfe_b_superseded_by_wfe_c(self, db_and_supersession_chain):
         db, wfe_a, wfe_b, wfe_c = db_and_supersession_chain
         remove_from_supersession_chain(workflow_execution=wfe_a, db=db)
