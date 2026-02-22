@@ -29,12 +29,18 @@ def remove_from_supersession_chain(
 
     # Get the `id` of the `WorkflowExecution`, if any, that supersedes the subject one.
     wfe_id = workflow_execution["id"]
-    wfe_superseding_subject_wfe = workflow_execution["superseded_by"] if "superseded_by" in workflow_execution else None
+    wfe_superseding_subject_wfe = (
+        workflow_execution["superseded_by"]
+        if "superseded_by" in workflow_execution
+        else None
+    )
 
     # Remove the `superseded_by` field, if any, from the subject `WorkflowExecution`,
     # effectively removing it from the chain, if any.
     wfe_set = db.get_collection("workflow_execution_set")
-    wfe_set.update_one({"id": wfe_id}, {"$unset": {"superseded_by": ""}}, session=client_session)
+    wfe_set.update_one(
+        {"id": wfe_id}, {"$unset": {"superseded_by": ""}}, session=client_session
+    )
 
     # Update the `superseded_by` fields to reflect the removal of the subject WFE from the chain.
     #
