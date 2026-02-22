@@ -2,6 +2,7 @@ import pytest
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.endpoints.lib.helpers import simulate_updates_and_check_references
+from nmdc_runtime.api.endpoints.lib.workflow_executions import remove_from_supersession_chain
 from nmdc_runtime.api.models.query import UpdateCommand, UpdateStatement
 from tests.lib.faker import Faker
 
@@ -196,3 +197,45 @@ class TestSimulateUpdatesAndCheckReferences:
         assert len(error_messages) == 1
         assert "biosample_set" in error_messages[0]
         assert old_bsm_id in error_messages[0]
+
+
+class TestRemoveFromSupersessionChain:
+    @pytest.fixture()
+    def db_and_supersession_chain(self):
+        """
+        Fixture that seeds the database with a chain of three `WorkflowExecution`s (A → B → C),
+        yields the database and the three `WorkflowExecution`s, and cleans up the database.
+        """
+
+        # Generate fake `WorkflowExecution` documents.
+        faker = Faker()
+        wfe_a, wfe_b, wfe_c = faker.generate_metagenome_annotations(3, was_informed_by=["x"], has_input=["y"])
+        wfe_a["superseded_by"] = wfe_b["id"]
+        wfe_b["superseded_by"] = wfe_c["id"]
+        
+        # Insert the documents into the database.
+        db = get_mongo_db()
+        wfe_ids = [wfe_a["id"], wfe_b["id"], wfe_c["id"]]
+        assert db["workflow_execution_set"].count_documents({"id": {"$in": wfe_ids}}) == 0
+        db["workflow_execution_set"].insert_many([wfe_a, wfe_b, wfe_c])
+        
+        # Yield the seeded database to the dependent test.
+        yield db, wfe_a, wfe_b, wfe_c
+
+        # Clean up.
+        db["workflow_execution_set"].delete_many({"id": {"$in": wfe_ids}})
+
+    def test_removing_wfe_a_leaves_wfe_b_superseded_by_wfe_c(self, db_and_supersession_chain):
+        db, wfe_a, wfe_b, wfe_c = db_and_supersession_chain
+        remove_from_supersession_chain(workflow_execution=wfe_a, db=db)
+        assert db["workflow_execution_set"].find_one({"id": wfe_b["id"]})["superseded_by"] == wfe_c["id"]
+
+    def test_removing_wfe_b_leaves_wfe_a_superseded_by_wfe_c(self, db_and_supersession_chain):
+        db, wfe_a, wfe_b, wfe_c = db_and_supersession_chain
+        remove_from_supersession_chain(workflow_execution=wfe_b, db=db)
+        assert db["workflow_execution_set"].find_one({"id": wfe_a["id"]})["superseded_by"] == wfe_c["id"]
+
+    def test_removing_wfe_c_leaves_wfe_a_superseded_by_wfe_b(self, db_and_supersession_chain):
+        db, wfe_a, wfe_b, wfe_c = db_and_supersession_chain
+        remove_from_supersession_chain(workflow_execution=wfe_c, db=db)
+        assert db["workflow_execution_set"].find_one({"id": wfe_a["id"]})["superseded_by"] == wfe_b["id"]
