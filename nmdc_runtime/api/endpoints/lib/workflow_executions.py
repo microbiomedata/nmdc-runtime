@@ -55,12 +55,24 @@ def remove_from_supersession_chain(
     if wfe_superseding_subject_workflow_execution is None:
         operation = {"$unset": {"superseded_by": ""}}
     else:
-        operation = {"$set": {"superseded_by": wfe_superseding_subject_workflow_execution}}
-    workflow_execution_set.update_many({"superseded_by": subject_workflow_execution_id}, operation, session=client_session)
-    data_object_set.update_many({"superseded_by": subject_workflow_execution_id}, operation, session=client_session)
+        operation = {
+            "$set": {"superseded_by": wfe_superseding_subject_workflow_execution}
+        }
+    workflow_execution_set.update_many(
+        {"superseded_by": subject_workflow_execution_id},
+        operation,
+        session=client_session,
+    )
+    data_object_set.update_many(
+        {"superseded_by": subject_workflow_execution_id},
+        operation,
+        session=client_session,
+    )
 
     # Remove the `superseded_by` field, if any, from the subject `WorkflowExecution`,
     # effectively removing that `WorkflowExecution` from the supersession chain, if any.
     workflow_execution_set.update_one(
-        {"id": subject_workflow_execution_id}, {"$unset": {"superseded_by": ""}}, session=client_session
+        {"id": subject_workflow_execution_id},
+        {"$unset": {"superseded_by": ""}},
+        session=client_session,
     )
