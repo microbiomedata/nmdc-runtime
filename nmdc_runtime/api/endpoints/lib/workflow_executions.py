@@ -40,17 +40,21 @@ def remove_from_supersession_chain(
     workflow_execution_set = db.get_collection("workflow_execution_set")
     data_object_set = db.get_collection("data_object_set")
 
-    # Update the `superseded_by` fields of all upstream (superseded) `WorkflowExecution`s (WFEs)
-    # and `DataObject`s (DOs), if any, to reflect the removal of the subject WFE from the chain.
+    # Update the `superseded_by` fields of all directly-upstream (i.e. directly-superseded)
+    # `WorkflowExecution`s (WFEs) and `DataObject`s (DOs) to reflect the impending removal
+    # of the subject `WorkflowExecution` from the supersession chain.
     #
-    # Scenario 1: If the subject WFE is _not_ `superseded_by` any WFE or DO, we will just delete the
-    #             `superseded_by` fields from all WFEs/DOs that are superseded by the subject one.
-    #             i.e., if "WFE1 → WFE2" and subject is "WFE2", delete the field from "WFE1".
+    # Scenario 1: If no `WorkflowExecution` supersedes the subject `WorkflowExecution`, we will
+    #             delete the `superseded_by` fields from WFEs and DOs that are superseded by
+    #             the subject one; i.e. if "WFE1 → WFE2" and "DO1 → WFE2" and the subject is "WFE2",
+    #             we will delete the `superseded_by` field from "WFE1" and "DO1".
     #
-    # Scenario 2: If the subject WFE _is_ `superseded_by` any WFE or DO, we will update the
-    #             `superseded_by` fields of all WFEs/DOs that are `superseded_by` the subject one,
-    #             so those fields contain the `id` of the WFE that supersedes the subject one.
-    #             i.e., if "WFE1 → WFE2 → WFE3" and subject is "WFE2", update the field on "WFE1".
+    # Scenario 2: If a `WorkflowExecution` supersedes the subject `WorkflowExecution`, we will
+    #             update the `superseded_by` fields of all WFEs and DOs that are superseded by
+    #             the subject one, so those fields contain the `id` of the `WorkflowExecution`
+    #             that supersedes the subject one; i.e. if "WFE1 → WFE2 → WFE3" and
+    #             "DO1 → WFE2 → WFE3" and the subject is "WFE2", we will update
+    #             the `superseded_by` field of "WFE1" and "DO1" to be "WFE3".
     #
     if wfe_superseding_subject_workflow_execution is None:
         operation = {"$unset": {"superseded_by": ""}}
