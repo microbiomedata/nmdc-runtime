@@ -219,7 +219,7 @@ async def delete_workflow_execution(
             return [wfe["id"] for wfe in linked_wfes]
 
         def recursive_delete_workflow_execution(wfe_id: str) -> None:
-            """Recursively delete a workflow execution and all its downstream dependencies."""
+            """Recursively delete a workflow execution and all its downstream dependents."""
             if wfe_id in deleted_workflow_execution_ids:
                 return  # Already deleted or in progress
 
