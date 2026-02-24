@@ -10,7 +10,9 @@ from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
-from nmdc_runtime.api.endpoints.lib.workflow_executions import prepare_supersession_chain_for_workflow_execution_deletion
+from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    prepare_supersession_chain_for_workflow_execution_deletion,
+)
 from nmdc_runtime.api.endpoints.queries import (
     _run_mdb_cmd,
     check_can_update_and_delete,
@@ -304,7 +306,9 @@ async def delete_workflow_execution(
         #       a `WorkflowExecution` be deleted before we have prepared the supersession chain.
         #
         for workflow_execution_id in deleted_workflow_execution_ids:
-            workflow_execution = mdb["workflow_execution_set"].find_one({"id": workflow_execution_id})
+            workflow_execution = mdb["workflow_execution_set"].find_one(
+                {"id": workflow_execution_id}
+            )
             if workflow_execution is not None:
                 prepare_supersession_chain_for_workflow_execution_deletion(
                     workflow_execution=workflow_execution, db=mdb, client_session=None
@@ -315,7 +319,7 @@ async def delete_workflow_execution(
                 )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="An error occurred while preparing to delete the WorkflowExecution."
+                    detail="An error occurred while preparing to delete the WorkflowExecution.",
                 )
 
         for collection_name, doc_ids in docs_to_delete.items():
