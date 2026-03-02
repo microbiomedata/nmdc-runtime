@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import List, Union
+from typing import List, Optional, Set, Union
 
 import pandas as pd
 
@@ -26,6 +26,7 @@ class NeonSoilDataTranslator(Translator):
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
         neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
+        allowed_dna_sample_ids: Optional[Set[str]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -49,13 +50,24 @@ class NeonSoilDataTranslator(Translator):
         )
 
         if all(k in mms_data for k in neon_mms_data_tables):
-            mms_data["mms_metagenomeDnaExtraction"].to_sql(
+            mms_dna_extraction = mms_data["mms_metagenomeDnaExtraction"]
+            mms_sequencing = mms_data["mms_metagenomeSequencing"]
+
+            if allowed_dna_sample_ids is not None:
+                mms_dna_extraction = mms_dna_extraction[
+                    mms_dna_extraction["dnaSampleID"].isin(allowed_dna_sample_ids)
+                ]
+                mms_sequencing = mms_sequencing[
+                    mms_sequencing["dnaSampleID"].isin(allowed_dna_sample_ids)
+                ]
+
+            mms_dna_extraction.to_sql(
                 "mms_metagenomeDnaExtraction",
                 self.conn,
                 if_exists="replace",
                 index=False,
             )
-            mms_data["mms_metagenomeSequencing"].to_sql(
+            mms_sequencing.to_sql(
                 "mms_metagenomeSequencing", self.conn, if_exists="replace", index=False
             )
         else:
@@ -93,6 +105,13 @@ class NeonSoilDataTranslator(Translator):
         neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
+
+        if allowed_dna_sample_ids is not None:
+            neon_raw_data_file_mappings_file = neon_raw_data_file_mappings_file[
+                neon_raw_data_file_mappings_file["dnaSampleID"].isin(
+                    allowed_dna_sample_ids
+                )
+            ]
 
         self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
