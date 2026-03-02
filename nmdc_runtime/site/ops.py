@@ -750,9 +750,7 @@ def unique_field_values(docs: List[Dict[str, Any]], field: str):
 @op(config_schema={"dna_sample_ids": [str]})
 def get_neon_soil_sample_filter(context: OpExecutionContext) -> Set[str]:
     dna_sample_ids = set(context.op_config["dna_sample_ids"])
-    context.log.info(
-        f"Filtering to {len(dna_sample_ids)} dnaSampleIDs"
-    )
+    context.log.info(f"Filtering to {len(dna_sample_ids)} dnaSampleIDs")
     return dna_sample_ids
 
 
