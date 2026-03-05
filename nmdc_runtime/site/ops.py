@@ -34,7 +34,6 @@ from dagster import (
     RetryRequested,
     String,
     op,
-    Optional,
     Field,
     Permissive,
     In,
@@ -808,7 +807,7 @@ def nmdc_schema_database_from_neon_soil_data(
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
     neon_nmdc_instrument_mapping_file: pd.DataFrame,
-    allowed_dna_sample_ids: Optional[Set[str]] = None,
+    allowed_dna_sample_ids: Optional[Set[str]],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
