@@ -193,7 +193,7 @@ class NeonSoilDataTranslator(Translator):
                 biosample_row["organicCPercent"].values[0], "%"
             ),
             carb_nitro_ratio=_create_quantity_value(
-                biosample_row["CNratio"].values[0], "ratio"
+                biosample_row["CNratio"].values[0], "1"
             ),
             ph=_create_float_value(biosample_row["soilInWaterpH"].values[0]),
             water_content=(
@@ -704,9 +704,12 @@ class NeonSoilDataTranslator(Translator):
 
         neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
         neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
-        nmdc_data_object_ids = self._id_minter(
-            "nmdc:DataObject", len(neon_raw_file_paths)
-        )
+        if len(neon_raw_file_paths) > 0:
+            nmdc_data_object_ids = self._id_minter(
+                "nmdc:DataObject", len(neon_raw_file_paths)
+            )
+        else:
+            nmdc_data_object_ids = []
         neon_to_nmdc_data_object_ids = dict(
             zip(neon_raw_file_paths, nmdc_data_object_ids)
         )
