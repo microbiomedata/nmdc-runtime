@@ -808,6 +808,12 @@ class NeonSoilDataTranslator(Translator):
                     )
                 )
 
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(
+                        processed_sample_id, genomics_sample_id
+                    )
+                )
+
         for (
             dna_sample_id,
             library_preparation_id,
