@@ -468,48 +468,42 @@ class SubmissionPortalTranslator(Translator):
         return value
 
     def _get_study_dois(self, metadata_submission) -> Union[List[nmdc.Doi], None]:
-        """Collect and format DOIs from submission portal schema in nmdc format DOIs
+        """Collect and translate DOI info from submission into nmdc-schema DOI instances
 
         If there were no DOIs, None is returned.
 
         :param metadata_submission: submission portal entry
         :return: list of nmdc.DOI objects
         """
-        data_dois = self._get_from(metadata_submission, ["studyForm", "dataDois"])
-        award_dois = self._get_from(
-            metadata_submission, ["multiOmicsForm", "awardDois"]
-        )
-        if data_dois and len(data_dois) > 0:
-            updated_data_dois = [
-                nmdc.Doi(
-                    doi_category="dataset_doi",
-                    doi_provider=doi["provider"],
-                    doi_value=self._ensure_curie(doi["value"], default_prefix="doi"),
-                    type="nmdc:Doi",
+
+        # Tuples of (doi_category, field) where doi_category is the value to use for the
+        # `doi_category` slot in the nmdc:Doi object and field is the list of nested fields to
+        # extract the DOI information from in the submission portal entry.
+        doi_configs = [
+            ("dataset_doi", ["studyForm", "dataDois"]),
+            ("award_doi", ["multiOmicsForm", "awardDois"]),
+            ("publication_doi", ["studyForm", "publicationDois"]),
+        ]
+
+        study_dois = []
+        for category, field in doi_configs:
+            raw_dois = self._get_from(metadata_submission, field)
+            if raw_dois:
+                study_dois.extend(
+                    [
+                        nmdc.Doi(
+                            doi_category=category,
+                            doi_provider=doi["provider"],
+                            doi_value=self._ensure_curie(
+                                doi["value"], default_prefix="doi"
+                            ),
+                            type="nmdc:Doi",
+                        )
+                        for doi in raw_dois
+                    ]
                 )
-                for doi in data_dois
-            ]
-        else:
-            updated_data_dois = []
 
-        if award_dois and len(award_dois) > 0:
-            updated_award_dois = [
-                nmdc.Doi(
-                    doi_category="award_doi",
-                    doi_provider=doi["provider"],
-                    doi_value=self._ensure_curie(doi["value"], default_prefix="doi"),
-                    type="nmdc:Doi",
-                )
-                for doi in award_dois
-            ]
-        else:
-            updated_award_dois = []
-
-        return_val = updated_data_dois + updated_award_dois
-        if len(return_val) == 0:
-            return_val = None
-
-        return return_val
+        return study_dois if study_dois else None
 
     def _get_data_objects_from_fields(
         self,
