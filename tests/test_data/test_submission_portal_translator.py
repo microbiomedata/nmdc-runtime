@@ -86,39 +86,58 @@ def test_get_study_dois():
     dois = translator._get_study_dois(
         {
             "studyForm": {
-                "dataDois": 
-                    [
-                        {
+                "dataDois": [
+                    {
                         "provider": "emsl",
-                        "value" : "10.12345/6789",
-                        },
-                    ],
+                        "value": "10.12345/6789",
+                    },
+                ],
+                "publicationDois": [
+                    {
+                        "provider": None,
+                        "value": "10.54321/9876",
+                    },
+                    {
+                        "provider": "zenodo",
+                        "value": "10.99999/abcd",
+                    }
+                ],
             },
             "multiOmicsForm": {
-                "awardDois":
-                    [
-                        {
+                "awardDois": [
+                    {
                         "provider": "jgi",
-                        "value" : "doi:10.11121314/15161718",
-                        },
-                    ]
-            }
+                        "value": "doi:10.11121314/15161718",
+                    },
+                ]
+            },
         }
     )
     assert dois is not None
-    assert len(dois) == 2
+    assert len(dois) == 4
+
     assert dois[0].doi_value == "doi:10.12345/6789"
     assert dois[0].doi_provider == DoiProviderEnum("emsl")
     assert dois[0].type == "nmdc:Doi"
     assert dois[0].doi_category == DoiCategoryEnum("dataset_doi")
 
     assert dois[1].doi_value == "doi:10.11121314/15161718"
-    assert dois[1].doi_provider == DoiProviderEnum('jgi')
+    assert dois[1].doi_provider == DoiProviderEnum("jgi")
     assert dois[1].type == "nmdc:Doi"
     assert dois[1].doi_category == DoiCategoryEnum("award_doi")
 
+    assert dois[2].doi_value == "doi:10.54321/9876"
+    assert dois[2].doi_provider is None
+    assert dois[2].type == "nmdc:Doi"
+    assert dois[2].doi_category == DoiCategoryEnum("publication_doi")
+
+    assert dois[3].doi_value == "doi:10.99999/abcd"
+    assert dois[3].doi_provider == DoiProviderEnum("zenodo")
+    assert dois[3].type == "nmdc:Doi"
+    assert dois[3].doi_category == DoiCategoryEnum("publication_doi")
+
     empty_doi = translator._get_study_dois({})
-    assert empty_doi == None
+    assert empty_doi is None
 
 
 def test_get_has_credit_associations():
@@ -213,7 +232,7 @@ def test_get_quantity_value_with_storage_units():
                 "tag": "storage_units",
                 "value": "Cel",
             }
-        ]
+        ],
     )
     qv = translator._get_quantity_value(-80, single_unit_slot)
     assert qv is not None
@@ -229,7 +248,7 @@ def test_get_quantity_value_with_storage_units():
                 "tag": "storage_units",
                 "value": "g|mg|kg",
             }
-        ]
+        ],
     )
     qv = translator._get_quantity_value("0.5 kg", multi_unit_slot)
     assert qv is not None
@@ -470,7 +489,12 @@ def test_instruments(test_minter):
 
 @pytest.mark.parametrize(
     "data_file_base",
-    ["plant_air_jgi", "nucleotide_sequencing_mapping", "sequencing_data", "soil_sample_link"],
+    [
+        "plant_air_jgi",
+        "nucleotide_sequencing_mapping",
+        "sequencing_data",
+        "soil_sample_link",
+    ],
 )
 def test_get_database(test_minter, monkeypatch, data_file_base):
     # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
@@ -536,9 +560,7 @@ def test_parse_sample_link():
 
 def test_set_study_images():
     study = Study(
-        id="nmdc:study-00-00000000",
-        type="nmdc:Study",
-        study_category="research_study"
+        id="nmdc:study-00-00000000", type="nmdc:Study", study_category="research_study"
     )
 
     SubmissionPortalTranslator.set_study_images(
@@ -548,10 +570,13 @@ def test_set_study_images():
         study_images_url=[
             "http://www.example.org/study_image1.jpg",
             "http://www.example.org/study_image2.jpg",
-        ]
+        ],
     )
 
-    assert study.principal_investigator.profile_image_url == "http://www.example.org/pi_image.jpg"
+    assert (
+        study.principal_investigator.profile_image_url
+        == "http://www.example.org/pi_image.jpg"
+    )
     assert study.study_image is not None
     assert len(study.study_image) == 3
     assert study.study_image[0].url == "http://www.example.org/primary_study_image.jpg"
