@@ -3326,8 +3326,8 @@ def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
 
     # Confirm that the _existing_ jobs were still released, even though the request included
     # the ID of a nonexistent one.
-    response_body = response.json()
-    assert len(response_body) == len(job_ids)
+    released_jobs = response.json()
+    assert set([released_job["id"] for released_job in released_jobs]) == set(job_ids)
 
 
 def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):

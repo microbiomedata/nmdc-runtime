@@ -256,6 +256,6 @@ def release_jobs(
                     f"Failed to find job having id '{job_id}'. Skipping its release."
                 )
             else:
-                raise e  # propagate the original exception
+                raise  # propagate the original exception
 
     return released_jobs
