@@ -3315,7 +3315,7 @@ def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
     assert id_of_nonexistent_job not in job_ids
     assert db.get_collection("jobs").count_documents({"id": id_of_nonexistent_job}, limit=1) == 0
 
-    # Submit a request to release all of the jobs.
+    # Submit a request to release that nonexistent job plus the existing ones.
     response = api_site_client.request(
         "POST",
         "/jobs/release",
