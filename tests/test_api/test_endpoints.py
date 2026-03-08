@@ -3307,6 +3307,29 @@ def test_release_jobs(api_site_client, db_having_jobs):
     assert len(response_body) == len(job_ids)
 
 
+def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
+    db, job_ids = db_having_jobs  # concise alias
+
+    assert len(set(job_ids)) == len(job_ids)  # confirm the original IDs are all distinct
+
+    # Include a second occurrence of one of the IDs.
+    redundant_job_id = job_ids[0]
+    
+    # Submit a request to release those jobs.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": [redundant_job_id] + job_ids,
+        },
+    )
+
+    # Confirm that the number of released jobs in the response matches
+    # the number of _distinct_ job IDs in the request.
+    released_jobs = response.json()
+    assert len(released_jobs) == len(job_ids)
+
+
 def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
     db, job_ids = db_having_jobs  # concise alias
 
