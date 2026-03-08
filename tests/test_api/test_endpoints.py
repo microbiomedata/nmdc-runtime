@@ -3307,6 +3307,29 @@ def test_release_jobs(api_site_client, db_having_jobs):
     assert len(response_body) == len(job_ids)
 
 
+def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
+    db, job_ids = db_having_jobs  # concise alias
+
+    # Generate an ID of a job that doesn't exist.
+    id_of_nonexistent_job = "nmdc:job-xx-foobar"
+    assert id_of_nonexistent_job not in job_ids
+    assert db.get_collection("jobs").count_documents({"id": id_of_nonexistent_job}, limit=1) == 0
+
+    # Submit a request to release all of the jobs.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": [id_of_nonexistent_job] + job_ids,
+        },
+    )
+
+    # Confirm that the _existing_ jobs were still released, even though the request included
+    # the ID of a nonexistent one.
+    response_body = response.json()
+    assert len(response_body) == len(job_ids)
+
+
 def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):
     """Note: This test was added to demonstrate a bugfix for issue #1255."""
 
