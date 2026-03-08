@@ -218,7 +218,7 @@ def release_jobs(
             # Note: Setting `embed=True` makes it so the request payload must be a JSON _object_ having
             #       a _field_ named `job_ids` (whose value is an array), as opposed to requiring the
             #       array, itself, to be the entire request payload. This gives us the flexibility of
-            #       introducing additional parameters in the future without it being a breaking change.
+            #       introducing additional fields in the future without it being a breaking change.
             embed=True,
         ),
     ],

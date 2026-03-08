@@ -3247,6 +3247,8 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
 
 
 def test_release_job(api_site_client):
+    """Test releasing a single job via the `POST /jobs/{job_id}:release` endpoint."""
+
     mdb = get_mongo_db()
     test_job_id = mdb.jobs.find_one({"workflow.id": "test"})["id"]
     # claim the test job
@@ -3265,6 +3267,34 @@ def test_release_job(api_site_client):
         for claim in rv.json()["claims"]
         if claim["site_id"] == api_site_client.site_id
     )
+
+def test_release_jobs(api_site_client):
+    """Test releasing multiple jobs via the `POST /jobs/release` endpoint."""
+
+    mdb = get_mongo_db()
+    jobs_collection = mdb.get_collection("jobs")
+
+    # Create 3 jobs and insert them into the database.
+    faker = Faker()
+    jobs = faker.generate_jobs(3)
+    job_ids = [job["id"] for job in jobs]
+    jobs_collection.insert_many(jobs)
+
+    # Submit a request to release all of the jobs.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": [job["id"] for job in jobs],
+        },
+    )
+
+    # Confirm that the jobs were released.
+    response_body = response.json()
+    assert len(response_body) == 3
+
+    # Clean up: Delete the jobs created above.
+    jobs_collection.delete_many({"id": {"$in": job_ids}})
 
 
 def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):
