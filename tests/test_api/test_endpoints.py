@@ -3330,7 +3330,7 @@ def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
     assert len(released_jobs) == len(job_ids)
 
 
-def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
+def test_release_jobs_skips_non_existent_jobs(api_site_client, db_having_jobs):
     db, job_ids = db_having_jobs  # concise alias
 
     # Generate an ID of a job that doesn't exist.
