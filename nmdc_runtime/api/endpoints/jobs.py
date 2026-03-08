@@ -208,15 +208,20 @@ def release_job(
 
 @router.post("/jobs/release")
 def release_jobs(
-    job_ids: Annotated[List[str], Body(
-        description="The `id`s of the jobs you want to release",
-        examples=[["nmdc:job-00-000001", "nmdc:job-00-000002", "nmdc:job-00-000003"]],
-        # Note: Setting `embed=True` makes it so the request payload must be a JSON _object_ having
-        #       a _field_ named `job_ids` (whose value is an array), as opposed to requiring the
-        #       array, itself, to be the entire request payload. This gives us the flexibility of
-        #       introducing additional parameters in the future without it being a breaking change.
-        embed=True,
-    )],
+    job_ids: Annotated[
+        List[str],
+        Body(
+            description="The `id`s of the jobs you want to release",
+            examples=[
+                ["nmdc:job-00-000001", "nmdc:job-00-000002", "nmdc:job-00-000003"]
+            ],
+            # Note: Setting `embed=True` makes it so the request payload must be a JSON _object_ having
+            #       a _field_ named `job_ids` (whose value is an array), as opposed to requiring the
+            #       array, itself, to be the entire request payload. This gives us the flexibility of
+            #       introducing additional parameters in the future without it being a breaking change.
+            embed=True,
+        ),
+    ],
     mdb: Database = Depends(get_mongo_db),
     site: Site = Depends(get_current_client_site),
 ) -> List[Job]:
@@ -247,7 +252,9 @@ def release_jobs(
         # allowing it to prevent the release of other jobs in the list.
         except HTTPException as e:
             if e.status_code == status.HTTP_404_NOT_FOUND:
-                logging.warning(f"Failed to find job having id '{job_id}'. Skipping its release.")
+                logging.warning(
+                    f"Failed to find job having id '{job_id}'. Skipping its release."
+                )
             else:
                 raise e  # propagate the original exception
 
