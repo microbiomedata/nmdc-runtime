@@ -3293,6 +3293,13 @@ def test_release_jobs(api_site_client, db_having_jobs):
 
     _, job_ids = db_having_jobs  # concise alias
 
+    # Claim the jobs so we can, later, confirm this site client's site's claims have been cancelled.
+    for job_id in job_ids:
+        api_site_client.request(
+            "POST",
+            f"/jobs/{job_id}:claim",
+        )
+
     # Submit a request to release all of the jobs.
     response = api_site_client.request(
         "POST",
@@ -3305,6 +3312,13 @@ def test_release_jobs(api_site_client, db_having_jobs):
     # Confirm that the jobs were released.
     response_body = response.json()
     assert len(response_body) == len(job_ids)
+    for released_job in response_body:
+        # Confirm that this site client's site's claims have been cancelled.
+        assert all(
+            claim["cancelled"] is True
+            for claim in released_job["claims"]
+            if claim["site_id"] == api_site_client.site_id
+        )
 
 
 def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
@@ -3330,7 +3344,7 @@ def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
     assert len(released_jobs) == len(job_ids)
 
 
-def test_release_jobs_skips_non_existent_jobs(api_site_client, db_having_jobs):
+def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
     db, job_ids = db_having_jobs  # concise alias
 
     # Generate an ID of a job that doesn't exist.
