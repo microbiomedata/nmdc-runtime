@@ -609,11 +609,14 @@ class NeonSoilDataTranslator(Translator):
         )
 
         query = """
-            SELECT dnaSampleID, startDate, collectDate, GROUP_CONCAT(sampleID, '|') AS sampleIDs
+            SELECT dnaSampleID, genomicsSampleID, startDate, collectDate, GROUP_CONCAT(sampleID, '|') AS sampleIDs
             FROM soil_biosamples_envo
             GROUP BY dnaSampleID
         """
         mg_pooling_table = pd.read_sql_query(query, self.conn)
+        dna_to_genomics_sample_id = dict(
+            zip(mg_pooling_table["dnaSampleID"], mg_pooling_table["genomicsSampleID"])
+        )
         pooling_ids_dict = (
             mg_pooling_table.set_index("dnaSampleID")["sampleIDs"]
             .str.split("|")
@@ -755,7 +758,10 @@ class NeonSoilDataTranslator(Translator):
                 )
 
                 database.processed_sample_set.append(
-                    self._translate_processed_sample(processed_sample_id, dna_sample_id)
+                    self._translate_processed_sample(
+                        processed_sample_id,
+                        dna_to_genomics_sample_id[dna_sample_id],
+                    )
                 )
 
         for genomics_sample_id, extraction_id in neon_to_nmdc_extraction_ids.items():
@@ -789,7 +795,7 @@ class NeonSoilDataTranslator(Translator):
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id, genomics_sample_id
+                        processed_sample_id, dna_sample_input
                     )
                 )
             else:
@@ -810,7 +816,7 @@ class NeonSoilDataTranslator(Translator):
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id, genomics_sample_id
+                        processed_sample_id, dna_sample_input
                     )
                 )
 
@@ -852,7 +858,6 @@ class NeonSoilDataTranslator(Translator):
                     self._translate_processed_sample(processed_sample_id, dna_sample_id)
                 )
 
-                has_output = None
                 has_output_do_ids = []
 
                 if dna_sample_id in neon_raw_data_files_dict:
@@ -861,14 +866,14 @@ class NeonSoilDataTranslator(Translator):
                         if item in neon_to_nmdc_data_object_ids:
                             has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
 
-                    database.data_generation_set.append(
-                        self._translate_nucleotide_sequencing(
-                            nucleotide_sequencing_id,
-                            processed_sample_id,
-                            has_output_do_ids,
-                            library_preparation_row,
-                        )
+                database.data_generation_set.append(
+                    self._translate_nucleotide_sequencing(
+                        nucleotide_sequencing_id,
+                        processed_sample_id,
+                        has_output_do_ids,
+                        library_preparation_row,
                     )
+                )
 
         for raw_file_path, nmdc_data_object_id in neon_to_nmdc_data_object_ids.items():
             checksum = None
