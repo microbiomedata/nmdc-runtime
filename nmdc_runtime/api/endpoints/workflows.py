@@ -175,7 +175,7 @@ async def delete_workflow_execution(
           supersession chain accordingly, and the possibility that we prepare the supersession
           chain and then the deletion of the `WorkflowExecution` fails, and the possibility that
           we prepare the supersession chain and delete the `WorkflowExecution` but then the
-          deletion of a downstream dependent `WorkflowExecution`, `DataObject, etc. fails.
+          deletion of a downstream dependent `WorkflowExecution`, `DataObject`, etc. fails.
 
     Parameters
     ----------
