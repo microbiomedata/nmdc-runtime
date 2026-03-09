@@ -14,18 +14,18 @@ def prepare_supersession_chain_for_workflow_execution_deletion(
     whose `superseded_by` field currently points to the subject `WorkflowExecution` (i.e.
     the one you are preparing to delete), so that that field no longer points to it.
 
-    Two scenarios:
-    1. If no `WorkflowExecution` supersedes the subject `WorkflowExecution`, this function will
+    There are two possible scenarios:
+    1. If _no_ `WorkflowExecution` supersedes the subject `WorkflowExecution`, this function will
        delete the `superseded_by` field of each `WorkflowExecution` and `DataObject` that is
        superseded by the subject one; for example:
        If "WFE1 → WFE2" and "DO1 → WFE2" and the subject is "WFE2", this
-       function will delete the `superseded_by` field from "WFE1" and "DO1".
-    2. If a `WorkflowExecution` does supersede the subject `WorkflowExecution`, this function will
+       function will delete the `superseded_by` field from "WFE1" and from "DO1".
+    2. If a `WorkflowExecution` _does_ supersede the subject `WorkflowExecution`, this function will
        update the `superseded_by` field of each `WorkflowExecution` and `DataObject` that is
        superseded by the subject one, so that that field contains the `id` of
-       the `WorkflowExecution` that supersedes the subject one; for example:
+       the `WorkflowExecution` that _supersedes_ the subject one; for example:
        If "WFE1 → WFE2 → WFE3" and "DO1 → WFE2 → WFE3" and the subject is "WFE2", this
-       function will update the `superseded_by` field of "WFE1" and "DO1" to point to "WFE3".
+       function will update the `superseded_by` field of "WFE1" and of "DO1" to point to "WFE3".
 
     :param workflow_execution: Dictionary representing the `WorkflowExecution` for whose deletion
                                you want to prepare the supersession chain. We call this the
@@ -37,7 +37,8 @@ def prepare_supersession_chain_for_workflow_execution_deletion(
     Reference: https://microbiomedata.github.io/nmdc-schema/superseded_by/
     """
 
-    # Get the `id` of the `WorkflowExecution`, if any, that supersedes the subject one.
+    # Get the `id` of the `WorkflowExecution`, if any, that supersedes the subject one;
+    # i.e., if "WFE1 → WFE2" and the subject is "WFE1", get the `id` of "WFE2".
     subject_workflow_execution_id = workflow_execution["id"]
     id_of_wfe_superseding_subject_workflow_execution = (
         workflow_execution["superseded_by"]

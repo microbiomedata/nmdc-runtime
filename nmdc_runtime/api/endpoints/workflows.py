@@ -170,6 +170,13 @@ async def delete_workflow_execution(
     TODO: Consider deleting input data objects that are _not_ used by other workflow executions
           (otherwise, they may accumulate in the database as so-called "orphaned documents").
 
+    TODO: Use a MongoDB transaction for this API endpoint, so we prevent the possibility that
+          a `WorkflowExecution` be deleted via some other means before we have prepared the
+          supersession chain accordingly, and the possibility that we prepare the supersession
+          chain and then the deletion of the `WorkflowExecution` fails, and the possibility that
+          we prepare the supersession chain and delete the `WorkflowExecution` but then the
+          deletion of a downstream dependent `WorkflowExecution`, `DataObject, etc. fails.
+
     Parameters
     ----------
     workflow_execution_id : str
@@ -301,10 +308,6 @@ async def delete_workflow_execution(
         # For each `WorkflowExecution` that we will be deleting, update the `superseded_by` field
         # of each `WorkflowExecution` and `DataObject` that is superseded by it so that the
         # supersession chain remains intact.
-        #
-        # TODO: Use a MongoDB transaction for this API endpoint so we prevent the possibility that
-        #       a `WorkflowExecution` be deleted before we have prepared the supersession chain.
-        #
         for workflow_execution_id in deleted_workflow_execution_ids:
             workflow_execution = mdb["workflow_execution_set"].find_one(
                 {"id": workflow_execution_id}
