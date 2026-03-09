@@ -264,7 +264,12 @@ class NeonSoilDataTranslator(Translator):
         )
 
     def _translate_data_object(
-        self, do_id: str, url: str, do_type: str, checksum: str, manifest_id: Optional[str] = None
+        self,
+        do_id: str,
+        url: str,
+        do_type: str,
+        checksum: str,
+        manifest_id: Optional[str] = None,
     ) -> nmdc.DataObject:
         """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
@@ -950,7 +955,9 @@ class NeonSoilDataTranslator(Translator):
                 do_type = "Metagenome Raw Read 2"
 
             dna_sample_id = raw_file_to_dna_sample.get(raw_file_path)
-            manifest_id = dna_sample_to_manifest_id.get(dna_sample_id) if dna_sample_id else None
+            manifest_id = (
+                dna_sample_to_manifest_id.get(dna_sample_id) if dna_sample_id else None
+            )
 
             database.data_object_set.append(
                 self._translate_data_object(
