@@ -315,7 +315,9 @@ async def delete_workflow_execution(
                     workflow_execution=workflow_execution, db=mdb, client_session=None
                 )
             else:
-                logging.error(f"WorkflowExecution '{wfe_id}' vanished during deletion prep.")
+                logging.error(
+                    f"WorkflowExecution '{wfe_id}' vanished during deletion prep."
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="An error occurred while preparing to delete the WorkflowExecution.",
