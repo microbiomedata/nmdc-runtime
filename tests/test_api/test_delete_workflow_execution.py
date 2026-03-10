@@ -306,7 +306,8 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         all_wfe_ids = [
             primary_workflow_execution["id"],
             dependent_workflow_execution_1["id"],
-            dependent_workflow_execution_2["id"]
+            dependent_workflow_execution_2["id"],
+            superseded_workflow_execution["id"],
         ]
         workflow_execution_set.delete_many({"id": {"$in": all_wfe_ids}})
         
