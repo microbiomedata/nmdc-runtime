@@ -95,7 +95,24 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         has_output=[obj["id"] for obj in dependent2_output_data_objects],
         was_informed_by=data_generation["id"]
     )[0]
-    
+
+    # Generate a workflow execution that is `superseded_by` the primary workflow execution.
+    # Also, generated its output data objects (which are also `superseded_by` the primary
+    # workflow execution) and its input data objects (not superseded by anything).
+    more_data_objects = faker.generate_data_objects(quantity=3)
+    superseded_data_objects = faker.generate_data_objects(
+        quantity=3,
+        superseded_by=primary_workflow_execution["id"],
+    )
+    superseded_workflow_execution = faker.generate_workflow_executions(
+        quantity=1,
+        workflow_type="nmdc:MetagenomeAnnotation",
+        has_input=[obj["id"] for obj in more_data_objects],
+        has_output=[obj["id"] for obj in superseded_data_objects],
+        was_informed_by=[data_generation["id"]],
+        superseded_by=primary_workflow_execution["id"],
+    )[0]
+
     # Create some functional annotation records for the primary workflow (AnnotatingWorkflow)
     # TODO: Implement a `Faker` method that generates `FunctionalAnnotationAggMember` documents.
     functional_annotation_records = [
@@ -160,7 +177,9 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
             primary_output_data_objects + 
             dependent1_output_data_objects + 
             dependent2_output_data_objects + 
-            external_input_data_objects
+            external_input_data_objects +
+            more_data_objects +
+            superseded_data_objects
         )
         data_object_set.insert_many(all_data_objects)
         
@@ -168,7 +187,8 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         workflow_execution_set.insert_many([
             primary_workflow_execution,
             dependent_workflow_execution_1,
-            dependent_workflow_execution_2
+            dependent_workflow_execution_2,
+            superseded_workflow_execution,
         ])
         
         # Insert functional annotation records
@@ -203,7 +223,7 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
         assert "deleted_functional_annotation_agg_oids" in response_data
         assert "deleted_job_ids" in response_data
         
-        # Verify all 3 workflow executions were deleted
+        # Verify the 1 primary and 2 dependent workflow executions were deleted
         deleted_wfe_ids = set(response_data["deleted_workflow_execution_ids"])
         expected_deleted_wfe_ids = {
             primary_workflow_execution["id"],
@@ -211,8 +231,21 @@ def test_delete_workflow_execution_cascade_deletion(api_user_client):
             dependent_workflow_execution_2["id"]
         }
         assert deleted_wfe_ids == expected_deleted_wfe_ids
-        
-        # Verify all output data objects were deleted
+
+        # Verify the superseded workflow execution still exists, but its `superseded_by` field has
+        # been removed (since the superseding workflow execution has been deleted and nothing
+        # superseded _it_). Also, verify the superseded workflow execution's outputted DataObjects
+        # still exist, but their `superseded_by` fields have been removed (for the same reason).
+        # Finally, verify the superseded workflow execution's input data objects still exist.
+        superseded_wfe_in_db = workflow_execution_set.find_one({"id": superseded_workflow_execution["id"]})
+        assert superseded_wfe_in_db is not None and "superseded_by" not in superseded_wfe_in_db
+        for data_obj in superseded_data_objects:
+            data_obj_in_db = data_object_set.find_one({"id": data_obj["id"]})
+            assert data_obj_in_db is not None and "superseded_by" not in data_obj_in_db
+        for data_obj in more_data_objects:
+            data_obj_in_db = data_object_set.find_one({"id": data_obj["id"]})
+
+        # Verify all data objects outputted by the primary and dependent WFEs were deleted
         deleted_data_object_ids = set(response_data["deleted_data_object_ids"])
         expected_deleted_data_object_ids = set(
             [obj["id"] for obj in primary_output_data_objects] +
