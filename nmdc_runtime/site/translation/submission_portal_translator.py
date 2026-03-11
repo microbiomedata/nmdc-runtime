@@ -1,11 +1,12 @@
 import logging
 import re
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from functools import lru_cache
 from importlib import resources
+from importlib.metadata import version
 from typing import Any, List, Optional, Union, Tuple
 from urllib.parse import urlparse
 
@@ -583,7 +584,10 @@ class SubmissionPortalTranslator(Translator):
         return match.group(1), split_strip(match.group(2), ",")
 
     def _translate_study(
-        self, metadata_submission: JSON_OBJECT, nmdc_study_id: str
+        self,
+        metadata_submission: JSON_OBJECT,
+        nmdc_study_id: str,
+        provenance_metadata: nmdc.ProvenanceMetadata,
     ) -> nmdc.Study:
         """Translate a metadata submission into an `nmdc:Study` object.
 
@@ -592,12 +596,14 @@ class SubmissionPortalTranslator(Translator):
 
         :param gold_study: metadata submission object
         :param nmdc_study_id: Minted nmdc:Study identifier for the translated object
+        :param provenance_metadata: ProvenanceMetadata object to associate with the Study
         :return: nmdc:Study object
         """
         return nmdc.Study(
             alternative_names=self._get_from(
                 metadata_submission, ["studyForm", "alternativeNames"]
             ),
+            associated_dois=self._get_study_dois(metadata_submission),
             description=self._get_from(
                 metadata_submission, ["studyForm", "description"]
             ),
@@ -623,13 +629,13 @@ class SubmissionPortalTranslator(Translator):
             name=self._get_from(metadata_submission, ["studyForm", "studyName"]),
             notes=self._get_from(metadata_submission, ["studyForm", "notes"]),
             principal_investigator=self._get_pi(metadata_submission),
+            provenance_metadata=provenance_metadata,
             study_category=self.study_category,
             title=self._get_from(metadata_submission, ["studyForm", "studyName"]),
             type="nmdc:Study",
             websites=self._get_from(
                 metadata_submission, ["studyForm", "linkOutWebpage"]
             ),
-            associated_dois=self._get_study_dois(metadata_submission),
         )
 
     def _transform_value_for_slot(
@@ -733,6 +739,7 @@ class SubmissionPortalTranslator(Translator):
         sample_data: List[JSON_OBJECT],
         nmdc_biosample_id: str,
         nmdc_study_id: str,
+        provenance_metadata: nmdc.ProvenanceMetadata,
     ) -> nmdc.Biosample:
         """Translate sample data from portal submission into an `nmdc:Biosample` object.
 
@@ -747,6 +754,7 @@ class SubmissionPortalTranslator(Translator):
                             from each applicable submission portal tab
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
+        :param provenance_metadata: ProvenanceMetadata object to associate with the Biosample
         :return: nmdc:Biosample
         """
         env_idx = next(
@@ -777,7 +785,7 @@ class SubmissionPortalTranslator(Translator):
                 )
                 slots.update(transformed_extras)
 
-        return nmdc.Biosample(**slots)
+        return nmdc.Biosample(**slots, provenance_metadata=provenance_metadata)
 
     def get_database(self) -> nmdc.Database:
         """Translate the submission portal entry to an nmdc:Database
@@ -789,8 +797,22 @@ class SubmissionPortalTranslator(Translator):
         :return: nmdc:Database object
         """
         database = nmdc.Database()
+        submission_id = self.metadata_submission.get("id")
         metadata_submission_data = self.metadata_submission.get(
             "metadata_submission", {}
+        )
+
+        now = datetime.now(tz=timezone.utc)
+        provenance_metadata = nmdc.ProvenanceMetadata(
+            add_date=now,
+            git_url="https://github.com/microbiomedata/nmdc-runtime",
+            mod_date=now,
+            source_system_of_record=nmdc.SourceSystemEnum(
+                nmdc.SourceSystemEnum.NMDC_Submission_Portal
+            ),
+            submission_portal_identifier=submission_id,
+            type="nmdc:ProvenanceMetadata",
+            version=version("nmdc_runtime"),
         )
 
         # Generate one Study instance based on the metadata submission, if a study_id wasn't provided
@@ -799,7 +821,9 @@ class SubmissionPortalTranslator(Translator):
         else:
             nmdc_study_id = self._id_minter("nmdc:Study")[0]
             database.study_set = [
-                self._translate_study(metadata_submission_data, nmdc_study_id)
+                self._translate_study(
+                    metadata_submission_data, nmdc_study_id, provenance_metadata
+                )
             ]
 
         # Automatically populate the `env_package` field in the sample data based on which
@@ -887,6 +911,7 @@ class SubmissionPortalTranslator(Translator):
                     sample_data,
                     nmdc_biosample_id=sample_data_to_nmdc_biosample_ids[sample_data_id],
                     nmdc_study_id=nmdc_study_id,
+                    provenance_metadata=provenance_metadata,
                 )
                 database.biosample_set.append(biosample)
 
@@ -896,7 +921,6 @@ class SubmissionPortalTranslator(Translator):
         database.data_object_set = []
         database.instrument_set = []
         database.manifest_set = []
-        today = datetime.now().strftime("%Y-%m-%d")
         for sample_data_id, sample_data in sample_data_by_id.items():
             for tab in sample_data:
                 tab_name = tab.get(TAB_NAME_KEY)
@@ -917,8 +941,6 @@ class SubmissionPortalTranslator(Translator):
                     "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
                     "has_output": [],
                     "associated_studies": [nmdc_study_id],
-                    "add_date": today,
-                    "mod_date": today,
                     "analyte_category": analyte_category,
                     "type": "nmdc:NucleotideSequencing",
                 }
@@ -959,7 +981,8 @@ class SubmissionPortalTranslator(Translator):
                     self._transform_dict_for_class(tab, "NucleotideSequencing")
                 )
                 nucleotide_sequencing = nmdc.NucleotideSequencing(
-                    **nucleotide_sequencing_slots
+                    **nucleotide_sequencing_slots,
+                    provenance_metadata=provenance_metadata,
                 )
                 database.data_generation_set.append(nucleotide_sequencing)
 
@@ -1002,7 +1025,6 @@ class SubmissionPortalTranslator(Translator):
             database.data_generation_set = []
             database.data_object_set = []
             data_objects_by_sample_data_id = {}
-            today = datetime.now().strftime("%Y-%m-%d")
 
             if self.data_object_mapping:
                 # If DataObject mapping data was provided, group it by the sample ID key and then
@@ -1037,8 +1059,6 @@ class SubmissionPortalTranslator(Translator):
                     "has_input": [nmdc_biosample_id],
                     "has_output": [],
                     "associated_studies": [nmdc_study_id],
-                    "add_date": today,
-                    "mod_date": today,
                     "type": "nmdc:NucleotideSequencing",
                 }
                 nucleotide_sequencing_slots.update(
@@ -1047,7 +1067,8 @@ class SubmissionPortalTranslator(Translator):
                     )
                 )
                 nucleotide_sequencing = nmdc.NucleotideSequencing(
-                    **nucleotide_sequencing_slots
+                    **nucleotide_sequencing_slots,
+                    provenance_metadata=provenance_metadata,
                 )
 
                 for data_object_row in data_objects_by_sample_data_id.get(
