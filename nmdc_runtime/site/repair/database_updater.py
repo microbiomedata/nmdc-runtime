@@ -91,7 +91,18 @@ class DatabaseUpdater:
 
         all_gold_biosamples = []
         all_gold_projects = []
+        existing_gold_project_ids = set()
         for biosample in biosample_set:
+            # Check for existing DataGeneration records linked to this biosample
+            # using the /nmdcschema/linked_instances endpoint, which is more
+            # efficient than fetching all DataGeneration records for the study.
+            linked_data_generations = self.runtime_api_user_client.get_linked_data_generation_records_for_biosample(
+                biosample["id"]
+            )
+            for dg in linked_data_generations:
+                for gold_id in dg.get("gold_sequencing_project_identifiers", []):
+                    existing_gold_project_ids.add(gold_id.replace("gold:", ""))
+
             gold_biosample_identifiers = biosample.get("gold_biosample_identifiers")
             if gold_biosample_identifiers:
                 for gold_biosample_id in gold_biosample_identifiers:
@@ -114,6 +125,13 @@ class DatabaseUpdater:
         # invalid biosamples and projects (based on `sequencingStrategy`, `projectStatus`, etc.)
         filtered_biosamples = gold_study_translator.biosamples
         filtered_projects = gold_study_translator.projects
+
+        # Filter out GOLD projects that already have DataGeneration records in the database
+        filtered_projects = [
+            project
+            for project in filtered_projects
+            if project["projectGoldId"] not in existing_gold_project_ids
+        ]
 
         gold_project_ids = [project["projectGoldId"] for project in filtered_projects]
         nmdc_nucleotide_sequencing_ids = self.runtime_api_site_client.mint_id(
