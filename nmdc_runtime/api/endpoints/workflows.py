@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Any, List, Set, Annotated
+import re
+from typing import Any, Dict, List, Set, Annotated
 
 import pymongo
 from bson import ObjectId
@@ -82,36 +83,72 @@ async def post_activity(
     return f"DEPRECATED: POST your request to `/workflows/workflow_executions` instead."
 
 
-@router.post("/workflows/workflow_executions")
+@router.post(
+    "/workflows/workflow_executions",
+    description="Create workflow executions and related metadata.",
+)
 async def post_workflow_execution(
-    workflow_execution_set: dict[str, Any],
+    database_in: dict[str, Any],
     site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
-):
+) -> Dict[str, str]:
     """
-    Post workflow execution set to database and claim job.
+    Create workflow executions and related metadata.
 
     Parameters
     -------
-    workflow_execution_set: dict[str,Any]
-             Set of workflow executions for specific workflows, in the form of a nmdc:Database.
-             Other collections (such as data_object_set) are allowed, as they may be associated
-             with the workflow executions submitted.
-
+    database_in: dict[str,Any]
+                 An `nmdc:Database` instance that includes at least a `workflow_execution_set`
+                 collection and, optionally, other collections consisting of metadata associated
+                 with the items in that included `workflow_execution_set` collection.
     site: Site
     mdb: MongoDatabase
-
-    Returns
-    -------
-    dict[str,str]
-
     """
+
     _ = site  # must be authenticated
+
+    # Do some preliminary validation before we try examining the documents in the specified
+    # `workflow_execution_set` collection. This way, our examination code can focus on examination
+    # and not validation.
+    if (
+        not validate_json(database_in, mdb, check_inter_document_references=False)
+        or "workflow_execution_set" not in database_in
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Request payload must represent a valid 'nmdc:Database' instance "
+                + "that includes a 'workflow_execution_set' collection."
+            ),
+        )
+
+    # Check whether any of the submitted workflow executions are "re-runs".
+    #
+    # Note: The NMDC workflow automation team members have established a convention for indicating
+    #       whether a workflow execution is a "re-run" or not.
+    #
+    #       When they populate the `id` field of a workflow execution, they append a ".{integer}"
+    #       suffix to it. For example: "nmdc:wfmp-00-abcdef.3". When N == 1, the workflow execution
+    #       is a first run (i.e. not a re-run). When N == 2, the workflow execution is a second run
+    #       (i.e. it is a re-run and supersedes the workflow execution whose `id` has N == 1), etc.
+    #
+    for wfe in database_in["workflow_execution_set"]:
+        wfe_id = wfe["id"]
+        match = re.search(r"\.(\d+)$", wfe_id)
+        if match is not None:
+            integer = match.group(1)
+            if integer == "1":
+                logging.debug(f"Workflow execution '{wfe_id}' is a first run.")
+            else:
+                logging.debug(f"Workflow execution '{wfe_id}' is a re-run.")
+                # TODO: Determine whether the workflow execution that this one supersedes exists
+                #       in the database already; or it's being submitted in the same batch.
+                # TODO: Identify the workflow execution and data objects that this workflow
+                #       execution supersedes and prepare to update their supersession chains.
+
     try:
         # validate request JSON
-        rv = validate_json(
-            workflow_execution_set, mdb, check_inter_document_references=True
-        )
+        rv = validate_json(database_in, mdb, check_inter_document_references=True)
         if rv["result"] == "errors":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -124,7 +161,7 @@ async def post_workflow_execution(
             username=os.getenv("MONGO_USERNAME"),
             password=os.getenv("MONGO_PASSWORD"),
         )
-        mongo_resource.add_docs(workflow_execution_set, validate=False, replace=True)
+        mongo_resource.add_docs(database_in, validate=False, replace=True)
         return {"message": "jobs accepted"}
     except BulkWriteError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
