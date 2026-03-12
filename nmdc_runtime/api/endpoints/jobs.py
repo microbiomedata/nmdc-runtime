@@ -3,6 +3,7 @@ import json
 import logging
 from typing import List, Optional, Annotated
 
+from pydantic import BaseModel
 from pymongo.database import Database
 from fastapi import APIRouter, Body, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -24,6 +25,14 @@ from nmdc_runtime.api.models.site import (
 from nmdc_runtime.api.models.util import ListRequest, ListResponse, ResultT
 
 router = APIRouter()
+
+
+class JobsReleaseError(BaseModel):
+    released_jobs: List[Job]
+    """Jobs that were released successfully"""
+    
+    message: str
+    """Error message"""
 
 
 # Note: We use the generic `Doc` class—instead of the `Job` class—to describe the response
@@ -206,7 +215,19 @@ def release_job(
         return Job(**updated_job)
 
 
-@router.post("/jobs/release")
+@router.post(
+    "/jobs/release",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Released all of the specified jobs",
+            "model": List[Job],
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Failed to release one of the specified jobs",
+            "model": JobsReleaseError,
+        },
+    },
+)
 def release_jobs(
     job_ids: Annotated[
         List[str],
@@ -228,13 +249,17 @@ def release_jobs(
     """
     Release the specified jobs.
 
-    Releasing a job cancels all of the job's unfinished operations
-    that were claimed by the `site` associated with the logged-in site client.
-
-    If any of the specified jobs does not exist, the server will skip it and
-    continue releasing the other specified jobs.
+    Releasing a job cancels all of the job's unfinished operations that were claimed by the `site`
+    associated with the logged-in site client.
 
     Returns the released jobs, reflecting that the aforementioned operations have been cancelled.
+
+    If the server fails to find any of the specified jobs, it will silently skip it and continue
+    releasing the other specified jobs.
+
+    If the server fails to release any of the specified jobs, it will stop releasing the additional
+    specified jobs and will return an HTTP 500 response whose payload indicates which jobs it
+    successfully released and which job it failed to release.
     """
 
     released_jobs = []
@@ -252,10 +277,18 @@ def release_jobs(
         # allowing it to prevent the release of other jobs in the list.
         except HTTPException as e:
             if e.status_code == status.HTTP_404_NOT_FOUND:
-                logging.warning(
-                    f"Failed to find job having id '{job_id}'. Skipping its release."
-                )
+                message = f"Failed to find job '{job_id}'. Skipping its release."
+                logging.warning(message)
             else:
-                raise  # propagate the original exception
+                message = f"Failed to release job '{job_id}'. Skipping release of additional jobs."
+                logging.error(message)
+                logging.exception(e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=JobsReleaseError(
+                        released_jobs=released_jobs,
+                        message=message,
+                    ),
+                )
 
     return released_jobs
