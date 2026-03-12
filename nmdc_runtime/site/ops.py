@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
-from typing import Tuple, Set
+from typing import Optional, Set, Tuple
 from zipfile import ZipFile
 from itertools import chain
 from ontology_loader.ontology_load_controller import OntologyLoaderController
@@ -34,7 +34,6 @@ from dagster import (
     RetryRequested,
     String,
     op,
-    Optional,
     Field,
     Permissive,
     In,
@@ -747,6 +746,13 @@ def unique_field_values(docs: List[Dict[str, Any]], field: str):
     return {doc[field] for doc in docs if field in doc}
 
 
+@op(config_schema={"dna_sample_ids": [str]})
+def get_neon_soil_sample_filter(context: OpExecutionContext) -> Set[str]:
+    dna_sample_ids = set(context.op_config["dna_sample_ids"])
+    context.log.info(f"Filtering to {len(dna_sample_ids)} dnaSampleIDs")
+    return dna_sample_ids
+
+
 @op(config_schema={"mms_data_product": dict})
 def get_neon_pipeline_mms_data_product(context: OpExecutionContext) -> dict:
     return context.op_config["mms_data_product"]
@@ -801,6 +807,7 @@ def nmdc_schema_database_from_neon_soil_data(
     neon_envo_mappings_file: pd.DataFrame,
     neon_raw_data_file_mappings_file: pd.DataFrame,
     neon_nmdc_instrument_mapping_file: pd.DataFrame,
+    allowed_dna_sample_ids: Optional[Set[str]],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
 
@@ -814,6 +821,7 @@ def nmdc_schema_database_from_neon_soil_data(
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
         neon_nmdc_instrument_mapping_file,
+        allowed_dna_sample_ids=allowed_dna_sample_ids,
         id_minter=id_minter,
     )
 

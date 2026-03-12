@@ -608,6 +608,7 @@ def biosample_submission_ingest():
                             "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
+                    "get_neon_soil_sample_filter": {"config": {"dna_sample_ids": []}},
                 },
             },
         ),
@@ -650,6 +651,7 @@ def biosample_submission_ingest():
                             "neon_nmdc_instrument_mapping_file_url": "https://raw.githubusercontent.com/microbiomedata/nmdc-schema/refs/heads/main/assets/misc/neon_sequencingMethod_to_nmdc_instrument_set.tsv",
                         }
                     },
+                    "get_neon_soil_sample_filter": {"config": {"dna_sample_ids": []}},
                 },
             },
         ),

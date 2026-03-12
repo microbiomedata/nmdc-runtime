@@ -34,6 +34,7 @@ from nmdc_runtime.site.ops import (
     translate_portal_submission_to_nmdc_schema_database,
     validate_metadata,
     neon_data_by_product,
+    get_neon_soil_sample_filter,
     nmdc_schema_database_from_neon_soil_data,
     nmdc_schema_database_from_neon_benthic_data,
     nmdc_schema_database_from_neon_surface_water_data,
@@ -276,12 +277,15 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
         neon_nmdc_instrument_mapping_file_url
     )
 
+    allowed_dna_sample_ids = get_neon_soil_sample_filter()
+
     database = nmdc_schema_database_from_neon_soil_data(
         mms_data,
         sls_data,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
         neon_nmdc_instrument_mapping_file,
+        allowed_dna_sample_ids,
     )
 
     database_dict = nmdc_schema_object_to_dict(database)
@@ -315,12 +319,15 @@ def ingest_neon_soil_metadata():
         neon_nmdc_instrument_mapping_file_url
     )
 
+    allowed_dna_sample_ids = get_neon_soil_sample_filter()
+
     database = nmdc_schema_database_from_neon_soil_data(
         mms_data,
         sls_data,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
         neon_nmdc_instrument_mapping_file,
+        allowed_dna_sample_ids,
     )
     run_id = submit_metadata_to_db(database)
     poll_for_run_completion(run_id)
