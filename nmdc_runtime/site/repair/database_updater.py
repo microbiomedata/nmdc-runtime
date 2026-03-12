@@ -35,6 +35,13 @@ class DatabaseUpdater:
         :param study_id: NMDC study ID for which the missing records need to be added.
         :param gold_nmdc_instrument_map_df: A dataframe originally stored as a TSV mapping file in the
         NMDC schema repo, which maps GOLD instrument IDs to IDs of NMDC instrument_set records.
+        :param include_field_site_info: Whether to include field research site information when
+        translating GOLD data. When True, the GoldStudyTranslator will create
+        `nmdc:FieldResearchSite` records and associate them with biosamples. Defaults to False.
+        :param enable_biosample_filtering: Whether to filter biosamples based on their
+        `sequencingStrategy` (only keeping "Metagenome" or "Metatranscriptome") and associated
+        project `projectStatus`. When False, all biosamples are included regardless of sequencing
+        strategy or project status. Defaults to True.
         """
         self.runtime_api_user_client = runtime_api_user_client
         self.runtime_api_site_client = runtime_api_site_client
