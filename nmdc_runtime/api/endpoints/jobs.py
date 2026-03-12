@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 import json
 import logging
-from typing import Optional, Annotated
+from typing import List, Optional, Annotated
 
+from pydantic import BaseModel
 from pymongo.database import Database
-from fastapi import APIRouter, Depends, Query, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, Query, HTTPException, Path
 from pymongo.errors import ConnectionFailure, OperationFailure
 from starlette import status
 from nmdc_runtime.api.core.util import (
@@ -24,6 +25,14 @@ from nmdc_runtime.api.models.site import (
 from nmdc_runtime.api.models.util import ListRequest, ListResponse, ResultT
 
 router = APIRouter()
+
+
+class JobsReleaseError(BaseModel):
+    released_jobs: List[Job]
+    """Jobs that were released successfully"""
+
+    message: str
+    """Error message"""
 
 
 # Note: We use the generic `Doc` class—instead of the `Job` class—to describe the response
@@ -204,3 +213,82 @@ def release_job(
         return None
     else:
         return Job(**updated_job)
+
+
+@router.post(
+    "/jobs/release",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Released all of the specified jobs",
+            "model": List[Job],
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Failed to release one of the specified jobs",
+            "model": JobsReleaseError,
+        },
+    },
+)
+def release_jobs(
+    job_ids: Annotated[
+        List[str],
+        Body(
+            description="The `id`s of the jobs you want to release",
+            examples=[
+                ["nmdc:job-00-000001", "nmdc:job-00-000002", "nmdc:job-00-000003"]
+            ],
+            # Note: Setting `embed=True` makes it so the request payload must be a JSON _object_ having
+            #       a _field_ named `job_ids` (whose value is an array), as opposed to requiring the
+            #       array, itself, to be the entire request payload. This gives us the flexibility of
+            #       introducing additional fields in the future without it being a breaking change.
+            embed=True,
+        ),
+    ],
+    mdb: Database = Depends(get_mongo_db),
+    site: Site = Depends(get_current_client_site),
+) -> List[Job]:
+    """
+    Release the specified jobs.
+
+    Releasing a job cancels all of the job's unfinished operations that were claimed by the `site`
+    associated with the logged-in site client.
+
+    Returns the released jobs, reflecting that the aforementioned operations have been cancelled.
+
+    If the server fails to find any of the specified jobs, it will silently skip it and continue
+    releasing the other specified jobs.
+
+    If the server fails to release any of the specified jobs, it will stop releasing the additional
+    specified jobs and will return an HTTP 500 response whose payload indicates which jobs it
+    successfully released and which job it failed to release.
+    """
+
+    released_jobs = []
+
+    # For each of the specific job IDs, invoke the `release_job` function (passing it the `id`)
+    # and store the returned, released job—if any—into the list we will return.
+    distinct_job_ids = list(set(job_ids))
+    for job_id in distinct_job_ids:
+        try:
+            released_job = release_job(job_id, mdb, site)
+            if released_job is not None:
+                released_jobs.append(released_job)
+
+        # If the job with the specified ID does not exist, we log a warning and skip it, rather than
+        # allowing it to prevent the release of other jobs in the list.
+        except HTTPException as e:
+            if e.status_code == status.HTTP_404_NOT_FOUND:
+                message = f"Failed to find job '{job_id}'. Skipping its release."
+                logging.warning(message)
+            else:
+                message = f"Failed to release job '{job_id}'. Skipping release of additional jobs."
+                logging.error(message)
+                logging.exception(e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=JobsReleaseError(
+                        released_jobs=released_jobs,
+                        message=message,
+                    ),
+                )
+
+    return released_jobs

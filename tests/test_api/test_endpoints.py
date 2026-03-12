@@ -3247,6 +3247,8 @@ def test_run_query_aggregate__cursor_id_is_null_when_any_document_lacks_undersco
 
 
 def test_release_job(api_site_client):
+    """Test releasing a single job via the `POST /jobs/{job_id}:release` endpoint."""
+
     mdb = get_mongo_db()
     test_job_id = mdb.jobs.find_one({"workflow.id": "test"})["id"]
     # claim the test job
@@ -3265,6 +3267,104 @@ def test_release_job(api_site_client):
         for claim in rv.json()["claims"]
         if claim["site_id"] == api_site_client.site_id
     )
+
+
+@pytest.fixture
+def db_having_jobs():
+    """Pytest fixture that yields a database in which jobs exist."""
+
+    db = get_mongo_db()
+    jobs_collection = db.get_collection("jobs")
+
+    # Create jobs and insert them into the database.
+    faker = Faker()
+    jobs = faker.generate_jobs(3)
+    job_ids = [job["id"] for job in jobs]
+    jobs_collection.insert_many(jobs)
+
+    yield db, job_ids
+
+    # Clean up.
+    jobs_collection.delete_many({"id": {"$in": job_ids}})
+
+
+def test_release_jobs(api_site_client, db_having_jobs):
+    """Test releasing multiple jobs via the `POST /jobs/release` endpoint."""
+
+    _, job_ids = db_having_jobs  # concise alias
+
+    # Claim the jobs so we can, later, confirm this site client's site's claims have been cancelled.
+    for job_id in job_ids:
+        api_site_client.request(
+            "POST",
+            f"/jobs/{job_id}:claim",
+        )
+
+    # Submit a request to release all of the jobs.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": job_ids,
+        },
+    )
+
+    # Confirm that the jobs were released.
+    response_body = response.json()
+    assert len(response_body) == len(job_ids)
+    for released_job in response_body:
+        # Confirm that this site client's site's claims have been cancelled.
+        assert all(
+            claim["cancelled"] is True
+            for claim in released_job["claims"]
+            if claim["site_id"] == api_site_client.site_id
+        )
+
+
+def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
+    db, job_ids = db_having_jobs  # concise alias
+
+    assert len(set(job_ids)) == len(job_ids)  # confirm the original IDs are all distinct
+
+    # Include a second occurrence of one of the IDs.
+    redundant_job_id = job_ids[0]
+    
+    # Submit a request to release those jobs.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": [redundant_job_id] + job_ids,
+        },
+    )
+
+    # Confirm that the number of released jobs in the response matches
+    # the number of _distinct_ job IDs in the request.
+    released_jobs = response.json()
+    assert len(released_jobs) == len(job_ids)
+
+
+def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
+    db, job_ids = db_having_jobs  # concise alias
+
+    # Generate an ID of a job that doesn't exist.
+    id_of_nonexistent_job = "nmdc:job-xx-foobar"
+    assert id_of_nonexistent_job not in job_ids
+    assert db.get_collection("jobs").count_documents({"id": id_of_nonexistent_job}, limit=1) == 0
+
+    # Submit a request to release that nonexistent job plus the existing ones.
+    response = api_site_client.request(
+        "POST",
+        "/jobs/release",
+        {
+            "job_ids": [id_of_nonexistent_job] + job_ids,
+        },
+    )
+
+    # Confirm that the _existing_ jobs were still released, even though the request included
+    # the ID of a nonexistent one.
+    released_jobs = response.json()
+    assert set([released_job["id"] for released_job in released_jobs]) == set(job_ids)
 
 
 def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_client):
