@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from typing import List, Union
+from typing import List, Optional, Set, Union
 
 import pandas as pd
 
@@ -26,6 +26,7 @@ class NeonSoilDataTranslator(Translator):
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
         neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
+        allowed_dna_sample_ids: Optional[Set[str]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -49,13 +50,24 @@ class NeonSoilDataTranslator(Translator):
         )
 
         if all(k in mms_data for k in neon_mms_data_tables):
-            mms_data["mms_metagenomeDnaExtraction"].to_sql(
+            mms_dna_extraction = mms_data["mms_metagenomeDnaExtraction"]
+            mms_sequencing = mms_data["mms_metagenomeSequencing"]
+
+            if allowed_dna_sample_ids is not None:
+                mms_dna_extraction = mms_dna_extraction[
+                    mms_dna_extraction["dnaSampleID"].isin(allowed_dna_sample_ids)
+                ]
+                mms_sequencing = mms_sequencing[
+                    mms_sequencing["dnaSampleID"].isin(allowed_dna_sample_ids)
+                ]
+
+            mms_dna_extraction.to_sql(
                 "mms_metagenomeDnaExtraction",
                 self.conn,
                 if_exists="replace",
                 index=False,
             )
-            mms_data["mms_metagenomeSequencing"].to_sql(
+            mms_sequencing.to_sql(
                 "mms_metagenomeSequencing", self.conn, if_exists="replace", index=False
             )
         else:
@@ -93,6 +105,13 @@ class NeonSoilDataTranslator(Translator):
         neon_envo_mappings_file.to_sql(
             "neonEnvoTerms", self.conn, if_exists="replace", index=False
         )
+
+        if allowed_dna_sample_ids is not None:
+            neon_raw_data_file_mappings_file = neon_raw_data_file_mappings_file[
+                neon_raw_data_file_mappings_file["dnaSampleID"].isin(
+                    allowed_dna_sample_ids
+                )
+            ]
 
         self.neon_raw_data_file_mappings_df = neon_raw_data_file_mappings_file
         self.neon_raw_data_file_mappings_df.to_sql(
@@ -174,7 +193,7 @@ class NeonSoilDataTranslator(Translator):
                 biosample_row["organicCPercent"].values[0], "%"
             ),
             carb_nitro_ratio=_create_quantity_value(
-                biosample_row["CNratio"].values[0], "ratio"
+                biosample_row["CNratio"].values[0], "1"
             ),
             ph=_create_float_value(biosample_row["soilInWaterpH"].values[0]),
             water_content=(
@@ -219,6 +238,13 @@ class NeonSoilDataTranslator(Translator):
             type="nmdc:Pooling",
         )
 
+    def _translate_manifest(self, manifest_id: str) -> nmdc.Manifest:
+        return nmdc.Manifest(
+            id=manifest_id,
+            manifest_category=nmdc.ManifestCategoryEnum.poolable_replicates,
+            type="nmdc:Manifest",
+        )
+
     def _translate_processed_sample(
         self, processed_sample_id: str, sample_id: str
     ) -> nmdc.ProcessedSample:
@@ -238,7 +264,12 @@ class NeonSoilDataTranslator(Translator):
         )
 
     def _translate_data_object(
-        self, do_id: str, url: str, do_type: str, checksum: str
+        self,
+        do_id: str,
+        url: str,
+        do_type: str,
+        checksum: str,
+        manifest_id: Optional[str] = None,
     ) -> nmdc.DataObject:
         """Create nmdc DataObject which is the output of a NucleotideSequencing process. This
         object mainly contains information about the sequencing file that was generated as
@@ -265,6 +296,7 @@ class NeonSoilDataTranslator(Translator):
             md5_checksum=checksum,
             data_category=nmdc.DataCategoryEnum.instrument_data.text,
             data_object_type=do_type,
+            in_manifest=manifest_id,
         )
 
     def _translate_extraction_process(
@@ -590,11 +622,14 @@ class NeonSoilDataTranslator(Translator):
         )
 
         query = """
-            SELECT dnaSampleID, startDate, collectDate, GROUP_CONCAT(sampleID, '|') AS sampleIDs
+            SELECT dnaSampleID, genomicsSampleID, startDate, collectDate, GROUP_CONCAT(sampleID, '|') AS sampleIDs
             FROM soil_biosamples_envo
             GROUP BY dnaSampleID
         """
         mg_pooling_table = pd.read_sql_query(query, self.conn)
+        dna_to_genomics_sample_id = dict(
+            zip(mg_pooling_table["dnaSampleID"], mg_pooling_table["genomicsSampleID"])
+        )
         pooling_ids_dict = (
             mg_pooling_table.set_index("dnaSampleID")["sampleIDs"]
             .str.split("|")
@@ -675,19 +710,49 @@ class NeonSoilDataTranslator(Translator):
             zip(library_prepration_ids, nmdc_library_preparation_processed_sample_ids)
         )
 
-        nucleotide_sequencing_ids = nucleotide_sequencing_table["dnaSampleID"]
+        # Build R1/R2 file pairs per dnaSampleID so we can create one
+        # NucleotideSequencing record per pair of corresponding R1/R2 files.
+        # Pairing is done by filename basename (not full URL path) because
+        # R1 and R2 files live in different directories.
+        dna_sample_file_pairs: dict[str, list[tuple[Optional[str], Optional[str]]]] = {}
+        for dna_sample_id, filepaths in neon_raw_data_files_dict.items():
+            pairs: dict[str, dict[str, str]] = {}
+            for fp in filepaths:
+                filename = get_basename(fp)
+                if "_R1.fastq.gz" in filename:
+                    base = filename.rsplit("_R1.fastq.gz", 1)[0]
+                    pairs.setdefault(base, {})["R1"] = fp
+                elif "_R2.fastq.gz" in filename:
+                    base = filename.rsplit("_R2.fastq.gz", 1)[0]
+                    pairs.setdefault(base, {})["R2"] = fp
+            dna_sample_file_pairs[dna_sample_id] = [
+                (p.get("R1"), p.get("R2")) for p in pairs.values()
+            ]
+
+        # Build a flat list of (dnaSampleID, pair_index) keys for minting
+        # NucleotideSequencing IDs — one per R1/R2 pair.
+        ntseq_pair_keys: list[tuple[str, int]] = []
+        for dna_sample_id in nucleotide_sequencing_table["dnaSampleID"]:
+            pairs = dna_sample_file_pairs.get(dna_sample_id, [])
+            if not pairs:
+                ntseq_pair_keys.append((dna_sample_id, 0))
+            else:
+                for i in range(len(pairs)):
+                    ntseq_pair_keys.append((dna_sample_id, i))
+
         nmdc_nucleotide_sequencing_ids = self._id_minter(
-            "nmdc:NucleotideSequencing", len(nucleotide_sequencing_ids)
+            "nmdc:NucleotideSequencing", len(ntseq_pair_keys)
         )
-        neon_to_nmdc_nucleotide_sequencing_ids = dict(
-            zip(nucleotide_sequencing_ids, nmdc_nucleotide_sequencing_ids)
-        )
+        ntseq_pair_to_id = dict(zip(ntseq_pair_keys, nmdc_nucleotide_sequencing_ids))
 
         neon_raw_data_file_mappings_df = self.neon_raw_data_file_mappings_df
         neon_raw_file_paths = neon_raw_data_file_mappings_df["rawDataFilePath"]
-        nmdc_data_object_ids = self._id_minter(
-            "nmdc:DataObject", len(neon_raw_file_paths)
-        )
+        if len(neon_raw_file_paths) > 0:
+            nmdc_data_object_ids = self._id_minter(
+                "nmdc:DataObject", len(neon_raw_file_paths)
+            )
+        else:
+            nmdc_data_object_ids = []
         neon_to_nmdc_data_object_ids = dict(
             zip(neon_raw_file_paths, nmdc_data_object_ids)
         )
@@ -733,7 +798,10 @@ class NeonSoilDataTranslator(Translator):
                 )
 
                 database.processed_sample_set.append(
-                    self._translate_processed_sample(processed_sample_id, dna_sample_id)
+                    self._translate_processed_sample(
+                        processed_sample_id,
+                        dna_to_genomics_sample_id[dna_sample_id],
+                    )
                 )
 
         for genomics_sample_id, extraction_id in neon_to_nmdc_extraction_ids.items():
@@ -767,7 +835,7 @@ class NeonSoilDataTranslator(Translator):
 
                 database.processed_sample_set.append(
                     self._translate_processed_sample(
-                        processed_sample_id, genomics_sample_id
+                        processed_sample_id, dna_sample_input
                     )
                 )
             else:
@@ -786,15 +854,17 @@ class NeonSoilDataTranslator(Translator):
                     )
                 )
 
+                database.processed_sample_set.append(
+                    self._translate_processed_sample(
+                        processed_sample_id, dna_sample_input
+                    )
+                )
+
         for (
             dna_sample_id,
             library_preparation_id,
         ) in neon_to_nmdc_library_prepration_ids.items():
             processed_sample_id = neon_to_nmdc_library_preparation_processed_sample_ids[
-                dna_sample_id
-            ]
-
-            nucleotide_sequencing_id = neon_to_nmdc_nucleotide_sequencing_ids[
                 dna_sample_id
             ]
 
@@ -824,23 +894,53 @@ class NeonSoilDataTranslator(Translator):
                     self._translate_processed_sample(processed_sample_id, dna_sample_id)
                 )
 
-                has_output = None
-                has_output_do_ids = []
-
-                if dna_sample_id in neon_raw_data_files_dict:
-                    has_output = neon_raw_data_files_dict[dna_sample_id]
-                    for item in has_output:
-                        if item in neon_to_nmdc_data_object_ids:
-                            has_output_do_ids.append(neon_to_nmdc_data_object_ids[item])
-
-                    database.data_generation_set.append(
-                        self._translate_nucleotide_sequencing(
-                            nucleotide_sequencing_id,
-                            processed_sample_id,
-                            has_output_do_ids,
-                            library_preparation_row,
+                # Create one NucleotideSequencing per R1/R2 file pair
+                pairs = dna_sample_file_pairs.get(dna_sample_id, [])
+                if not pairs:
+                    # No raw files — create NucleotideSequencing with empty output
+                    ntseq_id = ntseq_pair_to_id.get((dna_sample_id, 0))
+                    if ntseq_id:
+                        database.data_generation_set.append(
+                            self._translate_nucleotide_sequencing(
+                                ntseq_id,
+                                processed_sample_id,
+                                [],
+                                library_preparation_row,
+                            )
                         )
-                    )
+                else:
+                    for pair_idx, (r1_path, r2_path) in enumerate(pairs):
+                        ntseq_id = ntseq_pair_to_id.get((dna_sample_id, pair_idx))
+                        if not ntseq_id:
+                            continue
+
+                        has_output_do_ids = []
+                        for fp in (r1_path, r2_path):
+                            if fp and fp in neon_to_nmdc_data_object_ids:
+                                has_output_do_ids.append(
+                                    neon_to_nmdc_data_object_ids[fp]
+                                )
+
+                        database.data_generation_set.append(
+                            self._translate_nucleotide_sequencing(
+                                ntseq_id,
+                                processed_sample_id,
+                                has_output_do_ids,
+                                library_preparation_row,
+                            )
+                        )
+
+        dna_sample_to_manifest_id: dict[str, str] = {}
+        for dna_sample_id, pairs in dna_sample_file_pairs.items():
+            if len(pairs) > 1:
+                manifest_id = self._id_minter("nmdc:Manifest", 1)[0]
+                dna_sample_to_manifest_id[dna_sample_id] = manifest_id
+                database.manifest_set.append(self._translate_manifest(manifest_id))
+
+        raw_file_to_dna_sample: dict[str, str] = {}
+        for dna_sample_id, filepaths in neon_raw_data_files_dict.items():
+            for fp in filepaths:
+                raw_file_to_dna_sample[fp] = dna_sample_id
 
         for raw_file_path, nmdc_data_object_id in neon_to_nmdc_data_object_ids.items():
             checksum = None
@@ -854,9 +954,14 @@ class NeonSoilDataTranslator(Translator):
             elif "_R2.fastq.gz" in raw_file_path:
                 do_type = "Metagenome Raw Read 2"
 
+            dna_sample_id = raw_file_to_dna_sample.get(raw_file_path)
+            manifest_id = (
+                dna_sample_to_manifest_id.get(dna_sample_id) if dna_sample_id else None
+            )
+
             database.data_object_set.append(
                 self._translate_data_object(
-                    nmdc_data_object_id, raw_file_path, do_type, checksum
+                    nmdc_data_object_id, raw_file_path, do_type, checksum, manifest_id
                 )
             )
 
