@@ -30,7 +30,7 @@ router = APIRouter()
 class JobsReleaseError(BaseModel):
     released_jobs: List[Job]
     """Jobs that were released successfully"""
-    
+
     message: str
     """Error message"""
 
