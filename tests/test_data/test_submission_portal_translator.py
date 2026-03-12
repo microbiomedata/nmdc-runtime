@@ -518,11 +518,8 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
             return "999.9.9"
         raise ValueError(f"Unexpected package name: {package_name}")
 
-    monkeypatch.setattr(
-        "nmdc_runtime.site.translation.submission_portal_translator.datetime",
-        FrozenDatetime,
-    )
-    monkeypatch.setattr("nmdc_runtime.site.translation.submission_portal_translator.version", mock_version)
+    monkeypatch.setattr("nmdc_runtime.site.translation.translator.datetime", FrozenDatetime)
+    monkeypatch.setattr("nmdc_runtime.site.translation.translator.version", mock_version)
 
     mongo_db = get_mongo_test_db()
     data_path = Path(__file__).parent / "data"

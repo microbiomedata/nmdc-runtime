@@ -801,20 +801,10 @@ class SubmissionPortalTranslator(Translator):
         metadata_submission_data = self.metadata_submission.get(
             "metadata_submission", {}
         )
-
-        now = datetime.now(tz=timezone.utc)
-        provenance_metadata = nmdc.ProvenanceMetadata(
-            add_date=now,
-            git_url="https://github.com/microbiomedata/nmdc-runtime",
-            mod_date=now,
-            source_system_of_record=nmdc.SourceSystemEnum(
-                nmdc.SourceSystemEnum.NMDC_Submission_Portal
-            ),
+        provenance_metadata = self._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.NMDC_Submission_Portal.text,
             submission_portal_identifier=submission_id,
-            type="nmdc:ProvenanceMetadata",
-            version=version("nmdc_runtime"),
         )
-
         # Generate one Study instance based on the metadata submission, if a study_id wasn't provided
         if self.study_id:
             nmdc_study_id = self.study_id
