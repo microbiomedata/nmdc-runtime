@@ -85,7 +85,7 @@ async def post_activity(
 
 @router.post(
     "/workflows/workflow_executions",
-    description="Create workflow executions and related metadata."
+    description="Create workflow executions and related metadata.",
 )
 async def post_workflow_execution(
     database_in: dict[str, Any],
@@ -110,21 +110,23 @@ async def post_workflow_execution(
     # Do some preliminary validation before we try examining the documents in the specified
     # `workflow_execution_set` collection. This way, our examination code can focus on examination
     # and not validation.
-    if not validate_json(database_in, mdb, check_inter_document_references=False) or \
-            "workflow_execution_set" not in database_in:
+    if (
+        not validate_json(database_in, mdb, check_inter_document_references=False)
+        or "workflow_execution_set" not in database_in
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
-                "Request payload must represent a valid 'nmdc:Database' instance " + 
-                "that includes a 'workflow_execution_set' collection."
-            )
+                "Request payload must represent a valid 'nmdc:Database' instance "
+                + "that includes a 'workflow_execution_set' collection."
+            ),
         )
 
     # Check whether any of the submitted workflow executions are "re-runs".
     #
     # Note: The NMDC workflow automation team members have established a convention for indicating
     #       whether a workflow execution is a "re-run" or not.
-    # 
+    #
     #       When they populate the `id` field of a workflow execution, they append a ".{integer}"
     #       suffix to it. For example: "nmdc:wfmp-00-abcdef.3". When N == 1, the workflow execution
     #       is a first run (i.e. not a re-run). When N == 2, the workflow execution is a second run
@@ -132,7 +134,7 @@ async def post_workflow_execution(
     #
     for wfe in database_in["workflow_execution_set"]:
         wfe_id = wfe["id"]
-        match = re.search(r'\.(\d+)$', wfe_id)
+        match = re.search(r"\.(\d+)$", wfe_id)
         if match is not None:
             integer = match.group(1)
             if integer == "1":
