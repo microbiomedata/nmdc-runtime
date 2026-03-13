@@ -506,7 +506,7 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
         @classmethod
         def now(cls, **kwargs):
             # If tz was provided, make the_time timezone aware with that tz, otherwise return a
-            # naive datetime. We could hardcode the timzeone in the_time, but this makes the test
+            # naive datetime. We could hardcode the timezone in the_time, but this makes the test
             # a little more robust by allowing the translator to attempt to use naive datetimes.
             # This would cause the validation at the end of this test to fail.
             if "tz" in kwargs:
