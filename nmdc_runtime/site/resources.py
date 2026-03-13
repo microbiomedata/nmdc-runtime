@@ -470,7 +470,7 @@ class NmdcPortalApiClient:
     ) -> Dict[str, Any]:
         response = self._request(
             "POST",
-            f"/api/metadata_submission/{submission_id}/finalize_submission",
+            f"/api/metadata_submission/{submission_id}/finalize",
             json={"study_id": study_id},
         )
         response.raise_for_status()
