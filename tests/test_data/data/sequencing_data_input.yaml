@@ -66,7 +66,7 @@ metadata_submission:
     sampleData:
       soil_data:
         - elev: 1325
-          depth: 0 - 0.1
+          depth: 0 - 1
           lat_lon: 43 -120
           samp_name: "001"
           env_medium: bulk soil [ENVO:00005802]
@@ -81,7 +81,7 @@ metadata_submission:
           samp_store_temp: -80 Cel
           slope_gradient: 8%
         - elev: 1325
-          depth: 0 - 0.1
+          depth: 0 - 1
           lat_lon: 43 -120
           samp_name: "002"
           env_medium: bulk soil [ENVO:00005802]
@@ -97,7 +97,7 @@ metadata_submission:
           samp_store_temp: -80 Cel
           slope_gradient: 0%
         - elev: 1325
-          depth: 0 - 0.1
+          depth: 0 - 1
           lat_lon: 43 -120
           samp_name: "003"
           env_medium: bulk soil [ENVO:00005802]

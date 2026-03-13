@@ -1,7 +1,9 @@
 import logging
 import re
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from decimal import Decimal
+from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Optional, Union
 from nmdc_schema import nmdc
 
@@ -90,3 +92,24 @@ class Translator(ABC):
             quantity_value_kwargs["has_unit"] = match.group(3)
 
         return nmdc.QuantityValue(**quantity_value_kwargs)
+
+    def _get_provenance_metadata(
+        self,
+        *,
+        source_system_of_record: str,
+        submission_portal_identifier: Optional[str] = None,
+    ) -> nmdc.ProvenanceMetadata:
+        now = datetime.now(tz=timezone.utc)
+        provide_metadata = nmdc.ProvenanceMetadata(
+            add_date=now,
+            git_url="https://github.com/microbiomedata/nmdc-runtime",
+            mod_date=now,
+            source_system_of_record=nmdc.SourceSystemEnum(source_system_of_record),
+            type="nmdc:ProvenanceMetadata",
+            version=version("nmdc_runtime"),
+        )
+        if submission_portal_identifier:
+            provide_metadata.submission_portal_identifier = [
+                submission_portal_identifier
+            ]
+        return provide_metadata
