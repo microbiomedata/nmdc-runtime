@@ -654,7 +654,7 @@ def add_public_image_urls(
         )
 
     study_id = database.study_set[0].id
-    public_images = client.make_submission_images_public(
+    public_images = client.finalize_submission(
         submission_id, study_id=study_id
     )
     SubmissionPortalTranslator.set_study_images(
