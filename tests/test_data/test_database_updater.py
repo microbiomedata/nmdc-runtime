@@ -61,6 +61,11 @@ def test_generate_data_generation_set_records_from_gold_api_for_study(
         }
     ]
 
+    # No existing DataGeneration records linked to this biosample
+    mock_runtime_api_user_client.get_linked_data_generation_records_for_biosample.return_value = (
+        []
+    )
+
     mock_gold_api_client.fetch_biosample_by_biosample_id.return_value = [
         {
             "biosampleGoldId": "Gb0150488",
