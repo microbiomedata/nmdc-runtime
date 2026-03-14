@@ -64,9 +64,7 @@ services:
       DAGSTER_POSTGRES_DB: "postgres_db"
     depends_on:
       dagster-postgresql: { condition: service_started }
-      # Wait until the MongoDB replica set has been set up by the "init container"
-      # before starting this Dagster daemon container.
-      mongo-init: { condition: service_completed_successfully }
+      mongo: { condition: service_healthy }
     volumes:
       - .:/opt/dagster/lib
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
@@ -87,10 +85,8 @@ services:
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
       #       from being mounted at this location within the container.
       - /code/.venv
-    # Wait until the MongoDB replica set has been set up by the "init container"
-    # before starting this FastAPI container.
     depends_on:
-      mongo-init: { condition: service_completed_successfully }
+      mongo: { condition: service_healthy }
     # Note: We use `--reload-exclude` to prevent Uvicorn from restarting the FastAPI
     #       app whenever files in the `util/load_testing/` directory change. Developers
     #       oftentimes modify those files while doing load testing, and those files are
@@ -102,16 +98,6 @@ services:
     #       Reference: https://docs.docker.com/reference/cli/docker/container/run/#tty
     tty: true
 
-  # Short-lived MongoDB server used to initialize the one used by the FastAPI application.
-  mongo-init:
-    image: mongo:8.2.3
-    volumes:
-      - .docker/wait-for-it.sh:/wait-for-it.sh:ro
-      - .docker/mongo_init/initialize_replica_set.sh:/initialize_replica_set.sh:ro
-    depends_on:
-      mongo: { condition: service_started }
-    entrypoint: /bin/bash /wait-for-it.sh --host=mongo --port=27017 --timeout=20 -- /bin/sh /initialize_replica_set.sh mongo 27017 admin root
-
   # MongoDB server used by the FastAPI application.
   # TODO: Why does this service (which is in the dev—not test—stack), mount descendants of `./tests` — is that intentional?
   mongo:
@@ -119,31 +105,25 @@ services:
     ports:
       - "${DEV_STACK_HOST_MACHINE_PORT_MONGO}:27017"
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: root
     # Configure MongoDB to run in replica set mode, so we can use MongoDB transactions.
-    #
-    # Note: Including a KeyFile is necessary when doing the combination of (a) running MongoDB in
-    #       replica set mode and (b) running MongoDB with authentication enabled.
-    #
-    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/keyFile"]
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
-      - ./.docker/mongoKeyFile:/keyFile:ro
+      - ./.docker/mongo/docker-entrypoint-initdb.d/01-initialize-replica-set.js:/docker-entrypoint-initdb.d/01-initialize-replica-set.js:ro
+      - ./.docker/mongo/check_health.sh:/check_health.sh:ro
       - ./tests/nmdcdb:/nmdcdb_dump:ro
       - ./tests/mongorestore-nmdc-testdb.sh:/mongorestore-nmdc-testdb.sh:ro
+    healthcheck:
+      test: ["CMD", "bash", "/check_health.sh"]
+      interval: 5s  # how often to check the health
+      timeout: 5s  # how long to wait for the health check command to complete
+      retries: 1  # number of consecutive failures to qualify the service as unhealthy
+      start_period: 20s  # time to wait before starting to count health check failures
 
 volumes:
   postgres_data:
     driver: local
   mongo_data:
     driver: local
-
-# TODO: There are currently no references to these secrets in the stack. Consider referencing them or removing them.
-#       Reference: https://docs.docker.com/compose/how-tos/use-secrets/
-secrets:
-  mongoKeyFile:
-    file: ./.docker/mongoKeyFile
 
 name: nmdc-runtime-dev
