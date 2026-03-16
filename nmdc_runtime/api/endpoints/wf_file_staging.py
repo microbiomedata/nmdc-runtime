@@ -158,7 +158,7 @@ def create_jgi_sample(
     )
     if existing is not None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"JGI sample with jdp_file_id {jgi_in.jdp_file_id} already exists.",
         )
     # check the status exists in the enum, if not log a warning
