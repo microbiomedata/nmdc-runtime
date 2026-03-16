@@ -497,20 +497,29 @@ def test_instruments(test_minter):
     ],
 )
 def test_get_database(test_minter, monkeypatch, data_file_base):
-    # OmicsProcess objects have an add_date and a mod_date slot that are populated with the
-    # current date. In order to compare with a static expected output we need to patch
-    # the datetime.now() call to return a predefined date.
+    # ProvenanceMetadata objects have an add_date and a mod_date slot that are populated with the
+    # current datetime. In order to compare with a static expected output we need to patch
+    # the datetime.now() call to return a predefined datetime.
     the_time = datetime.datetime(2023, 10, 17, 9, 0, 0)
 
     class FrozenDatetime(datetime.datetime):
         @classmethod
         def now(cls, **kwargs):
+            # If tz was provided, make the_time timezone aware with that tz, otherwise return a
+            # naive datetime. We could hardcode the timezone in the_time, but this makes the test
+            # a little more robust by allowing the translator to attempt to use naive datetimes.
+            # This would cause the validation at the end of this test to fail.
+            if "tz" in kwargs:
+                return the_time.replace(tzinfo=kwargs["tz"])
             return the_time
 
-    monkeypatch.setattr(
-        "nmdc_runtime.site.translation.submission_portal_translator.datetime",
-        FrozenDatetime,
-    )
+    def mock_version(package_name):
+        if package_name == "nmdc_runtime":
+            return "999.9.9"
+        raise ValueError(f"Unexpected package name: {package_name}")
+
+    monkeypatch.setattr("nmdc_runtime.site.translation.translator.datetime", FrozenDatetime)
+    monkeypatch.setattr("nmdc_runtime.site.translation.translator.version", mock_version)
 
     mongo_db = get_mongo_test_db()
     data_path = Path(__file__).parent / "data"

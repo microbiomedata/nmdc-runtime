@@ -95,21 +95,6 @@ def test_get_pi():
     assert pi_person_value is None
 
 
-def test_get_mod_date():
-    translator = GoldStudyTranslator()
-
-    mod_date = translator._get_mod_date(
-        {"modDate": "2023-03-02", "addDate": "2023-01-01"}
-    )
-    assert mod_date == "2023-03-02"
-
-    mod_date = translator._get_mod_date({"modDate": None, "addDate": "2023-01-01"})
-    assert mod_date == "2023-01-01"
-
-    mod_date = translator._get_mod_date({"modDate": None, "addDate": None})
-    assert mod_date is None
-
-
 def test_get_insdc_biosample_identifiers():
     projects = [
         {

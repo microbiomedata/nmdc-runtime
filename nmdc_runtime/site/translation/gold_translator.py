@@ -144,21 +144,6 @@ class GoldStudyTranslator(Translator):
             type="nmdc:PersonValue",
         )
 
-    def _get_mod_date(self, gold_entity: JSON_OBJECT) -> Union[str, None]:
-        """Get a mod_date for a GOLD entity
-
-        Return the `modDate` field if it exists and is not `None`. Otherwise return
-        the `addDate` field if it exists. Otherwise return `None`.
-
-        :param gold_entity: GOLD entity with `modDate` or `addDate` fields
-        :return: Date string or `None`
-        """
-        mod_date = gold_entity.get("modDate")
-        if mod_date is not None:
-            return mod_date
-
-        return gold_entity.get("addDate")
-
     def _get_insdc_biosample_identifiers(self, gold_biosample_id: str) -> List[str]:
         """Get a list of INDSC biosample identifiers related to the given GOLD biosample identifier
 
@@ -519,7 +504,10 @@ class GoldStudyTranslator(Translator):
         return samp_name[:last_space_index]
 
     def _translate_study(
-        self, gold_study: JSON_OBJECT, nmdc_study_id: str
+        self,
+        gold_study: JSON_OBJECT,
+        nmdc_study_id: str,
+        provenance_metadata: nmdc.ProvenanceMetadata,
     ) -> nmdc.Study:
         """Translate a GOLD study object into an `nmdc:Study` object.
 
@@ -530,6 +518,7 @@ class GoldStudyTranslator(Translator):
 
         :param gold_study: GOLD study object
         :param nmdc_study_id: Minted nmdc:Study identifier for the translated object
+        :param provenance_metadata: ProvenanceMetadata object to attach to the translated object
         :return: nmdc:Study object
         """
         return nmdc.Study(
@@ -539,6 +528,7 @@ class GoldStudyTranslator(Translator):
             ),
             id=nmdc_study_id,
             name=gold_study.get("studyName"),
+            provenance_metadata=provenance_metadata,
             principal_investigator=self._get_pi(gold_study),
             title=gold_study.get("studyName"),
             type="nmdc:Study",
@@ -551,6 +541,7 @@ class GoldStudyTranslator(Translator):
         nmdc_biosample_id: str,
         nmdc_study_id: str,
         nmdc_field_site_id: str,
+        provenance_metadata: nmdc.ProvenanceMetadata,
     ) -> nmdc.Biosample:
         """Translate a GOLD biosample object into an `nmdc:Biosample` object.
 
@@ -563,11 +554,11 @@ class GoldStudyTranslator(Translator):
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the translated object
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
         :param nmdc_field_site_id: Minted nmdc:FieldResearchSite identifier for the related site
+        :param provenance_metadata: ProvenanceMetadata object to attach to the translated object
         :return: nmdc:Biosample object
         """
         gold_biosample_id = gold_biosample["biosampleGoldId"]
         return nmdc.Biosample(
-            add_date=gold_biosample.get("addDate"),
             alt=self._get_quantity_value(gold_biosample, "altitudeInMeters", unit="m"),
             collected_from=nmdc_field_site_id,
             collection_date=self._get_collection_date(gold_biosample),
@@ -598,12 +589,12 @@ class GoldStudyTranslator(Translator):
             ),
             lat_lon=self._get_lat_lon(gold_biosample),
             location=gold_biosample.get("isoCountry"),
-            mod_date=self._get_mod_date(gold_biosample),
             name=gold_biosample.get("biosampleName"),
             ncbi_taxonomy_name=gold_biosample.get("ncbiTaxName"),
             nitrite=self._get_quantity_value(gold_biosample, "nitrateConcentration"),
             ph=gold_biosample.get("ph"),
             pressure=self._get_quantity_value(gold_biosample, "pressure"),
+            provenance_metadata=provenance_metadata,
             samp_name=self._get_samp_name(gold_biosample),
             samp_taxon_id=self._get_samp_taxon_id(gold_biosample),
             sample_collection_site=gold_biosample.get(
@@ -626,6 +617,7 @@ class GoldStudyTranslator(Translator):
         nmdc_nucleotide_sequencing_id: str,
         nmdc_biosample_id: str,
         nmdc_study_id: str,
+        provenance_metadata: nmdc.ProvenanceMetadata,
     ):
         """Translate a GOLD project object into an `nmdc:NucleotideSequencing` object.
 
@@ -638,6 +630,7 @@ class GoldStudyTranslator(Translator):
         :param nmdc_omics_processing_id: Minted nmdc:NucleotideSequencing identifier for the translated object
         :param nmdc_biosample_id: Minted nmdc:Biosample identifier for the related Biosample
         :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
+        :param provenance_metadata: ProvenanceMetadata object to attach to the translated object
         :return: nmdc:NucleotideSequencing object
         """
         gold_project_id = gold_project["projectGoldId"]
@@ -660,11 +653,10 @@ class GoldStudyTranslator(Translator):
             ncbi_project_name=gold_project.get("projectName"),
             type="nmdc:NucleotideSequencing",
             has_input=nmdc_biosample_id,
-            add_date=gold_project.get("addDate"),
-            mod_date=self._get_mod_date(gold_project),
             insdc_bioproject_identifiers=insdc_bioproject_identifiers,
             principal_investigator=self._get_pi(gold_project),
             processing_institution=self._get_processing_institution(gold_project),
+            provenance_metadata=provenance_metadata,
             instrument_used=self._get_instrument(gold_project),
             analyte_category=(
                 gold_project.get("sequencingStrategy").lower()
@@ -722,7 +714,13 @@ class GoldStudyTranslator(Translator):
             zip(gold_project_ids, nmdc_nucleotide_sequencing_ids)
         )
 
-        database.study_set = [self._translate_study(self.study, nmdc_study_id)]
+        provenance_metadata = self._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.GOLD.text,
+        )
+
+        database.study_set = [
+            self._translate_study(self.study, nmdc_study_id, provenance_metadata)
+        ]
         database.biosample_set = [
             self._translate_biosample(
                 biosample,
@@ -733,6 +731,7 @@ class GoldStudyTranslator(Translator):
                 nmdc_field_site_id=gold_biosample_to_nmdc_field_site_ids.get(
                     biosample["biosampleGoldId"], None
                 ),
+                provenance_metadata=provenance_metadata,
             )
             for biosample in self.biosamples
         ]
@@ -751,6 +750,7 @@ class GoldStudyTranslator(Translator):
                     project["biosampleGoldId"]
                 ],
                 nmdc_study_id=nmdc_study_id,
+                provenance_metadata=provenance_metadata,
             )
             for project in self.projects
         ]

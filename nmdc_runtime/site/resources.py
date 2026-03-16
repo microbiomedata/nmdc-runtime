@@ -489,12 +489,12 @@ class NmdcPortalApiClient:
         response.raise_for_status()
         return response.json()
 
-    def make_submission_images_public(
+    def finalize_submission(
         self, submission_id: str, *, study_id: str
     ) -> Dict[str, Any]:
         response = self._request(
             "POST",
-            f"/api/metadata_submission/{submission_id}/image/make_public",
+            f"/api/metadata_submission/{submission_id}/finalize",
             json={"study_id": study_id},
         )
         response.raise_for_status()
