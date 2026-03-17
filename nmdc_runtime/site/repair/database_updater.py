@@ -149,6 +149,10 @@ class DatabaseUpdater:
                 gold_id_stripped = gold_id.replace("gold:", "")
                 gold_to_nmdc_biosample_ids[gold_id_stripped] = biosample["id"]
 
+        provenance_metadata = gold_study_translator._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.GOLD.text,
+        )
+
         database.data_generation_set = []
         # Similar to the logic in GoldStudyTranslator, the number of nmdc:NucleotideSequencing records
         # created is based on the number of GOLD sequencing projects
@@ -177,6 +181,7 @@ class DatabaseUpdater:
                             ],
                             nmdc_biosample_id=nmdc_biosample_id,
                             nmdc_study_id=self.study_id,
+                            provenance_metadata=provenance_metadata,
                         )
                     )
 
@@ -260,6 +265,10 @@ class DatabaseUpdater:
         ).json()
         gold_to_nmdc_biosample_ids = dict(zip(gold_biosample_ids, nmdc_biosample_ids))
 
+        provenance_metadata = gold_study_translator._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.GOLD.text,
+        )
+
         database.biosample_set = [
             gold_study_translator._translate_biosample(
                 biosample,
@@ -268,6 +277,7 @@ class DatabaseUpdater:
                 ],
                 nmdc_study_id=self.study_id,
                 nmdc_field_site_id=None,
+                provenance_metadata=provenance_metadata,
             )
             for biosample in translated_biosamples
         ]
