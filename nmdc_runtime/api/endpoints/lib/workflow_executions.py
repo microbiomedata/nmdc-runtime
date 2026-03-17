@@ -180,7 +180,7 @@ def derive_successor_id(workflow_execution_id: str) -> Optional[str]:
     return successor_id
 
 
-def get_predecessor_from_database_by_id(
+def get_predecessor_from_database_by_own_id(
     workflow_execution_id: str, db: Database
 ) -> Optional[dict]:
     """
@@ -199,7 +199,7 @@ def get_predecessor_from_database_by_id(
     return predecessor_document
 
 
-def get_successor_from_database_by_id(
+def get_successor_from_database_by_own_id(
     workflow_execution_id: str, db: Database
 ) -> Optional[dict]:
     """
@@ -218,7 +218,7 @@ def get_successor_from_database_by_id(
     return successor_document
 
 
-def get_predecessor_from_list_by_id(
+def get_predecessor_from_list_by_own_id(
     workflow_execution_id: str, workflow_execution_set: List[dict]
 ) -> Optional[dict]:
     """
@@ -231,9 +231,9 @@ def get_predecessor_from_list_by_id(
     ...     {"id": "nmdc:wfmp-00-abcdef.2"},
     ...     {"id": "nmdc:wfmp-00-abcdef.3"},
     ... ]
-    >>> get_predecessor_from_list_by_id("nmdc:wfmp-00-abcdef.2", workflow_execution_set)
+    >>> get_predecessor_from_list_by_own_id("nmdc:wfmp-00-abcdef.2", workflow_execution_set)
     {'id': 'nmdc:wfmp-00-abcdef.1'}
-    >>> get_predecessor_from_list_by_id("nmdc:wfmp-00-abcdef.1", workflow_execution_set) is None
+    >>> get_predecessor_from_list_by_own_id("nmdc:wfmp-00-abcdef.1", workflow_execution_set) is None
     True
     """
 
@@ -249,7 +249,7 @@ def get_predecessor_from_list_by_id(
     return predecessor_document
 
 
-def get_successor_from_list_by_id(
+def get_successor_from_list_by_own_id(
     workflow_execution_id: str, workflow_execution_set: List[dict]
 ) -> Optional[dict]:
     """
@@ -262,9 +262,9 @@ def get_successor_from_list_by_id(
     ...     {"id": "nmdc:wfmp-00-abcdef.2"},
     ...     {"id": "nmdc:wfmp-00-abcdef.3"},
     ... ]
-    >>> get_successor_from_list_by_id("nmdc:wfmp-00-abcdef.2", workflow_execution_set)
+    >>> get_successor_from_list_by_own_id("nmdc:wfmp-00-abcdef.2", workflow_execution_set)
     {'id': 'nmdc:wfmp-00-abcdef.3'}
-    >>> get_successor_from_list_by_id("nmdc:wfmp-00-abcdef.3", workflow_execution_set) is None
+    >>> get_successor_from_list_by_own_id("nmdc:wfmp-00-abcdef.3", workflow_execution_set) is None
     True
     """
 
