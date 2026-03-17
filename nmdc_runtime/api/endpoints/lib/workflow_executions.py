@@ -81,7 +81,7 @@ def parse_workflow_execution_id(raw_id: str) -> Tuple[str, int | None]:
 
     When they populate the `id` field of a `WorkflowExecution, they append a ".{integer > 0}"
     suffix to it (e.g. "nmdc:wfmp-00-abcdef" → "nmdc:wfmp-00-abcdef.1").
-    
+
     Examples:
     - When the integer == 1, the `WorkflowExecution` is a first run (i.e. not a re-run).
     - When the integer == 2, the `WorkflowExecution` is a second run (i.e. it is a re-run
@@ -180,7 +180,9 @@ def derive_successor_id(workflow_execution_id: str) -> Optional[str]:
     return successor_id
 
 
-def get_predecessor_from_database_by_id(workflow_execution_id: str, db: Database) -> Optional[dict]:
+def get_predecessor_from_database_by_id(
+    workflow_execution_id: str, db: Database
+) -> Optional[dict]:
     """
     Get the `WorkflowExecution` document, if any, whose `id` indicates that it is the predecessor
     of the specified `WorkflowExecution`; otherwise, return `None`.
@@ -197,7 +199,9 @@ def get_predecessor_from_database_by_id(workflow_execution_id: str, db: Database
     return predecessor_document
 
 
-def get_successor_from_database_by_id(workflow_execution_id: str, db: Database) -> Optional[dict]:
+def get_successor_from_database_by_id(
+    workflow_execution_id: str, db: Database
+) -> Optional[dict]:
     """
     Get the `WorkflowExecution` document, if any, whose `id` indicates that it is the successor
     to the specified `WorkflowExecution`; otherwise, return `None`.
@@ -214,7 +218,9 @@ def get_successor_from_database_by_id(workflow_execution_id: str, db: Database) 
     return successor_document
 
 
-def get_predecessor_from_list_by_id(workflow_execution_id: str, workflow_execution_set: List[dict]) -> Optional[dict]:
+def get_predecessor_from_list_by_id(
+    workflow_execution_id: str, workflow_execution_set: List[dict]
+) -> Optional[dict]:
     """
     Get the `WorkflowExecution` document, if any—from the specified list of `WorkflowExecution`
     documents—whose `id` indicates that it is the predecessor of the specified `WorkflowExecution`;
@@ -242,7 +248,10 @@ def get_predecessor_from_list_by_id(workflow_execution_id: str, workflow_executi
 
     return predecessor_document
 
-def get_successor_from_list_by_id(workflow_execution_id: str, workflow_execution_set: List[dict]) -> Optional[dict]:
+
+def get_successor_from_list_by_id(
+    workflow_execution_id: str, workflow_execution_set: List[dict]
+) -> Optional[dict]:
     """
     Get the `WorkflowExecution` document, if any—from the specified list of `WorkflowExecution`
     documents—whose `id` indicates that it is the successor to the specified `WorkflowExecution`;

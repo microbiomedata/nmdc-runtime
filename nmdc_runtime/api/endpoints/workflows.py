@@ -147,7 +147,9 @@ async def post_workflow_execution(
     #       "re-run" or not. See the `parse_workflow_execution_id` helper function for details.
     #
     submitted_wfes = database_in["workflow_execution_set"]
-    submitted_wfe_id_parts = [parse_workflow_execution_id(wfe["id"]) for wfe in submitted_wfes]
+    submitted_wfe_id_parts = [
+        parse_workflow_execution_id(wfe["id"]) for wfe in submitted_wfes
+    ]
     for wfe in submitted_wfes:
         wfe_id = wfe["id"]
         base_id, run_number = parse_workflow_execution_id(wfe_id)
@@ -164,10 +166,12 @@ async def post_workflow_execution(
                     is_superseded_wfe_in_same_batch = True
                     break
             if not is_superseded_wfe_in_same_batch:
-                logging.debug((
-                    f"WorkflowExecution '{wfe_id}' is a re-run, but its predecessor "
-                    "was not submitted simultaneously. Will check database."
-                ))
+                logging.debug(
+                    (
+                        f"WorkflowExecution '{wfe_id}' is a re-run, but its predecessor "
+                        "was not submitted simultaneously. Will check database."
+                    )
+                )
                 # The workflow execution that this one supersedes is not in the submitted batch,
                 # so check whether it exists in the database.
                 pattern_for_filter = f"^{re.escape(base_id)}\\.{run_number - 1}$"
