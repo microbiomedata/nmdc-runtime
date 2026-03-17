@@ -5,13 +5,14 @@ from typing import Any, Dict, List, Set, Annotated
 
 import pymongo
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from pymongo.database import Database as MongoDatabase
 from pymongo.errors import BulkWriteError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    parse_workflow_execution_id,
     prepare_supersession_chain_for_workflow_execution_deletion,
 )
 from nmdc_runtime.api.endpoints.queries import (
@@ -85,31 +86,48 @@ async def post_activity(
 
 @router.post(
     "/workflows/workflow_executions",
-    description="Create workflow executions and related metadata.",
+    description=(
+        "Create workflow executions and related metadata, by submitting an "
+        "`nmdc:Database` instance that includes a `workflow_execution_set` collection."
+    ),
 )
 async def post_workflow_execution(
-    database_in: dict[str, Any],
+    database_in: Annotated[
+        dict[str, Any],
+        Body(
+            title="nmdc:Database instance",
+            description=(
+                "An `nmdc:Database` instance that includes at least "
+                "a `workflow_execution_set` collection and, optionally, "
+                "other collections consisting of documents related to "
+                "the included `workflow_execution_set` documents."
+            ),
+            examples=[
+                {
+                    "workflow_execution_set": [],
+                }
+            ],
+        ),
+    ],
     site: Site = Depends(get_current_client_site),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ) -> Dict[str, str]:
     """
     Create workflow executions and related metadata.
 
-    Parameters
-    -------
-    database_in: dict[str,Any]
-                 An `nmdc:Database` instance that includes at least a `workflow_execution_set`
-                 collection and, optionally, other collections consisting of metadata associated
-                 with the items in that included `workflow_execution_set` collection.
-    site: Site
-    mdb: MongoDatabase
+    TODO: Warning! This endpoint can currently be used to submit _all sorts of metadata_! Since we
+    #     still use Mongo and rely on validation at the application level, keep this endpoint in
+    #     mind when introducing new validation processes.
     """
 
     _ = site  # must be authenticated
 
-    # Do some preliminary validation before we try examining the documents in the specified
-    # `workflow_execution_set` collection. This way, our examination code can focus on examination
-    # and not validation.
+    # Get references to relevant MongoDB collections.
+    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    data_object_set = mdb.get_collection("data_object_set")
+
+    # Do preliminary validation before we examine the submitted `workflow_execution_set` documents.
+    # That way, our examination code can focus purely on examination and not validation.
     if (
         not validate_json(database_in, mdb, check_inter_document_references=False)
         or "workflow_execution_set" not in database_in
@@ -118,33 +136,56 @@ async def post_workflow_execution(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
                 "Request payload must represent a valid 'nmdc:Database' instance "
-                + "that includes a 'workflow_execution_set' collection."
+                "that includes a 'workflow_execution_set' collection."
             ),
         )
 
-    # Check whether any of the submitted workflow executions are "re-runs".
+    # Check whether any of the submitted `workflow_execution_set` documents are "re-runs".
     #
-    # Note: The NMDC workflow automation team members have established a convention for indicating
-    #       whether a workflow execution is a "re-run" or not.
+    # Note: The NMDC workflow automation system currently modifies minted `id`s so that they
+    #       include a ".{integer > 0}" suffix indicating whether a given workflow execution is a
+    #       "re-run" or not. See the `parse_workflow_execution_id` helper function for details.
     #
-    #       When they populate the `id` field of a workflow execution, they append a ".{integer}"
-    #       suffix to it. For example: "nmdc:wfmp-00-abcdef.3". When N == 1, the workflow execution
-    #       is a first run (i.e. not a re-run). When N == 2, the workflow execution is a second run
-    #       (i.e. it is a re-run and supersedes the workflow execution whose `id` has N == 1), etc.
-    #
-    for wfe in database_in["workflow_execution_set"]:
+    submitted_wfes = database_in["workflow_execution_set"]
+    submitted_wfe_id_parts = [parse_workflow_execution_id(wfe["id"]) for wfe in submitted_wfes]
+    for wfe in submitted_wfes:
         wfe_id = wfe["id"]
-        match = re.search(r"\.(\d+)$", wfe_id)
-        if match is not None:
-            integer = match.group(1)
-            if integer == "1":
-                logging.debug(f"Workflow execution '{wfe_id}' is a first run.")
-            else:
-                logging.debug(f"Workflow execution '{wfe_id}' is a re-run.")
-                # TODO: Determine whether the workflow execution that this one supersedes exists
-                #       in the database already; or it's being submitted in the same batch.
-                # TODO: Identify the workflow execution and data objects that this workflow
-                #       execution supersedes and prepare to update their supersession chains.
+        base_id, run_number = parse_workflow_execution_id(wfe_id)
+        if run_number is None or run_number == 1:
+            logging.debug(f"Workflow execution '{wfe_id}' is a first run.")
+        else:
+            logging.debug(f"Workflow execution '{wfe_id}' is a re-run.")
+
+            # Determine whether the workflow execution that this one supersedes is being submitted
+            # simultaneously (i.e. in the same batch) or it exists in the database already.
+            is_superseded_wfe_in_same_batch = False
+            for id_parts in submitted_wfe_id_parts:
+                if id_parts[0] == base_id and id_parts[1] == run_number - 1:
+                    is_superseded_wfe_in_same_batch = True
+                    break
+            if not is_superseded_wfe_in_same_batch:
+                logging.debug((
+                    f"WorkflowExecution '{wfe_id}' is a re-run, but its predecessor "
+                    "was not submitted simultaneously. Will check database."
+                ))
+                # The workflow execution that this one supersedes is not in the submitted batch,
+                # so check whether it exists in the database.
+                pattern_for_filter = f"^{re.escape(base_id)}\\.{run_number - 1}$"
+                filter = {"id": {"$regex": pattern_for_filter}}
+                if workflow_execution_set.count_documents(filter) == 0:
+                    error_message = (
+                        f"WorkflowExecution '{wfe_id}' is a re-run, but its predecessor "
+                        "was not submitted simultaneously and is not in the database."
+                    )
+                    logging.error(error_message)
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=(error_message),
+                    )
+
+            # TODO: Identify the workflow execution and data objects that this workflow
+            #       execution supersedes and prepare to update their supersession chains.
+            pass
 
     try:
         # validate request JSON
