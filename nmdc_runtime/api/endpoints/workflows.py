@@ -115,9 +115,12 @@ async def post_workflow_execution(
     """
     Create workflow executions and related metadata.
 
-    TODO: Warning! This endpoint can currently be used to submit _all sorts of metadata_! Since we
-    #     still use Mongo and rely on validation at the application level, keep this endpoint in
-    #     mind when introducing new validation processes.
+    TODO: Critical!! This endpoint is currently accessible to any site client. It does not perform
+          any authorization checks beyond that. I assume this was not intentional.
+
+    TODO: Warning! This endpoint can currently be used to submit _all types of metadata_! Since we
+          still use Mongo and rely on validation at the application level, keep this endpoint in
+          mind when introducing new validation processes.
     """
 
     _ = site  # must be authenticated
