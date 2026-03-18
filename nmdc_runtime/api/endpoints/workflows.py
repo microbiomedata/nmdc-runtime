@@ -222,12 +222,7 @@ async def post_workflow_execution(
         # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
         # `WorkflowExecution`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
-        if (
-            workflow_execution_set.count_documents(
-                {"id": {"$in": submitted_wfe_ids}}, limit=1
-            )
-            > 0
-        ):
+        if workflow_execution_set.find_one({"id": {"$in": submitted_wfe_ids}}, {"_id": 1}) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
@@ -272,12 +267,7 @@ async def post_workflow_execution(
         # If the `id` of any submitted `DataObject` matches the `id` of any existing
         # `DataObject`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
-        if (
-            data_object_set.count_documents(
-                {"id": {"$in": submitted_dobj_ids}}, limit=1
-            )
-            > 0
-        ):
+        if data_object_set.find_one({"id": {"$in": submitted_dobj_ids}}, {"_id": 1}) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
