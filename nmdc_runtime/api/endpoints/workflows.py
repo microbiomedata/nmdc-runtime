@@ -167,9 +167,12 @@ async def post_workflow_execution(
         )
 
     submitted_wfes = database_in["workflow_execution_set"]  # concise alias
-
     submitted_wfe_ids: List[str] = []
-    existing_wfe_ids: List[str] = []
+    relevant_existing_wfe_ids: List[str] = []
+    
+    submitted_dobjs = database_in.get("data_object_set", [])  # concise alias and fallback value
+    submitted_dobj_ids: List[str] = []
+    relevant_existing_dobj_ids: List[str] = []
 
     with duration_logger(
         logging.info, "Gathering IDs that influence `superseded_by` fields"
@@ -197,31 +200,70 @@ async def post_workflow_execution(
         # in the database whose `id` has any of those (submitted) `base_id` values. By getting
         # them all at once, we reduce the number of queries we have to run later, as we determine
         # the supersession relationships involving the submitted WFEs.
-        base_id_patterns = []
-        for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
-            base_id_pattern: str = make_pattern_matching_ids_having_base_id(base_id)
-            if base_id_pattern not in base_id_patterns:  # prevents duplicates
-                base_id_patterns.append(base_id_pattern)
-        filter_ = {
-            "id": {"$regex": "|".join(base_id_patterns)}
-        }  # join the patterns via "|"
-        projection = {"id": 1, "_id": 0}
-        existing_wfe_ids = [
-            wfe["id"] for wfe in workflow_execution_set.find(filter_, projection)
-        ]
-        logging.info(f"{existing_wfe_ids=}")
+        if len(id_parts_by_submitted_wfe_id) > 0:
+            base_id_patterns = []
+            for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
+                base_id_pattern: str = make_pattern_matching_ids_having_base_id(base_id)
+                if base_id_pattern not in base_id_patterns:  # prevents duplicates
+                    base_id_patterns.append(base_id_pattern)
+            filter_ = {
+                "id": {"$regex": "|".join(base_id_patterns)}  # joins the patterns via "|"
+            }
+            projection = {"id": 1, "_id": 0}
+            relevant_existing_wfe_ids = [
+                wfe["id"] for wfe in workflow_execution_set.find(filter_, projection)
+            ]
+        logging.info(f"{relevant_existing_wfe_ids=}")
 
         # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
         # `WorkflowExecution`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
-        for submitted_wfe_id in submitted_wfe_ids:
-            if submitted_wfe_id in existing_wfe_ids:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=(
-                        f"WorkflowExecution '{submitted_wfe_id}' has the same ID as an existing one."
-                    ),
-                )
+        if workflow_execution_set.count_documents({"id": {"$in": submitted_wfe_ids}}, limit=1) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "At least one submitted WorkflowExecution has the same ID as an existing one."
+                ),
+            )
+        
+        # Get the `id` of every submitted `DataObject`; and of every `DataObject` in the database
+        # whose `id` is in the `has_output` field of any submitted WFE or any relevant existing WFE.
+        submitted_dobj_ids = [submitted_dobj["id"] for submitted_dobj in submitted_dobjs]
+        logging.info(f"{submitted_dobj_ids=}")
+        submitted_wfe_has_output_dobj_ids: Set[str] = set()
+        for submitted_wfe in submitted_wfes:
+            has_output = submitted_wfe.get("has_output", [])
+            submitted_wfe_has_output_dobj_ids.update(has_output)  # set = set ∪ list
+        logging.info(f"{submitted_wfe_has_output_dobj_ids=}")
+        wfe_cursor = workflow_execution_set.find(
+            {"id": {"$in": relevant_existing_wfe_ids}},
+            {"has_output": 1, "_id": 0},
+        )
+        relevant_existing_wfe_has_output_dobj_ids: Set[str] = set()
+        for document in wfe_cursor:
+            has_output = document.get("has_output", [])
+            relevant_existing_wfe_has_output_dobj_ids.update(has_output)  # set = set ∪ list
+        logging.info(f"{relevant_existing_wfe_has_output_dobj_ids=}")
+        wfe_has_output_dobj_ids = submitted_wfe_has_output_dobj_ids.union(relevant_existing_wfe_has_output_dobj_ids)
+        logging.info(f"{wfe_has_output_dobj_ids=}")
+        dobj_cursor = data_object_set.find(
+            {"id": {"$in": list(wfe_has_output_dobj_ids)}},
+            {"id": 1, "_id": 0},
+        )
+        for document in dobj_cursor:
+            relevant_existing_dobj_ids.append(document["id"])
+        logging.info(f"{relevant_existing_dobj_ids=}")
+
+        # If the `id` of any submitted `DataObject` matches the `id` of any existing
+        # `DataObject`, abort. That way, we don't update the supersession chains in
+        # preparation for an insertion that is destined to fail.
+        if data_object_set.count_documents({"id": {"$in": submitted_dobj_ids}}, limit=1) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "At least one submitted DataObject has the same ID as an existing one."
+                ),
+            )
 
     with duration_logger(
         logging.info, "Patching `superseded_by` fields in submitted payload"
@@ -231,17 +273,42 @@ async def post_workflow_execution(
             successor_wfe_id = derive_successor_id(submitted_wfe_id)
             if (
                 successor_wfe_id in submitted_wfe_ids
-                or successor_wfe_id in existing_wfe_ids
+                or successor_wfe_id in relevant_existing_wfe_ids
             ):
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                     f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
                 )
                 # Update the insertion payload accordingly.
-                # TODO: Update the `DataObject`s also.
                 for submitted_wfe in submitted_wfes:
                     if submitted_wfe["id"] == submitted_wfe_id:
                         submitted_wfe["superseded_by"] = successor_wfe_id
+                        # Update each `DataObject` referenced by the WFE's `has_output` field,
+                        # whether they are in the insertion payload or already in the database.
+                        has_output = submitted_wfe.get("has_output", [])
+                        for dobj_id in has_output:
+                            if dobj_id in submitted_dobj_ids:  # avoids nested loop if possible
+                                for submitted_dobj in submitted_dobjs:
+                                    if submitted_dobj["id"] == dobj_id:
+                                        submitted_dobj["superseded_by"] = successor_wfe_id
+                                        break  # done updating the sought-after submitted `DataObject`
+                            elif dobj_id in relevant_existing_dobj_ids:
+                                data_object_set.update_one(
+                                    {"id": dobj_id},
+                                    {"$set": {"superseded_by": successor_wfe_id}},
+                                )
+                            else:
+                                raise HTTPException(
+                                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=(
+                                        f"DataObject '{dobj_id}', which was referenced in the "
+                                        f"'has_output' field of WorkflowExecution '{submitted_wfe_id}' "
+                                        "was deleted from the database while processing this request. "
+                                        "Please contact an admin to manage any already-updated "
+                                        "'superseded_by' fields."
+                                    ),
+                                )
+                        break  # done updating the sought-after submitted `WorkflowExecution`
             else:
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' is not superseded by "
@@ -252,17 +319,26 @@ async def post_workflow_execution(
         for submitted_wfe_id in submitted_wfe_ids:
             # Check whether this `WorkflowExecution` supersedes any `WorkflowExecution`s.
             predecessor_wfe_id = derive_predecessor_id(submitted_wfe_id)
-            if predecessor_wfe_id in existing_wfe_ids:
+            if predecessor_wfe_id in relevant_existing_wfe_ids:
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' supersedes "
                     f"existing WorkflowExecution '{predecessor_wfe_id}'."
                 )
                 # Update the database accordingly.
-                # TODO: Update the `DataObject`s also.
-                workflow_execution_set.update_one(
+                wfe_document = workflow_execution_set.find_one(
                     {"id": predecessor_wfe_id},
-                    {"$set": {"superseded_by": submitted_wfe_id}},
+                    {"has_output": 1, "_id": 0},
                 )
+                if wfe_document is not None:
+                    wfe_has_output = wfe_document.get("has_output", [])
+                    workflow_execution_set.update_one(
+                        {"id": predecessor_wfe_id},
+                        {"$set": {"superseded_by": submitted_wfe_id}},
+                    )
+                    data_object_set.update_many(
+                        {"id": {"$in": wfe_has_output}},
+                        {"$set": {"superseded_by": submitted_wfe_id}},
+                    )
 
     try:
         # validate request JSON
