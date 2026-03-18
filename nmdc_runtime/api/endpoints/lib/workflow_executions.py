@@ -296,11 +296,11 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
 
 
 def update_superseded_by_field_of_data_objects_having_id_in_list(
-        data_object_ids: List[str],
-        data_object_list: List[dict],
-        data_object_set_collection: Collection,
-        superseded_by: Optional[str] = None,
-        client_session: Optional[ClientSession] = None,
+    data_object_ids: List[str],
+    data_object_list: List[dict],
+    data_object_set_collection: Collection,
+    superseded_by: Optional[str] = None,
+    client_session: Optional[ClientSession] = None,
 ) -> int:
     """
     Updates the `superseded_by` field of `DataObject` documents in a list or in a Mongo collection.
