@@ -161,7 +161,9 @@ async def post_workflow_execution(
 
     submitted_wfe_ids: List[str] = []
     submitted_dobj_ids: List[str] = []
-    relevant_existing_wfe_ids: List[str] = []  # here, "existing" means "in the database"
+    relevant_existing_wfe_ids: List[str] = (
+        []
+    )  # here, "existing" means "in the database"
 
     with duration_logger(logging.info, "Performing preliminary validation"):
         # Do preliminary validation before we manage the supersession chains.
@@ -214,7 +216,9 @@ async def post_workflow_execution(
                 ),
             )
 
-    with duration_logger(logging.info, "Gathering WFE IDs relevant to supersession management"):
+    with duration_logger(
+        logging.info, "Gathering WFE IDs relevant to supersession management"
+    ):
         # Extract the `base_id` and `run_number` from each submitted `WorkflowExecution`'s `id`;
         # raising an error if any of them lacks a `run_number` (since our workflow automation
         # system currently relies upon run numbers, despite the schema currently saying they are
@@ -242,14 +246,19 @@ async def post_workflow_execution(
         if len(id_parts_by_submitted_wfe_id.keys()) > 0:
             base_id_patterns = []
             for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
-                base_id_pattern: str = "(" + make_pattern_matching_ids_having_base_id(base_id) + ")"
+                base_id_pattern: str = (
+                    "(" + make_pattern_matching_ids_having_base_id(base_id) + ")"
+                )
                 if base_id_pattern not in base_id_patterns:  # prevents duplicates
                     base_id_patterns.append(base_id_pattern)
             relevant_existing_wfe_ids = [
-                wfe["id"] for wfe in workflow_execution_set.find(
+                wfe["id"]
+                for wfe in workflow_execution_set.find(
                     {
                         "id": {
-                            "$regex": "|".join(base_id_patterns)  # joins the patterns via "|"
+                            "$regex": "|".join(
+                                base_id_patterns
+                            )  # joins the patterns via "|"
                         }
                     },
                     id_only_projection,
