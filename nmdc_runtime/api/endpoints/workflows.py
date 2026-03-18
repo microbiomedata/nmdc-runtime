@@ -161,13 +161,18 @@ async def post_workflow_execution(
 
     # Initialize a list of the IDs of "existing" (i.e. already in the database) WFEs,
     # whose `id`s share the same `base_id` as any of the submitted WFEs.
-    relevant_existing_wfe_ids: List[str] =[]
+    relevant_existing_wfe_ids: List[str] = []
 
     with duration_logger(logging.info, "Performing preliminary validation"):
         # Do preliminary validation before we manage the supersession chains.
         # That way, our management code can focus purely on management and not validation.
-        validation_result = validate_json(database_in, mdb, check_inter_document_references=False)
-        if validation_result["result"] == "errors" or "workflow_execution_set" not in database_in:
+        validation_result = validate_json(
+            database_in, mdb, check_inter_document_references=False
+        )
+        if (
+            validation_result["result"] == "errors"
+            or "workflow_execution_set" not in database_in
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
