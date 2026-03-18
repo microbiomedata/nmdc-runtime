@@ -193,9 +193,7 @@ def get_predecessor_from_mongo_collection_by_own_id(
 
     predecessor_id = derive_predecessor_id(workflow_execution_id)
     if predecessor_id is not None:
-        predecessor_document = collection.find_one(
-            {"id": predecessor_id}
-        )
+        predecessor_document = collection.find_one({"id": predecessor_id})
 
     return predecessor_document
 
@@ -212,9 +210,7 @@ def get_successor_from_mongo_collection_by_own_id(
 
     successor_id = derive_successor_id(workflow_execution_id)
     if successor_id is not None:
-        successor_document = collection.find_one(
-            {"id": successor_id}
-        )
+        successor_document = collection.find_one({"id": successor_id})
 
     return successor_document
 
@@ -293,5 +289,7 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
     """
 
     escaped_base_id = re.escape(base_id)
-    regex_pattern = f"^{escaped_base_id}\\.\\d+$"  # double escape, since f-string (not r-string)
+    regex_pattern = (
+        f"^{escaped_base_id}\\.\\d+$"  # double escape, since f-string (not r-string)
+    )
     return regex_pattern

@@ -165,13 +165,15 @@ async def post_workflow_execution(
                 "that includes a 'workflow_execution_set' collection."
             ),
         )
-    
+
     submitted_wfes = database_in["workflow_execution_set"]  # concise alias
 
     submitted_wfe_ids: List[str] = []
     existing_wfe_ids: List[str] = []
 
-    with duration_logger(logging.info, "Gathering IDs that influence `superseded_by` fields"):
+    with duration_logger(
+        logging.info, "Gathering IDs that influence `superseded_by` fields"
+    ):
         # Extract the `base_id` and `run_number` from each submitted `WorkflowExecution`'s `id`;
         # raising an error if any of them lacks a `run_number` (since our workflow automation
         # system currently relies upon run numbers, despite the schema currently saying they are
@@ -187,7 +189,7 @@ async def post_workflow_execution(
                     detail=(
                         f"The ID of WorkflowExecution '{submitted_wfe_id}' is not in the "
                         "format required by our supersession management processes."
-                    )
+                    ),
                 )
             id_parts_by_submitted_wfe_id[submitted_wfe_id] = (base_id, run_number)
 
@@ -200,9 +202,13 @@ async def post_workflow_execution(
             base_id_pattern: str = make_pattern_matching_ids_having_base_id(base_id)
             if base_id_pattern not in base_id_patterns:  # prevents duplicates
                 base_id_patterns.append(base_id_pattern)
-        filter_ = {"id": {"$regex": "|".join(base_id_patterns)}}  # join the patterns via "|"
+        filter_ = {
+            "id": {"$regex": "|".join(base_id_patterns)}
+        }  # join the patterns via "|"
         projection = {"id": 1, "_id": 0}
-        existing_wfe_ids = [wfe["id"] for wfe in workflow_execution_set.find(filter_, projection)]
+        existing_wfe_ids = [
+            wfe["id"] for wfe in workflow_execution_set.find(filter_, projection)
+        ]
         logging.info(f"{existing_wfe_ids=}")
 
         # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
@@ -217,11 +223,16 @@ async def post_workflow_execution(
                     ),
                 )
 
-    with duration_logger(logging.info, "Patching `superseded_by` fields in submitted payload"):
+    with duration_logger(
+        logging.info, "Patching `superseded_by` fields in submitted payload"
+    ):
         for submitted_wfe_id in submitted_wfe_ids:
             # Check whether this `WorkflowExecution` is superseded by any `WorkflowExecution`s.
             successor_wfe_id = derive_successor_id(submitted_wfe_id)
-            if successor_wfe_id in submitted_wfe_ids or successor_wfe_id in existing_wfe_ids:
+            if (
+                successor_wfe_id in submitted_wfe_ids
+                or successor_wfe_id in existing_wfe_ids
+            ):
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                     f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
