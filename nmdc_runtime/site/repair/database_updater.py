@@ -168,8 +168,10 @@ class DatabaseUpdater:
                     continue
                 seen_gold_biosample_ids.add(gold_id_stripped)
 
-                pooling_records = self.runtime_api_user_client.get_linked_pooling_for_biosample(
-                    biosample["id"]
+                pooling_records = (
+                    self.runtime_api_user_client.get_linked_pooling_for_biosample(
+                        biosample["id"]
+                    )
                 )
                 if pooling_records:
                     pooling_output_id = pooling_records[0]["has_output"][0]
@@ -224,7 +226,8 @@ class DatabaseUpdater:
         database.data_generation_set = [
             record
             for record in database.data_generation_set
-            if str(record.processing_institution) == nmdc.ProcessingInstitutionEnum.JGI.text
+            if str(record.processing_institution)
+            == nmdc.ProcessingInstitutionEnum.JGI.text
         ]
 
         return database
