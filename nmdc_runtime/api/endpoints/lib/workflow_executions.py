@@ -80,7 +80,7 @@ def parse_workflow_execution_id(raw_id: str) -> Tuple[str, int | None]:
     The NMDC workflow automation team members have established a convention for indicating
     whether a workflow execution is a "re-run" or not.
 
-    When they populate the `id` field of a `WorkflowExecution, they append a ".{integer > 0}"
+    When they populate the `id` field of a `WorkflowExecution`, they append a ".{integer > 0}"
     suffix to it (e.g. "nmdc:wfmp-00-abcdef" → "nmdc:wfmp-00-abcdef.1").
 
     Examples:
@@ -306,7 +306,7 @@ def update_superseded_by_field_of_data_objects_having_id_in_list(
     Updates the `superseded_by` field of `DataObject` documents in a list or in a Mongo collection.
 
     Updates the `superseded_by` field of each `DataObject` (whose `id` is in the specified `id` list)
-    whether that `DataObject` exist in the specified list of `DataObject` documents or it exists
+    whether that `DataObject` exists in the specified list of `DataObject` documents or it exists
     in the specified Mongo collection. If `superseded_by` is `None`, this function will delete
     the `superseded_by` field from those `DataObject`s. Does so within the specified Mongo
     session, if any, so that it can be part of an existing transaction, if any.
