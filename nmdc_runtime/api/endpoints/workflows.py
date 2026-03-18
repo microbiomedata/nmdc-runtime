@@ -169,8 +169,10 @@ async def post_workflow_execution(
     submitted_wfes = database_in["workflow_execution_set"]  # concise alias
     submitted_wfe_ids: List[str] = []
     relevant_existing_wfe_ids: List[str] = []
-    
-    submitted_dobjs = database_in.get("data_object_set", [])  # concise alias and fallback value
+
+    submitted_dobjs = database_in.get(
+        "data_object_set", []
+    )  # concise alias and fallback value
     submitted_dobj_ids: List[str] = []
     relevant_existing_dobj_ids: List[str] = []
 
@@ -207,7 +209,9 @@ async def post_workflow_execution(
                 if base_id_pattern not in base_id_patterns:  # prevents duplicates
                     base_id_patterns.append(base_id_pattern)
             filter_ = {
-                "id": {"$regex": "|".join(base_id_patterns)}  # joins the patterns via "|"
+                "id": {
+                    "$regex": "|".join(base_id_patterns)
+                }  # joins the patterns via "|"
             }
             projection = {"id": 1, "_id": 0}
             relevant_existing_wfe_ids = [
@@ -218,17 +222,24 @@ async def post_workflow_execution(
         # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
         # `WorkflowExecution`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
-        if workflow_execution_set.count_documents({"id": {"$in": submitted_wfe_ids}}, limit=1) > 0:
+        if (
+            workflow_execution_set.count_documents(
+                {"id": {"$in": submitted_wfe_ids}}, limit=1
+            )
+            > 0
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
                     "At least one submitted WorkflowExecution has the same ID as an existing one."
                 ),
             )
-        
+
         # Get the `id` of every submitted `DataObject`; and of every `DataObject` in the database
         # whose `id` is in the `has_output` field of any submitted WFE or any relevant existing WFE.
-        submitted_dobj_ids = [submitted_dobj["id"] for submitted_dobj in submitted_dobjs]
+        submitted_dobj_ids = [
+            submitted_dobj["id"] for submitted_dobj in submitted_dobjs
+        ]
         logging.info(f"{submitted_dobj_ids=}")
         submitted_wfe_has_output_dobj_ids: Set[str] = set()
         for submitted_wfe in submitted_wfes:
@@ -242,9 +253,13 @@ async def post_workflow_execution(
         relevant_existing_wfe_has_output_dobj_ids: Set[str] = set()
         for document in wfe_cursor:
             has_output = document.get("has_output", [])
-            relevant_existing_wfe_has_output_dobj_ids.update(has_output)  # set = set ∪ list
+            relevant_existing_wfe_has_output_dobj_ids.update(
+                has_output
+            )  # set = set ∪ list
         logging.info(f"{relevant_existing_wfe_has_output_dobj_ids=}")
-        wfe_has_output_dobj_ids = submitted_wfe_has_output_dobj_ids.union(relevant_existing_wfe_has_output_dobj_ids)
+        wfe_has_output_dobj_ids = submitted_wfe_has_output_dobj_ids.union(
+            relevant_existing_wfe_has_output_dobj_ids
+        )
         logging.info(f"{wfe_has_output_dobj_ids=}")
         dobj_cursor = data_object_set.find(
             {"id": {"$in": list(wfe_has_output_dobj_ids)}},
@@ -257,7 +272,12 @@ async def post_workflow_execution(
         # If the `id` of any submitted `DataObject` matches the `id` of any existing
         # `DataObject`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
-        if data_object_set.count_documents({"id": {"$in": submitted_dobj_ids}}, limit=1) > 0:
+        if (
+            data_object_set.count_documents(
+                {"id": {"$in": submitted_dobj_ids}}, limit=1
+            )
+            > 0
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
@@ -287,10 +307,14 @@ async def post_workflow_execution(
                         # whether they are in the insertion payload or already in the database.
                         has_output = submitted_wfe.get("has_output", [])
                         for dobj_id in has_output:
-                            if dobj_id in submitted_dobj_ids:  # avoids nested loop if possible
+                            if (
+                                dobj_id in submitted_dobj_ids
+                            ):  # avoids nested loop if possible
                                 for submitted_dobj in submitted_dobjs:
                                     if submitted_dobj["id"] == dobj_id:
-                                        submitted_dobj["superseded_by"] = successor_wfe_id
+                                        submitted_dobj["superseded_by"] = (
+                                            successor_wfe_id
+                                        )
                                         break  # done updating the sought-after submitted `DataObject`
                             elif dobj_id in relevant_existing_dobj_ids:
                                 data_object_set.update_one(
