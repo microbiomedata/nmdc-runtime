@@ -156,14 +156,13 @@ async def post_workflow_execution(
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
     data_object_set = mdb.get_collection("data_object_set")
 
-    submitted_wfes = database_in["workflow_execution_set"]
-    submitted_dobjs = database_in.get("data_object_set", [])
-
+    # Initialize a list of the IDs of submitted WFEs and a list of the IDs of submitted DOs.
     submitted_wfe_ids: List[str] = []
     submitted_dobj_ids: List[str] = []
-    relevant_existing_wfe_ids: List[str] = (
-        []
-    )  # here, "existing" means "in the database"
+
+    # Initialize a list of the IDs of "existing" (i.e. already in the database) WFEs,
+    # whose `id`s share the same `base_id` as any of the submitted WFEs.
+    relevant_existing_wfe_ids: List[str] =[]
 
     with duration_logger(logging.info, "Performing preliminary validation"):
         # Do preliminary validation before we manage the supersession chains.
@@ -183,6 +182,7 @@ async def post_workflow_execution(
         # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
         # `WorkflowExecution`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
+        submitted_wfes = database_in["workflow_execution_set"]
         submitted_wfe_ids = [submitted_wfe["id"] for submitted_wfe in submitted_wfes]
         logging.info(f"{submitted_wfe_ids=}")
         if (
@@ -201,6 +201,7 @@ async def post_workflow_execution(
         # If the `id` of any submitted `DataObject` matches the `id` of any existing
         # `DataObject`, abort. That way, we don't update the supersession chains in
         # preparation for an insertion that is destined to fail.
+        submitted_dobjs = database_in.get("data_object_set", [])
         submitted_dobj_ids = [
             submitted_dobj["id"] for submitted_dobj in submitted_dobjs
         ]
