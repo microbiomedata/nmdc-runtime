@@ -166,15 +166,14 @@ async def post_workflow_execution(
     with duration_logger(logging.info, "Performing preliminary validation"):
         # Do preliminary validation before we manage the supersession chains.
         # That way, our management code can focus purely on management and not validation.
-        if (
-            not validate_json(database_in, mdb, check_inter_document_references=False)
-            or "workflow_execution_set" not in database_in
-        ):
+        validation_result = validate_json(database_in, mdb, check_inter_document_references=False)
+        if validation_result["result"] == "errors" or "workflow_execution_set" not in database_in:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(
                     "Request payload must represent a valid 'nmdc:Database' instance "
-                    "that includes a 'workflow_execution_set' collection."
+                    "that includes a 'workflow_execution_set' collection. "
+                    f"{validation_result['detail']}"
                 ),
             )
 
