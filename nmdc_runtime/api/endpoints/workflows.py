@@ -17,6 +17,7 @@ from nmdc_runtime.api.endpoints.lib.workflow_executions import (
     make_pattern_matching_ids_having_base_id,
     parse_workflow_execution_id,
     prepare_supersession_chain_for_workflow_execution_deletion,
+    update_superseded_by_field_of_data_objects_having_id_in_list,
 )
 from nmdc_runtime.api.endpoints.queries import (
     _run_mdb_cmd,
@@ -275,9 +276,7 @@ async def post_workflow_execution(
                 ),
             )
 
-    with duration_logger(
-        logging.info, "Patching `superseded_by` fields in submitted payload"
-    ):
+    with duration_logger(logging.info, "Preparing to insert superseded metadata"):
         for submitted_wfe_id in submitted_wfe_ids:
             # Check whether this `WorkflowExecution` is superseded by any `WorkflowExecution`s.
             successor_wfe_id = derive_successor_id(submitted_wfe_id)
@@ -289,69 +288,54 @@ async def post_workflow_execution(
                     f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                     f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
                 )
-                # Update the insertion payload accordingly.
+                # Update the insertion payload and database accordingly.
                 for submitted_wfe in submitted_wfes:
                     if submitted_wfe["id"] == submitted_wfe_id:
                         submitted_wfe["superseded_by"] = successor_wfe_id
-                        # Update each `DataObject` referenced by the WFE's `has_output` field,
-                        # whether they are in the insertion payload or already in the database.
                         has_output = submitted_wfe.get("has_output", [])
-                        for dobj_id in has_output:
-                            if (
-                                dobj_id in submitted_dobj_ids
-                            ):  # avoids nested loop if possible
-                                for submitted_dobj in submitted_dobjs:
-                                    if submitted_dobj["id"] == dobj_id:
-                                        submitted_dobj["superseded_by"] = (
-                                            successor_wfe_id
-                                        )
-                                        break  # done updating the sought-after submitted `DataObject`
-                            elif dobj_id in relevant_existing_dobj_ids:
-                                data_object_set.update_one(
-                                    {"id": dobj_id},
-                                    {"$set": {"superseded_by": successor_wfe_id}},
-                                )
-                            else:
-                                raise HTTPException(
-                                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=(
-                                        f"DataObject '{dobj_id}', which was referenced in the "
-                                        f"'has_output' field of WorkflowExecution '{submitted_wfe_id}' "
-                                        "was deleted from the database while processing this request. "
-                                        "Please contact an admin to manage any already-updated "
-                                        "'superseded_by' fields."
-                                    ),
-                                )
-                        break  # done updating the sought-after submitted `WorkflowExecution`
+                        # Update each `DataObject` referenced by this WFE's `has_output` field,
+                        # whether it is in the insertion payload or already in the database.
+                        _ = update_superseded_by_field_of_data_objects_having_id_in_list(
+                            data_object_ids=has_output,
+                            data_object_list=submitted_dobjs,
+                            data_object_set_collection=data_object_set,
+                            superseded_by=successor_wfe_id,
+                            client_session=None,
+                        )
+                        break  # we found the `WorkflowExecution` we were looking for
             else:
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' is not superseded by "
                     "any co-submitted or existing WorkflowExecution."
                 )
 
-    with duration_logger(logging.info, "Updating `superseded_by` fields in database"):
+    with duration_logger(logging.info, "Preparing to insert superseding metadata"):
         for submitted_wfe_id in submitted_wfe_ids:
-            # Check whether this `WorkflowExecution` supersedes any `WorkflowExecution`s.
+            # If the database contains a `WorkflowExecution` whose `id` indicates
+            # that the submitted `WorkflowExecution` supersedes it, update the former's
+            # `superseded_by` field and that of its output `DataObject`s.
             predecessor_wfe_id = derive_predecessor_id(submitted_wfe_id)
             if predecessor_wfe_id in relevant_existing_wfe_ids:
                 logging.info(
                     f"WorkflowExecution '{submitted_wfe_id}' supersedes "
                     f"existing WorkflowExecution '{predecessor_wfe_id}'."
                 )
-                # Update the database accordingly.
                 wfe_document = workflow_execution_set.find_one(
                     {"id": predecessor_wfe_id},
                     {"has_output": 1, "_id": 0},
                 )
                 if wfe_document is not None:
-                    wfe_has_output = wfe_document.get("has_output", [])
+                    has_output = wfe_document.get("has_output", [])
                     workflow_execution_set.update_one(
                         {"id": predecessor_wfe_id},
                         {"$set": {"superseded_by": submitted_wfe_id}},
                     )
-                    data_object_set.update_many(
-                        {"id": {"$in": wfe_has_output}},
-                        {"$set": {"superseded_by": submitted_wfe_id}},
+                    _ = update_superseded_by_field_of_data_objects_having_id_in_list(
+                        data_object_ids=has_output,
+                        data_object_list=submitted_dobjs,
+                        data_object_set_collection=data_object_set,
+                        superseded_by=submitted_wfe_id,
+                        client_session=None,
                     )
 
     try:

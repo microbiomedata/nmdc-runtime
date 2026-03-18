@@ -293,3 +293,50 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
         f"^{escaped_base_id}\\.\\d+$"  # double escape, since f-string (not r-string)
     )
     return regex_pattern
+
+
+def update_superseded_by_field_of_data_objects_having_id_in_list(
+        data_object_ids: List[str],
+        data_object_list: List[dict],
+        data_object_set_collection: Collection,
+        superseded_by: Optional[str] = None,
+        client_session: Optional[ClientSession] = None,
+) -> int:
+    """
+    Updates the `superseded_by` field of `DataObject` documents in a list or in a Mongo collection.
+
+    Updates the `superseded_by` field of each `DataObject` (whose `id` is in the specified `id` list)
+    whether that `DataObject` exist in the specified list of `DataObject` documents or it exists
+    in the specified Mongo collection. If `superseded_by` is `None`, this function will delete
+    the `superseded_by` field from those `DataObject`s. Does so within the specified Mongo
+    session, if any, so that it can be part of an existing transaction, if any.
+    """
+
+    # Initialize the counter of the number of `DataObject`s whose `superseded_by` field we write to.
+    num_written: int = 0
+
+    # Update `DataObject`s in the specified list of `DataObject` documents.
+    for data_object in data_object_list:
+        if "id" not in data_object:
+            raise ValueError("A listed DataObject lacks an `id` field.")
+        data_object_id = data_object["id"]
+        if data_object_id in data_object_ids:
+            if superseded_by is None:
+                data_object.pop("superseded_by", None)
+            else:
+                data_object["superseded_by"] = superseded_by
+            num_written += 1
+
+    # Update `DataObject`s in the specified Mongo collection.
+    if superseded_by is None:
+        operation = {"$unset": {"superseded_by": ""}}
+    else:
+        operation = {"$set": {"superseded_by": superseded_by}}
+    result = data_object_set_collection.update_many(
+        {"id": {"$in": data_object_ids}},
+        operation,
+        session=client_session,
+    )
+    num_written += result.modified_count
+
+    return num_written
