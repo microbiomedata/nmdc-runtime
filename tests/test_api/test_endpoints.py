@@ -190,6 +190,26 @@ def test_create_user():
         )
 
 
+def test_get_users_forbids_non_admin_client(api_user_client):
+    with pytest.raises(requests.HTTPError) as exc_info:
+        api_user_client.request("GET", "/admin/users")
+    assert exc_info.value.response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_get_users_returns_all_users(db, api_admin_user_client):
+    db = get_mongo_db()
+    users_collection = db.get_collection("users")
+    num_users_in_db = users_collection.users.count_documents({})
+    assert num_users_in_db > 0
+
+    rv = api_admin_user_client.request("GET", "/admin/users")
+    assert rv.status_code == status.HTTP_200_OK
+    users_in_response = rv.json()
+    assert isinstance(users_in_response, list)
+    num_users_in_response = len(users_in_response)
+    assert num_users_in_response == num_users_in_db
+
+
 def test_queries_run_invalid_update(api_user_client):
     # Seed the database
     mdb = get_mongo_db()
