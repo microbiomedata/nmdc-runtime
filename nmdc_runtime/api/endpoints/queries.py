@@ -98,6 +98,10 @@ def run_query(
     To retrieve the next batch of items, submit a request with `getMore` set to that non-null `cursor.id`.
     When the response includes a null `cursor.id`, there are no more items available.
 
+    If the `allow_broken_refs` query parameter is `true` _and_ the endpoint determines that
+    following the specified command would, indeed, leave behind broken references; the endpoint will
+    still follow the command, and the HTTP response will include a list of those broken references.
+
     **Example request bodies:**
 
     Get all\* biosamples.
@@ -240,6 +244,9 @@ def run_query(
     # check if the user has permission to run aggregate commands
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
+
+    # TODO: If `allow_broken_refs` is `true` and the reference check determines that broken refernces
+    #       would, indeed, be left behind; include a list of the broken references in the API response.
 
     cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
     return cmd_response
