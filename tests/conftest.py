@@ -66,6 +66,38 @@ def api_user_client() -> RuntimeApiUserClient:
     return RuntimeApiUserClient(base_url=os.getenv("API_HOST"), **rs["user"])
 
 
+@pytest.fixture()
+def api_admin_user_client(api_user_client):
+    """Yields an API user client for a user having admin privileges."""
+
+    mdb = get_mongo_db()
+
+    username = api_user_client.username
+    site_for_admins = "nmdc-runtime-useradmin"
+
+    # Check whether the user is already an admin.
+    is_admin_initially = mdb.users.find_one({
+        "username": username,
+        "site_admin": site_for_admins,  # matches if in list
+    }) is not None
+
+    # If the user isn't already an admin, make them one now.
+    if not is_admin_initially:
+        mdb.users.update_one(
+            {"username": username},
+            {"$addToSet": {"site_admin": site_for_admins}},  # adds to list
+        )
+
+    yield api_user_client
+
+    # Cleanup: If we made the user an admin earlier, revert them back into a non-admin now.
+    if not is_admin_initially:
+        mdb.users.update_one(
+            {"username": username},
+            {"$pull": {"site_admin": site_for_admins}},  # removes from list
+        )
+
+
 def minting_request():
     return MintingRequest(
         **{

@@ -9,36 +9,6 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
 
 
-@pytest.fixture()
-def api_admin_user_client(api_user_client):
-    """Yields an API user client for a user having admin privileges."""
-
-    mdb = get_mongo_db()
-
-    username = api_user_client.username
-    site_for_admins = "nmdc-runtime-useradmin"
-
-    # If the user is not already an admin, make them one and record the fact that we did.
-    is_admin_initially = mdb.users.find_one({
-        "username": username,
-        "site_admin": site_for_admins,  # matches if in list
-    }) is not None
-    if not is_admin_initially:
-        mdb.users.update_one(
-            {"username": username},
-            {"$addToSet": {"site_admin": site_for_admins}},  # adds to list
-        )
-
-    yield api_user_client
-
-    # Cleanup: If we made the user an admin earlier, revert them to a non-admin now.
-    if not is_admin_initially:
-        mdb.users.update_one(
-            {"username": username},
-            {"$pull": {"site_admin": site_for_admins}},  # removes from list
-        )
-
-
 class TestGetAdminDataObjectURLs:
     http_method = "GET"
     url_path = "/admin/data_object_urls"
