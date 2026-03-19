@@ -1,121 +1,134 @@
 # Administration
 
-## Uptime / System Status
+This document is about administering the production instance of the NMDC Runtime, which is hosted
+at [api.microbiomedata.org](https://api.microbiomedata.org).
 
-The up/down status of NMDC Runtime components is available at <https://nmdcstatus.polyneme.xyz/>,
-which currently shows the <https://updown.io/p/nia64> status page.
+## Hosting
 
-A GET request is done for each registered HTTP resource every hour, with a satisfactory response
-time set as 2 seconds. There are three active monitoring locations in North America, and there are
-four active notification recipients - `dehays`, `dwinston`, and `scanon` via email; and the
-`#updown` channel in the [NMDC Slack organization](https://nmdc-group.slack.com).
+We currently host the NMDC Runtime on Google Cloud Platform. More specifically, we host it on GKE
+(Google Kubernetes Engine). The underlying MongoDB server, as well as Dagster and its Postgres
+server, are also hosted on GKE.
 
-The component containers are hosted on the [NERSC Spin](https://www.nersc.gov/systems/spin/) system,
-so [NERSC's Live Status page](https://www.nersc.gov/live-status/motd/) is a place to check if
-anything is down. Furthermore, note the Planned Outages section of that page, particularly any
-notices for Spin.
+We use Cloudflare to proxy requests from the Internet to GKE.
 
-If NERSC Spin is up, and some service appears to be down, check out Spin's Rancher 2 web interface
-at <https://rancher2.spin.nersc.gov/>. The NMDC Runtime system is currently deployed on the
-`development` cluster as part of the NMDC's `m3408` project, under the `nmdc-runtime-dev namespace`.
-There, you can examine the workloads in the namespace and troubleshoot as appropriate -- redeploy,
-execute a shell in a container to diagnose, view logs, etc. Here is an example screenshot of active
-workloads:
+## Health checks
 
-![rancher-nmdc-runtime-dev-workloads](img/rancher-nmdc-runtime-dev-workloads.png)
+### Health check API endpoint
+
+The Runtime has a dedicated health check API endpoint, at `GET /health`. The endpoint's response
+payload looks like this:
+
+```json
+{
+  "web_server": true,
+  "database": true
+}
+```
+
+When the Runtime receives a request at that endpoint, it checks two things:
+
+1. It checks whether the FastAPI application can receive and response to HTTP requests. This will
+   be `true` in every HTTP response from this endpoint.
+2. It checks whether the FastAPI application can read from the MongoDB server. This will be either
+   `true` or `false`.
+
+When either of the above checks fail, the endpoint returns a status code of
+`HTTP 503 Service Unavailable`. Otherwise, the endpoint returns a status code of `HTTP 200 OK`.
+In either situation, the HTTP response payload will include a breakdown of the checks and their
+results.
+
+### Cloudflare health checks
+
+We have configured Cloudflare to perform health checks of the production NMDC Runtime API and,
+whenever the health status changes, to send a message to the NMDC Slack workspace
+(i.e. the `#cloudflare-notifications` channel).
 
 ## Create API Users
 
-Users that are admins of the `nmdc-runtime-useradmin` site may create API users. Currently, these
-users are `scanon`, `dehays`, and `dwinston`.
+Users that are admins of the `nmdc-runtime-useradmin` site may create API users.
 
-You can see what sites you administer via `GET /users/me` when logged in.
+Any Runtime user can get a list of the sites that they, themselves, administer. They can do that
+by logging into the Runtime API and sending a request to `GET /users/me`. The response will look
+like this:
 
-!!! example "example `GET /users/me` result"
-    ```json
-    {
-      "username": "dwinston",
-      "site_admin": [
-        "dwinston-laptop",
-        "nmdc-runtime-useradmin"
-      ]
-    }
-    ```
+```json
+{
+   "username": "bob",
+   "site_admin": [
+      "nersc",
+      "bobs-laptop"
+   ]
+}
+```
 
-Log in via your username and password, and `POST /users` to create a new user. The only required
-fields are `username` and `password`.
+If you are an admin (as defined above), you can create a user by submitting an HTTP request to the
+`POST /users` endpoint. When creating a new user, we recommend sending them their password via
+a secret sharing service such as [SnapPass](https://github.com/pinterest/snappass). If the sender
+and recipient are LBNL employees, the sender can use [LBNL's own SnapPass instance](https://snappass.lbl.gov).
 
-## Modifying API permissions
+## Managing API permissions
 
-For fine-grained control over which users have access to particular API endpoints, you may currently
-do so at the code level. A suitable template for this is the [implementation of the POST
-/users](https://github.com/microbiomedata/nmdc-runtime/blob/1d0feb68fb5ed82ed82c06f9724ecc86f73d83ae/nmdc_runtime/api/endpoints/users.py#L78)
-endpoint. The endpoint code receives the requesting user model via the `get_current_active_user`
-dependency, and it uses the `check_can_create_user` function to verify that the requester can
-administer the "nmdc-runtime-useradmin" site. If not, a `403 Forbidden` exception is raised.
-Otherwise, the endpoint logic continues for the authorized user.
+The Runtime was designed to use an "allowance" system. An "allowance" is a MongoDB document that maps
+a user to an action. There are various checks throughout the codebase for whether the current user
+is allowed to perform a given action—those checks use those "allowance" documents.
 
-To add a site ID to an existing user's `site_admin` list, this must currently be done manually at
-the MongoDB document level, rather than via an admin-accessible API endpoint.
+In the past, Runtime admins would manage "allowances" via direct MongoDB commands. However, we have
+since introduced some admin-only API endpoints that admins can use to manage "allowances" via the
+Runtime API. While there is no dedicated Runtime admin UI, admins can use Swagger UI for this.
 
+## MongoDB
 
-## MongoDB Administration
+The MongoDB instance underlying the NMDC Runtime is hosted on Google Cloud (specifically, on GKE).
+Team members wanting to become familiar with that instance can learn about it by perusing the
+private `microbiomedata/infra-admin` GitHub repository.
 
-The MongoDB instance backing the runtime is deployed on NERSC Spin.
+For example, the NMDC team uses custom MongoDB user roles; and the `mongosh` script that can be used
+to create those roles is stored in that GitHub repository—not in the `nmdc-runtime` repository.
 
-The root admin password is stored as the `mongo-root-password` secret in the `nmdc-runtime-dev`
-namespace on the Spin k8s development cluster
-([link](https://rancher2.spin.nersc.gov/p/c-fwj56:p-nlxq2/secrets/nmdc-runtime-dev:mongo-root-password)).
-
-`scanon` and `dehays` have `dbOwner` roles on the `nmdc` database.
-
-!!! tip
-    There is a `nersc-ssh-tunnel` target in the repository's
-    [`Makefile`](https://github.com/microbiomedata/nmdc-runtime/blob/main/Makefile)
-    that can help you map the remote mongo database to a port on your local machine.
-
-## Deployment
-
-The [release process](howto-guides/release-process.md) is administered by the [NMDC architecture working group
-GitHub team](https://github.com/orgs/microbiomedata/teams/architecture-wg). Members of this team
-have full access to repository administration, including the GitHub Actions.
-
-As for the deployed infrastructure, when manual intervention may be necessary, first check the
-Rancher 2 web interface to the NERSC Spin service's Kubernetes clusters, i.e.
-<https://rancher2.spin.nersc.gov/>. The Runtime system is currently deployed on the development
-cluster as part of the NMDC's `m3408` project, under the `nmdc-runtime-dev` namespace.
-
-The go-to people to troubleshoot deployment issues within NERSC Spin at this time are `shreyas`,
-`dwinston`, `eecavanna`, and `scanon`.
-
-## Databases
+### MongoDB databases
 
 Data is stored in the `nmdc` database.
 
-If you need to delete objects copy it to `nmdc_deleted` database under the corresponding collection
+Whenever you delete a document, copy it to the corresponding collection in the `nmdc_deleted`
+database. Documents in the latter collection act as breadcrumbs whose existence facilitates
+subsequent investigation.
 
 ## Bumping the `nmdc-schema` dependency
 
 Here's how you can update the `nmdc-schema` package upon which the Runtime depends.
 
-1. Update the `dependencies` list in `pyproject.toml` so it references the new version of `nmdc-schema`; for example:
+1. Update the `dependencies` list in `pyproject.toml` so it references the new version of 
+   `nmdc-schema`; for example:
+
    ```diff
-   - "nmdc-schema == 11.7.0",
-   + "nmdc-schema == 11.8.0",
+   - "nmdc-schema == 11.16.1",
+   + "nmdc-schema == 11.17.0",
    ```
+
 2. Synchronize the transitive dependencies by running:
+
    ```shell
    docker compose run --rm --no-deps fastapi sh -c 'uv sync --active'
    ```
+
 3. Run the tests and confirm they all pass.
+
    ```shell
    make test
    ```
-   > This step is necessary because schema changes can introduce new constraints on the data processed by the Runtime, and some of the Runtime's tests use example data that may not meet those constraints. If any tests fail, determine the root cause of the failure, address the root cause, and re-run the tests.
+
+   > This step is necessary because schema changes can introduce new constraints on the data
+   > processed by the Runtime, and some of the Runtime's tests use example data that may not
+   > meet those constraints. If any tests fail, determine the root cause of the failure,
+   > address the root cause, and re-run the tests.
+
 4. Commit the changes to the repository.
+
    ```sh
    git add pyproject.toml uv.lock
    git commit -m 'Bump `nmdc-schema` version'
    git push
    ```
-   > Note: You can customize the commit message to indicate the _specific version_ to which you updated the `nmdc-schema` package (e.g. "Bump `nmdc-schema` version to `11.8.0`").
+
+   > Note: You can customize the commit message to indicate the _specific version_ to which you
+   > updated the `nmdc-schema` package (e.g. "Bump `nmdc-schema` version to `11.17.0`").
