@@ -225,3 +225,24 @@ def update_user(
 
     mdb.users.update_one({"username": username}, {"$set": user_dict})
     return mdb.users.find_one({"username": user_in.username})
+
+
+@router.get(
+    "/admin/users",
+    response_model=list[User],
+    name="List users",
+    description="List all users",
+)
+def get_users(
+    requester: User = Depends(get_current_active_user),
+    mdb: pymongo.database.Database = Depends(get_mongo_db),
+):
+    """
+    Get a list of all Runtime users, sorted by username (ascending).
+    """
+    if not is_admin(requester):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Runtime admins can list users.",
+        )
+    return list(mdb.users.find().sort("username", 1))
