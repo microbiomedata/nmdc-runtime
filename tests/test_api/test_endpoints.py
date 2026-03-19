@@ -196,7 +196,7 @@ def test_get_users_forbids_non_admin_client(api_user_client):
     assert exc_info.value.response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_get_users_returns_all_users(db, api_admin_user_client):
+def test_get_users_returns_all_users(api_admin_user_client):
     db = get_mongo_db()
     users_collection = db.get_collection("users")
     num_users_in_db = users_collection.users.count_documents({})
