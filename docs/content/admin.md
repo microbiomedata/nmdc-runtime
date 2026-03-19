@@ -27,7 +27,7 @@ payload looks like this:
 
 When the Runtime receives a request at that endpoint, it checks two things:
 
-1. It checks whether the FastAPI application can receive and response to HTTP requests. This will
+1. It checks whether the FastAPI application can receive and respond to HTTP requests. This will
    be `true` in every HTTP response from this endpoint.
 2. It checks whether the FastAPI application can read from the MongoDB server. This will be either
    `true` or `false`.
@@ -97,7 +97,7 @@ subsequent investigation.
 
 Here's how you can update the `nmdc-schema` package upon which the Runtime depends.
 
-1. Update the `dependencies` list in `pyproject.toml` so it references the new version of 
+1. Update the `dependencies` list in `pyproject.toml` so it references the new version of
    `nmdc-schema`; for example:
 
    ```diff
