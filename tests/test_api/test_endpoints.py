@@ -198,8 +198,7 @@ def test_get_users_forbids_non_admin_client(api_user_client):
 
 def test_get_users_returns_all_users(api_admin_user_client):
     db = get_mongo_db()
-    users_collection = db.get_collection("users")
-    num_users_in_db = users_collection.users.count_documents({})
+    num_users_in_db = db.get_collection("users").count_documents({})
     assert num_users_in_db > 0
 
     rv = api_admin_user_client.request("GET", "/admin/users")
