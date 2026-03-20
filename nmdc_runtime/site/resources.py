@@ -146,6 +146,30 @@ class RuntimeApiUserClient(RuntimeApiClient):
         response.raise_for_status()
         return response.json()["resources"]
 
+    def get_linked_data_generation_records_for_biosample(self, biosample_id: str):
+        """Fetch DataGeneration records linked to a given biosample using the
+        /nmdcschema/linked_instances endpoint.
+
+        Note: This method was added for use by the DatabaseUpdater class
+        (nmdc_runtime.site.repair.database_updater) to check for existing
+        DataGeneration records before creating new ones.
+
+        :param biosample_id: NMDC biosample ID (e.g. "nmdc:bsm-11-abc123").
+        :return: List of hydrated DataGeneration records linked to the biosample.
+        """
+        response = self.request(
+            "GET",
+            "/nmdcschema/linked_instances",
+            {
+                "ids": biosample_id,
+                "types": "nmdc:DataGeneration",
+                "hydrate": True,
+                "max_page_size": 9999,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
+
     def get_data_generation_records_for_study(self, study_id: str):
         # TODO: same as above, we are using a large max_page_size to avoid pagination.
         response = self.request(
