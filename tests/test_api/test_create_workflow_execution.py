@@ -1,6 +1,7 @@
 import pytest
 import requests
-from starlette import status
+import uuid
+from fastapi import status
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
@@ -72,50 +73,32 @@ def seeded_valid_workflow_execution_data():
 
 
 @pytest.fixture
-def seeded_workflow_execution_with_broken_reference_data():
-    """Seed only data objects for a broken-reference workflow execution request and clean up afterward."""
+def seeded_workflow_execution_with_broken_reference_data(
+    seeded_valid_workflow_execution_data,
+):
+    """Build a broken-reference payload from valid seeded data; cleanup is handled by base fixture."""
 
-    faker = Faker()
-    nonexistent_data_generation_id = "nmdc:dgns-00-000001"
-    data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
-    workflow_execution = faker.generate_metagenome_annotations(
-        quantity=1,
-        has_input=[data_object_a["id"]],
-        has_output=[
-            data_object_b["id"]
-        ],  # schema says field optional; but validator complains when absent
-        was_informed_by=[
+    # Build an ID that does not exist in the test DB to keep this fixture stable.
+    data_generation_set = seeded_valid_workflow_execution_data["data_generation_set"]
+    nonexistent_data_generation_id = f"nmdc:dgns-99-{uuid.uuid4().hex[:8]}"
+    while data_generation_set.count_documents({"id": nonexistent_data_generation_id}) != 0:
+        nonexistent_data_generation_id = f"nmdc:dgns-99-{uuid.uuid4().hex[:8]}"
+
+    workflow_execution = {
+        **seeded_valid_workflow_execution_data["workflow_execution"],
+        "was_informed_by": [
             nonexistent_data_generation_id
         ],  # intentionally-broken reference
-    )[0]
-
-    mdb = get_mongo_db()
-    data_generation_set = mdb.get_collection("data_generation_set")
-    data_object_set = mdb.get_collection("data_object_set")
-    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    }
+    workflow_execution_set = seeded_valid_workflow_execution_data["workflow_execution_set"]
 
     assert data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
-    assert (
-        data_object_set.count_documents(
-            {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
-        )
-        == 0
-    )
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
-
-    data_object_set.insert_many([data_object_a, data_object_b])
 
     yield {
         "workflow_execution": workflow_execution,
         "workflow_execution_set": workflow_execution_set,
-        "data_object_ids": [data_object_a["id"], data_object_b["id"]],
-        "data_object_set": data_object_set,
     }
-
-    data_object_set.delete_many(
-        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
-    )
-    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
 def test_post_workflows_workflow_executions_inserts_submitted_document(
