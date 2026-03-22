@@ -64,6 +64,21 @@ run-test:
 # 3. Run tests on the `test` container, passing `ARGS` to `pytest` (see Tip in comment above for `run-test` target).
 test: down-test up-test run-test
 
+# Spins up a fresh test stack and then opens an interactive bash shell within the `test` container.
+test-shell: down-test up-test
+	docker compose --file docker-compose.test.yml exec -it test \
+		/bin/bash -lc \
+		'printf "%s\n" \
+			"" \
+			"🐳 You are in the test container." \
+			"" \
+			"Example commands:" \
+			"  $$ uv run --active pytest" \
+			"  $$ uv run --active pytest /path/to/a/test_file.py" \
+			"  $$ uv run --active pytest -k name_of_a_test_function" \
+			""; \
+		exec /bin/bash'
+
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
