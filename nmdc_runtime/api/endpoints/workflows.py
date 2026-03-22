@@ -167,7 +167,7 @@ async def post_workflow_execution(
         # Do preliminary validation before we manage the supersession chains.
         # That way, our management code can focus purely on management and not validation.
         validation_result = validate_json(
-            database_in, mdb, check_inter_document_references=False
+            database_in, mdb, check_inter_document_references=True
         )
         if (
             validation_result["result"] == "errors"
