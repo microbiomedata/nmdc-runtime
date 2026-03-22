@@ -1,16 +1,37 @@
 import pytest
 import requests
-import uuid
 from fastapi import status
+from pymongo.collection import Collection
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
 
 
-@pytest.fixture
-def seeded_valid_workflow_execution_data():
-    """Seed referenced documents for a valid workflow execution request and clean up afterward."""
+def generate_available_id_for_collection(collection: Collection, prefix: str, suffix: str = "") -> str:
+    """
+    Generates an ID beginning with the specified prefix (and optional suffix), that is not already
+    in use by any documents in the specified Mongo collection. The suffix can be used to append
+    a ".1" to a `WorkflowExecution` identifier, given that NMDC workflow automation team members
+    normally append integers to minted `WorkflowExecution` identifiers.
+    """
+    n = 1
+    available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000001"
+    while collection.count_documents({"id": available_id}) != 0:
+        n += 1
+        available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000002"
+    return available_id
 
+
+@pytest.fixture
+def seeded_db_having_workflow_execution_dependencies():
+    """
+    Yields (a) a database that has been seeded with documents that a `WorkflowExecution` can
+    reference; (b) references to those documents; and (c) an available `WorkflowExecution` ID.
+    After execution returns to this fixture, the fixture deletes the seeded documents and any
+    `WorkflowExecution` having that previously-available ID.
+    """
+
+    # Generate some documents.
     faker = Faker()
     study = faker.generate_studies(quantity=1)[0]
     biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
@@ -18,22 +39,16 @@ def seeded_valid_workflow_execution_data():
     data_generation = faker.generate_nucleotide_sequencings(
         quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]]
     )[0]
-    workflow_execution = faker.generate_metagenome_annotations(
-        quantity=1,
-        has_input=[data_object_a["id"]],
-        has_output=[
-            data_object_b["id"]
-        ],  # schema says field optional; but validator complains when absent
-        was_informed_by=[data_generation["id"]],
-    )[0]
 
-    mdb = get_mongo_db()
-    study_set = mdb.get_collection("study_set")
-    biosample_set = mdb.get_collection("biosample_set")
-    data_object_set = mdb.get_collection("data_object_set")
-    data_generation_set = mdb.get_collection("data_generation_set")
-    workflow_execution_set = mdb.get_collection("workflow_execution_set")
+    # Get references to relevant Mongo collections.
+    db = get_mongo_db()
+    study_set = db.get_collection("study_set")
+    biosample_set = db.get_collection("biosample_set")
+    data_object_set = db.get_collection("data_object_set")
+    data_generation_set = db.get_collection("data_generation_set")
+    workflow_execution_set = db.get_collection("workflow_execution_set")
 
+    # Confirm that the generated documents are not already in the test database.
     assert study_set.count_documents({"id": study["id"]}) == 0
     assert biosample_set.count_documents({"id": biosample["id"]}) == 0
     assert (
@@ -43,114 +58,132 @@ def seeded_valid_workflow_execution_data():
         == 0
     )
     assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
-    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
+    # Insert the generated documents.
     study_set.insert_one(study)
     biosample_set.insert_one(biosample)
     data_object_set.insert_many([data_object_a, data_object_b])
     data_generation_set.insert_one(data_generation)
 
-    yield {
-        "workflow_execution": workflow_execution,
-        "workflow_execution_set": workflow_execution_set,
-        "study": study,
-        "biosample": biosample,
-        "data_object_ids": [data_object_a["id"], data_object_b["id"]],
-        "data_generation": data_generation,
-        "study_set": study_set,
-        "biosample_set": biosample_set,
-        "data_object_set": data_object_set,
-        "data_generation_set": data_generation_set,
-    }
+    # Make up a `WorkflowExecution` ID and confirm it's not in use.
+    available_workflow_execution_id = generate_available_id_for_collection(
+        workflow_execution_set, "nmdc:wfmgan", ".1",
+    )
+    assert workflow_execution_set.count_documents({"id": available_workflow_execution_id}) == 0
 
+    # Make up a `DataGeneration` ID and confirm it's not in use.
+    available_data_generation_id = generate_available_id_for_collection(
+        data_generation_set, "nmdc:dgns",
+    )
+    assert data_generation_set.count_documents({"id": available_data_generation_id}) == 0
+
+    # Yield the database, some of the seeded documents, and some available IDs.
+    yield (
+        db,
+        # seeded data
+        {
+            "data_object_a": data_object_a,
+            "data_object_b": data_object_b,
+            "data_generation": data_generation,
+        },
+        # available IDs
+        {
+            "workflow_execution_id": available_workflow_execution_id,
+            "data_generation_id": available_data_generation_id,
+        }
+    )
+
+    # Delete the documents that we created or that the dependent test created.
     study_set.delete_many({"id": study["id"]})
     biosample_set.delete_many({"id": biosample["id"]})
     data_object_set.delete_many(
         {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
     )
     data_generation_set.delete_many({"id": data_generation["id"]})
-    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
-
-@pytest.fixture
-def seeded_workflow_execution_with_broken_reference_data(
-    seeded_valid_workflow_execution_data,
-):
-    """Build a broken-reference payload from valid seeded data; cleanup is handled by base fixture."""
-
-    # Build an ID that does not exist in the test DB to keep this fixture stable.
-    data_generation_set = seeded_valid_workflow_execution_data["data_generation_set"]
-    nonexistent_data_generation_id = f"nmdc:dgns-99-{uuid.uuid4().hex[:8]}"
-    while data_generation_set.count_documents({"id": nonexistent_data_generation_id}) != 0:
-        nonexistent_data_generation_id = f"nmdc:dgns-99-{uuid.uuid4().hex[:8]}"
-
-    workflow_execution = {
-        **seeded_valid_workflow_execution_data["workflow_execution"],
-        "was_informed_by": [
-            nonexistent_data_generation_id
-        ],  # intentionally-broken reference
-    }
-    workflow_execution_set = seeded_valid_workflow_execution_data["workflow_execution_set"]
-
-    assert data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
-    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
-
-    yield {
-        "workflow_execution": workflow_execution,
-        "workflow_execution_set": workflow_execution_set,
-    }
+    # Delete the `WorkflowExecution` having the previously-available ID.
+    workflow_execution_set.delete_many({"id": available_workflow_execution_id})
 
 
 def test_post_workflows_workflow_executions_inserts_submitted_document(
     api_site_client,
-    seeded_valid_workflow_execution_data,
+    seeded_db_having_workflow_execution_dependencies,
 ):
-    r"""
-    In this test, we submit a workflow execution to the `/workflows/workflow_executions` API endpoint,
-    and then confirm that that workflow execution has been inserted into the database.
+    """
+    In this test, we submit a valid WFE to the API endpoint, then confirm it exists in the database.
     """
 
-    workflow_execution = seeded_valid_workflow_execution_data["workflow_execution"]
-    workflow_execution_set = seeded_valid_workflow_execution_data["workflow_execution_set"]
+    # Get references to the database, relevant seeded data, and available IDs.
+    db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+    data_object_a = seeded_data["data_object_a"]
+    data_object_b = seeded_data["data_object_b"]
+    data_generation = seeded_data["data_generation"]
+    workflow_execution_id = available_ids["workflow_execution_id"]
 
-    # Submit an API request whose payload contains the `workflow_execution_set` document.
-    request_payload = {"workflow_execution_set": [workflow_execution]}
+    # Confirm the document we're about to create does not exist in the database yet.
+    workflow_execution_set = db.get_collection("workflow_execution_set")
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    # Generate a `WorkflowExecution` dictionary for the API request payload.
+    faker = Faker()
+    workflow_execution = faker.generate_metagenome_annotations(
+        quantity=1,
+        id=workflow_execution_id,
+        has_input=[data_object_a["id"]],
+        has_output=[data_object_b["id"]],
+        was_informed_by=[data_generation["id"]],
+    )[0]
+
+    # Submit an API request whose payload contains the `WorkflowExecution` document.
     response = api_site_client.request(
         "POST",
         "/workflows/workflow_executions",
-        request_payload,
+        {"workflow_execution_set": [workflow_execution]},
     )
     assert response.status_code == 200
     assert response.json() == {"message": "jobs accepted"}
 
     # Assert that the `workflow_execution_set` collection now contains the document we submitted.
-    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 1
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 1
 
 
 def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(
     api_site_client,
-    seeded_workflow_execution_with_broken_reference_data,
+    seeded_db_having_workflow_execution_dependencies,
 ):
     r"""
-    In this test, we submit a workflow execution that contains a reference to a non-existent data generation,
-    to the `/workflows/workflow_executions` API endpoint, and confirm the endpoint returns an error response.
+    In this test, we submit a `WorkflowExecution` that contains a reference to a non-existent
+    `DataGeneration`, to the API endpoint, and confirm the endpoint returns an error response.
     """
 
-    workflow_execution = seeded_workflow_execution_with_broken_reference_data[
-        "workflow_execution"
-    ]
-    workflow_execution_set = seeded_workflow_execution_with_broken_reference_data[
-        "workflow_execution_set"
-    ]
+    # Get references to the database, relevant seeded data, and available IDs.
+    db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+    data_object_a = seeded_data["data_object_a"]
+    data_object_b = seeded_data["data_object_b"]
+    workflow_execution_id = available_ids["workflow_execution_id"]
+    data_generation_id = available_ids["data_generation_id"]
 
-    # Submit an API request whose payload contains the `workflow_execution_set` document, which
-    # contains a broken reference.
-    request_payload = {"workflow_execution_set": [workflow_execution]}
+    # Confirm the document we're about to create does not exist in the database yet.
+    workflow_execution_set = db.get_collection("workflow_execution_set")
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    # Generate a `WorkflowExecution` dictionary for the API request payload.
+    faker = Faker()
+    workflow_execution = faker.generate_metagenome_annotations(
+        quantity=1,
+        id=workflow_execution_id,
+        has_input=[data_object_a["id"]],
+        has_output=[data_object_b["id"]],
+        was_informed_by=[data_generation_id],
+    )[0]
+
+    # Submit an API request whose payload contains the `WorkflowExecution` document, which
+    # contains a (broken) reference to a non-existent `DatGeneration`.
     with pytest.raises(requests.exceptions.HTTPError) as exc:
         api_site_client.request(
             "POST",
             "/workflows/workflow_executions",
-            request_payload,
+            {"workflow_execution_set": [workflow_execution]},
         )
     response = exc.value.response
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -169,4 +202,4 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     assert "has_output" not in detail_str
 
     # Assert that the `workflow_execution_set` collection still does not contain the document we submitted.
-    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
+    assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
