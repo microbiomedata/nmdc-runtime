@@ -6,19 +6,13 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
 
 
-def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_client):
-    r"""
-    In this test, we submit a workflow execution to the `/workflows/workflow_executions` API endpoint,
-    and then confirm that that workflow execution has been inserted into the database.
-    """
+@pytest.fixture
+def seeded_valid_workflow_execution_data():
+    """Seed referenced documents for a valid workflow execution request and clean up afterward."""
 
-    # Generate a `workflow_execution_set` document and the other kinds of documents necessary
-    # in order to have referential integrity (i.e. generate all "referenced" documents).
     faker = Faker()
     study = faker.generate_studies(quantity=1)[0]
-    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[
-        0
-    ]
+    biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
     data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
     data_generation = faker.generate_nucleotide_sequencings(
         quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]]
@@ -32,14 +26,13 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
         was_informed_by=[data_generation["id"]],
     )[0]
 
-    # Make sure the `study_set`, `biosample_set`, `data_object_set`, `data_generation_set`, and
-    # `workflow_execution_set` collections don't already contain documents having those IDs.
     mdb = get_mongo_db()
     study_set = mdb.get_collection("study_set")
     biosample_set = mdb.get_collection("biosample_set")
     data_object_set = mdb.get_collection("data_object_set")
     data_generation_set = mdb.get_collection("data_generation_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
+
     assert study_set.count_documents({"id": study["id"]}) == 0
     assert biosample_set.count_documents({"id": biosample["id"]}) == 0
     assert (
@@ -51,26 +44,24 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
     assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
-    # Insert the "referenced" documents into the database.
     study_set.insert_one(study)
     biosample_set.insert_one(biosample)
     data_object_set.insert_many([data_object_a, data_object_b])
     data_generation_set.insert_one(data_generation)
 
-    # Submit an API request whose payload contains the `workflow_execution_set` document.
-    request_payload = {"workflow_execution_set": [workflow_execution]}
-    response = api_site_client.request(
-        "POST",
-        "/workflows/workflow_executions",
-        request_payload,
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "jobs accepted"}
+    yield {
+        "workflow_execution": workflow_execution,
+        "workflow_execution_set": workflow_execution_set,
+        "study": study,
+        "biosample": biosample,
+        "data_object_ids": [data_object_a["id"], data_object_b["id"]],
+        "data_generation": data_generation,
+        "study_set": study_set,
+        "biosample_set": biosample_set,
+        "data_object_set": data_object_set,
+        "data_generation_set": data_generation_set,
+    }
 
-    # Assert that the `workflow_execution_set` collection now contains the document we submitted.
-    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 1
-
-    # 🧹 Clean up.
     study_set.delete_many({"id": study["id"]})
     biosample_set.delete_many({"id": biosample["id"]})
     data_object_set.delete_many(
@@ -80,16 +71,10 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(api_site_
     workflow_execution_set.delete_many({"id": workflow_execution["id"]})
 
 
-def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(
-    api_site_client,
-):
-    r"""
-    In this test, we submit a workflow execution that contains a reference to a non-existent data generation,
-    to the `/workflows/workflow_executions` API endpoint, and confirm the endpoint returns an error response.
-    """
+@pytest.fixture
+def seeded_workflow_execution_with_broken_reference_data():
+    """Seed only data objects for a broken-reference workflow execution request and clean up afterward."""
 
-    # Generate a `data_object_set` document and generate a `workflow_execution_set` document that references
-    # (a) that `data_object_set` document and (b) a non-existent `data_generation_set` document.
     faker = Faker()
     nonexistent_data_generation_id = "nmdc:dgns-00-000001"
     data_object_a, data_object_b = faker.generate_data_objects(quantity=2)
@@ -104,15 +89,12 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
         ],  # intentionally-broken reference
     )[0]
 
-    # Make sure the `workflow_execution_set`, `data_generation_set`, and `data_object_set` collections
-    # don't already contain documents like the ones involved in this test.
     mdb = get_mongo_db()
     data_generation_set = mdb.get_collection("data_generation_set")
     data_object_set = mdb.get_collection("data_object_set")
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
-    assert (
-        data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
-    )
+
+    assert data_generation_set.count_documents({"id": nonexistent_data_generation_id}) == 0
     assert (
         data_object_set.count_documents(
             {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
@@ -121,9 +103,62 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     )
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
 
-    # Insert the referenced `data_object_set` documents into the database. Notice that we are
-    # not inserting any `data_generation_set` documents into the database.
     data_object_set.insert_many([data_object_a, data_object_b])
+
+    yield {
+        "workflow_execution": workflow_execution,
+        "workflow_execution_set": workflow_execution_set,
+        "data_object_ids": [data_object_a["id"], data_object_b["id"]],
+        "data_object_set": data_object_set,
+    }
+
+    data_object_set.delete_many(
+        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
+    )
+    workflow_execution_set.delete_many({"id": workflow_execution["id"]})
+
+
+def test_post_workflows_workflow_executions_inserts_submitted_document(
+    api_site_client,
+    seeded_valid_workflow_execution_data,
+):
+    r"""
+    In this test, we submit a workflow execution to the `/workflows/workflow_executions` API endpoint,
+    and then confirm that that workflow execution has been inserted into the database.
+    """
+
+    workflow_execution = seeded_valid_workflow_execution_data["workflow_execution"]
+    workflow_execution_set = seeded_valid_workflow_execution_data["workflow_execution_set"]
+
+    # Submit an API request whose payload contains the `workflow_execution_set` document.
+    request_payload = {"workflow_execution_set": [workflow_execution]}
+    response = api_site_client.request(
+        "POST",
+        "/workflows/workflow_executions",
+        request_payload,
+    )
+    assert response.status_code == 200
+    assert response.json() == {"message": "jobs accepted"}
+
+    # Assert that the `workflow_execution_set` collection now contains the document we submitted.
+    assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 1
+
+
+def test_post_workflows_workflow_executions_rejects_document_containing_broken_reference(
+    api_site_client,
+    seeded_workflow_execution_with_broken_reference_data,
+):
+    r"""
+    In this test, we submit a workflow execution that contains a reference to a non-existent data generation,
+    to the `/workflows/workflow_executions` API endpoint, and confirm the endpoint returns an error response.
+    """
+
+    workflow_execution = seeded_workflow_execution_with_broken_reference_data[
+        "workflow_execution"
+    ]
+    workflow_execution_set = seeded_workflow_execution_with_broken_reference_data[
+        "workflow_execution_set"
+    ]
 
     # Submit an API request whose payload contains the `workflow_execution_set` document, which
     # contains a broken reference.
@@ -152,8 +187,3 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
 
     # Assert that the `workflow_execution_set` collection still does not contain the document we submitted.
     assert workflow_execution_set.count_documents({"id": workflow_execution["id"]}) == 0
-
-    # 🧹 Clean up.
-    data_object_set.delete_many(
-        {"id": {"$in": [data_object_a["id"], data_object_b["id"]]}}
-    )
