@@ -140,8 +140,7 @@ async def post_workflow_execution(
        if any, whether those are in the insertion payload or already in the database.
     3. Proceed to do the insertion of the [maybe manipulated] payload.
 
-    TODO: Perform all updates within a Mongo transaction. This may involve performing the insertions
-    #     within this function, rather than delegating them to Dagster. As things are implemented
+    TODO: Perform all updates within a Mongo transaction. As things are implemented
     #     now, the database could "change" between the various steps here.
 
     Reference: https://microbiomedata.github.io/nmdc-schema/superseded_by/
@@ -347,7 +346,7 @@ async def post_workflow_execution(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=str(rv),
             )
-        # create mongodb instance for dagster
+        # create mongodb instance and insert documents
         mongo_resource = MongoDB(
             host=os.getenv("MONGO_HOST"),
             dbname=os.getenv("MONGO_DBNAME"),
