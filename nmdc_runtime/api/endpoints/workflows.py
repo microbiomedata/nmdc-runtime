@@ -155,12 +155,14 @@ async def post_workflow_execution(
     workflow_execution_set = mdb.get_collection("workflow_execution_set")
     data_object_set = mdb.get_collection("data_object_set")
 
-    # Initialize a list of the IDs of submitted WFEs and a list of the IDs of submitted DOs.
+    # Initialize lists of the `id`s of the submitted WFEs and DOBJs.
     submitted_wfe_ids: List[str] = []
     submitted_dobj_ids: List[str] = []
 
-    # Initialize a list of the IDs of "existing" (i.e. already in the database) WFEs,
-    # whose `id`s share the same `base_id` as any of the submitted WFEs.
+    # Initialize a list of the `id`s of the "existing" (i.e. already in the database) WFEs
+    # whose `id`s share the same `base_id` as any of the submitted WFEs. According to the suffix
+    # convention established by the NMDC workflow automation team members, such WFEs are on the
+    # same supersession chain as one another.
     relevant_existing_wfe_ids: List[str] = []
 
     with duration_logger(logging.info, "Performing preliminary validation"):
@@ -178,7 +180,7 @@ async def post_workflow_execution(
                 detail=(
                     "Request payload must represent a valid 'nmdc:Database' instance "
                     "that includes a 'workflow_execution_set' collection. "
-                    f"{validation_result['detail']}"
+                    f"Validation result: {str(validation_result)}"
                 ),
             )
 
@@ -270,7 +272,7 @@ async def post_workflow_execution(
             ]
         logging.info(f"{relevant_existing_wfe_ids=}")
 
-    with duration_logger(logging.info, "Preparing to insert superseded WFEs and DOs"):
+    with duration_logger(logging.info, "Preparing to insert superseded WFEs and DOBJs"):
         # For each submitted `WorkflowExecution`, check whether it is superseded by any
         # other `WorkflowExecution` (whether a co-submitted one or one already in the database)
         # according to the `id`-derivable supersession relationships.

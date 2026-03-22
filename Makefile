@@ -73,7 +73,7 @@ test-shell: down-test up-test
 			"🐳 You are in the test container." \
 			"" \
 			"Example commands:" \
-			"  $$ uv run --active pytest" \
+			"  $$ uv run --active pytest -vv --showlocals" \
 			"  $$ uv run --active pytest /path/to/a/test_file.py" \
 			"  $$ uv run --active pytest -k name_of_a_test_function" \
 			""; \
