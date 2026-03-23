@@ -1,4 +1,5 @@
 import re
+from typing import List
 
 import pytest
 import requests
@@ -9,16 +10,23 @@ from nmdc_runtime.api.db.mongo import get_mongo_db
 from tests.lib.faker import Faker
 
 
-def generate_available_id_for_collection(collection: Collection, prefix: str, suffix: str = "") -> str:
+def generate_available_id_for_collection(
+    collection: Collection,
+    prefix: str,
+    suffix: str = "",
+    disallowed_ids: List[str] = list(),
+) -> str:
     """
     Generates an ID beginning with the specified prefix (and optional suffix), that is not already
-    in use by any documents in the specified Mongo collection. The suffix can be used to append
-    a ".1" to a `WorkflowExecution` identifier, given that NMDC workflow automation team members
-    normally append integers to minted `WorkflowExecution` identifiers.
+    in use by any documents in the specified Mongo collection and is not among the disallowed IDs.
+    The suffix can be used to append a ".1" to a `WorkflowExecution` identifier, given that NMDC
+    workflow automation team members normally append integers to minted `WorkflowExecution`
+    identifiers. The `disallowed_ids` parameter can be used to specify a list of IDs that you
+    have already generated, but haven't inserted into the database yet.
     """
     n = 1
     available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000001"
-    while collection.count_documents({"id": available_id}) != 0:
+    while available_id in disallowed_ids or collection.count_documents({"id": available_id}, limit=1) != 0:
         n += 1
         available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000002"
     return available_id
@@ -152,7 +160,7 @@ class TestPostWorkflowWorkflowExecutions:
         assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 1
 
 
-    def test_it_rejects_document_containing_broken_reference(
+    def test_it_rejects_workflow_execution_containing_broken_reference(
         self,
         api_site_client,
         seeded_db_having_workflow_execution_dependencies,
@@ -209,3 +217,57 @@ class TestPostWorkflowWorkflowExecutions:
 
         # Assert that the `workflow_execution_set` collection still does not contain the document we submitted.
         assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+
+    def test_it_inserts_workflow_executions_and_data_objects(
+        self,
+        api_site_client,
+        seeded_db_having_workflow_execution_dependencies,
+    ):
+        """
+        Submit a `WorkflowExecution` along with some `DataObject`s that it references, then confirm
+        the endpoint inserts all of those documents.
+        """
+
+        # Get references to the database, relevant seeded data, and available IDs.
+        db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+        data_object_set = db.get_collection("data_object_set")
+        workflow_execution_set = db.get_collection("workflow_execution_set")
+        data_generation = seeded_data["data_generation"]
+        workflow_execution_id = available_ids["workflow_execution_id"]
+
+        # Generate some `DataObject`s and a `WorkflowExecution` that references those `DataObject`s.
+        faker = Faker()
+        data_object_c, data_object_d = faker.generate_data_objects(quantity=2)
+        data_object_c["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj")
+        data_object_d["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj", disallowed_ids=[data_object_c["id"]])
+        workflow_execution = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=workflow_execution_id,
+            has_input=[data_object_c["id"]],
+            has_output=[data_object_d["id"]],
+            was_informed_by=[data_generation["id"]],
+        )[0]
+
+        # Confirm the documents we're about to create do not exist in the database yet.
+        assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 0
+        assert data_object_set.count_documents({"id": data_object_c["id"]}) == 0
+        assert data_object_set.count_documents({"id": data_object_d["id"]}) == 0
+
+        # Submit an API request whose payload contains the `WorkflowExecution` document and its
+        # referenced `DataObject` documents.
+        response = api_site_client.request(
+            "POST",
+            "/workflows/workflow_executions",
+            {
+                "workflow_execution_set": [workflow_execution],
+                "data_object_set": [data_object_c, data_object_d],
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        response_message = response.json()["message"]
+        assert re.search(r"^Inserted 3 documents$", response_message) is not None
+
+        # Assert that the database now contains the documents we submitted.
+        assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 1
+        assert data_object_set.count_documents({"id": data_object_c["id"]}) == 1
+        assert data_object_set.count_documents({"id": data_object_d["id"]}) == 1

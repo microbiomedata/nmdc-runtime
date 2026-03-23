@@ -3,12 +3,11 @@ from typing import Any, Dict, List, Set, Annotated, Tuple
 
 import pymongo
 from bson import ObjectId
-from fastapi import APIRouter, Body, Depends, HTTPException, Path
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from pymongo.database import Database as MongoDatabase
 from pymongo.operations import InsertOne
 from pymongo.errors import BulkWriteError
 from pymongo.results import ClientBulkWriteResult
-from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.endpoints.lib.workflow_executions import (
@@ -32,7 +31,6 @@ from nmdc_runtime.api.models.site import Site, get_current_client_site
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.util import DeleteResponse
 from nmdc_runtime.api.models.workflow import Workflow
-from nmdc_runtime.site.resources import MongoDB
 from nmdc_schema.nmdc import (
     MetagenomeAnnotation,
     MetaproteomicsAnalysis,
