@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Optional
 
 import pytest
 import requests
@@ -14,19 +14,25 @@ def generate_available_id_for_collection(
     collection: Collection,
     prefix: str,
     suffix: str = "",
-    disallowed_ids: List[str] = list(),
+    ineligible_ids: Optional[List[str]] = None,
 ) -> str:
     """
     Generates an ID beginning with the specified prefix (and optional suffix), that is not already
-    in use by any documents in the specified Mongo collection and is not among the disallowed IDs.
-    The suffix can be used to append a ".1" to a `WorkflowExecution` identifier, given that NMDC
-    workflow automation team members normally append integers to minted `WorkflowExecution`
-    identifiers. The `disallowed_ids` parameter can be used to specify a list of IDs that you
-    have already generated, but haven't inserted into the database yet.
+    in use by any documents in the specified Mongo collection and is not among the ineligible IDs.
+    
+    The `suffix` parameter can be used to append a ".1" (for example) to the ID of a
+    `WorkflowExecution`, given that NMDC workflow automation team members normally
+    append ".{integer}" to minted `WorkflowExecution` IDs.
+    
+    The `ineligible_ids` parameter can be used to specify IDs that you do not want this invocation
+    to generate (maybe because it already generated those IDs).
     """
+    if ineligible_ids is None:
+        ineligible_ids = []
+
     n = 1
     available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000001"
-    while available_id in disallowed_ids or collection.count_documents({"id": available_id}, limit=1) != 0:
+    while available_id in ineligible_ids or collection.count_documents({"id": available_id}, limit=1) != 0:
         n += 1
         available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000002"
     return available_id
@@ -39,9 +45,8 @@ class TestPostWorkflowWorkflowExecutions:
     def seeded_db_having_workflow_execution_dependencies(self):
         """
         Yields (a) a database that has been seeded with documents that a `WorkflowExecution` can
-        reference; (b) references to those documents; and (c) an available `WorkflowExecution` ID.
-        After execution returns to this fixture, the fixture deletes the seeded documents and any
-        `WorkflowExecution` having that previously-available ID.
+        reference and (b) references to those documents. Deletes the seeded documents after
+        resuming execution.
         """
 
         # Generate some documents.
@@ -59,7 +64,6 @@ class TestPostWorkflowWorkflowExecutions:
         biosample_set = db.get_collection("biosample_set")
         data_object_set = db.get_collection("data_object_set")
         data_generation_set = db.get_collection("data_generation_set")
-        workflow_execution_set = db.get_collection("workflow_execution_set")
 
         # Confirm that the generated documents are not already in the test database.
         assert study_set.count_documents({"id": study["id"]}) == 0
@@ -78,22 +82,9 @@ class TestPostWorkflowWorkflowExecutions:
         data_object_set.insert_many([data_object_a, data_object_b, data_object_c, data_object_d])
         data_generation_set.insert_one(data_generation)
 
-        # Make up a `WorkflowExecution` ID and confirm it's not in use.
-        available_workflow_execution_id = generate_available_id_for_collection(
-            workflow_execution_set, "nmdc:wfmgan", ".1",
-        )
-        assert workflow_execution_set.count_documents({"id": available_workflow_execution_id}) == 0
-
-        # Make up a `DataGeneration` ID and confirm it's not in use.
-        available_data_generation_id = generate_available_id_for_collection(
-            data_generation_set, "nmdc:dgns",
-        )
-        assert data_generation_set.count_documents({"id": available_data_generation_id}) == 0
-
-        # Yield the database, some of the seeded documents, and some available IDs.
+        # Yield the database and seeded documents.
         yield (
             db,
-            # seeded data
             {
                 "data_object_a": data_object_a,
                 "data_object_b": data_object_b,
@@ -101,11 +92,6 @@ class TestPostWorkflowWorkflowExecutions:
                 "data_object_d": data_object_d,
                 "data_generation": data_generation,
             },
-            # available IDs
-            {
-                "workflow_execution_id": available_workflow_execution_id,
-                "data_generation_id": available_data_generation_id,
-            }
         )
 
         # Delete the documents that we created or that the dependent test created.
@@ -116,21 +102,21 @@ class TestPostWorkflowWorkflowExecutions:
         )
         data_generation_set.delete_many({"id": data_generation["id"]})
 
-        # Delete the `WorkflowExecution` having the previously-available ID.
-        workflow_execution_set.delete_many({"id": available_workflow_execution_id})
-
     @pytest.fixture
     def seeded_db_having_workflow_execution(self, seeded_db_having_workflow_execution_dependencies):
-        """Seeds the database with a `WorkflowExecution` that references the seeded documents from the
-        `seeded_db_having_workflow_execution_dependencies` fixture, then deletes that `WorkflowExecution`
-        after the test.
         """
-        # Get references to the database, relevant seeded data, and available IDs.
-        db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+        Seeds the database with a `WorkflowExecution` that references the seeded documents from
+        the other fixture. Deletes the additional seeded document after resuming execution.
+        """
+        # Get references to the database and relevant seeded data.
+        db, seeded_data = seeded_db_having_workflow_execution_dependencies
         data_object_a = seeded_data["data_object_a"]
         data_object_b = seeded_data["data_object_b"]
         data_generation = seeded_data["data_generation"]
-        workflow_execution_id = available_ids["workflow_execution_id"]
+        workflow_execution_set = db.get_collection("workflow_execution_set")
+        workflow_execution_id = generate_available_id_for_collection(
+            workflow_execution_set, "nmdc:wfmgan", ".1"
+        )
 
         # Generate a `WorkflowExecution` document that references the seeded documents, then insert
         # it into the database.
@@ -142,13 +128,11 @@ class TestPostWorkflowWorkflowExecutions:
             has_output=[data_object_b["id"]],
             was_informed_by=[data_generation["id"]],
         )[0]
-        workflow_execution_set = db.get_collection("workflow_execution_set")
         workflow_execution_set.insert_one(workflow_execution)
 
-        # Yield the database, some of the seeded documents, and some available IDs.
+        # Yield the database and seeded documents.
         yield (
             db,
-            # seeded data
             {
                 "data_object_a": data_object_a,
                 "data_object_b": data_object_b,
@@ -156,9 +140,8 @@ class TestPostWorkflowWorkflowExecutions:
                 "data_object_d": seeded_data["data_object_d"],
                 "data_generation": data_generation,
                 "workflow_execution": workflow_execution,
-            },
-            # available IDs
-            {}
+                "workflow_execution_id": workflow_execution_id,
+            }
         )
 
          # Delete the `WorkflowExecution` that we created.
@@ -171,13 +154,15 @@ class TestPostWorkflowWorkflowExecutions:
     ):
         """Submit a valid WFE to the API endpoint, then confirm it exists in the database."""
 
-        # Get references to the database, relevant seeded data, and available IDs.
-        db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+        # Get references to the database and relevant seeded data.
+        db, seeded_data = seeded_db_having_workflow_execution_dependencies
         data_object_a = seeded_data["data_object_a"]
         data_object_b = seeded_data["data_object_b"]
         data_generation = seeded_data["data_generation"]
-        workflow_execution_id = available_ids["workflow_execution_id"]
         workflow_execution_set = db.get_collection("workflow_execution_set")
+        workflow_execution_id = generate_available_id_for_collection(
+            workflow_execution_set, "nmdc:wfmgan", ".1"
+        )
 
         try:
             # Confirm the document we're about to create does not exist in the database yet.
@@ -217,16 +202,21 @@ class TestPostWorkflowWorkflowExecutions:
     ):
         """
         Submit a `WorkflowExecution` that contains a reference to a non-existent `DataGeneration`,
-        then confirm the endpoint responds with an HTTP 422 status.
+        then confirm the endpoint responds with an HTTP 422 status due to the broken reference.
         """
 
-        # Get references to the database, relevant seeded data, and available IDs.
-        db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+        # Get references to the database and relevant seeded data.
+        db, seeded_data = seeded_db_having_workflow_execution_dependencies
         data_object_a = seeded_data["data_object_a"]
         data_object_b = seeded_data["data_object_b"]
-        workflow_execution_id = available_ids["workflow_execution_id"]
-        data_generation_id = available_ids["data_generation_id"]
+        data_generation_set = db.get_collection("data_generation_set")
         workflow_execution_set = db.get_collection("workflow_execution_set")
+        workflow_execution_id = generate_available_id_for_collection(
+            workflow_execution_set, "nmdc:wfmgan", ".1"
+        )
+        data_generation_id = generate_available_id_for_collection(
+            data_generation_set, "nmdc:dgns"
+        )
 
         try:
             # Confirm the document we're about to create does not exist in the database yet.
@@ -277,22 +267,24 @@ class TestPostWorkflowWorkflowExecutions:
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
-        Submit a `WorkflowExecution` along with some `DataObject`s that it references, then confirm
-        the endpoint inserts all of those documents.
+        Submit a `WorkflowExecution` along with some `DataObject`s that it references,
+        then confirm all of those documents now exist in the database.
         """
 
-        # Get references to the database, relevant seeded data, and available IDs.
-        db, seeded_data, available_ids = seeded_db_having_workflow_execution_dependencies
+        # Get references to the database and relevant seeded data.
+        db, seeded_data = seeded_db_having_workflow_execution_dependencies
         data_object_set = db.get_collection("data_object_set")
         workflow_execution_set = db.get_collection("workflow_execution_set")
         data_generation = seeded_data["data_generation"]
-        workflow_execution_id = available_ids["workflow_execution_id"]
+        workflow_execution_id = generate_available_id_for_collection(
+            workflow_execution_set, "nmdc:wfmgan", ".1"
+        )
 
         # Generate a `WorkflowExecution` and its `DataObject`s and insert them into the database.
         faker = Faker()
         data_object_e, data_object_f = faker.generate_data_objects(quantity=2)
         data_object_e["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj")
-        data_object_f["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj", disallowed_ids=[data_object_e["id"]])
+        data_object_f["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj", ineligible_ids=[data_object_e["id"]])
         workflow_execution = faker.generate_metagenome_annotations(
             quantity=1,
             id=workflow_execution_id,
@@ -336,25 +328,27 @@ class TestPostWorkflowWorkflowExecutions:
         seeded_db_having_workflow_execution,
     ):
         """
-        Given a database containing an "existing" WFE and its DOBJs.
-        Submit a WFE whose `id` value indicates that it supersedes the seeded WFE.
-        Confirm the `superseded_by` fields of the "existing" WFE and its output DOBJs reference the new one.
+        Given a database containing a WFE and its output DOBJs, submit a WFE whose `id` value
+        indicates that it supersedes that existing WFE. Confirm the `superseded_by` fields of
+        the "existing" WFE and its output DOBJs reference the new one.
         """
-        db, seeded_data, _ = seeded_db_having_workflow_execution
+        db, seeded_data = seeded_db_having_workflow_execution
         workflow_execution_set = db.get_collection("workflow_execution_set")
         data_object_set = db.get_collection("data_object_set")
 
         faker = Faker()
-        superseding_wfe = faker.generate_metagenome_annotations(
+        later_wfe_id = seeded_data["workflow_execution_id"].replace(".1", ".2")
+        assert workflow_execution_set.count_documents({"id": later_wfe_id}) == 0
+        later_wfe = faker.generate_metagenome_annotations(
             quantity=1,
-            id=generate_available_id_for_collection(workflow_execution_set, "nmdc:wfmgan", ".2"),
+            id=later_wfe_id,
             has_input=[seeded_data["data_object_a"]["id"]],
             has_output=[seeded_data["data_object_b"]["id"]],  # <-- this is the output DOBJ
             was_informed_by=[seeded_data["data_generation"]["id"]],
         )[0]
 
         try:
-            # Confirm the seeded WFE and its output DOBJs do not have `superseded_by` values yet.
+            # Confirm the existing WFE and its output DOBJs do not have `superseded_by` values yet.
             assert "superseded_by" not in seeded_data["workflow_execution"]
             assert "superseded_by" not in seeded_data["data_object_b"]
 
@@ -363,28 +357,27 @@ class TestPostWorkflowWorkflowExecutions:
                 "POST",
                 "/workflows/workflow_executions",
                 {
-                    "workflow_execution_set": [superseding_wfe],
+                    "workflow_execution_set": [later_wfe],
                 },
             )
             assert response.status_code == status.HTTP_200_OK
             response_message = response.json()["message"]
             assert re.search(r"^Inserted 1 documents$", response_message) is not None
 
-            # Assert that the `superseded_by` fields of the seeded WFE and its DOBJs now reference the superseding WFE.
-            seeded_wfe_in_db = workflow_execution_set.find_one({"id": seeded_data["workflow_execution"]["id"]})
-            assert "superseded_by" in seeded_wfe_in_db
-            assert seeded_wfe_in_db["superseded_by"] == superseding_wfe["id"]
-            seeded_data_object_b_in_db = data_object_set.find_one({"id": seeded_data["data_object_b"]["id"]})
-            assert "superseded_by" in seeded_data_object_b_in_db
-            assert seeded_data_object_b_in_db["superseded_by"] == superseding_wfe["id"]
+            # Confirm that the pre-existing WFE and its output DOBJ each have a `superseded_by`
+            # field that references the newly-inserted superseding WFE.
+            earlier_wfe = workflow_execution_set.find_one({"id": seeded_data["workflow_execution"]["id"]})
+            assert earlier_wfe["superseded_by"] == later_wfe["id"]
+            data_object_b = data_object_set.find_one({"id": seeded_data["data_object_b"]["id"]})
+            assert data_object_b["superseded_by"] == later_wfe["id"]
 
             # Assert that the other seeded DOBJs still have no `superseded_by` fields.
-            seeded_data_object_a_in_db = data_object_set.find_one({"id": seeded_data["data_object_a"]["id"]})
-            assert "superseded_by" not in seeded_data_object_a_in_db
-            seeded_data_object_c_in_db = data_object_set.find_one({"id": seeded_data["data_object_c"]["id"]})
-            assert "superseded_by" not in seeded_data_object_c_in_db
-            seeded_data_object_d_in_db = data_object_set.find_one({"id": seeded_data["data_object_d"]["id"]})
-            assert "superseded_by" not in seeded_data_object_d_in_db
+            data_object_a = data_object_set.find_one({"id": seeded_data["data_object_a"]["id"]})
+            assert "superseded_by" not in data_object_a
+            data_object_c = data_object_set.find_one({"id": seeded_data["data_object_c"]["id"]})
+            assert "superseded_by" not in data_object_c
+            data_object_d = data_object_set.find_one({"id": seeded_data["data_object_d"]["id"]})
+            assert "superseded_by" not in data_object_d
         finally:
             # Delete the superseding WFE that we created.
-            workflow_execution_set.delete_many({"id": superseding_wfe["id"]})
+            workflow_execution_set.delete_many({"id": later_wfe["id"]})
