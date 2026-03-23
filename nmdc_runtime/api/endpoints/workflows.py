@@ -245,7 +245,9 @@ async def post_workflow_execution(
                         relevant_existing_wfe_ids = [
                             wfe["id"] for wfe in relevant_existing_wfes_cursor
                         ]
-                    logging.info(f"Found {len(relevant_existing_wfe_ids)} relevant existing WFEs")
+                    logging.info(
+                        f"Found {len(relevant_existing_wfe_ids)} relevant existing WFEs"
+                    )
 
                 with duration_logger(
                     logging.info, "Preparing to insert superseded WFEs and DOBJs"
