@@ -231,15 +231,15 @@ async def post_workflow_execution(
                             base_ids
                         )
                         filter_ = {"id": {"$regex": pattern}}
+                        relevant_existing_wfes_cursor = workflow_execution_set.find(
+                            filter=filter_,
+                            projection=id_only_projection,
+                            session=session,
+                        )
                         relevant_existing_wfe_ids = [
-                            wfe["id"]
-                            for wfe in workflow_execution_set.find(
-                                filter=filter_,
-                                projection=id_only_projection,
-                                session=session,
-                            )
+                            wfe["id"] for wfe in relevant_existing_wfes_cursor
                         ]
-                    logging.info(f"{relevant_existing_wfe_ids=}")
+                    logging.info(f"Found {len(relevant_existing_wfe_ids)} relevant existing WFEs")
 
                 with duration_logger(
                     logging.info, "Preparing to insert superseded WFEs and DOBJs"
@@ -280,7 +280,7 @@ async def post_workflow_execution(
                                     # we can stop looking for it.
                                     break
                         else:
-                            logging.info(
+                            logging.debug(
                                 f"WorkflowExecution '{submitted_wfe_id}' is not superseded by "
                                 "any co-submitted or existing WorkflowExecution."
                             )
