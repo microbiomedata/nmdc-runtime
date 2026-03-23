@@ -1,3 +1,5 @@
+import re
+
 import pytest
 import requests
 from fastapi import status
@@ -141,7 +143,8 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(
         {"workflow_execution_set": [workflow_execution]},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "jobs accepted"}
+    response_message = response.json()["message"]
+    assert re.search(r"^Inserted \d+ document\(s\)$", response_message) is not None
 
     # Assert that the `workflow_execution_set` collection now contains the document we submitted.
     assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 1
