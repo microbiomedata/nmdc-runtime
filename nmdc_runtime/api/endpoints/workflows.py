@@ -167,7 +167,9 @@ async def post_workflow_execution(
         # Do preliminary validation before we manage the supersession chains.
         # That way, our management code can focus purely on management and not validation.
         validation_result = validate_json(
-            database_in, mdb, check_inter_document_references=True,
+            database_in,
+            mdb,
+            check_inter_document_references=True,
         )
         if (
             validation_result["result"] == "errors"
@@ -243,7 +245,10 @@ async def post_workflow_execution(
                                 "format required by our supersession management processes."
                             ),
                         )
-                    id_parts_by_submitted_wfe_id[submitted_wfe_id] = (base_id, run_number)
+                    id_parts_by_submitted_wfe_id[submitted_wfe_id] = (
+                        base_id,
+                        run_number,
+                    )
 
                 # Now that we have all the submitted `base_id` values, get the `id` of every
                 # `WorkflowExecution` in the database whose `id` shares any of those `base_id` values.
@@ -256,9 +261,13 @@ async def post_workflow_execution(
                     base_id_patterns = []
                     for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
                         base_id_pattern: str = (
-                            "(" + make_pattern_matching_ids_having_base_id(base_id) + ")"
+                            "("
+                            + make_pattern_matching_ids_having_base_id(base_id)
+                            + ")"
                         )
-                        if base_id_pattern not in base_id_patterns:  # prevents duplicates
+                        if (
+                            base_id_pattern not in base_id_patterns
+                        ):  # prevents duplicates
                             base_id_patterns.append(base_id_pattern)
                     relevant_existing_wfe_ids = [
                         wfe["id"]
@@ -276,7 +285,9 @@ async def post_workflow_execution(
                     ]
                 logging.info(f"{relevant_existing_wfe_ids=}")
 
-            with duration_logger(logging.info, "Preparing to insert superseded WFEs and DOBJs"):
+            with duration_logger(
+                logging.info, "Preparing to insert superseded WFEs and DOBJs"
+            ):
                 # For each submitted `WorkflowExecution`, check whether it is superseded by any
                 # other `WorkflowExecution` (whether a co-submitted one or one already in the database)
                 # according to the `id`-derivable supersession relationships.
@@ -287,7 +298,10 @@ async def post_workflow_execution(
                 #
                 for submitted_wfe_id in submitted_wfe_ids:
                     successor_wfe_id = derive_successor_id(submitted_wfe_id)
-                    if successor_wfe_id in submitted_wfe_ids + relevant_existing_wfe_ids:
+                    if (
+                        successor_wfe_id
+                        in submitted_wfe_ids + relevant_existing_wfe_ids
+                    ):
                         logging.info(
                             f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                             f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
@@ -376,7 +390,9 @@ async def post_workflow_execution(
                         comment="Bulk insertion via POST /workflows/workflow_executions endpoint",
                     )
                     num_inserted = bulk_write_result.inserted_count
-                    logging.info(f"Inserted {num_inserted} document(s) via a bulk_write.")
+                    logging.info(
+                        f"Inserted {num_inserted} document(s) via a bulk_write."
+                    )
                     return {"message": f"Inserted {num_inserted} document(s)"}
                 return {"message": "Done"}
             except BulkWriteError as e:
