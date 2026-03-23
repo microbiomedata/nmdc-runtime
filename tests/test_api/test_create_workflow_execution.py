@@ -144,7 +144,7 @@ def test_post_workflows_workflow_executions_inserts_submitted_document(
     )
     assert response.status_code == 200
     response_message = response.json()["message"]
-    assert re.search(r"^Inserted \d+ document\(s\)$", response_message) is not None
+    assert re.search(r"^Inserted \d+ documents$", response_message) is not None
 
     # Assert that the `workflow_execution_set` collection now contains the document we submitted.
     assert workflow_execution_set.count_documents({"id": workflow_execution_id}) == 1
@@ -181,7 +181,7 @@ def test_post_workflows_workflow_executions_rejects_document_containing_broken_r
     )[0]
 
     # Submit an API request whose payload contains the `WorkflowExecution` document, which
-    # contains a (broken) reference to a non-existent `DatGeneration`.
+    # contains a (broken) reference to a non-existent `DataGeneration`.
     with pytest.raises(requests.exceptions.HTTPError) as exc:
         api_site_client.request(
             "POST",

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from pymongo.database import Database as MongoDatabase
 from pymongo.operations import InsertOne
 from pymongo.errors import BulkWriteError
-from pymongo.results import BulkWriteResult
+from pymongo.results import ClientBulkWriteResult
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
@@ -164,8 +164,13 @@ async def post_workflow_execution(
     relevant_existing_wfe_ids: List[str] = []
 
     with duration_logger(logging.info, "Performing preliminary validation"):
-        # Do preliminary validation before we manage the supersession chains.
-        # That way, our management code can focus purely on management and not validation.
+        # If the payload has a top-level key named "@type" (which the `validate_json` function
+        # considers to be valid), strip it away now.
+        if "@type" in database_in:
+            database_in.pop("@type")
+
+        # Do some preliminary validation so our subsequent supersession chain management code can
+        # take for granted the fact that the payload constitutes a valid `nmdc:Database` instance.
         validation_result = validate_json(
             database_in,
             mdb,
@@ -181,44 +186,6 @@ async def post_workflow_execution(
                     "Request payload must represent a valid 'nmdc:Database' instance "
                     "that includes a 'workflow_execution_set' collection. "
                     f"Validation result: {str(validation_result)}"
-                ),
-            )
-
-        # If the `id` of any submitted `WorkflowExecution` matches the `id` of any existing
-        # `WorkflowExecution`, abort. That way, we don't update the supersession chains in
-        # preparation for an insertion that is destined to fail.
-        submitted_wfes = database_in["workflow_execution_set"]
-        submitted_wfe_ids = [submitted_wfe["id"] for submitted_wfe in submitted_wfes]
-        logging.info(f"{submitted_wfe_ids=}")
-        if (
-            workflow_execution_set.find_one(
-                {"id": {"$in": submitted_wfe_ids}}, {"_id": 1}
-            )
-            is not None
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    "At least one submitted WorkflowExecution has the same ID as an existing one."
-                ),
-            )
-
-        # If the `id` of any submitted `DataObject` matches the `id` of any existing
-        # `DataObject`, abort. That way, we don't update the supersession chains in
-        # preparation for an insertion that is destined to fail.
-        submitted_dobjs = database_in.get("data_object_set", [])
-        submitted_dobj_ids = [
-            submitted_dobj["id"] for submitted_dobj in submitted_dobjs
-        ]
-        logging.info(f"{submitted_dobj_ids=}")
-        if (
-            data_object_set.find_one({"id": {"$in": submitted_dobj_ids}}, {"_id": 1})
-            is not None
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    "At least one submitted DataObject has the same ID as an existing one."
                 ),
             )
 
@@ -383,17 +350,15 @@ async def post_workflow_execution(
                 # Perform the operations via the `bulk_write` function (which is supposedly faster
                 # that a sequence of `insert_one` invocations).
                 if len(ops) > 0:
-                    bulk_write_result: BulkWriteResult = mdb.client.bulk_write(
+                    bulk_write_result: ClientBulkWriteResult = mdb.client.bulk_write(
                         ops,
                         bypass_document_validation=True,
                         session=session,
-                        comment="Bulk insertion via POST /workflows/workflow_executions endpoint",
+                        comment="Bulk insertion via 'POST /workflows/workflow_executions' endpoint",
                     )
                     num_inserted = bulk_write_result.inserted_count
-                    logging.info(
-                        f"Inserted {num_inserted} document(s) via a bulk_write."
-                    )
-                    return {"message": f"Inserted {num_inserted} document(s)"}
+                    logging.info(f"Inserted {num_inserted} documents via a bulk_write.")
+                    return {"message": f"Inserted {num_inserted} documents"}
                 return {"message": "Done"}
             except BulkWriteError as e:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
