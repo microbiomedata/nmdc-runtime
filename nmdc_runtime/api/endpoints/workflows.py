@@ -195,7 +195,8 @@ async def post_workflow_execution(
         with mdb.client.start_session() as session:
             with session.start_transaction():
                 with duration_logger(
-                    logging.info, "Gathering WFE IDs relevant to supersession management"
+                    logging.info,
+                    "Gathering WFE IDs relevant to supersession management",
                 ):
                     # Extract the `base_id` and `run_number` from each submitted
                     # `WorkflowExecution`'s `id`; raising an error if any of them lacks
@@ -204,7 +205,9 @@ async def post_workflow_execution(
                     # minter currently minting `id`s that lack them).
                     id_parts_by_submitted_wfe_id: Dict[str, Tuple[str, int | None]] = {}
                     for submitted_wfe_id in submitted_wfe_ids:
-                        base_id, run_number = parse_workflow_execution_id(submitted_wfe_id)
+                        base_id, run_number = parse_workflow_execution_id(
+                            submitted_wfe_id
+                        )
                         if run_number is None:
                             raise HTTPException(
                                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -213,7 +216,10 @@ async def post_workflow_execution(
                                     "format required by our supersession management processes."
                                 ),
                             )
-                        id_parts_by_submitted_wfe_id[submitted_wfe_id] = (base_id, run_number)
+                        id_parts_by_submitted_wfe_id[submitted_wfe_id] = (
+                            base_id,
+                            run_number,
+                        )
 
                     # Now that we have all the submitted `base_id` values, get the `id` of every
                     # `WorkflowExecution` in the database whose `id` shares any of those `base_id`
@@ -224,7 +230,9 @@ async def post_workflow_execution(
                         for _, (base_id, _) in id_parts_by_submitted_wfe_id.items():
                             if base_id not in base_ids:  # prevents duplicates
                                 base_ids.append(base_id)
-                        pattern = make_pattern_matching_ids_having_base_id_in_list(base_ids)
+                        pattern = make_pattern_matching_ids_having_base_id_in_list(
+                            base_ids
+                        )
                         filter_ = {"id": {"$regex": pattern}}
                         relevant_existing_wfe_ids = [
                             wfe["id"]
@@ -236,7 +244,9 @@ async def post_workflow_execution(
                         ]
                     logging.info(f"{relevant_existing_wfe_ids=}")
 
-                with duration_logger(logging.info, "Preparing to insert superseded WFEs and DOBJs"):
+                with duration_logger(
+                    logging.info, "Preparing to insert superseded WFEs and DOBJs"
+                ):
                     # For each submitted `WorkflowExecution`, check whether it is superseded by any
                     # other `WorkflowExecution` (whether a co-submitted one or one already in the
                     # database) according to the `id`-derivable supersession relationships.
@@ -248,7 +258,10 @@ async def post_workflow_execution(
                     #
                     for submitted_wfe_id in submitted_wfe_ids:
                         successor_wfe_id = derive_successor_id(submitted_wfe_id)
-                        if successor_wfe_id in submitted_wfe_ids + relevant_existing_wfe_ids:
+                        if (
+                            successor_wfe_id
+                            in submitted_wfe_ids + relevant_existing_wfe_ids
+                        ):
                             logging.info(
                                 f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                                 f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
@@ -258,7 +271,9 @@ async def post_workflow_execution(
                                 if submitted_wfe["id"] == submitted_wfe_id:
                                     submitted_wfe["superseded_by"] = successor_wfe_id
                                     update_superseded_by_field_of_data_objects_having_id_in_list(
-                                        data_object_ids=submitted_wfe.get("has_output", []),
+                                        data_object_ids=submitted_wfe.get(
+                                            "has_output", []
+                                        ),
                                         data_object_list=submitted_dobjs,
                                         data_object_set_collection=data_object_set,
                                         superseded_by=successor_wfe_id,
@@ -273,7 +288,9 @@ async def post_workflow_execution(
                                 "any co-submitted or existing WorkflowExecution."
                             )
 
-                with duration_logger(logging.info, "Preparing to insert superseding WFEs"):
+                with duration_logger(
+                    logging.info, "Preparing to insert superseding WFEs"
+                ):
                     # For each submitted `WorkflowExecution`, check whether it supersedes any existing
                     # `WorkflowExecution` in the database (we don't bother checking the co-submitted
                     # ones because we would have already handled those in the previous step).
@@ -332,18 +349,24 @@ async def post_workflow_execution(
                     # Perform the operations via the `bulk_write` function (which is supposedly
                     # faster that a sequence of `insert_one` invocations).
                     if len(ops) > 0:
-                        bulk_write_result: ClientBulkWriteResult = mdb.client.bulk_write(
-                            ops,
-                            bypass_document_validation=True,
-                            session=session,
-                            comment="Bulk insertion via 'POST /workflows/workflow_executions' endpoint",
+                        bulk_write_result: ClientBulkWriteResult = (
+                            mdb.client.bulk_write(
+                                ops,
+                                bypass_document_validation=True,
+                                session=session,
+                                comment="Bulk insertion via 'POST /workflows/workflow_executions' endpoint",
+                            )
                         )
                         num_inserted = bulk_write_result.inserted_count
-                        logging.info(f"Inserted {num_inserted} documents via a bulk_write.")
+                        logging.info(
+                            f"Inserted {num_inserted} documents via a bulk_write."
+                        )
                         return {"message": f"Inserted {num_inserted} documents"}
                     return {"message": "Done"}
                 except BulkWriteError as e:
-                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT, detail=str(e)
+                    )
 
 
 @router.delete(
