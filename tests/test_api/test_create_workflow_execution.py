@@ -381,3 +381,77 @@ class TestPostWorkflowWorkflowExecutions:
         finally:
             # Delete the superseding WFE that we created.
             workflow_execution_set.delete_many({"id": later_wfe["id"]})
+
+    def test_it_updates_superseded_by_fields_of_co_submitted_workflow_executions_and_data_objects(
+        self,
+        api_site_client,
+        seeded_db_having_workflow_execution_dependencies,
+    ):
+        """
+        Submit a pair of WFEs—one whose ID indicates that it supersedes the other—and confirm that
+        the superseded WFE has its `superseded_by` field set to point to the superseding WFE. Also
+        confirm that the submitted DOBJs that are outputs of the superseded WFE have their
+        `superseded_by` fields updated to point to the superseding WFE.
+        """
+        db, seeded_data = seeded_db_having_workflow_execution_dependencies
+        workflow_execution_set = db.get_collection("workflow_execution_set")
+        data_object_set = db.get_collection("data_object_set")
+        data_generation_id = seeded_data["data_generation"]["id"]
+
+        # Generate the WFEs and DOBJs.
+        faker = Faker()
+        wfe_id_1 = "nmdc:wfmgan-00-000001.1"
+        wfe_id_2 = "nmdc:wfmgan-00-000001.2"
+        dobj_id_1 = "nmdc:dobj-99-000001"
+        dobj_id_2 = "nmdc:dobj-99-000002"
+        dobj_id_3 = "nmdc:dobj-99-000003"
+        dobj_id_4 = "nmdc:dobj-99-000004"
+        wfe_1, wfe_2 = faker.generate_metagenome_annotations(
+            quantity=2,
+            id=wfe_id_1,
+            has_input=[dobj_id_1],
+            has_output=[dobj_id_2],
+            was_informed_by=[data_generation_id],
+        )
+        wfe_2["id"] = wfe_id_2
+        wfe_2["has_input"] = [dobj_id_3]
+        wfe_2["has_output"] = [dobj_id_4]
+        dobj_1, dobj_2, dobj_3, dobj_4 = faker.generate_data_objects(quantity=4)
+        dobj_1["id"] = dobj_id_1
+        dobj_2["id"] = dobj_id_2
+        dobj_3["id"] = dobj_id_3
+        dobj_4["id"] = dobj_id_4
+
+        try:
+            assert workflow_execution_set.count_documents({"id": {"$in": [wfe_id_1, wfe_id_2]}}) == 0
+            assert data_object_set.count_documents({"id": {"$in": [dobj_id_1, dobj_id_2, dobj_id_3, dobj_id_4]}}) == 0
+
+            # Submit an API request whose payload contains both the superseding and superseded WFEs.
+            response = api_site_client.request(
+                "POST",
+                "/workflows/workflow_executions",
+                {
+                    "workflow_execution_set": [wfe_1, wfe_2],
+                    "data_object_set": [dobj_1, dobj_2, dobj_3, dobj_4],
+                },
+            )
+            assert response.status_code == status.HTTP_200_OK
+            response_message = response.json()["message"]
+            assert re.search(r"^Inserted 6 documents$", response_message) is not None
+
+            # Confirm the newly-inserted, superseded WFE and its output DOBJ have their `superseded_by`
+            # field set to point to the superseding WFE.
+            wfe_1_from_db = workflow_execution_set.find_one({"id": wfe_id_1})
+            assert wfe_1_from_db["superseded_by"] == wfe_id_2
+            dobj_2_from_db = data_object_set.find_one({"id": dobj_id_2})
+            assert dobj_2_from_db["superseded_by"] == wfe_id_2
+
+            # Confirm the co-submitted superseding WFE and its output DOBJ do not have any `superseded_by` field.
+            wfe_2_from_db = workflow_execution_set.find_one({"id": wfe_id_2})
+            assert "superseded_by" not in wfe_2_from_db
+            dobj_4_from_db = data_object_set.find_one({"id": dobj_id_4})
+            assert "superseded_by" not in dobj_4_from_db
+        finally:
+            # Delete the WFEs and DOBJs that the API created.
+            workflow_execution_set.delete_many({"id": {"$in": [wfe_id_1, wfe_id_2]}})
+            data_object_set.delete_many({"id": {"$in": [dobj_id_1, dobj_id_2, dobj_id_3, dobj_id_4]}})
