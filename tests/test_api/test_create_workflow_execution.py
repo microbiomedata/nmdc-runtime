@@ -7,6 +7,7 @@ from fastapi import status
 from pymongo.collection import Collection
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from tests.lib.faker import Faker
 
 
@@ -40,6 +41,48 @@ def generate_available_id_for_collection(
 
 class TestPostWorkflowWorkflowExecutions:
     """Tests targeting the `POST /workflows/workflow_executions` API endpoint."""
+
+    @pytest.fixture()
+    def api_user_client_with_json_submit_allowance(self, api_user_client):
+        """Yields an API user client for a user having a specific allowance."""
+
+        mdb = get_mongo_db()
+
+        allowance = {
+            "username": api_user_client.username,
+            "action": AllowanceAction.SUBMIT_JSON.value,
+        }
+
+        allowances_coll = mdb.get_collection("_runtime.api.allow")
+
+        # Grant the allowance.
+        allowances_coll.insert_one(allowance)
+
+        yield api_user_client
+
+        # Cleanup: Revoke the allowance.
+        allowances_coll.delete_one(allowance)
+
+    @pytest.fixture()
+    def api_site_client_with_json_submit_allowance(self, api_site_client):
+        """Yields an API user client for a user having a specific allowance."""
+
+        mdb = get_mongo_db()
+
+        allowance = {
+            "username": api_site_client.client_id,
+            "action": AllowanceAction.SUBMIT_JSON.value,
+        }
+
+        allowances_coll = mdb.get_collection("_runtime.api.allow")
+
+        # Grant the allowance.
+        allowances_coll.insert_one(allowance)
+
+        yield api_site_client
+
+        # Cleanup: Revoke the allowance.
+        allowances_coll.delete_one(allowance)
 
     @pytest.fixture
     def seeded_db_having_workflow_execution_dependencies(self):
@@ -147,9 +190,53 @@ class TestPostWorkflowWorkflowExecutions:
          # Delete the `WorkflowExecution` that we created.
         workflow_execution_set.delete_many({"id": workflow_execution_id})
 
+    def test_it_forbids_unauthorized_users(self, api_user_client):
+        """Confirm that an unauthorized user cannot access this endpoint."""
+
+        with pytest.raises(requests.exceptions.HTTPError) as exc:
+            api_user_client.request(
+                "POST",
+                "/workflows/workflow_executions",
+                {"workflow_execution_set": []},
+            )
+        response = exc.value.response
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_it_forbids_unauthorized_site_clients(self, api_site_client):
+        """Confirm that an unauthorized site client cannot access this endpoint."""
+
+        with pytest.raises(requests.exceptions.HTTPError) as exc:
+            api_site_client.request(
+                "POST",
+                "/workflows/workflow_executions",
+                {"workflow_execution_set": []},
+            )
+        response = exc.value.response
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_it_allows_authorized_users(self, api_user_client_with_json_submit_allowance):
+        """Confirm that an authorized user can access this endpoint."""
+
+        response = api_user_client_with_json_submit_allowance.request(
+            "POST",
+            "/workflows/workflow_executions",
+            {"workflow_execution_set": []},  # no-op, but OK
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_it_allows_authorized_site_clients(self, api_site_client_with_json_submit_allowance):
+        """Confirm that an authorized site client can access this endpoint."""
+
+        response = api_site_client_with_json_submit_allowance.request(
+            "POST",
+            "/workflows/workflow_executions",
+            {"workflow_execution_set": []},  # no-op, but OK
+        )
+        assert response.status_code == status.HTTP_200_OK
+
     def test_it_inserts_workflow_execution(
         self,
-        api_site_client,
+        api_site_client_with_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """Submit a valid WFE to the API endpoint, then confirm it exists in the database."""
@@ -179,7 +266,7 @@ class TestPostWorkflowWorkflowExecutions:
             )[0]
 
             # Submit an API request whose payload contains the `WorkflowExecution` document.
-            response = api_site_client.request(
+            response = api_site_client_with_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {"workflow_execution_set": [workflow_execution]},
@@ -197,7 +284,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_rejects_workflow_execution_containing_broken_reference(
         self,
-        api_site_client,
+        api_site_client_with_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -235,7 +322,7 @@ class TestPostWorkflowWorkflowExecutions:
             # Submit an API request whose payload contains the `WorkflowExecution` document, which
             # contains a (broken) reference to a non-existent `DataGeneration`.
             with pytest.raises(requests.exceptions.HTTPError) as exc:
-                api_site_client.request(
+                api_site_client_with_json_submit_allowance.request(
                     "POST",
                     "/workflows/workflow_executions",
                     {"workflow_execution_set": [workflow_execution]},
@@ -263,7 +350,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_inserts_workflow_executions_and_data_objects(
         self,
-        api_site_client,
+        api_site_client_with_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -301,7 +388,7 @@ class TestPostWorkflowWorkflowExecutions:
 
             # Submit an API request whose payload contains the `WorkflowExecution` document and its
             # referenced `DataObject` documents.
-            response = api_site_client.request(
+            response = api_site_client_with_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {
@@ -324,7 +411,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_updates_superseded_by_fields_of_existing_workflow_executions_and_data_objects(
         self,
-        api_site_client,
+        api_site_client_with_json_submit_allowance,
         seeded_db_having_workflow_execution,
     ):
         """
@@ -353,7 +440,7 @@ class TestPostWorkflowWorkflowExecutions:
             assert "superseded_by" not in seeded_data["data_object_b"]
 
             # Submit an API request whose payload contains the superseding WFE.
-            response = api_site_client.request(
+            response = api_site_client_with_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {
@@ -384,7 +471,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_updates_superseded_by_fields_of_co_submitted_workflow_executions_and_data_objects(
         self,
-        api_site_client,
+        api_site_client_with_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -427,7 +514,7 @@ class TestPostWorkflowWorkflowExecutions:
             assert data_object_set.count_documents({"id": {"$in": [dobj_id_1, dobj_id_2, dobj_id_3, dobj_id_4]}}) == 0
 
             # Submit an API request whose payload contains both the superseding and superseded WFEs.
-            response = api_site_client.request(
+            response = api_site_client_with_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {

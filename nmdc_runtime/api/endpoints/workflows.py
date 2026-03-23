@@ -24,6 +24,8 @@ from nmdc_runtime.api.endpoints.queries import (
     _run_delete_nonschema,
 )
 from nmdc_runtime.api.db.mongo import get_mongo_db, validate_json
+from nmdc_runtime.api.endpoints.util import check_action_permitted
+from nmdc_runtime.api.models.allowance import AllowanceAction
 from nmdc_runtime.api.models.capability import Capability
 from nmdc_runtime.api.models.object_type import ObjectType
 from nmdc_runtime.api.models.query import DeleteCommand, DeleteStatement
@@ -113,14 +115,11 @@ async def post_workflow_execution(
             ],
         ),
     ],
-    site: Site = Depends(get_current_client_site),
+    user: User = Depends(get_current_active_user),
     mdb: MongoDatabase = Depends(get_mongo_db),
 ) -> Dict[str, str]:
     """
     Create workflow executions and related metadata.
-
-    TODO: Critical!! This endpoint is currently accessible to any site client. It does not perform
-          any authorization checks beyond that. I assume this was not intentional.
 
     TODO: Warning! This endpoint can currently be used to submit _all types of metadata_! Since we
           still use Mongo and rely on validation at the application level, keep this endpoint in
@@ -142,7 +141,14 @@ async def post_workflow_execution(
     Reference: https://microbiomedata.github.io/nmdc-schema/superseded_by/
     """
 
-    _ = site  # must be authenticated
+    # TODO: Decouple this endpoint's authorization criteria from that of the `/metadata/json:submit`
+    #       endpoint. For now, we use the same criteria, since the core functionality of both
+    #       endpoints are so similar to one another (i.e. insert metadata as an `nmdc:Database`).
+    if not check_action_permitted(user.username, AllowanceAction.SUBMIT_JSON.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specific users can submit workflow executions.",
+        )
 
     id_only_projection = {"id": 1, "_id": 0}  # alias for common Mongo projection
 
