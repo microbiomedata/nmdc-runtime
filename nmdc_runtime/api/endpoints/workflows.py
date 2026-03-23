@@ -255,13 +255,12 @@ async def post_workflow_execution(
                     # `DataObject`s, if any, whether those are in the insertion payload or already
                     # in the database.
                     #
-                    submitted_and_relevant_existing_wfe_ids = submitted_wfe_ids + relevant_existing_wfe_ids
+                    submitted_and_relevant_existing_wfe_ids = (
+                        submitted_wfe_ids + relevant_existing_wfe_ids
+                    )
                     for submitted_wfe_id in submitted_wfe_ids:
                         successor_wfe_id = derive_successor_id(submitted_wfe_id)
-                        if (
-                            successor_wfe_id
-                            in submitted_and_relevant_existing_wfe_ids
-                        ):
+                        if successor_wfe_id in submitted_and_relevant_existing_wfe_ids:
                             logging.info(
                                 f"WorkflowExecution '{submitted_wfe_id}' is superseded by "
                                 f"co-submitted or existing WorkflowExecution '{successor_wfe_id}'."
