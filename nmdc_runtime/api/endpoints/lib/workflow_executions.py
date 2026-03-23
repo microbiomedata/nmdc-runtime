@@ -295,6 +295,26 @@ def make_pattern_matching_ids_having_base_id(base_id: str) -> str:
     return regex_pattern
 
 
+def make_pattern_matching_ids_having_base_id_in_list(base_ids: List[str]) -> str:
+    """
+    Make a regular expression pattern that matches `WorkflowExecution` `id` values whose base ID
+    matches any of the specified ones.
+
+    >>> make_pattern_matching_ids_having_base_id_in_list(["foo", "bar"])
+    '(^foo\\\\.\\\\d+$)|(^bar\\\\.\\\\d+$)'
+    >>> make_pattern_matching_ids_having_base_id_in_list(["nmdc:wfmp-00-abcdef", "nmdc:wfmp-11-uvwxyz"])
+    '(^nmdc:wfmp\\\\-00\\\\-abcdef\\\\.\\\\d+$)|(^nmdc:wfmp\\\\-11\\\\-uvwxyz\\\\.\\\\d+$)'
+    """
+
+    sub_patterns = []
+    for base_id in base_ids:
+        sub_pattern = make_pattern_matching_ids_having_base_id(base_id)
+        if sub_pattern not in sub_patterns:  # skips duplicates
+            sub_patterns.append(f"({sub_pattern})")
+    pattern = "|".join(sub_patterns)
+    return pattern
+
+
 def update_superseded_by_field_of_data_objects_having_id_in_list(
     data_object_ids: List[str],
     data_object_list: List[dict],
