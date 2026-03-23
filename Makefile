@@ -87,6 +87,13 @@ test-shell: down-test up-test
 reset-fastapi-test:
 	docker compose --file docker-compose.test.yml restart fastapi
 
+# Deletes the data volume used by the Mongo instance in the test stack, and restarts the dependent
+# containers in the stack (this does not include the "test" container—the one remains up).
+clear-db-test:
+	docker compose --file docker-compose.test.yml down fastapi dagster-daemon dagster-dagit
+	docker compose --file docker-compose.test.yml down --volumes mongo
+	docker compose --file docker-compose.test.yml up --detach
+
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
