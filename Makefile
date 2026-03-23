@@ -79,6 +79,14 @@ test-shell: down-test up-test
 			""; \
 		exec /bin/bash'
 
+# Restarts the `fastapi` container in the test stack.
+#
+# Note: We use this when doing test-driven development. In the test stack, Uvicorn does _not_ run in
+#       "reload" mode (i.e. it does automatically restart the FastAPI app whenever the code changes).
+#
+reset-fastapi-test:
+	docker compose --file docker-compose.test.yml restart fastapi
+
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
