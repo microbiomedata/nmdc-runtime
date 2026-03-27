@@ -13,7 +13,7 @@ class TestPostWorkflowWorkflowExecutions:
     """Tests targeting the `POST /workflows/workflow_executions` API endpoint."""
 
     @pytest.fixture()
-    def api_user_client_with_json_submit_allowance(self, api_user_client):
+    def api_user_client_having_json_submit_allowance(self, api_user_client):
         """Yields an API user client for a user having a specific allowance."""
 
         mdb = get_mongo_db()
@@ -34,7 +34,7 @@ class TestPostWorkflowWorkflowExecutions:
         allowances_coll.delete_one(allowance)
 
     @pytest.fixture()
-    def api_site_client_with_json_submit_allowance(self, api_site_client):
+    def api_site_client_having_json_submit_allowance(self, api_site_client):
         """Yields an API user client for a user having a specific allowance."""
 
         mdb = get_mongo_db()
@@ -176,20 +176,20 @@ class TestPostWorkflowWorkflowExecutions:
         response = exc.value.response
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_it_allows_authorized_users(self, api_user_client_with_json_submit_allowance):
+    def test_it_allows_authorized_users(self, api_user_client_having_json_submit_allowance):
         """Confirm that an authorized user can access this endpoint."""
 
-        response = api_user_client_with_json_submit_allowance.request(
+        response = api_user_client_having_json_submit_allowance.request(
             "POST",
             "/workflows/workflow_executions",
             {"workflow_execution_set": []},  # no-op, but OK
         )
         assert response.status_code == status.HTTP_200_OK
 
-    def test_it_allows_authorized_site_clients(self, api_site_client_with_json_submit_allowance):
+    def test_it_allows_authorized_site_clients(self, api_site_client_having_json_submit_allowance):
         """Confirm that an authorized site client can access this endpoint."""
 
-        response = api_site_client_with_json_submit_allowance.request(
+        response = api_site_client_having_json_submit_allowance.request(
             "POST",
             "/workflows/workflow_executions",
             {"workflow_execution_set": []},  # no-op, but OK
@@ -198,7 +198,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_inserts_workflow_execution(
         self,
-        api_site_client_with_json_submit_allowance,
+        api_site_client_having_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """Submit a valid WFE to the API endpoint, then confirm it exists in the database."""
@@ -226,7 +226,7 @@ class TestPostWorkflowWorkflowExecutions:
             )[0]
 
             # Submit an API request whose payload contains the `WorkflowExecution` document.
-            response = api_site_client_with_json_submit_allowance.request(
+            response = api_site_client_having_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {"workflow_execution_set": [workflow_execution]},
@@ -244,7 +244,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_rejects_workflow_execution_containing_broken_reference(
         self,
-        api_site_client_with_json_submit_allowance,
+        api_site_client_having_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -277,7 +277,7 @@ class TestPostWorkflowWorkflowExecutions:
             # Submit an API request whose payload contains the `WorkflowExecution` document, which
             # contains a (broken) reference to a non-existent `DataGeneration`.
             with pytest.raises(requests.exceptions.HTTPError) as exc:
-                api_site_client_with_json_submit_allowance.request(
+                api_site_client_having_json_submit_allowance.request(
                     "POST",
                     "/workflows/workflow_executions",
                     {"workflow_execution_set": [workflow_execution]},
@@ -305,7 +305,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_inserts_workflow_executions_and_data_objects(
         self,
-        api_site_client_with_json_submit_allowance,
+        api_site_client_having_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -341,7 +341,7 @@ class TestPostWorkflowWorkflowExecutions:
 
             # Submit an API request whose payload contains the `WorkflowExecution` document and its
             # referenced `DataObject` documents.
-            response = api_site_client_with_json_submit_allowance.request(
+            response = api_site_client_having_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {
@@ -364,7 +364,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_updates_superseded_by_fields_of_existing_workflow_executions_and_data_objects(
         self,
-        api_site_client_with_json_submit_allowance,
+        api_site_client_having_json_submit_allowance,
         seeded_db_having_workflow_execution,
     ):
         """
@@ -394,7 +394,7 @@ class TestPostWorkflowWorkflowExecutions:
             assert "superseded_by" not in seeded_data["data_object_b"]
 
             # Submit an API request whose payload contains the superseding WFE.
-            response = api_site_client_with_json_submit_allowance.request(
+            response = api_site_client_having_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {
@@ -425,7 +425,7 @@ class TestPostWorkflowWorkflowExecutions:
 
     def test_it_updates_superseded_by_fields_of_co_submitted_workflow_executions_and_data_objects(
         self,
-        api_site_client_with_json_submit_allowance,
+        api_site_client_having_json_submit_allowance,
         seeded_db_having_workflow_execution_dependencies,
     ):
         """
@@ -468,7 +468,7 @@ class TestPostWorkflowWorkflowExecutions:
             assert data_object_set.count_documents({"id": {"$in": [dobj_id_1, dobj_id_2, dobj_id_3, dobj_id_4]}}) == 0
 
             # Submit an API request whose payload contains both the superseding and superseded WFEs.
-            response = api_site_client_with_json_submit_allowance.request(
+            response = api_site_client_having_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
                 {
