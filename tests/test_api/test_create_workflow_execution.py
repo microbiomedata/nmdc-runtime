@@ -1,42 +1,12 @@
 import re
-from typing import List, Optional
 
 import pytest
 import requests
 from fastapi import status
-from pymongo.collection import Collection
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.api.models.allowance import AllowanceAction
 from tests.lib.faker import Faker
-
-
-def generate_available_id_for_collection(
-    collection: Collection,
-    prefix: str,
-    suffix: str = "",
-    ineligible_ids: Optional[List[str]] = None,
-) -> str:
-    """
-    Generates an ID beginning with the specified prefix (and optional suffix), that is not already
-    in use by any documents in the specified Mongo collection and is not among the ineligible IDs.
-    
-    The `suffix` parameter can be used to append a ".1" (for example) to the ID of a
-    `WorkflowExecution`, given that NMDC workflow automation team members normally
-    append ".{integer}" to minted `WorkflowExecution` IDs.
-    
-    The `ineligible_ids` parameter can be used to specify IDs that you do not want this invocation
-    to generate (maybe because it already generated those IDs).
-    """
-    if ineligible_ids is None:
-        ineligible_ids = []
-
-    n = 1
-    available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000001"
-    while available_id in ineligible_ids or collection.count_documents({"id": available_id}, limit=1) != 0:
-        n += 1
-        available_id = f"{prefix}-00-{n:06d}{suffix}"  # e.g. "nmdc:wfmgan-00-000002"
-    return available_id
 
 
 class TestPostWorkflowWorkflowExecutions:
@@ -97,9 +67,8 @@ class TestPostWorkflowWorkflowExecutions:
         study = faker.generate_studies(quantity=1)[0]
         biosample = faker.generate_biosamples(quantity=1, associated_studies=[study["id"]])[0]
         data_object_a, data_object_b, data_object_c, data_object_d = faker.generate_data_objects(quantity=4)
-        data_generation = faker.generate_nucleotide_sequencings(
-            quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]]
-        )[0]
+        data_generation = faker.generate_nucleotide_sequencings(quantity=1, associated_studies=[study["id"]], has_input=[biosample["id"]])[0]
+        data_object_ids = [data_object_a["id"], data_object_b["id"], data_object_c["id"], data_object_d["id"]]
 
         # Get references to relevant Mongo collections.
         db = get_mongo_db()
@@ -111,12 +80,7 @@ class TestPostWorkflowWorkflowExecutions:
         # Confirm that the generated documents are not already in the test database.
         assert study_set.count_documents({"id": study["id"]}) == 0
         assert biosample_set.count_documents({"id": biosample["id"]}) == 0
-        assert (
-            data_object_set.count_documents(
-                {"id": {"$in": [data_object_a["id"], data_object_b["id"], data_object_c["id"], data_object_d["id"]]}}
-            )
-            == 0
-        )
+        assert data_object_set.count_documents({"id": {"$in": data_object_ids}}) == 0
         assert data_generation_set.count_documents({"id": data_generation["id"]}) == 0
 
         # Insert the generated documents.
@@ -129,6 +93,8 @@ class TestPostWorkflowWorkflowExecutions:
         yield (
             db,
             {
+                "study": study,
+                "biosample": biosample,
                 "data_object_a": data_object_a,
                 "data_object_b": data_object_b,
                 "data_object_c": data_object_c,
@@ -140,9 +106,7 @@ class TestPostWorkflowWorkflowExecutions:
         # Delete the documents that we created or that the dependent test created.
         study_set.delete_many({"id": study["id"]})
         biosample_set.delete_many({"id": biosample["id"]})
-        data_object_set.delete_many(
-            {"id": {"$in": [data_object_a["id"], data_object_b["id"], data_object_c["id"], data_object_d["id"]]}}
-        )
+        data_object_set.delete_many({"id": {"$in": data_object_ids}})
         data_generation_set.delete_many({"id": data_generation["id"]})
 
     @pytest.fixture
@@ -157,9 +121,7 @@ class TestPostWorkflowWorkflowExecutions:
         data_object_b = seeded_data["data_object_b"]
         data_generation = seeded_data["data_generation"]
         workflow_execution_set = db.get_collection("workflow_execution_set")
-        workflow_execution_id = generate_available_id_for_collection(
-            workflow_execution_set, "nmdc:wfmgan", ".1"
-        )
+        workflow_execution_id = "nmdc:wfmgan-00-000001.1"
 
         # Generate a `WorkflowExecution` document that references the seeded documents, then insert
         # it into the database.
@@ -247,9 +209,7 @@ class TestPostWorkflowWorkflowExecutions:
         data_object_b = seeded_data["data_object_b"]
         data_generation = seeded_data["data_generation"]
         workflow_execution_set = db.get_collection("workflow_execution_set")
-        workflow_execution_id = generate_available_id_for_collection(
-            workflow_execution_set, "nmdc:wfmgan", ".1"
-        )
+        workflow_execution_id = "nmdc:wfmgan-00-000002.1"
 
         try:
             # Confirm the document we're about to create does not exist in the database yet.
@@ -296,14 +256,9 @@ class TestPostWorkflowWorkflowExecutions:
         db, seeded_data = seeded_db_having_workflow_execution_dependencies
         data_object_a = seeded_data["data_object_a"]
         data_object_b = seeded_data["data_object_b"]
-        data_generation_set = db.get_collection("data_generation_set")
         workflow_execution_set = db.get_collection("workflow_execution_set")
-        workflow_execution_id = generate_available_id_for_collection(
-            workflow_execution_set, "nmdc:wfmgan", ".1"
-        )
-        data_generation_id = generate_available_id_for_collection(
-            data_generation_set, "nmdc:dgns"
-        )
+        workflow_execution_id = "nmdc:wfmgan-00-000003.1"
+        data_generation_id = "nmdc:dgns-00-000002"
 
         try:
             # Confirm the document we're about to create does not exist in the database yet.
@@ -363,15 +318,13 @@ class TestPostWorkflowWorkflowExecutions:
         data_object_set = db.get_collection("data_object_set")
         workflow_execution_set = db.get_collection("workflow_execution_set")
         data_generation = seeded_data["data_generation"]
-        workflow_execution_id = generate_available_id_for_collection(
-            workflow_execution_set, "nmdc:wfmgan", ".1"
-        )
+        workflow_execution_id = "nmdc:wfmgan-00-000003.1"
 
         # Generate a `WorkflowExecution` and its `DataObject`s and insert them into the database.
         faker = Faker()
         data_object_e, data_object_f = faker.generate_data_objects(quantity=2)
-        data_object_e["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj")
-        data_object_f["id"] = generate_available_id_for_collection(data_object_set, "nmdc:dobj", ineligible_ids=[data_object_e["id"]])
+        data_object_e["id"] = "nmdc:dobj-00-000005"
+        data_object_f["id"] = "nmdc:dobj-00-000006"
         workflow_execution = faker.generate_metagenome_annotations(
             quantity=1,
             id=workflow_execution_id,
@@ -424,7 +377,8 @@ class TestPostWorkflowWorkflowExecutions:
         data_object_set = db.get_collection("data_object_set")
 
         faker = Faker()
-        later_wfe_id = seeded_data["workflow_execution_id"].replace(".1", ".2")
+        seeded_wfe_id = seeded_data["workflow_execution"]["id"]
+        later_wfe_id = seeded_wfe_id.replace(".1", ".2")
         assert workflow_execution_set.count_documents({"id": later_wfe_id}) == 0
         later_wfe = faker.generate_metagenome_annotations(
             quantity=1,
