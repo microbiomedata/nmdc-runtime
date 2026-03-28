@@ -127,14 +127,14 @@ async def post_workflow_execution(
 
     High-level algorithm:
 
-       Terminology: 
+       Terminology:
        - "co-submitted" means "submitted together in the same payload to this endpoint"
        - "existing" means "already in the Mongo database"
        - "WFE" is short for `WorkflowExecution`
        - "DOBJ" is short for `DataObject`
 
     1. For each submitted WFE, determine whether its `id` suffix indicates that it is SUPERSEDED BY
-       another WFE, whether the latter is co-submitted or existing. If it does, do two things: 
+       another WFE, whether the latter is co-submitted or existing. If it does, do two things:
        (a) update the `superseded_by` field of that submitted WFE; and
        (b) update the `superseded_by` fields of its output DOBJs, if any,
            whether co-submitted or existing.
