@@ -496,3 +496,241 @@ class TestPostWorkflowWorkflowExecutions:
             # Delete the WFEs and DOBJs that the API created.
             workflow_execution_set.delete_many({"id": {"$in": [wfe_id_1, wfe_id_2]}})
             data_object_set.delete_many({"id": {"$in": [dobj_id_1, dobj_id_2, dobj_id_3, dobj_id_4]}})
+
+    def test_it_updates_superseded_by_fields_of_co_submitted_and_existing_metadata_via_same_request(
+        self, api_site_client_having_json_submit_allowance,
+    ):
+        """
+        In this test, we create a scenario in which we expect the endpoint to update the
+        `superseded_by` fields of both submitted WFEs and DOs, and existing WFEs and DOs,
+        as part of processing the same request.
+
+        Here's what the database will initially contain ("🌳" indicates pre-existence; and
+        "🥔" indicates pre-existence, but only created so we could create valid test data,
+        as opposed to actually being involved in the supersession chain management; and
+        relationships not involved in the supersession chain management are not shown):
+        ```
+        🥔STY_1  (a `Study` to put into `DataGeneration` `associated_studies` fields)
+        🥔BSM_1  (a `Biosample` to put into `DataGeneration` `has_input` fields)
+        🥔DGEN_1 (a `DataGeneration` to put into `WorkflowExecution` `was_informed_by` fields)
+        🥔DO_1   (a `DataObject` to put into `WorkflowExecution` `has_input` fields)
+
+        🌳WFE_1.1 -- 🌳has_output    --> 🌳DO_1p1a
+        🌳WFE_1.1 -- 🌳superseded_by --> 🌳WFE_1.2
+        🌳DO_1p1a -- 🌳superseded_by --> 🌳WFE_1.2
+
+        🌳WFE_1.2 -- 🌳has_output    --> 🌳DO_1p2a
+        🌳DO_1p2a
+
+        🌳DO_1p3a
+
+        🌳DO_1p4a
+
+        🌳WFE_1.5
+        ```
+
+        Here's what we will submit to the endpoint ("📨" indicates submitted):
+        ```
+        📨WFE_1.3 -- 📨has_output    --> 🌳DO_1p3a
+        📨WFE_1.3 -- 📨has_output    --> 📨DO_1p3b
+        📨DO_1p3b
+
+        📨WFE_1.4 -- 📨has_output    --> 🌳DO_1p4a
+        📨WFE_1.4 -- 📨has_output    --> 📨DO_1p4b
+        📨DO_1p4b
+        ```
+
+        Here's what we expect the database to contain in the end ("💉" indicates auto-injected):
+        ```
+        🥔STY_1
+        🥔BSM_1
+        🥔DGEN_1
+        🥔DO_1
+
+        🌳WFE_1.1 -- 🌳has_output    --> 🌳DO_1p1a
+        🌳WFE_1.1 -- 🌳superseded_by --> 🌳WFE_1.2
+        🌳DO_1p1a -- 🌳superseded_by --> 🌳WFE_1.2
+
+        🌳WFE_1.2 -- 🌳has_output    --> 🌳DO_1p2a
+        🌳WFE_1.2 -- 💉superseded_by --> 🌳WFE_1.3
+        🌳DO_1p2a -- 💉superseded_by --> 🌳WFE_1.3
+
+        📨WFE_1.3 -- 📨has_output    --> 🌳DO_1p3a
+        📨WFE_1.3 -- 📨has_output    --> 📨DO_1p3b
+        📨WFE_1.3 -- 💉superseded_by --> 📨WFE_1.4
+        🌳DO_1p3a -- 💉superseded_by --> 📨WFE_1.4
+        📨DO_1p3b -- 💉superseded_by --> 📨WFE_1.4
+
+        📨WFE_1.4 -- 🌳has_output    --> 🌳DO_1p4a
+        📨WFE_1.4 -- 🌳has_output    --> 📨DO_1p4b
+        📨WFE_1.4 -- 💉superseded_by --> 🌳WFE_1.5
+        🌳DO_1p4a -- 💉superseded_by --> 🌳WFE_1.5
+        📨DO_1p4b -- 💉superseded_by --> 🌳WFE_1.5
+
+        🌳WFE_1.5
+        ```
+        """
+
+        db = get_mongo_db()
+        study_set = db.get_collection("study_set")
+        biosample_set = db.get_collection("biosample_set")
+        data_generation_set = db.get_collection("data_generation_set")
+        workflow_execution_set = db.get_collection("workflow_execution_set")
+        data_object_set = db.get_collection("data_object_set")
+
+        faker = Faker()
+
+        # IDs for the pre-existing documents.
+        study_1_id = "nmdc:sty-00-000001"
+        bsm_1_id = "nmdc:bsm-00-000001"
+        dgen_1_id = "nmdc:dgns-00-000001"
+        wfe_1p1_id = "nmdc:wfmgan-00-000001.1"
+        wfe_1p2_id = "nmdc:wfmgan-00-000001.2"
+        dobj_1_id = "nmdc:dobj-99-000001"
+        dobj_1p1a_id = "nmdc:dobj-99-001p1a"
+        dobj_1p2a_id = "nmdc:dobj-99-001p2a"
+        dobj_1p3a_id = "nmdc:dobj-99-001p3a"
+        dobj_1p4a_id = "nmdc:dobj-99-001p4a"
+        wfe_1p5_id = "nmdc:wfmgan-00-000001.5"
+
+        # Documents for the pre-existing WFEs and DOBJs.
+        study_1 = faker.generate_studies(quantity=1, id=study_1_id)[0]
+        bsm_1 = faker.generate_biosamples(
+            quantity=1,
+            id=bsm_1_id,
+            associated_studies=[study_1_id],
+        )[0]
+        dgen_1 = faker.generate_nucleotide_sequencings(
+            quantity=1,
+            id=dgen_1_id,
+            associated_studies=[study_1_id],
+            has_input=[bsm_1_id],
+        )[0]
+        dobj_1 = faker.generate_data_objects(quantity=1, id=dobj_1_id)[0]
+        wfe_1p1 = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=wfe_1p1_id,
+            has_input=[dobj_1_id],
+            has_output=[dobj_1p1a_id],
+            was_informed_by=[dgen_1_id],
+            superseded_by=wfe_1p2_id,
+        )[0]
+        dobj_1p1a = faker.generate_data_objects(
+            quantity=1,
+            id=dobj_1p1a_id,
+            superseded_by=wfe_1p2_id,
+        )[0]
+        wfe_1p2 = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=wfe_1p2_id,
+            has_input=[dobj_1_id],
+            has_output=[dobj_1p2a_id],
+            was_informed_by=[dgen_1_id],
+        )[0]
+        dobj_1p2a = faker.generate_data_objects(quantity=1, id=dobj_1p2a_id)[0]
+        dobj_1p3a = faker.generate_data_objects(quantity=1, id=dobj_1p3a_id)[0]
+        dobj_1p4a = faker.generate_data_objects(quantity=1, id=dobj_1p4a_id)[0]
+        wfe_1p5 = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=wfe_1p5_id,
+            has_input=[dobj_1_id],
+            has_output=[],
+            was_informed_by=[dgen_1_id],
+        )[0]
+
+        # IDs for the submitted documents.
+        wfe_1p3_id = "nmdc:wfmgan-00-000001.3"
+        wfe_1p4_id = "nmdc:wfmgan-00-000001.4"
+        dobj_1p3b_id = "nmdc:dobj-99-001p3b"
+        dobj_1p4b_id = "nmdc:dobj-99-001p4b"
+
+        # Documents for the submitted WFEs and DOBJs.
+        wfe_1p3 = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=wfe_1p3_id,
+            has_input=[dobj_1_id],
+            has_output=[dobj_1p3a_id, dobj_1p3b_id],
+            was_informed_by=[dgen_1_id],
+        )[0]
+        wfe_1p4 = faker.generate_metagenome_annotations(
+            quantity=1,
+            id=wfe_1p4_id,
+            has_input=[dobj_1_id],
+            has_output=[dobj_1p4a_id, dobj_1p4b_id],
+            was_informed_by=[dgen_1_id],
+        )[0]
+        dobj_1p3b = faker.generate_data_objects(quantity=1, id=dobj_1p3b_id)[0]
+        dobj_1p4b = faker.generate_data_objects(quantity=1, id=dobj_1p4b_id)[0]
+
+        try:
+            # Insert the pre-existing documents into the database.
+            study_set.insert_many([study_1])
+            biosample_set.insert_many([bsm_1])
+            data_generation_set.insert_many([dgen_1])
+            workflow_execution_set.insert_many([wfe_1p1, wfe_1p2, wfe_1p5])
+            data_object_set.insert_many([dobj_1, dobj_1p1a, dobj_1p2a, dobj_1p3a, dobj_1p4a])
+
+            # Submit an API request whose payload contains the WFEs and DOBJs that will trigger the
+            # `superseded_by` updates.
+            response = api_site_client_having_json_submit_allowance.request(
+                "POST",
+                "/workflows/workflow_executions",
+                {
+                    "workflow_execution_set": [wfe_1p3, wfe_1p4],
+                    "data_object_set": [dobj_1p3b, dobj_1p4b],
+                },
+            )
+            assert response.status_code == status.HTTP_200_OK
+            response_message = response.json()["message"]
+            assert re.search(r"^Inserted 4 documents$", response_message) is not None
+
+            # Retrieve documents from the database about which we want to confirm things to be true.
+            wfe_1p1_from_db = workflow_execution_set.find_one({"id": wfe_1p1_id})
+            wfe_1p2_from_db = workflow_execution_set.find_one({"id": wfe_1p2_id})
+            wfe_1p3_from_db = workflow_execution_set.find_one({"id": wfe_1p3_id})
+            wfe_1p4_from_db = workflow_execution_set.find_one({"id": wfe_1p4_id})
+            wfe_1p5_from_db = workflow_execution_set.find_one({"id": wfe_1p5_id})
+            dobj_1p1a_from_db = data_object_set.find_one({"id": dobj_1p1a_id})
+            dobj_1p2a_from_db = data_object_set.find_one({"id": dobj_1p2a_id})
+            dobj_1p3a_from_db = data_object_set.find_one({"id": dobj_1p3a_id})
+            dobj_1p3b_from_db = data_object_set.find_one({"id": dobj_1p3b_id})
+            dobj_1p4a_from_db = data_object_set.find_one({"id": dobj_1p4a_id})
+            dobj_1p4b_from_db = data_object_set.find_one({"id": dobj_1p4b_id})
+
+            # Confirm a "superseded_by" field exists on the documents we expect it to.
+            assert isinstance(wfe_1p1_from_db, dict) and "superseded_by" in wfe_1p1_from_db
+            assert isinstance(wfe_1p2_from_db, dict) and "superseded_by" in wfe_1p2_from_db
+            assert isinstance(wfe_1p3_from_db, dict) and "superseded_by" in wfe_1p3_from_db
+            assert isinstance(wfe_1p4_from_db, dict) and "superseded_by" in wfe_1p4_from_db
+            assert isinstance(wfe_1p5_from_db, dict) and "superseded_by" not in wfe_1p5_from_db
+
+            assert isinstance(dobj_1p1a_from_db, dict) and "superseded_by" in dobj_1p1a_from_db
+            assert isinstance(dobj_1p2a_from_db, dict) and "superseded_by" in dobj_1p2a_from_db
+            assert isinstance(dobj_1p3a_from_db, dict) and "superseded_by" in dobj_1p3a_from_db
+            assert isinstance(dobj_1p3b_from_db, dict) and "superseded_by" in dobj_1p3b_from_db
+            assert isinstance(dobj_1p4a_from_db, dict) and "superseded_by" in dobj_1p4a_from_db
+            assert isinstance(dobj_1p4b_from_db, dict) and "superseded_by" in dobj_1p4b_from_db
+
+            # Confirm the value of "superseded_by" on each document is what we expect it to be.
+            assert wfe_1p1_from_db["superseded_by"] == wfe_1p2_id
+            assert wfe_1p2_from_db["superseded_by"] == wfe_1p3_id
+            assert wfe_1p3_from_db["superseded_by"] == wfe_1p4_id
+            assert wfe_1p4_from_db["superseded_by"] == wfe_1p5_id
+
+            assert dobj_1p1a_from_db["superseded_by"] == wfe_1p2_id
+            assert dobj_1p2a_from_db["superseded_by"] == wfe_1p3_id
+            assert dobj_1p3a_from_db["superseded_by"] == wfe_1p4_id
+            assert dobj_1p3b_from_db["superseded_by"] == wfe_1p4_id
+            assert dobj_1p4a_from_db["superseded_by"] == wfe_1p5_id
+            assert dobj_1p4b_from_db["superseded_by"] == wfe_1p5_id
+        finally:
+            # Delete the documents that the API created.
+            workflow_execution_set.delete_many({"id": {"$in": [wfe_1p3_id, wfe_1p4_id]}})
+            data_object_set.delete_many({"id": {"$in": [dobj_1p3b_id, dobj_1p4b_id]}})
+
+            # Delete the pre-existing documents that we inserted.
+            study_set.delete_many({"id": {"$in": [study_1_id]}})
+            biosample_set.delete_many({"id": {"$in": [bsm_1_id]}})
+            data_generation_set.delete_many({"id": {"$in": [dgen_1_id]}})
+            workflow_execution_set.delete_many({"id": {"$in": [wfe_1p1_id, wfe_1p2_id, wfe_1p5_id]}})
+            data_object_set.delete_many({"id": {"$in": [dobj_1_id, dobj_1p1a_id, dobj_1p2a_id, dobj_1p3a_id, dobj_1p4a_id]}})
