@@ -309,6 +309,11 @@ def validate_json(
                                             in the database, if the documents passed in were to be inserted into
                                             the database. In other words, set this to `True` if you want this
                                             function to perform referential integrity checks.
+
+    TODO: Add support for a PyMongo ClientSession to be passed in, so we can perform this validation
+          within an existing MongoDB transaction, allowing developers to prevent race conditions
+          where the state of the database changes between a validation stage and a manipulation
+          (i.e. insert, update, delete) stage.
     """
     validator = get_nmdc_schema_validator()
     docs = deepcopy(in_docs)

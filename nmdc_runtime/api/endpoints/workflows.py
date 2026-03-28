@@ -121,24 +121,40 @@ async def post_workflow_execution(
     """
     Create workflow executions and related metadata.
 
-    TODO: Warning! This endpoint can currently be used to submit _all types of metadata_! Since we
-          still use Mongo and rely on validation at the application level, keep this endpoint in
-          mind when introducing new validation processes.
+    TODO: Warning! This endpoint can currently be used to submit _all_ types of metadata! Since we
+          currently rely on validation at the application level, as opposed to validation at the
+          database level, keep this endpoint in mind when introducing new validation processes.
 
     High-level algorithm:
-    1. For each submitted WFE, determine whether its `id` indicates that it is SUPERSEDED BY another
-       WFE, whether that be a co-submitted WFE or an existing WFE (where "existing" means "in the
-       Mongo database"). If it does, update the `superseded_by` field of that submitted WFE in the
-       insertion payload; and update the `superseded_by` fields of its output DataObjects,
-       if any, whether those are in the insertion payload or already in the database.
+
+       Terminology: 
+       - "co-submitted" means "submitted together in the same payload to this endpoint"
+       - "existing" means "already in the Mongo database"
+       - "WFE" is short for `WorkflowExecution`
+       - "DOBJ" is short for `DataObject`
+
+    1. For each submitted WFE, determine whether its `id` suffix indicates that it is SUPERSEDED BY
+       another WFE, whether the latter is co-submitted or existing. If it does, do two things: 
+       (a) update the `superseded_by` field of that submitted WFE; and
+       (b) update the `superseded_by` fields of its output DOBJs, if any,
+           whether co-submitted or existing.
     2. For each submitted WFE, determine whether its `id` indicates that it SUPERSEDES an existing
        WFE (we don't bother checking whether it supersedes a co-submitted WFE, since we would have
-       handled that in step 1). If it does, update the `superseded_by` field of that existing WFE
-       accordingly; and also update the `superseded_by` fields of its output DataObjects,
-       if any, whether those are in the insertion payload or already in the database.
-    3. Proceed to do the insertion of the [maybe manipulated] payload.
+       handled that in step 1). If it does, do two things:
+       (a) update the `superseded_by` field of that existing WFE; and
+       (b) update the `superseded_by` fields of that existing WFE's output DOBJs, if any,
+           whether co-submitted or existing.
+    3. Proceed to do the insertion of the [maybe manipulated] submission payload.
+       Perform all of the above updates and insertions within a single transaction,
+       so we can roll back if something goes wrong.
 
     Reference: https://microbiomedata.github.io/nmdc-schema/superseded_by/
+
+    Note: There is a race condition where a _referenced_ document could be deleted from the database
+          between the time the ref. int. check is performed via `validate_json` and the time the
+          transaction is started and the referring document is actually inserted into the database.
+          This is a general issue for all endpoints that rely on application-level validation
+          outside of a Mongo transaction, since we have no DBMS-level validation in place.
     """
 
     # TODO: Decouple this endpoint's authorization criteria from that of the `/metadata/json:submit`
