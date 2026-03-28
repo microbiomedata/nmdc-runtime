@@ -580,8 +580,8 @@ class TestPostWorkflowWorkflowExecutions:
 
         faker = Faker()
 
-        # IDs for the pre-existing documents.
-        study_1_id = "nmdc:sty-00-000001"
+        # IDs for the [to be] pre-existing documents (i.e. the ones we'll seed the database with).
+        sty_1_id = "nmdc:sty-00-000001"
         bsm_1_id = "nmdc:bsm-00-000001"
         dgen_1_id = "nmdc:dgns-00-000001"
         wfe_1p1_id = "nmdc:wfmgan-00-000001.1"
@@ -593,85 +593,42 @@ class TestPostWorkflowWorkflowExecutions:
         dobj_1p4a_id = "nmdc:dobj-99-001p4a"
         wfe_1p5_id = "nmdc:wfmgan-00-000001.5"
 
-        # Documents for the pre-existing WFEs and DOBJs.
-        study_1 = faker.generate_studies(quantity=1, id=study_1_id)[0]
-        bsm_1 = faker.generate_biosamples(
-            quantity=1,
-            id=bsm_1_id,
-            associated_studies=[study_1_id],
-        )[0]
-        dgen_1 = faker.generate_nucleotide_sequencings(
-            quantity=1,
-            id=dgen_1_id,
-            associated_studies=[study_1_id],
-            has_input=[bsm_1_id],
-        )[0]
-        dobj_1 = faker.generate_data_objects(quantity=1, id=dobj_1_id)[0]
-        wfe_1p1 = faker.generate_metagenome_annotations(
-            quantity=1,
-            id=wfe_1p1_id,
-            has_input=[dobj_1_id],
-            has_output=[dobj_1p1a_id],
-            was_informed_by=[dgen_1_id],
-            superseded_by=wfe_1p2_id,
-        )[0]
-        dobj_1p1a = faker.generate_data_objects(
-            quantity=1,
-            id=dobj_1p1a_id,
-            superseded_by=wfe_1p2_id,
-        )[0]
-        wfe_1p2 = faker.generate_metagenome_annotations(
-            quantity=1,
-            id=wfe_1p2_id,
-            has_input=[dobj_1_id],
-            has_output=[dobj_1p2a_id],
-            was_informed_by=[dgen_1_id],
-        )[0]
-        dobj_1p2a = faker.generate_data_objects(quantity=1, id=dobj_1p2a_id)[0]
-        dobj_1p3a = faker.generate_data_objects(quantity=1, id=dobj_1p3a_id)[0]
-        dobj_1p4a = faker.generate_data_objects(quantity=1, id=dobj_1p4a_id)[0]
-        wfe_1p5 = faker.generate_metagenome_annotations(
-            quantity=1,
-            id=wfe_1p5_id,
-            has_input=[dobj_1_id],
-            has_output=[],
-            was_informed_by=[dgen_1_id],
-        )[0]
-
-        # IDs for the submitted documents.
+        # IDs for the [to be] submitted documents (i.e. the ones we'll submit to the API endpoint).
         wfe_1p3_id = "nmdc:wfmgan-00-000001.3"
         wfe_1p4_id = "nmdc:wfmgan-00-000001.4"
         dobj_1p3b_id = "nmdc:dobj-99-001p3b"
         dobj_1p4b_id = "nmdc:dobj-99-001p4b"
 
-        # Documents for the submitted WFEs and DOBJs.
-        wfe_1p3 = faker.generate_metagenome_annotations(
-            quantity=1,
-            id=wfe_1p3_id,
-            has_input=[dobj_1_id],
-            has_output=[dobj_1p3a_id, dobj_1p3b_id],
-            was_informed_by=[dgen_1_id],
-        )[0]
-        wfe_1p4 = faker.generate_metagenome_annotations(
-            quantity=1,
-            id=wfe_1p4_id,
-            has_input=[dobj_1_id],
-            has_output=[dobj_1p4a_id, dobj_1p4b_id],
-            was_informed_by=[dgen_1_id],
-        )[0]
+        # The [to be] pre-existing documents.
+        sty_1 = faker.generate_studies(1, id=sty_1_id)[0]
+        bsm_1 = faker.generate_biosamples(1, id=bsm_1_id, associated_studies=[sty_1_id])[0]
+        dgen_1 = faker.generate_nucleotide_sequencings(1, id=dgen_1_id, associated_studies=[sty_1_id], has_input=[bsm_1_id])[0]
+        dobj_1 = faker.generate_data_objects(1, id=dobj_1_id)[0]
+        wfe_1p1 = faker.generate_metagenome_annotations(1, id=wfe_1p1_id, has_input=[dobj_1_id], has_output=[dobj_1p1a_id], was_informed_by=[dgen_1_id], superseded_by=wfe_1p2_id)[0]
+        dobj_1p1a = faker.generate_data_objects(1, id=dobj_1p1a_id, superseded_by=wfe_1p2_id)[0]
+        wfe_1p2 = faker.generate_metagenome_annotations(1, id=wfe_1p2_id, has_input=[dobj_1_id], has_output=[dobj_1p2a_id], was_informed_by=[dgen_1_id])[0]
+        dobj_1p2a = faker.generate_data_objects(quantity=1, id=dobj_1p2a_id)[0]
+        dobj_1p3a = faker.generate_data_objects(quantity=1, id=dobj_1p3a_id)[0]
+        dobj_1p4a = faker.generate_data_objects(quantity=1, id=dobj_1p4a_id)[0]
+        wfe_1p5 = faker.generate_metagenome_annotations(1, id=wfe_1p5_id, has_input=[dobj_1_id], has_output=[], was_informed_by=[dgen_1_id])[0]
+
+        # The [to be] submitted documents.
+        wfe_1p3 = faker.generate_metagenome_annotations(1, id=wfe_1p3_id, has_input=[dobj_1_id], has_output=[dobj_1p3a_id, dobj_1p3b_id], was_informed_by=[dgen_1_id])[0]
+        wfe_1p4 = faker.generate_metagenome_annotations(1, id=wfe_1p4_id, has_input=[dobj_1_id], has_output=[dobj_1p4a_id, dobj_1p4b_id], was_informed_by=[dgen_1_id])[0]
         dobj_1p3b = faker.generate_data_objects(quantity=1, id=dobj_1p3b_id)[0]
         dobj_1p4b = faker.generate_data_objects(quantity=1, id=dobj_1p4b_id)[0]
 
         try:
-            # Insert the pre-existing documents into the database.
-            study_set.insert_many([study_1])
+            # Insert the [to be] pre-existing documents into the database.
+            study_set.insert_many([sty_1])
             biosample_set.insert_many([bsm_1])
             data_generation_set.insert_many([dgen_1])
             workflow_execution_set.insert_many([wfe_1p1, wfe_1p2, wfe_1p5])
             data_object_set.insert_many([dobj_1, dobj_1p1a, dobj_1p2a, dobj_1p3a, dobj_1p4a])
 
-            # Submit an API request whose payload contains the WFEs and DOBJs that will trigger the
-            # `superseded_by` updates.
+            # Submit an API request whose payload contains the [to be] submitted documents.
+            # When we submit these, we expect the endpoint to update the `superseded_by` fields
+            # in both the submitted documents and the pre-existing documents.
             response = api_site_client_having_json_submit_allowance.request(
                 "POST",
                 "/workflows/workflow_executions",
@@ -684,7 +641,7 @@ class TestPostWorkflowWorkflowExecutions:
             response_message = response.json()["message"]
             assert re.search(r"^Inserted 4 documents$", response_message) is not None
 
-            # Retrieve documents from the database about which we want to confirm things to be true.
+            # Retrieve documents from the database about which we want to make assertions below.
             wfe_1p1_from_db = workflow_execution_set.find_one({"id": wfe_1p1_id})
             wfe_1p2_from_db = workflow_execution_set.find_one({"id": wfe_1p2_id})
             wfe_1p3_from_db = workflow_execution_set.find_one({"id": wfe_1p3_id})
@@ -729,7 +686,7 @@ class TestPostWorkflowWorkflowExecutions:
             data_object_set.delete_many({"id": {"$in": [dobj_1p3b_id, dobj_1p4b_id]}})
 
             # Delete the pre-existing documents that we inserted.
-            study_set.delete_many({"id": {"$in": [study_1_id]}})
+            study_set.delete_many({"id": {"$in": [sty_1_id]}})
             biosample_set.delete_many({"id": {"$in": [bsm_1_id]}})
             data_generation_set.delete_many({"id": {"$in": [dgen_1_id]}})
             workflow_execution_set.delete_many({"id": {"$in": [wfe_1p1_id, wfe_1p2_id, wfe_1p5_id]}})
