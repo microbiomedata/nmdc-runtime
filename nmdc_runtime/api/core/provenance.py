@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any, Dict, Optional, Set
 
 
@@ -21,20 +21,25 @@ TYPES_OF_CLASSES_HAVING_PROVENANCE_METADATA_SLOT: Set[str] = {
 PROVENANCE_METADATA_TYPE = "nmdc:ProvenanceMetadata"
 
 
-def make_timestamp(dt: Optional[datetime] = None) -> str:
+def generate_timestamp(date_and_time: Optional[datetime] = None) -> str:
     """
-    Return an RFC 3339 timestamp string in UTC with second precision.
+    Returns an RFC 3339-compliant timestamp string (in UTC, with a precision of "seconds")
+    representing the specified date and time. If no date and time was specified, the returned
+    timestamp string will represent the _current_ date and time.
 
     Reference: https://datatracker.ietf.org/doc/html/rfc3339
 
-    >>> make_timestamp(datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
+    >>> generate_timestamp(datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC))
     '1970-01-01T00:00:00Z'
-    >>> make_timestamp(datetime(2025, 12, 31, 23, 30, 59, tzinfo=timezone.utc))
+    >>> generate_timestamp(datetime(2025, 12, 31, 23, 30, 59, tzinfo=UTC))
     '2025-12-31T23:30:59Z'
     """
 
-    dt_utc = (dt or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if date_and_time is None:
+        dt = datetime.now(UTC)
+    else:
+        dt = date_and_time.astimezone(UTC)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def set_provenance_metadata_field(
@@ -97,7 +102,7 @@ def set_provenance_metadata_field(
 
 def set_provenance_metadata_add_date(
     document: Dict[str, Any],
-    add_date: str = make_timestamp(),
+    add_date: str = generate_timestamp(),
 ) -> Dict[str, Any]:
     """
     Set the `add_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
@@ -142,7 +147,7 @@ def set_provenance_metadata_add_date(
 
 def set_provenance_metadata_mod_date(
     document: Dict[str, Any],
-    mod_date: str = make_timestamp(),
+    mod_date: str = generate_timestamp(),
 ) -> Dict[str, Any]:
     """
     Set the `mod_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
@@ -187,8 +192,8 @@ def set_provenance_metadata_mod_date(
 
 def set_provenance_metadata_timestamps(
     document: Dict[str, Any],
-    add_date: str = make_timestamp(),
-    mod_date: str = make_timestamp(),
+    add_date: str = generate_timestamp(),
+    mod_date: str = generate_timestamp(),
 ) -> Dict[str, Any]:
     """
     Set the `add_date` and `mod_date` fields of the `nmdc:ProvenanceMetadata` instance nested in the
