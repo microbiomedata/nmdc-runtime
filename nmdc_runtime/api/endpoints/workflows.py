@@ -217,11 +217,8 @@ async def post_workflow_execution(
                     logging.info,
                     "Gathering WFE IDs relevant to supersession management",
                 ):
-                    # Extract the `base_id` and `run_number` from each submitted
-                    # `WorkflowExecution`'s `id`; raising an error if any of them lacks
-                    # a `run_number` (since our workflow automation system currently relies upon
-                    # run numbers, despite the schema currently saying they are optional and the
-                    # minter currently minting `id`s that lack them).
+                    # Extract the `base_id` and `run_number` from the `id` of each submitted
+                    # `WorkflowExecution`.
                     id_parts_by_submitted_wfe_id: Dict[str, Tuple[str, int | None]] = {}
                     for submitted_wfe_id in submitted_wfe_ids:
                         base_id, run_number = parse_workflow_execution_id(
