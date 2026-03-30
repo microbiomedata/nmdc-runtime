@@ -557,7 +557,10 @@ class MongoDB:
 
             # Check whether the collection we're currently processing is one that the NMDC schema
             # says can contain documents having a `provenance_metadata` field.
-            if collection_name in NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD:
+            if (
+                collection_name
+                in NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD
+            ):
                 # Make a look-up table of the `id` and `provenance_metadata.add_date` values of
                 # existing documents (i.e. documents that are in the collection and have the same
                 # `id` as a submitted one). We'll use that LUT to (a) determine whether a submitted
@@ -565,7 +568,9 @@ class MongoDB:
                 # original `add_date` values when we do the eventual "upsert" operation (which is
                 # effectively a "replace" operation, as opposed to a "patch" operation).
                 original_add_dates_by_document_id = dict()  # the LUT
-                ids_of_submitted_documents = set(document["id"] for document in collection_docs)
+                ids_of_submitted_documents = set(
+                    document["id"] for document in collection_docs
+                )
                 matching_existing_documents_cursor = self.db[collection_name].find(
                     {"id": {"$in": list(ids_of_submitted_documents)}},
                     {"id": 1, "provenance_metadata.add_date": 1},
@@ -579,8 +584,12 @@ class MongoDB:
                     add_date = None
                     if "provenance_metadata" in existing_document:
                         if "add_date" in existing_document["provenance_metadata"]:
-                            add_date = existing_document["provenance_metadata"]["add_date"]
-                            original_add_dates_by_document_id[existing_document["id"]] = add_date
+                            add_date = existing_document["provenance_metadata"][
+                                "add_date"
+                            ]
+                            original_add_dates_by_document_id[
+                                existing_document["id"]
+                            ] = add_date
 
                 # For each submitted document, use our LUT to determine whether a document having
                 # the same `id` already exists in the collection.
@@ -595,13 +604,24 @@ class MongoDB:
                 for submitted_document in collection_docs:
                     submitted_document_id = submitted_document["id"]
                     original_add_date: Optional[str] = None
-                    if submitted_document_id in original_add_dates_by_document_id.keys():
-                        original_add_date = original_add_dates_by_document_id[submitted_document_id]
+                    if (
+                        submitted_document_id
+                        in original_add_dates_by_document_id.keys()
+                    ):
+                        original_add_date = original_add_dates_by_document_id[
+                            submitted_document_id
+                        ]
                         if isinstance(original_add_date, str):
-                            set_provenance_metadata_add_date(submitted_document, original_add_date)
-                        set_provenance_metadata_mod_date(submitted_document)  # defaults to now
+                            set_provenance_metadata_add_date(
+                                submitted_document, original_add_date
+                            )
+                        set_provenance_metadata_mod_date(
+                            submitted_document
+                        )  # defaults to now
                     else:
-                        set_provenance_metadata_add_date(submitted_document)  # defaults to now
+                        set_provenance_metadata_add_date(
+                            submitted_document
+                        )  # defaults to now
 
             # TODO: As a performance enhancement, consolidate the database writes being done below
             #       (which involve per-document iteration), with the per-document iteration being
