@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
 
@@ -29,16 +29,16 @@ def generate_timestamp(date_and_time: Optional[datetime] = None) -> str:
 
     Reference: https://datatracker.ietf.org/doc/html/rfc3339
 
-    >>> generate_timestamp(datetime(1970, 1, 1, 0, 0, 0, tzinfo=UTC))
+    >>> generate_timestamp(datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
     '1970-01-01T00:00:00Z'
-    >>> generate_timestamp(datetime(2025, 12, 31, 23, 30, 59, tzinfo=UTC))
+    >>> generate_timestamp(datetime(2025, 12, 31, 23, 30, 59, tzinfo=timezone.utc))
     '2025-12-31T23:30:59Z'
     """
 
     if date_and_time is None:
-        dt = datetime.now(UTC)
+        dt = datetime.now(timezone.utc)
     else:
-        dt = date_and_time.astimezone(UTC)
+        dt = date_and_time.astimezone(timezone.utc)
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
