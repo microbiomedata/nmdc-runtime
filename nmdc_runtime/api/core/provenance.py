@@ -102,7 +102,7 @@ def set_provenance_metadata_field(
 
 def set_provenance_metadata_add_date(
     document: Dict[str, Any],
-    add_date: str = generate_timestamp(),
+    add_date: Optional[str],
 ) -> Dict[str, Any]:
     """
     Set the `add_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
@@ -141,13 +141,14 @@ def set_provenance_metadata_add_date(
     ... )
     {'id': 'nmdc:sty-00-000001', 'provenance_metadata': {'type': 'nmdc:ProvenanceMetadata', 'add_date': '1999-12-25T12:45:59Z', 'mod_date': '2020-01-01T00:00:00Z'}}
     """
-
+    if not isinstance(add_date, str):
+        add_date = generate_timestamp()
     return set_provenance_metadata_field(document, "add_date", add_date)
 
 
 def set_provenance_metadata_mod_date(
     document: Dict[str, Any],
-    mod_date: str = generate_timestamp(),
+    mod_date: Optional[str],
 ) -> Dict[str, Any]:
     """
     Set the `mod_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
@@ -186,14 +187,15 @@ def set_provenance_metadata_mod_date(
     ... )
     {'id': 'nmdc:sty-00-000001', 'provenance_metadata': {'type': 'nmdc:ProvenanceMetadata', 'add_date': '2020-01-01T00:00:00Z', 'mod_date': '1999-12-25T12:45:59Z'}}
     """
-
+    if not isinstance(mod_date, str):
+        mod_date = generate_timestamp()
     return set_provenance_metadata_field(document, "mod_date", mod_date)
 
 
 def set_provenance_metadata_timestamps(
     document: Dict[str, Any],
-    add_date: str = generate_timestamp(),
-    mod_date: str = generate_timestamp(),
+    add_date: Optional[str] = None,
+    mod_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Set the `add_date` and `mod_date` fields of the `nmdc:ProvenanceMetadata` instance nested in the
@@ -218,6 +220,10 @@ def set_provenance_metadata_timestamps(
     ... )
     {'id': 'nmdc:sty-00-000001', 'provenance_metadata': {'type': 'nmdc:ProvenanceMetadata', 'add_date': '1999-12-25T12:45:59Z', 'mod_date': '2025-10-31T23:30:00Z'}}
     """
-
+    now = generate_timestamp()
+    if not isinstance(add_date, str):
+        add_date = now
+    if not isinstance(mod_date, str):
+        mod_date = now
     intermediate_document = set_provenance_metadata_add_date(document, add_date)
     return set_provenance_metadata_mod_date(intermediate_document, mod_date)
