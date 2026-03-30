@@ -170,6 +170,48 @@ class RuntimeApiUserClient(RuntimeApiClient):
         response.raise_for_status()
         return response.json()["resources"]
 
+    def get_linked_pooling_for_biosample(self, biosample_id: str):
+        """Fetch Pooling records linked to a given biosample using the
+        /nmdcschema/linked_instances endpoint.
+
+        :param biosample_id: NMDC biosample ID (e.g. "nmdc:bsm-11-abc123").
+        :return: List of hydrated Pooling records linked to the biosample.
+        """
+        response = self.request(
+            "GET",
+            "/nmdcschema/linked_instances",
+            {
+                "ids": biosample_id,
+                "types": "nmdc:Pooling",
+                "hydrate": True,
+                "max_page_size": 9999,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
+
+    def get_linked_library_preparation_for_processed_sample(
+        self, processed_sample_id: str
+    ):
+        """Fetch LibraryPreparation records linked to a given processed sample
+        using the /nmdcschema/linked_instances endpoint.
+
+        :param processed_sample_id: NMDC processed sample ID.
+        :return: List of hydrated LibraryPreparation records linked to the processed sample.
+        """
+        response = self.request(
+            "GET",
+            "/nmdcschema/linked_instances",
+            {
+                "ids": processed_sample_id,
+                "types": "nmdc:LibraryPreparation",
+                "hydrate": True,
+                "max_page_size": 9999,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["resources"]
+
     def get_data_generation_records_for_study(self, study_id: str):
         # TODO: same as above, we are using a large max_page_size to avoid pagination.
         response = self.request(
