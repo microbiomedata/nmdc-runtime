@@ -102,7 +102,7 @@ def set_provenance_metadata_field(
 
 def set_provenance_metadata_add_date(
     document: Dict[str, Any],
-    add_date: Optional[str],
+    add_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Set the `add_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
@@ -148,7 +148,7 @@ def set_provenance_metadata_add_date(
 
 def set_provenance_metadata_mod_date(
     document: Dict[str, Any],
-    mod_date: Optional[str],
+    mod_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Set the `mod_date` field of the `nmdc:ProvenanceMetadata` instance nested in the specified
