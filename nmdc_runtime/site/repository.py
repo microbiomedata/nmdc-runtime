@@ -34,6 +34,7 @@ from nmdc_runtime.site.graphs import (
     apply_changesheet,
     apply_metadata_in,
     hello_graph,
+    show_version_info_graph,
     translate_neon_api_soil_metadata_to_nmdc_schema_database,
     translate_neon_api_benthic_metadata_to_nmdc_schema_database,
     translate_neon_api_surface_water_metadata_to_nmdc_schema_database,
@@ -421,6 +422,10 @@ def on_run_fail(context: RunStatusSensorContext):
 def repo():
     graph_jobs = [
         hello_graph.to_job(name="hello_job"),
+        show_version_info_graph.to_job(
+            name="show_version_info",
+            description="Shows version information",
+        ),
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),

@@ -5,6 +5,7 @@ import os
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
+from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
 from toolz.dicttoolz import keyfilter
@@ -127,6 +128,14 @@ def hello(context):
     out = f"Hello, {name}!"
     context.log.info(out)
     return out
+
+
+@op
+def show_version_info_op(context):
+    """Logs and returns the Dagster repository version (i.e. the "nmdc_runtime" package version)."""
+    dagster_repository_version = version("nmdc_runtime")
+    context.log.info(f"Dagster repository version: {dagster_repository_version}")
+    return dagster_repository_version
 
 
 @op
