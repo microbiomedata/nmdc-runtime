@@ -1790,6 +1790,59 @@ def test_run_query_update_as_user(api_user_client):
         )
 
 
+def test_queries_run_rejects_update_containing_replacement_document(api_user_client):
+    """
+    Submit a request containing an update command containing a replacement document instead
+    of only operations documents. Expect that the endpoint rejects it with an error response.
+    """
+
+    mdb = get_mongo_db()
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:UpdateCommand)",
+    }
+    did_insert_allowance: bool = False  # whether we'll clean it up later
+
+    # Generate a replacement study.
+    faker = Faker()
+    study_a = faker.generate_studies(1)[0]
+
+    try:
+        if allowances_collection.count_documents(allow_spec) == 0:
+            allowances_collection.insert_one(allow_spec)
+            did_insert_allowance = True
+
+        # Test 1: Endpoint rejects payload containing only replacement documents.
+        with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+            _ = api_user_client.request(
+                "POST",
+                "/queries:run",
+                {
+                    "update": "study_set",
+                    "updates": [study_a],
+                },
+            )
+        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Test 2: Endpoint rejects payload containing a mixture of replacement documents
+        #         and operations documents.
+        operations_document = {"$set": {"description": "NEW DESCRIPTION"}}
+        with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+            _ = api_user_client.request(
+                "POST",
+                "/queries:run",
+                {
+                    "update": "study_set",
+                    "updates": [study_a, operations_document],
+                },
+            )
+        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    finally:
+        if did_insert_allowance:
+            allowances_collection.delete_one(allow_spec)
+
+
 def test_run_query_aggregate_as_user(api_user_client):
     """
     Submit a request to aggregate data without the correct permissions. Then add the permissions
