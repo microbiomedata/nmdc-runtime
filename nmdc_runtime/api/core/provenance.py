@@ -244,6 +244,10 @@ def augment_mongo_update_statement_to_set_mod_date(
     populate the `provenance_metadata.mod_date` field (of the targeted document or documents) so
     the field contains the specified `mod_date` (which defaults to the current timestamp).
 
+    TODO: The `UpdateStatement` can be used to describe both updates and upserts. This function
+          currently does not preserve the `provenance_metadata.add_date` values of documents that
+          would be replaced via an upsert.
+
     References:
     - https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.command
     - https://www.mongodb.com/docs/manual/reference/command/update/#mongodb-dbcommand-dbcmd.update
