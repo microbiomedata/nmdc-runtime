@@ -4,6 +4,8 @@ import pandas as pd
 
 from unittest.mock import MagicMock, patch
 
+from nmdc_schema import nmdc
+
 from nmdc_runtime.site.repair.database_updater import DatabaseUpdater
 
 
@@ -61,6 +63,12 @@ def test_generate_data_generation_set_records_from_gold_api_for_study(
         }
     ]
 
+    # No existing DataGeneration records linked to this biosample
+    mock_runtime_api_user_client.get_linked_data_generation_records_for_biosample.return_value = (
+        []
+    )
+    mock_runtime_api_user_client.get_linked_pooling_for_biosample.return_value = []
+
     mock_gold_api_client.fetch_biosample_by_biosample_id.return_value = [
         {
             "biosampleGoldId": "Gb0150488",
@@ -90,6 +98,7 @@ def test_generate_data_generation_set_records_from_gold_api_for_study(
     MockGoldStudyTranslator.return_value._translate_nucleotide_sequencing.return_value = MagicMock(
         id="nmdc:dgns-00-12345678",
         biosample_id="nmdc:bsm-11-q59jb831",
+        processing_institution=nmdc.ProcessingInstitutionEnum.JGI.text,
     )
     mint_id_mock = MagicMock()
     mint_id_mock.json.return_value = test_minter("nmdc:NucleotideSequencing", 1)

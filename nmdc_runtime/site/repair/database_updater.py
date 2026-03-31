@@ -35,6 +35,13 @@ class DatabaseUpdater:
         :param study_id: NMDC study ID for which the missing records need to be added.
         :param gold_nmdc_instrument_map_df: A dataframe originally stored as a TSV mapping file in the
         NMDC schema repo, which maps GOLD instrument IDs to IDs of NMDC instrument_set records.
+        :param include_field_site_info: Whether to include field research site information when
+        translating GOLD data. When True, the GoldStudyTranslator will create
+        `nmdc:FieldResearchSite` records and associate them with biosamples. Defaults to False.
+        :param enable_biosample_filtering: Whether to filter biosamples based on their
+        `sequencingStrategy` (only keeping "Metagenome" or "Metatranscriptome") and associated
+        project `projectStatus`. When False, all biosamples are included regardless of sequencing
+        strategy or project status. Defaults to True.
         """
         self.runtime_api_user_client = runtime_api_user_client
         self.runtime_api_site_client = runtime_api_site_client
@@ -84,7 +91,18 @@ class DatabaseUpdater:
 
         all_gold_biosamples = []
         all_gold_projects = []
+        existing_gold_project_ids = set()
         for biosample in biosample_set:
+            # Check for existing DataGeneration records linked to this biosample
+            # using the /nmdcschema/linked_instances endpoint, which is more
+            # efficient than fetching all DataGeneration records for the study.
+            linked_data_generations = self.runtime_api_user_client.get_linked_data_generation_records_for_biosample(
+                biosample["id"]
+            )
+            for dg in linked_data_generations:
+                for gold_id in dg.get("gold_sequencing_project_identifiers", []):
+                    existing_gold_project_ids.add(gold_id.replace("gold:", ""))
+
             gold_biosample_identifiers = biosample.get("gold_biosample_identifiers")
             if gold_biosample_identifiers:
                 for gold_biosample_id in gold_biosample_identifiers:
@@ -108,6 +126,24 @@ class DatabaseUpdater:
         filtered_biosamples = gold_study_translator.biosamples
         filtered_projects = gold_study_translator.projects
 
+        # Filter out GOLD projects that already have DataGeneration records in the database
+        filtered_projects = [
+            project
+            for project in filtered_projects
+            if project["projectGoldId"] not in existing_gold_project_ids
+        ]
+
+        # Deduplicate projects by projectGoldId — the same GOLD project can appear multiple
+        # times in all_gold_projects when a biosample has multiple gold_biosample_identifiers
+        # or when multiple NMDC biosamples share the same GOLD biosample.
+        seen_project_ids = set()
+        filtered_projects = [
+            project
+            for project in filtered_projects
+            if project["projectGoldId"] not in seen_project_ids
+            and not seen_project_ids.add(project["projectGoldId"])
+        ]
+
         gold_project_ids = [project["projectGoldId"] for project in filtered_projects]
         nmdc_nucleotide_sequencing_ids = self.runtime_api_site_client.mint_id(
             "nmdc:NucleotideSequencing", len(gold_project_ids)
@@ -116,19 +152,50 @@ class DatabaseUpdater:
             zip(gold_project_ids, nmdc_nucleotide_sequencing_ids)
         )
 
-        gold_to_nmdc_biosample_ids = {}
-
+        # Build a map from GOLD biosample ID → has_input ID for DataGeneration records
+        # by traversing the Pooling → LibraryPreparation chain. If a Pooling process
+        # exists for the biosample, use the ProcessedSample output of LibraryPreparation
+        # (if present) or of Pooling directly. If no Pooling exists, fall back to the
+        # biosample itself. Only one API call is made per unique GOLD biosample ID since
+        # multiple NMDC biosamples can share the same GOLD biosample ID when pooled.
+        gold_biosample_to_has_input_id = {}
+        seen_gold_biosample_ids = set()
         for biosample in biosample_set:
             gold_ids = biosample.get("gold_biosample_identifiers", [])
             for gold_id in gold_ids:
                 gold_id_stripped = gold_id.replace("gold:", "")
-                gold_to_nmdc_biosample_ids[gold_id_stripped] = biosample["id"]
+                if gold_id_stripped in seen_gold_biosample_ids:
+                    continue
+                seen_gold_biosample_ids.add(gold_id_stripped)
+
+                pooling_records = (
+                    self.runtime_api_user_client.get_linked_pooling_for_biosample(
+                        biosample["id"]
+                    )
+                )
+                if pooling_records:
+                    pooling_output_id = pooling_records[0]["has_output"][0]
+                    lib_prep_records = self.runtime_api_user_client.get_linked_library_preparation_for_processed_sample(
+                        pooling_output_id
+                    )
+                    if lib_prep_records:
+                        has_input_id = lib_prep_records[0]["has_output"][0]
+                    else:
+                        has_input_id = pooling_output_id
+                else:
+                    has_input_id = biosample["id"]
+
+                gold_biosample_to_has_input_id[gold_id_stripped] = has_input_id
+
+        provenance_metadata = gold_study_translator._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.GOLD.text,
+        )
 
         database.data_generation_set = []
         # Similar to the logic in GoldStudyTranslator, the number of nmdc:NucleotideSequencing records
         # created is based on the number of GOLD sequencing projects
         for project in filtered_projects:
-            # map the projectGoldId to the NMDC biosample ID
+            # map the projectGoldId to the has_input ID (ProcessedSample or Biosample)
             biosample_gold_id = next(
                 (
                     biosample["biosampleGoldId"]
@@ -142,18 +209,26 @@ class DatabaseUpdater:
             )
 
             if biosample_gold_id:
-                nmdc_biosample_id = gold_to_nmdc_biosample_ids.get(biosample_gold_id)
-                if nmdc_biosample_id:
+                has_input_id = gold_biosample_to_has_input_id.get(biosample_gold_id)
+                if has_input_id:
                     database.data_generation_set.append(
                         gold_study_translator._translate_nucleotide_sequencing(
                             project,
                             nmdc_nucleotide_sequencing_id=gold_project_to_nmdc_nucleotide_sequencing_ids[
                                 project["projectGoldId"]
                             ],
-                            nmdc_biosample_id=nmdc_biosample_id,
+                            nmdc_biosample_id=has_input_id,
                             nmdc_study_id=self.study_id,
+                            provenance_metadata=provenance_metadata,
                         )
                     )
+
+        database.data_generation_set = [
+            record
+            for record in database.data_generation_set
+            if str(record.processing_institution)
+            == nmdc.ProcessingInstitutionEnum.JGI.text
+        ]
 
         return database
 
@@ -235,6 +310,10 @@ class DatabaseUpdater:
         ).json()
         gold_to_nmdc_biosample_ids = dict(zip(gold_biosample_ids, nmdc_biosample_ids))
 
+        provenance_metadata = gold_study_translator._get_provenance_metadata(
+            source_system_of_record=nmdc.SourceSystemEnum.GOLD.text,
+        )
+
         database.biosample_set = [
             gold_study_translator._translate_biosample(
                 biosample,
@@ -243,6 +322,7 @@ class DatabaseUpdater:
                 ],
                 nmdc_study_id=self.study_id,
                 nmdc_field_site_id=None,
+                provenance_metadata=provenance_metadata,
             )
             for biosample in translated_biosamples
         ]

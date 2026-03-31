@@ -33,6 +33,13 @@ def mint_ids(
     site: Site = Depends(get_current_client_site),
 ) -> list[str]:
     """Mint one or more (typed) persistent identifiers."""
+
+    # Note: The schema requires that instances of classes that inherit from `WorkflowExecution`
+    #       have `id` values that end with ".{integer}"; but the minter currently mints `id`s
+    #       that lack that suffix. As a result, the `id`s minted by the minter in those cases
+    #       are not schema compliant.
+    # TODO: Consider documenting the above information in a user-facing way.
+
     s = MongoIDStore(mdb)
     requester = Entity(id=site.id)
     try:
