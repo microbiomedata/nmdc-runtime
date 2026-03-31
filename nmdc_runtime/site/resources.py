@@ -606,7 +606,7 @@ class MongoDB:
                     original_add_date: Optional[str] = None
                     if (
                         submitted_document_id
-                        in original_add_dates_by_document_id.keys()
+                        in original_add_dates_by_document_id
                     ):
                         original_add_date = original_add_dates_by_document_id[
                             submitted_document_id

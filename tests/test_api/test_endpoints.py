@@ -1923,7 +1923,7 @@ def test_queries_run_populates_provenance_metadata(api_user_client):
             assert isinstance(updated_study_b["provenance_metadata"]["mod_date"], str)
             assert "add_date" in updated_study_b["provenance_metadata"]
             assert updated_study_b["provenance_metadata"]["add_date"] == original_add_date
-            assert updated_study_a["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
+            assert updated_study_b["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
         finally:
             study_set.delete_many({"id": study_b["id"]})
     finally:
