@@ -604,10 +604,7 @@ class MongoDB:
                 for submitted_document in collection_docs:
                     submitted_document_id = submitted_document["id"]
                     original_add_date: Optional[str] = None
-                    if (
-                        submitted_document_id
-                        in original_add_dates_by_document_id
-                    ):
+                    if submitted_document_id in original_add_dates_by_document_id:
                         original_add_date = original_add_dates_by_document_id[
                             submitted_document_id
                         ]
