@@ -64,6 +64,36 @@ run-test:
 # 3. Run tests on the `test` container, passing `ARGS` to `pytest` (see Tip in comment above for `run-test` target).
 test: down-test up-test run-test
 
+# Spins up a fresh test stack and then opens an interactive bash shell within the `test` container.
+test-shell: down-test up-test
+	docker compose --file docker-compose.test.yml exec -it test \
+		/bin/bash -lc \
+		'printf "%s\n" \
+			"" \
+			"🐳 You are in the test container." \
+			"" \
+			"Example commands:" \
+			"  $$ uv run --active pytest -vv --showlocals" \
+			"  $$ uv run --active pytest /path/to/a/test_file.py" \
+			"  $$ uv run --active pytest -k name_of_a_test_function" \
+			""; \
+		exec /bin/bash'
+
+# Restarts the `fastapi` container in the test stack.
+#
+# Note: We use this when doing test-driven development. In the test stack, Uvicorn does _not_ run in
+#       "reload" mode (i.e. it does automatically restart the FastAPI app whenever the code changes).
+#
+reset-fastapi-test:
+	docker compose --file docker-compose.test.yml restart fastapi
+
+# Deletes the data volume used by the Mongo instance in the test stack, and restarts the dependent
+# containers in the stack (this does not include the "test" container—the one remains up).
+clear-db-test:
+	docker compose --file docker-compose.test.yml down fastapi dagster-daemon dagster-dagit
+	docker compose --file docker-compose.test.yml down --volumes mongo
+	docker compose --file docker-compose.test.yml up --detach
+
 # Format Python code using `black`.
 # TODO: Migrate from `black` to `ruff`.
 black:
