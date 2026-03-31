@@ -401,9 +401,13 @@ def _run_mdb_cmd(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=(
                         "Updates must be specified via operations documents "
-                        r'(e.g., `{"$set": {"field": "value"}}`). '
+                        "(e.g., {“$set”: {“field”: “newValue”}}). "
                         "Specifying updates via replacement documents "
-                        r'(e.g., `{"field": "value"}`) is not supported.'
+                        "(e.g., {“field”: “newValue”}) is not supported. "
+                        ""  # vertical spacing for developers; does not affect resulting string
+                        "Note that we used curly quotes as delimiters in these examples so we "
+                        "could embed the examples within this string. As always, your API request "
+                        "body must be valid JSON, which requires the use of straight quotes."
                     ),
                 )
 
