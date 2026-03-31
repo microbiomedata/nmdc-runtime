@@ -259,7 +259,7 @@ def augment_mongo_update_statement_to_set_mod_date(
     ...     "2025-10-31T23:30:00Z"
     ... )
     UpdateStatement(q={'id': 'nmdc:sty-00-000001'}, u={'$set': {'field1': 'value1', 'field2': 'value2', 'provenance_metadata.mod_date': '2025-10-31T23:30:00Z', 'provenance_metadata.type': 'nmdc:ProvenanceMetadata'}}, upsert=False, multi=False, hint=None)
-    
+
     2. Operator expression in which `u` lacks a "$set" key:
     >>> augment_mongo_update_statement_to_set_mod_date(
     ...     UpdateStatement(
@@ -293,7 +293,7 @@ def augment_mongo_update_statement_to_set_mod_date(
 
     if not isinstance(mod_date, str):
         mod_date = generate_timestamp()
-    
+
     u = update_statement.u
 
     # Determine whether the `Document` in the `u` attribute of the statement is a so-called
@@ -317,6 +317,9 @@ def augment_mongo_update_statement_to_set_mod_date(
             u["provenance_metadata"]["mod_date"] = mod_date
             u["provenance_metadata"]["type"] = PROVENANCE_METADATA_TYPE
         else:
-            u["provenance_metadata"] = {"type": PROVENANCE_METADATA_TYPE, "mod_date": mod_date}
+            u["provenance_metadata"] = {
+                "type": PROVENANCE_METADATA_TYPE,
+                "mod_date": mod_date,
+            }
 
     return update_statement
