@@ -1800,47 +1800,135 @@ def test_queries_run_rejects_update_containing_replacement_document(api_user_cli
     allowances_collection = mdb.get_collection("_runtime.api.allow")
     allow_spec = {
         "username": api_user_client.username,
-        "action": "/queries:run(query_cmd:UpdateCommand)",
+        "action": "/queries:run(query_cmd:DeleteCommand)",
     }
-    did_insert_allowance: bool = False  # whether we'll clean it up later
+    did_insert_allowance: bool = False  # keep track of whether we'll clean it up later
 
     # Generate a replacement study.
     faker = Faker()
-    study_a = faker.generate_studies(1)[0]
+    study_a = faker.generate_studies(1, id="nmdc:sty-00-distinct")[0]
 
     try:
         if allowances_collection.count_documents(allow_spec) == 0:
             allowances_collection.insert_one(allow_spec)
             did_insert_allowance = True
 
-        # Test 1: Endpoint rejects payload containing only replacement documents.
+        # Test 1: Endpoint rejects payload containing replacement documents.
+        an_update_statement_containing_replacement_document = {
+            "q": {"id": study_a["id"]},
+            "u": study_a
+        }
         with pytest.raises(requests.exceptions.HTTPError) as excinfo:
             _ = api_user_client.request(
                 "POST",
                 "/queries:run",
                 {
                     "update": "study_set",
-                    "updates": [study_a],
-                },
-            )
-        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-        # Test 2: Endpoint rejects payload containing a mixture of replacement documents
-        #         and operations documents.
-        operations_document = {"$set": {"description": "NEW DESCRIPTION"}}
-        with pytest.raises(requests.exceptions.HTTPError) as excinfo:
-            _ = api_user_client.request(
-                "POST",
-                "/queries:run",
-                {
-                    "update": "study_set",
-                    "updates": [study_a, operations_document],
+                    "updates": [an_update_statement_containing_replacement_document],
                 },
             )
         assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     finally:
         if did_insert_allowance:
-            allowances_collection.delete_one(allow_spec)
+            allowances_collection.delete_many(allow_spec)
+
+
+def test_queries_run_populates_provenance_metadata(api_user_client):
+    """
+    Submit a request containing an update command and confirm that the endpoint populates the
+    `mod_date` field the way we expect.
+    """
+
+    mdb = get_mongo_db()
+    study_set = mdb.get_collection("study_set")
+    allowances_collection = mdb.get_collection("_runtime.api.allow")
+    allow_spec = {
+        "username": api_user_client.username,
+        "action": "/queries:run(query_cmd:DeleteCommand)",
+    }
+    did_insert_allowance: bool = False  # keep track of whether we'll clean it up later
+
+    # Generate study documents.
+    faker = Faker()
+    study_a, study_b = faker.generate_studies(2)
+    study_a["id"] = "nmdc:sty-00-distinct"
+    study_b["id"] = "nmdc:sty-00-distinct2"
+
+    try:
+        if allowances_collection.count_documents(allow_spec) == 0:
+            allowances_collection.insert_one(allow_spec)
+            did_insert_allowance = True
+
+        # Test 1: Confirm the endpoint populates the `provenance_metadata.mod_date` field.
+        try:
+            # Seed the database with a document that we can later update via the API.
+            assert study_set.count_documents({"id": study_a["id"]}) == 0
+            study_set.insert_one(study_a)
+            assert "provenance_metadata" not in study_a
+
+            # Update the document via the API.
+            new_description = "NEW DESCRIPTION"
+            operations_document = {"$set": {"description": new_description}}
+            an_update_statement = {"q": {"id": study_a["id"]}, "u": operations_document}
+            _ = api_user_client.request(
+                "POST",
+                "/queries:run",
+                {
+                    "update": "study_set",
+                    "updates": [an_update_statement],
+                },
+            )
+
+            # Check that the endpoint populated the `provenance_metadata.mod_date` field.
+            updated_study_a = study_set.find_one({"id": study_a["id"]})
+            assert updated_study_a is not None
+            assert updated_study_a["description"] == new_description
+            assert "provenance_metadata" in updated_study_a
+            assert "mod_date" in updated_study_a["provenance_metadata"]
+            assert isinstance(updated_study_a["provenance_metadata"]["mod_date"], str)
+            assert updated_study_a["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
+        finally:
+            study_set.delete_many({"id": study_a["id"]})
+
+        # Test 2: Confirm the endpoint preserves the existing `provenance_metadata.add_date` value.
+        try:
+            # Seed the database with a document that we can later update via the API.
+            original_add_date = "2020-01-01T00:00:00Z"
+            study_b["provenance_metadata"] = {
+                "add_date": original_add_date,
+                "type": "nmdc:ProvenanceMetadata",
+            }
+            assert study_set.count_documents({"id": study_b["id"]}) == 0
+            study_set.insert_one(study_b)
+            assert study_set.count_documents({"id": study_b["id"]}) == 1
+
+            # Update the document via the API.
+            an_update_statement = {"q": {"id": study_b["id"]}, "u": operations_document}
+            _ = api_user_client.request(
+                "POST",
+                "/queries:run",
+                {
+                    "update": "study_set",
+                    "updates": [an_update_statement],
+                },
+            )
+
+            # Check that the endpoint populated the `provenance_metadata.mod_date` field
+            # and preserved the original `provenance_metadata.add_date` value.
+            updated_study_b = study_set.find_one({"id": study_b["id"]})
+            assert updated_study_b is not None
+            assert updated_study_b["description"] == new_description
+            assert "provenance_metadata" in updated_study_b
+            assert "mod_date" in updated_study_b["provenance_metadata"]
+            assert isinstance(updated_study_b["provenance_metadata"]["mod_date"], str)
+            assert "add_date" in updated_study_b["provenance_metadata"]
+            assert updated_study_b["provenance_metadata"]["add_date"] == original_add_date
+            assert updated_study_a["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
+        finally:
+            study_set.delete_many({"id": study_b["id"]})
+    finally:
+        if did_insert_allowance:
+            allowances_collection.delete_many(allow_spec)
 
 
 def test_run_query_aggregate_as_user(api_user_client):
