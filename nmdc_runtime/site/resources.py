@@ -21,6 +21,11 @@ from pymongo import MongoClient, ReplaceOne, InsertOne
 from toolz import get_in
 from toolz import merge
 
+from nmdc_runtime.api.core.provenance import (
+    NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD,
+    set_provenance_metadata_add_date,
+    set_provenance_metadata_mod_date,
+)
 from nmdc_runtime.api.core.util import expiry_dt_from_now, has_passed
 from nmdc_runtime.api.models.object import DrsObject, AccessURL, DrsObjectIn
 from nmdc_runtime.api.models.operation import ListOperationsResponse
@@ -616,6 +621,74 @@ class MongoDB:
             if len(collection_docs) == 0:
                 continue
 
+            # Check whether the collection we're currently processing is one that the NMDC schema
+            # says can contain documents having a `provenance_metadata` field.
+            if (
+                collection_name
+                in NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD
+            ):
+                # Make a look-up table of the `id` and `provenance_metadata.add_date` values of
+                # existing documents (i.e. documents that are in the collection and have the same
+                # `id` as a submitted one). We'll use that LUT to (a) determine whether a submitted
+                # document is being "added" versus "modified", and (b) so we can preserve documents'
+                # original `add_date` values when we do the eventual "upsert" operation (which is
+                # effectively a "replace" operation, as opposed to a "patch" operation).
+                original_add_dates_by_document_id = dict()  # the LUT
+                ids_of_submitted_documents = set(
+                    document["id"] for document in collection_docs
+                )
+                matching_existing_documents_cursor = self.db[collection_name].find(
+                    {"id": {"$in": list(ids_of_submitted_documents)}},
+                    {"id": 1, "provenance_metadata.add_date": 1},
+                )
+                for existing_document in matching_existing_documents_cursor:
+                    # Note: We still want an entry in our LUT for this existing document (even if
+                    #       it lacks an `add_date` value) so we can use the LUT to distinguish
+                    #       between documents being "added" versus "modified".
+                    original_add_dates_by_document_id[existing_document["id"]] = None
+                    # Get the `add_date` of the existing document so we can preserve it.
+                    add_date = None
+                    if "provenance_metadata" in existing_document:
+                        if "add_date" in existing_document["provenance_metadata"]:
+                            add_date = existing_document["provenance_metadata"][
+                                "add_date"
+                            ]
+                            original_add_dates_by_document_id[
+                                existing_document["id"]
+                            ] = add_date
+
+                # For each submitted document, use our LUT to determine whether a document having
+                # the same `id` already exists in the collection.
+                #
+                # If so, and the existing document has a string `add_date` value, inject that value
+                # into the submitted document so it "survives" the eventual "upsert" operation.
+                # Also, regardless of an original `add_date` value, set `mod_date` to now.
+                #
+                # Otherwise, set `add_date` to now, since the submitted document is a new
+                # document (i.e. being "added", not "modified"), and do not set `mod_date`.
+                #
+                for submitted_document in collection_docs:
+                    submitted_document_id = submitted_document["id"]
+                    original_add_date: Optional[str] = None
+                    if submitted_document_id in original_add_dates_by_document_id:
+                        original_add_date = original_add_dates_by_document_id[
+                            submitted_document_id
+                        ]
+                        if isinstance(original_add_date, str):
+                            set_provenance_metadata_add_date(
+                                submitted_document, original_add_date
+                            )
+                        set_provenance_metadata_mod_date(
+                            submitted_document
+                        )  # defaults to now
+                    else:
+                        set_provenance_metadata_add_date(
+                            submitted_document
+                        )  # defaults to now
+
+            # TODO: As a performance enhancement, consolidate the database writes being done below
+            #       (which involve per-document iteration), with the per-document iteration being
+            #       done above for setting the provenance metadata fields.
             rv[collection_name] = self.db[collection_name].bulk_write(
                 [
                     (

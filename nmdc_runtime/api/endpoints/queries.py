@@ -9,6 +9,10 @@ from toolz import assoc_in
 from refscan.lib.Finder import Finder
 from refscan.scanner import identify_referring_documents
 
+from nmdc_runtime.api.core.provenance import (
+    NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD,
+    augment_mongo_update_statement_to_set_mod_date,
+)
 from nmdc_runtime.api.core.util import now
 from nmdc_runtime.api.db.mongo import (
     get_mongo_db,
@@ -387,6 +391,26 @@ def _run_mdb_cmd(
                     detail="Failed to back up to-be-deleted documents. operation aborted.",
                 )
     elif isinstance(cmd, UpdateCommand):
+        # Check whether the user submitted any "replacement documents" instead of submitting all
+        # "operations documents." If so, abort with an HTTP 422 because we have not yet implemented
+        # the preservation of `provenance_metadata.add_date` values from the original documents
+        # (those that would be replaced via the eventual upsert).
+        for update_statement in cmd.updates:
+            if not any(k.startswith("$") for k in update_statement.u.keys()):
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        "Updates must be specified via operations documents "
+                        "(e.g., {“$set”: {“field”: “newValue”}}). "
+                        "Specifying updates via replacement documents "
+                        "(e.g., {“field”: “newValue”}) is not supported. "
+                        ""  # vertical spacing for developers; does not affect resulting string
+                        "Note that we used curly quotes as delimiters in these examples so we "
+                        "could embed the examples within this string. As always, your API request "
+                        "body must be valid JSON, which requires the use of straight quotes."
+                    ),
+                )
+
         collection_name = cmd.update
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
@@ -518,6 +542,17 @@ def _run_mdb_cmd(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="The specified 'getMore' value resolved to an invalid command.",
             )
+
+    # Check whether the command is an `UpdateCommand` and the collection it identifies is
+    # one that the NMDC schema says can contain documents having a `provenance_metadata` field.
+    if isinstance(cmd, UpdateCommand) and (
+        cmd.update
+        in NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD
+    ):
+        # Augment the command's constituent statements so that each one also sets the
+        # `provenance_metadata.mod_date` field to a timestamp representing _now_.
+        for update_statement in cmd.updates:
+            augment_mongo_update_statement_to_set_mod_date(update_statement)
 
     # Issue `cmd` (possibly modified) as a mongo command, and ensure a well-formed response.
     #  transform e.g. `{"$oid": "..."}` instances in model_dump to `ObjectId("...")` instances.

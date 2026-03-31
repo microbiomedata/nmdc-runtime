@@ -219,6 +219,10 @@ async def submit_json_nmdcdb(
 def _ensure_job__metadata_in(
     docs, username, mdb, client_id=API_SITE_CLIENT_ID, drs_object_exists_ok=False
 ):
+    """
+    TODO: Document this function.
+    """
+
     drs_obj_doc = persist_content_and_get_drs_object(
         content=json.dumps(docs),
         username=username,
