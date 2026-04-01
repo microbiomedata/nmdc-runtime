@@ -1,3 +1,4 @@
+from importlib.metadata import version
 import json
 
 
@@ -422,9 +423,16 @@ def on_run_fail(context: RunStatusSensorContext):
 def repo():
     graph_jobs = [
         hello_graph.to_job(name="hello_job"),
+        # Note: Not only does this Job print the "nmdc_runtime" package version when run; it also
+        #       has a "Metadata" value that already _is_ that same package version, so users of the
+        #       Dagster web UI can simply visit the Job's details page (which displays its metadata)
+        #       in order to get the package version—there is no need to actually _run_ the Job.
         show_version_info_graph.to_job(
             name="show_version_info",
             description="Shows version information",
+            metadata={
+                "nmdc_runtime": version("nmdc_runtime"),
+            }
         ),
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),

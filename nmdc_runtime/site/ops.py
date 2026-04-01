@@ -132,10 +132,10 @@ def hello(context):
 
 @op
 def show_version_info_op(context):
-    """Logs and returns the Dagster repository version (i.e. the "nmdc_runtime" package version)."""
-    dagster_repository_version = version("nmdc_runtime")
-    context.log.info(f"Dagster repository version: {dagster_repository_version}")
-    return dagster_repository_version
+    """Logs and returns the "nmdc_runtime" package version."""
+    nmdc_runtime_package_version = version("nmdc_runtime")
+    context.log.info(f"nmdc_runtime package version: {nmdc_runtime_package_version}")
+    return nmdc_runtime_package_version
 
 
 @op
