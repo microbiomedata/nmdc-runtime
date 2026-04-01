@@ -18,6 +18,7 @@ from nmdc_runtime.site.ops import (
     list_operations,
     filter_ops_done_object_puts,
     hello,
+    show_version_info_op,
     mongo_stats,
     run_script_to_update_insdc_biosample_identifiers,
     submit_metadata_to_db,
@@ -80,6 +81,11 @@ def create_objects_from_site_object_puts():
 @graph
 def hello_graph():
     return hello()
+
+
+@graph
+def show_version_info_graph():
+    return show_version_info_op()
 
 
 @graph
