@@ -8,6 +8,7 @@ by issuing the following command from the root directory of the repository withi
 """
 
 import doctest
+import os
 
 import pytest
 from refscan.lib.Finder import Finder
@@ -187,6 +188,10 @@ def test_validate_json_reports_multiple_broken_references_emanating_from_single_
     assert len(result["detail"]["study_set"]) == 2
 
 
+@pytest.mark.skipif(
+    os.getenv("ENABLE_DB_TESTS") != "true",
+    reason="Requires ontology_class_set data (ENABLE_DB_TESTS=true)",
+)
 def test_validate_json_checks_referential_integrity_after_applying_all_collections_changes(
     db,
 ):
@@ -390,17 +395,23 @@ def test_does_collection_have_unique_index_on_id_field(db):
     # Test: Collection has a unique index on its `id` field.
     collection = db.get_collection(collection_name)
     collection.create_index("id", unique=True)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is True
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is True
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection has a non-unique index on its `id` field.
     collection = db.get_collection(collection_name)
     collection.create_index("id", unique=False)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection has multiple indexes, including a unique index on its `id` field.
@@ -408,43 +419,61 @@ def test_does_collection_have_unique_index_on_id_field(db):
     collection.create_index("id", unique=True)
     collection.create_index("age", unique=False)
     collection.create_index("real_name", unique=False)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is True
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is True
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection has a unique index on a field _other_ than `id` only.
     collection = db.get_collection(collection_name)
     collection.create_index("username", unique=True)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection has a unique index that _includes_ `id`, but also other fields.
     collection = db.get_collection(collection_name)
     collection.create_index([("id", 1), ("username", 1)], unique=True)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection has _no_ indexes at all.
     collection = db.get_collection(collection_name)
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
     db.drop_collection(collection_name)
 
     # Test: Collection does not _exist_.
     assert collection_name not in db.list_collection_names()
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
 
     # Test: "Collection" is actually a _view_.
     db.command("create", collection_name, viewOn="study_set", pipeline=[])
-    assert does_collection_have_unique_index_on_id_field(
-        collection_name=collection_name, db=db
-    ) is False
+    assert (
+        does_collection_have_unique_index_on_id_field(
+            collection_name=collection_name, db=db
+        )
+        is False
+    )
     db.drop_collection(collection_name)

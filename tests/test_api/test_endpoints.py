@@ -460,6 +460,10 @@ def test_metadata_validate_json_with_type_attribute(api_site_client):
     assert rv.json()["result"] != "errors"
 
 
+@pytest.mark.skipif(
+    os.getenv("ENABLE_DB_TESTS") != "true",
+    reason="Requires ontology_class_set data (ENABLE_DB_TESTS=true)",
+)
 def test_metadata_validate_json_env_triad_errors(api_site_client):
     """validate_json rejects biosamples whose env triad terms are not in ontology_class_set."""
     rv = api_site_client.request(
