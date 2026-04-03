@@ -22,7 +22,8 @@ from nmdc_runtime.site.validation.env_triad import (
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "files"
 
 
-def _make_term(curie, name="test term"):
+def _make_term(curie: str, name: str = "test term") -> dict:
+    """Build a ControlledIdentifiedTermValue dict for a given CURIE."""
     return {
         "type": "nmdc:ControlledIdentifiedTermValue",
         "term": {"id": curie, "name": name, "type": "nmdc:OntologyClass"},
@@ -30,11 +31,12 @@ def _make_term(curie, name="test term"):
 
 
 def _make_biosample(
-    bs_id="nmdc:bsm-00-test01",
-    broad="ENVO:01000253",
-    local="ENVO:03600095",
-    medium="ENVO:01001057",
-):
+    bs_id: str = "nmdc:bsm-00-test01",
+    broad: str | None = "ENVO:01000253",
+    local: str | None = "ENVO:03600095",
+    medium: str | None = "ENVO:01001057",
+) -> dict:
+    """Build a minimal biosample dict with the given env triad CURIEs."""
     bs = {"id": bs_id, "type": "nmdc:Biosample"}
     if broad is not None:
         bs["env_broad_scale"] = _make_term(broad)
@@ -114,10 +116,11 @@ ONTOLOGY_CLASS_DOCS = {
 class FakeCollection:
     """Minimal stand-in for a pymongo Collection that serves canned docs."""
 
-    def __init__(self, docs):
+    def __init__(self, docs: dict) -> None:
         self._docs = docs
 
-    def find(self, query, projection=None):
+    def find(self, query: dict, projection: dict | None = None) -> list[dict]:
+        """Return docs whose id is in the $in list of the query."""
         curie_list = query.get("id", {}).get("$in", [])
         return [self._docs[c] for c in curie_list if c in self._docs]
 
@@ -125,10 +128,11 @@ class FakeCollection:
 class FakeDB:
     """Minimal stand-in for a pymongo Database."""
 
-    def __init__(self, collections):
+    def __init__(self, collections: dict) -> None:
         self._collections = collections
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> FakeCollection:
+        """Return the named collection."""
         return self._collections[name]
 
 

@@ -1134,7 +1134,9 @@ class TestFindDataObjectsForStudy:
         ) == set([dobj["id"] for dobj in received_data_objects])
 
     @pytest.fixture()
-    def seeded_db_having_data_object_downstream_from_multiple_biosamples(self, seeded_db):
+    def seeded_db_having_data_object_downstream_from_multiple_biosamples(
+        self, seeded_db
+    ):
         """
         This fixture inserts a second `Biosample` (`biosample_b`) upstream of a `DataObject`.
 
@@ -1147,7 +1149,9 @@ class TestFindDataObjectsForStudy:
         """
 
         faker = Faker()
-        biosample_b = faker.generate_biosamples(1, id="nmdc:bsm-00-000002", associated_studies=[self.study_id])[0]
+        biosample_b = faker.generate_biosamples(
+            1, id="nmdc:bsm-00-000002", associated_studies=[self.study_id]
+        )[0]
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         workflow_execution_set.update_one(
             {"id": self.workflow_execution_ids[0]},
@@ -1180,8 +1184,10 @@ class TestFindDataObjectsForStudy:
         ensure_alldocs_collection_has_been_materialized(force_refresh_of_alldocs=True)
 
     def test_it_includes_same_data_object_in_each_upstream_biosample_list(
-            self, api_site_client, seeded_db_having_data_object_downstream_from_multiple_biosamples
-        ):
+        self,
+        api_site_client,
+        seeded_db_having_data_object_downstream_from_multiple_biosamples,
+    ):
         """
         This test is focused on the scenario where a given `DataObject` is downstream from two
         `Biosamples` associated with the specified `Study`. This test confirms the `DataObject`
@@ -1707,7 +1713,7 @@ def test_queries_run_rejects_update_containing_replacement_document(api_user_cli
         # Test 1: Endpoint rejects payload containing replacement documents.
         an_update_statement_containing_replacement_document = {
             "q": {"id": study_a["id"]},
-            "u": study_a
+            "u": study_a,
         }
         with pytest.raises(requests.exceptions.HTTPError) as excinfo:
             _ = api_user_client.request(
@@ -1718,7 +1724,9 @@ def test_queries_run_rejects_update_containing_replacement_document(api_user_cli
                     "updates": [an_update_statement_containing_replacement_document],
                 },
             )
-        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert (
+            excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
     finally:
         if did_insert_allowance:
             allowances_collection.delete_many(allow_spec)
@@ -1777,7 +1785,10 @@ def test_queries_run_populates_provenance_metadata(api_user_client):
             assert "provenance_metadata" in updated_study_a
             assert "mod_date" in updated_study_a["provenance_metadata"]
             assert isinstance(updated_study_a["provenance_metadata"]["mod_date"], str)
-            assert updated_study_a["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
+            assert (
+                updated_study_a["provenance_metadata"]["type"]
+                == "nmdc:ProvenanceMetadata"
+            )
         finally:
             study_set.delete_many({"id": study_a["id"]})
 
@@ -1813,8 +1824,13 @@ def test_queries_run_populates_provenance_metadata(api_user_client):
             assert "mod_date" in updated_study_b["provenance_metadata"]
             assert isinstance(updated_study_b["provenance_metadata"]["mod_date"], str)
             assert "add_date" in updated_study_b["provenance_metadata"]
-            assert updated_study_b["provenance_metadata"]["add_date"] == original_add_date
-            assert updated_study_b["provenance_metadata"]["type"] == "nmdc:ProvenanceMetadata"
+            assert (
+                updated_study_b["provenance_metadata"]["add_date"] == original_add_date
+            )
+            assert (
+                updated_study_b["provenance_metadata"]["type"]
+                == "nmdc:ProvenanceMetadata"
+            )
         finally:
             study_set.delete_many({"id": study_b["id"]})
     finally:
@@ -3375,11 +3391,13 @@ def test_release_jobs(api_site_client, db_having_jobs):
 def test_release_jobs_skips_redundant_ids(api_site_client, db_having_jobs):
     db, job_ids = db_having_jobs  # concise alias
 
-    assert len(set(job_ids)) == len(job_ids)  # confirm the original IDs are all distinct
+    assert len(set(job_ids)) == len(
+        job_ids
+    )  # confirm the original IDs are all distinct
 
     # Include a second occurrence of one of the IDs.
     redundant_job_id = job_ids[0]
-    
+
     # Submit a request to release those jobs.
     response = api_site_client.request(
         "POST",
@@ -3401,7 +3419,12 @@ def test_release_jobs_skips_non_existent_job(api_site_client, db_having_jobs):
     # Generate an ID of a job that doesn't exist.
     id_of_nonexistent_job = "nmdc:job-xx-foobar"
     assert id_of_nonexistent_job not in job_ids
-    assert db.get_collection("jobs").count_documents({"id": id_of_nonexistent_job}, limit=1) == 0
+    assert (
+        db.get_collection("jobs").count_documents(
+            {"id": id_of_nonexistent_job}, limit=1
+        )
+        == 0
+    )
 
     # Submit a request to release that nonexistent job plus the existing ones.
     response = api_site_client.request(
@@ -3430,10 +3453,12 @@ def test_find_studies_with_using_cursor_pagination_and_no_results(api_user_clien
     assert study_set.count_documents(filter_) == 0
 
     # Build URL query parameters that include that filter.
-    query_str = urlencode({
-        "filter": filter_,
-        "cursor": "*",
-    })
+    query_str = urlencode(
+        {
+            "filter": filter_,
+            "cursor": "*",
+        }
+    )
 
     # Confirm the API endpoint returns an empty results list and a null "next_cursor" value.
     response = api_user_client.request("GET", f"/studies?{query_str}")
@@ -3469,7 +3494,10 @@ def test_create_job(api_site_client):
     assert response.status_code == status.HTTP_201_CREATED
     created_job = response.json()
     assert isinstance(created_job["id"], str) and len(created_job["id"]) > 0
-    assert isinstance(created_job["created_at"], str) and len(created_job["created_at"]) > 0
+    assert (
+        isinstance(created_job["created_at"], str)
+        and len(created_job["created_at"]) > 0
+    )
     assert created_job["name"] == job_name  # optional field was preserved
     assert "extra_field" not in created_job  # unrecognized field was discarded
 
@@ -3504,6 +3532,7 @@ def test_create_invalid_job(api_site_client):
     # Verify no job was created.
     assert jobs_collection.count_documents({}) == num_jobs_initial
 
+
 def test_get_globus_tasks_by_id(api_user_client):
     """Test retrieving a Globus task by its ID via GET /wf_file_staging/globus_tasks/{task_id} endpoint."""
 
@@ -3522,12 +3551,11 @@ def test_get_globus_tasks_by_id(api_user_client):
     globus.insert_many(globus_records)
     seeded_record = globus_records[0]
 
-    id = seeded_record['task_id']
+    id = seeded_record["task_id"]
     response = api_user_client.request(
         "GET",
         f"/wf_file_staging/globus_tasks/{id}",
     )
-
 
     # Verify the response indicates success and its payload matches the seeded record.
     assert response.status_code == status.HTTP_200_OK
@@ -3538,6 +3566,7 @@ def test_get_globus_tasks_by_id(api_user_client):
     # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
+
 
 def test_get_globus_tasks(api_user_client):
     """Test retrieving all Globus tasks via GET /wf_file_staging/globus_tasks endpoint."""
@@ -3566,12 +3595,15 @@ def test_get_globus_tasks(api_user_client):
     retrieved_records = response.json()
     assert len(retrieved_records["resources"]) == 3
     assert retrieved_records["resources"][0]["task_id"] == seeded_record["task_id"]
-    assert retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
+    assert (
+        retrieved_records["resources"][0]["task_status"] == seeded_record["task_status"]
+    )
 
     # Clean up: Delete the inserted Globus task.
     allowances_collection.delete_many(allow_spec)
     # delete all inserted records
     globus.delete_many({})
+
 
 def test_create_globus_task(api_user_client):
     """Test creating a new Globus task via POST /wf_file_staging/globus_tasks endpoint."""
@@ -3605,6 +3637,7 @@ def test_create_globus_task(api_user_client):
     allowances_collection.delete_many(allow_spec)
     globus.delete_many({"task_id": seeded_record["task_id"]})
 
+
 def test_get_jgi_samples(api_user_client):
     """Test retrieving all JGI samples via GET /wf_file_staging/jgi_samples endpoint."""
 
@@ -3631,13 +3664,19 @@ def test_get_jgi_samples(api_user_client):
     assert response.status_code == status.HTTP_200_OK
     retrieved_records = response.json()
     assert len(retrieved_records["resources"]) == 3
-    assert retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
-    assert retrieved_records["resources"][0]["jdp_file_status"] == seeded_record["jdp_file_status"]
+    assert (
+        retrieved_records["resources"][0]["jdp_file_id"] == seeded_record["jdp_file_id"]
+    )
+    assert (
+        retrieved_records["resources"][0]["jdp_file_status"]
+        == seeded_record["jdp_file_status"]
+    )
 
     # Clean up: Delete the inserted allowance.
     allowances_collection.delete_many(allow_spec)
     # delete all inserted records
     jgi_samples.delete_many({})
+
 
 def test_create_jgi_sample(api_user_client):
     """Test creating a new JGI sample via POST /wf_file_staging/jgi_samples endpoint."""
@@ -3671,9 +3710,10 @@ def test_create_jgi_sample(api_user_client):
     allowances_collection.delete_many(allow_spec)
     jgi_samples_collection.delete_many({"jdp_file_id": seeded_record["jdp_file_id"]})
 
+
 def test_create_multiple_jgi_samples(api_user_client):
     """
-    Test creating multiple JGI samples via POST /wf_file_staging/jgi_samples endpoint. 
+    Test creating multiple JGI samples via POST /wf_file_staging/jgi_samples endpoint.
     This is to test the validation in the endpoint.
     """
 
@@ -3701,7 +3741,7 @@ def test_create_multiple_jgi_samples(api_user_client):
         retrieved_records = response.json()
         assert retrieved_records["jdp_file_id"] == record["jdp_file_id"]
         assert retrieved_records["jdp_file_status"] == record["jdp_file_status"]
-    
+
     assert jgi_samples_collection.count_documents({}) == 3
     # Clean up: Delete the inserted data.
     allowances_collection.delete_many(allow_spec)
@@ -3726,10 +3766,19 @@ def test_create_sequencing_project_record(api_user_client):
 
     # Confirm a `JGISequencingProject` having the name we're about to use doesn't already exist.
     # TODO: What does the developer expect to happen when multiple `JGISequencingProject`s have the same `sequencing_project_name` value?
-    sequencing_projects_collection = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
-    assert sequencing_projects_collection.count_documents({
-        "sequencing_project_name": sequencing_project_to_create["sequencing_project_name"]
-    }) == 0
+    sequencing_projects_collection = mdb.get_collection(
+        WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value
+    )
+    assert (
+        sequencing_projects_collection.count_documents(
+            {
+                "sequencing_project_name": sequencing_project_to_create[
+                    "sequencing_project_name"
+                ]
+            }
+        )
+        == 0
+    )
 
     # Use the endpoint-under-test to insert the `JGISequencingProject`.
     response = api_user_client.request(
@@ -3741,14 +3790,32 @@ def test_create_sequencing_project_record(api_user_client):
     # Verify the response indicates success and its payload reflects the request payload.
     assert response.status_code == status.HTTP_201_CREATED
     retrieved_records = response.json()
-    assert retrieved_records["sequencing_project_name"] == sequencing_project_to_create["sequencing_project_name"]
-    assert retrieved_records["jgi_proposal_id"] == sequencing_project_to_create["jgi_proposal_id"]
-    assert retrieved_records["nmdc_study_id"] == sequencing_project_to_create["nmdc_study_id"]
-    assert retrieved_records["sequencing_project_description"] == sequencing_project_to_create["sequencing_project_description"]
+    assert (
+        retrieved_records["sequencing_project_name"]
+        == sequencing_project_to_create["sequencing_project_name"]
+    )
+    assert (
+        retrieved_records["jgi_proposal_id"]
+        == sequencing_project_to_create["jgi_proposal_id"]
+    )
+    assert (
+        retrieved_records["nmdc_study_id"]
+        == sequencing_project_to_create["nmdc_study_id"]
+    )
+    assert (
+        retrieved_records["sequencing_project_description"]
+        == sequencing_project_to_create["sequencing_project_description"]
+    )
 
     # Clean up: Delete the allowance and the `JGISequencingProject`.
     allowances_collection.delete_many(allow_spec)
-    sequencing_projects_collection.delete_many({"sequencing_project_name": sequencing_project_to_create["sequencing_project_name"]})
+    sequencing_projects_collection.delete_many(
+        {
+            "sequencing_project_name": sequencing_project_to_create[
+                "sequencing_project_name"
+            ]
+        }
+    )
 
 
 def test_get_sequencing_project_by_name(api_user_client):
@@ -3763,32 +3830,42 @@ def test_get_sequencing_project_by_name(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    sequencing_projects_collection = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
+    sequencing_projects_collection = mdb.get_collection(
+        WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value
+    )
 
     # Seed the sequencing projects collection with a document having a specific name.
     faker = Faker()
     sequencing_project_records = faker.generate_sequencing_projects(1)
     sequencing_projects_collection.insert_many(sequencing_project_records)
     seeded_record = sequencing_project_records[0]
-    sequencing_project_name = seeded_record['sequencing_project_name']
+    sequencing_project_name = seeded_record["sequencing_project_name"]
 
     # Retrieve the `JGISequencingProject` via the endpoint-under-test.
     response = api_user_client.request(
-        "GET", 
+        "GET",
         f"/wf_file_staging/jgi_sequencing_projects/{sequencing_project_name}",
     )
 
     # Verify the response indicates success and its payload matches the seeded record.
     assert response.status_code == status.HTTP_200_OK
     retrieved_record = response.json()
-    assert retrieved_record["sequencing_project_name"] == seeded_record["sequencing_project_name"]
-    assert retrieved_record["sequencing_project_description"] == seeded_record["sequencing_project_description"]
+    assert (
+        retrieved_record["sequencing_project_name"]
+        == seeded_record["sequencing_project_name"]
+    )
+    assert (
+        retrieved_record["sequencing_project_description"]
+        == seeded_record["sequencing_project_description"]
+    )
     assert retrieved_record["jgi_proposal_id"] == seeded_record["jgi_proposal_id"]
     assert retrieved_record["nmdc_study_id"] == seeded_record["nmdc_study_id"]
 
     # Clean up: Delete the allowance and the `JGISequencingProject`.
     allowances_collection.delete_many(allow_spec)
-    sequencing_projects_collection.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
+    sequencing_projects_collection.delete_many(
+        {"sequencing_project_name": seeded_record["sequencing_project_name"]}
+    )
 
 
 def test_get_sequencing_project_records(api_user_client):
@@ -3801,7 +3878,9 @@ def test_get_sequencing_project_records(api_user_client):
         "action": "/wf_file_staging",
     }
     allowances_collection.replace_one(allow_spec, allow_spec, upsert=True)
-    sequencing_project = mdb.get_collection(WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value)
+    sequencing_project = mdb.get_collection(
+        WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value
+    )
 
     # Seed the sequencing projects collection with some documents.
     faker = Faker()
@@ -3823,10 +3902,14 @@ def test_get_sequencing_project_records(api_user_client):
 
     # Verify that all seeded records are present in the retrieved records (although
     # we do not know the order in which we will have retrieved them).
-    seeded_names = {item["sequencing_project_name"] for item in sequencing_project_records}
+    seeded_names = {
+        item["sequencing_project_name"] for item in sequencing_project_records
+    }
     retrieved_names = {item["sequencing_project_name"] for item in retrieved_records}
     assert seeded_names == retrieved_names
 
     # Clean up: Delete the inserted allowance and the `JGISequencingProject`.
     allowances_collection.delete_many(allow_spec)
-    sequencing_project.delete_many({"sequencing_project_name": seeded_record["sequencing_project_name"]})
+    sequencing_project.delete_many(
+        {"sequencing_project_name": seeded_record["sequencing_project_name"]}
+    )

@@ -17,7 +17,7 @@ FIELD_HIERARCHY_RULES = {
 LOCAL_SCALE_EXTRA_PREFIXES = {"PO", "UBERON"}
 
 
-def _extract_curie(biosample, field_name):
+def _extract_curie(biosample: dict, field_name: str) -> str | None:
     """Extract the CURIE from a biosample's env triad field, or None."""
     field_val = biosample.get(field_name)
     if not isinstance(field_val, dict):
@@ -28,7 +28,9 @@ def _extract_curie(biosample, field_name):
     return term.get("id")
 
 
-def _prefetch_ontology_data(curies, db):
+def _prefetch_ontology_data(
+    curies: set[str], db
+) -> tuple[set[str], set[str], dict[str, set[str]]]:
     """Batch-fetch ontology existence, obsolete status, and ancestry from MongoDB.
 
     Returns (existing_curies, obsolete_curies, ancestry_map) where:
@@ -69,8 +71,11 @@ def _prefetch_ontology_data(curies, db):
 
 
 def _validate_single_biosample(
-    biosample, existing_curies, obsolete_curies, ancestry_map
-):
+    biosample: dict,
+    existing_curies: set[str],
+    obsolete_curies: set[str],
+    ancestry_map: dict[str, set[str]],
+) -> list[str]:
     """Validate env triad fields for a single biosample dict.
 
     Returns a list of error strings. Empty list means valid.
@@ -127,7 +132,7 @@ def _validate_single_biosample(
     return errors
 
 
-def validate_env_triad(biosamples, db):
+def validate_env_triad(biosamples: list[dict], db) -> dict[str, list[str]]:
     """Validate env_broad_scale, env_local_scale, and env_medium for biosamples.
 
     Args:
