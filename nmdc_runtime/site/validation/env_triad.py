@@ -62,8 +62,9 @@ def _prefetch_ontology_data(curies, db):
     return existing_curies, obsolete_curies, ancestry_map
 
 
-def _validate_single_biosample(biosample, existing_curies, obsolete_curies,
-                               ancestry_map):
+def _validate_single_biosample(
+    biosample, existing_curies, obsolete_curies, ancestry_map
+):
     """Validate env triad fields for a single biosample dict.
 
     Returns a list of error strings. Empty list means valid.
@@ -78,21 +79,15 @@ def _validate_single_biosample(biosample, existing_curies, obsolete_curies,
             if field_name not in biosample:
                 errors.append(f"Missing required field '{field_name}'.")
             else:
-                errors.append(
-                    f"Field '{field_name}' is missing term.id."
-                )
+                errors.append(f"Field '{field_name}' is missing term.id.")
             continue
 
         if curie not in existing_curies:
-            errors.append(
-                f"Field '{field_name}': unknown term '{curie}'."
-            )
+            errors.append(f"Field '{field_name}': unknown term '{curie}'.")
             continue
 
         if curie in obsolete_curies:
-            errors.append(
-                f"Field '{field_name}': term '{curie}' is obsolete."
-            )
+            errors.append(f"Field '{field_name}': term '{curie}' is obsolete.")
             continue
 
         rules = FIELD_HIERARCHY_RULES[field_name]
