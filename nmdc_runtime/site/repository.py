@@ -432,7 +432,7 @@ def repo():
             description="Shows version information",
             metadata={
                 "nmdc_runtime": version("nmdc_runtime"),
-            }
+            },
         ),
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
