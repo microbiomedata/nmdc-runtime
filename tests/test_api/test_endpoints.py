@@ -460,6 +460,50 @@ def test_metadata_validate_json_with_type_attribute(api_site_client):
     assert rv.json()["result"] != "errors"
 
 
+def test_metadata_validate_json_env_triad_errors(api_site_client):
+    """validate_json rejects biosamples whose env triad terms are not in ontology_class_set."""
+    rv = api_site_client.request(
+        "POST",
+        "/metadata/json:validate",
+        {
+            "biosample_set": [
+                {
+                    "id": "nmdc:bsm-00-test0001",
+                    "type": "nmdc:Biosample",
+                    "associated_studies": ["nmdc:sty-00-000001"],
+                    "env_broad_scale": {
+                        "type": "nmdc:ControlledIdentifiedTermValue",
+                        "term": {
+                            "id": "ENVO:00000000",
+                            "name": "fake biome",
+                            "type": "nmdc:OntologyClass",
+                        },
+                    },
+                    "env_local_scale": {
+                        "type": "nmdc:ControlledIdentifiedTermValue",
+                        "term": {
+                            "id": "ENVO:00000001",
+                            "name": "fake feature",
+                            "type": "nmdc:OntologyClass",
+                        },
+                    },
+                    "env_medium": {
+                        "type": "nmdc:ControlledIdentifiedTermValue",
+                        "term": {
+                            "id": "ENVO:00000002",
+                            "name": "fake material",
+                            "type": "nmdc:OntologyClass",
+                        },
+                    },
+                }
+            ]
+        },
+    )
+    result = rv.json()
+    assert result["result"] == "errors"
+    assert "nmdc:bsm-00-test0001" in str(result["detail"])
+
+
 def test_metadata_validate_json_with_unknown_collection(api_site_client):
     rv = api_site_client.request(
         "POST",

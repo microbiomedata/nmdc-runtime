@@ -15,6 +15,7 @@ from nmdc_runtime.site.validation.env_triad import (
     ASTRONOMICAL_BODY_PART,
     BIOME,
     ENVIRONMENTAL_MATERIAL,
+    LOCAL_SCALE_EXTRA_PREFIXES,
     validate_env_triad,
 )
 
@@ -80,6 +81,24 @@ ONTOLOGY_CLASS_DOCS = {
         "relations": [
             {"predicate": "entailed_isa_partof_closure", "object": BIOME},
         ],
+    },
+    # A valid PO term for env_local_scale
+    "PO:0025034": {
+        "id": "PO:0025034",
+        "is_obsolete": False,
+        "relations": [],
+    },
+    # A valid UBERON term for env_local_scale
+    "UBERON:0000178": {
+        "id": "UBERON:0000178",
+        "is_obsolete": False,
+        "relations": [],
+    },
+    # An obsolete PO term
+    "PO:0000001": {
+        "id": "PO:0000001",
+        "is_obsolete": True,
+        "relations": [],
     },
     # A biome-typed term — invalid for env_medium / env_local_scale
     "ENVO:00000446": {
@@ -189,6 +208,36 @@ def test_duplicate_curie_across_fields(fake_db):
 def test_empty_biosamples_list(fake_db):
     result = validate_env_triad([], fake_db)
     assert result == {}
+
+
+def test_po_term_valid_for_env_local_scale(fake_db):
+    bs = _make_biosample(local="PO:0025034")
+    result = validate_env_triad([bs], fake_db)
+    assert result == {}
+
+
+def test_uberon_term_valid_for_env_local_scale(fake_db):
+    bs = _make_biosample(local="UBERON:0000178")
+    result = validate_env_triad([bs], fake_db)
+    assert result == {}
+
+
+def test_obsolete_po_term_rejected(fake_db):
+    bs = _make_biosample(local="PO:0000001")
+    result = validate_env_triad([bs], fake_db)
+    assert any("obsolete" in e for e in result["nmdc:bsm-00-test01"])
+
+
+def test_unknown_po_term_rejected(fake_db):
+    bs = _make_biosample(local="PO:9999999")
+    result = validate_env_triad([bs], fake_db)
+    assert any("unknown term" in e for e in result["nmdc:bsm-00-test01"])
+
+
+def test_po_term_not_allowed_for_env_broad_scale(fake_db):
+    bs = _make_biosample(broad="PO:0025034")
+    result = validate_env_triad([bs], fake_db)
+    assert any("not a descendant" in e for e in result["nmdc:bsm-00-test01"])
 
 
 def test_real_fixture(fake_db):

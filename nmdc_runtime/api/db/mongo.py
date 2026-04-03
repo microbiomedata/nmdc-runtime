@@ -436,6 +436,14 @@ def validate_json(
             if any(len(v) > 0 for v in validation_errors.values()):
                 return {"result": "errors", "detail": validation_errors}
 
+        # Validate environmental triad fields on biosamples.
+        if "biosample_set" in in_docs:
+            from nmdc_runtime.site.validation.env_triad import validate_env_triad
+
+            env_triad_errors = validate_env_triad(in_docs["biosample_set"], mdb)
+            if env_triad_errors:
+                return {"result": "errors", "detail": env_triad_errors}
+
         return {"result": "All Okay!"}
     else:
         return {"result": "errors", "detail": validation_errors}

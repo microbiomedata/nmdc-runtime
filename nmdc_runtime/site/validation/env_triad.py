@@ -10,6 +10,12 @@ FIELD_HIERARCHY_RULES = {
     "env_local_scale": {"required": ASTRONOMICAL_BODY_PART, "disallowed": [BIOME]},
 }
 
+# Non-ENVO prefixes allowed for env_local_scale (skip hierarchy check).
+# PO (Plant Ontology) and UBERON (anatomy) terms are valid for env_local_scale
+# but lack ENVO ancestry, so the ASTRONOMICAL_BODY_PART hierarchy check
+# does not apply to them.
+LOCAL_SCALE_EXTRA_PREFIXES = {"PO", "UBERON"}
+
 
 def _extract_curie(biosample, field_name):
     """Extract the CURIE from a biosample's env triad field, or None."""
@@ -98,7 +104,12 @@ def _validate_single_biosample(biosample, existing_curies, obsolete_curies,
         rules = FIELD_HIERARCHY_RULES[field_name]
         ancestors = ancestry_map.get(curie, set())
 
-        if rules["required"] not in ancestors:
+        prefix = curie.split(":")[0] if ":" in curie else ""
+        skip_hierarchy = (
+            field_name == "env_local_scale" and prefix in LOCAL_SCALE_EXTRA_PREFIXES
+        )
+
+        if not skip_hierarchy and rules["required"] not in ancestors:
             errors.append(
                 f"Field '{field_name}': term '{curie}' is not a descendant "
                 f"of required ancestor '{rules['required']}'."
