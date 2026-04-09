@@ -25,6 +25,7 @@ class NeonSoilDataTranslator(Translator):
         sls_data: dict,
         neon_envo_mappings_file: pd.DataFrame,
         neon_raw_data_file_mappings_file: pd.DataFrame,
+        site_code_mapping: dict,
         neon_nmdc_instrument_map_df: pd.DataFrame = pd.DataFrame(),
         allowed_dna_sample_ids: Optional[Set[str]] = None,
         *args,
@@ -118,6 +119,7 @@ class NeonSoilDataTranslator(Translator):
             "neonRawDataFile", self.conn, if_exists="replace", index=False
         )
 
+        self.site_code_mapping = site_code_mapping
         self.neon_nmdc_instrument_map_df = neon_nmdc_instrument_map_df
 
     def _get_instrument_id(self, instrument_model: Union[str | None]) -> str:
@@ -168,6 +170,11 @@ class NeonSoilDataTranslator(Translator):
                 biosample_row["decimalLongitude"].values[0],
             ),
             elev=nmdc.Float(biosample_row["elevation"].values[0]),
+            geo_loc_name=_create_text_value(
+                self.site_code_mapping[biosample_row["siteID"].values[0]]
+                if biosample_row["siteID"].values[0]
+                else None
+            ),
             collection_date=_create_timestamp_value(
                 biosample_row["collectDate"].values[0]
             ),
