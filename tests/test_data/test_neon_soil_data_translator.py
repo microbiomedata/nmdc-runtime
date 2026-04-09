@@ -809,6 +809,10 @@ mock_gold_nmdc_instrument_map_df = pd.DataFrame(
 )
 
 
+def site_code_mapping():
+    return {"BLAN": "USA: Virginia, Blandy Experimental Farm"}
+
+
 class TestNeonDataTranslator:
     @pytest.fixture
     def translator(self, test_minter):
@@ -817,6 +821,7 @@ class TestNeonDataTranslator:
             sls_data=sls_data,
             neon_envo_mappings_file=neon_envo_mappings_file(),
             neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file(),
+            site_code_mapping=site_code_mapping(),
             neon_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df,
             id_minter=test_minter,
         )
@@ -831,6 +836,7 @@ class TestNeonDataTranslator:
                 sls_data,
                 neon_envo_mappings_file(),
                 neon_raw_data_file_mappings_file(),
+                site_code_mapping=site_code_mapping(),
                 id_minter=test_minter,
             )
 
@@ -842,6 +848,7 @@ class TestNeonDataTranslator:
                 {},
                 neon_envo_mappings_file(),
                 neon_raw_data_file_mappings_file(),
+                site_code_mapping=site_code_mapping(),
                 id_minter=test_minter,
             )
 
@@ -908,6 +915,10 @@ class TestNeonDataTranslator:
         for biosample in biosample_list:
             actual_biosample_name = biosample["name"]
             assert actual_biosample_name in expected_biosample_names
+            assert (
+                biosample["geo_loc_name"]["has_raw_value"]
+                == "USA: Virginia, Blandy Experimental Farm"
+            )
 
         # verify contents of data_generation_set
         data_generation_list = database.data_generation_set
