@@ -285,9 +285,12 @@ def translate_neon_api_soil_metadata_to_nmdc_schema_database():
 
     allowed_dna_sample_ids = get_neon_soil_sample_filter()
 
+    sites_mapping_dict = site_code_mapping()
+
     database = nmdc_schema_database_from_neon_soil_data(
         mms_data,
         sls_data,
+        sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
         neon_nmdc_instrument_mapping_file,
@@ -327,9 +330,12 @@ def ingest_neon_soil_metadata():
 
     allowed_dna_sample_ids = get_neon_soil_sample_filter()
 
+    sites_mapping_dict = site_code_mapping()
+
     database = nmdc_schema_database_from_neon_soil_data(
         mms_data,
         sls_data,
+        sites_mapping_dict,
         neon_envo_mappings_file,
         neon_raw_data_file_mappings_file,
         neon_nmdc_instrument_mapping_file,
