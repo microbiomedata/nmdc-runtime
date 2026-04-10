@@ -202,6 +202,7 @@ def test_validate_json_checks_referential_integrity_after_applying_all_collectio
                 "id": "nmdc:bsm-00-000001",
                 "type": "nmdc:Biosample",
                 "associated_studies": ["nmdc:sty-00-000001"],
+                "name": "my_biosample",
                 "env_broad_scale": {
                     "term": {"type": "nmdc:OntologyClass", "id": "ENVO:000000"},
                     "type": "nmdc:ControlledIdentifiedTermValue",
