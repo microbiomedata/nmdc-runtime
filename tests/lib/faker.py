@@ -182,6 +182,7 @@ class Faker:
                 "id": self.make_unique_id("nmdc:bsm-00-"),
                 "type": Biosample.class_class_curie,
                 "associated_studies": associated_studies,
+                "name": "my_biosample",
                 "env_broad_scale": {
                     "has_raw_value": "ENVO_00000446",
                     "term": {
