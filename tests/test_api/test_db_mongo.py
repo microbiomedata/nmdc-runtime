@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from pymongo.errors import DuplicateKeyError
 import pytest
+from pymongo.errors import DuplicateKeyError
 from toolz import dissoc
 
 from nmdc_runtime.api.db.mongo import (
