@@ -1103,7 +1103,12 @@ class TestFindDataObjectsForStudy:
         """
 
         faker = Faker()
-        biosample_b = faker.generate_biosamples(1, id="nmdc:bsm-00-000002", associated_studies=[self.study_id])[0]
+        biosample_b = faker.generate_biosamples(
+            quantity=1,
+            id="nmdc:bsm-00-000002",
+            name="biosample_b",  # since biosample names must be unique within a given study
+            associated_studies=[self.study_id]
+        )[0]
         workflow_execution_set = seeded_db.get_collection(name="workflow_execution_set")
         workflow_execution_set.update_one(
             {"id": self.workflow_execution_ids[0]},
