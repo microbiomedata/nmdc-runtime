@@ -217,3 +217,35 @@ def test_check_mongo_ok_autoreconnect(test_db):
     collection = test_db.get_collection("_runtime.healthcheck")
     assert check_mongo_ok_autoreconnect(mdb=test_db) is True
     assert collection.count_documents({"status": "ok"}) == 0
+
+
+def test_unique_compound_indexes_including_arrays_check_all_permutations(test_db):
+    """
+    This test demonstrates how MongoDB's compound indexes work when one of the fields is an array.
+    """
+    # Create the composite index.
+    collection = test_db.get_collection("test")
+    collection.create_index([("pasta", 1), ("sauces", 1)], name="my_index", unique=True)
+
+    # Insert documents with various combinations of pasta and sauces.
+    assert collection.count_documents({}) == 0
+    collection.insert_one({"pasta": "spaghetti", "sauces": ["marinara", "alfredo"]})
+    collection.insert_one({"pasta": "rigatoni", "sauces": ["alfredo", "pesto"]})
+    collection.insert_one({"pasta": "rigatoni", "sauces": ["marinara"]})
+    collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
+
+    # Try inserting some documents that violate the unique constraint, and confirm they are rejected.
+    assert collection.count_documents({}) == 4
+    with pytest.raises(Exception):
+        collection.insert_one({"pasta": "rigatoni", "sauces": ["pesto"]})
+    with pytest.raises(Exception):
+        collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
+    
+    # Get rid of the index and see that we can insert them now.
+    collection.drop_index("my_index")
+
+    # Now, try inserting those same documents.
+    assert collection.count_documents({}) == 4
+    collection.insert_one({"pasta": "rigatoni", "sauces": ["pesto"]})
+    collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
+    assert collection.count_documents({}) == 6
