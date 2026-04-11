@@ -197,7 +197,7 @@ def ensure_allowance_is_indexed():
 
 def ensure_biosample_set_has_unique_compound_index_on_name_and_associated_studies():
     """
-    Ensures that there is a compound index on {name, associated_studies} in the `biosample_set`
+    Ensures that there is a compound index on (name, associated_studies) in the `biosample_set`
     collection; so that no two biosamples associated with the same study can have the same name.
     """
     mdb = get_mongo_db()

@@ -228,24 +228,23 @@ def test_unique_compound_indexes_including_arrays_check_all_permutations(test_db
     collection.create_index([("pasta", 1), ("sauces", 1)], name="my_index", unique=True)
 
     # Insert documents with various combinations of pasta and sauces.
-    assert collection.count_documents({}) == 0
-    collection.insert_one({"pasta": "spaghetti", "sauces": ["marinara", "alfredo"]})
-    collection.insert_one({"pasta": "rigatoni", "sauces": ["alfredo", "pesto"]})
-    collection.insert_one({"pasta": "rigatoni", "sauces": ["marinara"]})
-    collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
+    collection.insert_one({"pasta": "Spaghetti", "sauces": ["Marinara", "Alfredo"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Alfredo", "Pesto"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Marinara"]})
+    assert collection.count_documents({}) == 3
 
-    # Try inserting some documents that violate the unique constraint, and confirm they are rejected.
-    assert collection.count_documents({}) == 4
+    # Try inserting some documents that violate the unique constraint.
+    # Note: These will both be rejected because the combination of "Rigatoni" + "Pesto" exists.
     with pytest.raises(Exception):
-        collection.insert_one({"pasta": "rigatoni", "sauces": ["pesto"]})
+        collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto"]})
     with pytest.raises(Exception):
-        collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
+        collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto", "Carbonara"]})
+    assert collection.count_documents({}) == 3
     
-    # Get rid of the index and see that we can insert them now.
+    # Get rid of the index.
     collection.drop_index("my_index")
 
     # Now, try inserting those same documents.
-    assert collection.count_documents({}) == 4
-    collection.insert_one({"pasta": "rigatoni", "sauces": ["pesto"]})
-    collection.insert_one({"pasta": "fettuccine", "sauces": ["pesto"]})
-    assert collection.count_documents({}) == 6
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto", "Carbonara"]})
+    assert collection.count_documents({}) == 5
