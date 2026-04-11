@@ -202,7 +202,9 @@ def ensure_biosample_set_has_unique_compound_index_on_name_and_associated_studie
     """
     mdb = get_mongo_db()
     mdb["biosample_set"].create_index(
-        [("name", 1), ("associated_studies", 1)], background=True, unique=True,
+        [("name", 1), ("associated_studies", 1)],
+        background=True,
+        unique=True,
     )
 
 
