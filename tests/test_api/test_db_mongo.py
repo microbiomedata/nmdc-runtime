@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from pymongo.errors import DuplicateKeyError
 import pytest
 from toolz import dissoc
 
@@ -235,9 +236,9 @@ def test_unique_compound_indexes_including_arrays_check_all_permutations(test_db
 
     # Try inserting some documents that violate the unique constraint.
     # Note: These will both be rejected because the combination of "Rigatoni" + "Pesto" exists.
-    with pytest.raises(Exception):
+    with pytest.raises(DuplicateKeyError):
         collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto"]})
-    with pytest.raises(Exception):
+    with pytest.raises(DuplicateKeyError):
         collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto", "Carbonara"]})
     assert collection.count_documents({}) == 3
     
