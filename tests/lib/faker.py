@@ -144,7 +144,11 @@ class Faker:
     def generate_biosamples(self, quantity: int, associated_studies: List[str], **overrides) -> List[dict]:
         """
         Generates the specified number of schema-compliant `biosample_set` documents.
-        The documents comply with schema v11.8.0.
+
+        Unless overridden, the `name` value will be unique for each document generated
+        during a given invocation of this function.
+
+        The documents comply with schema v11.18.0.
 
         Reference: https://microbiomedata.github.io/nmdc-schema/Biosample/
 
@@ -182,7 +186,7 @@ class Faker:
                 "id": self.make_unique_id("nmdc:bsm-00-"),
                 "type": Biosample.class_class_curie,
                 "associated_studies": associated_studies,
-                "name": "my_biosample",
+                "name": f"name_{i}",
                 "env_broad_scale": {
                     "has_raw_value": "ENVO_00000446",
                     "term": {
