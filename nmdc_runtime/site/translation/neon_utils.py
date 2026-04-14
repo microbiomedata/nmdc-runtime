@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 from typing import Optional, Union
 
 import pandas as pd
@@ -29,9 +30,9 @@ def _get_value_or_none(data: pd.DataFrame, column_name: str) -> Union[str, float
         ):
             return data[column_name].values[0].lower()
         elif column_name == "sampleTopDepth":
-            return float(data[column_name].values[0]) / 100
+            return float(Decimal(str(data[column_name].values[0])) / Decimal(100))
         elif column_name == "sampleBottomDepth":
-            return float(data[column_name].values[0]) / 100
+            return float(Decimal(str(data[column_name].values[0])) / Decimal(100))
         else:
             return data[column_name].values[0]
 
