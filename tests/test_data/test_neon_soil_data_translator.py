@@ -866,6 +866,14 @@ class TestNeonDataTranslator:
         actual_maximum_depth = _get_value_or_none(test_biosample, "sampleBottomDepth")
         assert expected_maximum_depth == actual_maximum_depth
 
+        # cm -> m conversion must not introduce floating point artifacts
+        # (e.g. 21.9 / 100 == 0.21899999999999997 under plain float division)
+        fp_biosample = pd.DataFrame(
+            [{"sampleTopDepth": 21.9, "sampleBottomDepth": 7.4}]
+        )
+        assert _get_value_or_none(fp_biosample, "sampleTopDepth") == 0.219
+        assert _get_value_or_none(fp_biosample, "sampleBottomDepth") == 0.074
+
         expected_sample_id = "BLAN_005-M-8-0-20200713"
         actual_sample_id = _get_value_or_none(test_biosample, "sampleID")
         assert expected_sample_id == actual_sample_id
