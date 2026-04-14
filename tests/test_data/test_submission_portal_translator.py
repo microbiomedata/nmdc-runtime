@@ -22,6 +22,8 @@ from nmdc_runtime.site.translation.submission_portal_translator import (
     SubmissionPortalTranslator,
 )
 
+import os
+
 from nmdc_runtime.api.db.mongo import validate_json
 from tests.conftest import get_mongo_test_db
 
@@ -100,7 +102,7 @@ def test_get_study_dois():
                     {
                         "provider": "zenodo",
                         "value": "10.99999/abcd",
-                    }
+                    },
                 ],
             },
             "multiOmicsForm": {
@@ -518,8 +520,12 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
             return "999.9.9"
         raise ValueError(f"Unexpected package name: {package_name}")
 
-    monkeypatch.setattr("nmdc_runtime.site.translation.translator.datetime", FrozenDatetime)
-    monkeypatch.setattr("nmdc_runtime.site.translation.translator.version", mock_version)
+    monkeypatch.setattr(
+        "nmdc_runtime.site.translation.translator.datetime", FrozenDatetime
+    )
+    monkeypatch.setattr(
+        "nmdc_runtime.site.translation.translator.version", mock_version
+    )
 
     mongo_db = get_mongo_test_db()
     data_path = Path(__file__).parent / "data"
@@ -550,8 +556,9 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
     actual = translator.get_database()
     assert actual == expected
 
-    validation_result = validate_json(json_dumper.to_dict(actual), mongo_db)
-    assert validation_result == {"result": "All Okay!"}
+    if os.getenv("ENABLE_DB_TESTS") == "true":
+        validation_result = validate_json(json_dumper.to_dict(actual), mongo_db)
+        assert validation_result == {"result": "All Okay!"}
 
 
 def test_parse_sample_link():
