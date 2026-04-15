@@ -43,16 +43,20 @@ class MigrationConfig:
     mongosh_path: Path
     mongodump_path: Path
     mongorestore_path: Path
-    origin_db: DatabaseConfig
-    transformer_db: DatabaseConfig
+    origin_mongo_database_config: DatabaseConfig
+    transformer_mongo_database_config: DatabaseConfig
     origin_schema_tag: str
     destination_schema_tag: str
 
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""
         config_dict = asdict(self)
-        config_dict["origin_db"] = self.origin_db.get_redacted_dict()
-        config_dict["transformer_db"] = self.transformer_db.get_redacted_dict()
+        config_dict["origin_mongo_db_config"] = (
+            self.origin_mongo_database_config.get_redacted_dict()
+        )
+        config_dict["transformer_mongo_db_config"] = (
+            self.transformer_mongo_database_config.get_redacted_dict()
+        )
         return config_dict
 
 
@@ -68,76 +72,76 @@ def main(
         str,
         typer.Option(
             envvar="DESTINATION_SCHEMA_TAG",
-            help="Git tag of the nmdc-schema version to which you want to migrate the database.",
+            help="Git tag of the nmdc-schema version to which you want to migrate the origin database.",
         ),
     ],
-    origin_db_host: Annotated[
+    origin_mongo_host: Annotated[
         str,
         typer.Option(
-            envvar="ORIGIN_DB_HOST",
+            envvar="ORIGIN_MONGO_HOST",
             help="Hostname for the origin MongoDB database.",
         ),
     ],
-    origin_db_port: Annotated[
+    origin_mongo_port: Annotated[
         int,
         typer.Option(
-            envvar="ORIGIN_DB_PORT",
+            envvar="ORIGIN_MONGO_PORT",
             help="Port number for the origin MongoDB database.",
         ),
     ] = 27017,
-    origin_db_username: Annotated[
+    origin_mongo_username: Annotated[
         str,
         typer.Option(
-            envvar="ORIGIN_DB_USERNAME",
+            envvar="ORIGIN_MONGO_USERNAME",
             help="Username for the origin MongoDB database. Leave empty for no auth.",
         ),
     ] = "",
-    origin_db_password: Annotated[
+    origin_mongo_password: Annotated[
         str,
         typer.Option(
-            envvar="ORIGIN_DB_PASSWORD",
+            envvar="ORIGIN_MONGO_PASSWORD",
             help="Password for the origin MongoDB database.",
         ),
     ] = "",
-    origin_db_name: Annotated[
+    origin_mongo_database_name: Annotated[
         str,
         typer.Option(
-            envvar="ORIGIN_DB_NAME",
+            envvar="ORIGIN_MONGO_DATABASE_NAME",
             help="Database name for the origin MongoDB database.",
         ),
     ] = "nmdc",
-    transformer_db_host: Annotated[
+    transformer_mongo_host: Annotated[
         str,
         typer.Option(
-            envvar="TRANSFORMER_DB_HOST",
+            envvar="TRANSFORMER_MONGO_HOST",
             help="Hostname for the transformer MongoDB database.",
         ),
     ] = "localhost",
-    transformer_db_port: Annotated[
+    transformer_mongo_port: Annotated[
         int,
         typer.Option(
-            envvar="TRANSFORMER_DB_PORT",
+            envvar="TRANSFORMER_MONGO_PORT",
             help="Port number for the transformer MongoDB database.",
         ),
     ] = 27017,
-    transformer_db_username: Annotated[
+    transformer_mongo_username: Annotated[
         str,
         typer.Option(
-            envvar="TRANSFORMER_DB_USERNAME",
+            envvar="TRANSFORMER_MONGO_USERNAME",
             help="Username for the transformer MongoDB database. Leave empty for no auth.",
         ),
     ] = "",
-    transformer_db_password: Annotated[
+    transformer_mongo_password: Annotated[
         str,
         typer.Option(
-            envvar="TRANSFORMER_DB_PASSWORD",
+            envvar="TRANSFORMER_MONGO_PASSWORD",
             help="Password for the transformer MongoDB database.",
         ),
     ] = "",
-    transformer_db_name: Annotated[
+    transformer_mongo_database_name: Annotated[
         str,
         typer.Option(
-            envvar="TRANSFORMER_DB_NAME",
+            envvar="TRANSFORMER_MONGO_DATABASE_NAME",
             help="Database name for the transformer MongoDB database.",
         ),
     ] = "transformer",
@@ -174,25 +178,32 @@ def main(
 ) -> None:
     """
     Migrate the NMDC database between two versions of the NMDC schema.
+
+    The origin database is the database you want to migrate. This app will dump data from the origin
+    database, load it into the transformer database, transform it there so that it conforms to the
+    destination schema, validate it there, dump the transformed data from the transformer database,
+    and load it into the origin database (overwriting the original data there).
+
+    This app does not support migrators that involve renaming MongoDB collection.
     """
 
     config = MigrationConfig(
         mongosh_path=mongosh_path,
         mongodump_path=mongodump_path,
         mongorestore_path=mongorestore_path,
-        origin_db=DatabaseConfig(
-            host=origin_db_host,
-            port=origin_db_port,
-            username=origin_db_username,
-            password=origin_db_password,
-            name=origin_db_name,
+        origin_mongo_database_config=DatabaseConfig(
+            host=origin_mongo_host,
+            port=origin_mongo_port,
+            username=origin_mongo_username,
+            password=origin_mongo_password,
+            name=origin_mongo_database_name,
         ),
-        transformer_db=DatabaseConfig(
-            host=transformer_db_host,
-            port=transformer_db_port,
-            username=transformer_db_username,
-            password=transformer_db_password,
-            name=transformer_db_name,
+        transformer_mongo_database_config=DatabaseConfig(
+            host=transformer_mongo_host,
+            port=transformer_mongo_port,
+            username=transformer_mongo_username,
+            password=transformer_mongo_password,
+            name=transformer_mongo_database_name,
         ),
         origin_schema_tag=origin_schema_tag,
         destination_schema_tag=destination_schema_tag,
