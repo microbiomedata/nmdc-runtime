@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -39,9 +40,9 @@ class DatabaseConfig:
 class MigrationConfig:
     """Configuration for migrating a MongoDB database from one NMDC schema version to another."""
 
-    mongosh_path: str
-    mongodump_path: str
-    mongorestore_path: str
+    mongosh_path: Path
+    mongodump_path: Path
+    mongorestore_path: Path
     origin_db: DatabaseConfig
     transformer_db: DatabaseConfig
     origin_schema_tag: str
@@ -59,71 +60,117 @@ def main(
     origin_schema_tag: Annotated[
         str,
         typer.Option(
-            help="Git tag of the nmdc-schema version to which the origin database conforms."
+            envvar="ORIGIN_SCHEMA_TAG",
+            help="Git tag of the nmdc-schema version to which the origin database conforms.",
         ),
     ],
     destination_schema_tag: Annotated[
         str,
         typer.Option(
-            help="Git tag of the nmdc-schema version to which you want to migrate the database."
+            envvar="DESTINATION_SCHEMA_TAG",
+            help="Git tag of the nmdc-schema version to which you want to migrate the database.",
         ),
     ],
     origin_db_host: Annotated[
         str,
-        typer.Option(help="Hostname for the origin MongoDB database."),
+        typer.Option(
+            envvar="ORIGIN_DB_HOST",
+            help="Hostname for the origin MongoDB database.",
+        ),
     ],
     origin_db_port: Annotated[
         int,
-        typer.Option(help="Port number for the origin MongoDB database."),
+        typer.Option(
+            envvar="ORIGIN_DB_PORT",
+            help="Port number for the origin MongoDB database.",
+        ),
     ] = 27017,
     origin_db_username: Annotated[
         str,
         typer.Option(
-            help="Username for the origin MongoDB database. Leave empty for no auth."
+            envvar="ORIGIN_DB_USERNAME",
+            help="Username for the origin MongoDB database. Leave empty for no auth.",
         ),
     ] = "",
     origin_db_password: Annotated[
         str,
-        typer.Option(help="Password for the origin MongoDB database."),
+        typer.Option(
+            envvar="ORIGIN_DB_PASSWORD",
+            help="Password for the origin MongoDB database.",
+        ),
     ] = "",
     origin_db_name: Annotated[
         str,
-        typer.Option(help="Database name for the origin MongoDB database."),
+        typer.Option(
+            envvar="ORIGIN_DB_NAME",
+            help="Database name for the origin MongoDB database.",
+        ),
     ] = "nmdc",
     transformer_db_host: Annotated[
         str,
-        typer.Option(help="Hostname for the transformer MongoDB database."),
+        typer.Option(
+            envvar="TRANSFORMER_DB_HOST",
+            help="Hostname for the transformer MongoDB database.",
+        ),
     ] = "localhost",
     transformer_db_port: Annotated[
         int,
-        typer.Option(help="Port number for the transformer MongoDB database."),
+        typer.Option(
+            envvar="TRANSFORMER_DB_PORT",
+            help="Port number for the transformer MongoDB database.",
+        ),
     ] = 27017,
     transformer_db_username: Annotated[
         str,
         typer.Option(
-            help="Username for the transformer MongoDB database. Leave empty for no auth."
+            envvar="TRANSFORMER_DB_USERNAME",
+            help="Username for the transformer MongoDB database. Leave empty for no auth.",
         ),
     ] = "",
     transformer_db_password: Annotated[
         str,
-        typer.Option(help="Password for the transformer MongoDB database."),
+        typer.Option(
+            envvar="TRANSFORMER_DB_PASSWORD",
+            help="Password for the transformer MongoDB database.",
+        ),
     ] = "",
     transformer_db_name: Annotated[
         str,
-        typer.Option(help="Database name for the transformer MongoDB database."),
+        typer.Option(
+            envvar="TRANSFORMER_DB_NAME",
+            help="Database name for the transformer MongoDB database.",
+        ),
     ] = "transformer",
     mongosh_path: Annotated[
-        str,
-        typer.Option(help="Path to the `mongosh` executable."),
-    ] = "/usr/bin/mongosh",
+        Path,
+        typer.Option(
+            dir_okay=False,
+            exists=True,
+            resolve_path=True,
+            envvar="MONGOSH_PATH",
+            help="Path to the `mongosh` executable.",
+        ),
+    ] = Path("/usr/bin/mongosh"),
     mongodump_path: Annotated[
-        str,
-        typer.Option(help="Path to the `mongodump` executable."),
-    ] = "/usr/bin/mongodump",
+        Path,
+        typer.Option(
+            dir_okay=False,
+            exists=True,
+            resolve_path=True,
+            envvar="MONGODUMP_PATH",
+            help="Path to the `mongodump` executable.",
+        ),
+    ] = Path("/usr/bin/mongodump"),
     mongorestore_path: Annotated[
-        str,
-        typer.Option(help="Path to the `mongorestore` executable."),
-    ] = "/usr/bin/mongorestore",
+        Path,
+        typer.Option(
+            dir_okay=False,
+            exists=True,
+            resolve_path=True,
+            envvar="MONGORESTORE_PATH",
+            help="Path to the `mongorestore` executable.",
+        ),
+    ] = Path("/usr/bin/mongorestore"),
 ) -> None:
     """
     Migrate the NMDC database between two versions of the NMDC schema.
