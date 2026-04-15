@@ -1,12 +1,31 @@
+from inspect import isclass
+from os import access, X_OK
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Annotated
+from importlib import import_module
+import subprocess
+from typing import Annotated, Optional
 
 import typer
 from rich import print
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 
 app = typer.Typer()
+
+
+class ParamValidators:
+    """Collection of static methods for validating CLI parameters."""
+
+    @staticmethod
+    def validate_executable_file(ctx: typer.Context, path: Path) -> Optional[Path]:
+        """Check whether the specified path points to an executable file."""
+
+        if ctx.resilient_parsing:  # accommodate CLI autocompletion
+            return None
+        if not path.is_file() or not access(path, X_OK):
+            raise typer.BadParameter(f"{path} is not an executable file")
+        return path
 
 
 # Note: We use `frozen=True` to prevent editing after initial instantiation.
@@ -45,8 +64,8 @@ class MigrationConfig:
     mongorestore_path: Path
     origin_mongo_database_config: DatabaseConfig
     transformer_mongo_database_config: DatabaseConfig
-    origin_schema_tag: str
-    destination_schema_tag: str
+    migrator_git_tag: str
+    migrator_module_name: str
 
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""
@@ -61,18 +80,18 @@ class MigrationConfig:
 
 
 def main(
-    origin_schema_tag: Annotated[
+    migrator_git_tag: Annotated[
         str,
         typer.Option(
-            envvar="ORIGIN_SCHEMA_TAG",
-            help="Git tag of the nmdc-schema version to which the origin database conforms.",
+            envvar="MIGRATOR_GIT_TAG",
+            help="Git tag of an nmdc-schema commit containing the migrator you want to run.",
         ),
     ],
-    destination_schema_tag: Annotated[
+    migrator_module_name: Annotated[
         str,
         typer.Option(
-            envvar="DESTINATION_SCHEMA_TAG",
-            help="Git tag of the nmdc-schema version to which you want to migrate the origin database.",
+            envvar="MIGRATOR_MODULE_NAME",
+            help="Name of the Python module that constitutes the migrator you want to run.",
         ),
     ],
     origin_mongo_host: Annotated[
@@ -153,6 +172,7 @@ def main(
             resolve_path=True,
             envvar="MONGOSH_PATH",
             help="Path to the `mongosh` executable.",
+            callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongosh"),
     mongodump_path: Annotated[
@@ -163,6 +183,7 @@ def main(
             resolve_path=True,
             envvar="MONGODUMP_PATH",
             help="Path to the `mongodump` executable.",
+            callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongodump"),
     mongorestore_path: Annotated[
@@ -173,8 +194,16 @@ def main(
             resolve_path=True,
             envvar="MONGORESTORE_PATH",
             help="Path to the `mongorestore` executable.",
+            callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongorestore"),
+    schema_repo_url: Annotated[
+        str,
+        typer.Option(
+            envvar="SCHEMA_REPO_URL",
+            help="URL of the Git repository containing the NMDC schema and its migrators.",
+        ),
+    ] = "https://github.com/microbiomedata/nmdc-schema.git",
 ) -> None:
     """
     Migrate the NMDC database between two versions of the NMDC schema.
@@ -205,11 +234,33 @@ def main(
             password=transformer_mongo_password,
             name=transformer_mongo_database_name,
         ),
-        origin_schema_tag=origin_schema_tag,
-        destination_schema_tag=destination_schema_tag,
+        migrator_git_tag=migrator_git_tag,
+        migrator_module_name=migrator_module_name,
     )
 
     print(config.get_redacted_dict())
+
+    # Use pip to install the `nmdc-schema` version specified by the user.
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
+        progress.add_task(description=f"Installing {package_identifier}", total=None)
+        command_parts = ["pip", "install", f"git+{package_identifier}"]
+        result = subprocess.run(command_parts, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
+        else:
+            print(f"Installed {package_identifier}")
+
+    # Dynamically import the migrator module specified by the user and get the Migrator class from it.
+    print(f"Importing Migrator class from module: {migrator_module_name}")
+    migrator_module = import_module(f".{migrator_module_name}", package="nmdc_schema.migrators")
+    Migrator = getattr(migrator_module, "Migrator")  # gets the class
+    if not isclass(Migrator):
+        raise typer.BadParameter(f"Failed to import Migrator from module {migrator_module_name}")
 
 
 def run() -> None:
