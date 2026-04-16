@@ -367,7 +367,7 @@ def validate_json(
         #
         # a) Check for duplicate biosample names associated with a single study. This is something
         #    NMDC policy prohibits, but the NMDC schema allows. :(
-        # 
+        #
         #    We first check whether the user submitted a `biosample_set` collection. If not, pass.
         #    Otherwise, we check whether the submitted biosamples, themselves, violate this. If so,
         #    fail. Otherwise, we check whether any of the submitted combinations of biosample name
@@ -392,8 +392,14 @@ def validate_json(
                         biosample_names_by_study_id[study_id].add(biosample_name)
             # If we haven't found errors yet, check whether the database already contains any
             # of the submitted (biosample name, associated study ID) combinations.
-            if collection_name not in validation_errors or len(validation_errors[collection_name]) == 0:
-                for study_id, submitted_biosample_names in biosample_names_by_study_id.items():
+            if (
+                collection_name not in validation_errors
+                or len(validation_errors[collection_name]) == 0
+            ):
+                for (
+                    study_id,
+                    submitted_biosample_names,
+                ) in biosample_names_by_study_id.items():
                     biosample = mdb.biosample_set.find_one(
                         {
                             "associated_studies": study_id,
