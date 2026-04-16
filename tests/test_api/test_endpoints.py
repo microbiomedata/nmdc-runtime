@@ -559,18 +559,18 @@ def test_json_submit_rejects_payload_introducing_biosample_having_duplicate_name
     assert study_set.count_documents({"id": {"$in": study_ids}}) == 0
     assert biosample_set.count_documents({"id": {"$in": biosample_ids}}) == 0
 
+    # 👤 Give the user permission to use this API endpoint if it doesn't already have such permission.
+    allowances_collection = db.get_collection("_runtime.api.allow")
+    user_allowance = {"username": api_user_client.username, "action": "/metadata/json:submit"}
+    user_was_not_allowed = allowances_collection.find_one(user_allowance) is None
+    if user_was_not_allowed:
+        allowances_collection.insert_one(user_allowance)
+
     # We use a try/finally block so we can clean up the database even if an assertion fails.
     try:
         # Insert both studies and the first biosample into the database.
         study_set.insert_many([study_a, study_b])
         biosample_set.insert_one(biosample_a)
-
-        # 👤 Give the user permission to use this API endpoint if it doesn't already have such permission.
-        allowances_collection = db.get_collection("_runtime.api.allow")
-        user_allowance = {"username": api_user_client.username, "action": "/metadata/json:submit"}
-        user_was_not_allowed = allowances_collection.find_one(user_allowance) is None
-        if user_was_not_allowed:
-            allowances_collection.insert_one(user_allowance)
 
         # Try using the API endpoint to introduce the second biosample.
         with pytest.raises(requests.exceptions.HTTPError) as exc:
@@ -609,13 +609,17 @@ def test_json_submit_rejects_payload_introducing_biosample_having_duplicate_name
             {"id": {"$in": [biosample_b["id"], biosample_c["id"]]}}
         ) == 0
 
-    # Clean up: Delete all inserted studies and biosamples (only one biosample was ever inserted).
+    # Clean up: Delete all inserted studies and biosamples (only one biosample was ever inserted),
+    #           and delete the allowance (if one was inserted).
+    #
     # TODO: Since the endpoint uses Dagster to perform the insertions, there may be a race condition
     #       where these deletions are performed before Dagster has even performed the insertions.
+    #
     finally:
         study_set.delete_many({"id": {"$in": study_ids}})
         biosample_set.delete_many({"id": {"$in": biosample_ids}})
-
+        if user_was_not_allowed is True:
+            allowances_collection.delete_one(user_allowance)
 
 # TODO: Add a test that demonstrates the "success" behavior of the `/metadata/json:submit` API endpoint.
 #       Note that that behavior involves Dagster.
