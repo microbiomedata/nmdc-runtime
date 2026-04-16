@@ -1186,39 +1186,29 @@ def _add_linked_instances_to_alldocs(
     context.log.info(f"Pushed {update_count} updates in total")
 
 
-def drop_stale_temporary_alldocs_collections(
-    context: OpExecutionContext,
+def drop_temporary_alldocs_collections(
+    mdb: MongoDatabase,
     temporary_alldocs_collection_name_prefix: str = "_runtime.tmp.alldocs.",
-) -> None:
-    """Drops all temporary alldocs collections whose generation began at least an hour ago."""
+) -> Tuple[int, int]:
+    """
+    Drops all temporary alldocs collections.
 
-    # How long ago a collection must have been generated in order for this function to consider it
-    # to be "stale" (in which case, this function will drop that collection).
-    how_long_ago = timedelta(hours=1)
-    min_generation_time = now() - how_long_ago
+    :returns: Tuple of two numbers. First number is number of collections that were found,
+              and second number is number of collections that were dropped.
+    """
 
-    num_temp_alldocs_collections_found = 0
-    num_temp_alldocs_collections_dropped = 0
+    num_collections_initial = 0
+    num_collections_dropped = 0
 
-    mdb = context.resources.mongo.db
     for collection_name in mdb.list_collection_names():
-        # If this collection name doesn't start with the target prefix, skip it.
-        if not collection_name.startswith(temporary_alldocs_collection_name_prefix):
-            continue
+        num_collections_initial += 1
 
-        num_temp_alldocs_collections_found += 1
-        object_id_in_collection_name: str = collection_name.split(".")[-1]
-        if ObjectId(object_id_in_collection_name).generation_time < min_generation_time:
-            context.log.info(f"Dropping stale temporary collection: {collection_name}")
+        # If this collection's name begins with the specified prefix, drop the collection.
+        if collection_name.startswith(temporary_alldocs_collection_name_prefix):
+            num_collections_dropped += 1
             mdb.drop_collection(collection_name)
-            num_temp_alldocs_collections_dropped += 1
-
-    context.log.info(
-        f"Temporary collections found: {num_temp_alldocs_collections_found}"
-    )
-    context.log.info(
-        f"Temporary collections dropped: {num_temp_alldocs_collections_dropped}"
-    )
+    
+    return (num_collections_initial, num_collections_dropped)
 
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
@@ -1290,12 +1280,14 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
                 )
 
     # Before we generate a temporary `_runtime.tmp.alldocs.*` collection, drop any such collections
-    # left over from previous generation attempts that began at least an hour ago. This prevents
-    # the database from accumulating too many such collections as attempts fail over time.
+    # left over from previous generation attempts that failed. This prevents the database from
+    # accumulating too many such collections as generation attempts fail over time.
     temporary_alldocs_collection_name_prefix = "_runtime.tmp.alldocs."
-    drop_stale_temporary_alldocs_collections(
-        context, temporary_alldocs_collection_name_prefix
+    _, num_dropped = drop_temporary_alldocs_collections(
+        mdb=mdb,
+        temporary_alldocs_collection_name_prefix=temporary_alldocs_collection_name_prefix,
     )
+    context.log.info(f"Dropped {num_dropped} collections from past attempts")
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
