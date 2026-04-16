@@ -1256,7 +1256,7 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
-    temp_alldocs_collection_name = f"tmp.alldocs.{ObjectId()}"
+    temp_alldocs_collection_name = f"_runtime.tmp.alldocs.{ObjectId()}"
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
