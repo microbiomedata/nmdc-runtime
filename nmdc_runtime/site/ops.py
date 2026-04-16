@@ -1207,7 +1207,7 @@ def drop_temporary_alldocs_collections(
         if collection_name.startswith(temporary_alldocs_collection_name_prefix):
             num_collections_dropped += 1
             mdb.drop_collection(collection_name)
-    
+
     return (num_collections_initial, num_collections_dropped)
 
 
