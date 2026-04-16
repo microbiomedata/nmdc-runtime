@@ -1213,8 +1213,12 @@ def drop_stale_temporary_alldocs_collections(
             mdb.drop_collection(collection_name)
             num_temp_alldocs_collections_dropped += 1
 
-    context.log.info(f"Temporary collections found: {num_temp_alldocs_collections_found}")
-    context.log.info(f"Temporary collections dropped: {num_temp_alldocs_collections_dropped}")
+    context.log.info(
+        f"Temporary collections found: {num_temp_alldocs_collections_found}"
+    )
+    context.log.info(
+        f"Temporary collections dropped: {num_temp_alldocs_collections_dropped}"
+    )
 
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
