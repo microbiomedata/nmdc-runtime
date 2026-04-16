@@ -539,6 +539,84 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(
         allowances_collection.delete_one(user_allowance)
 
 
+def test_json_submit_rejects_payload_introducing_biosample_having_duplicate_name_under_same_study(
+    api_user_client,
+):
+    faker = Faker()
+    study_a, study_b = faker.generate_studies(2)
+    biosample_a, biosample_b, biosample_c = faker.generate_biosamples(
+        quantity=3,
+        name="recurring_name",
+        associated_studies=[study_a["id"]],
+    )
+    study_ids = [study_a["id"], study_b["id"]]
+    biosample_ids = [biosample_a["id"], biosample_b["id"], biosample_c["id"]]
+
+    # Confirm documents having those IDs don't exist in the database yet.
+    db = get_mongo_db()
+    study_set = db.get_collection("study_set")
+    biosample_set = db.get_collection("biosample_set")
+    assert study_set.count_documents({"id": {"$in": study_ids}}) == 0
+    assert biosample_set.count_documents({"id": {"$in": biosample_ids}}) == 0
+
+    # We use a try/finally block so we can clean up the database even if an assertion fails.
+    try:
+        # Insert both studies and the first biosample into the database.
+        study_set.insert_many([study_a, study_b])
+        biosample_set.insert_one(biosample_a)
+
+        # 👤 Give the user permission to use this API endpoint if it doesn't already have such permission.
+        allowances_collection = db.get_collection("_runtime.api.allow")
+        user_allowance = {"username": api_user_client.username, "action": "/metadata/json:submit"}
+        user_was_not_allowed = allowances_collection.find_one(user_allowance) is None
+        if user_was_not_allowed:
+            allowances_collection.insert_one(user_allowance)
+
+        # Try using the API endpoint to introduce the second biosample.
+        with pytest.raises(requests.exceptions.HTTPError) as exc:
+            api_user_client.request(
+                "POST",
+                "/metadata/json:submit",
+                {"biosample_set": [biosample_b]},
+            )
+        response = exc.value.response
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Assert that the biosample_set collection does not contain the biosample we submitted.
+        assert biosample_set.count_documents({"id": biosample_b["id"]}) == 0
+
+        # At this point, we've shown that the endpoint rejects it when the submitted biosample has the
+        # same name as an _existing_ one (associated with the same study). Next, we'll show that the
+        # endpoint rejects it when submitted two biosamples (associated with the same study) have the
+        # same name, although no biosample in the database (associated with that study) has that name.
+
+        # Associate the second and third biosamples with a different study from the first biosample.
+        biosample_b["associated_studies"] = [study_b["id"]]
+        biosample_c["associated_studies"] = [study_b["id"]]
+
+        # Try using the API endpoint to introduce the second and third biosamples.
+        with pytest.raises(requests.exceptions.HTTPError) as exc:
+            api_user_client.request(
+                "POST",
+                "/metadata/json:submit",
+                {"biosample_set": [biosample_b, biosample_c]},
+            )
+        response = exc.value.response
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+        # Assert that the biosample_set collection does not contain the biosample we submitted.
+        assert biosample_set.count_documents(
+            {"id": {"$in": [biosample_b["id"], biosample_c["id"]]}}
+        ) == 0
+
+    # Clean up: Delete all inserted studies and biosamples (only one biosample was ever inserted).
+    # TODO: Since the endpoint uses Dagster to perform the insertions, there may be a race condition
+    #       where these deletions are performed before Dagster has even performed the insertions.
+    finally:
+        study_set.delete_many({"id": {"$in": study_ids}})
+        biosample_set.delete_many({"id": {"$in": biosample_ids}})
+
+
 # TODO: Add a test that demonstrates the "success" behavior of the `/metadata/json:submit` API endpoint.
 #       Note that that behavior involves Dagster.
 
