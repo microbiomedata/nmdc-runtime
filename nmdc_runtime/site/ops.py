@@ -1186,32 +1186,35 @@ def _add_linked_instances_to_alldocs(
     context.log.info(f"Pushed {update_count} updates in total")
 
 
-def drop_stale_temporary_alldocs_collections(context: OpExecutionContext) -> None:
-    """
-    Drops temporary `_runtime.tmp.alldocs.*` collections that were generated over an hour ago.
-    """
+def drop_stale_temporary_alldocs_collections(
+    context: OpExecutionContext,
+    temporary_alldocs_collection_name_prefix: str = "_runtime.tmp.alldocs.",
+) -> None:
+    """Drops all temporary alldocs collections whose generation began at least an hour ago."""
 
     # How long ago a collection must have been generated in order for this function to consider it
     # to be "stale" (in which case, this function will drop that collection).
     how_long_ago = timedelta(hours=1)
     min_generation_time = now() - how_long_ago
 
-    num_collections_found = 0
-    num_collections_dropped = 0
+    num_temp_alldocs_collections_found = 0
+    num_temp_alldocs_collections_dropped = 0
 
     mdb = context.resources.mongo.db
     for collection_name in mdb.list_collection_names():
-        num_collections_found += 1
+        # If this collection name doesn't start with the target prefix, skip it.
+        if not collection_name.startswith(temporary_alldocs_collection_name_prefix):
+            continue
+
+        num_temp_alldocs_collections_found += 1
         object_id_in_collection_name: str = collection_name.split(".")[-1]
         if ObjectId(object_id_in_collection_name).generation_time < min_generation_time:
             context.log.info(f"Dropping stale temporary collection: {collection_name}")
             mdb.drop_collection(collection_name)
-            num_collections_dropped += 1
+            num_temp_alldocs_collections_dropped += 1
 
-    context.log.info(f"Temporary alldocs collections found: {num_collections_found}")
-    context.log.info(
-        f"Temporary alldocs collections dropped: {num_collections_dropped}"
-    )
+    context.log.info(f"Collections found: {num_temp_alldocs_collections_found}")
+    context.log.info(f"Collections dropped: {num_temp_alldocs_collections_dropped}")
 
 
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
@@ -1285,11 +1288,12 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # Before we generate a temporary `_runtime.tmp.alldocs.*` collection, drop any such collections
     # left over from previous generation attempts that began at least an hour ago. This prevents
     # the database from accumulating too many such collections as attempts fail over time.
-    drop_stale_temporary_alldocs_collections(context)
+    temporary_alldocs_collection_name_prefix = "_runtime.tmp.alldocs."
+    drop_stale_temporary_alldocs_collections(context, temporary_alldocs_collection_name_prefix)
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
-    temp_alldocs_collection_name = f"_runtime.tmp.alldocs.{ObjectId()}"
+    temp_alldocs_collection_name = f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
