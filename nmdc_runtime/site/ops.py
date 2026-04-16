@@ -1289,11 +1289,15 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
     # left over from previous generation attempts that began at least an hour ago. This prevents
     # the database from accumulating too many such collections as attempts fail over time.
     temporary_alldocs_collection_name_prefix = "_runtime.tmp.alldocs."
-    drop_stale_temporary_alldocs_collections(context, temporary_alldocs_collection_name_prefix)
+    drop_stale_temporary_alldocs_collections(
+        context, temporary_alldocs_collection_name_prefix
+    )
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
-    temp_alldocs_collection_name = f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
+    temp_alldocs_collection_name = (
+        f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
+    )
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 
