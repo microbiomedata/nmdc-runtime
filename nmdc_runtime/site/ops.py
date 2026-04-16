@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
@@ -1186,6 +1186,32 @@ def _add_linked_instances_to_alldocs(
     context.log.info(f"Pushed {update_count} updates in total")
 
 
+def drop_stale_temporary_alldocs_collections(context: OpExecutionContext) -> None:
+    """
+    Drops temporary `_runtime.tmp.alldocs.*` collections that were generated over an hour ago.
+    """
+
+    # How long ago a collection must have been generated in order for this function to consider it
+    # to be "stale" (in which case, this function will drop that collection).
+    how_long_ago = timedelta(hours=1)
+    min_generation_time = now() - how_long_ago
+
+    num_collections_found = 0
+    num_collections_dropped = 0
+
+    mdb = context.resources.mongo.db
+    for collection_name in mdb.list_collection_names():
+        num_collections_found += 1
+        object_id_in_collection_name: str = collection_name.split(".")[-1]
+        if ObjectId(object_id_in_collection_name).generation_time < min_generation_time:
+            context.log.info(f"Dropping stale temporary collection: {collection_name}")
+            mdb.drop_collection(collection_name)
+            num_collections_dropped += 1
+
+    context.log.info(f"Temporary alldocs collections found: {num_collections_found}")
+    context.log.info(f"Temporary alldocs collections dropped: {num_collections_dropped}")
+
+
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
 #       pass an argument to the op (in order to specify the order of the ops in the graph)
 #       while also telling Dagster that this op doesn't need the _value_ of that argument.
@@ -1253,6 +1279,11 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
                 document_reference_ranged_slots_by_type[f"nmdc:{cls_name}"].append(
                     slot_name
                 )
+
+    # Before we generate a temporary `_runtime.tmp.alldocs.*` collection, drop any such collections
+    # left over from previous generation attempts that began at least an hour ago. This prevents
+    # the database from accumulating too many such collections as attempts fail over time.
+    drop_stale_temporary_alldocs_collections(context)
 
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
