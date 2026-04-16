@@ -269,3 +269,14 @@ def run() -> None:
 
 if __name__ == "__main__":
     run()
+
+
+# Note:
+#
+# To install git and curl within the `mongo` container:
+#   $ apt update && apt install -y git curl && apt clean
+#
+# To install uv within the `mongo` container:
+#   $ curl -LsSf https://astral.sh/uv/install.sh | s
+#   $ source $HOME/.local/bin/env
+#
