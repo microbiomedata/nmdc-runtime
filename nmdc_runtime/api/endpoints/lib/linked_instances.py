@@ -60,7 +60,10 @@ def drop_stale_temp_linked_instances_collections() -> None:
     for collection_name in mdb.list_collection_names(
         filter={"name": {"$regex": r"^_runtime.tmp.linked_instances\..*"}}
     ):
-        if ObjectId(collection_name.split(".")[-1]).generation_time < min_generation_time:
+        if (
+            ObjectId(collection_name.split(".")[-1]).generation_time
+            < min_generation_time
+        ):
             mdb.drop_collection(collection_name)
 
 
