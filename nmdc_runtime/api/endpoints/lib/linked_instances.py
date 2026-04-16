@@ -45,13 +45,25 @@ def generate_temp_linked_instances_collection_name(
 
 
 def drop_stale_temp_linked_instances_collections() -> None:
-    """Drop any temporary linked-instances collections that were generated earlier than one day ago."""
+    """
+    Drop any temporary linked-instances collections that were generated earlier than some cutoff.
+    """
+
+    # How long ago a collection must have been generated in order for this function to consider it
+    # to be "stale" (in which case, this function will drop that collection). By setting it to an
+    # hour (which we arrived at heuristically), we are implying that we think anyone paginating
+    # through the collection will have finished doing so within one hour from when they began.
+    how_long_ago = timedelta(hours=1)
+    min_generation_time = now() - how_long_ago
+
     mdb = get_mongo_db()
-    one_day_ago = now() - timedelta(days=1)
     for collection_name in mdb.list_collection_names(
         filter={"name": {"$regex": r"^_runtime.tmp.linked_instances\..*"}}
     ):
-        if ObjectId(collection_name.split(".")[-1]).generation_time < one_day_ago:
+        if (
+            ObjectId(collection_name.split(".")[-1]).generation_time
+            < min_generation_time
+        ):
             mdb.drop_collection(collection_name)
 
 
