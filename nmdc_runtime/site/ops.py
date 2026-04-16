@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
