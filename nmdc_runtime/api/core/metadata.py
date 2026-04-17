@@ -652,7 +652,7 @@ def copy_docs_in_update_cmd(
     Useful to apply and inspect updates on a test database.
 
     TODO: Document the `update_cmd` parameter and add a type hint to it.
-    
+
     TODO: Document the `drop_mdb_to` parameter.
 
     Parameters
