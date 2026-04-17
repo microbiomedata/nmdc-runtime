@@ -748,9 +748,9 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
     #       Since the `update_mongo_db` invocation above only simulates the updates to the documents that
     #       are represented in the submitted _changesheet_, and (as of commit #3b4ee8b8 / April 11, 2026)
     #       the "nmdc" MongoDB database has an index that prohibits multiple `biosample_set` documents
-    #       associated with the same `study_set` document to have the same name as one another, we check
-    #       for violations of that rule here so we can inform the user rather than the eventual Dagster
-    #       write operation failing downstream outside of the user's awareness.
+    #       associated with the same `study_set` document to have the same name as one another, check
+    #       for violations of that rule here so we can inform the user now rather than the eventual
+    #       Dagster write operation failing downstream outside of the user's awareness.
     #
     # Docs: https://www.mongodb.com/docs/manual/reference/command/update/#mongodb-dbcommand-dbcmd.update
     #
