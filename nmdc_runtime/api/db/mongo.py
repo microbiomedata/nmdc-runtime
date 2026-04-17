@@ -3,7 +3,7 @@ import os
 from contextlib import AbstractContextManager
 from copy import deepcopy
 from functools import lru_cache
-from typing import Set
+from typing import Dict, List, Set
 from uuid import uuid4
 
 import bson
@@ -363,7 +363,59 @@ def validate_json(
         except Exception as e:
             return {"result": "errors", "detail": str(e)}
 
-        # Third pass (if enabled): Check inter-document references.
+        # Third pass: Perform custom validation that is not performed by schema-based validation.
+        #
+        # a) Check for duplicate biosample names associated with a single study. This is something
+        #    NMDC policy prohibits, but the NMDC schema allows. :(
+        #
+        #    We first check whether the user submitted a `biosample_set` collection. If not, pass.
+        #    Otherwise, we check whether the submitted biosamples, themselves, violate this. If so,
+        #    fail. Otherwise, we check whether any of the submitted combinations of biosample name
+        #    & associated study ID occur in the database. If so, fail. If not, pass.
+        #
+        collection_name = "biosample_set"
+        if collection_name in docs:
+            biosamples = docs[collection_name]
+            biosample_names_by_study_id: Dict[str, Set[str]] = {}
+            for biosample in biosamples:
+                study_ids: List[str] = biosample.get("associated_studies", [])
+                biosample_name: str = biosample["name"]  # schema says name is required
+                for study_id in study_ids:
+                    if study_id not in biosample_names_by_study_id:
+                        biosample_names_by_study_id[study_id] = set()
+                    if biosample_name in biosample_names_by_study_id[study_id]:
+                        validation_errors[collection_name].append(
+                            f"Multiple submitted biosamples having name '{biosample_name}'"
+                            f"are associated with study '{study_id}'."
+                        )
+                    else:
+                        biosample_names_by_study_id[study_id].add(biosample_name)
+            # If we haven't found errors yet, check whether the database already contains any
+            # of the submitted (biosample name, associated study ID) combinations.
+            if (
+                collection_name not in validation_errors
+                or len(validation_errors[collection_name]) == 0
+            ):
+                for (
+                    study_id,
+                    submitted_biosample_names,
+                ) in biosample_names_by_study_id.items():
+                    biosample = mdb.biosample_set.find_one(
+                        {
+                            "associated_studies": study_id,
+                            "name": {"$in": list(submitted_biosample_names)},
+                        }
+                    )
+                    if biosample is not None:
+                        validation_errors[collection_name].append(
+                            f"There is already a biosample having name '{biosample['name']}' "
+                            f"that is associated with the study having ID '{study_id}'."
+                        )
+        # If any collection's error list is not empty, return an error response.
+        if any(len(v) > 0 for v in validation_errors.values()):
+            return {"result": "errors", "detail": validation_errors}
+
+        # Fourth pass (if enabled): Check inter-document references.
         if check_inter_document_references is True:
             # Prepare to use `refscan`.
             #

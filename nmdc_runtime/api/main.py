@@ -195,6 +195,19 @@ def ensure_allowance_is_indexed():
     )
 
 
+def ensure_biosample_set_has_unique_compound_index_on_name_and_associated_studies():
+    """
+    Ensures that there is a compound index on (name, associated_studies) in the `biosample_set`
+    collection; so that no two biosamples associated with the same study can have the same name.
+    """
+    mdb = get_mongo_db()
+    mdb["biosample_set"].create_index(
+        [("name", 1), ("associated_studies", 1)],
+        background=True,
+        unique=True,
+    )
+
+
 def ensure_attribute_indexes():
     r"""
     Ensures that the MongoDB collection identified by each key (i.e. collection name) in the
@@ -289,6 +302,8 @@ async def lifespan(app: FastAPI):
     ensure_sequencing_project_name_is_indexed()
     ensure_jgi_samples_id_is_indexed()
     ensure_allowance_is_indexed()
+    ensure_biosample_set_has_unique_compound_index_on_name_and_associated_studies()
+
     # Invoke a function—thereby priming its memoization cache—in order to speed up all future invocations.
     get_allowed_references()  # we ignore the return value here
 
