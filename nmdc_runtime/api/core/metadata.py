@@ -759,7 +759,7 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
             # TODO: Apply the update commands to the "nmdc" MongoDB database within a transaction
             #       and return an error to the user if there are any errors. At this point, if we
             #       are going to perform the commands on the real database within a transaction for
-            #       validation purposes, we _may as well_ perform it for reals, without Dagster! 
+            #       validation purposes, we _may as well_ perform it for reals, without Dagster!
             pass
 
     validation_errors = []
