@@ -233,13 +233,34 @@ def fetch_sra_experiments(bioproject_accession: str) -> List[dict]:
 # XML parsing: BioSamples
 # ---------------------------------------------------------------------------
 
-def fetch_biosamples(accessions: List[str]) -> List[dict]:
-    if not accessions:
-        return []
+def fetch_linked_biosample_uids(bioproject_uid: str) -> Optional[List[str]]:
+    """Return BioSample UIDs linked to a BioProject via elink.
 
-    ids = esearch("biosample", " OR ".join(f"{a}[Accession]" for a in accessions))
+    Returns None if the elink query fails (NCBI outage, transient error, etc.)
+    so callers can distinguish 'no biosamples' from 'lookup failed'.
+    """
+    try:
+        raw = _eutils_get("elink.fcgi", {
+            "dbfrom": "bioproject",
+            "db": "biosample",
+            "id": bioproject_uid,
+            "linkname": "bioproject_biosample_all",
+        })
+        root = etree.fromstring(raw)
+        err_el = root.find(".//ERROR")
+        if err_el is not None and err_el.text:
+            print(f"  WARNING: elink bioproject→biosample returned error: {err_el.text.strip()}")
+            return None
+        return [el.text for el in root.findall(".//LinkSetDb/Link/Id") if el.text]
+    except Exception as e:
+        print(f"  WARNING: elink bioproject→biosample call failed: {e}")
+        return None
+
+
+def _fetch_biosample_records(ids: List[str]) -> List[dict]:
+    """Fetch and parse BioSample records for the given UIDs or accessions."""
     if not ids:
-        ids = accessions
+        return []
 
     print(f"  Fetching {len(ids)} BioSample records...")
     roots = efetch_xml("biosample", ids)
@@ -279,6 +300,21 @@ def fetch_biosamples(accessions: List[str]) -> List[dict]:
             })
 
     return samples
+
+
+def fetch_biosamples(accessions: List[str]) -> List[dict]:
+    """Fetch BioSample records by accession (e.g. SAMN*).
+
+    Looks up UIDs via esearch, then efetches. Falls back to passing the
+    accession strings directly to efetch if esearch returns nothing.
+    """
+    if not accessions:
+        return []
+
+    ids = esearch("biosample", " OR ".join(f"{a}[Accession]" for a in accessions))
+    if not ids:
+        ids = accessions
+    return _fetch_biosample_records(ids)
 
 
 # ---------------------------------------------------------------------------
@@ -577,13 +613,44 @@ def fetch_all(accession: str) -> dict:
     print(f"Fetching SRA experiments...")
     experiments = fetch_sra_experiments(accession)
 
-    biosample_accessions = sorted(
-        {e["biosample_accession"] for e in experiments if e["biosample_accession"]}
-    )
-    print(f"  Found {len(biosample_accessions)} unique BioSamples across SRA records.")
+    sra_biosample_accessions = {
+        e["biosample_accession"] for e in experiments if e["biosample_accession"]
+    }
+    print(f"  Found {len(sra_biosample_accessions)} unique BioSamples across SRA records.")
 
-    print(f"Fetching BioSamples...")
-    biosamples = fetch_biosamples(biosample_accessions)
+    print(f"Querying elink for all BioSamples linked to BioProject...")
+    linked_uids = fetch_linked_biosample_uids(project["uid"])
+
+    if linked_uids is not None:
+        print(f"  elink returned {len(linked_uids)} BioSample UIDs.")
+        print(f"Fetching BioSamples by UID (covers both sequenced and unsequenced samples)...")
+        biosamples = _fetch_biosample_records(linked_uids)
+        linked_accessions = {s["accession"] for s in biosamples if s.get("accession")}
+
+        missing_from_sra = linked_accessions - sra_biosample_accessions
+        missing_from_elink = sra_biosample_accessions - linked_accessions
+
+        if missing_from_sra:
+            print(
+                f"  NOTE: {len(missing_from_sra)} BioSample(s) under this BioProject "
+                f"have no SRA submission yet (carried through without a DataGeneration)."
+            )
+        if missing_from_elink:
+            print(
+                f"  WARNING: {len(missing_from_elink)} BioSample(s) referenced by SRA "
+                f"were not returned by elink — fetching them separately: "
+                f"{sorted(missing_from_elink)}"
+            )
+            extras = fetch_biosamples(sorted(missing_from_elink))
+            biosamples.extend(extras)
+    else:
+        print(
+            "  elink unavailable — falling back to SRA-derived BioSample set only. "
+            "Re-run later for a complete list."
+        )
+        print(f"Fetching BioSamples...")
+        biosamples = fetch_biosamples(sorted(sra_biosample_accessions))
+
     print(f"  Retrieved {len(biosamples)} BioSample records.")
 
     return {
