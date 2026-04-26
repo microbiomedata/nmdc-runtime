@@ -310,12 +310,13 @@ def main(
 
     # Perform sanity tests.
     with pymongo.timeout(3):
+        # Display the MongoDB server version (running on the "origin" Mongo server) and confirm the "origin" database DOES exist.
         origin_mongo_server_version = origin_mongo_client.server_info()["version"]
         print(f"Origin Mongo server version: {origin_mongo_server_version}")
         if origin_mongo_database_name not in origin_mongo_client.list_database_names():
             raise typer.BadParameter(f"Origin database '{origin_mongo_database_name}' does not exist.")
 
-        # Display the MongoDB server version (running on the "transformer" Mongo server).
+        # Display the MongoDB server version (running on the "transformer" Mongo server) and confirm the "transformer" database does NOT exist yet.
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
         print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
         if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
