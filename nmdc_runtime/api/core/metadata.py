@@ -599,6 +599,11 @@ def mongo_update_command_for(df_change: pds.DataFrame) -> Dict[str, list]:
     """
     Creates a dictionary of update commands to be executed against the Mongo database.
 
+    FIXME: The "Returns" section of this docstring is inaccurate. The return value's type hint
+           is also inaccurate. See how the return value is built within the function body to
+           get idea of the real data type and conceptual content of the value. Either fix this
+           or eliminate changesheet support altogether.
+
     Parameters
     ----------
     df_change : pds.DataFrame
@@ -645,6 +650,10 @@ def copy_docs_in_update_cmd(
     """
     Copies data between Mongo databases.
     Useful to apply and inspect updates on a test database.
+
+    TODO: Document the `update_cmd` parameter and add a type hint to it.
+
+    TODO: Document the `drop_mdb_to` parameter.
 
     Parameters
     ----------
@@ -717,6 +726,10 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
 
 
 def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
+    """
+    TODO: Document this function.
+    """
+
     update_cmd = mongo_update_command_for(df_change)
     mdb_to_inspect = mdb.client["nmdc_changesheet_submission_results"]
     results_of_copy = copy_docs_in_update_cmd(
@@ -733,6 +746,34 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
         },
         "results_of_updates": results_of_updates,
     }
+
+    # TODO: Perform validation of (biosample name, associated study ID) combination uniqueness.
+    #
+    #       Since the `update_mongo_db` invocation above only simulates the updates to the documents that
+    #       are represented in the submitted _changesheet_, and (as of commit #3b4ee8b8 / April 11, 2026)
+    #       the "nmdc" MongoDB database has an index that prohibits multiple `biosample_set` documents
+    #       associated with the same `study_set` document to have the same name as one another, check
+    #       for violations of that rule here so we can inform the user now rather than the eventual
+    #       Dagster write operation failing downstream outside of the user's awareness.
+    #
+    #       We briefly considered inserting all of the remaining "biosample_set" documents into the
+    #       so-called inspection database and seeing whether any index violations occur when the
+    #       changesheet-specified insertions take place, but that database does not have any indexes;
+    #       and the idea of trying to replicate indexes there felt like going down a slippery slope
+    #       of trying to build up a realistic alternative database. I'd much rather switch to using
+    #       MongoDB transactions on the real database, than patch (and maintain) the current
+    #       "inspection" approach.
+    #
+    # Docs: https://www.mongodb.com/docs/manual/reference/command/update/#mongodb-dbcommand-dbcmd.update
+    #
+    for _, mongo_update_cmd in update_cmd.items():  # `update_cmd` is a misnomer 😭
+        if mongo_update_cmd["update"] == "biosample_set":
+            # TODO: Apply the update commands to the "nmdc" MongoDB database within a transaction
+            #       and return an error to the user if there are any errors. At this point, if we
+            #       are going to perform the commands on the real database within a transaction for
+            #       validation purposes, we _may as well_ perform it for reals, without Dagster!
+            pass
+
     validation_errors = []
     for result in results_of_updates:
         if len(result.get("validation_errors", [])) > 0:

@@ -260,6 +260,11 @@ def _run_mdb_cmd(
     TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
 
+    TODO: For `UpdateCommand` commands that involve the "biosample_set" collection, validate the
+          (biosample name, associated study ID) uniqueness constraint (introduced in commit #3b4ee8b8
+          in April 11, 2026), so we can return an error response to the user, rather than them only
+          realizing later that the write operation eventually attempted by Dagster failed.
+
     :param cmd: Undocumented. TODO: Document this parameter.
     :param mdb: Undocumented. TODO: Document this parameter.
     :param allow_broken_refs: Under normal circumstances, if this function determines that performing

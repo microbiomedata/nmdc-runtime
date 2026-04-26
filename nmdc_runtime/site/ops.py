@@ -1186,6 +1186,31 @@ def _add_linked_instances_to_alldocs(
     context.log.info(f"Pushed {update_count} updates in total")
 
 
+def drop_temporary_alldocs_collections(
+    mdb: MongoDatabase,
+    temporary_alldocs_collection_name_prefix: str = "_runtime.tmp.alldocs.",
+) -> Tuple[int, int]:
+    """
+    Drops all temporary alldocs collections.
+
+    :returns: Tuple of two numbers. First number is number of collections that were found,
+              and second number is number of collections that were dropped.
+    """
+
+    num_collections_initial = 0
+    num_collections_dropped = 0
+
+    for collection_name in mdb.list_collection_names():
+        num_collections_initial += 1
+
+        # If this collection's name begins with the specified prefix, drop the collection.
+        if collection_name.startswith(temporary_alldocs_collection_name_prefix):
+            num_collections_dropped += 1
+            mdb.drop_collection(collection_name)
+
+    return (num_collections_initial, num_collections_dropped)
+
+
 # Note: Here, we define a so-called "Nothing dependency," which allows us to (in a graph)
 #       pass an argument to the op (in order to specify the order of the ops in the graph)
 #       while also telling Dagster that this op doesn't need the _value_ of that argument.
@@ -1254,9 +1279,21 @@ def materialize_alldocs(context: OpExecutionContext) -> int:
                     slot_name
                 )
 
+    # Before we generate a temporary `_runtime.tmp.alldocs.*` collection, drop any such collections
+    # left over from previous generation attempts that failed. This prevents the database from
+    # accumulating too many such collections as generation attempts fail over time.
+    temporary_alldocs_collection_name_prefix = "_runtime.tmp.alldocs."
+    _, num_dropped = drop_temporary_alldocs_collections(
+        mdb=mdb,
+        temporary_alldocs_collection_name_prefix=temporary_alldocs_collection_name_prefix,
+    )
+    context.log.info(f"Dropped {num_dropped} collections from past attempts")
+
     # Build `alldocs` to a temporary collection for atomic replacement
     # https://www.mongodb.com/docs/v6.0/reference/method/db.collection.renameCollection/#resource-locking-in-replica-sets
-    temp_alldocs_collection_name = f"tmp.alldocs.{ObjectId()}"
+    temp_alldocs_collection_name = (
+        f"{temporary_alldocs_collection_name_prefix}{ObjectId()}"
+    )
     temp_alldocs_collection = mdb[temp_alldocs_collection_name]
     context.log.info(f"constructing `{temp_alldocs_collection.name}` collection")
 

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from pymongo.errors import DuplicateKeyError
 from toolz import dissoc
 
 from nmdc_runtime.api.db.mongo import (
@@ -217,3 +218,34 @@ def test_check_mongo_ok_autoreconnect(test_db):
     collection = test_db.get_collection("_runtime.healthcheck")
     assert check_mongo_ok_autoreconnect(mdb=test_db) is True
     assert collection.count_documents({"status": "ok"}) == 0
+
+
+def test_unique_compound_indexes_including_arrays_check_all_permutations(test_db):
+    """
+    This test demonstrates how MongoDB's compound indexes work when one of the fields is an array.
+    """
+    # Create the composite index.
+    collection = test_db.get_collection("test")
+    collection.create_index([("pasta", 1), ("sauces", 1)], name="my_index", unique=True)
+
+    # Insert documents with various combinations of pasta and sauces.
+    collection.insert_one({"pasta": "Spaghetti", "sauces": ["Marinara", "Alfredo"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Alfredo", "Pesto"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Marinara"]})
+    assert collection.count_documents({}) == 3
+
+    # Try inserting some documents that violate the unique constraint.
+    # Note: These will both be rejected because the combination of "Rigatoni" + "Pesto" exists.
+    with pytest.raises(DuplicateKeyError):
+        collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto"]})
+    with pytest.raises(DuplicateKeyError):
+        collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto", "Carbonara"]})
+    assert collection.count_documents({}) == 3
+    
+    # Get rid of the index.
+    collection.drop_index("my_index")
+
+    # Now, try inserting those same documents.
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto"]})
+    collection.insert_one({"pasta": "Rigatoni", "sauces": ["Pesto", "Carbonara"]})
+    assert collection.count_documents({}) == 5
