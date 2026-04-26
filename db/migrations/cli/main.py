@@ -4,14 +4,42 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from importlib import import_module
 import subprocess
+import sys
 from typing import Annotated, Optional
 
+import pymongo
 import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+# from roles import (
+#     get_admin_database,
+#     revoke_standard_role_privileges,
+#     restore_standard_role_privileges,
+# )
 
 app = typer.Typer()
+
+
+def run_subprocess(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run a subprocess and capture its text output."""
+
+    return subprocess.run(command_parts, capture_output=True, text=True)
+
+
+def ensure_pip_is_available(python_executable: str) -> None:
+    """Install `pip` into the specified Python environment if it is missing."""
+
+    probe_result = run_subprocess([python_executable, "-m", "pip", "--version"])
+    if probe_result.returncode == 0:
+        return
+
+    if "No module named pip" not in probe_result.stderr:
+        raise typer.BadParameter(f"Failed to probe pip availability.\n\n{probe_result.stderr}")
+
+    bootstrap_result = run_subprocess([python_executable, "-m", "ensurepip", "--upgrade"])
+    if bootstrap_result.returncode != 0:
+        raise typer.BadParameter(f"Failed to bootstrap pip.\n\n{bootstrap_result.stderr}")
 
 
 class ParamValidators:
@@ -70,12 +98,8 @@ class MigrationConfig:
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""
         config_dict = asdict(self)
-        config_dict["origin_mongo_db_config"] = (
-            self.origin_mongo_database_config.get_redacted_dict()
-        )
-        config_dict["transformer_mongo_db_config"] = (
-            self.transformer_mongo_database_config.get_redacted_dict()
-        )
+        config_dict["origin_mongo_db_config"] = self.origin_mongo_database_config.get_redacted_dict()
+        config_dict["transformer_mongo_db_config"] = self.transformer_mongo_database_config.get_redacted_dict()
         return config_dict
 
 
@@ -248,12 +272,13 @@ def main(
     ) as progress:
         package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
         progress.add_task(description=f"Installing {package_identifier}", total=None)
-        command_parts = ["pip", "install", f"git+{package_identifier}"]
-        result = subprocess.run(command_parts, capture_output=True, text=True)
+        ensure_pip_is_available(sys.executable)
+        command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
+        result = run_subprocess(command_parts)
         if result.returncode != 0:
             raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
         else:
-            print(f"Installed {package_identifier}")
+            print(f"Installed {package_identifier} using interpreter {sys.executable}")
 
     # Dynamically import the migrator module specified by the user and get the Migrator class from it.
     print(f"Importing Migrator class from module: {migrator_module_name}")
@@ -261,6 +286,40 @@ def main(
     Migrator = getattr(migrator_module, "Migrator")  # gets the class
     if not isclass(Migrator):
         raise typer.BadParameter(f"Failed to import Migrator from module {migrator_module_name}")
+
+    # TODO: Display a warning if the origin MongoDB server and the transformer MongoDB server
+    #       have the same hostname and port. That might not have been intentional by the user.
+
+    # Connect to the origin MongoDB server.
+    origin_mongo_client = pymongo.MongoClient(
+        host=origin_mongo_host,
+        port=origin_mongo_port,
+        username=origin_mongo_username,
+        password=origin_mongo_password,
+        directConnection=True,
+    )
+
+    # Connect to the "transformer" MongoDB server.
+    transformer_mongo_client = pymongo.MongoClient(
+        host=transformer_mongo_host,
+        port=transformer_mongo_port,
+        username=transformer_mongo_username,
+        password=transformer_mongo_password,
+        directConnection=True,
+    )
+
+    # Perform sanity tests.
+    with pymongo.timeout(3):
+        origin_mongo_server_version = origin_mongo_client.server_info()["version"]
+        print(f"Origin Mongo server version: {origin_mongo_server_version}")
+        if origin_mongo_database_name not in origin_mongo_client.list_database_names():
+            raise typer.BadParameter(f"Origin database '{origin_mongo_database_name}' does not exist.")
+
+        # Display the MongoDB server version (running on the "transformer" Mongo server).
+        transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
+        print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
+        if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
+            raise typer.BadParameter(f"Transformer database '{transformer_mongo_database_name}' already exists.")
 
 
 def run() -> None:

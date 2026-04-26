@@ -17,3 +17,14 @@ nmdc-mongo-migration = "main:run"
 dev = [
     "ruff>=0.15.10",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# Specify which linting rules will be used when someone runs `$ uv run ruff check`.
+# Note: The default rules are `["E4", "E7", "E9", "F"]`.
+# References:
+# - https://docs.astral.sh/ruff/rules/ (the list of rules)
+# - https://docs.astral.sh/ruff/settings/#lint_select (the `select` setting)
+select = ["E4", "E7", "E9", "F", "D101", "D102", "D103"]
