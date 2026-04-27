@@ -83,6 +83,30 @@ class DatabaseConfig:
         config_dict["is_auth_enabled"] = self.is_auth_enabled
         return config_dict
 
+    def get_pymongo_client_kwargs(self) -> dict:
+        """Get a dictionary of keyword arguments for instantiating a `pymongo.MongoClient` with this config."""
+        kwargs = {
+            "host": self.host,
+            "port": self.port,
+        }
+        if self.is_auth_enabled:
+            kwargs.update({"username": self.username, "password": self.password})
+        return kwargs
+
+    def get_cli_options(self) -> list[str]:
+        """Get a list of CLI options for connecting to a MongoDB database with this config."""
+        options = [
+            "--host",
+            self.host,
+            "--port",
+            str(self.port),
+            "--db",
+            self.name,
+        ]
+        if self.is_auth_enabled:
+            options.extend(["--username", self.username, "--password", self.password])
+        return options
+
 
 @dataclass(frozen=True)
 class MigrationConfig:
@@ -119,7 +143,8 @@ def get_reserved_git_tags_help_snippet() -> str:
     """Get a help snippet describing the reserved Git tags."""
     return ", ".join(f"'{tag}': {description}" for tag, description in RESERVED_GIT_TAGS.items())
 
-
+# TODO: Add a parameter that controls the `directConnection` flag.
+#       See: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
 def main(
     migrator_git_tag: Annotated[
         str,
@@ -260,24 +285,28 @@ def main(
     This app does not support migrators that involve renaming MongoDB collection.
     """
 
+    origin_mongo_database_config = DatabaseConfig(
+        host=origin_mongo_host,
+        port=origin_mongo_port,
+        username=origin_mongo_username,
+        password=origin_mongo_password,
+        name=origin_mongo_database_name,
+    )
+
+    transformer_mongo_database_config = DatabaseConfig(
+        host=transformer_mongo_host,
+        port=transformer_mongo_port,
+        username=transformer_mongo_username,
+        password=transformer_mongo_password,
+        name=transformer_mongo_database_name,
+    )
+
     config = MigrationConfig(
         mongosh_path=mongosh_path,
         mongodump_path=mongodump_path,
         mongorestore_path=mongorestore_path,
-        origin_mongo_database_config=DatabaseConfig(
-            host=origin_mongo_host,
-            port=origin_mongo_port,
-            username=origin_mongo_username,
-            password=origin_mongo_password,
-            name=origin_mongo_database_name,
-        ),
-        transformer_mongo_database_config=DatabaseConfig(
-            host=transformer_mongo_host,
-            port=transformer_mongo_port,
-            username=transformer_mongo_username,
-            password=transformer_mongo_password,
-            name=transformer_mongo_database_name,
-        ),
+        origin_mongo_database_config=origin_mongo_database_config,
+        transformer_mongo_database_config=transformer_mongo_database_config,
         migrator_git_tag=migrator_git_tag,
         migrator_module_name=migrator_module_name,
     )
@@ -319,22 +348,10 @@ def main(
     #       have the same hostname and port. That might not have been intentional by the user.
 
     # Connect to the origin MongoDB server.
-    origin_mongo_client = pymongo.MongoClient(
-        host=origin_mongo_host,
-        port=origin_mongo_port,
-        username=origin_mongo_username,
-        password=origin_mongo_password,
-        directConnection=True,
-    )
+    origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
 
     # Connect to the "transformer" MongoDB server.
-    transformer_mongo_client = pymongo.MongoClient(
-        host=transformer_mongo_host,
-        port=transformer_mongo_port,
-        username=transformer_mongo_username,
-        password=transformer_mongo_password,
-        directConnection=True,
-    )
+    transformer_mongo_client = pymongo.MongoClient(**transformer_mongo_database_config.get_pymongo_client_kwargs())
 
     # Perform sanity tests.
     with pymongo.timeout(3):
@@ -353,6 +370,21 @@ def main(
     # Revoke user access to the "origin" MongoDB server.
     revoked_roles_result = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
     print(f"Revoked standard role privileges on origin server:\n{revoked_roles_result}")
+
+    # Dump the subject collections from the "origin" MongoDB server.
+    collection_names = ["colors", "shapes"]
+    for collection_name in collection_names:
+        shell_command_parts = [
+            mongodump_path,
+            "--collection",
+            collection_name,
+            "--gzip",
+            "--out",
+            # TODO: Make the dump directory configurable.
+            "/tmp/origin_mongo_database_dump",
+        ]
+        shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
+        print(run_subprocess(shell_command_parts))
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
