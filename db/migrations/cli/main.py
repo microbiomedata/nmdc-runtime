@@ -13,11 +13,10 @@ import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-# from roles import (
-#     get_admin_database,
-#     revoke_standard_role_privileges,
-#     restore_standard_role_privileges,
-# )
+from roles import (
+    revoke_standard_role_privileges,
+    restore_standard_role_privileges,
+)
 
 app = typer.Typer()
 
@@ -70,6 +69,7 @@ class DatabaseConfig:
 
     @property
     def is_auth_enabled(self) -> bool:
+        """Returns True if the database config includes credentials for authentication."""
         return self.username != ""
 
     def get_redacted_dict(self) -> dict:
@@ -338,20 +338,29 @@ def main(
 
     # Perform sanity tests.
     with pymongo.timeout(3):
-        # Display the MongoDB server version (running on the "origin" Mongo server) and confirm the "origin" database DOES exist.
+        # Display the MongoDB server version (running on the "origin" server) and confirm the "origin" database DOES exist.
         origin_mongo_server_version = origin_mongo_client.server_info()["version"]
         print(f"Origin Mongo server version: {origin_mongo_server_version}")
         if origin_mongo_database_name not in origin_mongo_client.list_database_names():
             raise typer.BadParameter(f"Origin database '{origin_mongo_database_name}' does not exist.")
 
-        # Display the MongoDB server version (running on the "transformer" Mongo server) and confirm the "transformer" database does NOT exist yet.
+        # Display the MongoDB server version (running on the "transformer" server) and confirm the "transformer" database does NOT exist yet.
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
         print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
         if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
             raise typer.BadParameter(f"Transformer database '{transformer_mongo_database_name}' already exists.")
 
+    # Revoke user access to the "origin" MongoDB server.
+    revoked_roles_result = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+    print(f"Revoked standard role privileges on origin server:\n{revoked_roles_result}")
+
+    # Restore user access to the "origin" MongoDB server.
+    restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+    print(f"Restored standard role privileges on origin server:\n{restored_roles_result}")
+
 
 def run() -> None:
+    """Runs the CLI app."""
     typer.run(main)
 
 
