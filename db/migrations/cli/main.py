@@ -3,6 +3,7 @@ from os import access, X_OK
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from importlib import import_module
+from importlib.metadata import version
 import subprocess
 import sys
 from typing import Annotated, Optional
@@ -103,12 +104,31 @@ class MigrationConfig:
         return config_dict
 
 
+# Note: These are basically "sentinel" values that users can specify for the `migrator_git_tag`
+#       parameter to get special behavior. Ensure each one begins with a hyphen, since I don't
+#       think Git, itself, would allow a tag to begin with a hyphen.
+RESERVED_GIT_TAGS: dict[str, str] = {
+    "-INSTALLED": (
+        "Use the nmdc-schema package already installed in the Python environment "
+        "(useful for rapid development and avoiding rate limiting by the Git repository host)."
+    ),
+}
+
+
+def get_reserved_git_tags_help_snippet() -> str:
+    """Get a help snippet describing the reserved Git tags."""
+    return ", ".join(f"'{tag}': {description}" for tag, description in RESERVED_GIT_TAGS.items())
+
+
 def main(
     migrator_git_tag: Annotated[
         str,
         typer.Option(
             envvar="MIGRATOR_GIT_TAG",
-            help="Git tag of an nmdc-schema commit containing the migrator you want to run.",
+            help=(
+                "Git tag of an nmdc-schema commit containing the migrator you want to run. "
+                f"Special values: {get_reserved_git_tags_help_snippet()}"
+            ),
         ),
     ],
     migrator_module_name: Annotated[
@@ -265,20 +285,28 @@ def main(
     print(config.get_redacted_dict())
 
     # Use pip to install the `nmdc-schema` version specified by the user.
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=True,
-    ) as progress:
-        package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
-        progress.add_task(description=f"Installing {package_identifier}", total=None)
-        ensure_pip_is_available(sys.executable)
-        command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
-        result = run_subprocess(command_parts)
-        if result.returncode != 0:
-            raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
+    if migrator_git_tag in RESERVED_GIT_TAGS.keys():
+        if migrator_git_tag == "-INSTALLED":
+            print(f"Using the currently-installed nmdc-schema package: {version('nmdc_schema')}")
         else:
-            print(f"Installed {package_identifier} using interpreter {sys.executable}")
+            # If execution gets here, it means a developer introduced a new reserved Git tag into
+            # the `RESERVED_GIT_TAGS` dictionary, but did not update these conditions accordingly.
+            raise typer.BadParameter(f"Unsupported reserved Git tag: {migrator_git_tag}")
+    else:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
+        ) as progress:
+            package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
+            progress.add_task(description=f"Installing {package_identifier}", total=None)
+            ensure_pip_is_available(sys.executable)
+            command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
+            result = run_subprocess(command_parts)
+            if result.returncode != 0:
+                raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
+            else:
+                print(f"Installed {package_identifier} using interpreter {sys.executable}")
 
     # Dynamically import the migrator module specified by the user and get the Migrator class from it.
     print(f"Importing Migrator class from module: {migrator_module_name}")
