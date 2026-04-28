@@ -253,7 +253,13 @@ def main(
     migrator_module = import_module(f".{migrator_module_name}", package="nmdc_schema.migrators")
     Migrator = getattr(migrator_module, "Migrator")  # gets the class
     if not isclass(Migrator):
-        raise typer.BadParameter(f"Failed to import Migrator from module {migrator_module_name}")
+        raise typer.BadParameter(f"Failed to import Migrator class from module {migrator_module_name}")
+    
+    # Also import other modules from the same package.
+    mongo_adapter_module = import_module(".mongo_adapter", package="nmdc_schema.migrators.adapters")
+    MongoAdapter = getattr(mongo_adapter_module, "MongoAdapter")
+    if not isclass(MongoAdapter):
+        raise typer.BadParameter(f"Failed to import MongoAdapter class from module {mongo_adapter_module.__name__}")
 
     # Connect to the origin MongoDB server.
     origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
@@ -309,6 +315,12 @@ def main(
     ]
     shell_command_parts.extend(transformer_mongo_database_config.get_cli_options(include_db_option=False))
     print(run_subprocess(shell_command_parts))
+
+    # Use the migrator to transform the data within the "transformer" MongoDB server.
+    # TODO: Configure a `logger` for the migrator to use.
+    adapter = MongoAdapter(database=transformer_mongo_client[transformer_mongo_database_name])
+    migrator = Migrator(adapter=adapter)
+    migrator.upgrade(commit_changes=True)
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
