@@ -1,6 +1,4 @@
-from inspect import isclass
 from pathlib import Path
-from importlib import import_module
 from importlib.metadata import version
 import sys
 from typing import Annotated
@@ -21,6 +19,7 @@ from lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
+from lib.schema import create_validator, get_migrator_class, get_mongo_adapter_class
 from lib.system import ensure_pip_is_available, run_subprocess
 
 app = typer.Typer()
@@ -249,17 +248,10 @@ def main(
                 print(f"Installed {package_identifier} using interpreter {sys.executable}")
 
     # Dynamically import the migrator module specified by the user and get the `Migrator` class from it.
-    print(f"Importing Migrator class from module: {migrator_module_name}")
-    migrator_module = import_module(f".{migrator_module_name}", package="nmdc_schema.migrators")
-    Migrator = getattr(migrator_module, "Migrator")  # gets the class
-    if not isclass(Migrator):
-        raise typer.BadParameter(f"Failed to import Migrator class from module {migrator_module_name}")
-    
-    # Also import other modules from the same package.
-    mongo_adapter_module = import_module(".mongo_adapter", package="nmdc_schema.migrators.adapters")
-    MongoAdapter = getattr(mongo_adapter_module, "MongoAdapter")
-    if not isclass(MongoAdapter):
-        raise typer.BadParameter(f"Failed to import MongoAdapter class from module {mongo_adapter_module.__name__}")
+    Migrator = get_migrator_class(migrator_module_name=migrator_module_name)
+
+    # Import other classes from it.
+    MongoAdapter = get_mongo_adapter_class()
 
     # Connect to the origin MongoDB server.
     origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
@@ -321,6 +313,10 @@ def main(
     adapter = MongoAdapter(database=transformer_mongo_client[transformer_mongo_database_name])
     migrator = Migrator(adapter=adapter)
     migrator.upgrade(commit_changes=True)
+
+    # Validate the transformed data.
+    # TODO: Implement validation and user-friendly error reporting.
+    validator = create_validator()
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
