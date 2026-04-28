@@ -143,6 +143,7 @@ def get_reserved_git_tags_help_snippet() -> str:
     """Get a help snippet describing the reserved Git tags."""
     return ", ".join(f"'{tag}': {description}" for tag, description in RESERVED_GIT_TAGS.items())
 
+
 # TODO: Add a parameter that controls the `directConnection` flag.
 #       See: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
 def main(
@@ -198,6 +199,16 @@ def main(
             help="Database name for the origin MongoDB database.",
         ),
     ] = "nmdc",
+    origin_dump_folder_path: Annotated[
+        Path,
+        typer.Option(
+            envvar="ORIGIN_DUMP_FOLDER_PATH",
+            help="Path to the directory in which you want the origin database dump to be created.",
+            dir_okay=True,
+            file_okay=False,
+            resolve_path=True,
+        ),
+    ] = Path("/tmp/mongodump.origin.out"),
     transformer_mongo_host: Annotated[
         str,
         typer.Option(
@@ -233,6 +244,16 @@ def main(
             help="Database name for the transformer MongoDB database.",
         ),
     ] = "transformer",
+    transformer_dump_folder_path: Annotated[
+        Path,
+        typer.Option(
+            envvar="TRANSFORMER_DUMP_FOLDER_PATH",
+            help="Path to the directory in which you want the transformer database dump to be created.",
+            dir_okay=True,
+            file_okay=False,
+            resolve_path=True,
+        ),
+    ] = Path("/tmp/mongodump.transformer.out"),
     mongosh_path: Annotated[
         Path,
         typer.Option(
@@ -346,6 +367,8 @@ def main(
 
     # TODO: Display a warning if the origin MongoDB server and the transformer MongoDB server
     #       have the same hostname and port. That might not have been intentional by the user.
+    if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
+        print("[yellow]Warning: Accessing origin and transformer MongoDB server at same hostname and port.[/yellow]")
 
     # Connect to the origin MongoDB server.
     origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
@@ -380,8 +403,7 @@ def main(
             collection_name,
             "--gzip",
             "--out",
-            # TODO: Make the dump directory configurable.
-            "/tmp/origin_mongo_database_dump",
+            origin_dump_folder_path,
         ]
         shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
         print(run_subprocess(shell_command_parts))
