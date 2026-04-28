@@ -219,6 +219,11 @@ def main(
 
     print(config.get_redacted_dict())
 
+    # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
+    # at the same hostname and port, display a warning (since that might not have been intentional).
+    if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
+        print("[yellow]Warning: Accessing origin and transformer MongoDB server at same hostname and port.[/yellow]")
+
     # Use pip to install the `nmdc-schema` version specified by the user.
     if migrator_git_tag in RESERVED_GIT_TAGS.keys():
         if migrator_git_tag == "-INSTALLED":
@@ -243,17 +248,12 @@ def main(
             else:
                 print(f"Installed {package_identifier} using interpreter {sys.executable}")
 
-    # Dynamically import the migrator module specified by the user and get the Migrator class from it.
+    # Dynamically import the migrator module specified by the user and get the `Migrator` class from it.
     print(f"Importing Migrator class from module: {migrator_module_name}")
     migrator_module = import_module(f".{migrator_module_name}", package="nmdc_schema.migrators")
     Migrator = getattr(migrator_module, "Migrator")  # gets the class
     if not isclass(Migrator):
         raise typer.BadParameter(f"Failed to import Migrator from module {migrator_module_name}")
-
-    # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
-    # at the same hostname and port, display a warning (since that might not have been intentional).
-    if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
-        print("[yellow]Warning: Accessing origin and transformer MongoDB server at same hostname and port.[/yellow]")
 
     # Connect to the origin MongoDB server.
     origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
