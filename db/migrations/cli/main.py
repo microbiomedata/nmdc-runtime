@@ -365,8 +365,8 @@ def main(
     if not isclass(Migrator):
         raise typer.BadParameter(f"Failed to import Migrator from module {migrator_module_name}")
 
-    # TODO: Display a warning if the origin MongoDB server and the transformer MongoDB server
-    #       have the same hostname and port. That might not have been intentional by the user.
+    # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
+    # at the same hostname and port, display a warning (since that might not have been intentional).
     if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
         print("[yellow]Warning: Accessing origin and transformer MongoDB server at same hostname and port.[/yellow]")
 
