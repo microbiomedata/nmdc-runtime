@@ -45,6 +45,7 @@ class DatabaseConfig:
     username: str
     password: str
     name: str
+    direct_connection: bool
 
     @property
     def is_auth_enabled(self) -> bool:
@@ -68,6 +69,8 @@ class DatabaseConfig:
             "host": self.host,
             "port": self.port,
         }
+        if self.direct_connection:
+            kwargs.update({"directConnection": True})
         if self.is_auth_enabled:
             kwargs.update({"username": self.username, "password": self.password})
         return kwargs
@@ -78,7 +81,9 @@ class DatabaseConfig:
         if include_db_option:
             options.extend(["--db", self.name])
         if self.is_auth_enabled:
-            options.extend(["--username", self.username, "--password", self.password])
+            options.extend(
+                ["--username", self.username, "--password", self.password, "--authenticationDatabase", "admin"]
+            )
         return options
 
 

@@ -25,8 +25,6 @@ from lib.system import ensure_pip_is_available, run_subprocess
 app = typer.Typer()
 
 
-# TODO: Add a parameter that controls the `directConnection` flag.
-#       See: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
 def main(
     migrator_git_tag: Annotated[
         str,
@@ -80,6 +78,14 @@ def main(
             help="Database name for the origin MongoDB database.",
         ),
     ] = "nmdc",
+    # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
+    origin_mongo_direction_connection: Annotated[
+        bool,
+        typer.Option(
+            envvar="ORIGIN_MONGO_DIRECT_CONNECTION",
+            help="Whether to use the `directConnection` option when connecting to the origin MongoDB database.",
+        ),
+    ] = True,
     origin_dump_folder_path: Annotated[
         Path,
         typer.Option(
@@ -125,6 +131,14 @@ def main(
             help="Database name for the transformer MongoDB database.",
         ),
     ] = "transformer",
+    # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
+    transformer_mongo_direction_connection: Annotated[
+        bool,
+        typer.Option(
+            envvar="TRANSFORMER_MONGO_DIRECT_CONNECTION",
+            help="Whether to use the `directConnection` option when connecting to the transformer MongoDB database.",
+        ),
+    ] = True,
     transformer_dump_folder_path: Annotated[
         Path,
         typer.Option(
@@ -193,6 +207,7 @@ def main(
         username=origin_mongo_username,
         password=origin_mongo_password,
         name=origin_mongo_database_name,
+        direct_connection=origin_mongo_direction_connection,
     )
 
     transformer_mongo_database_config = DatabaseConfig(
@@ -201,6 +216,7 @@ def main(
         username=transformer_mongo_username,
         password=transformer_mongo_password,
         name=transformer_mongo_database_name,
+        direct_connection=transformer_mongo_direction_connection,
     )
 
     config = MigrationConfig(
@@ -221,7 +237,19 @@ def main(
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).
     if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
-        print("[yellow]Warning: Accessing origin and transformer MongoDB server at same hostname and port.[/yellow]")
+        print(
+            "[yellow]Warning:[/yellow] Accessing origin and transformer MongoDB server at"
+            f"same hostname and port (i.e. '{origin_mongo_host}:{origin_mongo_port}')."
+        )
+
+    # If either dump folder is non-empty, display a warning and refuse to run.
+    # TODO: Allow the user to indicate that they want us to "clean" (empty out) the directory for them.
+    if config.origin_dump_folder_path.is_dir() and any(config.origin_dump_folder_path.iterdir()):
+        print(f"[yellow]Warning:[/yellow] Origin dump folder '{config.origin_dump_folder_path}' is not empty.")
+    if config.transformer_dump_folder_path.is_dir() and any(config.transformer_dump_folder_path.iterdir()):
+        print(
+            f"[yellow]Warning:[/yellow] Transformer dump folder '{config.transformer_dump_folder_path}' is not empty."
+        )
 
     # Use pip to install the `nmdc-schema` version specified by the user.
     if migrator_git_tag in RESERVED_GIT_TAGS.keys():
@@ -253,21 +281,19 @@ def main(
     # Import other classes from it.
     MongoAdapter = get_mongo_adapter_class()
 
-    # Connect to the origin MongoDB server.
+    # Connect to the "origin" MongoDB server and perform a sanity test of the connection.
     origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
-
-    # Connect to the "transformer" MongoDB server.
-    transformer_mongo_client = pymongo.MongoClient(**transformer_mongo_database_config.get_pymongo_client_kwargs())
-
-    # Perform sanity tests.
     with pymongo.timeout(3):
-        # Display the MongoDB server version (running on the "origin" server) and confirm the "origin" database DOES exist.
+        # Display the MongoDB server version and confirm the "origin" database DOES exist.
         origin_mongo_server_version = origin_mongo_client.server_info()["version"]
         print(f"Origin Mongo server version: {origin_mongo_server_version}")
         if origin_mongo_database_name not in origin_mongo_client.list_database_names():
             raise typer.BadParameter(f"Origin database '{origin_mongo_database_name}' does not exist.")
 
-        # Display the MongoDB server version (running on the "transformer" server) and confirm the "transformer" database does NOT exist yet.
+    # Connect to the "transformer" MongoDB server and perform a sanity test of the connection.
+    transformer_mongo_client = pymongo.MongoClient(**transformer_mongo_database_config.get_pymongo_client_kwargs())
+    with pymongo.timeout(3):
+        # Display the MongoDB server version and confirm the "transformer" database does NOT exist yet.
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
         print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
         if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
@@ -279,7 +305,7 @@ def main(
 
     # Dump the subject collections from the "origin" MongoDB server.
     # TODO: Get this list of collection names dynamically; either from the environment (e.g. CLI options) or from the `Migrator` class.
-    collection_names = ["colors", "shapes"]
+    collection_names = ["study_set"]
     for collection_name in collection_names:
         shell_command_parts = [
             mongodump_path,
@@ -321,7 +347,7 @@ def main(
         collection = transformer_db.get_collection(collection_name)
         num_documents = collection.count_documents({})
         with Progress() as progress:
-            task = progress.add_task(f"Validating {collection_name}", total=num_documents)
+            task = progress.add_task(f"Validating documents in '{collection_name}'", total=num_documents)
             for document in collection.find():
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
