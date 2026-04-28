@@ -19,7 +19,7 @@ from lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
-from lib.schema import create_validator, get_migrator_class, get_mongo_adapter_class
+from lib.schema import create_validator, get_migrator_class, get_mongo_adapter_class, validate_document
 from lib.system import ensure_pip_is_available, run_subprocess
 
 app = typer.Typer()
@@ -310,13 +310,21 @@ def main(
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
     # TODO: Configure a `logger` for the migrator to use.
-    adapter = MongoAdapter(database=transformer_mongo_client[transformer_mongo_database_name])
+    transformer_db = transformer_mongo_client[transformer_mongo_database_name]
+    adapter = MongoAdapter(database=transformer_db)
     migrator = Migrator(adapter=adapter)
     migrator.upgrade(commit_changes=True)
 
     # Validate the transformed data.
-    # TODO: Implement validation and user-friendly error reporting.
     validator = create_validator()
+    for collection_name in collection_names:
+        collection = transformer_db.get_collection(collection_name)
+        num_documents = collection.count_documents({})
+        with Progress() as progress:
+            task = progress.add_task(f"Validating {collection_name}", total=num_documents)
+            for document in collection.find():
+                validate_document(document=document, validator=validator)
+                progress.update(task, advance=1)
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])

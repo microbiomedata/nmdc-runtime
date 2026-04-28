@@ -8,6 +8,7 @@ dependencies = [
     "linkml>=1.10.0",
     "linkml-runtime>=1.10.0",
     "pymongo>=4.12.1",
+    "refscan>=0.4.4",
     "rich>=13.9.4",
     "typer>=0.15.3",
 ]
