@@ -280,6 +280,7 @@ def main(
     print(f"Revoked standard role privileges on origin server:\n{revoked_roles_result}")
 
     # Dump the subject collections from the "origin" MongoDB server.
+    # TODO: Get this list of collection names dynamically; either from the environment (e.g. CLI options) or from the `Migrator` class.
     collection_names = ["colors", "shapes"]
     for collection_name in collection_names:
         shell_command_parts = [
@@ -292,6 +293,22 @@ def main(
         ]
         shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
         print(run_subprocess(shell_command_parts))
+
+    # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
+    shell_command_parts = [
+        mongorestore_path,
+        "--nsFrom",
+        f"{origin_mongo_database_name}.*",
+        "--nsTo",
+        f"{transformer_mongo_database_name}.*",
+        "--drop",
+        "--stopOnError",
+        "--gzip",
+        "--dir",
+        origin_dump_folder_path,
+    ]
+    shell_command_parts.extend(transformer_mongo_database_config.get_cli_options(include_db_option=False))
+    print(run_subprocess(shell_command_parts))
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])

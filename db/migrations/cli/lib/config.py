@@ -72,16 +72,11 @@ class DatabaseConfig:
             kwargs.update({"username": self.username, "password": self.password})
         return kwargs
 
-    def get_cli_options(self) -> list[str]:
+    def get_cli_options(self, include_db_option: bool = True) -> list[str]:
         """Get a list of CLI options for connecting to a MongoDB database with this config."""
-        options = [
-            "--host",
-            self.host,
-            "--port",
-            str(self.port),
-            "--db",
-            self.name,
-        ]
+        options = ["--host", self.host, "--port", str(self.port)]
+        if include_db_option:
+            options.extend(["--db", self.name])
         if self.is_auth_enabled:
             options.extend(["--username", self.username, "--password", self.password])
         return options

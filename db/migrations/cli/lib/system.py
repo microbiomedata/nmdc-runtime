@@ -1,12 +1,24 @@
 import subprocess
 
+from rich import print
 import typer
 
 
 def run_subprocess(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
-    """Run a subprocess and capture its text output."""
+    """
+    Run a subprocess and capture its text output, raising a `CalledProcessError` if the subprocess
+    returns a non-zero exit code.
+    """
 
-    return subprocess.run(command_parts, capture_output=True, text=True)
+    try:
+        return subprocess.run(command_parts, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(
+            f"Command {e.cmd} failed with exit code {e.returncode}.\n"
+            f"[bold underline]STDOUT[/bold underline]\n{e.stdout}\n"
+            f"[bold red underline]STDERR[/bold red underline]\n{e.stderr}\n"
+        )
+        raise
 
 
 def ensure_pip_is_available(python_executable: str) -> None:
