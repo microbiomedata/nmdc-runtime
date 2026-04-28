@@ -13,7 +13,7 @@ import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from roles import (
+from lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
