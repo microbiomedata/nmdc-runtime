@@ -1,3 +1,4 @@
+from functools import lru_cache
 from inspect import isclass
 from importlib import import_module
 from typing import Type
@@ -59,6 +60,7 @@ def create_schema_definition() -> SchemaDefinition:
     return schema_definition
 
 
+@lru_cache(maxsize=1)
 def create_schema_view() -> SchemaView:
     """
     Returns a LinkML SchemaView instance that can be used to programmatically traverse the NMDC schema.
@@ -98,30 +100,32 @@ def create_validator(schema_definition: SchemaDefinition) -> Validator:
     return validator
 
 
-def validate_document(document: dict, validator: Validator) -> None:
+def validate_document(document: dict, validator: Validator, strip_oid: bool = False) -> None:
     """
     Validate a document against the NMDC schema using the provided `Validator` instance.
-    Raises a `TypeError` if the document is invalid.
+    Raises a `TypeError` if the document is invalid. If `strip_oid` is `True`, the function
+    will validate a copy of the document that lacks the `_id` field, if any.
     """
 
-    # Strip the `_id` field from the document, since it's not described by the schema.
-    #
-    # Note: Dictionaries originating as Mongo documents include a Mongo-generated key named `_id`. However,
-    #       the NMDC Schema does not describe that key and, indeed, data validators consider dictionaries
-    #       containing that key to be invalid with respect to the NMDC Schema. So, here, we validate a
-    #       copy (i.e. a shallow copy) of the document that lacks that specific key.
-    #
-    document_without_oid = {key: value for key, value in document.items() if key != "_id"}
+    document_to_validate = document
+    if strip_oid:
+        # Strip the `_id` field from the document, since it's not described by the schema.
+        #
+        # Note: Dictionaries originating as Mongo documents include a Mongo-generated key named `_id`.
+        #       However, the NMDC Schema does not describe that key. So, here, we make a copy
+        #       (a shallow copy) of the document, without that key.
+        #
+        document_to_validate = {key: value for key, value in document.items() if key != "_id"}
 
     # Determine the name of the schema class the document represents an instance of.
     schema_class_name = derive_schema_class_name_from_document(
-        schema_view=create_schema_view(), document=document_without_oid
+        schema_view=create_schema_view(), document=document_to_validate
     )
     if schema_class_name is None:
-        raise TypeError(f"Failed to determine schema class for document.\n{document_without_oid=}")
+        raise TypeError(f"Failed to determine schema class for document.\n{document_to_validate=}")
 
     # Validate the document, raising an error if it's invalid.
-    validation_report: ValidationReport = validator.validate(document_without_oid, target_class=schema_class_name)
+    validation_report: ValidationReport = validator.validate(document_to_validate, target_class=schema_class_name)
     if len(validation_report.results) > 0:
         result_messages = [result.message for result in validation_report.results]
-        raise TypeError(f"Document is invalid.\n{result_messages=}\n{document_without_oid=}")
+        raise TypeError(f"Document is invalid.\n{result_messages=}\n{document_to_validate=}")

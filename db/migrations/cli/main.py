@@ -447,7 +447,7 @@ def main(
             collection = transformer_db.get_collection(collection_name)
             num_documents = collection.count_documents({})
             task = progress.add_task(f"Validating documents in '{collection_name}'", total=num_documents)
-            for document in collection.find():
+            for document in collection.find({}, {"_id": 0}):
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
             progress.update(task_all, advance=1)
