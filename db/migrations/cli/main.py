@@ -6,7 +6,15 @@ from typing import Annotated
 import pymongo
 import typer
 from rich import print
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    MofNCompleteColumn,
+    TimeRemainingColumn,
+)
 
 from lib.config import (
     RESERVED_GIT_TAGS,
@@ -262,7 +270,7 @@ def main(
     # at the same hostname and port, display a warning (since that might not have been intentional).
     if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
         print(
-            "[yellow]Warning:[/yellow] Accessing origin and transformer MongoDB server at"
+            "[yellow]Warning:[/yellow] Accessing origin and transformer MongoDB server at "
             f"same hostname and port (i.e. '{origin_mongo_host}:{origin_mongo_port}')."
         )
 
@@ -272,6 +280,7 @@ def main(
         if auto_empty_origin_dump_folder:
             print("[yellow]Emptying origin dump folder automatically.[/yellow]")
             _ = delete_contents_of_directory(origin_dump_folder_path)
+            print("[green]Emptied origin dump folder.[/green]")
         else:
             raise typer.BadParameter(
                 f"Origin dump folder '{origin_dump_folder_path}' is not empty. "
@@ -285,6 +294,7 @@ def main(
         if auto_empty_transformer_dump_folder:
             print("[yellow]Emptying transformer dump folder automatically.[/yellow]")
             _ = delete_contents_of_directory(transformer_dump_folder_path)
+            print("[green]Emptied transformer dump folder.[/green]")
         else:
             raise typer.BadParameter(
                 f"Transformer dump folder '{transformer_dump_folder_path}' is not empty. "
@@ -304,6 +314,7 @@ def main(
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
+            refresh_per_second=1,
             transient=True,
         ) as progress:
             package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
@@ -315,6 +326,7 @@ def main(
                 raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
             else:
                 print(f"Installed {package_identifier} using interpreter {sys.executable}")
+        print(f"[green]Installed {package_identifier}.[/green]")
 
     # Dynamically import the migrator module specified by the user and get the `Migrator` class from it.
     Migrator = get_migrator_class(migrator_module_name=migrator_module_name)
@@ -349,74 +361,144 @@ def main(
                 transformer_mongo_client.drop_database(transformer_mongo_database_name)
 
     # Revoke user access to the "origin" MongoDB server.
-    revoked_roles_result = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
-    print(f"Revoked standard role privileges on origin server:\n{revoked_roles_result}")
+    _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+    print("[green]Revoked standard role privileges on origin server.[/green]")
 
     # Dump the subject collections from the "origin" MongoDB server.
     # TODO: Get this list of collection names dynamically; either from the environment (e.g. CLI options) or from the `Migrator` class.
     collection_names = ["study_set"]
-    for collection_name in collection_names:
-        shell_command_parts = [
-            mongodump_path,
-            "--collection",
-            collection_name,
-            "--gzip",
-            "--out",
-            origin_dump_folder_path,
-        ]
-        shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
-        print(run_subprocess(shell_command_parts))
+    with Progress(refresh_per_second=1, transient=True) as progress:
+        task = progress.add_task(
+            description="Dumping collections from origin MongoDB database", total=len(collection_names)
+        )
+        for collection_name in collection_names:
+            shell_command_parts = [
+                mongodump_path,
+                "--collection",
+                collection_name,
+                "--gzip",
+                "--out",
+                origin_dump_folder_path,
+            ]
+            shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
+            run_subprocess(shell_command_parts)
+            progress.update(task, advance=1)
+        print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
-    shell_command_parts = [
-        mongorestore_path,
-        "--nsFrom",
-        f"{origin_mongo_database_name}.*",
-        "--nsTo",
-        f"{transformer_mongo_database_name}.*",
-        "--drop",
-        "--stopOnError",
-        "--gzip",
-        "--dir",
-        origin_dump_folder_path,
-    ]
-    shell_command_parts.extend(transformer_mongo_database_config.get_cli_options(include_db_option=False))
-    print(run_subprocess(shell_command_parts))
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        refresh_per_second=1,
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
+        shell_command_parts = [
+            mongorestore_path,
+            "--nsFrom",
+            f"{origin_mongo_database_name}.*",
+            "--nsTo",
+            f"{transformer_mongo_database_name}.*",
+            "--drop",
+            "--stopOnError",
+            "--gzip",
+            "--dir",
+            origin_dump_folder_path,
+        ]
+        shell_command_parts.extend(transformer_mongo_database_config.get_cli_options(include_db_option=False))
+        run_subprocess(shell_command_parts)
+    print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
     # TODO: Configure a `logger` for the migrator to use.
-    transformer_db = transformer_mongo_client[transformer_mongo_database_name]
-    adapter = MongoAdapter(database=transformer_db)
-    migrator = Migrator(adapter=adapter)
-    migrator.upgrade(commit_changes=True)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        refresh_per_second=1,
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Migrating data within transformer MongoDB database", total=None)
+        transformer_db = transformer_mongo_client[transformer_mongo_database_name]
+        adapter = MongoAdapter(database=transformer_db)
+        migrator = Migrator(adapter=adapter)
+        migrator.upgrade(commit_changes=True)
+    print("[green]Migrated data within transformer MongoDB database.[/green]")
 
     # Validate the transformed data.
-    validator = create_validator()
-    for collection_name in collection_names:
-        collection = transformer_db.get_collection(collection_name)
-        num_documents = collection.count_documents({})
-        with Progress() as progress:
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+        TimeRemainingColumn(),
+        refresh_per_second=1,
+        transient=True,
+    ) as progress:
+        task_all = progress.add_task(description="Validating collections", total=len(collection_names))
+        validator = create_validator()
+        for collection_name in collection_names:
+            collection = transformer_db.get_collection(collection_name)
+            num_documents = collection.count_documents({})
             task = progress.add_task(f"Validating documents in '{collection_name}'", total=num_documents)
             for document in collection.find():
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
+            progress.update(task_all, advance=1)
+    print("[green]Validated documents within transformer MongoDB database.[/green]")
 
     # Dump the (now-transformed) subject collections from the "transformer" MongoDB server.
-    for collection_name in collection_names:
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        refresh_per_second=1,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(
+            description="Dumping collections from transformer MongoDB database", total=len(collection_names)
+        )
+        for collection_name in collection_names:
+            shell_command_parts = [
+                mongodump_path,
+                "--collection",
+                collection_name,
+                "--gzip",
+                "--out",
+                transformer_dump_folder_path,
+            ]
+            shell_command_parts.extend(transformer_mongo_database_config.get_cli_options())
+            run_subprocess(shell_command_parts)
+            progress.update(task, advance=1)
+    print("[green]Dumped collections from transformer MongoDB database.[/green]")
+
+    # Restore the subject collections dumped from the "transformer" MongoDB server into the "origin" MongoDB server,
+    # dropping the original collections.
+    # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        refresh_per_second=1,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
         shell_command_parts = [
-            mongodump_path,
-            "--collection",
-            collection_name,
+            mongorestore_path,
+            "--nsFrom",
+            f"{transformer_mongo_database_name}.*",
+            "--nsTo",
+            f"{origin_mongo_database_name}.*",
+            "--drop",
+            "--stopOnError",
             "--gzip",
-            "--out",
+            "--dir",
             transformer_dump_folder_path,
         ]
-        shell_command_parts.extend(transformer_mongo_database_config.get_cli_options())
-        print(run_subprocess(shell_command_parts))
+        shell_command_parts.extend(origin_mongo_database_config.get_cli_options(include_db_option=False))
+        run_subprocess(shell_command_parts)
+        progress.update(task, advance=1)
+    print("[green]Restored collections into origin MongoDB database.[/green]")
 
     # Restore user access to the "origin" MongoDB server.
-    restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
-    print(f"Restored standard role privileges on origin server:\n{restored_roles_result}")
+    _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+    print("[green]Restored standard role privileges on origin server.[/green]")
 
 
 def run() -> None:
