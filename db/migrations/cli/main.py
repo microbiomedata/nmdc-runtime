@@ -16,6 +16,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from lib.bookkeeper import Bookkeeper, MigrationEvent
 from lib.config import (
     RESERVED_GIT_TAGS,
     DatabaseConfig,
@@ -429,6 +430,7 @@ def main(
     print("[green]Migrated data within transformer MongoDB database.[/green]")
 
     # Validate the transformed data.
+    # TODO: The validation seems reeeaaallly slow (slower than the notebook counterpart). Look into this.
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -474,6 +476,18 @@ def main(
             progress.update(task, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
+    # Create a bookkeeper that can be used to record migration events in the "origin" MongoDB server.
+    bookkeeper = Bookkeeper(mongo_client=origin_mongo_client)
+
+    # Record an event that indicates that a migration has started.
+    bookkeeper.record_migration_event(
+        event=MigrationEvent.MIGRATION_STARTED,
+        from_schema_version=migrator.get_origin_version(),
+        to_schema_version=migrator.get_destination_version(),
+        name_of_migrator_module=migrator_module_name,
+    )
+    print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
+
     # Restore the subject collections dumped from the "transformer" MongoDB server into the "origin" MongoDB server,
     # dropping the original collections.
     # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
@@ -500,6 +514,15 @@ def main(
         run_subprocess(shell_command_parts)
         progress.update(task, advance=1)
     print("[green]Restored collections into origin MongoDB database.[/green]")
+
+    # Record an event that indicates that a migration has been completed.
+    bookkeeper.record_migration_event(
+        event=MigrationEvent.MIGRATION_COMPLETED,
+        from_schema_version=migrator.get_origin_version(),
+        to_schema_version=migrator.get_destination_version(),
+        name_of_migrator_module=migrator_module_name,
+    )
+    print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
 
     # Restore user access to the "origin" MongoDB server.
     _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
