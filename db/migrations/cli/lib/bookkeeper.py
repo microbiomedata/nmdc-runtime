@@ -93,9 +93,7 @@ class Bookkeeper:
         - https://www.mongodb.com/docs/manual/reference/method/db.createView/#mongodb-method-db.createView
         - https://pymongo.readthedocs.io/en/stable/api/pymongo/database.html#pymongo.database.Database.create_collection
         """
-        if (
-            self.view_name not in self.db.list_collection_names()
-        ):  # returns list of names of both collections and views
+        if self.view_name not in self.db.list_collection_names():  # returns list of names of both collections and views
             agg_pipeline = [
                 # Sort the documents so the most recent one is first.
                 {"$sort": {"created_at": -1}},

@@ -22,11 +22,17 @@ def get_migrator_class(migrator_module_name: str) -> Type:
 
     # Validate that the `Migrator` class has the methods we expect it to have.
     if not callable(getattr(Migrator, "upgrade")):
-        raise RuntimeError(f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'upgrade' method")
+        raise RuntimeError(
+            f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'upgrade' method"
+        )
     if not callable(getattr(Migrator, "get_origin_version")):
-        raise RuntimeError(f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_origin_version' method")
+        raise RuntimeError(
+            f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_origin_version' method"
+        )
     if not callable(getattr(Migrator, "get_destination_version")):
-        raise RuntimeError(f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_destination_version' method")
+        raise RuntimeError(
+            f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_destination_version' method"
+        )
 
     return Migrator
 
