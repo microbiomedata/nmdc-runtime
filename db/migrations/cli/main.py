@@ -27,7 +27,13 @@ from lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
-from lib.schema import create_validator, get_migrator_class, get_mongo_adapter_class, validate_document
+from lib.schema import (
+    create_schema_definition,
+    create_validator,
+    get_migrator_class,
+    get_mongo_adapter_class,
+    validate_document,
+)
 from lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
 
 app = typer.Typer()
@@ -278,9 +284,8 @@ def main(
     if origin_dump_folder_path.is_dir() and not is_directory_empty(origin_dump_folder_path):
         print(f"[yellow]Warning:[/yellow] Origin dump folder '{origin_dump_folder_path}' is not empty.")
         if auto_empty_origin_dump_folder:
-            print("[yellow]Emptying origin dump folder automatically.[/yellow]")
+            print("Emptying origin dump folder automatically.")
             _ = delete_contents_of_directory(origin_dump_folder_path)
-            print("[green]Emptied origin dump folder.[/green]")
         else:
             raise typer.BadParameter(
                 f"Origin dump folder '{origin_dump_folder_path}' is not empty. "
@@ -292,9 +297,8 @@ def main(
     if transformer_dump_folder_path.is_dir() and not is_directory_empty(transformer_dump_folder_path):
         print(f"[yellow]Warning:[/yellow] Transformer dump folder '{transformer_dump_folder_path}' is not empty.")
         if auto_empty_transformer_dump_folder:
-            print("[yellow]Emptying transformer dump folder automatically.[/yellow]")
+            print("Emptying transformer dump folder automatically.")
             _ = delete_contents_of_directory(transformer_dump_folder_path)
-            print("[green]Emptied transformer dump folder.[/green]")
         else:
             raise typer.BadParameter(
                 f"Transformer dump folder '{transformer_dump_folder_path}' is not empty. "
@@ -435,7 +439,8 @@ def main(
         transient=True,
     ) as progress:
         task_all = progress.add_task(description="Validating collections", total=len(collection_names))
-        validator = create_validator()
+        schema_definition = create_schema_definition()
+        validator = create_validator(schema_definition=schema_definition)
         for collection_name in collection_names:
             collection = transformer_db.get_collection(collection_name)
             num_documents = collection.count_documents({})

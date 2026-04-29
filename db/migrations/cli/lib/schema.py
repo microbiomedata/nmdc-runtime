@@ -6,7 +6,6 @@ import typer
 from linkml.validator import SchemaDefinition, ValidationReport, Validator
 from linkml.validator.plugins import JsonschemaValidationPlugin
 from linkml_runtime import SchemaView
-from rich import print
 from refscan.lib.helpers import derive_schema_class_name_from_document
 
 
@@ -61,7 +60,7 @@ def create_schema_view() -> SchemaView:
     return schema_view
 
 
-def create_validator() -> Validator:
+def create_validator(schema_definition: SchemaDefinition) -> Validator:
     """
     Creates and returns a `Validator` instance that can be used to validate data against the NMDC schema.
 
@@ -79,16 +78,13 @@ def create_validator() -> Validator:
         )
 
     # Intantiate the validator.
-    schema = create_schema_definition()
     validator = Validator(
-        schema=schema,
+        schema=schema_definition,
         validation_plugins=[
             JsonschemaValidationPlugin(closed=True),
             NmdcSchemaValidationPlugin(),
         ],
     )
-
-    print(f"Creating validator for NMDC schema version {schema.version}")
 
     return validator
 
