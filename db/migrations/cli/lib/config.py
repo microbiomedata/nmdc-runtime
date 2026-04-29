@@ -101,6 +101,7 @@ class MigrationConfig:
     schema_repo_url: str
     origin_dump_folder_path: Path
     transformer_dump_folder_path: Path
+    auto_drop_transformer_database: bool
 
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""

@@ -149,6 +149,13 @@ def main(
             resolve_path=True,
         ),
     ] = Path("/tmp/mongodump.transformer.out"),
+    auto_drop_transformer_database: Annotated[
+        bool,
+        typer.Option(
+            envvar="AUTO_DROP_TRANSFORMER_DATABASE",
+            help="Whether to automatically drop the transformer database if it already exists. By default, the script will abort in that situation.",
+        ),
+    ] = False,
     mongosh_path: Annotated[
         Path,
         typer.Option(
@@ -230,6 +237,7 @@ def main(
         schema_repo_url=schema_repo_url,
         origin_dump_folder_path=origin_dump_folder_path,
         transformer_dump_folder_path=transformer_dump_folder_path,
+        auto_drop_transformer_database=auto_drop_transformer_database,
     )
 
     print(config.get_redacted_dict())
@@ -242,8 +250,8 @@ def main(
             f"same hostname and port (i.e. '{origin_mongo_host}:{origin_mongo_port}')."
         )
 
-    # If either dump folder is non-empty, display a warning and refuse to run.
-    # TODO: Allow the user to indicate that they want us to "clean" (empty out) the directory for them.
+    # If either dump folder is non-empty, display a warning.
+    # TODO: Refuse to run. Also, allow the user to indicate that they want us to "clean" (empty out) the directory for them.
     if config.origin_dump_folder_path.is_dir() and any(config.origin_dump_folder_path.iterdir()):
         print(f"[yellow]Warning:[/yellow] Origin dump folder '{config.origin_dump_folder_path}' is not empty.")
     if config.transformer_dump_folder_path.is_dir() and any(config.transformer_dump_folder_path.iterdir()):
@@ -297,7 +305,15 @@ def main(
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
         print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
         if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
-            raise typer.BadParameter(f"Transformer database '{transformer_mongo_database_name}' already exists.")
+            if not auto_drop_transformer_database:
+                raise typer.BadParameter(
+                    f"Transformer database '{transformer_mongo_database_name}' already exists. "
+                    "Either drop it manually or use the `--auto-drop-transformer-database` option "
+                    "to drop it automatically."
+                )
+            else:
+                print(f"[yellow]Dropping existing transformer database '{transformer_mongo_database_name}'[/yellow].")
+                transformer_mongo_client.drop_database(transformer_mongo_database_name)
 
     # Revoke user access to the "origin" MongoDB server.
     revoked_roles_result = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
@@ -351,6 +367,19 @@ def main(
             for document in collection.find():
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
+
+    # Dump the (now-transformed) subject collections from the "transformer" MongoDB server.
+    for collection_name in collection_names:
+        shell_command_parts = [
+            mongodump_path,
+            "--collection",
+            collection_name,
+            "--gzip",
+            "--out",
+            transformer_dump_folder_path,
+        ]
+        shell_command_parts.extend(transformer_mongo_database_config.get_cli_options())
+        print(run_subprocess(shell_command_parts))
 
     # Restore user access to the "origin" MongoDB server.
     restored_roles_result = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
