@@ -6,15 +6,6 @@ from typing import Annotated
 import pymongo
 import typer
 from rich import print
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    MofNCompleteColumn,
-    TimeRemainingColumn,
-)
 
 from lib.bookkeeper import Bookkeeper, MigrationEvent
 from lib.config import (
@@ -23,6 +14,10 @@ from lib.config import (
     MigrationConfig,
     ParamValidators,
     get_reserved_git_tags_help_snippet,
+)
+from lib.display import (
+    make_progress_indicator_for_bounded_task,
+    make_progress_indicator_for_unbounded_task,
 )
 from lib.roles import (
     revoke_standard_role_privileges,
@@ -316,12 +311,7 @@ def main(
             # the `RESERVED_GIT_TAGS` dictionary, but did not update these conditions accordingly.
             raise typer.BadParameter(f"Unsupported reserved Git tag: {migrator_git_tag}")
     else:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            refresh_per_second=1,
-            transient=True,
-        ) as progress:
+        with make_progress_indicator_for_unbounded_task() as progress:
             package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
             progress.add_task(description=f"Installing {package_identifier}", total=None)
             ensure_pip_is_available(sys.executable)
@@ -371,9 +361,9 @@ def main(
 
     # Dump the subject collections from the "origin" MongoDB server.
     # TODO: Get this list of collection names dynamically; either from the environment (e.g. CLI options) or from the `Migrator` class.
-    collection_names = ["study_set"]
-    with Progress(refresh_per_second=1, transient=True) as progress:
-        task = progress.add_task(
+    collection_names = ["study_set", "data_object_set"]
+    with make_progress_indicator_for_bounded_task() as progress:
+        task_outer = progress.add_task(
             description="Dumping collections from origin MongoDB database", total=len(collection_names)
         )
         for collection_name in collection_names:
@@ -387,16 +377,11 @@ def main(
             ]
             shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
             run_subprocess(shell_command_parts)
-            progress.update(task, advance=1)
+            progress.update(task_outer, advance=1)
         print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        refresh_per_second=1,
-        transient=True,
-    ) as progress:
+    with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
         shell_command_parts = [
             mongorestore_path,
@@ -416,12 +401,7 @@ def main(
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
     # TODO: Configure a `logger` for the migrator to use.
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        refresh_per_second=1,
-        transient=True,
-    ) as progress:
+    with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Migrating data within transformer MongoDB database", total=None)
         transformer_db = transformer_mongo_client[transformer_mongo_database_name]
         adapter = MongoAdapter(database=transformer_db)
@@ -430,17 +410,8 @@ def main(
     print("[green]Migrated data within transformer MongoDB database.[/green]")
 
     # Validate the transformed data.
-    # TODO: The validation seems reeeaaallly slow (slower than the notebook counterpart). Look into this.
-    with Progress(
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        MofNCompleteColumn(),
-        TimeRemainingColumn(),
-        refresh_per_second=1,
-        transient=True,
-    ) as progress:
-        task_all = progress.add_task(description="Validating collections", total=len(collection_names))
+    with make_progress_indicator_for_bounded_task() as progress:
+        task_outer = progress.add_task(description="Validating collections", total=len(collection_names))
         schema_definition = create_schema_definition()
         validator = create_validator(schema_definition=schema_definition)
         for collection_name in collection_names:
@@ -450,16 +421,12 @@ def main(
             for document in collection.find({}, {"_id": 0}):
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
-            progress.update(task_all, advance=1)
+            progress.update(task_outer, advance=1)
     print("[green]Validated documents within transformer MongoDB database.[/green]")
 
     # Dump the (now-transformed) subject collections from the "transformer" MongoDB server.
-    with Progress(
-        TextColumn("[progress.description]{task.description}"),
-        refresh_per_second=1,
-        transient=True,
-    ) as progress:
-        task = progress.add_task(
+    with make_progress_indicator_for_bounded_task() as progress:
+        task_outer = progress.add_task(
             description="Dumping collections from transformer MongoDB database", total=len(collection_names)
         )
         for collection_name in collection_names:
@@ -473,7 +440,7 @@ def main(
             ]
             shell_command_parts.extend(transformer_mongo_database_config.get_cli_options())
             run_subprocess(shell_command_parts)
-            progress.update(task, advance=1)
+            progress.update(task_outer, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
     # Create a bookkeeper that can be used to record migration events in the "origin" MongoDB server.
@@ -491,12 +458,7 @@ def main(
     # Restore the subject collections dumped from the "transformer" MongoDB server into the "origin" MongoDB server,
     # dropping the original collections.
     # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        refresh_per_second=1,
-        transient=True,
-    ) as progress:
+    with make_progress_indicator_for_unbounded_task() as progress:
         task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
         shell_command_parts = [
             mongorestore_path,
