@@ -20,7 +20,7 @@ from lib.roles import (
     restore_standard_role_privileges,
 )
 from lib.schema import create_validator, get_migrator_class, get_mongo_adapter_class, validate_document
-from lib.system import ensure_pip_is_available, run_subprocess
+from lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
 
 app = typer.Typer()
 
@@ -96,6 +96,13 @@ def main(
             resolve_path=True,
         ),
     ] = Path("/tmp/mongodump.origin.out"),
+    auto_empty_origin_dump_folder: Annotated[
+        bool,
+        typer.Option(
+            envvar="AUTO_EMPTY_ORIGIN_DUMP_FOLDER",
+            help="Whether to automatically delete the contents of the origin dump folder before use, if it is not empty. By default, the script will abort in that situation.",
+        ),
+    ] = False,
     transformer_mongo_host: Annotated[
         str,
         typer.Option(
@@ -149,6 +156,13 @@ def main(
             resolve_path=True,
         ),
     ] = Path("/tmp/mongodump.transformer.out"),
+    auto_empty_transformer_dump_folder: Annotated[
+        bool,
+        typer.Option(
+            envvar="AUTO_EMPTY_TRANSFORMER_DUMP_FOLDER",
+            help="Whether to automatically delete the contents of the transformer dump folder before use, if it is not empty. By default, the script will abort in that situation.",
+        ),
+    ] = False,
     auto_drop_transformer_database: Annotated[
         bool,
         typer.Option(
@@ -237,6 +251,8 @@ def main(
         schema_repo_url=schema_repo_url,
         origin_dump_folder_path=origin_dump_folder_path,
         transformer_dump_folder_path=transformer_dump_folder_path,
+        auto_empty_origin_dump_folder=auto_empty_origin_dump_folder,
+        auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
     )
 
@@ -250,14 +266,31 @@ def main(
             f"same hostname and port (i.e. '{origin_mongo_host}:{origin_mongo_port}')."
         )
 
-    # If either dump folder is non-empty, display a warning.
-    # TODO: Refuse to run. Also, allow the user to indicate that they want us to "clean" (empty out) the directory for them.
-    if config.origin_dump_folder_path.is_dir() and any(config.origin_dump_folder_path.iterdir()):
-        print(f"[yellow]Warning:[/yellow] Origin dump folder '{config.origin_dump_folder_path}' is not empty.")
-    if config.transformer_dump_folder_path.is_dir() and any(config.transformer_dump_folder_path.iterdir()):
-        print(
-            f"[yellow]Warning:[/yellow] Transformer dump folder '{config.transformer_dump_folder_path}' is not empty."
-        )
+    # If the origin dump folder is non-empty, abort unless the user has opted to auto-empty it.
+    if origin_dump_folder_path.is_dir() and not is_directory_empty(origin_dump_folder_path):
+        print(f"[yellow]Warning:[/yellow] Origin dump folder '{origin_dump_folder_path}' is not empty.")
+        if auto_empty_origin_dump_folder:
+            print("[yellow]Emptying origin dump folder automatically.[/yellow]")
+            _ = delete_contents_of_directory(origin_dump_folder_path)
+        else:
+            raise typer.BadParameter(
+                f"Origin dump folder '{origin_dump_folder_path}' is not empty. "
+                "Either empty it manually or use the `--auto-empty-origin-dump-folder` option "
+                "to empty it automatically."
+            )
+
+    # If the transformer dump folder is non-empty, abort unless the user has opted to auto-empty it.
+    if transformer_dump_folder_path.is_dir() and not is_directory_empty(transformer_dump_folder_path):
+        print(f"[yellow]Warning:[/yellow] Transformer dump folder '{transformer_dump_folder_path}' is not empty.")
+        if auto_empty_transformer_dump_folder:
+            print("[yellow]Emptying transformer dump folder automatically.[/yellow]")
+            _ = delete_contents_of_directory(transformer_dump_folder_path)
+        else:
+            raise typer.BadParameter(
+                f"Transformer dump folder '{transformer_dump_folder_path}' is not empty. "
+                "Either empty it manually or use the `--auto-empty-transformer-dump-folder` option "
+                "to empty it automatically."
+            )
 
     # Use pip to install the `nmdc-schema` version specified by the user.
     if migrator_git_tag in RESERVED_GIT_TAGS.keys():

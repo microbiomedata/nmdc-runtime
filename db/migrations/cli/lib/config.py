@@ -101,6 +101,8 @@ class MigrationConfig:
     schema_repo_url: str
     origin_dump_folder_path: Path
     transformer_dump_folder_path: Path
+    auto_empty_origin_dump_folder: bool
+    auto_empty_transformer_dump_folder: bool
     auto_drop_transformer_database: bool
 
     def get_redacted_dict(self) -> dict:
