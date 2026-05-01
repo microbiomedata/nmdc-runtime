@@ -34,6 +34,71 @@ class ParamValidators:
             raise typer.BadParameter(f"{path} is not an executable file")
         return path
 
+    @staticmethod
+    def validate_collection_names(ctx: typer.Context, collection_names: str | tuple[str, ...]) -> list[str]:
+        """
+        Confirm all collection names are unique and no collection name is an empty string.
+        Then, normalize the collection name(s) into a list of strings.
+
+        Although we _could_ _silently_ de-duplicate the list of collection names, we are opting to
+        inform the user about duplicates because it might be indicative of a misunderstanding or a
+        typo on their part, and we want them to become aware of it as early as possible.
+
+        >>> from types import SimpleNamespace, new_class
+        >>> mock_ctx = SimpleNamespace(resilient_parsing=False)
+        >>> ParamValidators.validate_collection_names(mock_ctx, "a")  # single-name string
+        ['a']
+        >>> ParamValidators.validate_collection_names(mock_ctx, ["a"])  # single-name list
+        ['a']
+        >>> ParamValidators.validate_collection_names(mock_ctx, "a b")  # multi-name string
+        ['a', 'b']
+        >>> ParamValidators.validate_collection_names(mock_ctx, ["a", "b"])  # multi-name list
+        ['a', 'b']
+        >>> ParamValidators.validate_collection_names(mock_ctx, ["a", "a"])  # duplicate names
+        Traceback (most recent call last):
+        ...
+        click.exceptions.BadParameter: Collection name 'a' is specified more than once.
+        >>> ParamValidators.validate_collection_names(mock_ctx, ["", "a"])  # empty string in list
+        Traceback (most recent call last):
+        ...
+        click.exceptions.BadParameter: Collection name cannot be an empty string.
+        >>> ParamValidators.validate_collection_names(mock_ctx, "")  # empty string
+        Traceback (most recent call last):
+        ...
+        click.exceptions.BadParameter: Collection name cannot be an empty string.
+        >>> ParamValidators.validate_collection_names(mock_ctx, [" "])  # whitespace string in list
+        Traceback (most recent call last):
+        ...
+        click.exceptions.BadParameter: Collection name cannot consist of only whitespace.
+        """
+
+        if ctx.resilient_parsing:  # accommodate CLI autocompletion
+            if isinstance(collection_names, str):
+                return collection_names.split()
+            return list(collection_names or [])
+
+        # If the user provided a single collection name as a string, split it into a list.
+        if isinstance(collection_names, str):
+            normalized_collection_names = collection_names.split(" ")
+        else:
+            normalized_collection_names = list(collection_names)
+
+        # Check for empty strings or all-whitespace strings.
+        for name in normalized_collection_names:
+            if name == "":
+                raise typer.BadParameter("Collection name cannot be an empty string.")
+            elif name.strip() == "":
+                raise typer.BadParameter("Collection name cannot consist of only whitespace.")
+
+        # Check for duplicates and raise an error if there are any.
+        distinct_collection_names = set()
+        for name in normalized_collection_names:
+            if name in distinct_collection_names:
+                raise typer.BadParameter(f"Collection name '{name}' is specified more than once.")
+            distinct_collection_names.add(name)
+
+        return normalized_collection_names
+
 
 # Note: We use `frozen=True` to prevent editing after initial instantiation.
 @dataclass(frozen=True)
@@ -99,6 +164,7 @@ class MigrationConfig:
     migrator_git_tag: str
     migrator_module_name: str
     schema_repo_url: str
+    collection_names: list[str]
     origin_dump_folder_path: Path
     transformer_dump_folder_path: Path
     auto_empty_origin_dump_folder: bool

@@ -53,6 +53,16 @@ def main(
             help="Name of the Python module that constitutes the migrator you want to run.",
         ),
     ],
+    collection_names: Annotated[
+        list[str],
+        typer.Option(
+            "-c",
+            "--collection",
+            envvar="COLLECTION_NAMES",
+            help="Names of MongoDB collections to migrate. You can specify this option multiple times, or populate the environment variable with a space-delimited list of names.",
+            callback=ParamValidators.validate_collection_names,
+        ),
+    ],
     origin_mongo_host: Annotated[
         str,
         typer.Option(
@@ -259,6 +269,7 @@ def main(
         migrator_git_tag=migrator_git_tag,
         migrator_module_name=migrator_module_name,
         schema_repo_url=schema_repo_url,
+        collection_names=collection_names,
         origin_dump_folder_path=origin_dump_folder_path,
         transformer_dump_folder_path=transformer_dump_folder_path,
         auto_empty_origin_dump_folder=auto_empty_origin_dump_folder,
@@ -355,8 +366,8 @@ def main(
                 )
             else:
                 print(
-                    "[yellow]Dropping existing transformer database "
-                    f"'{cfg.transformer_mongo_database_config.name}'[/yellow]."
+                    "[yellow]Dropping existing transformer database: "
+                    f"{cfg.transformer_mongo_database_config.name}[/yellow]."
                 )
                 transformer_mongo_client.drop_database(cfg.transformer_mongo_database_config.name)
 
@@ -365,13 +376,11 @@ def main(
     print("[green]Revoked standard role privileges on origin server.[/green]")
 
     # Dump the subject collections from the "origin" MongoDB server.
-    # TODO: Get this list of collection names dynamically; either from the environment (e.g. CLI options) or from the `Migrator` class.
-    collection_names = ["study_set", "data_object_set"]
     with make_progress_indicator_for_bounded_task() as progress:
         task_outer = progress.add_task(
-            description="Dumping collections from origin MongoDB database", total=len(collection_names)
+            description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
         )
-        for collection_name in collection_names:
+        for collection_name in cfg.collection_names:
             shell_command_parts = [
                 cfg.mongodump_path,
                 "--collection",
@@ -416,10 +425,10 @@ def main(
 
     # Validate the transformed data.
     with make_progress_indicator_for_bounded_task() as progress:
-        task_outer = progress.add_task(description="Validating collections", total=len(collection_names))
+        task_outer = progress.add_task(description="Validating collections", total=len(cfg.collection_names))
         schema_definition = create_schema_definition()
         validator = create_validator(schema_definition=schema_definition)
-        for collection_name in collection_names:
+        for collection_name in cfg.collection_names:
             collection = transformer_db.get_collection(collection_name)
             num_documents = collection.count_documents({})
             task = progress.add_task(f"Validating documents in '{collection_name}'", total=num_documents)
@@ -432,9 +441,9 @@ def main(
     # Dump the (now-transformed) subject collections from the "transformer" MongoDB server.
     with make_progress_indicator_for_bounded_task() as progress:
         task_outer = progress.add_task(
-            description="Dumping collections from transformer MongoDB database", total=len(collection_names)
+            description="Dumping collections from transformer MongoDB database", total=len(cfg.collection_names)
         )
-        for collection_name in collection_names:
+        for collection_name in cfg.collection_names:
             shell_command_parts = [
                 cfg.mongodump_path,
                 "--collection",
