@@ -2,6 +2,7 @@ from pathlib import Path
 from importlib.metadata import version
 import sys
 from typing import Annotated
+from logging import getLogger
 
 import pymongo
 import typer
@@ -31,6 +32,8 @@ from lib.schema import (
     validate_document,
 )
 from lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
+
+logger = getLogger(name=__name__)
 
 app = typer.Typer()
 
@@ -414,12 +417,11 @@ def main(
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
-    # TODO: Configure a `logger` for the migrator to use.
     with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Migrating data within transformer MongoDB database", total=None)
         transformer_db = transformer_mongo_client[cfg.transformer_mongo_database_config.name]
         adapter = MongoAdapter(database=transformer_db)
-        migrator = Migrator(adapter=adapter)
+        migrator = Migrator(adapter=adapter, logger=logger)
         migrator.upgrade(commit_changes=True)
     print("[green]Migrated data within transformer MongoDB database.[/green]")
 
