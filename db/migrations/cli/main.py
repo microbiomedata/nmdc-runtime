@@ -38,6 +38,9 @@ logger = getLogger(name=__name__)
 app = typer.Typer()
 
 
+# TODO: Add tests (use mock mongo server? and mock migrator?).
+# TODO: Organize parameters into groups (e.g. origin, destination, schema, etc.) like mongo-diff does.
+#       See: https://typer.tiangolo.com/tutorial/commands/help/#help-panels-for-commands
 def main(
     migrator_git_tag: Annotated[
         str,
