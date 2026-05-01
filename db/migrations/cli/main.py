@@ -250,7 +250,7 @@ def main(
         direct_connection=transformer_mongo_direction_connection,
     )
 
-    config = MigrationConfig(
+    cfg = MigrationConfig(
         mongosh_path=mongosh_path,
         mongodump_path=mongodump_path,
         mongorestore_path=mongorestore_path,
@@ -266,53 +266,55 @@ def main(
         auto_drop_transformer_database=auto_drop_transformer_database,
     )
 
-    print(config.get_redacted_dict())
-
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).
-    if origin_mongo_host == transformer_mongo_host and origin_mongo_port == transformer_mongo_port:
+    if (
+        cfg.origin_mongo_database_config.host == cfg.transformer_mongo_database_config.host
+        and cfg.origin_mongo_database_config.port == cfg.transformer_mongo_database_config.port
+    ):
         print(
             "[yellow]Warning:[/yellow] Accessing origin and transformer MongoDB server at "
-            f"same hostname and port (i.e. '{origin_mongo_host}:{origin_mongo_port}')."
+            "same hostname and port "
+            f"(i.e. '{cfg.origin_mongo_database_config.host}:{cfg.origin_mongo_database_config.port}')."
         )
 
     # If the origin dump folder is non-empty, abort unless the user has opted to auto-empty it.
-    if origin_dump_folder_path.is_dir() and not is_directory_empty(origin_dump_folder_path):
-        print(f"[yellow]Warning:[/yellow] Origin dump folder '{origin_dump_folder_path}' is not empty.")
-        if auto_empty_origin_dump_folder:
+    if cfg.origin_dump_folder_path.is_dir() and not is_directory_empty(cfg.origin_dump_folder_path):
+        print(f"[yellow]Warning:[/yellow] Origin dump folder '{cfg.origin_dump_folder_path}' is not empty.")
+        if cfg.auto_empty_origin_dump_folder:
             print("Emptying origin dump folder automatically.")
-            _ = delete_contents_of_directory(origin_dump_folder_path)
+            _ = delete_contents_of_directory(cfg.origin_dump_folder_path)
         else:
             raise typer.BadParameter(
-                f"Origin dump folder '{origin_dump_folder_path}' is not empty. "
+                f"Origin dump folder '{cfg.origin_dump_folder_path}' is not empty. "
                 "Either empty it manually or use the `--auto-empty-origin-dump-folder` option "
                 "to empty it automatically."
             )
 
     # If the transformer dump folder is non-empty, abort unless the user has opted to auto-empty it.
-    if transformer_dump_folder_path.is_dir() and not is_directory_empty(transformer_dump_folder_path):
-        print(f"[yellow]Warning:[/yellow] Transformer dump folder '{transformer_dump_folder_path}' is not empty.")
-        if auto_empty_transformer_dump_folder:
+    if cfg.transformer_dump_folder_path.is_dir() and not is_directory_empty(cfg.transformer_dump_folder_path):
+        print(f"[yellow]Warning:[/yellow] Transformer dump folder '{cfg.transformer_dump_folder_path}' is not empty.")
+        if cfg.auto_empty_transformer_dump_folder:
             print("Emptying transformer dump folder automatically.")
-            _ = delete_contents_of_directory(transformer_dump_folder_path)
+            _ = delete_contents_of_directory(cfg.transformer_dump_folder_path)
         else:
             raise typer.BadParameter(
-                f"Transformer dump folder '{transformer_dump_folder_path}' is not empty. "
+                f"Transformer dump folder '{cfg.transformer_dump_folder_path}' is not empty. "
                 "Either empty it manually or use the `--auto-empty-transformer-dump-folder` option "
                 "to empty it automatically."
             )
 
     # Use pip to install the `nmdc-schema` version specified by the user.
-    if migrator_git_tag in RESERVED_GIT_TAGS.keys():
-        if migrator_git_tag == "-INSTALLED":
+    if cfg.migrator_git_tag in RESERVED_GIT_TAGS.keys():
+        if cfg.migrator_git_tag == "-INSTALLED":
             print(f"Using the currently-installed nmdc-schema package: {version('nmdc_schema')}")
         else:
             # If execution gets here, it means a developer introduced a new reserved Git tag into
             # the `RESERVED_GIT_TAGS` dictionary, but did not update these conditions accordingly.
-            raise typer.BadParameter(f"Unsupported reserved Git tag: {migrator_git_tag}")
+            raise typer.BadParameter(f"Unsupported reserved Git tag: {cfg.migrator_git_tag}")
     else:
         with make_progress_indicator_for_unbounded_task() as progress:
-            package_identifier = f"{schema_repo_url}@{migrator_git_tag}"
+            package_identifier = f"{cfg.schema_repo_url}@{cfg.migrator_git_tag}"
             progress.add_task(description=f"Installing {package_identifier}", total=None)
             ensure_pip_is_available(sys.executable)
             command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
@@ -324,36 +326,39 @@ def main(
         print(f"[green]Installed {package_identifier}.[/green]")
 
     # Dynamically import the migrator module specified by the user and get the `Migrator` class from it.
-    Migrator = get_migrator_class(migrator_module_name=migrator_module_name)
+    Migrator = get_migrator_class(migrator_module_name=cfg.migrator_module_name)
 
     # Import other classes from it.
     MongoAdapter = get_mongo_adapter_class()
 
     # Connect to the "origin" MongoDB server and perform a sanity test of the connection.
-    origin_mongo_client = pymongo.MongoClient(**origin_mongo_database_config.get_pymongo_client_kwargs())
+    origin_mongo_client = pymongo.MongoClient(**cfg.origin_mongo_database_config.get_pymongo_client_kwargs())
     with pymongo.timeout(3):
         # Display the MongoDB server version and confirm the "origin" database DOES exist.
         origin_mongo_server_version = origin_mongo_client.server_info()["version"]
         print(f"Origin Mongo server version: {origin_mongo_server_version}")
-        if origin_mongo_database_name not in origin_mongo_client.list_database_names():
-            raise typer.BadParameter(f"Origin database '{origin_mongo_database_name}' does not exist.")
+        if cfg.origin_mongo_database_config.name not in origin_mongo_client.list_database_names():
+            raise typer.BadParameter(f"Origin database '{cfg.origin_mongo_database_config.name}' does not exist.")
 
     # Connect to the "transformer" MongoDB server and perform a sanity test of the connection.
-    transformer_mongo_client = pymongo.MongoClient(**transformer_mongo_database_config.get_pymongo_client_kwargs())
+    transformer_mongo_client = pymongo.MongoClient(**cfg.transformer_mongo_database_config.get_pymongo_client_kwargs())
     with pymongo.timeout(3):
         # Display the MongoDB server version and confirm the "transformer" database does NOT exist yet.
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
         print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
-        if transformer_mongo_database_name in transformer_mongo_client.list_database_names():
-            if not auto_drop_transformer_database:
+        if cfg.transformer_mongo_database_config.name in transformer_mongo_client.list_database_names():
+            if not cfg.auto_drop_transformer_database:
                 raise typer.BadParameter(
-                    f"Transformer database '{transformer_mongo_database_name}' already exists. "
+                    f"Transformer database '{cfg.transformer_mongo_database_config.name}' already exists. "
                     "Either drop it manually or use the `--auto-drop-transformer-database` option "
                     "to drop it automatically."
                 )
             else:
-                print(f"[yellow]Dropping existing transformer database '{transformer_mongo_database_name}'[/yellow].")
-                transformer_mongo_client.drop_database(transformer_mongo_database_name)
+                print(
+                    "[yellow]Dropping existing transformer database "
+                    f"'{cfg.transformer_mongo_database_config.name}'[/yellow]."
+                )
+                transformer_mongo_client.drop_database(cfg.transformer_mongo_database_config.name)
 
     # Revoke user access to the "origin" MongoDB server.
     _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
@@ -368,14 +373,14 @@ def main(
         )
         for collection_name in collection_names:
             shell_command_parts = [
-                mongodump_path,
+                cfg.mongodump_path,
                 "--collection",
                 collection_name,
                 "--gzip",
                 "--out",
-                origin_dump_folder_path,
+                cfg.origin_dump_folder_path,
             ]
-            shell_command_parts.extend(origin_mongo_database_config.get_cli_options())
+            shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options())
             run_subprocess(shell_command_parts)
             progress.update(task_outer, advance=1)
         print("[green]Dumped collections from origin MongoDB database.[/green]")
@@ -384,18 +389,18 @@ def main(
     with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
         shell_command_parts = [
-            mongorestore_path,
+            cfg.mongorestore_path,
             "--nsFrom",
-            f"{origin_mongo_database_name}.*",
+            f"{cfg.origin_mongo_database_config.name}.*",
             "--nsTo",
-            f"{transformer_mongo_database_name}.*",
+            f"{cfg.transformer_mongo_database_config.name}.*",
             "--drop",
             "--stopOnError",
             "--gzip",
             "--dir",
-            origin_dump_folder_path,
+            cfg.origin_dump_folder_path,
         ]
-        shell_command_parts.extend(transformer_mongo_database_config.get_cli_options(include_db_option=False))
+        shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options(include_db_option=False))
         run_subprocess(shell_command_parts)
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
@@ -403,7 +408,7 @@ def main(
     # TODO: Configure a `logger` for the migrator to use.
     with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Migrating data within transformer MongoDB database", total=None)
-        transformer_db = transformer_mongo_client[transformer_mongo_database_name]
+        transformer_db = transformer_mongo_client[cfg.transformer_mongo_database_config.name]
         adapter = MongoAdapter(database=transformer_db)
         migrator = Migrator(adapter=adapter)
         migrator.upgrade(commit_changes=True)
@@ -431,14 +436,14 @@ def main(
         )
         for collection_name in collection_names:
             shell_command_parts = [
-                mongodump_path,
+                cfg.mongodump_path,
                 "--collection",
                 collection_name,
                 "--gzip",
                 "--out",
-                transformer_dump_folder_path,
+                cfg.transformer_dump_folder_path,
             ]
-            shell_command_parts.extend(transformer_mongo_database_config.get_cli_options())
+            shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options())
             run_subprocess(shell_command_parts)
             progress.update(task_outer, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
@@ -451,7 +456,7 @@ def main(
         event=MigrationEvent.MIGRATION_STARTED,
         from_schema_version=migrator.get_origin_version(),
         to_schema_version=migrator.get_destination_version(),
-        name_of_migrator_module=migrator_module_name,
+        name_of_migrator_module=cfg.migrator_module_name,
     )
     print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
 
@@ -461,18 +466,18 @@ def main(
     with make_progress_indicator_for_unbounded_task() as progress:
         task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
         shell_command_parts = [
-            mongorestore_path,
+            cfg.mongorestore_path,
             "--nsFrom",
-            f"{transformer_mongo_database_name}.*",
+            f"{cfg.transformer_mongo_database_config.name}.*",
             "--nsTo",
-            f"{origin_mongo_database_name}.*",
+            f"{cfg.origin_mongo_database_config.name}.*",
             "--drop",
             "--stopOnError",
             "--gzip",
             "--dir",
-            transformer_dump_folder_path,
+            cfg.transformer_dump_folder_path,
         ]
-        shell_command_parts.extend(origin_mongo_database_config.get_cli_options(include_db_option=False))
+        shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options(include_db_option=False))
         run_subprocess(shell_command_parts)
         progress.update(task, advance=1)
     print("[green]Restored collections into origin MongoDB database.[/green]")
@@ -482,7 +487,7 @@ def main(
         event=MigrationEvent.MIGRATION_COMPLETED,
         from_schema_version=migrator.get_origin_version(),
         to_schema_version=migrator.get_destination_version(),
-        name_of_migrator_module=migrator_module_name,
+        name_of_migrator_module=cfg.migrator_module_name,
     )
     print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
 
