@@ -8,7 +8,7 @@ import pymongo
 import typer
 from rich import print
 
-from lib.bookkeeper import Bookkeeper, MigrationEvent
+from lib.bookkeeping import Bookkeeper, MigrationEvent
 from lib.config import (
     RESERVED_GIT_TAGS,
     DatabaseConfig,
