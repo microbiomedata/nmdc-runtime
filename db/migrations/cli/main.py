@@ -196,17 +196,6 @@ def main(
             help="Whether to automatically drop the transformer database if it already exists. By default, the script will abort in that situation.",
         ),
     ] = False,
-    mongosh_path: Annotated[
-        Path,
-        typer.Option(
-            dir_okay=False,
-            exists=True,
-            resolve_path=True,
-            envvar="MONGOSH_PATH",
-            help="Path to the `mongosh` executable.",
-            callback=ParamValidators.validate_executable_file,
-        ),
-    ] = Path("/usr/bin/mongosh"),
     mongodump_path: Annotated[
         Path,
         typer.Option(
@@ -267,7 +256,6 @@ def main(
     )
 
     cfg = MigrationConfig(
-        mongosh_path=mongosh_path,
         mongodump_path=mongodump_path,
         mongorestore_path=mongorestore_path,
         origin_mongo_database_config=origin_mongo_database_config,

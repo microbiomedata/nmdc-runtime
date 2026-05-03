@@ -156,7 +156,6 @@ class DatabaseConfig:
 class MigrationConfig:
     """Overall configuration of the CLI app."""
 
-    mongosh_path: Path
     mongodump_path: Path
     mongorestore_path: Path
     origin_mongo_database_config: DatabaseConfig

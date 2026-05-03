@@ -5,9 +5,10 @@ between two versions of the NMDC schema.
 
 This app was designed to be run in an environment having the following:
 
-1. Read and write access to the original MongoDB database
-2. Root access to a distinct "transformer" MongoDB database
-3. The programs: `mongosh`, `mongodump`, and `mongorestore`
+1. Permission to read from, and write to, the original MongoDB database
+2. Permission to create and edit roles on the origin MongoDB server
+3. Permission to read from, and write to, a distinct "transformer" MongoDB database
+4. The programs: `mongodump` and `mongorestore`
 
 In practice, we deploy it as follows:
 
