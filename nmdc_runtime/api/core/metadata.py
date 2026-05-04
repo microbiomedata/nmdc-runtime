@@ -706,9 +706,64 @@ def update_mongo_db(mdb: MongoDatabase, update_cmd: Dict):
     validator = get_nmdc_schema_validator()
     for id_, update_cmd_doc in update_cmd.items():
         collection_name = update_cmd_doc["update"]
-        doc_before = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+
+        # pymongo's find_one() returns None (instead of a dict) when no document
+        # matching the filter exists in the collection. This can happen here when
+        # the changesheet references a document ID that does not exist in the
+        # database being updated (mdb). In the validation flow, mdb is a temporary
+        # "inspection" database populated by copy_docs_in_update_cmd(), which only
+        # copies documents that actually exist in the source (production) database.
+        # So if the changesheet's id_ refers to a document that is absent from
+        # production, copy_docs_in_update_cmd() inserts nothing for that ID, and
+        # this find_one() call returns None. Passing None to dissoc() from toolz
+        # raises "TypeError: object of type 'NoneType' has no len()", which is the
+        # bug reported in the issue. We guard against it here by checking for None
+        # before calling dissoc() and recording a descriptive validation error
+        # instead of crashing.
+        doc_before_raw = mdb[collection_name].find_one({"id": id_})
+        if doc_before_raw is None:
+            # The document referenced by this changesheet row does not exist in the
+            # collection. There is nothing to update, so skip the Mongo command and
+            # report the missing document as a validation error so the caller can
+            # surface a meaningful message to the user.
+            results.append(
+                {
+                    "id": id_,
+                    "doc_before": None,
+                    "update_info": None,
+                    "doc_after": None,
+                    "validation_errors": [
+                        f"Document '{id_}' not found in collection '{collection_name}'."
+                    ],
+                }
+            )
+            continue
+
+        doc_before = dissoc(doc_before_raw, "_id")
         update_result = json.loads(bson_dumps(mdb.command(update_cmd_doc)))
-        doc_after = dissoc(mdb[collection_name].find_one({"id": id_}), "_id")
+
+        # After the update we fetch the document again. Under normal circumstances
+        # it will still exist (changesheet updates modify fields, they do not delete
+        # documents), but we guard against None defensively for the same reason as
+        # the doc_before check above.
+        doc_after_raw = mdb[collection_name].find_one({"id": id_})
+        if doc_after_raw is None:
+            # The document disappeared after the update (unexpected). Record this as
+            # a validation error rather than crashing.
+            results.append(
+                {
+                    "id": id_,
+                    "doc_before": doc_before,
+                    "update_info": update_result,
+                    "doc_after": None,
+                    "validation_errors": [
+                        f"Document '{id_}' not found in collection '{collection_name}' after update."
+                    ],
+                }
+            )
+            continue
+
+        doc_after = dissoc(doc_after_raw, "_id")
         report = validator.validate(
             {collection_name: [doc_after]}, target_class="Database"
         )
