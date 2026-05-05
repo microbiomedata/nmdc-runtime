@@ -21,15 +21,15 @@ def get_migrator_class(migrator_module_name: str) -> Type:
         raise RuntimeError(f"Failed to import 'Migrator' class from module {migrator_module.__name__}")
 
     # Validate that the `Migrator` class has the methods we expect it to have.
-    if not callable(getattr(Migrator, "upgrade")):
+    if not callable(getattr(Migrator, "upgrade", None)):
         raise RuntimeError(
             f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'upgrade' method"
         )
-    if not callable(getattr(Migrator, "get_origin_version")):
+    if not callable(getattr(Migrator, "get_origin_version", None)):
         raise RuntimeError(
             f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_origin_version' method"
         )
-    if not callable(getattr(Migrator, "get_destination_version")):
+    if not callable(getattr(Migrator, "get_destination_version", None)):
         raise RuntimeError(
             f"'Migrator' class in module {migrator_module.__name__} is missing a callable 'get_destination_version' method"
         )
@@ -94,7 +94,7 @@ def create_validator(schema_definition: SchemaDefinition) -> Validator:
             f"Failed to import 'NmdcSchemaValidationPlugin' class from module {validation_plugin_module.__name__}"
         )
 
-    # Intantiate the validator.
+    # Instantiate the validator.
     validator = Validator(
         schema=schema_definition,
         validation_plugins=[

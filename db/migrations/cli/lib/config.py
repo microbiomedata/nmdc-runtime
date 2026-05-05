@@ -173,6 +173,6 @@ class MigrationConfig:
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""
         config_dict = asdict(self)
-        config_dict["origin_mongo_db_config"] = self.origin_mongo_database_config.get_redacted_dict()
-        config_dict["transformer_mongo_db_config"] = self.transformer_mongo_database_config.get_redacted_dict()
+        config_dict["origin_mongo_database_config"] = self.origin_mongo_database_config.get_redacted_dict()
+        config_dict["transformer_mongo_database_config"] = self.transformer_mongo_database_config.get_redacted_dict()
         return config_dict

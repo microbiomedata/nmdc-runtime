@@ -121,7 +121,7 @@ def main(
         ),
     ] = "nmdc",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
-    origin_mongo_direction_connection: Annotated[
+    origin_mongo_direct_connection: Annotated[
         bool,
         typer.Option(
             envvar="ORIGIN_MONGO_DIRECT_CONNECTION",
@@ -189,7 +189,7 @@ def main(
         ),
     ] = "transformer",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
-    transformer_mongo_direction_connection: Annotated[
+    transformer_mongo_direct_connection: Annotated[
         bool,
         typer.Option(
             envvar="TRANSFORMER_MONGO_DIRECT_CONNECTION",
@@ -274,7 +274,7 @@ def main(
         username=origin_mongo_username,
         password=origin_mongo_password,
         name=origin_mongo_database_name,
-        direct_connection=origin_mongo_direction_connection,
+        direct_connection=origin_mongo_direct_connection,
     )
 
     transformer_mongo_database_config = DatabaseConfig(
@@ -283,7 +283,7 @@ def main(
         username=transformer_mongo_username,
         password=transformer_mongo_password,
         name=transformer_mongo_database_name,
-        direct_connection=transformer_mongo_direction_connection,
+        direct_connection=transformer_mongo_direct_connection,
     )
 
     cfg = MigrationConfig(
@@ -301,6 +301,9 @@ def main(
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
     )
+
+    print(cfg.get_redacted_dict())
+    assert False
 
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).
