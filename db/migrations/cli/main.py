@@ -356,10 +356,7 @@ def main(
             command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
             completed_process = run_subprocess(command_parts)
             if completed_process.returncode != 0:
-                raise typer.BadParameter(
-                        f"Failed to install {package_identifier}. "
-                        f"\n\n{completed_process.stderr}"
-                )
+                raise typer.BadParameter(f"Failed to install {package_identifier}. \n\n{completed_process.stderr}")
             else:
                 print(f"Installed {package_identifier} using interpreter {sys.executable}")
         print(f"[green]Installed {package_identifier}.[/green]")
@@ -446,8 +443,7 @@ def main(
         completed_process = run_subprocess(shell_command_parts)
         if completed_process.returncode != 0:
             raise RuntimeError(
-                f"Failed to restore dump from origin into transformer MongoDB database."
-                f"\n\n{completed_process.stderr}"
+                f"Failed to restore dump from origin into transformer MongoDB database.\n\n{completed_process.stderr}"
             )
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
@@ -532,8 +528,7 @@ def main(
         completed_process = run_subprocess(shell_command_parts)
         if completed_process.returncode != 0:
             raise RuntimeError(
-                f"Failed to restore dump from transformer into origin MongoDB database."
-                f"\n\n{completed_process.stderr}"
+                f"Failed to restore dump from transformer into origin MongoDB database.\n\n{completed_process.stderr}"
             )
         progress.update(task, advance=1)
     print("[green]Restored collections into origin MongoDB database.[/green]")
