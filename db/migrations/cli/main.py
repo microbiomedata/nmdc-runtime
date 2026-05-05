@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from importlib.metadata import version
 import sys
@@ -38,9 +39,16 @@ logger = getLogger(name=__name__)
 app = typer.Typer()
 
 
+class RichHelpPanelName(Enum):
+    """Names of Rich Help Panels into which CLI parameters can be organized."""
+
+    SYSTEM = "System"
+    MIGRATOR = "Migrator"
+    ORIGIN_DATABASE = "Origin MongoDB Database"
+    TRANSFORMER_DATABASE = "Transformer MongoDB Database"
+
+
 # TODO: Add tests (use mock mongo server? and mock migrator?).
-# TODO: Organize parameters into groups (e.g. origin, destination, schema, etc.) like mongo-diff does.
-#       See: https://typer.tiangolo.com/tutorial/commands/help/#help-panels-for-commands
 def main(
     migrator_git_tag: Annotated[
         str,
@@ -50,6 +58,7 @@ def main(
                 "Git tag of an nmdc-schema commit containing the migrator you want to run. "
                 f"Special values: {get_reserved_git_tags_help_snippet()}"
             ),
+            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
     ],
     migrator_module_name: Annotated[
@@ -57,6 +66,7 @@ def main(
         typer.Option(
             envvar="MIGRATOR_MODULE_NAME",
             help="Name of the Python module that constitutes the migrator you want to run.",
+            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
     ],
     collection_names: Annotated[
@@ -67,6 +77,7 @@ def main(
             envvar="COLLECTION_NAMES",
             help="Names of MongoDB collections to migrate. You can specify this option multiple times, or populate the environment variable with a space-delimited list of names.",
             callback=ParamValidators.validate_collection_names,
+            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
     ],
     origin_mongo_host: Annotated[
@@ -74,6 +85,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_HOST",
             help="Hostname for the origin MongoDB database.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ],
     origin_mongo_port: Annotated[
@@ -81,6 +93,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_PORT",
             help="Port number for the origin MongoDB database.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = 27017,
     origin_mongo_username: Annotated[
@@ -88,6 +101,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_USERNAME",
             help="Username for the origin MongoDB database. Leave empty for no auth.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "",
     origin_mongo_password: Annotated[
@@ -95,6 +109,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_PASSWORD",
             help="Password for the origin MongoDB database.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "",
     origin_mongo_database_name: Annotated[
@@ -102,6 +117,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_DATABASE_NAME",
             help="Database name for the origin MongoDB database.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "nmdc",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
@@ -110,6 +126,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_MONGO_DIRECT_CONNECTION",
             help="Whether to use the `directConnection` option when connecting to the origin MongoDB database.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = True,
     origin_dump_folder_path: Annotated[
@@ -117,6 +134,7 @@ def main(
         typer.Option(
             envvar="ORIGIN_DUMP_FOLDER_PATH",
             help="Path to the directory in which you want the origin database dump to be created.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
             dir_okay=True,
             file_okay=False,
             resolve_path=True,
@@ -127,6 +145,7 @@ def main(
         typer.Option(
             envvar="AUTO_EMPTY_ORIGIN_DUMP_FOLDER",
             help="Whether to automatically delete the contents of the origin dump folder before use, if it is not empty. By default, the script will abort in that situation.",
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = False,
     transformer_mongo_host: Annotated[
@@ -134,6 +153,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_HOST",
             help="Hostname for the transformer MongoDB database.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "localhost",
     transformer_mongo_port: Annotated[
@@ -141,6 +161,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_PORT",
             help="Port number for the transformer MongoDB database.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = 27017,
     transformer_mongo_username: Annotated[
@@ -148,6 +169,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_USERNAME",
             help="Username for the transformer MongoDB database. Leave empty for no auth.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "",
     transformer_mongo_password: Annotated[
@@ -155,6 +177,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_PASSWORD",
             help="Password for the transformer MongoDB database.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "",
     transformer_mongo_database_name: Annotated[
@@ -162,6 +185,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_DATABASE_NAME",
             help="Database name for the transformer MongoDB database.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "transformer",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
@@ -170,6 +194,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_MONGO_DIRECT_CONNECTION",
             help="Whether to use the `directConnection` option when connecting to the transformer MongoDB database.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = True,
     transformer_dump_folder_path: Annotated[
@@ -177,6 +202,7 @@ def main(
         typer.Option(
             envvar="TRANSFORMER_DUMP_FOLDER_PATH",
             help="Path to the directory in which you want the transformer database dump to be created.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
             dir_okay=True,
             file_okay=False,
             resolve_path=True,
@@ -187,6 +213,7 @@ def main(
         typer.Option(
             envvar="AUTO_EMPTY_TRANSFORMER_DUMP_FOLDER",
             help="Whether to automatically delete the contents of the transformer dump folder before use, if it is not empty. By default, the script will abort in that situation.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = False,
     auto_drop_transformer_database: Annotated[
@@ -194,6 +221,7 @@ def main(
         typer.Option(
             envvar="AUTO_DROP_TRANSFORMER_DATABASE",
             help="Whether to automatically drop the transformer database if it already exists. By default, the script will abort in that situation.",
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = False,
     mongodump_path: Annotated[
@@ -204,6 +232,7 @@ def main(
             resolve_path=True,
             envvar="MONGODUMP_PATH",
             help="Path to the `mongodump` executable.",
+            rich_help_panel=RichHelpPanelName.SYSTEM.value,
             callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongodump"),
@@ -215,6 +244,7 @@ def main(
             resolve_path=True,
             envvar="MONGORESTORE_PATH",
             help="Path to the `mongorestore` executable.",
+            rich_help_panel=RichHelpPanelName.SYSTEM.value,
             callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongorestore"),
@@ -223,6 +253,7 @@ def main(
         typer.Option(
             envvar="SCHEMA_REPO_URL",
             help="URL of the Git repository containing the NMDC schema and its migrators.",
+            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
     ] = "https://github.com/microbiomedata/nmdc-schema.git",
 ) -> None:
