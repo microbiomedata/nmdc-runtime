@@ -5,10 +5,10 @@ between two versions of the NMDC schema.
 
 This app was designed to be run in an environment having the following:
 
-1. Permission to read from, and write to, the original MongoDB database
-2. Permission to create and edit roles on the origin MongoDB server
-3. Permission to read from, and write to, a distinct "transformer" MongoDB database
-4. The programs: `mongodump` and `mongorestore`
+1. The programs: `mongodump`, `mongorestore`, and `pip`
+2. Permission to create and edit roles on the "origin" MongoDB server
+3. Permission to read from, and write to, the "origin" MongoDB database
+4. Permission to read from, and write to, a distinct "transformer" MongoDB database
 
 In practice, we deploy it as follows:
 
@@ -20,3 +20,29 @@ In practice, we deploy it as follows:
    a [startup script](https://hub.docker.com/_/mongo#initializing-a-fresh-instance) that installs
    the dependencies of this CLI app and then runs this CLI app. That startup script resides in the
    `nmdc-cloud-deployment` repo.
+
+## Development
+
+### Install dependencies
+
+```sh
+uv sync --all-groups
+```
+
+### Run doctests
+
+```sh
+uv run python -m doctest ./*.py ./**/*.py
+```
+
+### Format and lint code
+
+```sh
+ruff format ./*.py ./**/*.py && ruff check ./*.py ./**/*.py
+```
+
+### Run app
+
+```sh
+uv run main.py --help
+```
