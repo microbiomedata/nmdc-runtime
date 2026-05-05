@@ -354,9 +354,12 @@ def main(
             progress.add_task(description=f"Installing {package_identifier}", total=None)
             ensure_pip_is_available(sys.executable)
             command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
-            result = run_subprocess(command_parts)
-            if result.returncode != 0:
-                raise typer.BadParameter(f"Failed to install {package_identifier}.\n\n{result.stderr}")
+            completed_process = run_subprocess(command_parts)
+            if completed_process.returncode != 0:
+                raise typer.BadParameter(
+                        f"Failed to install {package_identifier}. "
+                        f"\n\n{completed_process.stderr}"
+                )
             else:
                 print(f"Installed {package_identifier} using interpreter {sys.executable}")
         print(f"[green]Installed {package_identifier}.[/green]")
@@ -415,7 +418,12 @@ def main(
                 cfg.origin_dump_folder_path,
             ]
             shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options())
-            run_subprocess(shell_command_parts)
+            completed_process = run_subprocess(shell_command_parts)
+            if completed_process.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to dump collection '{collection_name}' from origin MongoDB database."
+                    f"\n\n{completed_process.stderr}"
+                )
             progress.update(task_outer, advance=1)
         print("[green]Dumped collections from origin MongoDB database.[/green]")
 
@@ -435,7 +443,12 @@ def main(
             cfg.origin_dump_folder_path,
         ]
         shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options(include_db_option=False))
-        run_subprocess(shell_command_parts)
+        completed_process = run_subprocess(shell_command_parts)
+        if completed_process.returncode != 0:
+            raise RuntimeError(
+                f"Failed to restore dump from origin into transformer MongoDB database."
+                f"\n\n{completed_process.stderr}"
+            )
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
@@ -477,7 +490,12 @@ def main(
                 cfg.transformer_dump_folder_path,
             ]
             shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options())
-            run_subprocess(shell_command_parts)
+            completed_process = run_subprocess(shell_command_parts)
+            if completed_process.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to dump collection '{collection_name}' from transformer MongoDB database."
+                    f"\n\n{completed_process.stderr}"
+                )
             progress.update(task_outer, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
@@ -511,7 +529,12 @@ def main(
             cfg.transformer_dump_folder_path,
         ]
         shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options(include_db_option=False))
-        run_subprocess(shell_command_parts)
+        completed_process = run_subprocess(shell_command_parts)
+        if completed_process.returncode != 0:
+            raise RuntimeError(
+                f"Failed to restore dump from transformer into origin MongoDB database."
+                f"\n\n{completed_process.stderr}"
+            )
         progress.update(task, advance=1)
     print("[green]Restored collections into origin MongoDB database.[/green]")
 

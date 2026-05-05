@@ -2,25 +2,41 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from rich import print
 import typer
 
 
 def run_subprocess(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
     """
-    Run a subprocess and capture its text output, raising a `CalledProcessError` if the subprocess
-    returns a non-zero exit code.
+    Run the specific command as a subprocess and capture its output as text.
+
+    Callers of this function can check the exit status via the `returncode` attribute
+    of the returned `CompletedProcess` object.
+
+    Demo of capturing STDOUT and a zero exit code:
+    >>> completed_process = run_subprocess([
+    ...     "echo", "hello world"
+    ... ])
+    >>> completed_process.returncode
+    0
+    >>> completed_process.stdout.strip()
+    'hello world'
+    >>> completed_process.stderr.strip() == ''
+    True
+
+    Contrived demo of capturing STDERR and a non-zero exit code:
+    >>> completed_process = run_subprocess([
+    ...     "python", "-c",
+    ...     "import sys; sys.stderr.write('hello error'); sys.exit(1)"
+    ... ])
+    >>> completed_process.returncode
+    1
+    >>> completed_process.stdout.strip() == ''
+    True
+    >>> completed_process.stderr.strip()
+    'hello error'
     """
 
-    try:
-        return subprocess.run(command_parts, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as e:
-        print(
-            f"Command {e.cmd} failed with exit code {e.returncode}.\n"
-            f"[bold underline]STDOUT[/bold underline]\n{e.stdout}\n"
-            f"[bold red underline]STDERR[/bold red underline]\n{e.stderr}\n"
-        )
-        raise
+    return subprocess.run(command_parts, capture_output=True, text=True)
 
 
 def ensure_pip_is_available(path_to_python_executable: str) -> None:
