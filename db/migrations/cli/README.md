@@ -32,17 +32,17 @@ uv sync --all-groups
 ### Run doctests
 
 ```sh
-uv run python -m doctest ./*.py ./**/*.py
+uv run python -m doctest src/**/*.py
 ```
 
 ### Format and lint code
 
 ```sh
-ruff format ./*.py ./**/*.py && ruff check ./*.py ./**/*.py
+ruff format src/**/*.py && ruff check src/**/*.py
 ```
 
 ### Run app
 
 ```sh
-uv run main.py --help
+uv run src/main.py --help
 ```

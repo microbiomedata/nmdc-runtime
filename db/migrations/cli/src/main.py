@@ -9,30 +9,30 @@ import pymongo
 import typer
 from rich import print
 
-from lib.bookkeeping import Bookkeeper, MigrationEvent
-from lib.config import (
+from src.lib.bookkeeping import Bookkeeper, MigrationEvent
+from src.lib.config import (
     RESERVED_GIT_TAGS,
     DatabaseConfig,
     MigrationConfig,
     ParamValidators,
     get_reserved_git_tags_help_snippet,
 )
-from lib.display import (
+from src.lib.display import (
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
-from lib.roles import (
+from src.lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
-from lib.schema import (
+from src.lib.schema import (
     create_schema_definition,
     create_validator,
     get_migrator_class,
     get_mongo_adapter_class,
     validate_document,
 )
-from lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
+from src.lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
 
 logger = getLogger(name=__name__)
 
@@ -301,9 +301,6 @@ def main(
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
     )
-
-    print(cfg.get_redacted_dict())
-    assert False
 
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).

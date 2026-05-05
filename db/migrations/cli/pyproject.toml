@@ -13,6 +13,14 @@ dependencies = [
     "typer>=0.15.3",
 ]
 
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "src"
+module-root = ""
+
 [project.scripts]
 nmdc-mongo-migration = "main:run"
 
