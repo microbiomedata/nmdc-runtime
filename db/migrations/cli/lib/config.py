@@ -78,8 +78,10 @@ class ParamValidators:
             return list(collection_names or [])
 
         # If the user provided a single collection name as a string, split it into a list.
+        # Note: `list.split()` with no args splits on whitespace (and treats consecutive whitespace
+        #       character as a single delimiter).
         if isinstance(collection_names, str):
-            normalized_collection_names = collection_names.split(" ")
+            normalized_collection_names = collection_names.split()
         else:
             normalized_collection_names = list(collection_names)
 
