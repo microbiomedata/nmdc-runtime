@@ -36,7 +36,17 @@ from lib.system import delete_contents_of_directory, ensure_pip_is_available, is
 
 logger = getLogger(name=__name__)
 
-app = typer.Typer()
+app = typer.Typer(
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
+
+
+class AccessManagementOperation(str, Enum):
+    """Name of the access management operation to perform on the MongoDB server."""
+
+    REVOKE = "revoke"
+    RESTORE = "restore"
 
 
 class RichHelpPanelName(Enum):
@@ -49,7 +59,8 @@ class RichHelpPanelName(Enum):
 
 
 # TODO: Add tests (use mock mongo server? and mock migrator?).
-def main(
+@app.command()
+def migrate(
     migrator_git_tag: Annotated[
         str,
         typer.Option(
@@ -84,7 +95,7 @@ def main(
         str,
         typer.Option(
             envvar="ORIGIN_MONGO_HOST",
-            help="Hostname for the origin MongoDB database.",
+            help="Hostname for the origin MongoDB server.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ],
@@ -92,7 +103,7 @@ def main(
         int,
         typer.Option(
             envvar="ORIGIN_MONGO_PORT",
-            help="Port number for the origin MongoDB database.",
+            help="Port number for the origin MongoDB server.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = 27017,
@@ -100,7 +111,7 @@ def main(
         str,
         typer.Option(
             envvar="ORIGIN_MONGO_USERNAME",
-            help="Username for the origin MongoDB database. Leave empty for no auth.",
+            help="Username for the origin MongoDB server. Leave empty for no auth.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "",
@@ -108,7 +119,7 @@ def main(
         str,
         typer.Option(
             envvar="ORIGIN_MONGO_PASSWORD",
-            help="Password for the origin MongoDB database.",
+            help="Password for the origin MongoDB server.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "",
@@ -116,7 +127,7 @@ def main(
         str,
         typer.Option(
             envvar="ORIGIN_MONGO_DATABASE_NAME",
-            help="Database name for the origin MongoDB database.",
+            help="Name of the origin MongoDB database.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = "nmdc",
@@ -125,7 +136,7 @@ def main(
         bool,
         typer.Option(
             envvar="ORIGIN_MONGO_DIRECT_CONNECTION",
-            help="Whether to use the `directConnection` option when connecting to the origin MongoDB database.",
+            help="Whether to use the `directConnection` option when connecting to the origin MongoDB server.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
         ),
     ] = True,
@@ -152,7 +163,7 @@ def main(
         str,
         typer.Option(
             envvar="TRANSFORMER_MONGO_HOST",
-            help="Hostname for the transformer MongoDB database.",
+            help="Hostname for the transformer MongoDB server.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "localhost",
@@ -160,7 +171,7 @@ def main(
         int,
         typer.Option(
             envvar="TRANSFORMER_MONGO_PORT",
-            help="Port number for the transformer MongoDB database.",
+            help="Port number for the transformer MongoDB server.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = 27017,
@@ -168,7 +179,7 @@ def main(
         str,
         typer.Option(
             envvar="TRANSFORMER_MONGO_USERNAME",
-            help="Username for the transformer MongoDB database. Leave empty for no auth.",
+            help="Username for the transformer MongoDB server. Leave empty for no auth.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "",
@@ -176,7 +187,7 @@ def main(
         str,
         typer.Option(
             envvar="TRANSFORMER_MONGO_PASSWORD",
-            help="Password for the transformer MongoDB database.",
+            help="Password for the transformer MongoDB server.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "",
@@ -184,7 +195,7 @@ def main(
         str,
         typer.Option(
             envvar="TRANSFORMER_MONGO_DATABASE_NAME",
-            help="Database name for the transformer MongoDB database.",
+            help="Name of the transformer MongoDB database.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = "transformer",
@@ -193,7 +204,7 @@ def main(
         bool,
         typer.Option(
             envvar="TRANSFORMER_MONGO_DIRECT_CONNECTION",
-            help="Whether to use the `directConnection` option when connecting to the transformer MongoDB database.",
+            help="Whether to use the `directConnection` option when connecting to the transformer MongoDB server.",
             rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
         ),
     ] = True,
@@ -257,14 +268,16 @@ def main(
         ),
     ] = "https://github.com/microbiomedata/nmdc-schema.git",
 ) -> None:
-    """
+    r"""
     Migrate the NMDC database between two versions of the NMDC schema.
 
     The origin database is the database you want to migrate. This app will dump data from the origin
     database, load it into the transformer database, transform it there so that it conforms to the
     destination schema, validate it there, dump the transformed data from the transformer database,
-    and load it into the origin database (overwriting the original data there). Limitation: This
-    app does not support migrators that create, rename, and/or delete MongoDB collections.
+    and load it into the origin database (overwriting the original data there).
+
+    [bold]Limitation:[/bold] This app does not support migrators that create, rename, and/or delete
+    MongoDB collections.
     """
 
     origin_mongo_database_config = DatabaseConfig(
@@ -546,13 +559,69 @@ def main(
     print("[green]Restored standard role privileges on origin server.[/green]")
 
 
-def run() -> None:
-    """Runs the CLI app."""
-    typer.run(main)
+@app.command()
+def manage_mongo_access(
+    operation: Annotated[
+        AccessManagementOperation,
+        typer.Option(help="Name of the access management operation you want to perform."),
+    ],
+    host: Annotated[
+        str,
+        typer.Option(help="Hostname for the MongoDB server."),
+    ] = "localhost",
+    port: Annotated[
+        int,
+        typer.Option(help="Port number for the MongoDB server."),
+    ] = 27017,
+    username: Annotated[
+        str,
+        typer.Option(help="Username for the MongoDB server. Leave empty for no auth."),
+    ] = "",
+    password: Annotated[
+        str,
+        typer.Option(help="Password for the MongoDB server."),
+    ] = "",
+    direct_connection: Annotated[
+        bool,
+        typer.Option(help="Whether to use the `directConnection` option when connecting to the MongoDB server."),
+    ] = True,
+):
+    r"""
+    Revoke or restore all privileges and role inheritance from the standard NMDC roles
+    (except the `nmdc_migrator` role, which this command will not modify).
+
+    The latter can be useful to recover from the scenario in which the `migrate` command is
+    interrupted between the time it revokes user access and the time it restores user access.
+    """
+
+    database_config = DatabaseConfig(
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        name="",
+        direct_connection=direct_connection,
+    )
+
+    # Connect to the MongoDB server and perform a sanity test of the connection.
+    mongo_client = pymongo.MongoClient(**database_config.get_pymongo_client_kwargs())
+    with pymongo.timeout(3):
+        # Display the MongoDB server version.
+        mongo_server_version = mongo_client.server_info()["version"]
+        print(f"MongoDB server version: {mongo_server_version}")
+
+    if operation == AccessManagementOperation.RESTORE:
+        _ = restore_standard_role_privileges(admin_database=mongo_client["admin"])
+        print("[green]Restored standard role privileges on MongoDB server.[/green]")
+    elif operation == AccessManagementOperation.REVOKE:
+        _ = revoke_standard_role_privileges(admin_database=mongo_client["admin"])
+        print("[green]Revoked standard role privileges on MongoDB server.[/green]")
+    else:
+        raise typer.BadParameter(f"Unsupported operation: {operation}")
 
 
 if __name__ == "__main__":
-    run()
+    app()
 
 
 # Note:

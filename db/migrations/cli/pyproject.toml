@@ -22,7 +22,7 @@ module-name = "src"
 module-root = ""
 
 [project.scripts]
-nmdc-mongo-migration = "src.main:run"
+nmdc-mongo-migration = "src.main:app"
 
 [dependency-groups]
 dev = [
