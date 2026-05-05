@@ -9,30 +9,30 @@ import pymongo
 import typer
 from rich import print
 
-from src.lib.bookkeeping import Bookkeeper, MigrationEvent
-from src.lib.config import (
+from lib.bookkeeping import Bookkeeper, MigrationEvent
+from lib.config import (
     RESERVED_GIT_TAGS,
     DatabaseConfig,
     MigrationConfig,
     ParamValidators,
     get_reserved_git_tags_help_snippet,
 )
-from src.lib.display import (
+from lib.display import (
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
-from src.lib.roles import (
+from lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
-from src.lib.schema import (
+from lib.schema import (
     create_schema_definition,
     create_validator,
     get_migrator_class,
     get_mongo_adapter_class,
     validate_document,
 )
-from src.lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
+from lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
 
 logger = getLogger(name=__name__)
 
@@ -263,9 +263,8 @@ def main(
     The origin database is the database you want to migrate. This app will dump data from the origin
     database, load it into the transformer database, transform it there so that it conforms to the
     destination schema, validate it there, dump the transformed data from the transformer database,
-    and load it into the origin database (overwriting the original data there).
-
-    This app does not support migrators that involve renaming MongoDB collection.
+    and load it into the origin database (overwriting the original data there). Limitation: This
+    app does not support migrators that create, rename, and/or delete MongoDB collections.
     """
 
     origin_mongo_database_config = DatabaseConfig(
