@@ -36,6 +36,7 @@ def test_nmdc_jsonschema_using_new_id_scheme():
             if "pattern" in defn["properties"]["id"]:
                 valid_prefix_patterns: tuple = (
                     r"^(nmdc):",
+                    r"^NCBITaxon:",
                     r"^[a-zA-Z0-9][a-zA-Z0-9_\.]+:",
                 )
                 if not defn["properties"]["id"]["pattern"].startswith(valid_prefix_patterns):
