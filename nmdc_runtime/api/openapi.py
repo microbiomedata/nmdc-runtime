@@ -27,9 +27,7 @@ class OpenAPITag(str, Enum):
 # Mapping from tag names to their (Markdown-formatted) descriptions.
 tag_descriptions: Dict[str, str] = {}
 
-tag_descriptions[
-    OpenAPITag.METADATA_ACCESS.value
-] = r"""
+tag_descriptions[OpenAPITag.METADATA_ACCESS.value] = r"""
 Retrieve and manage metadata.
 
 The metadata access endpoints fall into several subcategories:
@@ -42,9 +40,7 @@ The metadata access endpoints fall into several subcategories:
 - **JSON operations**: Insert or update metadata by submitting a JSON document representing a [Database](https://w3id.org/nmdc/Database/).
 """
 
-tag_descriptions[
-    OpenAPITag.WORKFLOWS.value
-] = r"""
+tag_descriptions[OpenAPITag.WORKFLOWS.value] = r"""
 Manage workflows and their execution.
 
 The workflow management endpoints fall into several subcategories:
@@ -88,21 +84,15 @@ The workflow management endpoints fall into several subcategories:
     - For off-site job runs, keep the Runtime appraised of run events.
 """
 
-tag_descriptions[
-    OpenAPITag.USERS.value
-] = r"""
+tag_descriptions[OpenAPITag.USERS.value] = r"""
 Create and manage user accounts.
 """
 
-tag_descriptions[
-    OpenAPITag.MINTER.value
-] = r"""
+tag_descriptions[OpenAPITag.MINTER.value] = r"""
 Mint and manage persistent identifiers.
 """
 
-tag_descriptions[
-    OpenAPITag.SYSTEM_ADMINISTRATION.value
-] = r"""
+tag_descriptions[OpenAPITag.SYSTEM_ADMINISTRATION.value] = r"""
 Retrieve information about the software components that make up the Runtime.
 """
 

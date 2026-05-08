@@ -17,7 +17,6 @@ from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
 
-
 DataUrlSet = namedtuple("DataUrlSet", ["url", "md5_checksum"])
 
 READ_1 = DataUrlSet("read_1_url", "read_1_md5_checksum")

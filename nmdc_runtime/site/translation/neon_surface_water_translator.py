@@ -17,7 +17,6 @@ from nmdc_runtime.site.translation.neon_utils import (
     _create_text_value,
 )
 
-
 SURFACE_WATER_BROAD_SCALE_MAPPINGS = {
     "lake": {"term_id": "ENVO:01000252", "term_name": "freshwater lake biome"},
     "river": {"term_id": "ENVO:01000253", "term_name": "freshwater river biome"},
