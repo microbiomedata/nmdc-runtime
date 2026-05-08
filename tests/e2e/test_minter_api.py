@@ -88,7 +88,7 @@ def test_mint_id_rejects_invalid_typecode(api_site_client):
     number_of_ids = 1
     schema_class_uri = "potato"
     body = {"schema_class": {"id": schema_class_uri}, "how_many": number_of_ids}
-    
+
     with pytest.raises(requests.HTTPError) as exc_info:
         _ = api_site_client.request("POST", "/pids/mint", body)
     assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
