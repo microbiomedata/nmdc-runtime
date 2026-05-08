@@ -459,11 +459,11 @@ def custom_swagger_ui_html(
     onComplete = ""
     if access_token is not None:
         onComplete += f"ui.preauthorizeApiKey('bearerAuth', '{access_token}');"
-    # TODO: Instead of injecting the raw info banner's "HTML" directly into a JavaScript statement,
+    # TODO: Instead of injecting the raw info banner "HTML" directly into a JavaScript statement,
     #       consider base64-encoding it (and then base64-decoding it later) so that we don't have
     #       to worry about escaping special characters in it (e.g. backticks, which would terminate
-    #       the JavaScript string; or `${expression}`, which is used for string interpolation). The
-    #       current approach is error-prone; although we do control the "HTML" ourselves.
+    #       the JavaScript string; or `${expression}`, which is used for string interpolation). At
+    #       least the injected "HTML" is something we control (Runtime deployers control it).
     if os.getenv("INFO_BANNER_INNERHTML"):
         info_banner_innerhtml = os.getenv("INFO_BANNER_INNERHTML")
         onComplete += f"""
