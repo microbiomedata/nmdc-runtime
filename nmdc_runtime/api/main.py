@@ -369,6 +369,12 @@ app = FastAPI(
     openapi_tags=ordered_tag_descriptors,
     lifespan=lifespan,
     docs_url=None,
+    # Continue to allow incoming HTTP requests to lack a `Content-Type` header. In FastAPI version
+    # 0.132.0, FastAPI began requiring incoming HTTP requests that include a JSON payload to include
+    # a `Content-Type` header. In order to _not_ break downstream consumers (without adequately
+    # notifying them), we will disable that check (effectively preserving the pre-0.132.0 behavior).
+    # Docs: https://fastapi.tiangolo.com/advanced/strict-content-type/?h=strict#allowing-requests-without-content-type
+    strict_content_type=False,
 )
 app.include_router(api_router)
 
