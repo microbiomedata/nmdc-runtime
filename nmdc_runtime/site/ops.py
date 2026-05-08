@@ -111,7 +111,6 @@ from pymongo.database import Database as MongoDatabase
 from pymongo.collection import Collection as MongoCollection
 from toolz import get_in, valfilter, identity
 
-
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000
 

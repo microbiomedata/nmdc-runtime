@@ -9,7 +9,6 @@ from nmdc_runtime.api.endpoints.util import check_action_permitted, strip_oid
 from nmdc_runtime.api.models.user import User, get_current_active_user
 from nmdc_runtime.api.models.allowance import Allowance, AllowanceAction
 
-
 router = APIRouter()
 
 
