@@ -69,7 +69,6 @@ from nmdc_runtime.api.swagger_ui.swagger_ui import base_swagger_ui_parameters
 from nmdc_runtime.minter.bootstrap import bootstrap as minter_bootstrap
 from nmdc_runtime.minter.entrypoints.fastapi_app import router as minter_router
 
-
 # If the app is configured to use Sentry, initialize the Sentry SDK now.
 #
 # Note: The FastAPI integration will be automatically enabled, since we list `fastapi`
@@ -461,9 +460,7 @@ def custom_swagger_ui_html(
             banner.classList.add('nmdc-info', 'nmdc-info-banner', 'block', 'col-12');
             banner.innerHTML = `{info_banner_innerhtml.replace('"', '<double-quote>')}`;
             document.querySelector('.information-container').prepend(banner);
-        """.replace(
-            "\n", " "
-        )
+        """.replace("\n", " ")
 
     swagger_ui_parameters = base_swagger_ui_parameters.copy()
 
@@ -521,7 +518,7 @@ def custom_swagger_ui_html(
         #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
         .replace(
             r'"{{ NMDC_SWAGGER_UI_ON_COMPLETE_PLACEHOLDER }}"',
-            f"() => {{ {onComplete} ; dispatchEvent(new Event('nmdcInit')); }}"
+            f"() => {{ {onComplete} ; dispatchEvent(new Event('nmdcInit')); }}",
         )
         # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
         # Note: We escape the values here so they can be safely used as HTML attribute values.
