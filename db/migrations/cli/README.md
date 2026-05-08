@@ -1,4 +1,4 @@
-# CLI
+# NMDC Migration CLI
 
 Command-Line Interface (CLI) application that you can use to migrate the NMDC database
 between two versions of the NMDC schema.

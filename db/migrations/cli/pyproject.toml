@@ -1,5 +1,5 @@
 [project]
-name = "nmdc-mongo-migration-cli"
+name = "nmdc-migration-cli"
 version = "0.1.0"
 description = "CLI app for migrating the NMDC database between two versions of the NMDC schema"
 readme = "README.md"
@@ -22,7 +22,7 @@ module-name = "src"
 module-root = ""
 
 [project.scripts]
-nmdc-mongo-migration = "src.main:app"
+nmdc-migration-cli = "src.main:app"
 
 [dependency-groups]
 dev = [
