@@ -1,6 +1,7 @@
-import os
 import pytest
 import requests
+
+from fastapi import status
 
 from nmdc_runtime.api.db.mongo import get_mongo_db
 from nmdc_runtime.minter.config import schema_classes
@@ -66,3 +67,40 @@ def test_minter_api_delete(mint_one_id_response, api_site_client):
         {"id_name": id_name},
     )
     assert rv.status_code == 200
+
+
+def test_mint_id(api_site_client):
+    """Confirm a site client can mint an ID."""
+
+    number_of_ids = 1
+    schema_class_uri = "nmdc:Study"
+    body = {"schema_class": {"id": schema_class_uri}, "how_many": number_of_ids}
+    response = api_site_client.request("POST", "/pids/mint", body)
+    assert response.status_code == status.HTTP_200_OK
+    response_body = response.json()
+    assert isinstance(response_body, list)
+    assert len(response_body) == number_of_ids
+
+
+def test_mint_id_rejects_invalid_typecode(api_site_client):
+    """Confirm a site client cannot mint an ID with an invalid schema class URI."""
+
+    number_of_ids = 1
+    schema_class_uri = "potato"
+    body = {"schema_class": {"id": schema_class_uri}, "how_many": number_of_ids}
+    
+    with pytest.raises(requests.HTTPError) as exc_info:
+        _ = api_site_client.request("POST", "/pids/mint", body)
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_mint_id_rejects_invalid_quantity(api_site_client):
+    """Confirm a site client cannot mint an invalid quantity of IDs."""
+
+    number_of_ids = -1
+    schema_class_uri = "nmdc:Study"
+    body = {"schema_class": {"id": schema_class_uri}, "how_many": number_of_ids}
+
+    with pytest.raises(requests.HTTPError) as exc_info:
+        _ = api_site_client.request("POST", "/pids/mint", body)
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
