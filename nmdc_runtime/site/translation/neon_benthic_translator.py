@@ -17,7 +17,6 @@ from nmdc_runtime.site.translation.neon_utils import (
     _create_text_value,
 )
 
-
 BENTHIC_BROAD_SCALE_MAPPINGS = {
     "stream": {"term_id": "ENVO:01000253", "term_name": "freshwater river biome"}
 }

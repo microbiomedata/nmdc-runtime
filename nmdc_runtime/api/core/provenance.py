@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional, Set
 
 from nmdc_runtime.api.models.query import UpdateStatement
 
-
 # Names of collections that can contain documents having the `provenance_metadata` field.
 NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD: Set[str] = {
     "biosample_set",

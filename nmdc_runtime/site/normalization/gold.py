@@ -2,6 +2,7 @@
 """
 gold.py: Provides functions to normalize and validate JGI GOLD data.
 """
+
 import logging
 from typing import Dict, Any
 

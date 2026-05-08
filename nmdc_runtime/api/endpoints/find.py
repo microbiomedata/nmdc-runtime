@@ -44,7 +44,6 @@ from nmdc_runtime.api.models.util import (
 )
 from nmdc_runtime.util import duration_logger
 
-
 router = APIRouter()
 
 

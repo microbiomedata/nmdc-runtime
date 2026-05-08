@@ -8,7 +8,6 @@ from refscan.lib.helpers import get_collection_names_from_schema
 from nmdc_runtime.site.resources import mongo_resource
 from nmdc_runtime.util import nmdc_schema_view
 
-
 mode_test = {
     "resource_defs": {"mongo": mongo_resource}
 }  # Connect to a real MongoDB instance for testing.
