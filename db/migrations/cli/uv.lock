@@ -733,7 +733,7 @@ wheels = [
 ]
 
 [[package]]
-name = "nmdc-mongo-migration-cli"
+name = "nmdc-migration-cli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

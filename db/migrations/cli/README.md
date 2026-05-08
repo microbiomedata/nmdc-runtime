@@ -23,6 +23,12 @@ In practice, we deploy it as follows:
 
 ## Development
 
+All commands shown below were designed to be run from the "root" directory of the NMDC Migration CLI project:
+
+```sh
+cd db/migrations/cli/
+```
+
 ### Install dependencies
 
 ```sh
@@ -44,5 +50,25 @@ ruff format src/**/*.py && ruff check src/**/*.py
 ### Run app
 
 ```sh
-uv run src/main.py --help
+uv run nmdc-migration-cli --help
 ```
+
+> The `pyproject.toml` file contains a `[project.scripts]` entry that maps the `nmdc-migration-cli` command to the `app` variable defined within the `src/main.py` file.
+
+## Containerization
+
+### Build container
+
+```sh
+docker build --progress=plain --tag nmdc-migration-cli:latest .
+```
+
+> `--progress=plain` makes it so a given step's output doesn't go away when the step is done. This can help with debugging the build.
+
+### Run container (once built)
+
+```sh
+docker run --rm -it nmdc-migration-cli:latest --help
+```
+
+> The `--help` parameter will be appended to the `ENTRYPOINT` defined in the `Dockerfile`, which is `uv run nmdc-migration-cli`.
