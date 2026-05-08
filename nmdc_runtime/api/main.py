@@ -448,6 +448,9 @@ def custom_swagger_ui_html(
             rv.raise_for_status()
         access_token = rv.json()["access_token"]
 
+    # Conditionally populate the `onComplete` variable with JavaScript code that we want the
+    # web browser to execute immediately after the Swagger UI page finishes being rendered.
+    # Docs: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
     onComplete = ""
     if access_token is not None:
         onComplete += f"ui.preauthorizeApiKey('bearerAuth', '{access_token}');"
@@ -461,12 +464,14 @@ def custom_swagger_ui_html(
         """.replace(
             "\n", " "
         )
+
     swagger_ui_parameters = base_swagger_ui_parameters.copy()
-    # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
-    #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+
+    # Add a placeholder, which we will replace later (after FastAPI's JavaScript "sanitization"
+    # has taken place).
     swagger_ui_parameters.update(
         {
-            "onComplete": f"""<unquote-safe>() => {{ {onComplete}; dispatchEvent(new Event('nmdcInit')); }}</unquote-safe>""",
+            "onComplete": r"{{ NMDC_SWAGGER_UI_ON_COMPLETE_PLACEHOLDER }}",
         }
     )
     # Pin the Swagger UI version to avoid breaking changes (to our own JavaScript code that depends on Swagger UI internals).
@@ -512,6 +517,12 @@ def custom_swagger_ui_html(
         #             Swagger UI functionality). That's a deal breaker.
         #
         .replace(r'"{{ NMDC_SWAGGER_UI_PARAMETERS_PLUGINS_PLACEHOLDER }}"', r"[]")
+        # Note: The `nmdcInit` JavaScript event is a custom event we use to trigger anything that is listening for it.
+        #       Reference: https://developer.mozilla.org/en-US/docs/Web/Events/Creating_and_triggering_events
+        .replace(
+            r'"{{ NMDC_SWAGGER_UI_ON_COMPLETE_PLACEHOLDER }}"',
+            f"() => {{ {onComplete} ; dispatchEvent(new Event('nmdcInit')); }}"
+        )
         # Inject HTML elements containing data that can be read via JavaScript (e.g., `swagger_ui/assets/script.js`).
         # Note: We escape the values here so they can be safely used as HTML attribute values.
         .replace(
