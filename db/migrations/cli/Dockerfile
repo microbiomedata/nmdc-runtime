@@ -39,10 +39,11 @@ ENV UV_NO_DEV=1
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#caching
 ENV UV_LINK_MODE=copy
 
-# Copy the project files into the image.
-COPY . .
+# Copy the dependency lists into the image.
+COPY pyproject.toml .
+COPY uv.lock .
 
-# Install the project and its dependencies.
+# Install the project's production dependencies.
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#installing-a-project
 #
 # Note: We thought about using `ENV UV_COMPILE_BYTECODE=1` in order to simplify this command,
@@ -50,8 +51,14 @@ COPY . .
 #       defeating the purpose of compiling it up front (we wanted to avoid doing so at run time).
 #       There's an open issue about this, here: https://github.com/astral-sh/uv/issues/12202
 #
+# Note: We opted to _not_ install the project, itself, at this stage. That is so developers are free
+#       to edit project files (other than those already copied into the image) without invalidating
+#       the layer cache. We'll install the project, itself, later (i.e. further below).
+#       Docs: https://docs.astral.sh/uv/concepts/projects/sync/#partial-installations
+#
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --compile-bytecode
+    uv sync --locked --compile-bytecode \
+        --no-dev --no-install-project
 
 # Upgrade `pip` to the latest version.
 RUN uv pip install --upgrade pip
@@ -66,6 +73,14 @@ RUN echo '#! /bin/bash'                                                      > /
     echo 'echo "\nExecuting command.\n"'                                    >> /init.sh && \
     echo 'exec "$@"'                                                        >> /init.sh && \
     chmod +x                                                                   /init.sh
+
+# Copy the project files into the image.
+COPY src src
+COPY README.md README.md
+
+# Install the project, itself.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --compile-bytecode
 
 # Run the init shell script such that it runs our app.
 ENTRYPOINT ["/init.sh", "uv", "run", "nmdc-migration-cli"]
