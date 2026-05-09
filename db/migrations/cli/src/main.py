@@ -41,8 +41,10 @@ from src.lib.system import delete_contents_of_directory, ensure_pip_is_available
 logger = getLogger(name=__name__)
 
 app = typer.Typer(
+    add_completion=False,
     no_args_is_help=True,
     rich_markup_mode="rich",
+    help="Do things related to migrating the NMDC database.",
 )
 
 
@@ -425,7 +427,7 @@ def migrate(
                 mongodump_path=cfg.mongodump_path,
                 collection_name=collection_name,
                 database_config=cfg.origin_mongo_database_config,
-                dump_folder_path=cfg.origin_dump_folder_path
+                dump_folder_path=cfg.origin_dump_folder_path,
             )
             completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
@@ -487,7 +489,7 @@ def migrate(
                 mongodump_path=cfg.mongodump_path,
                 collection_name=collection_name,
                 database_config=cfg.transformer_mongo_database_config,
-                dump_folder_path=cfg.transformer_dump_folder_path
+                dump_folder_path=cfg.transformer_dump_folder_path,
             )
             completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
