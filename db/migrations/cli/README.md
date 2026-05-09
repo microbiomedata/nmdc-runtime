@@ -15,11 +15,12 @@ In practice, we deploy it as follows:
 1. In `nmdc-runtime` (here), we have this CLI app. Although it resides in the same repo as the
    Runtime, they are two independent applications and have two independent `pyproject.toml` files.
    This CLI app could be moved to a separate repository without the Runtime realizing it.
-2. In `nmdc-cloud-deployment` (private), we have a normally-suspended CronJob that uses the official
-   [mongo](https://hub.docker.com/_/mongo) container image. The CronJob supplies the container with
-   a [startup script](https://hub.docker.com/_/mongo#initializing-a-fresh-instance) that installs
-   the dependencies of this CLI app and then runs this CLI app. That startup script resides in the
-   `nmdc-cloud-deployment` repo.
+2. In `nmdc-runtime` (here), we also have a `Dockerfile` (in the same directory as the CLI app) that
+   describes a container image that (a) launches MongoDB in daemon mode and (b) launches the CLI app.
+   Coming soon: A container image built from that `Dockerfile` will be hosted publicly on GHCR.
+3. In `nmdc-cloud-deployment` (private), we have a normally-suspended CronJob configured to use that
+   container image. The CronJob is reconfigured before use, so that the relevant migrator is run and
+   the appropriate MongoDB server is used as the "origin" MongoDB server.
 
 ## Development
 
