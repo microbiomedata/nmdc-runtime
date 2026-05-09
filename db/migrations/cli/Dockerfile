@@ -1,10 +1,22 @@
-FROM python:3.12-slim-trixie
+FROM mongo:8.2.3
 
 WORKDIR /app
 
 RUN apt clean && \
     apt-get upgrade && \
     apt-get update
+
+# Define environment variables that are meaningful to the app.
+#
+# Note: These can be overridden in two ways: (a) to override the environment variables, themselves,
+#       you can use the `-e KEY=VALUE` option with `$ docker run`; and (b) to override them as
+#       parameters to the app, you can pass the corresponding CLI options to the app, since the CLI
+#       options takes precedence over the environment variables.
+#
+ENV MONGODUMP_PATH="/usr/bin/mongodump"
+ENV MONGORESTORE_PATH="/usr/bin/mongorestore"
+ENV ORIGIN_DUMP_FOLDER_PATH="/tmp/mongodump.origin.out"
+ENV TRANSFORMER_DUMP_FOLDER_PATH="/tmp/mongodump.transformer.out"
 
 # Install `uv` (the `uv` docs recommend pinning to a specific `uv` version, so we have done that).
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
