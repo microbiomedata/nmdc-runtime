@@ -1,11 +1,5 @@
 FROM mongo:8.2.3
 
-WORKDIR /app
-
-RUN apt clean && \
-    apt-get upgrade && \
-    apt-get update
-
 # Define environment variables that are meaningful to the app.
 #
 # Note: These can be overridden in two ways: (a) to override the environment variables, themselves,
@@ -17,6 +11,18 @@ ENV MONGODUMP_PATH="/usr/bin/mongodump"
 ENV MONGORESTORE_PATH="/usr/bin/mongorestore"
 ENV ORIGIN_DUMP_FOLDER_PATH="/tmp/mongodump.origin.out"
 ENV TRANSFORMER_DUMP_FOLDER_PATH="/tmp/mongodump.transformer.out"
+
+# Define environment variables that are meaningful to the init shell script defined below.
+ENV MONGO_LOG_PATH="/tmp/mongo.log"
+
+WORKDIR /app
+
+# Install `git`.
+RUN apt clean && \
+    apt-get upgrade && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git
 
 # Install `uv` (the `uv` docs recommend pinning to a specific `uv` version, so we have done that).
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
@@ -47,7 +53,20 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --compile-bytecode
 
-# Run the app.
-# Note: Since we use `ENTRYPOINT` here, container instantiators will be able to specify
-#       app CLI options to the `$ docker run` command without repeating the app name.
-ENTRYPOINT ["uv", "run", "nmdc-migration-cli"]
+# Upgrade `pip` to the latest version.
+RUN uv pip install --upgrade pip
+
+# Create an init shell script that does two things: (1) it launches MongoDB via the same entrypoint
+# script as the base image does, except it launches it in daemon mode and configures it to write
+# its logs to a file instead of to the console; and (2) it executes, on the shell, as the main
+# process of the container, whatever arguments were passed to the init script.
+RUN echo '#! /bin/bash'                                                      > /init.sh && \
+    echo 'echo "\nLaunching MongoDB in daemon mode.\n"'                     >> /init.sh && \
+    echo 'docker-entrypoint.sh mongod --fork --logpath "${MONGO_LOG_PATH}"' >> /init.sh && \
+    echo 'echo "\nExecuting command.\n"'                                    >> /init.sh && \
+    echo 'exec "$@"'                                                        >> /init.sh && \
+    chmod +x                                                                   /init.sh
+
+# Run the init shell script such that it runs our app.
+ENTRYPOINT ["/init.sh", "uv", "run", "nmdc-migration-cli"]
+CMD ["--help"]
