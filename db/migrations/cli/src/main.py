@@ -21,6 +21,10 @@ from src.lib.display import (
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
+from src.lib.dumps import (
+    build_mongodump_command,
+    build_mongorestore_command,
+)
 from src.lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
@@ -418,15 +422,12 @@ def migrate(
             description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
         )
         for collection_name in cfg.collection_names:
-            shell_command_parts = [
-                cfg.mongodump_path,
-                "--collection",
-                collection_name,
-                "--gzip",
-                "--out",
-                cfg.origin_dump_folder_path,
-            ]
-            shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options())
+            shell_command_parts = build_mongodump_command(
+                mongodump_path=cfg.mongodump_path,
+                collection_name=collection_name,
+                database_config=cfg.origin_mongo_database_config,
+                dump_folder_path=cfg.origin_dump_folder_path
+            )
             completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
                 raise RuntimeError(
@@ -439,19 +440,13 @@ def migrate(
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
     with make_progress_indicator_for_unbounded_task() as progress:
         progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
-        shell_command_parts = [
-            cfg.mongorestore_path,
-            "--nsFrom",
-            f"{cfg.origin_mongo_database_config.name}.*",
-            "--nsTo",
-            f"{cfg.transformer_mongo_database_config.name}.*",
-            "--drop",
-            "--stopOnError",
-            "--gzip",
-            "--dir",
-            cfg.origin_dump_folder_path,
-        ]
-        shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options(include_db_option=False))
+        shell_command_parts = build_mongorestore_command(
+            mongorestore_path=cfg.mongorestore_path,
+            source_database_name=cfg.origin_mongo_database_config.name,
+            destination_database_name=cfg.transformer_mongo_database_config.name,
+            destination_database_config=cfg.transformer_mongo_database_config,
+            dump_folder_path=cfg.origin_dump_folder_path,
+        )
         completed_process = run_subprocess(shell_command_parts)
         if completed_process.returncode != 0:
             raise RuntimeError(
@@ -489,15 +484,12 @@ def migrate(
             description="Dumping collections from transformer MongoDB database", total=len(cfg.collection_names)
         )
         for collection_name in cfg.collection_names:
-            shell_command_parts = [
-                cfg.mongodump_path,
-                "--collection",
-                collection_name,
-                "--gzip",
-                "--out",
-                cfg.transformer_dump_folder_path,
-            ]
-            shell_command_parts.extend(cfg.transformer_mongo_database_config.get_cli_options())
+            shell_command_parts = build_mongodump_command(
+                mongodump_path=cfg.mongodump_path,
+                collection_name=collection_name,
+                database_config=cfg.transformer_mongo_database_config,
+                dump_folder_path=cfg.transformer_dump_folder_path
+            )
             completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
                 raise RuntimeError(
@@ -524,19 +516,13 @@ def migrate(
     # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
     with make_progress_indicator_for_unbounded_task() as progress:
         task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
-        shell_command_parts = [
-            cfg.mongorestore_path,
-            "--nsFrom",
-            f"{cfg.transformer_mongo_database_config.name}.*",
-            "--nsTo",
-            f"{cfg.origin_mongo_database_config.name}.*",
-            "--drop",
-            "--stopOnError",
-            "--gzip",
-            "--dir",
-            cfg.transformer_dump_folder_path,
-        ]
-        shell_command_parts.extend(cfg.origin_mongo_database_config.get_cli_options(include_db_option=False))
+        shell_command_parts = build_mongorestore_command(
+            mongorestore_path=cfg.mongorestore_path,
+            source_database_name=cfg.transformer_mongo_database_config.name,
+            destination_database_name=cfg.origin_mongo_database_config.name,
+            destination_database_config=cfg.origin_mongo_database_config,
+            dump_folder_path=cfg.transformer_dump_folder_path,
+        )
         completed_process = run_subprocess(shell_command_parts)
         if completed_process.returncode != 0:
             raise RuntimeError(
