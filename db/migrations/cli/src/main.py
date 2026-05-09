@@ -62,7 +62,6 @@ class RichHelpPanelName(Enum):
     TRANSFORMER_DATABASE = "Transformer MongoDB Database"
 
 
-# TODO: Add tests (use mock mongo server? and mock migrator?).
 @app.command()
 def migrate(
     migrator_git_tag: Annotated[
@@ -608,14 +607,3 @@ def manage_mongo_access(
 
 if __name__ == "__main__":
     app()
-
-
-# Note:
-#
-# To install git and curl within the `mongo` container:
-#   $ apt update && apt install -y git curl && apt clean
-#
-# To install uv within the `mongo` container:
-#   $ curl -LsSf https://astral.sh/uv/install.sh | sh
-#   $ source $HOME/.local/bin/env
-#
