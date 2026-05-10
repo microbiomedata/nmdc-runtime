@@ -175,6 +175,7 @@ class MigrationConfig:
     auto_empty_origin_dump_folder: bool
     auto_empty_transformer_dump_folder: bool
     auto_drop_transformer_database: bool
+    show_diff: bool
 
     def get_redacted_dict(self) -> dict:
         """Get a representation of the config in which sensitive values have been redacted."""

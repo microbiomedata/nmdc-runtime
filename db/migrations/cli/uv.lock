@@ -276,6 +276,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dictdiffer"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/7b/35cbccb7effc5d7e40f4c55e2b79399e1853041997fcda15c9ff160abba0/dictdiffer-0.9.0.tar.gz", hash = "sha256:17bacf5fbfe613ccf1b6d512bd766e6b21fb798822a133aa86098b8ac9997578", size = 31513, upload-time = "2021-07-22T13:24:29.276Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/ef/4cb333825d10317a36a1154341ba37e6e9c087bac99c1990ef07ffdb376f/dictdiffer-0.9.0-py2.py3-none-any.whl", hash = "sha256:442bfc693cfcadaf46674575d2eba1c53b42f5e404218ca2c2ff549f2df56595", size = 16754, upload-time = "2021-07-22T13:24:26.783Z" },
+]
+
+[[package]]
 name = "dnspython"
 version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -733,12 +742,28 @@ wheels = [
 ]
 
 [[package]]
+name = "mongo-diff"
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dictdiffer" },
+    { name = "pymongo" },
+    { name = "rich" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/cd/b02e617c04f6305375f765b67af81885f892659611e6e9b5c63149901746/mongo_diff-0.3.1.tar.gz", hash = "sha256:29b3104bac17f0a37e3526222af136355075645801dacdb830b0be76118317d6", size = 12252, upload-time = "2026-05-09T23:57:28.381Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/c1/0941959843eca992e8483a07652563c305be7202679875faba7b7fe2bf23/mongo_diff-0.3.1-py3-none-any.whl", hash = "sha256:7d06e19a50248ceb1581c3d8c515bd891cf7183730d6c861e6aad4b58ce428cc", size = 10441, upload-time = "2026-05-09T23:57:29.526Z" },
+]
+
+[[package]]
 name = "nmdc-migration-cli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "linkml" },
     { name = "linkml-runtime" },
+    { name = "mongo-diff" },
     { name = "pymongo" },
     { name = "refscan" },
     { name = "rich" },
@@ -754,6 +779,7 @@ dev = [
 requires-dist = [
     { name = "linkml", specifier = ">=1.10.0" },
     { name = "linkml-runtime", specifier = ">=1.10.0" },
+    { name = "mongo-diff", specifier = ">=0.3.1" },
     { name = "pymongo", specifier = ">=4.12.1" },
     { name = "refscan", specifier = ">=0.4.4" },
     { name = "rich", specifier = ">=13.9.4" },

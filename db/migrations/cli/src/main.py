@@ -8,6 +8,7 @@ from logging import getLogger
 import pymongo
 import typer
 from rich import print
+from mongo_diff.mongo_diff import Comparator
 
 from src.lib.bookkeeping import Bookkeeper, MigrationEvent
 from src.lib.config import (
@@ -272,6 +273,13 @@ def migrate(
             rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
     ] = "https://github.com/microbiomedata/nmdc-schema.git",
+    show_diff: Annotated[
+        bool,
+        typer.Option(
+            envvar="SHOW_DIFF",
+            help=("Whether to show a before-and-after-migration diff of the specified collections."),
+        ),
+    ] = False,
 ) -> None:
     r"""
     Migrate the NMDC database between two versions of the NMDC schema.
@@ -317,6 +325,7 @@ def migrate(
         auto_empty_origin_dump_folder=auto_empty_origin_dump_folder,
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
+        show_diff=show_diff,
     )
 
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
@@ -476,6 +485,7 @@ def migrate(
             for document in collection.find({}, {"_id": 0}):
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
+            progress.update(task, completed=True)
             progress.update(task_outer, advance=1)
     print("[green]Validated documents within transformer MongoDB database.[/green]")
 
@@ -544,6 +554,61 @@ def migrate(
     # Restore user access to the "origin" MongoDB server.
     _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
     print("[green]Restored standard role privileges on origin server.[/green]")
+
+    # Generate a before-and-after diff of each collection, if the user requested that we do so.
+    if cfg.show_diff:
+        print("Generating before-and-after diff of each collection.")
+        # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
+        #
+        # Note: In case this seems redundant to you; We, indeed, already restored this dump into the
+        #       transformer server. However, we did it _before_ running the migrators, which will
+        #       have since transformed that restored data (indeed, that transformed data will act as
+        #       our "after" collections here). So, we restore the original ones again, in their
+        #       never-transformed state (indeed, they will act as our "before" collections here).
+        #       Here, we restore them into a database named `__before` (to avoid overwriting the
+        #       existing transformation database).
+        #
+        with make_progress_indicator_for_unbounded_task() as progress:
+            progress.add_task(
+                description='Restoring "before" collections into transformer MongoDB database', total=None
+            )
+            shell_command_parts = build_mongorestore_command(
+                mongorestore_path=cfg.mongorestore_path,
+                source_database_name=cfg.origin_mongo_database_config.name,
+                destination_database_name="__before",
+                destination_database_config=cfg.transformer_mongo_database_config,
+                dump_folder_path=cfg.origin_dump_folder_path,
+            )
+            completed_process = run_subprocess(shell_command_parts)
+            if completed_process.returncode != 0:
+                raise RuntimeError(
+                    f'Failed to restore "before" collections into transformer MongoDB database.\n\n{completed_process.stderr}'
+                )
+        print('[green]Restored "before" collections into transformer MongoDB database.[/green]')
+
+        comparator = Comparator()
+        with make_progress_indicator_for_bounded_task() as progress:
+            task_outer = progress.add_task(description="Comparing collections", total=len(cfg.collection_names))
+            for collection_name in cfg.collection_names:
+                task = progress.add_task(f"Comparing documents in '{collection_name}'")
+                diff_result = comparator.compare_collections(
+                    collection_a=transformer_mongo_client["__before"].get_collection(collection_name),
+                    collection_b=transformer_db.get_collection(collection_name),
+                    identifier_field_name_a="id",
+                    identifier_field_name_b="id",
+                    ignore_oid=False,
+                )
+                # Print the colorized diff of these two collections, to the console.
+                colorized_diff_lines = diff_result.get_all_colorized_diff_lines()
+                for line in colorized_diff_lines:
+                    print(line)
+                print(diff_result.get_summary_table(title=f"Summary of differences ({collection_name})"))
+                progress.update(task, completed=True)
+                progress.update(task_outer, advance=1)
+        print("[green]Generated before-and-after diff of each collection.[/green]")
+
+    # Done.
+    pass
 
 
 @app.command()
