@@ -1,13 +1,25 @@
 from pathlib import Path
 import shutil
 import subprocess
+from typing import Callable
 
 import typer
 
 
-def run_subprocess(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
-    """
-    Run the specific command as a subprocess and capture its output as text.
+def run_subprocess(
+    command_parts: list[str],
+    output_line_handler: Callable[[str], None] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    r"""
+    Run the specified command as a subprocess, capturing its STDOUT and STDERR streams and returning
+    them via the returned `subprocess.CompletedProcess` instance.
+
+    If an `output_line_handler` is provided, then, while the subprocess runs, this function will
+    invoke the handler whenever a new line of output of either STDOUT or STDERR (from the subprocess)
+    becomes available, enabling the caller to react to output in real time. In that situation, only
+    the `stdout` attribute of the returned `CompletedProcess` instance will be populated (with
+    merged output), and the `stderr` attribute will be `None`.
+    Docs: https://docs.python.org/3/library/subprocess.html#popen-constructor
 
     Callers of this function can check the exit status via the `returncode` attribute
     of the returned `CompletedProcess` object.
@@ -34,9 +46,49 @@ def run_subprocess(command_parts: list[str]) -> subprocess.CompletedProcess[str]
     True
     >>> completed_process.stderr.strip()
     'hello error'
+
+    Examining the returned `CompletedProcess` instance when an output line handler was provided:
+    >>> completed_process = run_subprocess(
+    ...     [ "echo", "First line\nSecond line" ],
+    ...     output_line_handler=lambda line: print("! " + line, end=""),
+    ... )
+    ! First line
+    ! Second line
+    >>> completed_process.returncode
+    0
+    >>> completed_process.stdout.strip()
+    'First line\nSecond line'
+    >>> completed_process.stderr is None
+    True
     """
 
-    return subprocess.run(command_parts, capture_output=True, text=True)
+    # If a callback is provided, run the process with `subprocess.Popen` so we can stream its output
+    # to the user in real time. We merge `STDERR` into `STDOUT` to avoid having to manage threads
+    # or using asyncio (both of which we think would complicate this code).
+    if isinstance(output_line_handler, Callable):
+        output_lines: list[str] = []
+        popen = subprocess.Popen(
+            command_parts,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # to merge STDERR stream into STDOUT stream
+            text=True,  # to decode the output bytes as text
+            bufsize=1,  # `1` means "line-buffered"
+        )
+        if popen.stdout is None:
+            raise RuntimeError("Failed to attach to output streams of subprocess.")
+        for output_line in popen.stdout:
+            output_lines.append(output_line)
+            output_line_handler(output_line)
+        all_output: str = "".join(output_lines)
+        return_code: int = popen.wait(timeout=60)
+        return subprocess.CompletedProcess(
+            args=command_parts,
+            returncode=return_code,
+            stdout=all_output,
+            stderr=None,  # we can't provide this separately, since we merged them earlier
+        )
+    else:
+        return subprocess.run(command_parts, capture_output=True, text=True)
 
 
 def ensure_pip_is_available(path_to_python_executable: str) -> None:

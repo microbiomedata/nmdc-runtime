@@ -1,3 +1,4 @@
+from collections import deque
 from enum import Enum
 from pathlib import Path
 from importlib.metadata import version
@@ -8,6 +9,7 @@ from logging import getLogger
 import pymongo
 import typer
 from rich import print
+from rich.console import Console
 from mongo_diff.mongo_diff import Comparator
 
 from src.lib.bookkeeping import Bookkeeper, MigrationEvent
@@ -19,6 +21,8 @@ from src.lib.config import (
     get_reserved_git_tags_help_snippet,
 )
 from src.lib.display import (
+    make_group_having_progress_and_log,
+    make_live_display,
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
@@ -40,6 +44,8 @@ from src.lib.schema import (
 from src.lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
 
 logger = getLogger(name=__name__)
+
+console = Console()
 
 app = typer.Typer(
     add_completion=False,
@@ -437,25 +443,51 @@ def migrate(
         print("[green]Revoked standard role privileges on origin MongoDB server.[/green]")
 
     # Dump the subject collections from the "origin" MongoDB server.
-    with make_progress_indicator_for_bounded_task() as progress:
-        task_outer = progress.add_task(
-            description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
+    #
+    # Note: When making this progress indicator, we disable auto-refresh. That's because we will be
+    #       displaying it via a manually-created "live display", which has its own refresh routine.
+    #
+    progress = make_progress_indicator_for_bounded_task(auto_refresh=False)
+    task = progress.add_task(
+        description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
+    )
+    for collection_name in cfg.collection_names:
+        shell_command_parts = build_mongodump_command(
+            mongodump_path=cfg.mongodump_path,
+            collection_name=collection_name,
+            database_config=cfg.origin_mongo_database_config,
+            dump_folder_path=cfg.origin_dump_folder_path,
         )
-        for collection_name in cfg.collection_names:
-            shell_command_parts = build_mongodump_command(
-                mongodump_path=cfg.mongodump_path,
-                collection_name=collection_name,
-                database_config=cfg.origin_mongo_database_config,
-                dump_folder_path=cfg.origin_dump_folder_path,
+        with make_live_display(
+            renderable=make_group_having_progress_and_log(progress, []),
+            console=console,
+        ) as live_display:
+            # Create a queue to hold the subprocess's output lines.
+            #
+            # Note: Although I only needed a single-ended queue here, I used a "double-ended queue"
+            #       because (a) I didn't see a single-ended queue in the Python stdlib, and (b) it
+            #       can be instantiated so concisely like this. I only pull lines from a single end.
+            #
+            # Note: We might tune `maxlen` depending upon how much we want to display at once.
+            #
+            output_lines: deque[str] = deque(maxlen=10)
+
+            def handle_output_line(output_line: str) -> None:
+                """Helper function that adds the line to an iterable and refreshes the live display."""
+                output_lines.append(output_line)
+                live_display.update(make_group_having_progress_and_log(progress, output_lines))
+
+            completed_process = run_subprocess(
+                shell_command_parts,
+                output_line_handler=handle_output_line,
             )
-            completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
                 raise RuntimeError(
                     f"Failed to dump collection '{collection_name}' from origin MongoDB database."
                     f"\n\n{completed_process.stderr}"
                 )
-            progress.update(task_outer, advance=1)
-        print("[green]Dumped collections from origin MongoDB database.[/green]")
+        progress.update(task, advance=1)
+    print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
     with make_progress_indicator_for_unbounded_task() as progress:
