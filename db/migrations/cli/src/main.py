@@ -277,7 +277,14 @@ def migrate(
         bool,
         typer.Option(
             envvar="SHOW_DIFF",
-            help=("Whether to show a before-and-after-migration diff of the specified collections."),
+            help="Whether to show a before-and-after-migration diff of the specified collections.",
+        ),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            envvar="DRY_RUN",
+            help="Whether to perform a dry run. In this mode, the app won't make [bold]any[/bold] changes to the origin MongoDB server (e.g. no revoking/restoring user access, no persisting transformed data) and, therefore, does not require write access to it.",
         ),
     ] = False,
 ) -> None:
@@ -398,7 +405,7 @@ def migrate(
     with pymongo.timeout(3):
         # Display the MongoDB server version and confirm the "origin" database DOES exist.
         origin_mongo_server_version = origin_mongo_client.server_info()["version"]
-        print(f"Origin Mongo server version: {origin_mongo_server_version}")
+        print(f"Origin MongoDB server version: {origin_mongo_server_version}")
         if cfg.origin_mongo_database_config.name not in origin_mongo_client.list_database_names():
             raise typer.BadParameter(f"Origin database '{cfg.origin_mongo_database_config.name}' does not exist.")
 
@@ -407,7 +414,7 @@ def migrate(
     with pymongo.timeout(3):
         # Display the MongoDB server version and confirm the "transformer" database does NOT exist yet.
         transformer_mongo_server_version = transformer_mongo_client.server_info()["version"]
-        print(f"Transformer Mongo server version: {transformer_mongo_server_version}")
+        print(f"Transformer MongoDB server version: {transformer_mongo_server_version}")
         if cfg.transformer_mongo_database_config.name in transformer_mongo_client.list_database_names():
             if not cfg.auto_drop_transformer_database:
                 raise typer.BadParameter(
@@ -422,9 +429,12 @@ def migrate(
                 )
                 transformer_mongo_client.drop_database(cfg.transformer_mongo_database_config.name)
 
-    # Revoke user access to the "origin" MongoDB server.
-    _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
-    print("[green]Revoked standard role privileges on origin server.[/green]")
+    # If we aren't in "dry run" mode, revoke user access to the "origin" MongoDB server.
+    if dry_run:
+        print("[yellow]Skipping revoking privileges on origin MongoDB server (dry run).[/yellow]")
+    else:
+        _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+        print("[green]Revoked standard role privileges on origin MongoDB server.[/green]")
 
     # Dump the subject collections from the "origin" MongoDB server.
     with make_progress_indicator_for_bounded_task() as progress:
@@ -513,47 +523,57 @@ def migrate(
     # Create a bookkeeper that can be used to record migration events in the "origin" MongoDB server.
     bookkeeper = Bookkeeper(mongo_client=origin_mongo_client)
 
-    # Record an event that indicates that a migration has started.
-    bookkeeper.record_migration_event(
-        event=MigrationEvent.MIGRATION_STARTED,
-        from_schema_version=migrator.get_origin_version(),
-        to_schema_version=migrator.get_destination_version(),
-        name_of_migrator_module=cfg.migrator_module_name,
-    )
-    print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
-
-    # Restore the subject collections dumped from the "transformer" MongoDB server into the "origin" MongoDB server,
-    # dropping the original collections.
-    # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
-    with make_progress_indicator_for_unbounded_task() as progress:
-        task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
-        shell_command_parts = build_mongorestore_command(
-            mongorestore_path=cfg.mongorestore_path,
-            source_database_name=cfg.transformer_mongo_database_config.name,
-            destination_database_name=cfg.origin_mongo_database_config.name,
-            destination_database_config=cfg.origin_mongo_database_config,
-            dump_folder_path=cfg.transformer_dump_folder_path,
+    # If we aren't in "dry run" mode, record migration events and restore the transformed data into
+    # the "origin" MongoDB server.
+    if dry_run:
+        print("[yellow]Skipping storing 'MIGRATION_STARTED' event in origin MongoDB database (dry run).[/yellow]")
+        print("[yellow]Skipping loading transformed data into origin MongoDB database (dry run).[/yellow]")
+        print("[yellow]Skipping storing 'MIGRATION_COMPLETED' event in origin MongoDB database (dry run).[/yellow]")
+    else:
+        # Record an event that indicates that a migration has started.
+        bookkeeper.record_migration_event(
+            event=MigrationEvent.MIGRATION_STARTED,
+            from_schema_version=migrator.get_origin_version(),
+            to_schema_version=migrator.get_destination_version(),
+            name_of_migrator_module=cfg.migrator_module_name,
         )
-        completed_process = run_subprocess(shell_command_parts)
-        if completed_process.returncode != 0:
-            raise RuntimeError(
-                f"Failed to restore dump from transformer into origin MongoDB database.\n\n{completed_process.stderr}"
-            )
-        progress.update(task, advance=1)
-    print("[green]Restored collections into origin MongoDB database.[/green]")
+        print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
 
-    # Record an event that indicates that a migration has been completed.
-    bookkeeper.record_migration_event(
-        event=MigrationEvent.MIGRATION_COMPLETED,
-        from_schema_version=migrator.get_origin_version(),
-        to_schema_version=migrator.get_destination_version(),
-        name_of_migrator_module=cfg.migrator_module_name,
-    )
-    print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
+        # Restore the collections dumped from the "transformer" MongoDB server into the "origin" MongoDB
+        # server, dropping the original collections from the latter.
+        # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
+        with make_progress_indicator_for_unbounded_task() as progress:
+            task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
+            shell_command_parts = build_mongorestore_command(
+                mongorestore_path=cfg.mongorestore_path,
+                source_database_name=cfg.transformer_mongo_database_config.name,
+                destination_database_name=cfg.origin_mongo_database_config.name,
+                destination_database_config=cfg.origin_mongo_database_config,
+                dump_folder_path=cfg.transformer_dump_folder_path,
+            )
+            completed_process = run_subprocess(shell_command_parts)
+            if completed_process.returncode != 0:
+                raise RuntimeError(
+                    f"Failed to restore dump from transformer into origin MongoDB database.\n\n{completed_process.stderr}"
+                )
+            progress.update(task, advance=1)
+        print("[green]Restored collections into origin MongoDB database.[/green]")
+
+        # Record an event that indicates that a migration has been completed.
+        bookkeeper.record_migration_event(
+            event=MigrationEvent.MIGRATION_COMPLETED,
+            from_schema_version=migrator.get_origin_version(),
+            to_schema_version=migrator.get_destination_version(),
+            name_of_migrator_module=cfg.migrator_module_name,
+        )
+        print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
 
     # Restore user access to the "origin" MongoDB server.
-    _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
-    print("[green]Restored standard role privileges on origin server.[/green]")
+    if dry_run:
+        print("[yellow]Skipping restoring privileges on origin MongoDB server (dry run).[/yellow]")
+    else:
+        _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
+        print("[green]Restored standard role privileges on origin MongoDB server.[/green]")
 
     # Generate a before-and-after diff of each collection, if the user requested that we do so.
     if cfg.show_diff:
