@@ -1,4 +1,3 @@
-from collections import deque
 from enum import Enum
 from pathlib import Path
 from importlib.metadata import version
@@ -21,6 +20,7 @@ from src.lib.config import (
     get_reserved_git_tags_help_snippet,
 )
 from src.lib.display import (
+    LogLineManager,
     make_group_having_progress_and_log,
     make_live_display,
     make_progress_indicator_for_bounded_task,
@@ -447,7 +447,10 @@ def migrate(
     # Note: When making this progress indicator, we disable auto-refresh. That's because we will be
     #       displaying it via a manually-created "live display", which has its own refresh routine.
     #
-    progress = make_progress_indicator_for_bounded_task(auto_refresh=False)
+    progress = make_progress_indicator_for_bounded_task(
+        auto_refresh=False,
+        show_task_progress_percentage=False,
+    )
     task = progress.add_task(
         description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
     )
@@ -462,24 +465,12 @@ def migrate(
             renderable=make_group_having_progress_and_log(progress, []),
             console=console,
         ) as live_display:
-            # Create a queue to hold the subprocess's output lines.
-            #
-            # Note: Although I only needed a single-ended queue here, I used a "double-ended queue"
-            #       because (a) I didn't see a single-ended queue in the Python stdlib, and (b) it
-            #       can be instantiated so concisely like this. I only pull lines from a single end.
-            #
-            # Note: We might tune `maxlen` depending upon how much we want to display at once.
-            #
-            output_lines: deque[str] = deque(maxlen=10)
-
-            def handle_output_line(output_line: str) -> None:
-                """Helper function that adds the line to an iterable and refreshes the live display."""
-                output_lines.append(output_line)
-                live_display.update(make_group_having_progress_and_log(progress, output_lines))
-
+            log_line_manager = LogLineManager(max_num_lines=10)
             completed_process = run_subprocess(
                 shell_command_parts,
-                output_line_handler=handle_output_line,
+                output_line_handler=lambda line: log_line_manager.add_line(
+                    line, lambda lines: live_display.update(make_group_having_progress_and_log(progress, lines))
+                ),
             )
             if completed_process.returncode != 0:
                 raise RuntimeError(f"Failed to dump collection '{collection_name}' from origin MongoDB database.")
@@ -487,8 +478,12 @@ def migrate(
     print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
-    with make_progress_indicator_for_unbounded_task() as progress:
-        progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
+    progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
+    progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
+    with make_live_display(
+        renderable=make_group_having_progress_and_log(progress, []),
+        console=console,
+    ) as live_display:
         shell_command_parts = build_mongorestore_command(
             mongorestore_path=cfg.mongorestore_path,
             source_database_name=cfg.origin_mongo_database_config.name,
@@ -496,11 +491,15 @@ def migrate(
             destination_database_config=cfg.transformer_mongo_database_config,
             dump_folder_path=cfg.origin_dump_folder_path,
         )
-        completed_process = run_subprocess(shell_command_parts)
+        log_line_manager = LogLineManager(max_num_lines=10)
+        completed_process = run_subprocess(
+            shell_command_parts,
+            output_line_handler=lambda line: log_line_manager.add_line(
+                line, lambda lines: live_display.update(make_group_having_progress_and_log(progress, lines))
+            ),
+        )
         if completed_process.returncode != 0:
-            raise RuntimeError(
-                f"Failed to restore dump from origin into transformer MongoDB database.\n\n{completed_process.stderr}"
-            )
+            raise RuntimeError("Failed to restore dump from origin into transformer MongoDB database.")
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.

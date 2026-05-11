@@ -1,4 +1,6 @@
+from collections import deque
 from collections.abc import Iterable
+from typing import Callable
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
@@ -45,29 +47,37 @@ def get_progress_columns_for_bounded_task(
     )
 
 
-def make_progress_indicator_for_unbounded_task() -> Progress:
+def make_progress_indicator_for_unbounded_task(auto_refresh: bool = True) -> Progress:
     """
     Returns a `rich.progress.Progress` instance configured with appropriate columns for an unbounded task
     (i.e. a task for which the developer does _not_ know the total number of steps in advance).
+
+    The `auto_refresh` parameter will be forwarded to the underlying `Progress` instance.
     """
 
     return Progress(
         *get_progress_columns_for_unbounded_task(),
         refresh_per_second=1,
         transient=True,
+        auto_refresh=auto_refresh,
     )
 
 
-def make_progress_indicator_for_bounded_task(auto_refresh: bool = True) -> Progress:
+def make_progress_indicator_for_bounded_task(
+    auto_refresh: bool = True,
+    show_task_progress_percentage: bool = True,
+) -> Progress:
     """
     Returns a `rich.progress.Progress` instance configured with appropriate columns for a bounded task
     (i.e. a task for which the developer _does_ know the total number of steps in advance).
 
     The `auto_refresh` parameter will be forwarded to the underlying `Progress` instance.
+
+    You can set `show_task_progress_percentage` to `False` in order to hide the percentage column.
     """
 
     return Progress(
-        *get_progress_columns_for_bounded_task(),
+        *get_progress_columns_for_bounded_task(show_task_progress_percentage=show_task_progress_percentage),
         refresh_per_second=1,
         transient=True,
         auto_refresh=auto_refresh,
@@ -117,3 +127,29 @@ def make_group_having_progress_and_log(
             border_style="dim",
         ),
     )
+
+
+class LogLineManager:
+    """
+    Helper class to manage a queue of log lines and trigger a callback whenever a new line is added.
+    """
+
+    def __init__(self, max_num_lines: int | None = None) -> None:
+        # Create a queue, having the specified length (`None` means no maximum), to hold the lines.
+        #
+        # Note: Although we only need a single-ended queue here, we used a "double-ended queue"
+        #       because (a) we didn't see a single-ended queue in the Python stdlib, and (b) it
+        #       can be instantiated so concisely like this. We only pull lines from a single end.
+        #
+        self._lines: deque[str] = deque(maxlen=max_num_lines)
+
+    def add_line(self, line: str, callback_fn: Callable[[Iterable[str]], None]) -> None:
+        """
+        Adds a line to the queue, then calls the specified callback, passing it _all_ lines in the
+        queue.
+
+        This function was designed to be used to manage the log lines displayed in a Rich
+        live display. The callback can be used to, for example, refresh the live display.
+        """
+        self._lines.append(line)
+        callback_fn(self._lines)
