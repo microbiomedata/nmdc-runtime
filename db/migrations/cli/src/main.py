@@ -482,10 +482,7 @@ def migrate(
                 output_line_handler=handle_output_line,
             )
             if completed_process.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to dump collection '{collection_name}' from origin MongoDB database."
-                    f"\n\n{completed_process.stderr}"
-                )
+                raise RuntimeError(f"Failed to dump collection '{collection_name}' from origin MongoDB database.")
         progress.update(task, advance=1)
     print("[green]Dumped collections from origin MongoDB database.[/green]")
 

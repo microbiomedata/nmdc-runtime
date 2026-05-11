@@ -28,7 +28,9 @@ def get_progress_columns_for_unbounded_task() -> tuple[ProgressColumn, ...]:
     )
 
 
-def get_progress_columns_for_bounded_task() -> tuple[ProgressColumn, ...]:
+def get_progress_columns_for_bounded_task(
+    show_task_progress_percentage: bool = True,
+) -> tuple[ProgressColumn, ...]:
     """
     Returns a tuple of `rich.progress.ProgressColumn` instances to be used for a bounded task.
     """
@@ -36,7 +38,7 @@ def get_progress_columns_for_bounded_task() -> tuple[ProgressColumn, ...]:
     return (
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
-        TaskProgressColumn(),
+        TaskProgressColumn() if show_task_progress_percentage else TextColumn(""),
         TimeElapsedColumn(),
         MofNCompleteColumn(),
         TimeRemainingColumn(),
