@@ -1,6 +1,5 @@
 from collections import deque
 from collections.abc import Iterable
-from typing import Callable
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
@@ -100,41 +99,22 @@ def make_live_display(renderable: RenderableType, console: Console) -> Live:
     )
 
 
-def make_group_having_progress_and_log(
-    progress: Progress,
-    log_lines: Iterable[str],
-    log_height_in_lines: int = 5,
-) -> Group:
+class LiveLogManager:
     """
-    Returns a `rich.console.Group` instance containing the specified `rich.progress.Progress` instance
-    and a `rich.panel.Panel` instance displaying the specified log lines.
-
-    This helper function was designed to be used to generate a `Renderable` that is passed to
-    `live.update()`.
+    Helper class that can be used to manage a queue of log lines and update a live display.
     """
 
-    panel_height = log_height_in_lines + 2  # +2 to account for the panel's top and bottom borders
+    def __init__(
+        self,
+        progress: Progress,
+        live_display: Live,
+        max_num_lines: int | None = None,
+    ) -> None:
+        """Initializes the log line manager."""
 
-    # Get the last `log_height_in_lines` lines from `log_lines` to display in the panel.
-    log_lines_to_display = list(log_lines)[-log_height_in_lines:]
+        self._progress = progress
+        self._live_display = live_display
 
-    return Group(
-        progress,
-        Panel(
-            "".join(log_lines_to_display),  # each line already ends with a newline character
-            height=panel_height,
-            title="Log",
-            border_style="dim",
-        ),
-    )
-
-
-class LogLineManager:
-    """
-    Helper class to manage a queue of log lines and trigger a callback whenever a new line is added.
-    """
-
-    def __init__(self, max_num_lines: int | None = None) -> None:
         # Create a queue, having the specified length (`None` means no maximum), to hold the lines.
         #
         # Note: Although we only need a single-ended queue here, we used a "double-ended queue"
@@ -143,13 +123,51 @@ class LogLineManager:
         #
         self._lines: deque[str] = deque(maxlen=max_num_lines)
 
-    def add_line(self, line: str, callback_fn: Callable[[Iterable[str]], None]) -> None:
+    def add_line_and_update_live_display(self, line: str) -> None:
         """
-        Adds a line to the queue, then calls the specified callback, passing it _all_ lines in the
-        queue.
+        Adds a line to the queue, then updates the specified live display with a renderable built
+        from the current lines in the queue and the specified progress indicator.
+        """
 
-        This function was designed to be used to manage the log lines displayed in a Rich
-        live display. The callback can be used to, for example, refresh the live display.
-        """
         self._lines.append(line)
-        callback_fn(self._lines)
+        self._live_display.update(
+            self.make_group_having_progress_and_log(
+                progress=self._progress,
+                log_lines=self._lines,
+                log_height_in_lines=self._lines.maxlen,
+            )
+        )
+
+    @staticmethod
+    def make_group_having_progress_and_log(
+        progress: Progress,
+        log_lines: Iterable[str],
+        log_height_in_lines: int | None = None,
+    ) -> Group:
+        """
+        Returns a `rich.console.Group` instance containing the specified `rich.progress.Progress` instance
+        and a `rich.panel.Panel` instance displaying the specified log lines.
+
+        This helper function was designed to be used to generate a `Renderable` that is passed to
+        `live.update()`.
+        """
+
+        # If the caller didn't specify a log height, then we'll fall back to showing 1 line.
+        if log_height_in_lines is None:
+            log_height_in_lines = 1
+
+        panel_border_height = 2  # 1 for top border, 1 for bottom border
+        panel_height = log_height_in_lines + panel_border_height
+
+        # Get the last `log_height_in_lines` lines from `log_lines` to display in the panel.
+        log_lines_to_display = list(log_lines)[-log_height_in_lines:]
+
+        return Group(
+            progress,
+            Panel(
+                "".join(log_lines_to_display),  # each line already ends with a newline character
+                height=panel_height,
+                title="Log",
+                border_style="dim",
+            ),
+        )

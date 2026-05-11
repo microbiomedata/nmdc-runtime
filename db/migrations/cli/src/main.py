@@ -20,8 +20,7 @@ from src.lib.config import (
     get_reserved_git_tags_help_snippet,
 )
 from src.lib.display import (
-    LogLineManager,
-    make_group_having_progress_and_log,
+    LiveLogManager,
     make_live_display,
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
@@ -462,15 +461,13 @@ def migrate(
             dump_folder_path=cfg.origin_dump_folder_path,
         )
         with make_live_display(
-            renderable=make_group_having_progress_and_log(progress, []),
+            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
             console=console,
         ) as live_display:
-            log_line_manager = LogLineManager(max_num_lines=10)
+            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
             completed_process = run_subprocess(
                 shell_command_parts,
-                output_line_handler=lambda line: log_line_manager.add_line(
-                    line, lambda lines: live_display.update(make_group_having_progress_and_log(progress, lines))
-                ),
+                output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
             if completed_process.returncode != 0:
                 raise RuntimeError(f"Failed to dump collection '{collection_name}' from origin MongoDB database.")
@@ -480,23 +477,21 @@ def migrate(
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
     progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
     progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
+    shell_command_parts = build_mongorestore_command(
+        mongorestore_path=cfg.mongorestore_path,
+        source_database_name=cfg.origin_mongo_database_config.name,
+        destination_database_name=cfg.transformer_mongo_database_config.name,
+        destination_database_config=cfg.transformer_mongo_database_config,
+        dump_folder_path=cfg.origin_dump_folder_path,
+    )
     with make_live_display(
-        renderable=make_group_having_progress_and_log(progress, []),
+        renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
         console=console,
     ) as live_display:
-        shell_command_parts = build_mongorestore_command(
-            mongorestore_path=cfg.mongorestore_path,
-            source_database_name=cfg.origin_mongo_database_config.name,
-            destination_database_name=cfg.transformer_mongo_database_config.name,
-            destination_database_config=cfg.transformer_mongo_database_config,
-            dump_folder_path=cfg.origin_dump_folder_path,
-        )
-        log_line_manager = LogLineManager(max_num_lines=10)
+        live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
         completed_process = run_subprocess(
             shell_command_parts,
-            output_line_handler=lambda line: log_line_manager.add_line(
-                line, lambda lines: live_display.update(make_group_having_progress_and_log(progress, lines))
-            ),
+            output_line_handler=live_log_manager.add_line_and_update_live_display,
         )
         if completed_process.returncode != 0:
             raise RuntimeError("Failed to restore dump from origin into transformer MongoDB database.")
@@ -523,29 +518,39 @@ def migrate(
             for document in collection.find({}, {"_id": 0}):
                 validate_document(document=document, validator=validator)
                 progress.update(task, advance=1)
-            progress.update(task, completed=True)
+            # Explicitly refresh the task's progress bar, in case validation took place completely
+            # in between refresh intervals (in which case, the bar may remain "empty").
+            progress.update(task, refresh=True)
             progress.update(task_outer, advance=1)
     print("[green]Validated documents within transformer MongoDB database.[/green]")
 
     # Dump the (now-transformed) subject collections from the "transformer" MongoDB server.
-    with make_progress_indicator_for_bounded_task() as progress:
-        task_outer = progress.add_task(
-            description="Dumping collections from transformer MongoDB database", total=len(cfg.collection_names)
+    progress = make_progress_indicator_for_bounded_task(
+        auto_refresh=False,
+        show_task_progress_percentage=False,
+    )
+    task = progress.add_task(
+        description="Dumping collections from transformer MongoDB database", total=len(cfg.collection_names)
+    )
+    for collection_name in cfg.collection_names:
+        shell_command_parts = build_mongodump_command(
+            mongodump_path=cfg.mongodump_path,
+            collection_name=collection_name,
+            database_config=cfg.transformer_mongo_database_config,
+            dump_folder_path=cfg.transformer_dump_folder_path,
         )
-        for collection_name in cfg.collection_names:
-            shell_command_parts = build_mongodump_command(
-                mongodump_path=cfg.mongodump_path,
-                collection_name=collection_name,
-                database_config=cfg.transformer_mongo_database_config,
-                dump_folder_path=cfg.transformer_dump_folder_path,
+        with make_live_display(
+            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
+            console=console,
+        ) as live_display:
+            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
+            completed_process = run_subprocess(
+                shell_command_parts,
+                output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
-            completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to dump collection '{collection_name}' from transformer MongoDB database."
-                    f"\n\n{completed_process.stderr}"
-                )
-            progress.update(task_outer, advance=1)
+                raise RuntimeError(f"Failed to dump collection '{collection_name}' from transformer MongoDB database.")
+        progress.update(task, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
     # Create a bookkeeper that can be used to record migration events in the "origin" MongoDB server.
@@ -570,21 +575,27 @@ def migrate(
         # Restore the collections dumped from the "transformer" MongoDB server into the "origin" MongoDB
         # server, dropping the original collections from the latter.
         # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
-        with make_progress_indicator_for_unbounded_task() as progress:
-            task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
-            shell_command_parts = build_mongorestore_command(
-                mongorestore_path=cfg.mongorestore_path,
-                source_database_name=cfg.transformer_mongo_database_config.name,
-                destination_database_name=cfg.origin_mongo_database_config.name,
-                destination_database_config=cfg.origin_mongo_database_config,
-                dump_folder_path=cfg.transformer_dump_folder_path,
+        progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
+        task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
+        shell_command_parts = build_mongorestore_command(
+            mongorestore_path=cfg.mongorestore_path,
+            source_database_name=cfg.transformer_mongo_database_config.name,
+            destination_database_name=cfg.origin_mongo_database_config.name,
+            destination_database_config=cfg.origin_mongo_database_config,
+            dump_folder_path=cfg.transformer_dump_folder_path,
+        )
+        with make_live_display(
+            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
+            console=console,
+        ) as live_display:
+            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
+            completed_process = run_subprocess(
+                shell_command_parts,
+                output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
-            completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
-                raise RuntimeError(
-                    f"Failed to restore dump from transformer into origin MongoDB database.\n\n{completed_process.stderr}"
-                )
-            progress.update(task, advance=1)
+                raise RuntimeError("Failed to restore dump from transformer into origin MongoDB database.")
+        progress.update(task, advance=1)
         print("[green]Restored collections into origin MongoDB database.[/green]")
 
         # Record an event that indicates that a migration has been completed.
@@ -616,18 +627,24 @@ def migrate(
         #       Here, we restore them into a database named `__before` (to avoid overwriting the
         #       existing transformation database).
         #
-        with make_progress_indicator_for_unbounded_task() as progress:
-            progress.add_task(
-                description='Restoring "before" collections into transformer MongoDB database', total=None
+        progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
+        progress.add_task(description='Restoring "before" collections into transformer MongoDB database', total=None)
+        shell_command_parts = build_mongorestore_command(
+            mongorestore_path=cfg.mongorestore_path,
+            source_database_name=cfg.origin_mongo_database_config.name,
+            destination_database_name="__before",
+            destination_database_config=cfg.transformer_mongo_database_config,
+            dump_folder_path=cfg.origin_dump_folder_path,
+        )
+        with make_live_display(
+            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
+            console=console,
+        ) as live_display:
+            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
+            completed_process = run_subprocess(
+                shell_command_parts,
+                output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
-            shell_command_parts = build_mongorestore_command(
-                mongorestore_path=cfg.mongorestore_path,
-                source_database_name=cfg.origin_mongo_database_config.name,
-                destination_database_name="__before",
-                destination_database_config=cfg.transformer_mongo_database_config,
-                dump_folder_path=cfg.origin_dump_folder_path,
-            )
-            completed_process = run_subprocess(shell_command_parts)
             if completed_process.returncode != 0:
                 raise RuntimeError(
                     f'Failed to restore "before" collections into transformer MongoDB database.\n\n{completed_process.stderr}'
@@ -638,7 +655,7 @@ def migrate(
         with make_progress_indicator_for_bounded_task() as progress:
             task_outer = progress.add_task(description="Comparing collections", total=len(cfg.collection_names))
             for collection_name in cfg.collection_names:
-                task = progress.add_task(f"Comparing documents in '{collection_name}'")
+                progress.console.print(f"Comparing documents in '{collection_name}'")
                 diff_result = comparator.compare_collections(
                     collection_a=transformer_mongo_client["__before"].get_collection(collection_name),
                     collection_b=transformer_db.get_collection(collection_name),
@@ -651,7 +668,6 @@ def migrate(
                 for line in colorized_diff_lines:
                     print(line)
                 print(diff_result.get_summary_table(title=f"Summary of differences ({collection_name})"))
-                progress.update(task, completed=True)
                 progress.update(task_outer, advance=1)
         print("[green]Generated before-and-after diff of each collection.[/green]")
 
