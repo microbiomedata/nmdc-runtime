@@ -1,9 +1,10 @@
-from enum import Enum
-from pathlib import Path
-from importlib.metadata import version
+import logging
 import sys
-from typing import Annotated
+from enum import Enum
+from importlib.metadata import version
 from logging import getLogger
+from pathlib import Path
+from typing import Annotated
 
 import pymongo
 import typer
@@ -292,6 +293,18 @@ def migrate(
             help="Whether to perform a dry run. In this mode, the app won't make [bold]any[/bold] changes to the origin MongoDB server (e.g. no revoking/restoring user access, no persisting transformed data) and, therefore, does not require write access to it.",
         ),
     ] = False,
+    log_file_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            envvar="LOG_FILE",
+            help="Path to the file in which you want the app to store its logs.",
+            rich_help_panel=RichHelpPanelName.SYSTEM.value,
+            dir_okay=False,
+            file_okay=True,
+            resolve_path=True,
+        ),
+    ] = None,
 ) -> None:
     r"""
     Migrate the NMDC database between two versions of the NMDC schema.
@@ -338,7 +351,18 @@ def migrate(
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
         show_diff=show_diff,
+        log_file_path=log_file_path,
     )
+
+    # If the user opted to use a log file, attach a file handler to the logger.
+    if isinstance(cfg.log_file_path, Path):
+        log_level = logging.DEBUG
+        handler = logging.FileHandler(cfg.log_file_path, mode="w", encoding="utf-8")
+        handler.setLevel(log_level)
+        logger.handlers.clear()  # remove any existing handlers
+        logger.setLevel(log_level)
+        logger.addHandler(handler)
+        logger.debug(f"Configuration: {cfg.get_redacted_dict()}")
 
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).
@@ -392,7 +416,7 @@ def migrate(
             progress.add_task(description=f"Installing {package_identifier}", total=None)
             ensure_pip_is_available(sys.executable)
             command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
-            completed_process = run_subprocess(command_parts)
+            completed_process = run_subprocess(command_parts, logger=logger)
             if completed_process.returncode != 0:
                 raise typer.BadParameter(f"Failed to install {package_identifier}. \n\n{completed_process.stderr}")
             else:
@@ -467,6 +491,7 @@ def migrate(
             live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
             completed_process = run_subprocess(
                 shell_command_parts,
+                logger=logger,
                 output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
             if completed_process.returncode != 0:
@@ -491,6 +516,7 @@ def migrate(
         live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
         completed_process = run_subprocess(
             shell_command_parts,
+            logger=logger,
             output_line_handler=live_log_manager.add_line_and_update_live_display,
         )
         if completed_process.returncode != 0:
@@ -546,6 +572,7 @@ def migrate(
             live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
             completed_process = run_subprocess(
                 shell_command_parts,
+                logger=logger,
                 output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
             if completed_process.returncode != 0:
@@ -591,6 +618,7 @@ def migrate(
             live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
             completed_process = run_subprocess(
                 shell_command_parts,
+                logger=logger,
                 output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
             if completed_process.returncode != 0:
@@ -643,6 +671,7 @@ def migrate(
             live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
             completed_process = run_subprocess(
                 shell_command_parts,
+                logger=logger,
                 output_line_handler=live_log_manager.add_line_and_update_live_display,
             )
             if completed_process.returncode != 0:
@@ -667,6 +696,11 @@ def migrate(
                 colorized_diff_lines = diff_result.get_all_colorized_diff_lines()
                 for line in colorized_diff_lines:
                     print(line)
+
+                    # If the user specified a path to a log file, write the diff lines there, too.
+                    if isinstance(cfg.log_file_path, Path):
+                        logger.debug(line.rstrip())  # the log handler will already append a newline
+
                 print(diff_result.get_summary_table(title=f"Summary of differences ({collection_name})"))
                 progress.update(task_outer, advance=1)
         print("[green]Generated before-and-after diff of each collection.[/green]")

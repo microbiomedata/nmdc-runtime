@@ -1,3 +1,4 @@
+from logging import Logger
 from pathlib import Path
 import shutil
 import subprocess
@@ -8,6 +9,7 @@ import typer
 
 def run_subprocess(
     command_parts: list[str],
+    logger: Logger | None = None,
     output_line_handler: Callable[[str], None] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     r"""
@@ -77,6 +79,8 @@ def run_subprocess(
         if popen.stdout is None:
             raise RuntimeError("Failed to attach to output streams of subprocess.")
         for output_line in popen.stdout:
+            if isinstance(logger, Logger):
+                logger.debug(output_line.rstrip())  # the log handler will append a newline, itself
             output_lines.append(output_line)
             output_line_handler(output_line)
         all_output: str = "".join(output_lines)
