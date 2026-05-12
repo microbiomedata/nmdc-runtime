@@ -61,6 +61,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         --no-dev --no-install-project
 
 # Upgrade `pip` to the latest version.
+#
+# Note: We also set pip's cache directory to one that the user our app runs as has write access to
+#       (by default, pip's cache location is `/data/db/.cache/pip`, which that user doesn't have
+#       write access to, resulting in some run-time warnings).
+#
+ENV PIP_CACHE_DIR="/tmp/.pip_cache_dir"
 RUN uv pip install --upgrade pip
 
 # Create an init shell script that does two things: (1) it launches MongoDB via the same entrypoint
