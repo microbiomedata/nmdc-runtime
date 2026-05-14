@@ -86,7 +86,7 @@ jobs:
     #
     - name: Sleep
       if: runner.debug == '1'
-      uses: juliangruber/sleep-action@69d89a9cfd3b1616e5425eb58f3de9a49936f64b # v2.0.4
+      uses: juliangruber/sleep-action@aa7a3ef2f85b9870fba679dfc43d307040c7b528 # v2.0.4
       with:
         time: 20s
     - name: Dump FastAPI container logs (for debugging)
