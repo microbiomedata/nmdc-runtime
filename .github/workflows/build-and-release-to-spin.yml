@@ -43,10 +43,10 @@ jobs:
           fetch-depth: 0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f4f03d4c61de0bcb27b5709df9c8c # v4.0.0
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b935f0bcd16efe483ef2324be5f86 # v4.0.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       # Generate tags and labels for the Docker container images.
       #
@@ -57,7 +57,7 @@ jobs:
       #
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@030e881283bbf77f74f91f3cdcfd3f9c3468a7a6 # v6.0.0
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: |
             ghcr.io/microbiomedata/nmdc-runtime-${{ matrix.image }}
@@ -72,14 +72,14 @@ jobs:
       # Reference: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#pushing-container-images
       # Reference: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9936fb5c1e73ee7c7a6c9c1c987b5a # v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@bcafcacb16a32748aadfa6f23d3251ac84d6972b # v7.1.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: .
           push: ${{ env.IS_ORIGINAL_REPO }}
@@ -108,7 +108,7 @@ jobs:
     steps:
       - name: Redeploy ${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}
         if: ${{ env.IS_ORIGINAL_REPO }}
-        uses: fjogeleit/http-request-action@551353b829c3c44d31325267e0e4ce0f33f26bc2 # v2.0.0
+        uses: fjogeleit/http-request-action@551353b829c3646756b2ec2b3694f819d7957495 # v2.0.0
         with:
           url: ${{ secrets.RANCHER_URL }}/v3/project/${{ secrets.RANCHER_CONTEXT }}/workloads/deployment:${{ env.RANCHER_NAMESPACE }}:${{ matrix.deployment }}?action=redeploy
           method: POST
