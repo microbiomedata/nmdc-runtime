@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4 # update version to maintain consistency across workflows
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     # Prepare the MongoDB keyfile to be mounted by the `mongo` container.
     #
     # Note: This is to prevent MongoDB from reporting the error:
@@ -86,7 +86,7 @@ jobs:
     #
     - name: Sleep
       if: runner.debug == '1'
-      uses: juliangruber/sleep-action@v2.0.0
+      uses: juliangruber/sleep-action@aa7a3ef2f85b9870fba679dfc43d307040c7b528 # v2.0.4
       with:
         time: 20s
     - name: Dump FastAPI container logs (for debugging)
