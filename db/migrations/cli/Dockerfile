@@ -18,10 +18,9 @@ ENV MONGO_LOG_PATH="/tmp/mongo.log"
 WORKDIR /app
 
 # Install `git`.
-RUN apt clean && \
-    apt-get upgrade && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get upgrade --yes && \
+    apt-get install --yes --no-install-recommends \
         git
 
 # Install `uv` (the `uv` docs recommend pinning to a specific `uv` version, so we have done that).
