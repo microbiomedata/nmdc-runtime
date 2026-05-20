@@ -689,23 +689,38 @@ def manage_mongo_access(
     ],
     host: Annotated[
         str,
-        typer.Option(help="Hostname for the MongoDB server."),
+        typer.Option(
+            envvar="MONGO_HOST",
+            help="Hostname for the MongoDB server.",
+        ),
     ] = "localhost",
     port: Annotated[
         int,
-        typer.Option(help="Port number for the MongoDB server."),
+        typer.Option(
+            envvar="MONGO_PORT",
+            help="Port number for the MongoDB server.",
+        ),
     ] = 27017,
     username: Annotated[
         str,
-        typer.Option(help="Username for the MongoDB server. Leave empty for no auth."),
+        typer.Option(
+            envvar="MONGO_USERNAME",
+            help="Username for the MongoDB server. Leave empty for no auth.",
+        ),
     ] = "",
     password: Annotated[
         str,
-        typer.Option(help="Password for the MongoDB server."),
+        typer.Option(
+            envvar="MONGO_PASSWORD",
+            help="Password for the MongoDB server.",
+        ),
     ] = "",
     direct_connection: Annotated[
         bool,
-        typer.Option(help="Whether to use the `directConnection` option when connecting to the MongoDB server."),
+        typer.Option(
+            envvar="MONGO_DIRECT_CONNECTION",
+            help="Whether to use the `directConnection` option when connecting to the MongoDB server.",
+        ),
     ] = True,
 ):
     r"""
