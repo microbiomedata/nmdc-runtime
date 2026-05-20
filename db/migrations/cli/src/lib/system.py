@@ -52,7 +52,7 @@ def run_subprocess_with_live_display(
     When attached to a terminal/TTY, this function shows a transient Rich live display containing a
     progress indicator (if provided) and a limited-height panel containing the most recent lines of
     output from the subprocess.
-    
+
     When not attached to a terminal/TTY, this function eimply prints the lines of output from the
     subprocess as they come in.
 
@@ -165,7 +165,7 @@ def run_subprocess(
     )
     if popen.stdout is None:
         raise RuntimeError("Failed to access STDOUT and/or STDERR stream of subprocess.")
-    
+
     # Whenever we receive an additional line from the merged stream, store the line (so we can
     # eventually return all lines) and propagate it to the `on_line_received`, if provided.
     for output_line in popen.stdout:
@@ -200,7 +200,7 @@ def ensure_pip_is_available(path_to_python_executable: str) -> None:
     # If the command succeeded, then pip is available and we're done.
     if version_check_result.returncode == 0:
         return None
-    
+
     # Otherwise, check whether the reason for failure is anything _other_ than `pip` not being installed.
     elif "No module named pip" not in version_check_result.stdout:
         console.print(f"Combined STDOUT and STDERR:\n\n{version_check_result.stdout}", markup=False, style="red")
