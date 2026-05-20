@@ -91,12 +91,12 @@ def get_nmdc_database_collection_stats(
 
     The statistics are labeled as follows:
     - `ns`: The namespace of the collection, in the format `{database_name}.{collection_name}`
-    - `size`: The total size (in bytes) in memory of all documents in the collection, uncompressed. Does not include the size of indexes.
-    - `avgObjSize`: The average size (in bytes) of a document in the collection.
-    - `storageSize`: The amount of storage (in bytes) allocated to this collection for storing documents.
-    - `totalIndexSize`: The total size (in bytes) of all indexes of the collection.
-    - `totalSize`: The sum (in bytes) of `storageSize` and `totalIndexSize`.
-    - `scaleFactor`: The number by which some of the above statistics have been scaled. We will update these explanations to be more specific if we ever change this from `1`.
+    - `storageStats.size`: The total size (in bytes) in memory of all documents in the collection, uncompressed. Does not include the size of indexes.
+    - `storageStats.avgObjSize`: The average size (in bytes) of a document in the collection.
+    - `storageStats.storageSize`: The amount of storage (in bytes) allocated to this collection for storing documents.
+    - `storageStats.totalIndexSize`: The total size (in bytes) of all indexes of the collection.
+    - `storageStats.totalSize`: The sum (in bytes) of `storageSize` and `totalIndexSize`.
+    - `storageStats.scaleFactor`: The number by which some of the above statistics have been scaled. We will update these explanations to be more specific if we ever change this from `1`.
     """
     # Take set intersection of
     #   (1) all collections defined by the NMDC schema, and
