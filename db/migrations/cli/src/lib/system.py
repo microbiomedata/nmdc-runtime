@@ -53,7 +53,7 @@ def run_subprocess_with_live_display(
     progress indicator (if provided) and a limited-height panel containing the most recent lines of
     output from the subprocess.
 
-    When not attached to a terminal/TTY, this function eimply prints the lines of output from the
+    When not attached to a terminal/TTY, this function simply prints the lines of output from the
     subprocess as they come in.
 
     If the subprocess fails and an `on_error` callback is provided, this function will call it with
