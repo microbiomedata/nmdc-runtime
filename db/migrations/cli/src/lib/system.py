@@ -1,58 +1,144 @@
-from logging import Logger
 from pathlib import Path
 import shutil
 import subprocess
 from typing import Callable
 
-import typer
+from rich.console import Console
+from rich.progress import Progress
+
+from src.lib.display import LiveLogManager, make_live_display, make_progress_indicator_for_unbounded_task
+
+console = Console()
+
+
+def dump_subprocess_failure_and_raise_runtime_error(
+    completed_process: subprocess.CompletedProcess[str],
+    task_description: str,
+    include_full_output_in_error: bool = True,
+) -> None:
+    """
+    Dump information about the process that failed, and raise a `RuntimeError`.
+
+    If `include_full_output_in_error` is `True`, this function will include all of the process's
+    output among the information it dumps.
+    """
+
+    # Print metadata about the subprocess that failed.
+    console.print(f"{task_description} failed.", markup=False, style="bold red")
+    console.print(f"Command: {completed_process.args}", markup=False, style="red")
+    console.print(f"Exit code: {completed_process.returncode}", markup=False, style="red")
+
+    # If requested, print the STDOUT and STDERR streams of the subprocess. Note that, in this CLI
+    # app, the `stdout` attribute of the `CompletedProcess` instance returned by `run_subprocess`
+    # contains the combination of STDOUT and STDERR. We just print `stderr` so we can simplify the
+    # docstring (i.e. caller contract) of this function.
+    if include_full_output_in_error:
+        console.print("Output:\n\n", markup=False, style="bold yellow")
+        console.print(completed_process.stdout, markup=False, style="yellow")
+        console.print(completed_process.stderr, markup=False, style="red")
+
+    raise RuntimeError(f"{task_description} failed with exit code {completed_process.returncode}.")
+
+
+def run_subprocess_with_live_display(
+    command_parts: list[str],
+    task_description: str,
+    progress: Progress | None = None,
+    on_error: Callable[[subprocess.CompletedProcess[str], str, bool], None] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """
+    Run a subprocess with a live display of its progress and output, and return the completed process.
+
+    When attached to a terminal/TTY, this function shows a transient Rich live display containing a
+    progress indicator (if provided) and a limited-height panel containing the most recent lines of
+    output from the subprocess.
+    
+    When not attached to a terminal/TTY, this function eimply prints the lines of output from the
+    subprocess as they come in.
+
+    If the subprocess fails and an `on_error` callback is provided, this function will call it with
+    the failed `CompletedProcess`, the `task_description`, and a boolean indicating whether the
+    subprocess output was already emitted in persistent plain-text form.
+    """
+
+    if console.is_terminal:
+        include_full_output_in_error = True  # necessary, since our panel only shows recent lines
+        if progress is None:
+            progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
+            progress.add_task(description=task_description, total=None)
+        with make_live_display(
+            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
+            console=console,
+        ) as live_display:
+            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
+            completed_process = run_subprocess(
+                command_parts,
+                on_line_received=live_log_manager.add_line_and_update_live_display,
+            )
+    else:
+        include_full_output_in_error = False  # unnecessary, since we stream it to console
+        if task_description != "":
+            console.print(task_description, markup=False)
+
+        def stream_output_line_to_console(output_line: str) -> None:
+            """Helper function that prints the line to the console."""
+            console.print(output_line, markup=False, end="")
+
+        completed_process = run_subprocess(
+            command_parts,
+            on_line_received=stream_output_line_to_console,
+        )
+
+    # If the subprocess failed and an `on_error` callback was provided, call it now.
+    if completed_process.returncode != 0:
+        if isinstance(on_error, Callable):
+            on_error(completed_process, task_description, include_full_output_in_error)
+
+    return completed_process
 
 
 def run_subprocess(
     command_parts: list[str],
-    logger: Logger | None = None,
-    output_line_handler: Callable[[str], None] | None = None,
+    on_line_received: Callable[[str], None] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     r"""
-    Run the specified command as a subprocess, capturing its STDOUT and STDERR streams and returning
-    them via the returned `subprocess.CompletedProcess` instance.
+    Run the specified command as a subprocess, capturing the STDOUT and STDERR output as a _single_
+    string and including it in the `stdout` attribute of the returned `subprocess.CompletedProcess`.
 
-    If an `output_line_handler` is provided, then, while the subprocess runs, this function will
-    invoke the handler whenever a new line of output of either STDOUT or STDERR (from the subprocess)
-    becomes available, enabling the caller to react to output in real time. In that situation, only
-    the `stdout` attribute of the returned `CompletedProcess` instance will be populated (with
-    merged output), and the `stderr` attribute will be `None`.
-    Docs: https://docs.python.org/3/library/subprocess.html#popen-constructor
+    If an `on_line_received` callback is provided, then, while the subprocess runs, this function
+    will call it whenever a new line of merged output becomes available, enabling upstream code to
+    react to subprocess output in real time. Regardless of whether a handler is provided, the
+    `stdout` attribute of the returned `CompletedProcess` will contain the full merged output
+    (and `stderr` will contain `None`).
 
-    Callers of this function can check the exit status via the `returncode` attribute
-    of the returned `CompletedProcess` object.
+    The `returncode` attribute of the returned `CompletedProcess` instance will contain the exit
+    status of the subprocess.
 
-    Demo of capturing STDOUT and a zero exit code:
-    >>> completed_process = run_subprocess([
-    ...     "echo", "hello world"
-    ... ])
+    Demo of capturing output and a zero exit code:
+    >>> completed_process = run_subprocess(["echo", "hello world"])
     >>> completed_process.returncode
     0
     >>> completed_process.stdout.strip()
     'hello world'
-    >>> completed_process.stderr.strip() == ''
+    >>> completed_process.stderr is None
     True
 
-    Contrived demo of capturing STDERR and a non-zero exit code:
+    Contrived demo of capturing merged output and a non-zero exit code:
     >>> completed_process = run_subprocess([
     ...     "python", "-c",
     ...     "import sys; sys.stderr.write('hello error'); sys.exit(1)"
     ... ])
     >>> completed_process.returncode
     1
-    >>> completed_process.stdout.strip() == ''
-    True
-    >>> completed_process.stderr.strip()
+    >>> completed_process.stdout.strip()
     'hello error'
+    >>> completed_process.stderr is None
+    True
 
     Examining the returned `CompletedProcess` instance when an output line handler was provided:
     >>> completed_process = run_subprocess(
     ...     [ "echo", "First line\nSecond line" ],
-    ...     output_line_handler=lambda line: print("! " + line, end=""),
+    ...     on_line_received=lambda line: print("! " + line, end=""),
     ... )
     ! First line
     ! Second line
@@ -64,50 +150,73 @@ def run_subprocess(
     True
     """
 
-    # If a callback is provided, run the process with `subprocess.Popen` so we can stream its output
-    # to the user in real time. We merge `STDERR` into `STDOUT` to avoid having to manage threads
-    # or using asyncio (both of which we think would complicate this code).
-    if isinstance(output_line_handler, Callable):
-        output_lines: list[str] = []
-        popen = subprocess.Popen(
-            command_parts,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # to merge STDERR stream into STDOUT stream
-            text=True,  # to decode the output bytes as text
-            bufsize=1,  # `1` means "line-buffered"
-        )
-        if popen.stdout is None:
-            raise RuntimeError("Failed to attach to output streams of subprocess.")
-        for output_line in popen.stdout:
-            if isinstance(logger, Logger):
-                logger.debug(output_line.rstrip())  # the log handler will append a newline, itself
-            output_lines.append(output_line)
-            output_line_handler(output_line)
-        all_output: str = "".join(output_lines)
-        return_code: int = popen.wait(timeout=60)
-        return subprocess.CompletedProcess(
-            args=command_parts,
-            returncode=return_code,
-            stdout=all_output,
-            stderr=None,  # we can't provide this separately, since we merged them earlier
-        )
-    else:
-        return subprocess.run(command_parts, capture_output=True, text=True)
+    output_lines: list[str] = []
+
+    # Run the subprocess. Use `Popen` so we can capture the merged output in real time (and forward
+    # it to the `on_line_received`, if provided).
+    # Docs: https://docs.python.org/3/library/subprocess.html#popen-constructor
+    popen = subprocess.Popen(
+        command_parts,
+        # Merge the STDERR stream into the STDOUT stream.
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    if popen.stdout is None:
+        raise RuntimeError("Failed to access STDOUT and/or STDERR stream of subprocess.")
+    
+    # Whenever we receive an additional line from the merged stream, store the line (so we can
+    # eventually return all lines) and propagate it to the `on_line_received`, if provided.
+    for output_line in popen.stdout:
+        output_lines.append(output_line)
+        if isinstance(on_line_received, Callable):
+            on_line_received(output_line)
+
+    # Now that we've finished receiving output from the subprocess, wait for it to terminate,
+    # and return the completed process (setting its `stdout` attribute to the full output).
+    return_code: int = popen.wait(timeout=60)
+    all_output = "".join(output_lines)
+    return subprocess.CompletedProcess(
+        args=command_parts,
+        returncode=return_code,
+        stdout=all_output,
+        stderr=None,
+    )
 
 
 def ensure_pip_is_available(path_to_python_executable: str) -> None:
-    """Install `pip` into the specified Python environment if it is missing."""
+    """
+    Checks whether pip is available in the environment associated with the specified Python binary,
+    installing it there if it isn't available yet.
+    """
 
-    probe_result = run_subprocess([path_to_python_executable, "-m", "pip", "--version"])
-    if probe_result.returncode == 0:
-        return
+    # Run a basic `pip` command (e.g. check its version) in order to check whether it's available.
+    version_check_result = run_subprocess_with_live_display(
+        [path_to_python_executable, "-m", "pip", "--version"],
+        task_description="Checking pip availability",
+    )
 
-    if "No module named pip" not in probe_result.stderr:
-        raise typer.BadParameter(f"Failed to probe pip availability.\n\n{probe_result.stderr}")
+    # If the command succeeded, then pip is available and we're done.
+    if version_check_result.returncode == 0:
+        return None
+    
+    # Otherwise, check whether the reason for failure is anything _other_ than `pip` not being installed.
+    elif "No module named pip" not in version_check_result.stdout:
+        console.print(f"Combined STDOUT and STDERR:\n\n{version_check_result.stdout}", markup=False, style="red")
+        raise RuntimeError("Failed to check pip version.")
 
-    bootstrap_result = run_subprocess([path_to_python_executable, "-m", "ensurepip", "--upgrade"])
+    # If we reach this point, it means `pip` is not installed. So, we'll install it via `ensurepip`,
+    # which is in the Python stdlib. Docs: https://docs.python.org/3.10/library/ensurepip.html
+    bootstrap_result = run_subprocess_with_live_display(
+        [path_to_python_executable, "-m", "ensurepip", "--upgrade"],
+        task_description="Installing pip",
+    )
+
+    # If the `ensurepip` command failed, dump the failure info to the console and raise an error.
     if bootstrap_result.returncode != 0:
-        raise typer.BadParameter(f"Failed to bootstrap pip.\n\n{bootstrap_result.stderr}")
+        console.print(f"Combined STDOUT and STDERR:\n\n{bootstrap_result.stdout}", markup=False, style="red")
+        raise RuntimeError("Failed to install pip.")
 
 
 def is_directory_empty(path_to_dir: Path) -> bool:

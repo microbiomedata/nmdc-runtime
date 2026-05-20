@@ -9,7 +9,6 @@ from typing import Annotated
 import pymongo
 import typer
 from rich import print
-from rich.console import Console
 from mongo_diff.mongo_diff import Comparator
 
 from src.lib.bookkeeping import Bookkeeper, MigrationEvent
@@ -21,8 +20,6 @@ from src.lib.config import (
     get_reserved_git_tags_help_snippet,
 )
 from src.lib.display import (
-    LiveLogManager,
-    make_live_display,
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
@@ -41,17 +38,25 @@ from src.lib.schema import (
     get_mongo_adapter_class,
     validate_document,
 )
-from src.lib.system import delete_contents_of_directory, ensure_pip_is_available, is_directory_empty, run_subprocess
+from src.lib.system import (
+    delete_contents_of_directory,
+    dump_subprocess_failure_and_raise_runtime_error,
+    ensure_pip_is_available,
+    is_directory_empty,
+    run_subprocess_with_live_display,
+)
 
 logger = getLogger(name=__name__)
-
-console = Console()
 
 app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
     rich_markup_mode="rich",
     help="Do things related to migrating the NMDC database.",
+    # Note: We hide local variables from the error dumps shown by Rich, so that the passwords
+    #       the user might have specified via CLI options or environment variables don't get
+    #       printed in those dumps (which could get preserved by observability tools).
+    pretty_exceptions_show_locals=False,
 )
 
 
@@ -411,16 +416,15 @@ def migrate(
             # the `RESERVED_GIT_TAGS` dictionary, but did not update these conditions accordingly.
             raise typer.BadParameter(f"Unsupported reserved Git tag: {cfg.migrator_git_tag}")
     else:
-        with make_progress_indicator_for_unbounded_task() as progress:
-            package_identifier = f"{cfg.schema_repo_url}@{cfg.migrator_git_tag}"
-            progress.add_task(description=f"Installing {package_identifier}", total=None)
-            ensure_pip_is_available(sys.executable)
-            command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
-            completed_process = run_subprocess(command_parts, logger=logger)
-            if completed_process.returncode != 0:
-                raise typer.BadParameter(f"Failed to install {package_identifier}. \n\n{completed_process.stderr}")
-            else:
-                print(f"Installed {package_identifier} using interpreter {sys.executable}")
+        package_identifier = f"{cfg.schema_repo_url}@{cfg.migrator_git_tag}"
+        ensure_pip_is_available(sys.executable)
+        command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
+        run_subprocess_with_live_display(
+            command_parts,
+            task_description=f"Installing {package_identifier}",
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
+        print(f"Installed {package_identifier} using interpreter {sys.executable}")
         print(f"[green]Installed {package_identifier}.[/green]")
 
     # Dynamically import the migrator module specified by the user and get the `Migrator` class from it.
@@ -484,18 +488,12 @@ def migrate(
             database_config=cfg.origin_mongo_database_config,
             dump_folder_path=cfg.origin_dump_folder_path,
         )
-        with make_live_display(
-            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
-            console=console,
-        ) as live_display:
-            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
-            completed_process = run_subprocess(
-                shell_command_parts,
-                logger=logger,
-                output_line_handler=live_log_manager.add_line_and_update_live_display,
-            )
-            if completed_process.returncode != 0:
-                raise RuntimeError(f"Failed to dump collection '{collection_name}' from origin MongoDB database.")
+        run_subprocess_with_live_display(
+            shell_command_parts,
+            task_description=f"Dumping collection '{collection_name}' from origin MongoDB database",
+            progress=progress,
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
         progress.update(task, advance=1)
     print("[green]Dumped collections from origin MongoDB database.[/green]")
 
@@ -509,18 +507,12 @@ def migrate(
         destination_database_config=cfg.transformer_mongo_database_config,
         dump_folder_path=cfg.origin_dump_folder_path,
     )
-    with make_live_display(
-        renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
-        console=console,
-    ) as live_display:
-        live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
-        completed_process = run_subprocess(
-            shell_command_parts,
-            logger=logger,
-            output_line_handler=live_log_manager.add_line_and_update_live_display,
-        )
-        if completed_process.returncode != 0:
-            raise RuntimeError("Failed to restore dump from origin into transformer MongoDB database.")
+    run_subprocess_with_live_display(
+        shell_command_parts,
+        task_description="Restoring collections into transformer MongoDB database",
+        progress=progress,
+        on_error=dump_subprocess_failure_and_raise_runtime_error,
+    )
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
@@ -565,18 +557,12 @@ def migrate(
             database_config=cfg.transformer_mongo_database_config,
             dump_folder_path=cfg.transformer_dump_folder_path,
         )
-        with make_live_display(
-            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
-            console=console,
-        ) as live_display:
-            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
-            completed_process = run_subprocess(
-                shell_command_parts,
-                logger=logger,
-                output_line_handler=live_log_manager.add_line_and_update_live_display,
-            )
-            if completed_process.returncode != 0:
-                raise RuntimeError(f"Failed to dump collection '{collection_name}' from transformer MongoDB database.")
+        run_subprocess_with_live_display(
+            shell_command_parts,
+            task_description=f"Dumping collection '{collection_name}' from transformer MongoDB database",
+            progress=progress,
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
         progress.update(task, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
@@ -611,18 +597,12 @@ def migrate(
             destination_database_config=cfg.origin_mongo_database_config,
             dump_folder_path=cfg.transformer_dump_folder_path,
         )
-        with make_live_display(
-            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
-            console=console,
-        ) as live_display:
-            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
-            completed_process = run_subprocess(
-                shell_command_parts,
-                logger=logger,
-                output_line_handler=live_log_manager.add_line_and_update_live_display,
-            )
-            if completed_process.returncode != 0:
-                raise RuntimeError("Failed to restore dump from transformer into origin MongoDB database.")
+        run_subprocess_with_live_display(
+            shell_command_parts,
+            task_description="Restoring collections into origin MongoDB database",
+            progress=progress,
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
         progress.update(task, advance=1)
         print("[green]Restored collections into origin MongoDB database.[/green]")
 
@@ -664,27 +644,19 @@ def migrate(
             destination_database_config=cfg.transformer_mongo_database_config,
             dump_folder_path=cfg.origin_dump_folder_path,
         )
-        with make_live_display(
-            renderable=LiveLogManager.make_group_having_progress_and_log(progress, []),
-            console=console,
-        ) as live_display:
-            live_log_manager = LiveLogManager(progress=progress, live_display=live_display, max_num_lines=5)
-            completed_process = run_subprocess(
-                shell_command_parts,
-                logger=logger,
-                output_line_handler=live_log_manager.add_line_and_update_live_display,
-            )
-            if completed_process.returncode != 0:
-                raise RuntimeError(
-                    f'Failed to restore "before" collections into transformer MongoDB database.\n\n{completed_process.stderr}'
-                )
+        run_subprocess_with_live_display(
+            shell_command_parts,
+            task_description='Restoring "before" collections into transformer MongoDB database',
+            progress=progress,
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
         print('[green]Restored "before" collections into transformer MongoDB database.[/green]')
 
         comparator = Comparator()
         with make_progress_indicator_for_bounded_task() as progress:
             task_outer = progress.add_task(description="Comparing collections", total=len(cfg.collection_names))
             for collection_name in cfg.collection_names:
-                progress.console.print(f"Comparing documents in '{collection_name}'")
+                progress.console.print(f"Comparing documents in collection '{collection_name}'")
                 diff_result = comparator.compare_collections(
                     collection_a=transformer_mongo_client["__before"].get_collection(collection_name),
                     collection_b=transformer_db.get_collection(collection_name),
