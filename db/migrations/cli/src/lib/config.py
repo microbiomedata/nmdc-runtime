@@ -1,7 +1,12 @@
+from contextlib import contextmanager
+import json
 from typing import Optional
 from dataclasses import asdict, dataclass
+import os
 from os import access, X_OK
 from pathlib import Path
+import tempfile
+from typing import Iterator
 
 import typer
 
@@ -146,16 +151,155 @@ class DatabaseConfig:
             kwargs.update({"username": self.username, "password": self.password})
         return kwargs
 
-    def get_cli_options(self, include_db_option: bool = True) -> list[str]:
-        """Get a list of CLI options for connecting to a MongoDB database with this config."""
+    @contextmanager
+    def make_temporary_config_file_path_context(self) -> Iterator[Path]:
+        """
+        Context manager that creates a temporary MongoDB tool config file containing the MongoDB
+        password, and then yields the path to that file.
+
+        That path can then be included (with the `--config` CLI option) in `mongodump` and `mongorestore`
+        commands, instead of having to specify the password directly (via the `--password` CLI option).
+
+        References:
+        - https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+        - https://www.mongodb.com/docs/database-tools/mongodump/#std-option-mongodump.--config
+        - https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--config
+        """
+
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            prefix="mongo-tool-config",
+            suffix=".yml",
+            encoding="utf-8",
+        ) as temporary_file:
+            os.chmod(temporary_file.name, 0o600)
+            json_escaped_password: str = json.dumps(self.password)
+            temporary_file.write(f"password: {json_escaped_password}\n")
+            temporary_file.seek(0)  # reset to beginning of file before yielding to consumers
+
+            # Yield the path to the temporary config file.
+            yield Path(temporary_file.name)
+
+    def get_cli_options(
+        self,
+        include_db_option: bool = True,
+        mongo_tool_config_file_path: Path | None = None,
+    ) -> list[str]:
+        """
+        Get CLI options for connecting to a MongoDB database with this config.
+
+        No authentication:
+        >>> DatabaseConfig(
+        ...     host="localhost",
+        ...     port=27017,
+        ...     username="",
+        ...     password="",
+        ...     name="my_database",
+        ...     direct_connection=True,
+        ... ).get_cli_options()
+        ['--host', 'localhost', '--port', '27017', '--db', 'my_database']
+
+        With authentication (user specified a config file path):
+        >>> DatabaseConfig(
+        ...     host="localhost",
+        ...     port=27017,
+        ...     username="my_user",
+        ...     password="my_password",
+        ...     name="my_database",
+        ...     direct_connection=True,
+        ... ).get_cli_options(mongo_tool_config_file_path=Path("/tmp/mongo-tool-config.yml"))
+        ['--host', 'localhost', '--port', '27017', '--db', 'my_database', '--username', 'my_user', '--config', '/tmp/mongo-tool-config.yml', '--authenticationDatabase', 'admin']
+
+        With authentication (user did not specify a config file path):
+        >>> DatabaseConfig(
+        ...     host="localhost",
+        ...     port=27017,
+        ...     username="my_user",
+        ...     password="my_password",
+        ...     name="my_database",
+        ...     direct_connection=True,
+        ... ).get_cli_options()
+        Traceback (most recent call last):
+        ...
+        ValueError: Auth-enabled MongoDB tool invocations require a config file path. This is a safety measure to prevent credential exposure via the shell.
+        """
+
         options = ["--host", self.host, "--port", str(self.port)]
         if include_db_option:
             options.extend(["--db", self.name])
         if self.is_auth_enabled:
+            if not isinstance(mongo_tool_config_file_path, Path):
+                raise ValueError(
+                    "Auth-enabled MongoDB tool invocations require a config file path. "
+                    "This is a safety measure to prevent credential exposure via the shell."
+                )
             options.extend(
-                ["--username", self.username, "--password", self.password, "--authenticationDatabase", "admin"]
+                [
+                    "--username",
+                    self.username,
+                    "--config",
+                    str(mongo_tool_config_file_path),
+                    "--authenticationDatabase",
+                    "admin",
+                ]
             )
         return options
+
+    @contextmanager
+    def make_cli_options_context(self, include_db_option: bool = True) -> Iterator[list[str]]:
+        r"""
+        Context Manager that yields a list of `mongodump` or `mongorestore` CLI options related to
+        accessing the MongoDB database described by this config.
+
+        If authentication is enabled in this config, a temporary MongoDB tool config file containing
+        the MongoDB password will be created and referenced in the yielded CLI options.
+
+        Example without authentication:
+        >>> with DatabaseConfig(
+        ...     host="localhost",
+        ...     port=27017,
+        ...     username="",
+        ...     password="",
+        ...     name="my_database",
+        ...     direct_connection=True,
+        ... ).make_cli_options_context() as cli_options:
+        ...     cli_options
+        ['--host', 'localhost', '--port', '27017', '--db', 'my_database']
+
+        Example with authentication:
+        >>> from stat import filemode  # so we can print a human-readable chmod value
+        >>> auth_config = DatabaseConfig(
+        ...     host="localhost",
+        ...     port=27017,
+        ...     username="my_user",
+        ...     password='pa"ss:#word\\name',
+        ...     name="my_database",
+        ...     direct_connection=True,
+        ... )
+        >>> with auth_config.make_cli_options_context() as cli_options:
+        ...     index_of_config_file_flag = cli_options.index("--config")
+        ...     config_file_path_str = cli_options[index_of_config_file_flag + 1]
+        ...     config_file_path = Path(config_file_path_str)
+        ...
+        ...     config_file_path.exists() is True
+        ...     filemode(config_file_path.stat().st_mode) == '-rw-------'
+        ...     config_file_path.read_text() == 'password: "pa\\"ss:#word\\\\name"\n'
+        True
+        True
+        True
+        >>> config_file_path.exists()  # confirm the file gets deleted after exiting the context
+        False
+        """
+
+        if self.is_auth_enabled:
+            # Make a context so we have a config file path to use when getting CLI options.
+            with self.make_temporary_config_file_path_context() as mongo_tool_config_file_path:
+                yield self.get_cli_options(
+                    include_db_option=include_db_option,
+                    mongo_tool_config_file_path=mongo_tool_config_file_path,
+                )
+        else:
+            yield self.get_cli_options(include_db_option=include_db_option)
 
 
 @dataclass(frozen=True)

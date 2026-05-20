@@ -482,37 +482,41 @@ def migrate(
         description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
     )
     for collection_name in cfg.collection_names:
-        shell_command_parts = build_mongodump_command(
-            mongodump_path=cfg.mongodump_path,
-            collection_name=collection_name,
-            database_config=cfg.origin_mongo_database_config,
-            dump_folder_path=cfg.origin_dump_folder_path,
-        )
-        run_subprocess_with_live_display(
-            shell_command_parts,
-            task_description=f"Dumping collection '{collection_name}' from origin MongoDB database",
-            progress=progress,
-            on_error=dump_subprocess_failure_and_raise_runtime_error,
-        )
+        with cfg.origin_mongo_database_config.make_cli_options_context() as database_cli_options:
+            shell_command_parts = build_mongodump_command(
+                mongodump_path=cfg.mongodump_path,
+                collection_name=collection_name,
+                dump_folder_path=cfg.origin_dump_folder_path,
+                database_cli_options=database_cli_options,
+            )
+            run_subprocess_with_live_display(
+                shell_command_parts,
+                task_description=f"Dumping collection '{collection_name}' from origin MongoDB database",
+                progress=progress,
+                on_error=dump_subprocess_failure_and_raise_runtime_error,
+            )
         progress.update(task, advance=1)
     print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
     progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
     progress.add_task(description="Restoring collections into transformer MongoDB database", total=None)
-    shell_command_parts = build_mongorestore_command(
-        mongorestore_path=cfg.mongorestore_path,
-        source_database_name=cfg.origin_mongo_database_config.name,
-        destination_database_name=cfg.transformer_mongo_database_config.name,
-        destination_database_config=cfg.transformer_mongo_database_config,
-        dump_folder_path=cfg.origin_dump_folder_path,
-    )
-    run_subprocess_with_live_display(
-        shell_command_parts,
-        task_description="Restoring collections into transformer MongoDB database",
-        progress=progress,
-        on_error=dump_subprocess_failure_and_raise_runtime_error,
-    )
+    with cfg.transformer_mongo_database_config.make_cli_options_context(
+        include_db_option=False
+    ) as database_cli_options:
+        shell_command_parts = build_mongorestore_command(
+            mongorestore_path=cfg.mongorestore_path,
+            source_database_name=cfg.origin_mongo_database_config.name,
+            destination_database_name=cfg.transformer_mongo_database_config.name,
+            dump_folder_path=cfg.origin_dump_folder_path,
+            destination_server_cli_options=database_cli_options,
+        )
+        run_subprocess_with_live_display(
+            shell_command_parts,
+            task_description="Restoring collections into transformer MongoDB database",
+            progress=progress,
+            on_error=dump_subprocess_failure_and_raise_runtime_error,
+        )
     print("[green]Restored collections into transformer MongoDB database.[/green]")
 
     # Use the migrator to transform the data within the "transformer" MongoDB server.
@@ -551,18 +555,19 @@ def migrate(
         description="Dumping collections from transformer MongoDB database", total=len(cfg.collection_names)
     )
     for collection_name in cfg.collection_names:
-        shell_command_parts = build_mongodump_command(
-            mongodump_path=cfg.mongodump_path,
-            collection_name=collection_name,
-            database_config=cfg.transformer_mongo_database_config,
-            dump_folder_path=cfg.transformer_dump_folder_path,
-        )
-        run_subprocess_with_live_display(
-            shell_command_parts,
-            task_description=f"Dumping collection '{collection_name}' from transformer MongoDB database",
-            progress=progress,
-            on_error=dump_subprocess_failure_and_raise_runtime_error,
-        )
+        with cfg.transformer_mongo_database_config.make_cli_options_context() as database_cli_options:
+            shell_command_parts = build_mongodump_command(
+                mongodump_path=cfg.mongodump_path,
+                collection_name=collection_name,
+                dump_folder_path=cfg.transformer_dump_folder_path,
+                database_cli_options=database_cli_options,
+            )
+            run_subprocess_with_live_display(
+                shell_command_parts,
+                task_description=f"Dumping collection '{collection_name}' from transformer MongoDB database",
+                progress=progress,
+                on_error=dump_subprocess_failure_and_raise_runtime_error,
+            )
         progress.update(task, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
@@ -590,19 +595,20 @@ def migrate(
         # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--drop
         progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
         task = progress.add_task(description="Restoring collections into origin MongoDB database", total=None)
-        shell_command_parts = build_mongorestore_command(
-            mongorestore_path=cfg.mongorestore_path,
-            source_database_name=cfg.transformer_mongo_database_config.name,
-            destination_database_name=cfg.origin_mongo_database_config.name,
-            destination_database_config=cfg.origin_mongo_database_config,
-            dump_folder_path=cfg.transformer_dump_folder_path,
-        )
-        run_subprocess_with_live_display(
-            shell_command_parts,
-            task_description="Restoring collections into origin MongoDB database",
-            progress=progress,
-            on_error=dump_subprocess_failure_and_raise_runtime_error,
-        )
+        with cfg.origin_mongo_database_config.make_cli_options_context(include_db_option=False) as database_cli_options:
+            shell_command_parts = build_mongorestore_command(
+                mongorestore_path=cfg.mongorestore_path,
+                source_database_name=cfg.transformer_mongo_database_config.name,
+                destination_database_name=cfg.origin_mongo_database_config.name,
+                dump_folder_path=cfg.transformer_dump_folder_path,
+                destination_server_cli_options=database_cli_options,
+            )
+            run_subprocess_with_live_display(
+                shell_command_parts,
+                task_description="Restoring collections into origin MongoDB database",
+                progress=progress,
+                on_error=dump_subprocess_failure_and_raise_runtime_error,
+            )
         progress.update(task, advance=1)
         print("[green]Restored collections into origin MongoDB database.[/green]")
 
@@ -637,19 +643,22 @@ def migrate(
         #
         progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
         progress.add_task(description='Restoring "before" collections into transformer MongoDB database', total=None)
-        shell_command_parts = build_mongorestore_command(
-            mongorestore_path=cfg.mongorestore_path,
-            source_database_name=cfg.origin_mongo_database_config.name,
-            destination_database_name="__before",
-            destination_database_config=cfg.transformer_mongo_database_config,
-            dump_folder_path=cfg.origin_dump_folder_path,
-        )
-        run_subprocess_with_live_display(
-            shell_command_parts,
-            task_description='Restoring "before" collections into transformer MongoDB database',
-            progress=progress,
-            on_error=dump_subprocess_failure_and_raise_runtime_error,
-        )
+        with cfg.transformer_mongo_database_config.make_cli_options_context(
+            include_db_option=False
+        ) as database_cli_options:
+            shell_command_parts = build_mongorestore_command(
+                mongorestore_path=cfg.mongorestore_path,
+                source_database_name=cfg.origin_mongo_database_config.name,
+                destination_database_name="__before",
+                dump_folder_path=cfg.origin_dump_folder_path,
+                destination_server_cli_options=database_cli_options,
+            )
+            run_subprocess_with_live_display(
+                shell_command_parts,
+                task_description='Restoring "before" collections into transformer MongoDB database',
+                progress=progress,
+                on_error=dump_subprocess_failure_and_raise_runtime_error,
+            )
         print('[green]Restored "before" collections into transformer MongoDB database.[/green]')
 
         comparator = Comparator()
