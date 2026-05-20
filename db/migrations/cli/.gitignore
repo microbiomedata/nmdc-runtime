@@ -1,0 +1,9 @@
+__pycache__/
+.ruff_cache/
+.venv/
+
+# The base `.gitignore` file in the `nmdc-runtime` repository contains a line that configures Git
+# to ignore all directories named "lib". However, we intentionally named a directory "lib" in this
+# directory (to signify that the directory is a "library" of code). So, here, we configure Git to
+# make an exception for directories named "lib" anywhere within the current directory.
+!lib/
