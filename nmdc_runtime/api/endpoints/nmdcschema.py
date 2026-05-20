@@ -86,11 +86,17 @@ def get_nmdc_schema_typecodes() -> List[Dict[str, str]]:
 def get_nmdc_database_collection_stats(
     mdb: MongoDatabase = Depends(get_mongo_db),
 ):
-    """
-    To get the NMDC Database MongoDB collection statistics, like the total count of records in a collection or the size
-    of the collection, try executing the GET /nmdcschema/collection_stats endpoint
+    r"""
+    Get statistics about each collection that both exists in the database and is described by the NMDC Schema.
 
-    Field reference: <https://www.mongodb.com/docs/manual/reference/command/collStats/#std-label-collStats-output>.
+    The statistics are labeled as follows:
+    - `ns`: The namespace of the collection, in the format `{database_name}.{collection_name}`
+    - `storageStats.size`: The total size (in bytes) in memory of all documents in the collection, uncompressed. Does not include the size of indexes.
+    - `storageStats.avgObjSize`: The average size (in bytes) of a document in the collection.
+    - `storageStats.storageSize`: The amount of storage (in bytes) allocated to this collection for storing documents.
+    - `storageStats.totalIndexSize`: The total size (in bytes) of all indexes of the collection.
+    - `storageStats.totalSize`: The sum (in bytes) of `storageSize` and `totalIndexSize`.
+    - `storageStats.scaleFactor`: The number by which some of the above statistics have been scaled. We will update these explanations to be more specific if we ever change this from `1`.
     """
     # Take set intersection of
     #   (1) all collections defined by the NMDC schema, and
@@ -100,7 +106,14 @@ def get_nmdc_database_collection_stats(
         mdb.list_collection_names()
     )
     stats = []
-    for n in present_collection_names:
+    for n in sorted(present_collection_names):
+        #
+        # Use the `$collStats` aggregation stage, documented here:
+        # https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/#storagestats-document
+        #
+        # Opt in to the output including specific fields of a `storageStats` document, documented here:
+        # https://www.mongodb.com/docs/manual/reference/command/collStats/#output
+        #
         for doc in mdb[n].aggregate(
             [
                 {"$collStats": {"storageStats": {}}},
