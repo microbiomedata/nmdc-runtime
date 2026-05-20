@@ -109,10 +109,10 @@ def get_nmdc_database_collection_stats(
     for n in sorted(present_collection_names):
         #
         # Use the `$collStats` aggregation stage, documented here:
-        # https://www.mongodb.com/docs/manual/reference/command/collStats/#output
+        # https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/#storagestats-document
         #
         # Opt in to the output including specific fields of a `storageStats` document, documented here:
-        # https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/#storagestats-document
+        # https://www.mongodb.com/docs/manual/reference/command/collStats/#output
         #
         for doc in mdb[n].aggregate(
             [
