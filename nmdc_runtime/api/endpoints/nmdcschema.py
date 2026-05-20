@@ -106,7 +106,7 @@ def get_nmdc_database_collection_stats(
         mdb.list_collection_names()
     )
     stats = []
-    for n in present_collection_names:
+    for n in sorted(present_collection_names):
         #
         # Use the `$collStats` aggregation stage, documented here:
         # https://www.mongodb.com/docs/manual/reference/command/collStats/#output
