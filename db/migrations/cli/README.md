@@ -10,7 +10,7 @@ This app was designed to be run in an environment having the following:
 3. Permission to read from, and write to[^1], the "origin" MongoDB database*
 4. Permission to read from, and write to, a distinct "transformer" MongoDB database
 
-[^1]: Not required in `--dry-run` mode
+[^1]: Not required in `--skip-origin-writes` mode
 
 In practice, we deploy it as follows:
 
