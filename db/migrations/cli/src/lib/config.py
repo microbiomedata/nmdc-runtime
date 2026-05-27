@@ -315,6 +315,7 @@ class MigrationConfig:
     schema_repo_url: str
     collection_names: list[str]
     origin_dump_folder_path: Path
+    initial_origin_dump_path: Path | None
     transformer_dump_folder_path: Path
     auto_empty_origin_dump_folder: bool
     auto_empty_transformer_dump_folder: bool

@@ -244,3 +244,41 @@ def delete_contents_of_directory(path_to_dir: Path) -> bool:
             path.unlink()
 
     return is_directory_empty(path_to_dir=path_to_dir)
+
+
+def copy_contents_of_directory(path_to_source_dir: Path, path_to_destination_dir: Path) -> None:
+    """
+    Copies everything (i.e. files and folders) residing in the specified source directory into the
+    specified destination directory; creating the latter directory if it doesn't already exist.
+
+    >>> from tempfile import TemporaryDirectory
+    >>> with TemporaryDirectory() as temp_dir_name:
+    ...     temp_dir_path = Path(temp_dir_name)
+    ...     source_dir_path = temp_dir_path / "source"
+    ...     destination_dir_path = temp_dir_path / "destination"
+    ...     source_dir_path.mkdir()
+    ...     _ = (source_dir_path / "hello.txt").write_text("world")
+    ...     copy_contents_of_directory(source_dir_path, destination_dir_path)
+    ...     (destination_dir_path / "hello.txt").read_text()
+    'world'
+    >>> with TemporaryDirectory() as temp_dir_name:
+    ...     temp_dir_path = Path(temp_dir_name)
+    ...     copy_contents_of_directory(temp_dir_path, temp_dir_path)
+    Traceback (most recent call last):
+    ...
+    ValueError: Paths to source and destination directories must be distinct.
+    """
+
+    if path_to_source_dir == path_to_destination_dir:
+        raise ValueError("Paths to source and destination directories must be distinct.")
+
+    # Ensure the detination directory exists.
+    path_to_destination_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy the contents of the source directory into the destination directory.
+    _ = shutil.copytree(
+        src=path_to_source_dir,
+        dst=path_to_destination_dir,
+        dirs_exist_ok=True,
+        symlinks=True,
+    )

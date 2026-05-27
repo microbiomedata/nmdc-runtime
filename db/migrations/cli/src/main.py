@@ -39,6 +39,7 @@ from src.lib.schema import (
     validate_document,
 )
 from src.lib.system import (
+    copy_contents_of_directory,
     delete_contents_of_directory,
     dump_subprocess_failure_and_raise_runtime_error,
     ensure_pip_is_available,
@@ -168,6 +169,24 @@ def migrate(
             resolve_path=True,
         ),
     ] = Path("/tmp/mongodump.origin.out"),
+    initial_origin_dump_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--initial-origin-dump",
+            envvar="INITIAL_ORIGIN_DUMP",
+            help=(
+                "Path to a dump (i.e. a directory tree created via `mongodump --gzip ...`) to use "
+                "as the initial data (instead of dumping it from the origin MongoDB server). This "
+                "can be useful during test-driven development of migrators and is often paired "
+                "with the `--skip-origin-writes` option."
+            ),
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            dir_okay=True,
+            file_okay=False,
+            exists=True,
+            resolve_path=True,
+        ),
+    ] = None,
     auto_empty_origin_dump_folder: Annotated[
         bool,
         typer.Option(
@@ -351,6 +370,7 @@ def migrate(
         schema_repo_url=schema_repo_url,
         collection_names=collection_names,
         origin_dump_folder_path=origin_dump_folder_path,
+        initial_origin_dump_path=initial_origin_dump_path,
         transformer_dump_folder_path=transformer_dump_folder_path,
         auto_empty_origin_dump_folder=auto_empty_origin_dump_folder,
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
@@ -380,6 +400,31 @@ def migrate(
             "same hostname and port "
             f"(i.e. '{cfg.origin_mongo_database_config.host}:{cfg.origin_mongo_database_config.port}')."
         )
+
+    # If the script is configured to source the initial data from an existing dump, do a few things:
+    # (a) warn the user if the didn't also use `--skip-origin-writes`; (b) ensure the existing dump
+    # isn't located in the same directory into which we would copy it; and (c) ensure a database
+    # having the same name as the origin database exists in the dump.
+    #
+    # TODO: Consider allowing (b); i.e. allowing both directories to be the same.
+    #
+    if isinstance(cfg.initial_origin_dump_path, Path):
+        if not skip_origin_writes:
+            print(
+                "[yellow]Warning:[/yellow] An initial origin dump path was provided, but the "
+                "`--skip-origin-writes` option was not specified, so the app will still write the"
+                "transformed data back to the origin MongoDB server at the end of the migration."
+            )
+        if cfg.initial_origin_dump_path == cfg.origin_dump_folder_path:
+            raise typer.BadParameter(
+                "The `--initial-origin-dump` path must differ from the `--origin-dump-folder-path` "
+                "path so the app can copy data from the former into the latter."
+            )
+        if not (cfg.initial_origin_dump_path / cfg.origin_mongo_database_config.name).is_dir():
+            raise typer.BadParameter(
+                f"Initial origin dump '{cfg.initial_origin_dump_path}' does not contain a "
+                f"'{cfg.origin_mongo_database_config.name}' subdirectory."
+            )
 
     # If the origin dump folder is non-empty, abort unless the user has opted to auto-empty it.
     if cfg.origin_dump_folder_path.is_dir() and not is_directory_empty(cfg.origin_dump_folder_path):
@@ -469,34 +514,45 @@ def migrate(
         _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
         print("[green]Revoked standard role privileges on origin MongoDB server.[/green]")
 
-    # Dump the subject collections from the "origin" MongoDB server.
-    #
-    # Note: When making this progress indicator, we disable auto-refresh. That's because we will be
-    #       displaying it via a manually-created "live display", which has its own refresh routine.
-    #
-    progress = make_progress_indicator_for_bounded_task(
-        auto_refresh=False,
-        show_task_progress_percentage=False,
-    )
-    task = progress.add_task(
-        description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
-    )
-    for collection_name in cfg.collection_names:
-        with cfg.origin_mongo_database_config.make_cli_options_context() as database_cli_options:
-            shell_command_parts = build_mongodump_command(
-                mongodump_path=cfg.mongodump_path,
-                collection_name=collection_name,
-                dump_folder_path=cfg.origin_dump_folder_path,
-                database_cli_options=database_cli_options,
-            )
-            run_subprocess_with_live_display(
-                shell_command_parts,
-                task_description=f"Dumping collection '{collection_name}' from origin MongoDB database",
-                progress=progress,
-                on_error=dump_subprocess_failure_and_raise_runtime_error,
-            )
-        progress.update(task, advance=1)
-    print("[green]Dumped collections from origin MongoDB database.[/green]")
+    # If the app is configured to get the origin data from an existing dump instead of from the
+    # "origin" MongoDB server, copy that dump into the origin dump folder now. Otherwise, dump
+    # the subject collections from the "origin" MongoDB server into the origin dump folder now.
+    if isinstance(cfg.initial_origin_dump_path, Path):
+        print(f"Copying dump from '{cfg.initial_origin_dump_path}' into '{cfg.origin_dump_folder_path}'.")
+        copy_contents_of_directory(
+            path_to_source_dir=cfg.initial_origin_dump_path,
+            path_to_destination_dir=cfg.origin_dump_folder_path,
+        )
+        print("[green]Copied dump.[/green]")
+    else:
+        # Dump the subject collections from the "origin" MongoDB server.
+        #
+        # Note: When making this progress indicator, we disable auto-refresh. That's because we will be
+        #       displaying it via a manually-created "live display", which has its own refresh routine.
+        #
+        progress = make_progress_indicator_for_bounded_task(
+            auto_refresh=False,
+            show_task_progress_percentage=False,
+        )
+        task = progress.add_task(
+            description="Dumping collections from origin MongoDB database", total=len(cfg.collection_names)
+        )
+        for collection_name in cfg.collection_names:
+            with cfg.origin_mongo_database_config.make_cli_options_context() as database_cli_options:
+                shell_command_parts = build_mongodump_command(
+                    mongodump_path=cfg.mongodump_path,
+                    collection_name=collection_name,
+                    dump_folder_path=cfg.origin_dump_folder_path,
+                    database_cli_options=database_cli_options,
+                )
+                run_subprocess_with_live_display(
+                    shell_command_parts,
+                    task_description=f"Dumping collection '{collection_name}' from origin MongoDB database",
+                    progress=progress,
+                    on_error=dump_subprocess_failure_and_raise_runtime_error,
+                )
+            progress.update(task, advance=1)
+        print("[green]Dumped collections from origin MongoDB database.[/green]")
 
     # Restore the subject collections dumped from the "origin" MongoDB server into the "transformer" MongoDB server.
     progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
