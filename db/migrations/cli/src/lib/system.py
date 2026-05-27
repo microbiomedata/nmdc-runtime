@@ -30,8 +30,8 @@ def dump_subprocess_failure_and_raise_runtime_error(
 
     # If requested, print the STDOUT and STDERR streams of the subprocess. Note that, in this CLI
     # app, the `stdout` attribute of the `CompletedProcess` instance returned by `run_subprocess`
-    # contains the combination of STDOUT and STDERR. We just print `stderr` so we can simplify the
-    # docstring (i.e. caller contract) of this function.
+    # contains the combination of STDOUT and STDERR. We print `stderr` anyway, here, so this
+    # function remains "general purpose."
     if include_full_output_in_error:
         console.print("Output:\n\n", markup=False, style="bold yellow")
         console.print(completed_process.stdout, markup=False, style="yellow")
