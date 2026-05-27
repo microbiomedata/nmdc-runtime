@@ -698,7 +698,7 @@ def migrate(
         #       existing transformation database).
         #
         progress = make_progress_indicator_for_unbounded_task(auto_refresh=False)
-        progress.add_task(description='Restoring "before" collections into transformer MongoDB database', total=None)
+        progress.add_task(description='Restoring "before" collections into transformer MongoDB server', total=None)
         with cfg.transformer_mongo_database_config.make_cli_options_context(
             include_db_option=False
         ) as database_cli_options:
@@ -711,11 +711,11 @@ def migrate(
             )
             run_subprocess_with_live_display(
                 shell_command_parts,
-                task_description='Restoring "before" collections into transformer MongoDB database',
+                task_description='Restoring "before" collections into transformer MongoDB server',
                 progress=progress,
                 on_error=dump_subprocess_failure_and_raise_runtime_error,
             )
-        print('[green]Restored "before" collections into transformer MongoDB database.[/green]')
+        print('[green]Restored "before" collections into transformer MongoDB server.[/green]')
 
         comparator = Comparator()
         with make_progress_indicator_for_bounded_task() as progress:
@@ -741,6 +741,10 @@ def migrate(
                 print(diff_result.get_summary_table(title=f"Summary of differences ({collection_name})"))
                 progress.update(task_outer, advance=1)
         print("[green]Generated before-and-after diff of each collection.[/green]")
+
+        # Drop the `__before` database.
+        transformer_mongo_client.drop_database("__before")
+        print('[green]Dropped "before" collections from transformer MongoDB server.[/green]')
 
     # Done.
     pass
