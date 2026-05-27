@@ -34,7 +34,7 @@ ENV UV_NO_DEV=1
 # Configure how `uv` makes cached packages available to Python.
 # Note: The default value is `clone`, but I see "warning: Failed to hardlink files"
 #       when building the image that way. Also, the example in the `uv` containerization
-#       shows `copy`.
+#       docs shows `copy`.
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#caching
 ENV UV_LINK_MODE=copy
 
