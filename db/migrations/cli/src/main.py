@@ -635,7 +635,10 @@ def migrate(
     if skip_origin_writes:
         print("[yellow]Skipping creating a bookkeeper for the origin MongoDB server.[/yellow]")
     else:
-        bookkeeper = Bookkeeper(mongo_client=origin_mongo_client)
+        bookkeeper = Bookkeeper(
+            mongo_client=origin_mongo_client,
+            database_name=cfg.origin_mongo_database_config.name,
+        )
 
     # If we aren't in "skip origin writes" mode, record migration events and restore the transformed
     # data into the "origin" MongoDB server.
