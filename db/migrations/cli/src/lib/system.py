@@ -272,7 +272,7 @@ def copy_contents_of_directory(path_to_source_dir: Path, path_to_destination_dir
     if path_to_source_dir == path_to_destination_dir:
         raise ValueError("Paths to source and destination directories must be distinct.")
 
-    # Ensure the detination directory exists.
+    # Ensure the destination directory exists.
     path_to_destination_dir.mkdir(parents=True, exist_ok=True)
 
     # Copy the contents of the source directory into the destination directory.

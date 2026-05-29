@@ -7,7 +7,7 @@ This app was designed to be run in an environment having the following:
 
 1. The programs: `mongodump`, `mongorestore`, and `pip`
 2. Permission to create[^1] and edit[^1] roles on the "origin" MongoDB server
-3. Permission to read from, and write to[^1], the "origin" MongoDB database*
+3. Permission to read from, and write to[^1], the "origin" MongoDB database
 4. Permission to read from, and write to, a distinct "transformer" MongoDB database
 
 [^1]: Not required in `--skip-origin-writes` mode
