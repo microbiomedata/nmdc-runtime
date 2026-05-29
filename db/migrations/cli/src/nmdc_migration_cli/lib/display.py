@@ -167,7 +167,7 @@ class LiveLogManager:
             Panel(
                 "".join(log_lines_to_display),  # each line already ends with a newline character
                 height=panel_height,
-                title="Log",
+                title="Subprocess output",
                 border_style="dim",
             ),
         )
