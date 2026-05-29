@@ -413,7 +413,7 @@ def migrate(
         if not cfg.skip_origin_writes:
             print(
                 "[yellow]Warning:[/yellow] An initial origin dump path was provided, but the "
-                "`--skip-origin-writes` option was not specified, so the app will still write the"
+                "`--skip-origin-writes` option was not specified, so the app will still write the "
                 "transformed data back to the origin MongoDB server at the end of the migration."
             )
         if cfg.initial_origin_dump_path == cfg.origin_dump_folder_path:
