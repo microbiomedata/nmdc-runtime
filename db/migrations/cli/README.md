@@ -41,13 +41,15 @@ uv sync --all-groups
 ### Run doctests
 
 ```sh
-uv run python -m doctest src/**/*.py
+uv run python -m doctest $(find ./src -name '*.py')
 ```
+
+> We may simplify this to `pytest --doctest-modules` eventually (`pytest` is not currently a dependency of this app).
 
 ### Format and lint code
 
 ```sh
-ruff format src/**/*.py && ruff check src/**/*.py
+uv run ruff format . && uv run ruff check .
 ```
 
 ### Run app
