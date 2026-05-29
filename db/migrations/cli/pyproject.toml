@@ -20,12 +20,8 @@ dependencies = [
 requires = ["uv_build>=0.11.8,<0.12"]
 build-backend = "uv_build"
 
-[tool.uv.build-backend]
-module-name = "src"
-module-root = ""
-
 [project.scripts]
-nmdc-migration-cli = "src.main:app"
+nmdc-migration-cli = "nmdc_migration_cli.main:app"
 
 [dependency-groups]
 dev = [

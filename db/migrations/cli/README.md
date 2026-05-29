@@ -56,7 +56,7 @@ ruff format src/**/*.py && ruff check src/**/*.py
 uv run nmdc-migration-cli --help
 ```
 
-> The `pyproject.toml` file contains a `[project.scripts]` entry that maps the `nmdc-migration-cli` command to the `app` variable defined within the `src/main.py` file.
+> The `pyproject.toml` file contains a `[project.scripts]` entry that maps the `nmdc-migration-cli` command to the `app` variable defined within the `src/nmdc_migration_cli/main.py` file.
 
 ## Containerization
 

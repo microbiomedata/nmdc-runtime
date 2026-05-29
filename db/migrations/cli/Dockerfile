@@ -39,6 +39,11 @@ ENV UV_NO_DEV=1
 ENV UV_LINK_MODE=copy
 
 # Copy the dependency lists into the image.
+#
+# Note: We'll install the dependencies before copying the source code into the image, so that we can
+#       take advantage of Docker's layer caching (i.e. so we don't have to reinstall dependencies
+#       every time we make a change to a source code file).
+#
 COPY pyproject.toml .
 COPY uv.lock .
 

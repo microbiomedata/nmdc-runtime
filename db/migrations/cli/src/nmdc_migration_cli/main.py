@@ -11,34 +11,34 @@ import typer
 from rich import print
 from mongo_diff.mongo_diff import Comparator
 
-from src.lib.bookkeeping import Bookkeeper, MigrationEvent
-from src.lib.config import (
+from nmdc_migration_cli.lib.bookkeeping import Bookkeeper, MigrationEvent
+from nmdc_migration_cli.lib.config import (
     RESERVED_GIT_TAGS,
     DatabaseConfig,
     MigrationConfig,
     ParamValidators,
     get_reserved_git_tags_help_snippet,
 )
-from src.lib.display import (
+from nmdc_migration_cli.lib.display import (
     make_progress_indicator_for_bounded_task,
     make_progress_indicator_for_unbounded_task,
 )
-from src.lib.dumps import (
+from nmdc_migration_cli.lib.dumps import (
     build_mongodump_command,
     build_mongorestore_command,
 )
-from src.lib.roles import (
+from nmdc_migration_cli.lib.roles import (
     revoke_standard_role_privileges,
     restore_standard_role_privileges,
 )
-from src.lib.schema import (
+from nmdc_migration_cli.lib.schema import (
     create_schema_definition,
     create_validator,
     get_migrator_class,
     get_mongo_adapter_class,
     validate_document,
 )
-from src.lib.system import (
+from nmdc_migration_cli.lib.system import (
     copy_contents_of_directory,
     delete_contents_of_directory,
     dump_subprocess_failure_and_raise_runtime_error,

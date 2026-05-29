@@ -6,7 +6,11 @@ from typing import Callable
 from rich.console import Console
 from rich.progress import Progress
 
-from src.lib.display import LiveLogManager, make_live_display, make_progress_indicator_for_unbounded_task
+from nmdc_migration_cli.lib.display import (
+    LiveLogManager,
+    make_live_display,
+    make_progress_indicator_for_unbounded_task,
+)
 
 console = Console()
 
