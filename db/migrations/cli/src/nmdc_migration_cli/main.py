@@ -392,15 +392,20 @@ def migrate(
 
     # If the script is configured to access both the origin MongoDB server and the transformer MongoDB server
     # at the same hostname and port, display a warning (since that might not have been intentional).
-    if (
+    mongo_servers_are_same: bool = (
         cfg.origin_mongo_database_config.host == cfg.transformer_mongo_database_config.host
         and cfg.origin_mongo_database_config.port == cfg.transformer_mongo_database_config.port
-    ):
+    )
+    if mongo_servers_are_same:
         print(
             "[yellow]Warning:[/yellow] Accessing origin and transformer MongoDB server at "
             "same hostname and port "
             f"(i.e. '{cfg.origin_mongo_database_config.host}:{cfg.origin_mongo_database_config.port}')."
         )
+        # If, in addition to both servers being the same, both databases are the same, abort; since
+        # we did not design this program to perform "migration in place" (we've never tested it).
+        if cfg.origin_mongo_database_config.name == cfg.transformer_mongo_database_config.name:
+            raise typer.BadParameter("The origin and transformer must be distinct databases.")
 
     # If the script is configured to source the initial data from an existing dump, do a few things:
     # (a) warn the user if the didn't also use `--skip-origin-writes`; (b) ensure the existing dump
