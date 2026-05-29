@@ -321,6 +321,7 @@ class MigrationConfig:
     auto_empty_transformer_dump_folder: bool
     auto_drop_transformer_database: bool
     show_diff: bool
+    skip_origin_writes: bool
     log_file_path: Path | None
 
     def get_redacted_dict(self) -> dict:

@@ -376,6 +376,7 @@ def migrate(
         auto_empty_transformer_dump_folder=auto_empty_transformer_dump_folder,
         auto_drop_transformer_database=auto_drop_transformer_database,
         show_diff=show_diff,
+        skip_origin_writes=skip_origin_writes,
         log_file_path=log_file_path,
     )
 
@@ -409,7 +410,7 @@ def migrate(
     # TODO: Consider allowing (b); i.e. allowing both directories to be the same.
     #
     if isinstance(cfg.initial_origin_dump_path, Path):
-        if not skip_origin_writes:
+        if not cfg.skip_origin_writes:
             print(
                 "[yellow]Warning:[/yellow] An initial origin dump path was provided, but the "
                 "`--skip-origin-writes` option was not specified, so the app will still write the"
@@ -508,7 +509,7 @@ def migrate(
                 transformer_mongo_client.drop_database(cfg.transformer_mongo_database_config.name)
 
     # If we aren't in "skip origin writes" mode, revoke user access to the "origin" MongoDB server.
-    if skip_origin_writes:
+    if cfg.skip_origin_writes:
         print("[yellow]Skipping revoking privileges on origin MongoDB server.[/yellow]")
     else:
         _ = revoke_standard_role_privileges(admin_database=origin_mongo_client["admin"])
@@ -632,7 +633,7 @@ def migrate(
     # (a.k.a. constructor) creates a "view" in certain situations, and we don't want it to do that
     # if we are in "skip origin writes" mode.
     bookkeeper = None
-    if skip_origin_writes:
+    if cfg.skip_origin_writes:
         print("[yellow]Skipping creating a bookkeeper for the origin MongoDB server.[/yellow]")
     else:
         bookkeeper = Bookkeeper(
@@ -642,7 +643,7 @@ def migrate(
 
     # If we aren't in "skip origin writes" mode, record migration events and restore the transformed
     # data into the "origin" MongoDB server.
-    if skip_origin_writes:
+    if cfg.skip_origin_writes:
         print("[yellow]Skipping storing 'MIGRATION_STARTED' event in origin MongoDB database.[/yellow]")
         print("[yellow]Skipping loading transformed data into origin MongoDB database.[/yellow]")
         print("[yellow]Skipping storing 'MIGRATION_COMPLETED' event in origin MongoDB database.[/yellow]")
@@ -690,7 +691,7 @@ def migrate(
             print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
 
     # Restore user access to the "origin" MongoDB server.
-    if skip_origin_writes:
+    if cfg.skip_origin_writes:
         print("[yellow]Skipping restoring privileges on origin MongoDB server.[/yellow]")
     else:
         _ = restore_standard_role_privileges(admin_database=origin_mongo_client["admin"])
