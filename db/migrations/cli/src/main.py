@@ -627,8 +627,15 @@ def migrate(
         progress.update(task, advance=1)
     print("[green]Dumped collections from transformer MongoDB database.[/green]")
 
-    # Create a bookkeeper that can be used to record migration events in the "origin" MongoDB server.
-    bookkeeper = Bookkeeper(mongo_client=origin_mongo_client)
+    # If we are not running in "skip origin writes" mode, create a bookkeeper that can be used to
+    # record migration events in the "origin" MongoDB server. The bookkeeper's initialization code
+    # (a.k.a. constructor) creates a "view" in certain situations, and we don't want it to do that
+    # if we are in "skip origin writes" mode.
+    bookkeeper = None
+    if skip_origin_writes:
+        print("[yellow]Skipping creating a bookkeeper for the origin MongoDB server.[/yellow]")
+    else:
+        bookkeeper = Bookkeeper(mongo_client=origin_mongo_client)
 
     # If we aren't in "skip origin writes" mode, record migration events and restore the transformed
     # data into the "origin" MongoDB server.
@@ -637,14 +644,15 @@ def migrate(
         print("[yellow]Skipping loading transformed data into origin MongoDB database.[/yellow]")
         print("[yellow]Skipping storing 'MIGRATION_COMPLETED' event in origin MongoDB database.[/yellow]")
     else:
-        # Record an event that indicates that a migration has started.
-        bookkeeper.record_migration_event(
-            event=MigrationEvent.MIGRATION_STARTED,
-            from_schema_version=migrator.get_origin_version(),
-            to_schema_version=migrator.get_destination_version(),
-            name_of_migrator_module=cfg.migrator_module_name,
-        )
-        print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
+        # If we have a bookkeeper, use it to record an event indicating that a migration has started.
+        if isinstance(bookkeeper, Bookkeeper):
+            bookkeeper.record_migration_event(
+                event=MigrationEvent.MIGRATION_STARTED,
+                from_schema_version=migrator.get_origin_version(),
+                to_schema_version=migrator.get_destination_version(),
+                name_of_migrator_module=cfg.migrator_module_name,
+            )
+            print("[green]Stored 'MIGRATION_STARTED' event in origin MongoDB database.[/green]")
 
         # Restore the collections dumped from the "transformer" MongoDB server into the "origin" MongoDB
         # server, dropping the original collections from the latter.
@@ -668,14 +676,15 @@ def migrate(
         progress.update(task, advance=1)
         print("[green]Restored collections into origin MongoDB database.[/green]")
 
-        # Record an event that indicates that a migration has been completed.
-        bookkeeper.record_migration_event(
-            event=MigrationEvent.MIGRATION_COMPLETED,
-            from_schema_version=migrator.get_origin_version(),
-            to_schema_version=migrator.get_destination_version(),
-            name_of_migrator_module=cfg.migrator_module_name,
-        )
-        print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
+        # If we have a bookkeeper, use it to record an event indicating that a migration has been completed.
+        if isinstance(bookkeeper, Bookkeeper):
+            bookkeeper.record_migration_event(
+                event=MigrationEvent.MIGRATION_COMPLETED,
+                from_schema_version=migrator.get_origin_version(),
+                to_schema_version=migrator.get_destination_version(),
+                name_of_migrator_module=cfg.migrator_module_name,
+            )
+            print("[green]Stored 'MIGRATION_COMPLETED' event in origin MongoDB database.[/green]")
 
     # Restore user access to the "origin" MongoDB server.
     if skip_origin_writes:
