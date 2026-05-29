@@ -5,7 +5,10 @@ on:
   workflow_dispatch: {}
   push:
     branches: [ main ]
-    paths: [ 'db/migrations/cli/**' ]
+    # Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-including-and-excluding-paths
+    paths:
+      - 'db/migrations/cli/**'
+      - '!db/migrations/cli/README.md'
 
 # Note: Individual jobs can override this default permission specification as needed.
 permissions: {}
