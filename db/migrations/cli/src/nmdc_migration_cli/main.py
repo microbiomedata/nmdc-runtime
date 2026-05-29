@@ -572,6 +572,7 @@ def migrate(
             destination_database_name=cfg.transformer_mongo_database_config.name,
             dump_folder_path=cfg.origin_dump_folder_path,
             destination_server_cli_options=database_cli_options,
+            collection_names=cfg.collection_names,
         )
         run_subprocess_with_live_display(
             shell_command_parts,
@@ -726,6 +727,7 @@ def migrate(
                 destination_database_name="__before",
                 dump_folder_path=cfg.origin_dump_folder_path,
                 destination_server_cli_options=database_cli_options,
+                collection_names=cfg.collection_names,
             )
             run_subprocess_with_live_display(
                 shell_command_parts,

@@ -54,6 +54,7 @@ def build_mongorestore_command(
     destination_database_name: str,
     dump_folder_path: Path,
     destination_server_cli_options: list[str],
+    collection_names: list[str] | None = None,
 ) -> list[str]:
     """
     Build a `mongorestore` command that would restore MongoDB collections from a set of compressed files.
@@ -66,6 +67,8 @@ def build_mongorestore_command(
     :param dump_folder_path: Path to the folder where the compressed dump files reside.
     :param destination_server_cli_options: mongorestore CLI options for accessing the destination
                                            MongoDB server.
+    :param collection_names: Names of collections to restore. When omitted, all collections in the
+                             dump are restored.
 
     >>> cmd = build_mongorestore_command(
     ...     mongorestore_path=Path("/path/to/mongorestore"),
@@ -73,9 +76,11 @@ def build_mongorestore_command(
     ...     destination_database_name="my_destination_database",
     ...     dump_folder_path=Path("/path/to/dump/folder"),
     ...     destination_server_cli_options=["--some-other-key", "some-other-value"],
+    ...     collection_names=["my_collection"],
     ... )
     >>> cmd == [
     ...     '/path/to/mongorestore',
+    ...     '--nsInclude', 'my_source_database.my_collection',
     ...     '--nsFrom', 'my_source_database.*',
     ...     '--nsTo', 'my_destination_database.*',
     ...     '--drop',
@@ -89,15 +94,26 @@ def build_mongorestore_command(
 
     shell_command_parts = [
         str(mongorestore_path),
-        "--nsFrom",
-        f"{source_database_name}.*",
-        "--nsTo",
-        f"{destination_database_name}.*",
-        "--drop",
-        "--stopOnError",
-        "--gzip",
-        "--dir",
-        str(dump_folder_path),
     ]
+
+    # If the caller identified specified collections to restore, make the corresponding command parts.
+    # Docs: https://www.mongodb.com/docs/database-tools/mongorestore/#std-option-mongorestore.--nsInclude
+    if isinstance(collection_names, list):
+        for collection_name in collection_names:
+            shell_command_parts.extend(["--nsInclude", f"{source_database_name}.{collection_name}"])
+
+    shell_command_parts.extend(
+        [
+            "--nsFrom",
+            f"{source_database_name}.*",
+            "--nsTo",
+            f"{destination_database_name}.*",
+            "--drop",
+            "--stopOnError",
+            "--gzip",
+            "--dir",
+            str(dump_folder_path),
+        ]
+    )
     shell_command_parts.extend(destination_server_cli_options)
     return shell_command_parts
