@@ -1,0 +1,54 @@
+# This GHA workflow builds a container image and pushes it to GitHub Container Registry.
+name: Build and push `nmdc-migration-cli` container image
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+    # Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-including-and-excluding-paths
+    paths:
+      - 'db/migrations/cli/**'
+      - '!db/migrations/cli/README.md'
+
+# Note: Individual jobs can override this default permission specification as needed.
+permissions: {}
+
+env:
+  # Detect whether this GHA workflow is being run from a fork or not.
+  IS_ORIGINAL_REPO: ${{ github.repository == 'microbiomedata/nmdc-runtime' }}
+
+jobs:
+  build:
+    name: Build image
+    permissions: { contents: read, packages: write }
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Generate tags for the eventual container image.
+      - name: Generate image tags
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: |
+            ghcr.io/microbiomedata/nmdc-migration-cli
+          tags: |
+            type=sha
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Docs: https://github.com/marketplace/actions/build-and-push-docker-images
+      - name: Build and push image
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: db/migrations/cli
+          file: db/migrations/cli/Dockerfile
+          push: ${{ env.IS_ORIGINAL_REPO }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

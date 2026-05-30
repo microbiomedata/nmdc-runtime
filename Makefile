@@ -56,6 +56,7 @@ run-test:
 				pytest --cov=nmdc_runtime \
 				       --doctest-modules \
 				       --ignore=util/load_testing \
+				       --ignore=db/migrations/cli \
 				       $(ARGS)
 
 # Uses Docker Compose to
