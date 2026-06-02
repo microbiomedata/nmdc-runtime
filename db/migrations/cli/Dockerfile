@@ -99,12 +99,6 @@ COPY README.md README.md
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --compile-bytecode
 
-# For convenience during development, install `nmdc-schema` into the Python virtual environment,
-# without adding it to the `pyproject.toml` or `uv.lock` files. Developers can tell the app to
-# use it, via `nmdc-migration-cli migrate --migrator-git-tag '-INSTALLED' ...`. In production, users
-# will typically set `--migrator-git-tag` to a specific Git tag.
-RUN uv pip install nmdc-schema
-
 # Run the init shell script such that it runs our app.
 ENTRYPOINT ["/init.sh", "uv", "run", "nmdc-migration-cli"]
 CMD ["--help"]
