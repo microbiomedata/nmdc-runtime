@@ -35,6 +35,22 @@ jobs:
             ghcr.io/microbiomedata/nmdc-migration-cli
           tags: |
             type=sha
+          # Note: While we do want the `docker/metadata-action` action to derive values for _some_
+          #       labels (e.g. `created`, `revision`); for _other_ labels (listed below), we want to
+          #       ensure their values describe `nmdc-migration-cli`, specifically, not `nmdc-runtime`,
+          #       in general (as a reminder, the `docker/metadata-action` action derives label values
+          #       from the repo in general).
+          #
+          # References:
+          # - https://github.com/docker/metadata-action#overwrite-labels-and-annotations
+          # - https://specs.opencontainers.org/image-spec/annotations/#pre-defined-annotation-keys
+          #
+          labels: |
+            org.opencontainers.image.title=nmdc-migration-cli
+            org.opencontainers.image.description=Command-line program that migrates the NMDC database between two versions of the NMDC schema.
+            org.opencontainers.image.documentation=https://github.com/microbiomedata/nmdc-runtime/blob/main/db/migrations/cli/README.md
+            org.opencontainers.image.source=https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli
+            org.opencontainers.image.url=https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
