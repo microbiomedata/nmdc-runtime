@@ -5,6 +5,8 @@ on:
   workflow_dispatch: {}
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
     # Docs: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-including-and-excluding-paths
     paths:
       - 'db/migrations/cli/**'
@@ -56,6 +58,10 @@ jobs:
         with:
           images: |
             ghcr.io/microbiomedata/nmdc-migration-cli
+          # To be consistent with other container images built from code in the `nmdc-runtime` repo,
+          # we avoid tagging the container image with `latest`.
+          flavor: |
+            latest=false
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
