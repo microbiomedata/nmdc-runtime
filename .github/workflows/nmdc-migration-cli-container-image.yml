@@ -17,6 +17,10 @@ env:
   # Detect whether this GHA workflow is being run from a fork or not.
   IS_ORIGINAL_REPO: ${{ github.repository == 'microbiomedata/nmdc-runtime' }}
 
+  # Check whether `github.ref` (i.e. the full reference to the branch or tag that triggered this
+  # workflow run) is a tag ref whose name starts with "v".
+  IS_PROD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
+
 jobs:
   build:
     name: Build image
@@ -53,7 +57,10 @@ jobs:
           images: |
             ghcr.io/microbiomedata/nmdc-migration-cli
           tags: |
-            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=prod,enable=${{ env.IS_PROD_RELEASE }}
+            type=sha,format=long
           # Note: While we do want the `docker/metadata-action` action to derive values for _some_
           #       labels (e.g. `created`, `revision`); for _other_ labels (listed below), we want to
           #       ensure their values describe `nmdc-migration-cli`, specifically, not `nmdc-runtime`,
