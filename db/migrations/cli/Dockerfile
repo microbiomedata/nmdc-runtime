@@ -100,5 +100,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --compile-bytecode
 
 # Run the init shell script such that it runs our app.
-ENTRYPOINT ["/init.sh", "uv", "run", "nmdc-migration-cli"]
+# Note: We include `--no-sync` so `uv` doesn't do a redundant sync at "run" time,
+#       given that the step immediately before this was already a sync.
+ENTRYPOINT ["/init.sh", "uv", "run", "--no-sync", "nmdc-migration-cli"]
 CMD ["--help"]
