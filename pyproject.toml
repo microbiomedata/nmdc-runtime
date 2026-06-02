@@ -105,10 +105,8 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "python-dotenv",
     "pytest-mock",
     "requests-mock",
-    "requests-cache",
 ]
 docs = [
     "jupyter",

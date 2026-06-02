@@ -3041,8 +3041,6 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
-    { name = "python-dotenv" },
-    { name = "requests-cache" },
     { name = "requests-mock" },
 ]
 docs = [
@@ -3102,8 +3100,6 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
-    { name = "python-dotenv" },
-    { name = "requests-cache" },
     { name = "requests-mock" },
 ]
 docs = [
