@@ -76,4 +76,4 @@ docker build --progress=plain --tag nmdc-migration-cli:latest .
 docker run --rm -it nmdc-migration-cli:latest --help
 ```
 
-> The `--help` parameter will be appended to the `ENTRYPOINT` defined in the `Dockerfile`, which is `uv run nmdc-migration-cli`.
+> The `--help` parameter will be appended to the `ENTRYPOINT` defined in the `Dockerfile`, which is `uv run --no-sync nmdc-migration-cli`.
