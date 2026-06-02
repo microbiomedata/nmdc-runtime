@@ -26,6 +26,18 @@ jobs:
       - name: Check out commit
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      # Install QEMU (an architecture emulator) and buildx (a plugin for the Docker CLI) so that the
+      # `docker/build-push-action` action (which we run later) can build both the `linux/amd64` and
+      # the `linux/arm64` container images on the same runner.
+      #
+      # Docs: https://github.com/marketplace/actions/docker-setup-qemu
+      # Docs: https://github.com/marketplace/actions/docker-setup-buildx
+      #
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
       # Generate tags for the eventual container image.
       - name: Generate image tags
         id: meta
@@ -65,6 +77,9 @@ jobs:
         with:
           context: db/migrations/cli
           file: db/migrations/cli/Dockerfile
+          platforms: |
+            linux/amd64
+            linux/arm64
           push: ${{ env.IS_ORIGINAL_REPO }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
