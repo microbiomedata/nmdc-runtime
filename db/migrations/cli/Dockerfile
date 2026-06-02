@@ -19,8 +19,8 @@ ENV MONGO_LOG_PATH="/tmp/mongo.log"
 LABEL org.opencontainers.image.title="nmdc-migration-cli"
 LABEL org.opencontainers.image.description="Command-line program that migrates the NMDC database between two versions of the NMDC schema."
 LABEL org.opencontainers.image.documentation="https://github.com/microbiomedata/nmdc-runtime/blob/main/db/migrations/cli/README.md"
-LABEL org.opencontainers.image.source="https://github.com/microbiomedata/nmdc-runtime/blob/main/db/migrations/cli/"
-LABEL org.opencontainers.image.url="https://github.com/microbiomedata/nmdc-runtime/blob/main/db/migrations/cli/"
+LABEL org.opencontainers.image.source="https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli"
+LABEL org.opencontainers.image.url="https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli"
 
 WORKDIR /app
 
