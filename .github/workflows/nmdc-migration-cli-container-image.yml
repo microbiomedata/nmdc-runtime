@@ -42,6 +42,13 @@ jobs:
       - name: Generate image tags
         id: meta
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        # Create annotations on both the image index and on each image's manifest.
+        # We do this because, when showing a multi-platform image, GHCR gets the description from
+        # the image index, not from the individual image's manifest (for single-platform images,
+        # GHCR gets it from the latter).
+        # Docs: https://docs.docker.com/build/ci/github-actions/annotations/#configure-annotation-level
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
         with:
           images: |
             ghcr.io/microbiomedata/nmdc-migration-cli
@@ -59,7 +66,7 @@ jobs:
           #
           labels: |
             org.opencontainers.image.title=nmdc-migration-cli
-            org.opencontainers.image.description=Command-line program that migrates the NMDC database between two versions of the NMDC schema.
+            org.opencontainers.image.description=Command-line program that migrates the NMDC database between two versions of the NMDC schema
             org.opencontainers.image.documentation=https://github.com/microbiomedata/nmdc-runtime/blob/main/db/migrations/cli/README.md
             org.opencontainers.image.source=https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli
             org.opencontainers.image.url=https://github.com/microbiomedata/nmdc-runtime/tree/main/db/migrations/cli
@@ -83,3 +90,4 @@ jobs:
           push: ${{ env.IS_ORIGINAL_REPO }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
