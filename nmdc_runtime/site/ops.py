@@ -1119,9 +1119,11 @@ def _add_linked_instances_to_alldocs(
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
     context.log.info(f"{unique_document_reference_ranged_slot_names=}")
-    unclassified_slot_names = unique_document_reference_ranged_slot_names - set(
-        upstream_document_reference_ranged_slots
-    ) - set(downstream_document_reference_ranged_slots)
+    unclassified_slot_names = (
+        unique_document_reference_ranged_slot_names
+        - set(upstream_document_reference_ranged_slots)
+        - set(downstream_document_reference_ranged_slots)
+    )
     if unclassified_slot_names:
         raise Failure(
             "Encountered document-reference-ranged slot(s) with no upstream/downstream "
