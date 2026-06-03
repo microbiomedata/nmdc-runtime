@@ -1091,6 +1091,7 @@ def _add_linked_instances_to_alldocs(
     upstream_document_reference_ranged_slots = [
         "associated_studies",  # when a `nmdc:Study` is upstream of a `nmdc:Biosample`.
         "collected_from",  # when a `nmdc:Site` is upstream of a `nmdc:Biosample`.
+        "expected_organism",  # when an `nmdc:Organism` is upstream of the `nmdc:OrganismSample` someone expects to contain it.
         "has_chromatography_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
         "has_input",  # when a `nmdc:NamedThing` is upstream of a `nmdc:PlannedProcess`.
         "has_mass_spectrometry_configuration",  # when a `nmdc:Configuration` is upstream of a `nmdc:PlannedProcess`.
@@ -1118,12 +1119,13 @@ def _add_linked_instances_to_alldocs(
         for slot_name in slot_names:
             unique_document_reference_ranged_slot_names.add(slot_name)
     context.log.info(f"{unique_document_reference_ranged_slot_names=}")
-    if len(upstream_document_reference_ranged_slots) + len(
-        downstream_document_reference_ranged_slots
-    ) != len(unique_document_reference_ranged_slot_names):
+    unclassified_slot_names = unique_document_reference_ranged_slot_names - set(
+        upstream_document_reference_ranged_slots
+    ) - set(downstream_document_reference_ranged_slots)
+    if unclassified_slot_names:
         raise Failure(
-            "Number of detected unique document-reference-ranged slot names does not match "
-            "sum of accounted-for upstream and downstream document-reference-ranged slot names."
+            "Encountered document-reference-ranged slot(s) with no upstream/downstream "
+            f"classification: {sorted(unclassified_slot_names)}"
         )
 
     # Construct, and update documents with, `_upstream` and `_downstream` field values.
