@@ -10,10 +10,11 @@ from typing import Iterator
 
 import typer
 
-# Note: These are basically "sentinel" values that users can specify for the `migrator_git_tag`
-#       parameter to get special behavior. Ensure each one begins with a hyphen, since I don't
-#       think Git, itself, would allow a tag to begin with a hyphen.
-RESERVED_GIT_TAGS: dict[str, str] = {
+# Note: These are basically "sentinel" values that users can specify for the `migrator_git_ref`
+#       parameter to get special behavior. Ensure each one begins with a hyphen, since branch names
+#       and tag names cannot start with a hyphen, and commit SHA hashes cannot contain hyphens.
+#       Reference: https://git-scm.com/docs/git-check-ref-format
+RESERVED_GIT_REFS: dict[str, str] = {
     "-INSTALLED": (
         "Use the nmdc-schema package already installed in the Python environment "
         "(useful for rapid development and avoiding rate limiting by the Git repository host)."
@@ -21,9 +22,9 @@ RESERVED_GIT_TAGS: dict[str, str] = {
 }
 
 
-def get_reserved_git_tags_help_snippet() -> str:
-    """Get a help snippet describing the reserved Git tags."""
-    return ", ".join(f"'{tag}': {description}" for tag, description in RESERVED_GIT_TAGS.items())
+def get_reserved_git_refs_help_snippet() -> str:
+    """Get a help snippet describing the reserved Git refs."""
+    return ", ".join(f"'{ref}': {description}" for ref, description in RESERVED_GIT_REFS.items())
 
 
 class ParamValidators:
@@ -310,7 +311,7 @@ class MigrationConfig:
     mongorestore_path: Path
     origin_mongo_database_config: DatabaseConfig
     transformer_mongo_database_config: DatabaseConfig
-    migrator_git_tag: str
+    migrator_git_ref: str
     migrator_module_name: str
     schema_repo_url: str
     collection_names: list[str]

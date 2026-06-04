@@ -13,11 +13,11 @@ from mongo_diff.mongo_diff import Comparator
 
 from nmdc_migration_cli.lib.bookkeeping import Bookkeeper, MigrationEvent
 from nmdc_migration_cli.lib.config import (
-    RESERVED_GIT_TAGS,
+    RESERVED_GIT_REFS,
     DatabaseConfig,
     MigrationConfig,
     ParamValidators,
-    get_reserved_git_tags_help_snippet,
+    get_reserved_git_refs_help_snippet,
 )
 from nmdc_migration_cli.lib.display import (
     make_progress_indicator_for_bounded_task,
@@ -79,13 +79,14 @@ class RichHelpPanelName(Enum):
 
 @app.command()
 def migrate(
-    migrator_git_tag: Annotated[
+    migrator_git_ref: Annotated[
         str,
         typer.Option(
-            envvar="MIGRATOR_GIT_TAG",
+            envvar="MIGRATOR_GIT_REF",
             help=(
-                "Git tag of an nmdc-schema commit containing the migrator you want to run. "
-                f"Special values: {get_reserved_git_tags_help_snippet()}"
+                "Git branch name, tag name, or commit hash of nmdc-schema, containing the migrator "
+                "you want to run (e.g., 'main', 'v1.0.0')."
+                f"Special values: {get_reserved_git_refs_help_snippet()}"
             ),
             rich_help_panel=RichHelpPanelName.MIGRATOR.value,
         ),
@@ -365,7 +366,7 @@ def migrate(
         mongorestore_path=mongorestore_path,
         origin_mongo_database_config=origin_mongo_database_config,
         transformer_mongo_database_config=transformer_mongo_database_config,
-        migrator_git_tag=migrator_git_tag,
+        migrator_git_ref=migrator_git_ref,
         migrator_module_name=migrator_module_name,
         schema_repo_url=schema_repo_url,
         collection_names=collection_names,
@@ -459,15 +460,17 @@ def migrate(
             )
 
     # Use pip to install the `nmdc-schema` version specified by the user.
-    if cfg.migrator_git_tag in RESERVED_GIT_TAGS.keys():
-        if cfg.migrator_git_tag == "-INSTALLED":
+    if cfg.migrator_git_ref in RESERVED_GIT_REFS.keys():
+        if cfg.migrator_git_ref == "-INSTALLED":
             print(f"Using the currently-installed nmdc-schema package: {version('nmdc_schema')}")
         else:
-            # If execution gets here, it means a developer introduced a new reserved Git tag into
-            # the `RESERVED_GIT_TAGS` dictionary, but did not update these conditions accordingly.
-            raise typer.BadParameter(f"Unsupported reserved Git tag: {cfg.migrator_git_tag}")
+            # If execution gets here, it means a developer introduced a new item into the
+            # `RESERVED_GIT_REFS` dictionary, but did not update these conditions accordingly.
+            raise typer.BadParameter(f"Unsupported reserved Git ref: {cfg.migrator_git_ref}")
     else:
-        package_identifier = f"{cfg.schema_repo_url}@{cfg.migrator_git_tag}"
+        # Build a `pip install`-compatible package identifier for the `nmdc-schema` package.
+        # Reference: https://pip.pypa.io/en/stable/topics/vcs-support/#git
+        package_identifier = f"{cfg.schema_repo_url}@{cfg.migrator_git_ref}"
         ensure_pip_is_available(sys.executable)
         command_parts = [sys.executable, "-m", "pip", "install", f"git+{package_identifier}"]
         run_subprocess_with_live_display(
