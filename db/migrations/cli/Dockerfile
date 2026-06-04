@@ -35,7 +35,7 @@ RUN apt-get update && \
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
 COPY --from=ghcr.io/astral-sh/uv:0.11.11 /uv /uvx /bin/
 
-# Configure `uv` to not install development dependencies
+# Configure `uv` to not install development dependencies.
 # Docs: https://docs.astral.sh/uv/guides/integration/docker/#installing-a-project
 ENV UV_NO_DEV=1
 
@@ -69,8 +69,7 @@ COPY uv.lock .
 #       Docs: https://docs.astral.sh/uv/concepts/projects/sync/#partial-installations
 #
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --compile-bytecode \
-        --no-dev --no-install-project
+    uv sync --locked --compile-bytecode --no-install-project
 
 # Upgrade `pip` to the latest version.
 #
@@ -81,29 +80,40 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PIP_CACHE_DIR="/tmp/.pip_cache_dir"
 RUN uv pip install --upgrade pip
 
-# Create an init shell script that does two things: (1) it launches MongoDB via the same entrypoint
-# script as the base image does, except it launches it in daemon mode and configures it to write
-# its logs to a file instead of to the console; and (2) it executes, on the shell, as the main
-# process of the container, whatever arguments were passed to the init script.
+# Create an init shell script that does three things: (1) set the ownership and mode of the specified
+# MongoDB data directory to match what they are for the default one (i.e. `/data/db`), (2) launch
+# MongoDB via the same entrypoint script as the base `mongo` image would, except launch it in daemon
+# mode, configure it to write its logs to a file instead of to the console, and configure it to
+# store its data in the specified directory; and (3) execute, on the shell, as the main process of
+# the container, whatever arguments were passed to the init script.
+#
 # Docs: https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--dbpath
-RUN echo '#! /bin/bash'                                                                                    > /init.sh && \
-    echo 'echo "\nLaunching MongoDB in daemon mode.\n"'                                                   >> /init.sh && \
-    echo 'docker-entrypoint.sh mongod --fork --logpath "${MONGO_LOG_PATH}" --dbpath "${MONGO_DATA_PATH}"' >> /init.sh && \
-    echo 'cd /app'                                                                                        >> /init.sh && \
-    echo 'echo "\nExecuting command (in $(pwd)):"'                                                        >> /init.sh && \
-    echo 'printf "  %s\n" "$@"'                                                                           >> /init.sh && \
-    echo 'exec "$@"'                                                                                      >> /init.sh && \
-    chmod +x                                                                                                 /init.sh
+#
+RUN echo '#! /bin/bash'                                                     > /init.sh && \
+    echo ''                                                                >> /init.sh && \
+    echo 'echo "Preparing MongoDB data directory: "${MONGO_DATA_PATH}""'   >> /init.sh && \
+    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                              >> /init.sh && \
+    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'               >> /init.sh && \
+    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                >> /init.sh && \
+    echo ''                                                                >> /init.sh && \
+    echo 'echo "\nLaunching MongoDB in daemon mode:"'                      >> /init.sh && \
+    echo 'docker-entrypoint.sh mongod --fork \'                            >> /init.sh && \
+    echo '  --logpath "${MONGO_LOG_PATH}" \'                               >> /init.sh && \
+    echo '  --dbpath "${MONGO_DATA_PATH}"'                                 >> /init.sh && \
+    echo ''                                                                >> /init.sh && \
+    echo 'echo -n "\nExecuting command: " && printf "%s " "$@"'            >> /init.sh && \
+    echo ''                                                                >> /init.sh && \
+    echo 'exec "$@"'                                                       >> /init.sh && \
+    chmod +x                                                                  /init.sh
 
 # Copy the project files into the image.
 COPY src src
 COPY README.md README.md
 
 # Finally, install the project, itself.
-# Note: This will install our app at: `/app/.venv/bin/nmdc-migration-cli`
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --compile-bytecode --no-editable
 
 # Run the init shell script such that it runs our app.
-ENTRYPOINT ["/init.sh", "/app/.venv/bin/nmdc-migration-cli"]
+ENTRYPOINT ["/init.sh", "uv", "run", "--no-sync", "nmdc-migration-cli"]
 CMD ["--help"]
