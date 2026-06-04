@@ -87,7 +87,9 @@ RUN uv pip install --upgrade pip
 RUN echo '#! /bin/bash'                                                      > /init.sh && \
     echo 'echo "\nLaunching MongoDB in daemon mode.\n"'                     >> /init.sh && \
     echo 'docker-entrypoint.sh mongod --fork --logpath "${MONGO_LOG_PATH}"' >> /init.sh && \
-    echo 'echo "\nExecuting command.\n"'                                    >> /init.sh && \
+    echo 'cd /app'                                                          >> /init.sh && \
+    echo 'echo "\nExecuting command (in $(pwd)):"'                          >> /init.sh && \
+    echo 'printf "  %s\n" "$@"'                                             >> /init.sh && \
     echo 'exec "$@"'                                                        >> /init.sh && \
     chmod +x                                                                   /init.sh
 
