@@ -14,6 +14,7 @@ ENV TRANSFORMER_DUMP_FOLDER_PATH="/tmp/mongodump.transformer.out"
 
 # Define environment variables that are meaningful to the init shell script defined below.
 ENV MONGO_LOG_PATH="/tmp/mongo.log"
+ENV MONGO_DATA_PATH="/data/db"
 
 # Reference: https://specs.opencontainers.org/image-spec/annotations/#pre-defined-annotation-keys
 LABEL org.opencontainers.image.title="nmdc-migration-cli"
@@ -84,14 +85,15 @@ RUN uv pip install --upgrade pip
 # script as the base image does, except it launches it in daemon mode and configures it to write
 # its logs to a file instead of to the console; and (2) it executes, on the shell, as the main
 # process of the container, whatever arguments were passed to the init script.
-RUN echo '#! /bin/bash'                                                      > /init.sh && \
-    echo 'echo "\nLaunching MongoDB in daemon mode.\n"'                     >> /init.sh && \
-    echo 'docker-entrypoint.sh mongod --fork --logpath "${MONGO_LOG_PATH}"' >> /init.sh && \
-    echo 'cd /app'                                                          >> /init.sh && \
-    echo 'echo "\nExecuting command (in $(pwd)):"'                          >> /init.sh && \
-    echo 'printf "  %s\n" "$@"'                                             >> /init.sh && \
-    echo 'exec "$@"'                                                        >> /init.sh && \
-    chmod +x                                                                   /init.sh
+# Docs: https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--dbpath
+RUN echo '#! /bin/bash'                                                                                    > /init.sh && \
+    echo 'echo "\nLaunching MongoDB in daemon mode.\n"'                                                   >> /init.sh && \
+    echo 'docker-entrypoint.sh mongod --fork --logpath "${MONGO_LOG_PATH}" --dbpath "${MONGO_DATA_PATH}"' >> /init.sh && \
+    echo 'cd /app'                                                                                        >> /init.sh && \
+    echo 'echo "\nExecuting command (in $(pwd)):"'                                                        >> /init.sh && \
+    echo 'printf "  %s\n" "$@"'                                                                           >> /init.sh && \
+    echo 'exec "$@"'                                                                                      >> /init.sh && \
+    chmod +x                                                                                                 /init.sh
 
 # Copy the project files into the image.
 COPY src src
