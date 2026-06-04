@@ -85,18 +85,23 @@ def migrate(
             envvar="MIGRATOR_GIT_REF",
             help=(
                 "Git branch name, tag name, or commit hash of nmdc-schema, containing the migrator "
-                "you want to run (e.g., 'main', 'v1.0.0')."
+                "you want to run (e.g., 'main', 'v1.0.0'). "
                 f"Special values: {get_reserved_git_refs_help_snippet()}"
             ),
             rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            show_default=False,
         ),
     ],
     migrator_module_name: Annotated[
         str,
         typer.Option(
             envvar="MIGRATOR_MODULE_NAME",
-            help="Name of the Python module that constitutes the migrator you want to run.",
+            help=(
+                "Name of the Python module that constitutes the migrator you want to run "
+                "(e.g. 'migrator_from_1_0_0_to_2_0_0')."
+            ),
             rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            show_default=False,
         ),
     ],
     collection_names: Annotated[
@@ -108,6 +113,7 @@ def migrate(
             help="Names of MongoDB collections to migrate. You can specify this option multiple times, or populate the environment variable with a space-delimited list of names.",
             callback=ParamValidators.validate_collection_names,
             rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            show_default=False,
         ),
     ],
     origin_mongo_host: Annotated[
@@ -116,6 +122,7 @@ def migrate(
             envvar="ORIGIN_MONGO_HOST",
             help="Hostname for the origin MongoDB server.",
             rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            show_default=False,
         ),
     ],
     origin_mongo_port: Annotated[
@@ -307,6 +314,7 @@ def migrate(
     show_diff: Annotated[
         bool,
         typer.Option(
+            "--show-diff",  # we explicitly state this, so Typer doesn't also display `--no-show-diff` (which is redundant with the default value)
             envvar="SHOW_DIFF",
             help="Whether to show a before-and-after-migration diff of the specified collections.",
         ),
@@ -314,6 +322,7 @@ def migrate(
     skip_origin_writes: Annotated[
         bool,
         typer.Option(
+            "--skip-origin-writes",  # we explicitly state this, so Typer doesn't also display `--no-origin-writes` (which is redundant with the default value)
             envvar="SKIP_ORIGIN_WRITES",
             help="When set, the app won't make [bold]any[/bold] changes to the origin MongoDB server (e.g. no revoking/restoring user access, no persisting transformed data) and, therefore, does not require write access to it.",
         ),
