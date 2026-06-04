@@ -314,7 +314,6 @@ def migrate(
     show_diff: Annotated[
         bool,
         typer.Option(
-            "--show-diff",  # we explicitly state this, so Typer doesn't also display `--no-show-diff` (which is redundant with the default value)
             envvar="SHOW_DIFF",
             help="Whether to show a before-and-after-migration diff of the specified collections.",
         ),
@@ -322,7 +321,6 @@ def migrate(
     skip_origin_writes: Annotated[
         bool,
         typer.Option(
-            "--skip-origin-writes",  # we explicitly state this, so Typer doesn't also display `--no-origin-writes` (which is redundant with the default value)
             envvar="SKIP_ORIGIN_WRITES",
             help="When set, the app won't make [bold]any[/bold] changes to the origin MongoDB server (e.g. no revoking/restoring user access, no persisting transformed data) and, therefore, does not require write access to it.",
         ),
