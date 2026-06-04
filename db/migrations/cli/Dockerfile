@@ -97,12 +97,11 @@ RUN echo '#! /bin/bash'                                                      > /
 COPY src src
 COPY README.md README.md
 
-# Install the project, itself.
+# Finally, install the project, itself.
+# Note: This will install our app at: `/app/.venv/bin/nmdc-migration-cli`
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --compile-bytecode
+    uv sync --locked --compile-bytecode --no-editable
 
 # Run the init shell script such that it runs our app.
-# Note: We include `--no-sync` so `uv` doesn't do a redundant sync at "run" time,
-#       given that the step immediately before this was already a sync.
-ENTRYPOINT ["/init.sh", "uv", "run", "--no-sync", "nmdc-migration-cli"]
+ENTRYPOINT ["/init.sh", "/app/.venv/bin/nmdc-migration-cli"]
 CMD ["--help"]
