@@ -91,7 +91,7 @@ RUN uv pip install --upgrade pip
 #
 RUN echo '#! /bin/bash'                                                     > /init.sh && \
     echo ''                                                                >> /init.sh && \
-    echo 'echo "Preparing MongoDB data directory: "${MONGO_DATA_PATH}""'   >> /init.sh && \
+    echo 'echo "Preparing MongoDB data directory: ${MONGO_DATA_PATH}"'     >> /init.sh && \
     echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                              >> /init.sh && \
     echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'               >> /init.sh && \
     echo '  chmod 755 "${MONGO_DATA_PATH}"'                                >> /init.sh && \
