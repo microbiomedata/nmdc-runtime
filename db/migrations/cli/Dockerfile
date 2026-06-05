@@ -91,23 +91,23 @@ RUN uv pip install --upgrade pip
 #
 # Docs: https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--dbpath
 #
-RUN echo '#! /bin/bash'                                                        > /init.sh && \
-    echo ''                                                                    >> /init.sh && \
-    echo 'printf "Preparing MongoDB data directory: %s\n" "${MONGO_DATA_PATH}" >> /init.sh && \
-    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                                  >> /init.sh && \
-    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'                   >> /init.sh && \
-    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                    >> /init.sh && \
-    echo ''                                                                    >> /init.sh && \
-    echo 'printf "\nLaunching MongoDB in daemon mode:\n"'                      >> /init.sh && \
-    echo 'docker-entrypoint.sh mongod --fork \'                                >> /init.sh && \
-    echo '  --logpath "${MONGO_LOG_PATH}" \'                                   >> /init.sh && \
-    echo '  --dbpath "${MONGO_DATA_PATH}"'                                     >> /init.sh && \
-    echo ''                                                                    >> /init.sh && \
-    echo 'printf "\nExecuting command: " && \'                                 >> /init.sh && \
-    echo '  printf "%s " "$@" && \'                                            >> /init.sh && \
-    echo '  printf "\n"'                                                       >> /init.sh && \
-    echo 'exec "$@"'                                                           >> /init.sh && \
-    chmod +x                                                                      /init.sh
+RUN echo '#! /bin/bash'                                                          > /init.sh && \
+    echo ''                                                                     >> /init.sh && \
+    echo 'printf "Preparing MongoDB data directory: %s\n" "${MONGO_DATA_PATH}"' >> /init.sh && \
+    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                                   >> /init.sh && \
+    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'                    >> /init.sh && \
+    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                     >> /init.sh && \
+    echo ''                                                                     >> /init.sh && \
+    echo 'printf "\nLaunching MongoDB in daemon mode:\n"'                       >> /init.sh && \
+    echo 'docker-entrypoint.sh mongod --fork \'                                 >> /init.sh && \
+    echo '  --logpath "${MONGO_LOG_PATH}" \'                                    >> /init.sh && \
+    echo '  --dbpath "${MONGO_DATA_PATH}"'                                      >> /init.sh && \
+    echo ''                                                                     >> /init.sh && \
+    echo 'printf "\nExecuting command: " && \'                                  >> /init.sh && \
+    echo '  printf "%s " "$@" && \'                                             >> /init.sh && \
+    echo '  printf "\n"'                                                        >> /init.sh && \
+    echo 'exec "$@"'                                                            >> /init.sh && \
+    chmod +x                                                                       /init.sh
 
 # Copy the project files into the image.
 COPY src src
