@@ -80,31 +80,34 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PIP_CACHE_DIR="/tmp/.pip_cache_dir"
 RUN uv pip install --upgrade pip
 
-# Create an init shell script that does three things: (1) set the ownership and mode of the specified
-# MongoDB data directory to match what they are for the default one (i.e. `/data/db`), (2) launch
-# MongoDB via the same entrypoint script as the base `mongo` image would, except launch it in daemon
-# mode, configure it to write its logs to a file instead of to the console, and configure it to
-# store its data in the specified directory; and (3) execute, on the shell, as the main process of
-# the container, whatever arguments were passed to the init script.
+# Create an init shell script that does the following things:
+# (1) prepare the MongoDB data directory (by setting its ownership and "rwx" mode to match what they
+#     are for the default one (i.e. `/data/db`);
+# (2) launch MongoDB in daemon mode, via the same entrypoint script as the base `mongo` image would,
+#      and configure it to write its logs to a file instead of to the console, and to store its data
+#      in the specified directory; and
+# (3) execute, as the container's main process, a shell command composed of whatever arguments were
+#     passed to the init script (typically a command to run the `nmdc-migration-cli` CLI app).
 #
 # Docs: https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--dbpath
 #
-RUN echo '#! /bin/bash'                                                     > /init.sh && \
-    echo ''                                                                >> /init.sh && \
-    echo 'echo "Preparing MongoDB data directory: ${MONGO_DATA_PATH}"'     >> /init.sh && \
-    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                              >> /init.sh && \
-    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'               >> /init.sh && \
-    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                >> /init.sh && \
-    echo ''                                                                >> /init.sh && \
-    echo 'echo "\nLaunching MongoDB in daemon mode:"'                      >> /init.sh && \
-    echo 'docker-entrypoint.sh mongod --fork \'                            >> /init.sh && \
-    echo '  --logpath "${MONGO_LOG_PATH}" \'                               >> /init.sh && \
-    echo '  --dbpath "${MONGO_DATA_PATH}"'                                 >> /init.sh && \
-    echo ''                                                                >> /init.sh && \
-    echo 'echo -n "\nExecuting command: " && printf "%s " "$@"'            >> /init.sh && \
-    echo ''                                                                >> /init.sh && \
-    echo 'exec "$@"'                                                       >> /init.sh && \
-    chmod +x                                                                  /init.sh
+RUN echo '#! /bin/bash'                                                        > /init.sh && \
+    echo ''                                                                    >> /init.sh && \
+    echo 'printf "Preparing MongoDB data directory: %s\n" "${MONGO_DATA_PATH}" >> /init.sh && \
+    echo 'mkdir -p "${MONGO_DATA_PATH}" && \'                                  >> /init.sh && \
+    echo '  chown mongodb:mongodb "${MONGO_DATA_PATH}" && \'                   >> /init.sh && \
+    echo '  chmod 755 "${MONGO_DATA_PATH}"'                                    >> /init.sh && \
+    echo ''                                                                    >> /init.sh && \
+    echo 'printf "\nLaunching MongoDB in daemon mode:\n"'                      >> /init.sh && \
+    echo 'docker-entrypoint.sh mongod --fork \'                                >> /init.sh && \
+    echo '  --logpath "${MONGO_LOG_PATH}" \'                                   >> /init.sh && \
+    echo '  --dbpath "${MONGO_DATA_PATH}"'                                     >> /init.sh && \
+    echo ''                                                                    >> /init.sh && \
+    echo 'printf "\nExecuting command: " && \'                                 >> /init.sh && \
+    echo '  printf "%s " "$@" && \'                                            >> /init.sh && \
+    echo '  printf "\n"'                                                       >> /init.sh && \
+    echo 'exec "$@"'                                                           >> /init.sh && \
+    chmod +x                                                                      /init.sh
 
 # Copy the project files into the image.
 COPY src src
