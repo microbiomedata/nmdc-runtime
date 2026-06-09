@@ -231,7 +231,7 @@ class MongoIDStore(IDStore):
                 id_name = f"nmdc:{typecode_str}-{shoulder_str}-{blade}"
                 id_names.add(id_name)
             id_names = list(id_names)
-            _, ids_not_taken = self._check_id_availability(ids=id_names)
+            ids_not_taken, _ = self._check_id_availability(ids=id_names)
 
             # If any of the generated `id` values was not taken, take it now.
             #
@@ -294,7 +294,7 @@ class MongoIDStore(IDStore):
                 )
             )
             base_id = identifiers[0].name
-            logger.info(f"Minted a base ID: {base_id}")
+            logger.info(f"Minted base ID: {base_id}")
 
         # Do both the "find" and "claim" steps within a single MongoDB transaction to avoid race conditions.
         with self.db.client.start_session() as client_session:
