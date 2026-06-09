@@ -3,7 +3,7 @@ import re
 from typing import Optional
 
 from base32_lib import base32
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, Field, PositiveInt
 
 from nmdc_runtime.minter.config import schema_classes, typecodes
 
@@ -75,19 +75,25 @@ class WorkflowExecutionIdMintingRequest(ValueObject):
 class AuthenticatedWorkflowExecutionIdMintingRequest(ValueObject):
     """User-defined request for minting a `WorkflowExecution` identifier."""
 
-    schema_class: Entity
-    """
-    Class URI of the non-abstract schema class descending from `WorkflowExecution`,
-    for which you want to mint an ID. For example: `nmdc:NomAnalysis`.
-    Docs: https://microbiomedata.github.io/nmdc-schema/WorkflowExecution/
-    """
+    schema_class: Entity = Field(
+        description=(
+            "Class URI of the non-abstract schema class descending from "
+            "`WorkflowExecution`, for which you want to mint an ID. "
+            "See: https://microbiomedata.github.io/nmdc-schema/WorkflowExecution/"
+        ),
+        examples=[{"id": "nmdc:NomAnalysis"}],
+    )
 
-    existing_id: str | None = None
-    """
-    An existing ID, if any, whose base you want the newly-minted ID to share. For example:
-    If you specify the ID `nmdc:wfnom-11-foobar.1`, the newly-minted ID will have the
-    base `nmdc:wfnom-11-foobar`.
-    """
+    existing_id: str | None = Field(
+        default=None,
+        description=(
+            "An existing ID, if any, whose base you want the newly-minted ID to share. For example: "
+            "If you specify the ID `nmdc:wfnom-11-foobar.1`, the newly-minted ID will have the "
+            "base `nmdc:wfnom-11-foobar` and will have the 'dot integer' suffix one greater than "
+            "the largest already-claimed one (e.g. `.4` if `.1` and `.3` have been claimed)."
+        ),
+        examples=["nmdc:wfnom-11-foobar.1", None],
+    )
 
 
 class ResolutionRequest(ValueObject):
