@@ -1,4 +1,5 @@
 import abc
+import logging
 import re
 from typing import Union
 
@@ -6,7 +7,10 @@ from pymongo import ReturnDocument
 from toolz import merge
 from pymongo.database import Database as MongoDatabase
 
-
+from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    parse_workflow_execution_id,
+    make_pattern_matching_ids_having_base_id,
+)
 from nmdc_runtime.minter.domain.model import (
     Identifier,
     Status,
@@ -18,6 +22,9 @@ from nmdc_runtime.minter.domain.model import (
 )
 from nmdc_runtime.api.core.idgen import generate_id
 from nmdc_runtime.util import find_one
+
+
+logger = logging.getLogger(__name__)
 
 
 class MinterError(Exception):
@@ -248,14 +255,81 @@ class MongoIDStore(IDStore):
 
     def mint_workflow_execution_id(
         self,
-        workflow_execution_id_minting_request: WorkflowExecutionIdMintingRequest,
+        minting_request: WorkflowExecutionIdMintingRequest,
     ) -> Identifier:
         """
         Mint an `id` value for the specified `WorkflowExecution` subclass. If an existing `id`
         is specified, the minted `id` will have the same base as that `id`.
         """
 
-        pass
+        # Validate the minting request and extract the typecode and shoulder from it.
+        self._validate_service_id(minting_request.service.id)
+        self._validate_requester_id(minting_request.requester.id)
+        self._validate_schema_class_uri(minting_request.schema_class.id)
+        typecode_document = self._get_typecode_document_by_class_uri(class_uri=minting_request.schema_class.id)
+        shoulder_document = self._get_shoulder_document_by_service_id(service_id=minting_request.service.id)
+
+        # If no base ID was specified, mint one now. This ensures we have a base ID for the subsequent steps.
+        base_id = minting_request.base_id
+        if base_id is None:
+            identifiers: list[Identifier] = self.mint(MintingRequest(
+                service=minting_request.service,
+                requester=minting_request.requester,
+                schema_class=minting_request.schema_class,
+                how_many=1,
+            ))
+            base_id = identifiers[0].name
+            logger.info(f"Minted a base ID: {base_id}")
+
+        # Do both the "find" and "claim" steps within a single MongoDB transaction to avoid race conditions.
+        with self.db.client.start_session() as client_session:
+            with client_session.start_transaction():
+                minter_id_records = self.db.get_collection("minter.id_records")  # concise alias
+                workflow_execution_set = self.db.get_collection("workflow_execution_set")  # concise alias
+
+                # Gather all the integers from the already-claimed "dot integer" suffixes for the given base ID.
+                #
+                # Important: Due to {{{ ...see note in `fastapi_app.py` about the history of "ID management"... }}},
+                #            we check _both_ the `minter.id_records` collection and the `workflow_execution_set`
+                #            collection.
+                #
+                integers_claimed = set()
+                id_pattern = make_pattern_matching_ids_having_base_id(base_id=base_id)
+                filter_ = {"id": {"$regex": id_pattern}}
+                cursor = minter_id_records.find(filter_, {"id": 1}, session=client_session)
+                for document in cursor:
+                    _, integer_claimed = parse_workflow_execution_id(raw_id=document["id"])
+                    if isinstance(integer_claimed, int):
+                        integers_claimed.add(integer_claimed)
+                cursor = workflow_execution_set.find(filter_, {"id": 1}, session=client_session)
+                for document in cursor:
+                    _, integer_claimed = parse_workflow_execution_id(raw_id=document["id"])
+                    if isinstance(integer_claimed, int):
+                        integers_claimed.add(integer_claimed)
+                logger.info(f"Suffix integers already claimed: {integers_claimed}")
+
+                # Calculate the integer we will claim.
+                # Example: if ".1" and ".3" are claimed, we will claim ".4" (not ".2").
+                largest_integer_claimed = max(integers_claimed) if len(integers_claimed) > 0 else 0
+                integer_to_claim = largest_integer_claimed + 1
+                logger.info(f"Suffix integer to claim: {integer_to_claim}")
+
+                # Mint an ID that has the specified base ID and that calculated integer in its "dot integer" suffix.
+                id_name = f"{base_id}.{integer_to_claim}"
+                identifier = Identifier(
+                    **{
+                        "id": id_name,
+                        "name": id_name,
+                        "typecode": typecode_document,
+                        "shoulder": shoulder_document,
+                        "status": Status.draft,
+                    }
+                )
+                minter_id_records.insert_one(identifier.model_dump(), session=client_session)
+                logger.info(f"Minted WorkflowExecution ID: {id_name}")
+
+        return identifier
+
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
         """Associate the specified arbitrary metadata with the specified ID.

@@ -6,6 +6,7 @@ from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
+from nmdc_runtime.api.endpoints.lib.workflow_executions import parse_workflow_execution_id
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.minter.adapters.repository import MongoIDStore, MinterError
 from nmdc_runtime.minter.config import minting_service_id
@@ -20,6 +21,7 @@ from nmdc_runtime.minter.domain.model import (
     AuthenticatedDeleteRequest,
     DeleteRequest,
     AuthenticatedWorkflowExecutionIdMintingRequest,
+    WorkflowExecutionIdMintingRequest,
 )
 from nmdc_runtime.minter.lib.identifiers import get_typecode_from_id
 from nmdc_runtime.minter.lib.schema import (
@@ -158,7 +160,23 @@ def mint_workflow_execution_id(
     pass
 
     # The next step is to mint a new `id` value (having either a new base, or the same base as the specified `id`).
-    return "foo"
+    requester = Entity(id=site.id)
+    base_id, _ = parse_workflow_execution_id(raw_id=existing_id) if isinstance(existing_id, str) else None
+    minting_request = WorkflowExecutionIdMintingRequest(
+        service=service,
+        requester=requester,
+        schema_class=class_uri_entity,
+        base_id=base_id,
+    )
+    id_store = MongoIDStore(mdb)
+    identifier = id_store.mint_workflow_execution_id(minting_request=minting_request)
+    id_value = identifier.id
+    if id_value is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_BAD_REQUEST,
+            detail="Failed to mint identifier. Please try again."
+        )
+    return id_value
 
 @router.get("/resolve/{id_name}")
 def resolve_id(

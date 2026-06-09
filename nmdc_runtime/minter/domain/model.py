@@ -64,10 +64,11 @@ class WorkflowExecutionIdMintingRequest(ValueObject):
     System-defined request, derived from the user-defined request, for minting a `WorkflowExecution` identifier.
     This distinction between system-defined and user-defined was modeled after the original classes:
     `MintingRequest` and `AuthenticatedMintingRequest`.
-
-    TODO: Implement this.
     """
-    pass
+    service: Entity
+    requester: Entity
+    schema_class: Entity
+    base_id: str | None
 
 
 class AuthenticatedWorkflowExecutionIdMintingRequest(ValueObject):
