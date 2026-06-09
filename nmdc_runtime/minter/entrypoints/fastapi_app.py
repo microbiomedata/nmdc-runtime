@@ -170,8 +170,8 @@ def mint_workflow_execution_id(
 
     # The next step is to mint a new `id` value (having either a new base, or the same base as the specified `id`).
     requester = Entity(id=site.id)
-    base_id, _ = (
-        parse_workflow_execution_id(raw_id=existing_id)
+    base_id = (
+        parse_workflow_execution_id(raw_id=existing_id)[0]
         if isinstance(existing_id, str)
         else None
     )
