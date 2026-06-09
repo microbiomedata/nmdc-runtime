@@ -83,8 +83,11 @@ def mint_workflow_execution_id(
     """
     Mint a (typed) persistent identifier for a workflow execution.
 
-    The identifier will include a "dot integer" suffix and will have the same base as the
-    specified existing identifier, or a unique base if no existing identifier was specified.
+    If you specify an existing ID, the minted ID will share the same base. The dot integer suffix of the minted ID will
+    be 1 greater than the largest integer that has already been claimed for that base.
+
+    If you do not specify an existing ID, the minted ID will have a unique base and will have a dot integer suffix of `.1`.
+
     Unlike the `/mint` endpoint, this endpoint only mints a single identifier per request.
     """
     class_uri_entity = wfe_id_minting_req.schema_class
