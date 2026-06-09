@@ -9,7 +9,6 @@ from nmdc_runtime.site.translation.neon_utils import (
 )
 import pandas as pd
 
-
 # Mock data for testing
 mms_data = {
     "mms_metagenomeDnaExtraction": pd.DataFrame(
@@ -795,6 +794,19 @@ BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661
     return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
 
 
+def neon_raw_data_file_mappings_file_multi_run():
+    """Same BLAN_005 sample as the single-run fixture, but sequenced on two
+    runs (HVT2HBGXJ and HABCDBGXJ) — exercises the multi-run NucleotideSequencing
+    name disambiguation and Manifest creation."""
+    tsv_data_dna = """dnaSampleID\tsequencerRunID\tinternalLabID\trawDataFileName\trawDataFileDescription\trawDataFilePath\tcheckSum
+BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661_R1.fastq.gz\tR1 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HVT2HBGXJ_mms_R1/BMI_HVT2HBGXJ_20S_08_0661_R1.fastq.gz\t8b5794e91b1e79e02f1a3e7ef53a73b3
+BLAN_005-M-20200713-COMP-DNA1\tHVT2HBGXJ\t20S_08_0661\tBMI_HVT2HBGXJ_20S_08_0661_R2.fastq.gz\tR2 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HVT2HBGXJ_mms_R2/BMI_HVT2HBGXJ_20S_08_0661_R2.fastq.gz\t44dc66147143a6eb1e806defa7f3706e
+BLAN_005-M-20200713-COMP-DNA1\tHABCDBGXJ\t20S_08_0661\tBMI_HABCDBGXJ_20S_08_0661_R1.fastq.gz\tR1 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HABCDBGXJ_mms_R1/BMI_HABCDBGXJ_20S_08_0661_R1.fastq.gz\taaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+BLAN_005-M-20200713-COMP-DNA1\tHABCDBGXJ\t20S_08_0661\tBMI_HABCDBGXJ_20S_08_0661_R2.fastq.gz\tR2 metagenomic archive of fastq files\thttps://storage.neonscience.org/neon-microbial-raw-seq-files/2021/BMI_HABCDBGXJ_mms_R2/BMI_HABCDBGXJ_20S_08_0661_R2.fastq.gz\tbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"""
+
+    return pd.read_csv(StringIO(tsv_data_dna), delimiter="\t")
+
+
 mock_gold_nmdc_instrument_map_df = pd.DataFrame(
     {
         "NEON sequencingMethod": [
@@ -824,6 +836,47 @@ class TestNeonDataTranslator:
             site_code_mapping=site_code_mapping(),
             neon_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df,
             id_minter=test_minter,
+        )
+
+    def test_multi_run_nucleotide_sequencing_names(self, test_minter):
+        """A dnaSampleID sequenced on >1 run gets one NucleotideSequencing per
+        run, each name disambiguated with its run basename, plus a
+        poolable_replicates Manifest. Single-run naming is covered by
+        test_neon_soil_data_translator (BLAN_005, untagged)."""
+        translator = NeonSoilDataTranslator(
+            mms_data=mms_data,
+            sls_data=sls_data,
+            neon_envo_mappings_file=neon_envo_mappings_file(),
+            neon_raw_data_file_mappings_file=neon_raw_data_file_mappings_file_multi_run(),
+            site_code_mapping=site_code_mapping(),
+            neon_nmdc_instrument_map_df=mock_gold_nmdc_instrument_map_df,
+            id_minter=test_minter,
+        )
+        database = translator.get_database()
+
+        nuc_seqs = [
+            d
+            for d in database.data_generation_set
+            if d["type"] == "nmdc:NucleotideSequencing"
+        ]
+        # One NucleotideSequencing per run, each name tagged with its run base.
+        assert sorted(d["name"] for d in nuc_seqs) == [
+            "Terrestrial soil microbial communities - BLAN_005-M-20200713-COMP-DNA1 (BMI_HABCDBGXJ_20S_08_0661)",
+            "Terrestrial soil microbial communities - BLAN_005-M-20200713-COMP-DNA1 (BMI_HVT2HBGXJ_20S_08_0661)",
+        ]
+        # Each run carries its own R1/R2 DataObject pair.
+        for d in nuc_seqs:
+            assert len(d["has_output"]) == 2
+
+        # Multi-run => a poolable_replicates Manifest, and every raw DataObject
+        # points at it.
+        assert len(database.manifest_set) == 1
+        assert "poolable_replicates" in str(
+            database.manifest_set[0]["manifest_category"]
+        )
+        manifest_id = database.manifest_set[0]["id"]
+        assert all(
+            do["in_manifest"] == [manifest_id] for do in database.data_object_set
         )
 
     def test_missing_mms_table(self, test_minter):
