@@ -390,6 +390,7 @@ class NeonSoilDataTranslator(Translator):
         processed_sample_id: str,
         raw_data_file_data: str,
         nucleotide_sequencing_row: pd.DataFrame,
+        run_label: Optional[str] = None,
     ):
         """Create nmdc NucleotideSequencing object. This class typically models the run of a
         Bioinformatics workflow on sequence data from a biosample. The input to an NucleotideSequencing
@@ -402,6 +403,9 @@ class NeonSoilDataTranslator(Translator):
         files embedded in them.
         :param nucleotide_sequencing_row: DataFrame with metadata for an NucleotideSequencing workflow
         process/run.
+        :param run_label: Optional run basename (e.g. ``BMI_HFWLLBGX7_Plate67WellB2``) appended in
+        parentheses to the object's ``name`` to disambiguate records when one ``dnaSampleID`` is sequenced
+        across multiple runs. Defaults to ``None`` for single-run samples, leaving the name unchanged.
         :return: NucleotideSequencing object that models a Bioinformatics workflow process/run.
         """
         processing_institution = None
@@ -425,7 +429,11 @@ class NeonSoilDataTranslator(Translator):
             instrument_used=self._get_instrument_id(
                 _get_value_or_none(nucleotide_sequencing_row, "instrument_model")
             ),
-            name=f"Terrestrial soil microbial communities - {_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}",
+            name=(
+                "Terrestrial soil microbial communities - "
+                f"{_get_value_or_none(nucleotide_sequencing_row, 'dnaSampleID')}"
+                + (f" ({run_label})" if run_label else "")
+            ),
             type="nmdc:NucleotideSequencing",
             associated_studies=["nmdc:sty-11-34xj1150"],
             analyte_category="metagenome",
@@ -721,7 +729,9 @@ class NeonSoilDataTranslator(Translator):
         # NucleotideSequencing record per pair of corresponding R1/R2 files.
         # Pairing is done by filename basename (not full URL path) because
         # R1 and R2 files live in different directories.
-        dna_sample_file_pairs: dict[str, list[tuple[Optional[str], Optional[str]]]] = {}
+        dna_sample_file_pairs: dict[
+            str, list[tuple[str, Optional[str], Optional[str]]]
+        ] = {}
         for dna_sample_id, filepaths in neon_raw_data_files_dict.items():
             pairs: dict[str, dict[str, str]] = {}
             for fp in filepaths:
@@ -732,8 +742,11 @@ class NeonSoilDataTranslator(Translator):
                 elif "_R2.fastq.gz" in filename:
                     base = filename.rsplit("_R2.fastq.gz", 1)[0]
                     pairs.setdefault(base, {})["R2"] = fp
+            # Keep the per-run basename (e.g. BMI_HFWLLBGX7_Plate67WellB2) so a
+            # multi-run dnaSampleID's NucleotideSequencing names can be
+            # disambiguated by run (see the name= in _translate_nucleotide_sequencing).
             dna_sample_file_pairs[dna_sample_id] = [
-                (p.get("R1"), p.get("R2")) for p in pairs.values()
+                (base, p.get("R1"), p.get("R2")) for base, p in pairs.items()
             ]
 
         # Build a flat list of (dnaSampleID, pair_index) keys for minting
@@ -916,7 +929,11 @@ class NeonSoilDataTranslator(Translator):
                             )
                         )
                 else:
-                    for pair_idx, (r1_path, r2_path) in enumerate(pairs):
+                    # When a dnaSampleID was sequenced on more than one run, tag
+                    # each NucleotideSequencing name with its run basename so the
+                    # records are distinguishable (single-run names are unchanged).
+                    multi_run = len(pairs) > 1
+                    for pair_idx, (run_base, r1_path, r2_path) in enumerate(pairs):
                         ntseq_id = ntseq_pair_to_id.get((dna_sample_id, pair_idx))
                         if not ntseq_id:
                             continue
@@ -934,6 +951,7 @@ class NeonSoilDataTranslator(Translator):
                                 processed_sample_id,
                                 has_output_do_ids,
                                 library_preparation_row,
+                                run_label=run_base if multi_run else None,
                             )
                         )
 
