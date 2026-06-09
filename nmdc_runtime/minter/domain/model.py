@@ -65,6 +65,7 @@ class WorkflowExecutionIdMintingRequest(ValueObject):
     This distinction between system-defined and user-defined was modeled after the original classes:
     `MintingRequest` and `AuthenticatedMintingRequest`.
     """
+
     service: Entity
     requester: Entity
     schema_class: Entity

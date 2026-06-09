@@ -6,7 +6,9 @@ from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
 from nmdc_runtime.api.db.mongo import get_mongo_db
-from nmdc_runtime.api.endpoints.lib.workflow_executions import parse_workflow_execution_id
+from nmdc_runtime.api.endpoints.lib.workflow_executions import (
+    parse_workflow_execution_id,
+)
 from nmdc_runtime.api.models.site import get_current_client_site, Site
 from nmdc_runtime.minter.adapters.repository import MongoIDStore, MinterError
 from nmdc_runtime.minter.config import minting_service_id
@@ -103,7 +105,9 @@ def mint_workflow_execution_id(
             )
 
     # Check whether the specified class URI references a concrete subclass of `WorkflowExecution`.
-    if not does_class_uri_belong_to_concrete_subclass_of_workflow_execution(class_uri_entity.id):
+    if not does_class_uri_belong_to_concrete_subclass_of_workflow_execution(
+        class_uri_entity.id
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Class URI must belong to a concrete subclass of WorkflowExecution.",
@@ -120,7 +124,9 @@ def mint_workflow_execution_id(
             )
         else:
             # If the typecode is not compatible with the specified schema class, abort instead of checking the database.
-            compatible_typecodes = get_typecodes_compatible_with_schema_class(class_name)
+            compatible_typecodes = get_typecodes_compatible_with_schema_class(
+                class_name
+            )
             if typecode not in compatible_typecodes:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -149,7 +155,10 @@ def mint_workflow_execution_id(
         minter_id_records = mdb.get_collection("minter.id_records")
         if minter_id_records.count_documents({"id": existing_id}, limit=1) == 0:
             workflow_execution_set = mdb.get_collection("workflow_execution_set")
-            if workflow_execution_set.count_documents({"id": existing_id}, limit=1) == 0:
+            if (
+                workflow_execution_set.count_documents({"id": existing_id}, limit=1)
+                == 0
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"The specified ID does not exist.",
@@ -161,7 +170,11 @@ def mint_workflow_execution_id(
 
     # The next step is to mint a new `id` value (having either a new base, or the same base as the specified `id`).
     requester = Entity(id=site.id)
-    base_id, _ = parse_workflow_execution_id(raw_id=existing_id) if isinstance(existing_id, str) else None
+    base_id, _ = (
+        parse_workflow_execution_id(raw_id=existing_id)
+        if isinstance(existing_id, str)
+        else None
+    )
     minting_request = WorkflowExecutionIdMintingRequest(
         service=service,
         requester=requester,
@@ -174,9 +187,10 @@ def mint_workflow_execution_id(
     if id_value is None:
         raise HTTPException(
             status_code=status.HTTP_500_BAD_REQUEST,
-            detail="Failed to mint identifier. Please try again."
+            detail="Failed to mint identifier. Please try again.",
         )
     return id_value
+
 
 @router.get("/resolve/{id_name}")
 def resolve_id(
