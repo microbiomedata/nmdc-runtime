@@ -135,63 +135,115 @@ class MongoIDStore(abc.ABC):
     def __init__(self, mdb: MongoDatabase):
         self.db = mdb
 
+    def _validate_service_id(self, service_id: str | None) -> None:
+        """Raises an exception if the specified service ID is not found."""
+        if not self.db["minter.services"].find_one({"id": service_id}):
+            raise MinterError(f"Unknown service {service_id}")
+
+    def _validate_requester_id(self, requester_id: str | None) -> None:
+        """Raises an exception if the specified requester ID is not found."""
+        if not self.db["minter.requesters"].find_one({"id": requester_id}):
+            raise MinterError(f"Unknown requester {requester_id}")
+
+    def _validate_schema_class_uri(self, schema_class_uri: str | None) -> None:
+        """Raises an exception if the specified schema class URI is not found."""
+        if not self.db["minter.schema_classes"].find_one({"id": schema_class_uri}):
+            raise MinterError(f"Unknown schema class {schema_class_uri}")
+
+    def _validate_minting_request(self, minting_request: MintingRequest) -> None:
+        """
+        Raises an exception if the specified minting request fails validation.
+        
+        Note: This validation logic was copied verbatim from the original `mint` method.
+              It may not be comprehensive.
+        """
+        self._validate_service_id(minting_request.service.id)
+        self._validate_requester_id(minting_request.requester.id)
+        self._validate_schema_class_uri(minting_request.schema_class.id)
+
+    def _get_typecode_document_by_class_uri(self, class_uri: str | None):
+        """
+        Returns the Mongo document representing the typecode associated with the specified class URI,
+        raising an exception if there is no such typecode.
+        """
+        typecode_document = self.db["minter.typecodes"].find_one({"schema_class": class_uri})
+        if typecode_document is None:
+            raise MinterError(f"Cannot map schema class {class_uri} to a typecode")
+        return typecode_document
+
+    def _get_shoulder_document_by_service_id(self, service_id: str | None):
+        """
+        Returns the Mongo document representing the shoulder assigned to the service having the specified ID,
+        raising an exception if there is no such shoulder.
+        """
+        shoulder_document = self.db["minter.shoulders"].find_one({"assigned_to": service_id})
+        if shoulder_document is None:
+            raise MinterError(f"Failed to find shoulder assigned to service.")
+        return shoulder_document
+
+    def _check_id_availability(self, ids: list[str]) -> tuple[list[str], list[str]]:
+        """
+        Returns a tuple whose first item is a list of the specified IDs that are available,
+        and whose second item is a list of the specified IDs that are taken (not available).
+        """
+
+        cursor = self.db["minter.id_records"].find({"id": {"$in": ids}}, {"id": 1})
+        ids_taken = [document["id"] for document in cursor]
+        ids_available = [id_ for id_ in ids if id_ not in ids_taken]
+        return ids_available, ids_taken
+
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
         """
         TODO: Document this method.
         """
 
-        if not self.db["minter.services"].find_one({"id": req_mint.service.id}):
-            raise MinterError(f"Unknown service {req_mint.service.id}")
-        if not self.db["minter.requesters"].find_one({"id": req_mint.requester.id}):
-            raise MinterError(f"Unknown requester {req_mint.requester.id}")
-        if not self.db["minter.schema_classes"].find_one(
-            {"id": req_mint.schema_class.id}
-        ):
-            raise MinterError(f"Unknown schema class {req_mint.schema_class.id}")
-        typecode = self.db["minter.typecodes"].find_one(
-            {"schema_class": req_mint.schema_class.id}
-        )
-        if not typecode:
-            raise MinterError(
-                detail=f"Cannot map schema class {req_mint.schema_class.id} to a typecode"
-            )
-        shoulder = self.db["minter.shoulders"].find_one(
-            {"assigned_to": req_mint.service.id}
-        )
-        collected = []
+        self._validate_minting_request(minting_request=req_mint)
+        typecode_document = self._get_typecode_document_by_class_uri(class_uri=req_mint.schema_class.id)
+        shoulder_document = self._get_shoulder_document_by_service_id(service_id=req_mint.service.id)
+        typecode_str = typecode_document["name"]  # e.g. "sty" or "bsm"
+        shoulder_str = shoulder_document["name"]  # e.g. "11"
+
+        # Mint the requested quantity of `id`s.
+        ids_minted = []
         while True:
+            # Note: I assume the author opted to not call this `ids` because that term would be "overloaded"
+            #       in this context. On the other hand, `id` documents _do_ have a `name` field (see the
+            #       parameters being passed to `Identifier` further down in this function).
             id_names = set()
-            n_to_generate = req_mint.how_many - len(collected)
-            while len(id_names) < n_to_generate:
+            num_ids_to_generate = req_mint.how_many - len(ids_minted)
+            while len(id_names) < num_ids_to_generate:
                 blade = generate_id(length=8, split_every=0, checksum=True)
-                id_name = f"nmdc:{typecode['name']}-{shoulder['name']}-{blade}"
+                id_name = f"nmdc:{typecode_str}-{shoulder_str}-{blade}"
                 id_names.add(id_name)
             id_names = list(id_names)
-            taken = {
-                d["id"]
-                for d in self.db["minter.id_records"].find(
-                    {"id": {"$in": id_names}}, {"id": 1}
-                )
-            }
-            not_taken = [n for n in id_names if n not in taken]
-            if not_taken:
-                ids = [
+            _, ids_not_taken = self._check_id_availability(ids=id_names)
+
+            # If any of the generated `id` values was not taken, take it now.
+            #
+            # TODO: There's a race condition here, since an `id` might be taken between when we checked and when
+            #       we take it. If that happens, the `insert_many` below will fail since the `minter.id_records`
+            #       MongoDB collection has a unique index on its `id` fields (whew!).
+            #
+            if len(ids_not_taken) > 0:
+                identifiers = [
                     Identifier(
                         **{
                             "id": id_name,
                             "name": id_name,
-                            "typecode": typecode,
-                            "shoulder": shoulder,
+                            "typecode": typecode_document,
+                            "shoulder": shoulder_document,
                             "status": Status.draft,
                         }
                     )
-                    for id_name in not_taken
+                    for id_name in ids_not_taken
                 ]
-                self.db["minter.id_records"].insert_many([i.model_dump() for i in ids])
-                collected.extend(ids)
-            if len(collected) == req_mint.how_many:
+                self.db["minter.id_records"].insert_many([i.model_dump() for i in identifiers])
+                ids_minted.extend(identifiers)
+
+            # Once we've minted the same number of `id`s as were requested, break out of the forever loop.
+            if len(ids_minted) == req_mint.how_many:
                 break
-        return collected
+        return ids_minted
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
         """Associate the specified arbitrary metadata with the specified ID.
