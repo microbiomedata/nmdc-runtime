@@ -131,7 +131,7 @@ class InMemoryIDStore(IDStore):
                 raise MinterError("Status not 'draft'. Can't delete.")
 
 
-class MongoIDStore(abc.ABC):
+class MongoIDStore(IDStore):
     def __init__(self, mdb: MongoDatabase):
         self.db = mdb
 
