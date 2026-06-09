@@ -14,6 +14,7 @@ from nmdc_runtime.minter.domain.model import (
     BindingRequest,
     ResolutionRequest,
     DeleteRequest,
+    WorkflowExecutionIdMintingRequest,
 )
 from nmdc_runtime.api.core.idgen import generate_id
 from nmdc_runtime.util import find_one
@@ -194,7 +195,7 @@ class MongoIDStore(IDStore):
 
     def mint(self, req_mint: MintingRequest) -> list[Identifier]:
         """
-        TODO: Document this method.
+        Mint the specified number of `id` values, for the schema class having the specified class URI.
         """
 
         self._validate_minting_request(minting_request=req_mint)
@@ -222,7 +223,7 @@ class MongoIDStore(IDStore):
             #
             # TODO: There's a race condition here, since an `id` might be taken between when we checked and when
             #       we take it. If that happens, the `insert_many` below will fail since the `minter.id_records`
-            #       MongoDB collection has a unique index on its `id` fields (whew!).
+            #       MongoDB collection has a unique index on its `id` field.
             #
             if len(ids_not_taken) > 0:
                 identifiers = [
@@ -244,6 +245,17 @@ class MongoIDStore(IDStore):
             if len(ids_minted) == req_mint.how_many:
                 break
         return ids_minted
+
+    def mint_workflow_execution_id(
+        self,
+        workflow_execution_id_minting_request: WorkflowExecutionIdMintingRequest,
+    ) -> Identifier:
+        """
+        Mint an `id` value for the specified `WorkflowExecution` subclass. If an existing `id`
+        is specified, the minted `id` will have the same base as that `id`.
+        """
+
+        pass
 
     def bind(self, req_bind: BindingRequest) -> Identifier:
         """Associate the specified arbitrary metadata with the specified ID.

@@ -59,6 +59,35 @@ class AuthenticatedMintingRequest(ValueObject):
     how_many: PositiveInt = 1
 
 
+class WorkflowExecutionIdMintingRequest(ValueObject):
+    """
+    System-defined request, derived from the user-defined request, for minting a `WorkflowExecution` identifier.
+    This distinction between system-defined and user-defined was modeled after the original classes:
+    `MintingRequest` and `AuthenticatedMintingRequest`.
+
+    TODO: Implement this.
+    """
+    pass
+
+
+class AuthenticatedWorkflowExecutionIdMintingRequest(ValueObject):
+    """User-defined request for minting a `WorkflowExecution` identifier."""
+
+    schema_class: Entity
+    """
+    Class URI of the non-abstract schema class descending from `WorkflowExecution`,
+    for which you want to mint an ID. For example: `nmdc:NomAnalysis`.
+    Docs: https://microbiomedata.github.io/nmdc-schema/WorkflowExecution/
+    """
+
+    existing_id: str | None = None
+    """
+    An existing ID, if any, whose base you want the newly-minted ID to share. For example:
+    If you specify the ID `nmdc:wfnom-11-foobar.1`, the newly-minted ID will have the
+    base `nmdc:wfnom-11-foobar`.
+    """
+
+
 class ResolutionRequest(ValueObject):
     service: Entity
     requester: Entity
