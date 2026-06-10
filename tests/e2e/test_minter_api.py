@@ -115,8 +115,11 @@ class TestMintWorkflowExecutionId:
                 {"id": {"$in": ids}}
             )
 
-    def test_mint_workflow_execution_id(self, api_site_client: RuntimeApiSiteClient):
-        """Confirm a site client can mint a workflow execution ID."""
+    def test_given_no_existing_id_it_mints_both_base_and_suffixed_wfe_id(self, api_site_client: RuntimeApiSiteClient):
+        """
+        Confirm that, when the user does not specify an existing workflow execution ID,
+        the minter mints an ID having a new base and a ".1" suffix.
+        """
 
         db = get_mongo_db()
         minter_id_records = db.get_collection("minter.id_records")
@@ -141,7 +144,6 @@ class TestMintWorkflowExecutionId:
             assert minted_id.endswith(".1")
 
             # Confirm the returned ID was actually minted.
-            # Note: The minter appends `_typecode` to the `typecode.id` value.
             assert minter_id_records.count_documents({
                 "id": minted_id,
                 "name": minted_id,
@@ -160,7 +162,80 @@ class TestMintWorkflowExecutionId:
         finally:
             minter_id_records.delete_many(new_ids_filter)
 
-    def test_mint_workflow_execution_id_based_upon_existing_id(
+    def test_it_rejects_invalid_existing_ids(self, api_site_client: RuntimeApiSiteClient):
+        """
+        Confirm that, when the user specifies an ID that is invalid (e.g. it doesn't exist;
+        or it's not compatible with the specified class; or it is compatible with the specified
+        class, but that class is invalid for this endpoint), the endpoint rejects the request.
+        """
+        db = get_mongo_db()
+        minter_id_records = db.get_collection("minter.id_records")
+        workflow_execution_set = db.get_collection("workflow_execution_set")
+
+        # Make a list of the pre-existing IDs so we can delete any _others_ when cleaning up.
+        pre_existing_ids = list(minter_id_records.distinct("id"))
+        new_ids_filter = {"id": {"$nin": pre_existing_ids}}  # `$nin` is effectively `NOT IN`
+
+        try:
+            # Confirm the IDs we'll be using really don't exist in the database.
+            non_existent_ids = ["nmdc:wfnom-00-nonexistent.1"]
+            assert minter_id_records.count_documents({"id": {"$in": non_existent_ids}}, limit=1) == 0
+            assert workflow_execution_set.count_documents({"id": {"$in": non_existent_ids}}, limit=1) == 0
+
+            # Test: Nonexistent ID.
+            with pytest.raises(requests.HTTPError) as exc_info:
+                _ = api_site_client.request(
+                    "POST",
+                    "/pids/mint/workflow_execution_id",
+                    {
+                        "schema_class": {"id": "nmdc:NomAnalysis"},
+                        "existing_id": non_existent_ids[0],
+                    },
+                )
+            response = exc_info.value.response
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+            # Prepare: Generate an ID for a class that's not a concrete subclass of `WorkflowExecution`.
+            response = api_site_client.request(
+                "POST",
+                "/pids/mint",
+                {
+                    "schema_class": {"id": "nmdc:Study"},
+                    "how_many": 1,
+                },
+            )
+            study_id: str = response.json()[0]
+            assert response.status_code == status.HTTP_200_OK and isinstance(study_id, str)
+
+            # Test: ID exists but is not compatible with the specified class.
+            with pytest.raises(requests.HTTPError) as exc_info:
+                _ = api_site_client.request(
+                    "POST",
+                    "/pids/mint/workflow_execution_id",
+                    {
+                        "schema_class": {"id": "nmdc:NomAnalysis"},
+                        "existing_id": study_id,
+                    },
+                )
+            response = exc_info.value.response
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+            # Test: ID exists but is not compatible with the specified class.
+            with pytest.raises(requests.HTTPError) as exc_info:
+                _ = api_site_client.request(
+                    "POST",
+                    "/pids/mint/workflow_execution_id",
+                    {
+                        "schema_class": {"id": "nmdc:Study"},
+                        "existing_id": study_id,
+                    },
+                )
+            response = exc_info.value.response
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+        finally:
+            minter_id_records.delete_many(new_ids_filter)
+
+    def test_it_mints_id_having_same_base_as_existing_id(
         self,
         api_site_client,
     ):
@@ -214,7 +289,7 @@ class TestMintWorkflowExecutionId:
             minter_id_records.delete_many(new_ids_filter)
             workflow_execution_set.delete_many({"id": {"$in": seeded_wfe_ids}})
 
-    def test_mint_workflow_execution_id_rejects_non_workflow_execution_schema_class(
+    def test_it_rejects_non_workflow_execution_schema_class(
         self,
         api_site_client,
     ):
