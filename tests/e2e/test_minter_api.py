@@ -115,10 +115,13 @@ class TestMintWorkflowExecutionId:
                 {"id": {"$in": ids}}
             )
 
-    def test_given_no_existing_id_it_mints_both_base_and_suffixed_wfe_id(self, api_site_client: RuntimeApiSiteClient):
+    def test_it_mints_both_base_id_and_suffixed_id_when_given_no_existing_id(
+        self,
+        api_site_client: RuntimeApiSiteClient,
+    ):
         """
         Confirm that, when the user does not specify an existing workflow execution ID,
-        the minter mints an ID having a new base and a ".1" suffix.
+        the minter mints both (a) a new base ID, and (b) an ID having that base and a ".1" suffix.
         """
 
         db = get_mongo_db()
@@ -162,11 +165,11 @@ class TestMintWorkflowExecutionId:
         finally:
             minter_id_records.delete_many(new_ids_filter)
 
-    def test_it_rejects_invalid_existing_ids(self, api_site_client: RuntimeApiSiteClient):
+    def test_it_rejects_invalid_specified_id(self, api_site_client: RuntimeApiSiteClient):
         """
         Confirm that, when the user specifies an ID that is invalid (e.g. it doesn't exist;
         or it's not compatible with the specified class; or it is compatible with the specified
-        class, but that class is invalid for this endpoint), the endpoint rejects the request.
+        class, but that class is not a concrete subclass of WFE), the endpoint rejects the request.
         """
         db = get_mongo_db()
         minter_id_records = db.get_collection("minter.id_records")
@@ -220,7 +223,7 @@ class TestMintWorkflowExecutionId:
             response = exc_info.value.response
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-            # Test: ID exists but is not compatible with the specified class.
+            # Test: ID exists and is compatible with specified class, but that class is not a concrete subclass of WFE.
             with pytest.raises(requests.HTTPError) as exc_info:
                 _ = api_site_client.request(
                     "POST",
@@ -289,7 +292,7 @@ class TestMintWorkflowExecutionId:
             minter_id_records.delete_many(new_ids_filter)
             workflow_execution_set.delete_many({"id": {"$in": seeded_wfe_ids}})
 
-    def test_it_rejects_non_workflow_execution_schema_class(
+    def test_it_rejects_class_that_is_not_concrete_subclass_of_wfe(
         self,
         api_site_client,
     ):
