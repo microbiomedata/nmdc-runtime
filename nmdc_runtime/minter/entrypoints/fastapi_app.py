@@ -189,7 +189,7 @@ def mint_workflow_execution_id(
     id_value = identifier.id
     if id_value is None:
         raise HTTPException(
-            status_code=status.HTTP_500_BAD_REQUEST,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to mint identifier. Please try again.",
         )
     return id_value

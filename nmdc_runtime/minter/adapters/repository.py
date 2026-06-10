@@ -296,7 +296,8 @@ class MongoIDStore(IDStore):
             base_id = identifiers[0].name
             logger.info(f"Minted base ID: {base_id}")
 
-        # Do both the "find" and "claim" steps within a single MongoDB transaction to avoid race conditions.
+        # Do both the "find" and "claim" steps within a single MongoDB transaction to prevent the race condition where
+        # the ID that was available during the "find" step gets claimed by something else before we try to "claim" it.
         with self.db.client.start_session() as client_session:
             with client_session.start_transaction():
                 minter_id_records = self.db.get_collection(
