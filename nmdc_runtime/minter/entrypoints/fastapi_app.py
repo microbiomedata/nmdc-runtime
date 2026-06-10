@@ -2,6 +2,7 @@ import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
 from pymongo.database import Database as MongoDatabase
+from pymongo.errors import DuplicateKeyError
 from starlette import status
 
 from nmdc_runtime.api.core.util import raise404_if_none
@@ -185,7 +186,16 @@ def mint_workflow_execution_id(
         base_id=base_id,
     )
     id_store = MongoIDStore(mdb)
-    identifier = id_store.mint_workflow_execution_id(minting_request=minting_request)
+    try:
+        identifier = id_store.mint_workflow_execution_id(
+            minting_request=minting_request
+        )
+    except DuplicateKeyError:
+        # TODO: Implement a retry loop internally if this ends up impacting users in practice.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while minting the identifier. Please try again.",
+        )
     id_value = identifier.id
     if id_value is None:
         raise HTTPException(

@@ -296,69 +296,65 @@ class MongoIDStore(IDStore):
             base_id = identifiers[0].name
             logger.info(f"Minted base ID: {base_id}")
 
-        # Do both the "find" and "claim" steps within a single MongoDB transaction to prevent the race condition where
-        # the ID that was available during the "find" step gets claimed by something else before we try to "claim" it.
-        with self.db.client.start_session() as client_session:
-            with client_session.start_transaction():
-                minter_id_records = self.db.get_collection(
-                    "minter.id_records"
-                )  # concise alias
-                workflow_execution_set = self.db.get_collection(
-                    "workflow_execution_set"
-                )  # concise alias
+        # Note: We don't bother putting the following "find" and "claim" steps within a single MongoDB transaction,
+        #       since a transaction wouldn't prevent a concurrent request from claiming the "found" ID before we do.
+        #       The minter _does_ ensure the `minter.id_records` has a unique index on its `id` field, though, so this
+        #       function will raise `DuplicateKeyError` if a concurrent request has, indeed, claimed that ID.
+        pass
 
-                # Gather all the integers from the already-claimed "dot integer" suffixes for the given base ID.
-                #
-                # Important: Due to {{{ ...see note in `fastapi_app.py` about the history of "ID management"... }}},
-                #            we check _both_ the `minter.id_records` collection and the `workflow_execution_set`
-                #            collection.
-                #
-                integers_claimed = set()
-                id_pattern = make_pattern_matching_ids_having_base_id(base_id=base_id)
-                filter_ = {"id": {"$regex": id_pattern}}
-                cursor = minter_id_records.find(
-                    filter_, {"id": 1}, session=client_session
-                )
-                for document in cursor:
-                    _, integer_claimed = parse_workflow_execution_id(
-                        raw_id=document["id"]
-                    )
-                    if isinstance(integer_claimed, int):
-                        integers_claimed.add(integer_claimed)
-                cursor = workflow_execution_set.find(
-                    filter_, {"id": 1}, session=client_session
-                )
-                for document in cursor:
-                    _, integer_claimed = parse_workflow_execution_id(
-                        raw_id=document["id"]
-                    )
-                    if isinstance(integer_claimed, int):
-                        integers_claimed.add(integer_claimed)
-                logger.info(f"Suffix integers already claimed: {integers_claimed}")
+        minter_id_records = self.db.get_collection(
+            "minter.id_records"
+        )  # concise alias
+        workflow_execution_set = self.db.get_collection(
+            "workflow_execution_set"
+        )  # concise alias
 
-                # Calculate the integer we will claim.
-                # Example: if ".1" and ".3" are claimed, we will claim ".4" (not ".2").
-                largest_integer_claimed = (
-                    max(integers_claimed) if len(integers_claimed) > 0 else 0
-                )
-                integer_to_claim = largest_integer_claimed + 1
-                logger.info(f"Suffix integer to claim: {integer_to_claim}")
+        # Gather all the integers from the already-claimed "dot integer" suffixes for the given base ID.
+        #
+        # Important: Due to {{{ ...see note in `fastapi_app.py` about the history of "ID management"... }}},
+        #            we check _both_ the `minter.id_records` collection and the `workflow_execution_set`
+        #            collection.
+        #
+        integers_claimed = set()
+        id_pattern = make_pattern_matching_ids_having_base_id(base_id=base_id)
+        filter_ = {"id": {"$regex": id_pattern}}
+        cursor = minter_id_records.find(filter_, {"id": 1})
+        for document in cursor:
+            _, integer_claimed = parse_workflow_execution_id(
+                raw_id=document["id"]
+            )
+            if isinstance(integer_claimed, int):
+                integers_claimed.add(integer_claimed)
+        cursor = workflow_execution_set.find(filter_, {"id": 1})
+        for document in cursor:
+            _, integer_claimed = parse_workflow_execution_id(
+                raw_id=document["id"]
+            )
+            if isinstance(integer_claimed, int):
+                integers_claimed.add(integer_claimed)
+        logger.info(f"Suffix integers already claimed: {integers_claimed}")
 
-                # Mint an ID that has the specified base ID and that calculated integer in its "dot integer" suffix.
-                id_name = f"{base_id}.{integer_to_claim}"
-                identifier = Identifier(
-                    **{
-                        "id": id_name,
-                        "name": id_name,
-                        "typecode": typecode_document,
-                        "shoulder": shoulder_document,
-                        "status": Status.draft,
-                    }
-                )
-                minter_id_records.insert_one(
-                    identifier.model_dump(), session=client_session
-                )
-                logger.info(f"Minted WorkflowExecution ID: {id_name}")
+        # Calculate the integer we will claim.
+        # Example: if ".1" and ".3" are claimed, we will claim ".4" (not ".2").
+        largest_integer_claimed = (
+            max(integers_claimed) if len(integers_claimed) > 0 else 0
+        )
+        integer_to_claim = largest_integer_claimed + 1
+        logger.info(f"Suffix integer to claim: {integer_to_claim}")
+
+        # Mint an ID that has the specified base ID and that calculated integer in its "dot integer" suffix.
+        id_name = f"{base_id}.{integer_to_claim}"
+        identifier = Identifier(
+            **{
+                "id": id_name,
+                "name": id_name,
+                "typecode": typecode_document,
+                "shoulder": shoulder_document,
+                "status": Status.draft,
+            }
+        )
+        minter_id_records.insert_one(identifier.model_dump())
+        logger.info(f"Minted WorkflowExecution ID: {id_name}")
 
         return identifier
 
