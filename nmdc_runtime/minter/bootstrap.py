@@ -8,7 +8,9 @@ def ensure_minter_id_records_id_is_indexed():
     db = config.get_mongo_db()
     minter_id_records = db.get_collection("minter.id_records")
     minter_id_records.create_index(
-        "id", background=True, unique=True,
+        "id",
+        background=True,
+        unique=True,
     )
 
 
