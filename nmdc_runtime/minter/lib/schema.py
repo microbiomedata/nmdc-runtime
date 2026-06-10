@@ -48,7 +48,6 @@ def get_class_uri_to_class_name_map() -> dict[str, str]:
     return class_uri_to_class_name_map
 
 
-
 @lru_cache
 def does_class_uri_belong_to_concrete_subclass_of_workflow_execution(
     class_uri: str,
@@ -74,7 +73,9 @@ def does_class_uri_belong_to_concrete_subclass_of_workflow_execution(
     """
 
     sv = nmdc_schema_view()
-    class_names = sv.class_descendants("WorkflowExecution", reflexive=False)  # excludes `WorkflowExecution`
+    class_names = sv.class_descendants(
+        "WorkflowExecution", reflexive=False
+    )  # excludes `WorkflowExecution`
     class_defs_by_name = {name: sv.get_class(name) for name in class_names}
 
     valid_class_uris = set()
