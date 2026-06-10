@@ -155,7 +155,7 @@ class TestMintWorkflowExecutionId:
             }) == 1
 
             # Also (given that we didn't specify an existing ID), confirm that the minter also minted the base ID.
-            base_id = minted_id.rstrip(".1")
+            base_id = minted_id.removesuffix(".1")
             assert minter_id_records.count_documents({
                 "id": base_id,
                 "name": base_id,
