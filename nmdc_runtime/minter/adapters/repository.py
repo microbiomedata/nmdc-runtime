@@ -296,16 +296,16 @@ class MongoIDStore(IDStore):
             base_id = identifiers[0].name
             logger.info(f"Minted base ID: {base_id}")
 
-        # Note: We don't bother putting the following "find" and "claim" steps within a single MongoDB transaction,
-        #       since a transaction wouldn't prevent a concurrent request from claiming the "found" ID before we do.
-        #       The minter _does_ ensure the `minter.id_records` has a unique index on its `id` field, though, so this
-        #       function will raise `DuplicateKeyError` if a concurrent request has, indeed, claimed that ID.
+        # Note: We don't bother putting the "find the largest suffix" and "claim the next suffix" steps within a single
+        #       MongoDB transaction, since a MongoDB transaction wouldn't prevent a concurrent request from claiming the
+        #       next suffix before we do. The minter _does_ ensure the `minter.id_records` collection has a unique index
+        #       on its `id` field, though, so this function _will_ raise `DuplicateKeyError` if the next suffix has
+        #       already been claimed by the time we try to claim it.
         pass
 
-        minter_id_records = self.db.get_collection("minter.id_records")  # concise alias
-        workflow_execution_set = self.db.get_collection(
-            "workflow_execution_set"
-        )  # concise alias
+        # Make concise aliases.
+        minter_id_records = self.db.get_collection("minter.id_records")
+        workflow_execution_set = self.db.get_collection("workflow_execution_set")
 
         # Gather all the integers from the already-claimed "dot integer" suffixes for the given base ID.
         #
