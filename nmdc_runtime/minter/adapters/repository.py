@@ -302,9 +302,7 @@ class MongoIDStore(IDStore):
         #       function will raise `DuplicateKeyError` if a concurrent request has, indeed, claimed that ID.
         pass
 
-        minter_id_records = self.db.get_collection(
-            "minter.id_records"
-        )  # concise alias
+        minter_id_records = self.db.get_collection("minter.id_records")  # concise alias
         workflow_execution_set = self.db.get_collection(
             "workflow_execution_set"
         )  # concise alias
@@ -320,16 +318,12 @@ class MongoIDStore(IDStore):
         filter_ = {"id": {"$regex": id_pattern}}
         cursor = minter_id_records.find(filter_, {"id": 1})
         for document in cursor:
-            _, integer_claimed = parse_workflow_execution_id(
-                raw_id=document["id"]
-            )
+            _, integer_claimed = parse_workflow_execution_id(raw_id=document["id"])
             if isinstance(integer_claimed, int):
                 integers_claimed.add(integer_claimed)
         cursor = workflow_execution_set.find(filter_, {"id": 1})
         for document in cursor:
-            _, integer_claimed = parse_workflow_execution_id(
-                raw_id=document["id"]
-            )
+            _, integer_claimed = parse_workflow_execution_id(raw_id=document["id"])
             if isinstance(integer_claimed, int):
                 integers_claimed.add(integer_claimed)
         logger.info(f"Suffix integers already claimed: {integers_claimed}")
