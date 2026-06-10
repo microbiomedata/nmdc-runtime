@@ -106,7 +106,7 @@ def test_update_site_client_secret(
             f"/admin/site_clients/{site_client_id}",
             {"secret": "2short"},
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Test: When the secret is updated successfully, we get an HTTP 200.
     new_secret = "my_new_secret!"

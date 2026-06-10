@@ -276,4 +276,4 @@ def test_delete_allowance_missing_parameters(api_user_client):
             "/admin/allowances?username=user_1"
         )
 
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

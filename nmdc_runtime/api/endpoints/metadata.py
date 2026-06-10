@@ -191,7 +191,7 @@ async def submit_json_nmdcdb(
     rv = validate_json(docs, mdb, check_inter_document_references=True)
     if rv["result"] == "errors":
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(rv),
         )
 

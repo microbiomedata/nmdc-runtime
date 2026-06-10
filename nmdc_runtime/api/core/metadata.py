@@ -786,7 +786,7 @@ def _validate_changesheet(df_change: pd.DataFrame, mdb: MongoDatabase):
 
     if validation_errors:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "update_cmd": rv["update_cmd"],
                 "validation_errors": validation_errors,

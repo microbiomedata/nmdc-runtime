@@ -248,7 +248,7 @@ def test_queries_run_invalid_update(api_user_client):
             }
         ]
     }
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc_info.value.response.json() == expected_response
 
     # test incorrect delete
@@ -348,7 +348,7 @@ def test_queries_run_invalid_update(api_user_client):
             },
         ]
     }
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert exc_info.value.response.json() == expected_response
 
     # 🧹 Clean up.
@@ -513,7 +513,7 @@ def test_metadata_json_submit_rejects_document_containing_broken_reference(
             {"study_set": [my_study]},
         )
     response = exc.value.response
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Assert that the "detail" property of the response payload contains the words "errors",
     # "study_set" (i.e. the problematic collection), and "part_of" (i.e. the problematic field).
@@ -580,7 +580,7 @@ def test_json_submit_rejects_payload_introducing_biosample_having_duplicate_name
                 {"biosample_set": [biosample_b]},
             )
         response = exc.value.response
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Assert that the biosample_set collection does not contain the biosample we submitted.
         assert biosample_set.count_documents({"id": biosample_b["id"]}) == 0
@@ -602,7 +602,7 @@ def test_json_submit_rejects_payload_introducing_biosample_having_duplicate_name
                 {"biosample_set": [biosample_b, biosample_c]},
             )
         response = exc.value.response
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Assert that the biosample_set collection does not contain the biosample we submitted.
         assert biosample_set.count_documents(
@@ -1761,7 +1761,7 @@ def test_queries_run_rejects_update_containing_replacement_document(api_user_cli
                     "updates": [an_update_statement_containing_replacement_document],
                 },
             )
-        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert excinfo.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     finally:
         if did_insert_allowance:
             allowances_collection.delete_many(allow_spec)
@@ -1967,7 +1967,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
                 ],
             },
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Case 2: We cannot delete Study B because Biosample B is referencing it.
     with pytest.raises(requests.HTTPError) as exc_info:
@@ -1984,7 +1984,7 @@ def test_queries_run_rejects_deletions_that_would_leave_broken_references(
                 ],
             },
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Case 3: We can delete both Biosample A and Biosample B because nothing is referencing them.
     response = api_user_client.request(
@@ -2053,7 +2053,7 @@ def test_queries_run_allows_ref_breaking_deletions_when_user_opts_to_allow_broke
                 ],
             },
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Case 2: We can do it if we opt out of the referential integrity checks.
     response = api_user_client.request(
@@ -2110,7 +2110,7 @@ def test_queries_run_rejects_updates_that_would_leave_broken_references(
                 ],
             },
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     response_body = exc_info.value.response.json()
     assert "study_set" in response_body["detail"]
 
@@ -2147,7 +2147,7 @@ def test_queries_run_allows_ref_breaking_updates_when_user_opts_to_allow_broken_
                 ],
             },
         )
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     response_body = exc_info.value.response.json()
     assert "study_set" in response_body["detail"]
 
@@ -3542,7 +3542,7 @@ def test_create_invalid_job(api_site_client):
     # Send the dictionary as JSON to the API endpoint to create a new job.
     with pytest.raises(requests.HTTPError) as exc_info:
         _ = api_site_client.request("POST", "/jobs", invalid_job)
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Verify no job was created.
     assert jobs_collection.count_documents({}) == num_jobs_initial

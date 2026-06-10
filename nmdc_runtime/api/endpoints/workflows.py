@@ -195,7 +195,7 @@ async def post_workflow_execution(
             or "workflow_execution_set" not in database_in
         ):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Request payload must represent a valid 'nmdc:Database' instance "
                     "that includes a 'workflow_execution_set' collection. "
@@ -225,7 +225,7 @@ async def post_workflow_execution(
                         )
                         if run_number is None:
                             raise HTTPException(
-                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                                 detail=(
                                     f"The ID of WorkflowExecution '{submitted_wfe_id}' is not in the "
                                     "format required by our supersession management processes."

@@ -283,7 +283,7 @@ def _run_mdb_cmd(
         collection_name = cmd.delete
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Can only delete documents from collections that are "
                     "not empty and are described by the NMDC schema."
@@ -370,7 +370,7 @@ def _run_mdb_cmd(
                         #       would increase the response size (consider the case where the
                         #       user-specified filter matches many, many documents).
                         raise HTTPException(
-                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                             detail=(
                                 f"The operation was not performed, because performing it would "
                                 f"have left behind one or more broken references. For example: "
@@ -403,7 +403,7 @@ def _run_mdb_cmd(
         for update_statement in cmd.updates:
             if not any(k.startswith("$") for k in update_statement.u.keys()):
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=(
                         "Updates must be specified via operations documents "
                         "(e.g., {“$set”: {“field”: “newValue”}}). "
@@ -419,7 +419,7 @@ def _run_mdb_cmd(
         collection_name = cmd.update
         if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=(
                     "Can only update documents in collections that are "
                     "not empty and are described by the NMDC schema."
@@ -459,7 +459,7 @@ def _run_mdb_cmd(
             )
             if rv["result"] == "errors":
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=f"Schema document(s) would be invalid after proposed update: {rv['detail']}",
                 )
 
@@ -482,7 +482,7 @@ def _run_mdb_cmd(
                 logging.warning(detail)
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=detail,
                 )
 
@@ -544,7 +544,7 @@ def _run_mdb_cmd(
             cmd = AggregateCommand(**modified_cmd_doc)
         else:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="The specified 'getMore' value resolved to an invalid command.",
             )
 
@@ -602,7 +602,7 @@ def _run_mdb_cmd(
             and len(cmd_response.writeErrors) > 0
         ):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=cmd_response.writeErrors,
             )
 
@@ -723,7 +723,7 @@ def _run_delete_nonschema(
     # Handle write errors if any occurred
     if isinstance(cmd_response.writeErrors, list) and len(cmd_response.writeErrors) > 0:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=cmd_response.writeErrors,
         )
 
