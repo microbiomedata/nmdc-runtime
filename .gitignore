@@ -18,6 +18,7 @@ lib/
 !/tests/lib/
 !/nmdc_runtime/api/endpoints/lib/
 !/nmdc_runtime/api/models/lib/
+!/nmdc_runtime/minter/lib/
 lib64/
 parts/
 sdist/
