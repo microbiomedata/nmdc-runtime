@@ -531,5 +531,5 @@ def get_from_collection_by_id(
         )
     except pymongo.errors.OperationFailure as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)
         )

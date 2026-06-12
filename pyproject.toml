@@ -116,6 +116,16 @@ docs = [
     "mkdocs-mermaid2-plugin",
 ]
 
+[tool.uv]
+# Note: This parameter allows us to define dependency version constraints,
+#       without making the package a direct depdendency of our project.
+build-constraint-dependencies = [
+    # Ensure that, _if_ uv installs `starlette`, it installs a version newer than `0.48.0`
+    # (which is where `status.HTTP_422_UNPROCESSABLE_CONTENT` was introduced).
+    # Reference: https://github.com/Kludex/starlette/pull/2939
+    "starlette >= 0.48.0",
+]
+
 [project.urls]
 # > "A list of URLs associated with your project, displayed on the left sidebar of your PyPI project page."
 # Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls

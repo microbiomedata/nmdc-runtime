@@ -93,7 +93,7 @@ def create_job(
         error_message = f"Invalid job. Details: {str(e)}"
         logging.warning(error_message)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=error_message,
         )
 

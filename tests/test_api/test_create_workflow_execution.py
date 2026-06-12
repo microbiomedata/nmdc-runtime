@@ -283,7 +283,7 @@ class TestPostWorkflowWorkflowExecutions:
                     {"workflow_execution_set": [workflow_execution]},
                 )
             response = exc.value.response
-            assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+            assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
             # Assert that the "detail" property of the response payload contains the words "errors",
             # "workflow_execution_set" (i.e. the problematic collection), and "was_informed_by"

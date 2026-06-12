@@ -91,7 +91,7 @@ def test_mint_id_rejects_invalid_typecode(api_site_client):
 
     with pytest.raises(requests.HTTPError) as exc_info:
         _ = api_site_client.request("POST", "/pids/mint", body)
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_mint_id_rejects_invalid_quantity(api_site_client):
@@ -103,4 +103,4 @@ def test_mint_id_rejects_invalid_quantity(api_site_client):
 
     with pytest.raises(requests.HTTPError) as exc_info:
         _ = api_site_client.request("POST", "/pids/mint", body)
-    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert exc_info.value.response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

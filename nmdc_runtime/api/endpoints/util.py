@@ -79,14 +79,14 @@ def check_filter(filter_: str):
     filter_ = filter_.strip()
     if not filter_.startswith("{") or not filter_.endswith("}"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"The given `filter` is not a valid JSON object, which must start with '{{' and end with '}}'.",
         )
     try:
         json_util.loads(filter_)
     except JSONDecodeError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Given `filter` is not valid JSON: {e}",
         )
     return filter_

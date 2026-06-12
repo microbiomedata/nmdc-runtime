@@ -163,7 +163,7 @@ def get_data_object_report(
     prefix: str = Query(
         "",
         description="A prefix, if any, a URL must begin with in order to be included in the report",
-        example="https://data.microbiomedata.org",
+        examples=["https://data.microbiomedata.org"],
     ),
 ):
     if not is_admin(user):
