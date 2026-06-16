@@ -46,7 +46,7 @@
 
 ### Development
 
-- `make dev`: Start the development stack using Docker Compose.
+- `make up-dev`: Spin up development stack.
 - `make black`: Format source code in `nmdc_runtime/`.
 - `make lint`: Lint source code in `nmdc_runtime/` and `tests/`.
 
