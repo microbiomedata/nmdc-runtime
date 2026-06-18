@@ -59,7 +59,7 @@ class DataFieldInfo(TypedDict):
 
 DATA_FIELDS: dict[str, DataFieldInfo] = {
     "air_data": {"env_package": "air", "type": "environmental"},
-    "biofilm_data": {"env_package": "microbial_mat_biofilm", "type": "environmental"},
+    "biofilm_data": {"env_package": "microbial mat_biofilm", "type": "environmental"},
     "built_env_data": {"env_package": "built environment", "type": "environmental"},
     "hcr_cores_data": {
         "env_package": "hydrocarbon resources-cores",
