@@ -1079,8 +1079,8 @@ class SubmissionPortalTranslator(Translator):
                 isolation = nmdc.Isolation(
                     id=self._id_minter("nmdc:Isolation")[0],
                     type="nmdc:Isolation",
-                    has_input=sample_data_to_nmdc_biosample_ids[sample_link],
-                    has_output=nmdc_organism_sample_id,
+                    has_input=[sample_data_to_nmdc_biosample_ids[sample_link]],
+                    has_output=[nmdc_organism_sample_id],
                 )
                 database.material_processing_set.append(isolation)
 
