@@ -817,7 +817,7 @@ class SubmissionPortalTranslator(Translator):
 
         # Automatically populate the `env_package` field in the sample data based on which
         # environmental data tab the sample data came from.
-        sample_data = metadata_submission_data.get("sampleData", {})
+        sample_data = get_in(["sampleData", "data"], metadata_submission_data, default={})
         for key in sample_data.keys():
             env = key.removesuffix("_data").upper()
             try:

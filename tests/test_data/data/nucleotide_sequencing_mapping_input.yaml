@@ -3,26 +3,27 @@ metadata_submission:
   metadata_submission:
     packageName: plant-associated
     sampleData:
-      plant_associated_data:
-        - analysis_type:
-            - metagenomics
-          collection_date: '2016-05-09'
-          depth: '0'
-          ecosystem: Environmental
-          ecosystem_category: Terrestrial
-          ecosystem_subtype: Leaf
-          ecosystem_type: Plant-associated
-          elev: '286'
-          env_broad_scale: agricultural biome [ENVO:01001442]
-          env_local_scale: phyllosphere biome [ENVO:01001442]
-          env_medium: plant-associated biome [ENVO:01001001]
-          geo_loc_name: 'USA: Kellogg Biological Station, Michigan'
-          growth_facil: field
-          lat_lon: 42.39 -85.37
-          samp_name: G5R1_MAIN_09MAY2016
-          samp_store_temp: -80 Cel
-          source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
-          specific_ecosystem: Phyllosphere
+      data:
+        plant_associated_data:
+          - analysis_type:
+              - metagenomics
+            collection_date: '2016-05-09'
+            depth: '0'
+            ecosystem: Environmental
+            ecosystem_category: Terrestrial
+            ecosystem_subtype: Leaf
+            ecosystem_type: Plant-associated
+            elev: '286'
+            env_broad_scale: agricultural biome [ENVO:01001442]
+            env_local_scale: phyllosphere biome [ENVO:01001442]
+            env_medium: plant-associated biome [ENVO:01001001]
+            geo_loc_name: 'USA: Kellogg Biological Station, Michigan'
+            growth_facil: field
+            lat_lon: 42.39 -85.37
+            samp_name: G5R1_MAIN_09MAY2016
+            samp_store_temp: -80 Cel
+            source_mat_id: UUID:e8ed34cc-32f4-4fc5-9b9f-c2699e43163c
+            specific_ecosystem: Phyllosphere
     studyForm:
       GOLDStudyId: ''
       alternativeNames: [ ]
