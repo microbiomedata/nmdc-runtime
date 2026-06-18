@@ -1,0 +1,123 @@
+metadata_submission:
+  metadata_submission:
+    sampleEnvironmentForm:
+      packageName:
+        - isolate
+      validation: []
+    senderShippingInfoForm:
+      shipper:
+        name: ""
+        email: ""
+        phone: ""
+        line1: ""
+        line2: ""
+        city: ""
+        state: ""
+        postalCode: ""
+        country: ""
+      expectedShippingDate: null
+      shippingConditions: ""
+      sample: ""
+      description: ""
+      experimentalGoals: ""
+      randomization: ""
+      usdaRegulated: null
+      permitNumber: ""
+      biosafetyLevel: ""
+      irbOrHipaa: null
+      comments: ""
+      validation: null
+    templates:
+      - isolate
+    studyForm:
+      studyName: Isolate Only
+      piName: ""
+      piEmail: tester@example.gov
+      piOrcid: ""
+      fundingSources: []
+      dataDois: []
+      publicationDois: []
+      linkOutWebpage: []
+      studyDate: null
+      description: ""
+      notes: ""
+      contributors: []
+      validation: []
+      alternativeNames: []
+      GOLDStudyId: ""
+      NCBIBioProjectId: ""
+    multiOmicsForm:
+      award: null
+      awardDois: []
+      dataGenerated: false
+      doe: false
+      facilities: []
+      facilityGenerated: null
+      JGIStudyId: ""
+      mgCompatible: null
+      mgInterleaved: null
+      mtCompatible: null
+      mtInterleaved: null
+      omicsProcessingTypes:
+        - isolate-genome
+        - isolate-transcriptome
+      otherAward: null
+      ship: null
+      studyNumber: ""
+      unknownDoi: null
+      mpProtocols: null
+      mbProtocols: null
+      mbGcProtocols: null
+      lipProtocols: null
+      nomProtocols: null
+      nomLcProtocols: null
+      validation: []
+    sampleData:
+      data:
+        isolate_data:
+          - ploidy: haploid
+            samp_name: "0001"
+            gc_content: 50
+            strain_name: Shewanella loihica PV-4
+            isolate_name: Bd21-3
+            analysis_type:
+              - isolate genome sequencing
+            classified_as: NCBITaxon:562
+            organism_genus: Shewanella
+            collection_date: 2013-03-25
+            organism_species: Shewanella loihica
+            isolate_single_colony: yes
+            isolate_known_contaminants: Bacillus subtilis ~5%
+      validation:
+        invalidCells:
+          isolate: {}
+        tabsValidated:
+          isolate: true
+  status: InProgress
+  source_client: submission_portal
+  is_test_submission: false
+  id: 91213966-e36d-40b1-841d-4f6c10c1af21
+  author:
+    id: 43cefaba-704f-4c4d-b20c-1e86236d601f
+    orcid: 0000-0000-0000-000X
+    name: Test Testerdottir
+    email: tester@example.gov
+    is_admin: true
+  study_name: Isolate Only
+  templates:
+    - isolate
+  date_last_modified: 2026-06-18T00:03:42.507587
+  created: 2026-06-18T00:03:07.804543
+  sample_count: 0
+  reviewers: []
+  contributors:
+    - 0000-0000-0000-000X
+  author_orcid: 0000-0000-0000-000X
+  field_notes_metadata: null
+  nmdc_study_id: null
+  lock_updated: 2026-06-18T00:13:19.569336
+  locked_by: null
+  permission_level: owner
+  pi_image_url: null
+  primary_study_image_url: null
+  study_image_urls: []

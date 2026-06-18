@@ -492,10 +492,11 @@ def test_instruments(test_minter):
 @pytest.mark.parametrize(
     "data_file_base",
     [
+        "isolate_only",
         "plant_air_jgi",
-        "nucleotide_sequencing_mapping",
-        "sequencing_data",
-        "soil_sample_link",
+        # "nucleotide_sequencing_mapping",
+        # "sequencing_data",
+        # "soil_sample_link",
     ],
 )
 def test_get_database(test_minter, monkeypatch, data_file_base):

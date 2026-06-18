@@ -1,13 +1,10 @@
 import logging
 import re
 from collections import namedtuple
-from datetime import datetime, timezone
 from decimal import Decimal
-from enum import Enum
 from functools import lru_cache
 from importlib import resources
-from importlib.metadata import version
-from typing import Any, List, Optional, Union, Tuple
+from typing import Any, List, Optional, Union, Tuple, TypedDict, Literal
 from urllib.parse import urlparse
 
 from linkml_runtime import SchemaView
@@ -55,27 +52,37 @@ UNIT_OVERRIDES: dict[str, dict[str, str]] = {
 }
 
 
-class EnvironmentPackage(Enum):
-    r"""
-    Enumeration of all possible environmental packages.
+class DataFieldInfo(TypedDict):
+    env_package: Optional[str]
+    type: Literal["environmental", "isolate"]
 
-    >>> EnvironmentPackage.AIR.value
-    'air'
-    >>> EnvironmentPackage.SEDIMENT.value
-    'sediment'
-    """
 
-    AIR = "air"
-    BIOFILM = "microbial mat_biofilm"
-    BUILT_ENV = "built environment"
-    HCR_CORES = "hydrocarbon resources-cores"
-    HRC_FLUID_SWABS = "hydrocarbon resources-fluids_swabs"
-    HOST_ASSOCIATED = "host-associated"
-    MISC_ENVS = "miscellaneous natural or artificial environment"
-    PLANT_ASSOCIATED = "plant-associated"
-    SEDIMENT = "sediment"
-    SOIL = "soil"
-    WATER = "water"
+DATA_FIELDS: dict[str, DataFieldInfo] = {
+    "air_data": {"env_package": "air", "type": "environmental"},
+    "biofilm_data": {"env_package": "microbial_mat_biofilm", "type": "environmental"},
+    "built_env_data": {"env_package": "built environment", "type": "environmental"},
+    "hcr_cores_data": {
+        "env_package": "hydrocarbon resources-cores",
+        "type": "environmental",
+    },
+    "hcr_fluids_swabs_data": {
+        "env_package": "hydrocarbon resources-fluids_swabs",
+        "type": "environmental",
+    },
+    "host_associated_data": {"env_package": "host-associated", "type": "environmental"},
+    "misc_envs_data": {
+        "env_package": "miscellaneous natural or artificial environment",
+        "type": "environmental",
+    },
+    "plant_associated_data": {
+        "env_package": "plant-associated",
+        "type": "environmental",
+    },
+    "sediment_data": {"env_package": "sediment", "type": "environmental"},
+    "soil_data": {"env_package": "soil", "type": "environmental"},
+    "water_data": {"env_package": "water", "type": "environmental"},
+    "isolate_data": {"env_package": None, "type": "isolate"},
+}
 
 
 @lru_cache
@@ -663,6 +670,11 @@ class SubmissionPortalTranslator(Translator):
             )
         elif slot.range == "GeolocationValue":
             transformed_value = self._get_geolocation_value(value)
+        elif slot.range == "NcbiTaxon":
+            transformed_value = nmdc.NcbiTaxon(
+                id=value,
+                type="nmdc:NcbiTaxon",
+            )
         elif slot.range == "float":
             transformed_value = self._get_float(value)
         elif slot.range == "string":
@@ -702,7 +714,8 @@ class SubmissionPortalTranslator(Translator):
                 unit = slot_mappings[column].get("subject_unit")
 
             if slot_name not in slot_names:
-                logging.warning(f"No slot '{slot_name}' on class '{class_name}'")
+                if slot_name != TAB_NAME_KEY:
+                    logging.warning(f"No slot '{slot_name}' on class '{class_name}'")
                 continue
 
             # This step handles cases where the submission portal/schema instructs a user to
@@ -786,6 +799,77 @@ class SubmissionPortalTranslator(Translator):
 
         return nmdc.Biosample(**slots, provenance_metadata=provenance_metadata)
 
+    def _translate_organism(
+        self,
+        sample_data: List[JSON_OBJECT],
+        nmdc_organism_id: str,
+    ) -> nmdc.Organism:
+        """Translate sample data from portal submission into an `nmdc:Organism` object.
+
+        sample_data is a list of objects where each object represents one row from a tab in
+        the submission portal. Each of the objects represents information about the same
+        underlying organism sample. For each of the rows, each of the columns is iterated over.
+        For each column, the corresponding slot from the nmdc:Organism class is identified.
+        The raw value from the submission portal is the transformed according to the range
+        of the nmdc:Organism slot.
+
+        :param sample_data: collection of rows representing data about a single organism sample
+                            from each applicable submission portal tab
+        :param nmdc_organism_id: Minted nmdc:Organism identifier for the translated object
+        :return: nmdc:Organism
+        """
+        slots = {}
+        for tab in sample_data:
+            transformed_tab = self._transform_dict_for_class(tab, "Organism")
+            slots.update(transformed_tab)
+
+        return nmdc.Organism(
+            **slots,
+            id=nmdc_organism_id,
+            type="nmdc:Organism",
+        )
+
+    def _translate_organism_sample(
+        self,
+        sample_data: List[JSON_OBJECT],
+        nmdc_organism_sample_id: str,
+        nmdc_study_id: str,
+        expected_organism_id: Optional[str],
+        provenance_metadata: nmdc.ProvenanceMetadata,
+    ) -> nmdc.OrganismSample:
+        """Translate sample data from portal submission into an `nmdc:OrganismSample` object.
+
+        sample_data is a list of objects where each object represents one row from a tab in
+        the submission portal. Each of the objects represents information about the same
+        underlying organism sample. For each of the rows, each of the columns is iterated over.
+        For each column, the corresponding slot from the nmdc:OrganismSample class is identified.
+        The raw value from the submission portal is the transformed according to the range
+        of the nmdc:OrganismSample slot.
+
+        :param sample_data: collection of rows representing data about a single organism sample
+                            from each applicable submission portal tab
+        :param nmdc_organism_sample_id: Minted nmdc:OrganismSample identifier
+        :param nmdc_study_id: Minted nmdc:Study identifier for the related Study
+        :param expected_organism_id: Minted nmdc:Organism identifier for the expected organism
+            associated with this sample, if it was provided in the submission
+        :param provenance_metadata: ProvenanceMetadata object to associate with the OrganismSample
+        :return: nmdc:OrganismSample
+        """
+        slots = {}
+        for tab in sample_data:
+            transformed_tab = self._transform_dict_for_class(tab, "OrganismSample")
+            slots.update(transformed_tab)
+
+        return nmdc.OrganismSample(
+            **slots,
+            id=nmdc_organism_sample_id,
+            type="nmdc:OrganismSample",
+            associated_studies=[nmdc_study_id],
+            expected_organism=expected_organism_id,
+            name=sample_data[0].get("samp_name", "").strip() or None,
+            provenance_metadata=provenance_metadata,
+        )
+
     def get_database(self) -> nmdc.Database:
         """Translate the submission portal entry to an nmdc:Database
 
@@ -817,36 +901,77 @@ class SubmissionPortalTranslator(Translator):
 
         # Automatically populate the `env_package` field in the sample data based on which
         # environmental data tab the sample data came from.
-        sample_data = get_in(["sampleData", "data"], metadata_submission_data, default={})
+        sample_data = get_in(
+            ["sampleData", "data"], metadata_submission_data, default={}
+        )
         for key in sample_data.keys():
-            env = key.removesuffix("_data").upper()
-            try:
-                package_name = EnvironmentPackage[env].value
-                for sample in sample_data[key]:
-                    sample["env_package"] = package_name
-            except KeyError:
-                # This is expected when processing rows from tabs like the JGI/EMSL tabs or external
-                # sequencing data tabs.
-                pass
+            data_field_info = DATA_FIELDS.get(key)
+            if data_field_info is None:
+                logging.warning(f"No data field info found for '{key}'")
+                continue
+            env_package = data_field_info["env_package"]
+            if env_package is None:
+                continue
+            for sample in sample_data[key]:
+                sample["env_package"] = env_package
 
         # Before regrouping the data by sample name, record which tab each object came from
         for tab_name in sample_data.keys():
             for tab in sample_data[tab_name]:
                 tab[TAB_NAME_KEY] = tab_name
 
-        # Reorganize the sample data by sample name and generate a unique NMDC ID for each
+        # Group the sample data by sample name. Each group should represent on underlying Biosample
+        # or OrganismSample/Organism pair.
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
             concat(sample_data.values()),
         )
-        nmdc_biosample_ids = self._id_minter("nmdc:Biosample", len(sample_data_by_id))
+
+        # Filter sample_data_by_id by whether it contains data from an environmental data tab
+        biosample_data_by_id = {
+            sample_id: sample_data
+            for sample_id, sample_data in sample_data_by_id.items()
+            if any(
+                tab.get(TAB_NAME_KEY) in DATA_FIELDS
+                and DATA_FIELDS[tab.get(TAB_NAME_KEY)]["type"] == "environmental"
+                for tab in sample_data
+            )
+        }
+
+        # Filter sample_data_by_id by whether it contains data from an isolate data tab
+        organism_sample_data_by_id = {
+            sample_id: sample_data
+            for sample_id, sample_data in sample_data_by_id.items()
+            if any(
+                tab.get(TAB_NAME_KEY) in DATA_FIELDS
+                and DATA_FIELDS[tab.get(TAB_NAME_KEY)]["type"] == "isolate"
+                for tab in sample_data
+            )
+        }
+
+        # Mint NMDC identifiers for each sample
+        nmdc_biosample_ids = self._id_minter(
+            "nmdc:Biosample", len(biosample_data_by_id)
+        )
         sample_data_to_nmdc_biosample_ids = dict(
-            zip(sample_data_by_id.keys(), nmdc_biosample_ids)
+            zip(biosample_data_by_id.keys(), nmdc_biosample_ids)
+        )
+        nmdc_organism_sample_ids = self._id_minter(
+            "nmdc:OrganismSample", len(organism_sample_data_by_id)
+        )
+        nmdc_organism_ids = self._id_minter(
+            "nmdc:Organism", len(organism_sample_data_by_id)
+        )
+        sample_data_to_nmdc_organism_sample_ids = dict(
+            zip(organism_sample_data_by_id.keys(), nmdc_organism_sample_ids)
+        )
+        sample_data_to_nmdc_organism_ids = dict(
+            zip(organism_sample_data_by_id.keys(), nmdc_organism_ids)
         )
 
-        # Translate the sample data into nmdc:Biosample objects
+        # Translate the relevant sample data into nmdc:Biosample objects
         database.biosample_set = []
-        for sample_data_id, sample_data in sample_data_by_id.items():
+        for sample_data_id, sample_data in biosample_data_by_id.items():
             # This shouldn't happen, but just in case skip empty sample data
             if not sample_data:
                 continue
@@ -904,13 +1029,41 @@ class SubmissionPortalTranslator(Translator):
                 )
                 database.biosample_set.append(biosample)
 
+        # Translate the relevant sample data into nmdc:OrganismSample and nmdc:Organism objects
+        database.organism_set = []
+        database.organism_sample_set = []
+        for sample_data_id, sample_data in organism_sample_data_by_id.items():
+            # This shouldn't happen, but just in case skip empty sample data
+            if not sample_data:
+                continue
+
+            nmdc_organism_id = sample_data_to_nmdc_organism_ids[sample_data_id]
+            nmdc_organism_sample_id = sample_data_to_nmdc_organism_sample_ids[
+                sample_data_id
+            ]
+
+            organism = self._translate_organism(
+                sample_data,
+                nmdc_organism_id=nmdc_organism_id,
+            )
+            organism_sample = self._translate_organism_sample(
+                sample_data,
+                nmdc_organism_sample_id=nmdc_organism_sample_id,
+                nmdc_study_id=nmdc_study_id,
+                expected_organism_id=organism.id,
+                provenance_metadata=provenance_metadata,
+            )
+
+            database.organism_set.append(organism)
+            database.organism_sample_set.append(organism_sample)
+
         # This section handles the translation of information in the external sequencing tabs into
         # various NMDC objects.
         database.data_generation_set = []
         database.data_object_set = []
         database.instrument_set = []
         database.manifest_set = []
-        for sample_data_id, sample_data in sample_data_by_id.items():
+        for sample_data_id, sample_data in biosample_data_by_id.items():
             for tab in sample_data:
                 tab_name = tab.get(TAB_NAME_KEY)
                 analyte_category = TAB_NAME_TO_ANALYTE_CATEGORY.get(tab_name)

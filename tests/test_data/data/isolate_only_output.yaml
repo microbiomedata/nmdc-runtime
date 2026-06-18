@@ -1,0 +1,54 @@
+organism_sample_set:
+- id: nmdc:osm-00-4wn6isig
+  type: nmdc:OrganismSample
+  name: '0001'
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  expected_organism: nmdc:orgn-00-q8jtgev4
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - 91213966-e36d-40b1-841d-4f6c10c1af21
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2013-03-25'
+  samp_name: '0001'
+  ploidy: haploid
+  analysis_type:
+  - isolate genome sequencing
+organism_set:
+- id: nmdc:orgn-00-q8jtgev4
+  type: nmdc:Organism
+  classified_as:
+  - id: NCBITaxon:562
+    type: nmdc:NcbiTaxon
+  organism_genus: Shewanella
+  organism_species: Shewanella loihica
+  strain_name: Shewanella loihica PV-4
+  isolate_name: Bd21-3
+  gc_content: 50.0
+study_set:
+- id: nmdc:sty-00-y0cq65zt
+  type: nmdc:Study
+  name: Isolate Only
+  study_category: research_study
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - 91213966-e36d-40b1-841d-4f6c10c1af21
+  principal_investigator:
+    type: nmdc:PersonValue
+    email: tester@example.gov
+    name: ''
+    orcid: ''
+  title: Isolate Only
