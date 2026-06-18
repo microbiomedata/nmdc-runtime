@@ -1062,7 +1062,7 @@ class SubmissionPortalTranslator(Translator):
             # If the organism isolate was derived from an environmental sample in the submission,
             # this will be indicated by the sample_link column of the relevant tabs. If a
             # sample_link was provided and it maps to an environmental sample name, then create a
-            # name:Isolation record linking the OrganismSample to the Biosample.
+            # nmdc:Isolation record linking the OrganismSample to the Biosample.
             sample_link = next(
                 (
                     tab.get("sample_link")
