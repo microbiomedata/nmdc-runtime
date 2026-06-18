@@ -1037,6 +1037,8 @@ class SubmissionPortalTranslator(Translator):
             if not sample_data:
                 continue
 
+            # Each row from an isolate tab should translate into a pair of OrganismSample and
+            # Organism objects with a one-to-one relationship.
             nmdc_organism_id = sample_data_to_nmdc_organism_ids[sample_data_id]
             nmdc_organism_sample_id = sample_data_to_nmdc_organism_sample_ids[
                 sample_data_id
@@ -1056,6 +1058,31 @@ class SubmissionPortalTranslator(Translator):
 
             database.organism_set.append(organism)
             database.organism_sample_set.append(organism_sample)
+
+            # If the organism isolate was derived from an environmental sample in the submission,
+            # this will be indicated by the sample_link column of the relevant tabs. If a
+            # sample_link was provided and it maps to an environmental sample name, then create a
+            # name:Isolation record linking the OrganismSample to the Biosample.
+            sample_link = next(
+                (
+                    tab.get("sample_link")
+                    for tab in sample_data
+                    if tab.get("sample_link") is not None
+                ),
+                None,
+            )
+            if sample_link:
+                if sample_link not in sample_data_to_nmdc_biosample_ids:
+                    raise ValueError(
+                        f"Could not find sample_link '{sample_link}' for organism sample '{organism_sample.name}'"
+                    )
+                isolation = nmdc.Isolation(
+                    id=self._id_minter("nmdc:Isolation")[0],
+                    type="nmdc:Isolation",
+                    has_input=sample_data_to_nmdc_biosample_ids[sample_link],
+                    has_output=nmdc_organism_sample_id,
+                )
+                database.material_processing_set.append(isolation)
 
         # This section handles the translation of information in the external sequencing tabs into
         # various NMDC objects.

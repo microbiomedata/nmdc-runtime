@@ -493,10 +493,11 @@ def test_instruments(test_minter):
     "data_file_base",
     [
         "isolate_only",
+        "isolate_soil",
+        "nucleotide_sequencing_mapping",
         "plant_air_jgi",
-        # "nucleotide_sequencing_mapping",
-        # "sequencing_data",
-        # "soil_sample_link",
+        "sequencing_data",
+        "soil_sample_link",
     ],
 )
 def test_get_database(test_minter, monkeypatch, data_file_base):

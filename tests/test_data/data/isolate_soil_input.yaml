@@ -3,6 +3,7 @@ metadata_submission:
     sampleEnvironmentForm:
       packageName:
         - isolate
+        - soil
       validation: []
     senderShippingInfoForm:
       shipper:
@@ -29,8 +30,9 @@ metadata_submission:
       validation: null
     templates:
       - isolate
+      - soil
     studyForm:
-      studyName: Isolate Only
+      studyName: Isolate + Soil
       piName: ""
       piEmail: tester@example.gov
       piOrcid: ""
@@ -60,7 +62,6 @@ metadata_submission:
       mtInterleaved: null
       omicsProcessingTypes:
         - isolate-genome
-        - isolate-transcriptome
       otherAward: null
       ship: null
       studyNumber: ""
@@ -74,50 +75,69 @@ metadata_submission:
       validation: []
     sampleData:
       data:
+        soil_data:
+          - elev: 0
+            depth: 0 - 1
+            lat_lon: 0 0
+            samp_name: soil-001
+            env_medium: acidic soil [ENVO:01001185]
+            store_cond: frozen
+            geo_loc_name: "USA: Fake, Fake"
+            growth_facil: experimental_garden
+            analysis_type:
+              - metagenomics
+            collection_date: "2021"
+            env_broad_scale: alpine tundra biome [ENVO:01001505]
+            env_local_scale: active permafrost layer [ENVO:04000009]
+            samp_store_temp: 0
         isolate_data:
-          - ploidy: haploid
-            samp_name: "0001"
-            gc_content: 50
-            strain_name: Shewanella loihica PV-4
-            isolate_name: Bd21-3
+          - ploidy: triploid
+            samp_name: isolate-001
+            sample_link: soil-001
+            gc_content: 0
+            strain_name: Lorem ipsum dolor sit
+            isolate_name: Lorem ipsum dolor sit 0001
             analysis_type:
               - isolate genome sequencing
-            classified_as: NCBITaxon:562
-            organism_genus: Shewanella
-            collection_date: 2013-03-25
-            organism_species: Shewanella loihica
+            classified_as: NCBITaxon:0001
+            organism_genus: Lorem
+            collection_date: 2021-01-01
+            organism_species: Lorem ipsum
             isolate_single_colony: yes
-            isolate_known_contaminants: Bacillus subtilis ~5%
+            isolate_known_contaminants: Consectetur adipiscing 1%
       validation:
         invalidCells:
+          soil: {}
           isolate: {}
         tabsValidated:
+          soil: true
           isolate: true
   status: InProgress
   source_client: submission_portal
   is_test_submission: false
-  id: 91213966-e36d-40b1-841d-4f6c10c1af21
+  id: ef59f345-8c89-4201-bcdc-28ca1f6919ca
   author:
-    id: 43cefaba-704f-4c4d-b20c-1e86236d601f
+    id: 237a0086-bae8-4412-890c-e2a44f4e1749
     orcid: 0000-0000-0000-000X
     name: Test Testerdóttir
     email: tester@example.gov
     is_admin: true
-  study_name: Isolate Only
+  study_name: Isolate + Soil
   templates:
     - isolate
-  date_last_modified: 2026-06-18T00:03:42.507587
-  created: 2026-06-18T00:03:07.804543
-  sample_count: 0
+    - soil
+  date_last_modified: 2026-06-18T18:19:43.435496
+  created: 2026-06-18T18:19:19.301941
+  sample_count: 1
   reviewers: []
   contributors:
     - 0000-0000-0000-000X
   author_orcid: 0000-0000-0000-000X
   field_notes_metadata: null
   nmdc_study_id: null
-  lock_updated: 2026-06-18T00:13:19.569336
+  lock_updated: 2026-06-18T18:24:16.425730
   locked_by: null
-  permission_level: owner
+  permission_level: null
   pi_image_url: null
   primary_study_image_url: null
   study_image_urls: []
