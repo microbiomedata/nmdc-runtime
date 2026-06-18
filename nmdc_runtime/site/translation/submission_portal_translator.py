@@ -969,6 +969,9 @@ class SubmissionPortalTranslator(Translator):
             zip(organism_sample_data_by_id.keys(), nmdc_organism_ids)
         )
 
+        # These NMDC IDs will be populated dynamically
+        sample_data_to_nmdc_processed_sample_ids = {}
+
         # Translate the relevant sample data into nmdc:Biosample objects
         database.biosample_set = []
         for sample_data_id, sample_data in biosample_data_by_id.items():
@@ -998,12 +1001,14 @@ class SubmissionPortalTranslator(Translator):
                         f"Could not find all input samples in sample_link '{sample_link}'"
                     )
                 processed_sample_id = self._id_minter("nmdc:ProcessedSample")[0]
-                database.processed_sample_set.append(
-                    nmdc.ProcessedSample(
-                        id=processed_sample_id,
-                        type="nmdc:ProcessedSample",
-                        name=sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip(),
-                    )
+                processed_sample = nmdc.ProcessedSample(
+                    id=processed_sample_id,
+                    type="nmdc:ProcessedSample",
+                    name=sample_data[0].get(BIOSAMPLE_UNIQUE_KEY_SLOT, "").strip(),
+                )
+                database.processed_sample_set.append(processed_sample)
+                sample_data_to_nmdc_processed_sample_ids[processed_sample.name] = (
+                    processed_sample_id
                 )
 
                 processing_class = getattr(nmdc, processing_type)
@@ -1072,14 +1077,26 @@ class SubmissionPortalTranslator(Translator):
                 None,
             )
             if sample_link:
-                if sample_link not in sample_data_to_nmdc_biosample_ids:
+                # If the sample_link is present, check if it maps to the name of a Biosample
+                # or ProcessedSample. If it does, get the corresponding NMDC ID.
+                input_sample_id = sample_data_to_nmdc_biosample_ids.get(sample_link)
+                if input_sample_id is None:
+                    input_sample_id = sample_data_to_nmdc_processed_sample_ids.get(
+                        sample_link
+                    )
+
+                # If the input sample ID is still None, that means the sample_link does not
+                # correspond to any known sample in the submission. In this case, raise an exception
+                # to indicate that the sample_link could not be resolved.
+                if input_sample_id is None:
                     raise ValueError(
                         f"Could not find sample_link '{sample_link}' for organism sample '{organism_sample.name}'"
                     )
+
                 isolation = nmdc.Isolation(
                     id=self._id_minter("nmdc:Isolation")[0],
                     type="nmdc:Isolation",
-                    has_input=[sample_data_to_nmdc_biosample_ids[sample_link]],
+                    has_input=[input_sample_id],
                     has_output=[nmdc_organism_sample_id],
                 )
                 database.material_processing_set.append(isolation)
