@@ -1079,9 +1079,9 @@ class SubmissionPortalTranslator(Translator):
             if sample_link:
                 # If the sample_link is present, check if it maps to the name of a Biosample
                 # or ProcessedSample. If it does, get the corresponding NMDC ID.
-                input_sample_id = sample_data_to_nmdc_biosample_ids.get(sample_link)
+                input_sample_id = sample_data_to_nmdc_processed_sample_ids.get(sample_link)
                 if input_sample_id is None:
-                    input_sample_id = sample_data_to_nmdc_processed_sample_ids.get(
+                    input_sample_id = sample_data_to_nmdc_biosample_ids.get(
                         sample_link
                     )
 
