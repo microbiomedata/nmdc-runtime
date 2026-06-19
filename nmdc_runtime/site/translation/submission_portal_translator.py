@@ -950,17 +950,23 @@ class SubmissionPortalTranslator(Translator):
         }
 
         # Mint NMDC identifiers for each sample
-        nmdc_biosample_ids = self._id_minter(
-            "nmdc:Biosample", len(biosample_data_by_id)
+        nmdc_biosample_ids = (
+            self._id_minter("nmdc:Biosample", len(biosample_data_by_id))
+            if len(biosample_data_by_id) > 0
+            else []
         )
         sample_data_to_nmdc_biosample_ids = dict(
             zip(biosample_data_by_id.keys(), nmdc_biosample_ids)
         )
-        nmdc_organism_sample_ids = self._id_minter(
-            "nmdc:OrganismSample", len(organism_sample_data_by_id)
+        nmdc_organism_sample_ids = (
+            self._id_minter("nmdc:OrganismSample", len(organism_sample_data_by_id))
+            if len(organism_sample_data_by_id) > 0
+            else []
         )
-        nmdc_organism_ids = self._id_minter(
-            "nmdc:Organism", len(organism_sample_data_by_id)
+        nmdc_organism_ids = (
+            self._id_minter("nmdc:Organism", len(organism_sample_data_by_id))
+            if len(organism_sample_data_by_id) > 0
+            else []
         )
         sample_data_to_nmdc_organism_sample_ids = dict(
             zip(organism_sample_data_by_id.keys(), nmdc_organism_sample_ids)

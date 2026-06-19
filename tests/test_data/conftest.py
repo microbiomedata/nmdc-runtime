@@ -11,6 +11,9 @@ def test_minter():
     typecode_list = typecodes()
 
     def mint(type, how_many=1):
+        if how_many < 1:
+            raise ValueError("how_many must be >= 1")
+
         typecode = next(t for t in typecode_list if t["schema_class"] == type)
         return [
             "nmdc:"
