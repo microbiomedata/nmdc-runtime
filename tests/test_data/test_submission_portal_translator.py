@@ -437,28 +437,30 @@ def test_instruments(test_minter):
                 "piEmail": "fake@fake.com",
             },
             "sampleData": {
-                "soil_data": [
-                    _mock_soil_data("001"),
-                    _mock_soil_data("002"),
-                ],
-                "metagenome_sequencing_interleaved_data": [
-                    {
-                        "model": "hiseq_1500",
-                        "samp_name": "001",
-                        "interleaved_url": "http://example.com/001-1.fastq",
-                        "analysis_type": ["metagenomics"],
-                        "interleaved_checksum": "b1946ac92492d2347c6235b4d2611184",
-                    },
-                    {
-                        "model": "hiseq_2500",
-                        "samp_name": "002",
-                        "interleaved_url": "http://example.com/002-1.fastq",
-                        "analysis_type": [
-                            "metagenomics",
-                        ],
-                        "interleaved_checksum": "916f4c31aaa35d6b867dae9a7f54270d",
-                    },
-                ],
+                "data": {
+                    "soil_data": [
+                        _mock_soil_data("001"),
+                        _mock_soil_data("002"),
+                    ],
+                    "metagenome_sequencing_interleaved_data": [
+                        {
+                            "model": "hiseq_1500",
+                            "samp_name": "001",
+                            "interleaved_url": "http://example.com/001-1.fastq",
+                            "analysis_type": ["metagenomics"],
+                            "interleaved_checksum": "b1946ac92492d2347c6235b4d2611184",
+                        },
+                        {
+                            "model": "hiseq_2500",
+                            "samp_name": "002",
+                            "interleaved_url": "http://example.com/002-1.fastq",
+                            "analysis_type": [
+                                "metagenomics",
+                            ],
+                            "interleaved_checksum": "916f4c31aaa35d6b867dae9a7f54270d",
+                        },
+                    ],
+                },
             },
         },
     }
@@ -490,8 +492,11 @@ def test_instruments(test_minter):
 @pytest.mark.parametrize(
     "data_file_base",
     [
-        "plant_air_jgi",
+        "isolate_only",
+        "isolate_soil",
+        "isolate_soil_jgi",
         "nucleotide_sequencing_mapping",
+        "plant_air_jgi",
         "sequencing_data",
         "soil_sample_link",
     ],

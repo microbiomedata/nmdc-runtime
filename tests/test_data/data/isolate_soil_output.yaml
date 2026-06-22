@@ -1,0 +1,132 @@
+biosample_set:
+- id: nmdc:bsm-00-4wn6isig
+  type: nmdc:Biosample
+  name: soil-001
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: alpine tundra biome [ENVO:01001505]
+    term:
+      id: ENVO:01001505
+      type: nmdc:OntologyClass
+      name: alpine tundra biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: active permafrost layer [ENVO:04000009]
+    term:
+      id: ENVO:04000009
+      type: nmdc:OntologyClass
+      name: active permafrost layer
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: acidic soil [ENVO:01001185]
+    term:
+      id: ENVO:01001185
+      type: nmdc:OntologyClass
+      name: acidic soil
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - ef59f345-8c89-4201-bcdc-28ca1f6919ca
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2021'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 1
+    has_unit: m
+    has_maximum_numeric_value: 1
+    has_minimum_numeric_value: 0
+  elev: 0.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: experimental_garden
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 0 0
+    latitude: 0.0
+    longitude: 0.0
+  samp_name: soil-001
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: '0'
+    has_unit: Cel
+    has_numeric_value: 0
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - metagenomics
+material_processing_set:
+- id: nmdc:isnp-00-27qd9afz
+  type: nmdc:Isolation
+  has_input:
+  - nmdc:bsm-00-4wn6isig
+  has_output:
+  - nmdc:osm-00-q8jtgev4
+organism_sample_set:
+- id: nmdc:osm-00-q8jtgev4
+  type: nmdc:OrganismSample
+  name: isolate-001
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  expected_organism: nmdc:orgn-00-9gw1un94
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - ef59f345-8c89-4201-bcdc-28ca1f6919ca
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2021-01-01'
+  samp_name: isolate-001
+  ploidy: triploid
+  analysis_type:
+  - isolate genome sequencing
+organism_set:
+- id: nmdc:orgn-00-9gw1un94
+  type: nmdc:Organism
+  classified_as:
+  - id: NCBITaxon:0001
+    type: nmdc:NcbiTaxon
+  organism_genus: Lorem
+  organism_species: Lorem ipsum
+  strain_name: Lorem ipsum dolor sit
+  isolate_name: Lorem ipsum dolor sit 0001
+  gc_content: 0.0
+study_set:
+- id: nmdc:sty-00-y0cq65zt
+  type: nmdc:Study
+  name: Isolate + Soil
+  study_category: research_study
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - ef59f345-8c89-4201-bcdc-28ca1f6919ca
+  principal_investigator:
+    type: nmdc:PersonValue
+    email: tester@example.gov
+    name: ''
+    orcid: ''
+  title: Isolate + Soil

@@ -64,80 +64,81 @@ metadata_submission:
       studyNumber: "12312"
       unknownDoi: true
     sampleData:
-      soil_data:
-        - elev: 1325
-          depth: 0 - 1
-          lat_lon: 43 -120
-          samp_name: "001"
-          env_medium: bulk soil [ENVO:00005802]
-          store_cond: frozen
-          geo_loc_name: "USA: Fake, Fake"
-          growth_facil: field
-          analysis_type:
-            - metagenomics
-          collection_date: 2025-01-01
-          env_broad_scale: mixed forest biome [ENVO:01000198]
-          env_local_scale: area of evergreen forest [ENVO:01000843]
-          samp_store_temp: -80 Cel
-          slope_gradient: 8%
-        - elev: 1325
-          depth: 0 - 1
-          lat_lon: 43 -120
-          samp_name: "002"
-          env_medium: bulk soil [ENVO:00005802]
-          store_cond: frozen
-          geo_loc_name: "USA: Fake, Fake"
-          growth_facil: field
-          analysis_type:
-            - metagenomics
-            - metatranscriptomics
-          collection_date: 2025-01-01
-          env_broad_scale: mixed forest biome [ENVO:01000198]
-          env_local_scale: area of evergreen forest [ENVO:01000843]
-          samp_store_temp: -80 Cel
-          slope_gradient: 0%
-        - elev: 1325
-          depth: 0 - 1
-          lat_lon: 43 -120
-          samp_name: "003"
-          env_medium: bulk soil [ENVO:00005802]
-          store_cond: frozen
-          geo_loc_name: "USA: Fake, Fake"
-          growth_facil: field
-          analysis_type:
-            - metatranscriptomics
-          collection_date: 2025-01-01
-          env_broad_scale: mixed forest biome [ENVO:01000198]
-          env_local_scale: area of evergreen forest [ENVO:01000843]
-          samp_store_temp: -80 Cel
-          slope_gradient: 0.5%
-      metagenome_sequencing_non_interleaved_data:
-        - model: hiseq_1500
-          samp_name: "001"
-          read_1_url: http://example.com/001-1.fastq.gz
-          read_2_url: http://example.com/001-2.fastq.gz
-          analysis_type:
-            - metagenomics
-          protocol_link: http://example.com
-          read_1_md5_checksum: b1946ac92492d2347c6235b4d2611184
-          read_2_md5_checksum: 94baaad4d1347ec6e15ae35c88ee8bc8
-          processing_institution: UCSD
-          insdc_bioproject_identifiers: bioproject:PRJNA366857
-          insdc_experiment_identifiers: insdc.sra:ERX000000
-        - model: hiseq_1500
-          samp_name: "002"
-          read_1_url: http://example.com/002-1.fastq.gz
-          read_2_url: http://example.com/002-2.fastq.gz
-          analysis_type:
-            - metagenomics
-            - metatranscriptomics
-          protocol_link: http://example.com
-          read_1_md5_checksum: 916f4c31aaa35d6b867dae9a7f54270d
-          read_2_md5_checksum: 764efa883dda1e11db47671c4a3bbd9e
-          processing_institution: UCSD
-          insdc_bioproject_identifiers: bioproject:PRJNA366857
-          insdc_experiment_identifiers: insdc.sra:ERX000000
-      metatranscriptome_sequencing_interleaved_data:
+      data:
+        soil_data:
+          - elev: 1325
+            depth: 0 - 1
+            lat_lon: 43 -120
+            samp_name: "001"
+            env_medium: bulk soil [ENVO:00005802]
+            store_cond: frozen
+            geo_loc_name: "USA: Fake, Fake"
+            growth_facil: field
+            analysis_type:
+              - metagenomics
+            collection_date: 2025-01-01
+            env_broad_scale: mixed forest biome [ENVO:01000198]
+            env_local_scale: area of evergreen forest [ENVO:01000843]
+            samp_store_temp: -80 Cel
+            slope_gradient: 8%
+          - elev: 1325
+            depth: 0 - 1
+            lat_lon: 43 -120
+            samp_name: "002"
+            env_medium: bulk soil [ENVO:00005802]
+            store_cond: frozen
+            geo_loc_name: "USA: Fake, Fake"
+            growth_facil: field
+            analysis_type:
+              - metagenomics
+              - metatranscriptomics
+            collection_date: 2025-01-01
+            env_broad_scale: mixed forest biome [ENVO:01000198]
+            env_local_scale: area of evergreen forest [ENVO:01000843]
+            samp_store_temp: -80 Cel
+            slope_gradient: 0%
+          - elev: 1325
+            depth: 0 - 1
+            lat_lon: 43 -120
+            samp_name: "003"
+            env_medium: bulk soil [ENVO:00005802]
+            store_cond: frozen
+            geo_loc_name: "USA: Fake, Fake"
+            growth_facil: field
+            analysis_type:
+              - metatranscriptomics
+            collection_date: 2025-01-01
+            env_broad_scale: mixed forest biome [ENVO:01000198]
+            env_local_scale: area of evergreen forest [ENVO:01000843]
+            samp_store_temp: -80 Cel
+            slope_gradient: 0.5%
+        metagenome_sequencing_non_interleaved_data:
+          - model: hiseq_1500
+            samp_name: "001"
+            read_1_url: http://example.com/001-1.fastq.gz
+            read_2_url: http://example.com/001-2.fastq.gz
+            analysis_type:
+              - metagenomics
+            protocol_link: http://example.com
+            read_1_md5_checksum: b1946ac92492d2347c6235b4d2611184
+            read_2_md5_checksum: 94baaad4d1347ec6e15ae35c88ee8bc8
+            processing_institution: UCSD
+            insdc_bioproject_identifiers: bioproject:PRJNA366857
+            insdc_experiment_identifiers: insdc.sra:ERX000000
+          - model: hiseq_1500
+            samp_name: "002"
+            read_1_url: http://example.com/002-1.fastq.gz
+            read_2_url: http://example.com/002-2.fastq.gz
+            analysis_type:
+              - metagenomics
+              - metatranscriptomics
+            protocol_link: http://example.com
+            read_1_md5_checksum: 916f4c31aaa35d6b867dae9a7f54270d
+            read_2_md5_checksum: 764efa883dda1e11db47671c4a3bbd9e
+            processing_institution: UCSD
+            insdc_bioproject_identifiers: bioproject:PRJNA366857
+            insdc_experiment_identifiers: insdc.sra:ERX000000
+        metatranscriptome_sequencing_interleaved_data:
         - model: nextseq
           samp_name: "002"
           analysis_type:
