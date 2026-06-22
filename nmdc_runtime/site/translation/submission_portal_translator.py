@@ -648,7 +648,21 @@ class SubmissionPortalTranslator(Translator):
         self, value: Any, slot: SlotDefinition, unit: Optional[str] = None
     ):
         transformed_value = None
-        if slot.range == "TextValue":
+        # First do transformations based on specific slot names.
+        if slot.name == "estimated_size":
+            # In nmdc-schema, estimated_size is an integer representing the number of base pairs.
+            # In submission-schema, estimated_size is a float representing the number of megabases.
+            # If a value is provided, do the conversion from megabases to base pairs.
+            if value is not None:
+                try:
+                    transformed_value = int(float(value) * 1_000_000)
+                except ValueError:
+                    logging.warning(
+                        f"Could not convert estimated_size value '{value}' to an integer number of base pairs"
+                    )
+
+        # If the slot wasn't handled by name, do transformations based on the slot range.
+        elif slot.range == "TextValue":
             transformed_value = nmdc.TextValue(
                 has_raw_value=value,
                 type="nmdc:TextValue",
@@ -679,6 +693,8 @@ class SubmissionPortalTranslator(Translator):
             transformed_value = self._get_float(value)
         elif slot.range == "string":
             transformed_value = str(value).strip()
+
+        # If the slot wasn't handled by name or range, just return the value as-is.
         else:
             transformed_value = value
 

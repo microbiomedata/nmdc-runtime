@@ -494,6 +494,7 @@ def test_instruments(test_minter):
     [
         "isolate_only",
         "isolate_soil",
+        "isolate_soil_jgi",
         "nucleotide_sequencing_mapping",
         "plant_air_jgi",
         "sequencing_data",
