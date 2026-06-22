@@ -200,10 +200,10 @@ def ensure_sample_sets_have_unique_compound_index_on_name_and_associated_studies
     and `organism_sample_set` collections; so that no two biosamples or two organism samples
     associated with the same study can have the same name.
 
-    Note: this does **not** prevent a biosample and an organism sample from having the same name if
-    they are associated with the same study, since they are in different collections. It is an open
-    task to enforce that constraint across those collections (and also possibly the
-    `processed_sample_set` collection) in application code.
+    Note: this does **not** prevent a biosample and an organism sample from having the same name
+    if they are associated with the same study, since they are in different collections. There is
+    an outstanding task to enforce that constraint across those collections (and also possibly
+    the `processed_sample_set` collection) in application code.
     """
     mdb = get_mongo_db()
     mdb["biosample_set"].create_index(

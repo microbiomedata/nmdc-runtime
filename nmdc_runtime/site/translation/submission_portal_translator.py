@@ -57,6 +57,9 @@ class DataFieldInfo(TypedDict):
     type: Literal["environmental", "isolate"]
 
 
+# This is a mapping from names of fields used in Submission Portal records to information about the
+# type of data they contain. This influences how the data is processed and the resulting NMDC schema
+# objects that are created.
 DATA_FIELDS: dict[str, DataFieldInfo] = {
     "air_data": {"env_package": "air", "type": "environmental"},
     "biofilm_data": {"env_package": "microbial mat_biofilm", "type": "environmental"},
@@ -826,7 +829,7 @@ class SubmissionPortalTranslator(Translator):
         the submission portal. Each of the objects represents information about the same
         underlying organism sample. For each of the rows, each of the columns is iterated over.
         For each column, the corresponding slot from the nmdc:Organism class is identified.
-        The raw value from the submission portal is the transformed according to the range
+        The raw value from the submission portal is then transformed according to the range
         of the nmdc:Organism slot.
 
         :param sample_data: collection of rows representing data about a single organism sample
@@ -859,7 +862,7 @@ class SubmissionPortalTranslator(Translator):
         the submission portal. Each of the objects represents information about the same
         underlying organism sample. For each of the rows, each of the columns is iterated over.
         For each column, the corresponding slot from the nmdc:OrganismSample class is identified.
-        The raw value from the submission portal is the transformed according to the range
+        The raw value from the submission portal is then transformed according to the range
         of the nmdc:OrganismSample slot.
 
         :param sample_data: collection of rows representing data about a single organism sample
@@ -936,7 +939,7 @@ class SubmissionPortalTranslator(Translator):
             for tab in sample_data[tab_name]:
                 tab[TAB_NAME_KEY] = tab_name
 
-        # Group the sample data by sample name. Each group should represent on underlying Biosample
+        # Group the sample data by sample name. Each group should represent one underlying Biosample
         # or OrganismSample/Organism pair.
         sample_data_by_id = groupby(
             BIOSAMPLE_UNIQUE_KEY_SLOT,
@@ -997,7 +1000,7 @@ class SubmissionPortalTranslator(Translator):
         # Translate the relevant sample data into nmdc:Biosample objects
         database.biosample_set = []
         for sample_data_id, sample_data in biosample_data_by_id.items():
-            # This shouldn't happen, but just in case skip empty sample data
+            # This shouldn't happen, but (just in case) skip empty sample data
             if not sample_data:
                 continue
 
