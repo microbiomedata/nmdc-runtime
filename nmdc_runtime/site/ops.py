@@ -563,9 +563,9 @@ def nmdc_schema_database_from_gold_study(
 
 
 @op(
-    required_resource_keys={"mongo"},
     out={
         "submission_id": Out(),
+        "sample_set_id": Out(),
         "nucleotide_sequencing_mapping_file_url": Out(Optional[str]),
         "data_object_mapping_file_url": Out(Optional[str]),
         "biosample_extras_file_url": Out(Optional[str]),
@@ -576,21 +576,16 @@ def nmdc_schema_database_from_gold_study(
 def get_submission_portal_pipeline_inputs(
     context: OpExecutionContext,
     submission_id: str,
+    sample_set_id: str,
     nucleotide_sequencing_mapping_file_url: Optional[str],
     data_object_mapping_file_url: Optional[str],
     biosample_extras_file_url: Optional[str],
     biosample_extras_slot_mapping_file_url: Optional[str],
     study_id: Optional[str],
-) -> Tuple[str, str | None, str | None, str | None, str | None, str | None]:
-    # query for studies matching the ID to see if it eists
-    if study_id:
-        mdb = context.resources.mongo.db
-        result = mdb.study_set.find_one({"id": study_id})
-        if not result:
-            raise Exception(f"Study id: {study_id} does not exist in Mongo.")
-
+) -> Tuple[str, str, str | None, str | None, str | None, str | None, str | None]:
     return (
         submission_id,
+        sample_set_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
@@ -609,10 +604,19 @@ def fetch_nmdc_portal_submission_by_id(
     return client.fetch_metadata_submission(submission_id)
 
 
-@op(required_resource_keys={"runtime_api_site_client"})
+@op(required_resource_keys={"nmdc_portal_api_client"})
+def fetch_nmdc_portal_submission_sample_set_by_id(
+    context: OpExecutionContext, sample_set_id: str
+) -> Dict[str, Any]:
+    client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+    return client.fetch_sample_set(sample_set_id)
+
+
+@op(required_resource_keys={"mongo", "runtime_api_site_client"})
 def translate_portal_submission_to_nmdc_schema_database(
     context: OpExecutionContext,
     metadata_submission: Dict[str, Any],
+    sample_set: Dict[str, Any],
     nucleotide_sequencing_mapping: List,
     data_object_mapping: List,
     instrument_mapping: Dict[str, str],
@@ -623,13 +627,38 @@ def translate_portal_submission_to_nmdc_schema_database(
     study_id: Optional[str],
 ) -> nmdc.Database:
     client: RuntimeApiSiteClient = context.resources.runtime_api_site_client
+    mdb = context.resources.mongo.db
 
     def id_minter(*args, **kwargs):
         response = client.mint_id(*args, **kwargs)
         return response.json()
 
+    existing_study: Optional[nmdc.Study] = None
+    # Attempt to find an existing study in Mongo to reuse instead of creating a new one.
+    if study_id:
+        # If a study_id is provided, check that it exists in Mongo. If it exists, use that one. If
+        # it doesn't exist, raise an error.
+        mdb = context.resources.mongo.db
+        existing_study = mdb.study_set.find_one({"id": study_id})
+        if existing_study is None:
+            raise Exception(f"Study with ID '{study_id}' does not exist in Mongo.")
+    elif metadata_submission.get("nmdc_study_id"):
+        # If no study_id is provided but the submission has a nmdc_study_id value, check if a study
+        # with that ID exists in Mongo. If it exists, use that one. If it doesn't exist, raise an
+        # error.
+        mdb = context.resources.mongo.db
+        existing_study = mdb.study_set.find_one(
+            {"id": metadata_submission["nmdc_study_id"]}
+        )
+        if existing_study is None:
+            raise Exception(
+                f"Submission has nmdc_study_id '{metadata_submission['nmdc_study_id']}' but no Study with that ID exists in Mongo."
+            )
+
     translator = SubmissionPortalTranslator(
         metadata_submission,
+        sample_set,
+        existing_study=existing_study,
         nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
         data_object_mapping=data_object_mapping,
         id_minter=id_minter,
@@ -638,7 +667,6 @@ def translate_portal_submission_to_nmdc_schema_database(
         biosample_extras=biosample_extras,
         biosample_extras_slot_mapping=biosample_extras_slot_mapping,
         illumina_instrument_mapping=instrument_mapping,
-        study_id=study_id,
     )
     database = translator.get_database()
     return database

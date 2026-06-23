@@ -67,6 +67,7 @@ from nmdc_runtime.site.ops import (
     get_instrument_ids_by_model,
     log_database_ids,
     add_public_image_urls,
+    fetch_nmdc_portal_submission_sample_set_by_id,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -182,6 +183,7 @@ def gold_study_to_database():
 def translate_metadata_submission_to_nmdc_schema_database():
     (
         submission_id,
+        sample_set_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
@@ -190,6 +192,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    sample_set = fetch_nmdc_portal_submission_sample_set_by_id(sample_set_id)
     nucleotide_sequencing_mapping = get_csv_rows_from_url(
         nucleotide_sequencing_mapping_file_url
     )
@@ -202,6 +205,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
+        sample_set,
         nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
@@ -224,6 +228,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
 def ingest_metadata_submission():
     (
         submission_id,
+        sample_set_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
@@ -232,6 +237,7 @@ def ingest_metadata_submission():
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    sample_set = fetch_nmdc_portal_submission_sample_set_by_id(sample_set_id)
     nucleotide_sequencing_mapping = get_csv_rows_from_url(
         nucleotide_sequencing_mapping_file_url
     )
@@ -244,6 +250,7 @@ def ingest_metadata_submission():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
+        sample_set,
         nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
