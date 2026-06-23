@@ -1,6 +1,7 @@
 import logging
 import re
 from collections import namedtuple
+from copy import deepcopy
 from decimal import Decimal
 from functools import lru_cache
 from importlib import resources
@@ -139,16 +140,22 @@ def split_strip(string: str | None, sep: str) -> list[str] | None:
 class SubmissionPortalTranslator(Translator):
     """A Translator subclass for handling submission portal entries
 
-    This translator is constructed with a metadata_submission object from the
-    submission portal. Since the submission schema is built by importing slots
-    from the nmdc:Biosample class this translator largely works by introspecting
-    the nmdc:Biosample class (via a SchemaView instance)
+    This translator is constructed with a metadata_submission object and a
+    sample set object from the submission portal. Since the submission schema
+    is built by importing slots from the nmdc:Biosample class this translator
+    largely works by introspecting the nmdc:Biosample class (via a SchemaView
+    instance)
     """
 
     def __init__(
         self,
         metadata_submission: Optional[JSON_OBJECT] = None,
+        sample_set: Optional[JSON_OBJECT] = None,
         *args,
+        # Optional existing Study instance indicating that new Biosamples should be associated
+        # with this Study instead of minting a new Study.
+        existing_study: Optional[nmdc.Study] = None,
+        # Mapping sidecar files for handling data files associated with submission portal entries.
         nucleotide_sequencing_mapping: Optional[list] = None,
         data_object_mapping: Optional[list] = None,
         illumina_instrument_mapping: Optional[dict[str, str]] = None,
@@ -156,7 +163,6 @@ class SubmissionPortalTranslator(Translator):
         # See: https://github.com/microbiomedata/submission-schema/issues/162
         study_category: Optional[str] = None,
         study_pi_image_url: Optional[str] = None,
-        study_id: Optional[str] = None,
         # Additional biosample-level metadata with optional column mapping information not captured
         # by the submission portal currently.
         # See: https://github.com/microbiomedata/submission-schema/issues/162
@@ -167,6 +173,9 @@ class SubmissionPortalTranslator(Translator):
         super().__init__(*args, **kwargs)
 
         self.metadata_submission: JSON_OBJECT = metadata_submission or {}
+        self.sample_set: JSON_OBJECT = sample_set or {}
+        self.existing_study = existing_study
+
         self.nucleotide_sequencing_mapping = nucleotide_sequencing_mapping
         self.data_object_mapping = data_object_mapping
         self.illumina_instrument_mapping: dict[str, str] = (
@@ -177,7 +186,6 @@ class SubmissionPortalTranslator(Translator):
             nmdc.StudyCategoryEnum(study_category) if study_category else None
         )
         self.study_pi_image_url = study_pi_image_url
-        self.study_id = study_id
 
         self.biosample_extras = group_dicts_by_key(
             BIOSAMPLE_UNIQUE_KEY_SLOT, biosample_extras
@@ -192,7 +200,7 @@ class SubmissionPortalTranslator(Translator):
             "MaterialProcessing", reflexive=False
         ):
             class_def = self.schema_view.get_class(class_name)
-            if not class_def.abstract:
+            if class_def is not None and not class_def.abstract:
                 self._material_processing_subclass_names.append(class_name)
 
     def _get_pi(
@@ -203,7 +211,7 @@ class SubmissionPortalTranslator(Translator):
         :param metadata_submission: submission portal entry
         :return: nmdc:PersonValue
         """
-        study_form = metadata_submission.get("studyForm")
+        study_form = metadata_submission.get("study_form")
         if not study_form:
             return None
 
@@ -223,7 +231,7 @@ class SubmissionPortalTranslator(Translator):
         :param metadata_submission: submission portal entry
         :return: nmdc.CreditAssociation list
         """
-        contributors = get_in(["studyForm", "contributors"], metadata_submission)
+        contributors = get_in(["study_form", "contributors"], metadata_submission)
         if not contributors:
             return None
 
@@ -248,7 +256,7 @@ class SubmissionPortalTranslator(Translator):
         :param metadata_submission: submission portal entry
         :return: GOLD CURIE
         """
-        gold_study_id = get_in(["studyForm", "GOLDStudyId"], metadata_submission)
+        gold_study_id = get_in(["study_form", "GOLDStudyId"], metadata_submission)
         if not gold_study_id:
             return None
 
@@ -260,7 +268,7 @@ class SubmissionPortalTranslator(Translator):
         """Construct a NCBI Bioproject CURIE from the study form data"""
 
         ncbi_bioproject_id = get_in(
-            ["studyForm", "NCBIBioProjectId"], metadata_submission
+            ["study_form", "NCBIBioProjectId"], metadata_submission
         )
         if not ncbi_bioproject_id:
             return None
@@ -268,28 +276,28 @@ class SubmissionPortalTranslator(Translator):
         return [self._ensure_curie(ncbi_bioproject_id, default_prefix="bioproject")]
 
     def _get_jgi_study_identifiers(
-        self, metadata_submission: JSON_OBJECT
+        self, sample_set: JSON_OBJECT
     ) -> Union[List[str], None]:
         """Construct a JGI proposal CURIE from the multiomics form data
 
-        :param metadata_submission: submission portal entry
+        :param sample_set: submission sample set object
         :return: JGI proposal CURIE
         """
-        jgi_study_id = get_in(["multiOmicsForm", "JGIStudyId"], metadata_submission)
+        jgi_study_id = get_in(["multi_omics_form", "JGIStudyId"], sample_set)
         if not jgi_study_id:
             return None
 
         return [self._ensure_curie(jgi_study_id, default_prefix="jgi.proposal")]
 
     def _get_emsl_project_identifiers(
-        self, metadata_submission: JSON_OBJECT
+        self, sample_set: JSON_OBJECT
     ) -> Union[List[str], None]:
         """Construct an EMSL project CURIE from the multiomics form data
 
-        :param metadata_submission: submission portal entry
+        :param sample_set: submission sample set object
         :return: EMSL project CURIE
         """
-        emsl_project_id = get_in(["multiOmicsForm", "studyNumber"], metadata_submission)
+        emsl_project_id = get_in(["multi_omics_form", "studyNumber"], sample_set)
         if not emsl_project_id:
             return None
 
@@ -444,20 +452,20 @@ class SubmissionPortalTranslator(Translator):
         except (ValueError, TypeError):
             return None
 
-    def _get_from(self, metadata_submission: JSON_OBJECT, field: Union[str, List[str]]):
+    def _get_from(self, json_object: JSON_OBJECT, field: Union[str, List[str]]):
         """Extract and sanitize a value from a nested dict
 
-        For field = [i0, i1, ..., iN] extract metadata_submission[i0][i1]...[iN]. This
-        value is then sanitized by trimming strings, replacing empty strings with None,
-        filtering Nones and empty strings from arrays.
+        For field = [i0, i1, ..., iN] extract json_object[i0][i1]...[iN]. This value is then
+        sanitized by trimming strings, replacing empty strings with None, filtering Nones and
+        empty strings from arrays.
 
-        :param metadata_submission: submission portal entry
+        :param json_object: submission portal form object
         :param field: list of nested fields to extract
         :return: sanitized value
         """
         if not isinstance(field, list):
             field = [field]
-        value = get_in(field, metadata_submission)
+        value = get_in(field, json_object)
 
         def sanitize(val):
             sanitized = val
@@ -477,7 +485,32 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
-    def _get_study_dois(self, metadata_submission) -> Union[List[nmdc.Doi], None]:
+    def _extend_list(
+        self, original: Optional[List], to_extend: Optional[List]
+    ) -> Optional[List]:
+        """Extend a list with another list, handling the case where one or both lists are None or empty.
+
+        :param original: original list
+        :param to_extend: list to extend with
+        :return: extended list or None
+        """
+        if original is None and to_extend is None:
+            return None
+
+        elif original is None:
+            extended = to_extend
+        elif to_extend is None:
+            extended = original
+        else:
+            extended = original + to_extend
+
+        if not extended:
+            return None
+        return extended
+
+    def _get_study_dois(
+        self, metadata_submission: JSON_OBJECT
+    ) -> Union[List[nmdc.Doi], None]:
         """Collect and translate DOI info from submission into nmdc-schema DOI instances
 
         If there were no DOIs, None is returned.
@@ -490,9 +523,8 @@ class SubmissionPortalTranslator(Translator):
         # `doi_category` slot in the nmdc:Doi object and field is the list of nested fields to
         # extract the DOI information from in the submission portal entry.
         doi_configs = [
-            ("dataset_doi", ["studyForm", "dataDois"]),
-            ("award_doi", ["multiOmicsForm", "awardDois"]),
-            ("publication_doi", ["studyForm", "publicationDois"]),
+            ("dataset_doi", ["study_form", "dataDois"]),
+            ("publication_doi", ["study_form", "publicationDois"]),
         ]
 
         study_dois = []
@@ -514,6 +546,33 @@ class SubmissionPortalTranslator(Translator):
                 )
 
         return study_dois if study_dois else None
+
+    def _get_sample_set_dois(
+        self, sample_set: JSON_OBJECT
+    ) -> Union[List[nmdc.Doi], None]:
+        """Collect and translate DOI info from sample set into nmdc-schema DOI instances
+
+        If there were no DOIs, None is returned.
+
+        :param sample_set: sample set object from submission portal
+        :return: list of nmdc:Doi objects
+        """
+
+        raw_dois = self._get_from(sample_set, ["multi_omics_form", "awardDois"])
+        if not raw_dois:
+            return None
+
+        sample_set_dois = [
+            nmdc.Doi(
+                doi_category="award_doi",
+                doi_provider=doi["provider"],
+                doi_value=self._ensure_curie(doi["value"], default_prefix="doi"),
+                type="nmdc:Doi",
+            )
+            for doi in raw_dois
+        ]
+
+        return sample_set_dois if sample_set_dois else None
 
     def _get_data_objects_from_fields(
         self,
@@ -610,17 +669,14 @@ class SubmissionPortalTranslator(Translator):
         """
         return nmdc.Study(
             alternative_names=self._get_from(
-                metadata_submission, ["studyForm", "alternativeNames"]
+                metadata_submission, ["study_form", "alternativeNames"]
             ),
             associated_dois=self._get_study_dois(metadata_submission),
             description=self._get_from(
-                metadata_submission, ["studyForm", "description"]
+                metadata_submission, ["study_form", "description"]
             ),
             funding_sources=self._get_from(
-                metadata_submission, ["studyForm", "fundingSources"]
-            ),
-            emsl_project_identifiers=self._get_emsl_project_identifiers(
-                metadata_submission
+                metadata_submission, ["study_form", "fundingSources"]
             ),
             gold_study_identifiers=self._get_gold_study_identifiers(
                 metadata_submission
@@ -632,18 +688,15 @@ class SubmissionPortalTranslator(Translator):
             insdc_bioproject_identifiers=self._get_ncbi_bioproject_identifiers(
                 metadata_submission
             ),
-            jgi_portal_study_identifiers=self._get_jgi_study_identifiers(
-                metadata_submission
-            ),
-            name=self._get_from(metadata_submission, ["studyForm", "studyName"]),
-            notes=self._get_from(metadata_submission, ["studyForm", "notes"]),
+            name=self._get_from(metadata_submission, ["study_form", "studyName"]),
+            notes=self._get_from(metadata_submission, ["study_form", "notes"]),
             principal_investigator=self._get_pi(metadata_submission),
             provenance_metadata=provenance_metadata,
             study_category=self.study_category,
-            title=self._get_from(metadata_submission, ["studyForm", "studyName"]),
+            title=self._get_from(metadata_submission, ["study_form", "studyName"]),
             type="nmdc:Study",
             websites=self._get_from(
-                metadata_submission, ["studyForm", "linkOutWebpage"]
+                metadata_submission, ["study_form", "linkOutWebpage"]
             ),
         )
 
@@ -900,29 +953,38 @@ class SubmissionPortalTranslator(Translator):
         """
         database = nmdc.Database()
         submission_id = self.metadata_submission.get("id")
-        metadata_submission_data = self.metadata_submission.get(
-            "metadata_submission", {}
-        )
         provenance_metadata = self._get_provenance_metadata(
             source_system_of_record=nmdc.SourceSystemEnum.NMDC_Submission_Portal.text,
             submission_portal_identifier=submission_id,
         )
-        # Generate one Study instance based on the metadata submission, if a study_id wasn't provided
-        if self.study_id:
-            nmdc_study_id = self.study_id
+        # Generate one Study instance based on the metadata submission if an existing study
+        # wasn't provided.
+        if self.existing_study:
+            nmdc_study_id = self.existing_study.id
+            nmdc_study = deepcopy(self.existing_study)
         else:
             nmdc_study_id = self._id_minter("nmdc:Study")[0]
-            database.study_set = [
-                self._translate_study(
-                    metadata_submission_data, nmdc_study_id, provenance_metadata
-                )
-            ]
+            nmdc_study = self._translate_study(
+                self.metadata_submission, nmdc_study_id, provenance_metadata
+            )
+
+        # Populate the Study fields that are derived from values on sample set forms.
+        nmdc_study.associated_dois = self._extend_list(
+            nmdc_study.associated_dois, self._get_sample_set_dois(self.sample_set)
+        )
+        nmdc_study.emsl_project_identifiers = self._extend_list(
+            nmdc_study.emsl_project_identifiers,
+            self._get_emsl_project_identifiers(self.sample_set),
+        )
+        nmdc_study.jgi_portal_study_identifiers = self._extend_list(
+            nmdc_study.jgi_portal_study_identifiers,
+            self._get_jgi_study_identifiers(self.sample_set),
+        )
+        database.study_set.append(nmdc_study)
 
         # Automatically populate the `env_package` field in the sample data based on which
         # environmental data tab the sample data came from.
-        sample_data = get_in(
-            ["sampleData", "data"], metadata_submission_data, default={}
-        )
+        sample_data = get_in(["sample_data", "data"], self.sample_set, default={})
         for key in sample_data.keys():
             data_field_info = DATA_FIELDS.get(key)
             if data_field_info is None:

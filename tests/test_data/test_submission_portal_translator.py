@@ -14,6 +14,7 @@ from nmdc_schema.nmdc import (
     FileTypeEnum,
     DoiProviderEnum,
     DoiCategoryEnum,
+    Doi,
     UnitEnum,
     Study,
 )
@@ -48,7 +49,7 @@ def test_get_pi():
     translator = SubmissionPortalTranslator()
     pi_person_value = translator._get_pi(
         {
-            "studyForm": {
+            "study_form": {
                 "piName": "Maria D. McDonald",
                 "piEmail": "MariaDMcDonald@example.edu",
                 "piOrcid": "",
@@ -67,7 +68,7 @@ def test_get_pi():
     )
     pi_person_value = translator._get_pi(
         {
-            "studyForm": {
+            "study_form": {
                 "piName": "Maria D. McDonald",
                 "piEmail": "MariaDMcDonald@example.edu",
                 "piOrcid": "0000-0000-0000-0001",
@@ -85,7 +86,7 @@ def test_get_study_dois():
     translator = SubmissionPortalTranslator()
     dois = translator._get_study_dois(
         {
-            "studyForm": {
+            "study_form": {
                 "dataDois": [
                     {
                         "provider": "emsl",
@@ -103,7 +104,35 @@ def test_get_study_dois():
                     }
                 ],
             },
-            "multiOmicsForm": {
+        }
+    )
+    assert dois is not None
+    assert len(dois) == 3
+
+    assert dois[0].doi_value == "doi:10.12345/6789"
+    assert dois[0].doi_provider == DoiProviderEnum("emsl")
+    assert dois[0].type == "nmdc:Doi"
+    assert dois[0].doi_category == DoiCategoryEnum("dataset_doi")
+
+    assert dois[1].doi_value == "doi:10.54321/9876"
+    assert dois[1].doi_provider is None
+    assert dois[1].type == "nmdc:Doi"
+    assert dois[1].doi_category == DoiCategoryEnum("publication_doi")
+
+    assert dois[2].doi_value == "doi:10.99999/abcd"
+    assert dois[2].doi_provider == DoiProviderEnum("zenodo")
+    assert dois[2].type == "nmdc:Doi"
+    assert dois[2].doi_category == DoiCategoryEnum("publication_doi")
+
+    empty_doi = translator._get_study_dois({})
+    assert empty_doi is None
+
+
+def test_get_sample_set_dois():
+    translator = SubmissionPortalTranslator()
+    sample_set_dois = translator._get_sample_set_dois(
+        {
+            "multi_omics_form": {
                 "awardDois": [
                     {
                         "provider": "jgi",
@@ -113,38 +142,23 @@ def test_get_study_dois():
             },
         }
     )
-    assert dois is not None
-    assert len(dois) == 4
+    assert sample_set_dois is not None
+    assert len(sample_set_dois) == 1
 
-    assert dois[0].doi_value == "doi:10.12345/6789"
-    assert dois[0].doi_provider == DoiProviderEnum("emsl")
-    assert dois[0].type == "nmdc:Doi"
-    assert dois[0].doi_category == DoiCategoryEnum("dataset_doi")
+    assert sample_set_dois[0].doi_value == "doi:10.11121314/15161718"
+    assert sample_set_dois[0].doi_provider == DoiProviderEnum("jgi")
+    assert sample_set_dois[0].type == "nmdc:Doi"
+    assert sample_set_dois[0].doi_category == DoiCategoryEnum("award_doi")
 
-    assert dois[1].doi_value == "doi:10.11121314/15161718"
-    assert dois[1].doi_provider == DoiProviderEnum("jgi")
-    assert dois[1].type == "nmdc:Doi"
-    assert dois[1].doi_category == DoiCategoryEnum("award_doi")
-
-    assert dois[2].doi_value == "doi:10.54321/9876"
-    assert dois[2].doi_provider is None
-    assert dois[2].type == "nmdc:Doi"
-    assert dois[2].doi_category == DoiCategoryEnum("publication_doi")
-
-    assert dois[3].doi_value == "doi:10.99999/abcd"
-    assert dois[3].doi_provider == DoiProviderEnum("zenodo")
-    assert dois[3].type == "nmdc:Doi"
-    assert dois[3].doi_category == DoiCategoryEnum("publication_doi")
-
-    empty_doi = translator._get_study_dois({})
-    assert empty_doi is None
+    empty_sample_set_doi = translator._get_sample_set_dois({})
+    assert empty_sample_set_doi is None
 
 
 def test_get_has_credit_associations():
     translator = SubmissionPortalTranslator()
     credit_associations = translator._get_has_credit_associations(
         {
-            "studyForm": {
+            "study_form": {
                 "contributors": [
                     {
                         "name": "Brenda Patterson",
@@ -264,14 +278,14 @@ def test_get_gold_study_identifiers():
     translator = SubmissionPortalTranslator()
 
     gold_ids = translator._get_gold_study_identifiers(
-        {"studyForm": {"GOLDStudyId": "Gs000000"}}
+        {"study_form": {"GOLDStudyId": "Gs000000"}}
     )
     assert gold_ids is not None
     assert len(gold_ids) == 1
     assert gold_ids[0] == "gold:Gs000000"
 
     gold_ids = translator._get_gold_study_identifiers(
-        {"studyForm": {"GOLDStudyId": ""}}
+        {"study_form": {"GOLDStudyId": ""}}
     )
     assert gold_ids is None
 
@@ -428,46 +442,47 @@ def test_instruments(test_minter):
     known_instruments = {
         "hiseq_2500": "nmdc:inst-14-nn4b6k72",
     }
-    metadata_submission = {
-        "metadata_submission": {
-            "packageName": ["soil"],
-            "templates": ["soil", "data_mg_interleaved"],
-            "studyForm": {
-                "studyName": "asdfasdf",
-                "piEmail": "fake@fake.com",
-            },
-            "sampleData": {
-                "data": {
-                    "soil_data": [
-                        _mock_soil_data("001"),
-                        _mock_soil_data("002"),
-                    ],
-                    "metagenome_sequencing_interleaved_data": [
-                        {
-                            "model": "hiseq_1500",
-                            "samp_name": "001",
-                            "interleaved_url": "http://example.com/001-1.fastq",
-                            "analysis_type": ["metagenomics"],
-                            "interleaved_checksum": "b1946ac92492d2347c6235b4d2611184",
-                        },
-                        {
-                            "model": "hiseq_2500",
-                            "samp_name": "002",
-                            "interleaved_url": "http://example.com/002-1.fastq",
-                            "analysis_type": [
-                                "metagenomics",
-                            ],
-                            "interleaved_checksum": "916f4c31aaa35d6b867dae9a7f54270d",
-                        },
-                    ],
-                },
+    submission = {
+        "packageName": ["soil"],
+        "templates": ["soil", "data_mg_interleaved"],
+        "study_form": {
+            "studyName": "asdfasdf",
+            "piEmail": "fake@fake.com",
+        },
+    }
+    sample_set = {
+        "sample_data": {
+            "data": {
+                "soil_data": [
+                    _mock_soil_data("001"),
+                    _mock_soil_data("002"),
+                ],
+                "metagenome_sequencing_interleaved_data": [
+                    {
+                        "model": "hiseq_1500",
+                        "samp_name": "001",
+                        "interleaved_url": "http://example.com/001-1.fastq",
+                        "analysis_type": ["metagenomics"],
+                        "interleaved_checksum": "b1946ac92492d2347c6235b4d2611184",
+                    },
+                    {
+                        "model": "hiseq_2500",
+                        "samp_name": "002",
+                        "interleaved_url": "http://example.com/002-1.fastq",
+                        "analysis_type": [
+                            "metagenomics",
+                        ],
+                        "interleaved_checksum": "916f4c31aaa35d6b867dae9a7f54270d",
+                    },
+                ],
             },
         },
     }
     translator = SubmissionPortalTranslator(
         id_minter=test_minter,
         illumina_instrument_mapping=known_instruments,
-        metadata_submission=metadata_submission,
+        metadata_submission=submission,
+        sample_set=sample_set,
         study_category="research_study",
     )
     database = translator.get_database()
@@ -487,6 +502,95 @@ def test_instruments(test_minter):
     assert len(database.data_generation_set) == 2
     instruments_used = {dg.instrument_used[0] for dg in database.data_generation_set}
     assert instruments_used == {minted_instrument_id, known_instrument_id}
+
+
+def test_existing_study_only_uses_sample_set_updates(test_minter):
+    existing_study = Study(
+        id="nmdc:sty-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study",
+        name="Existing study name",
+        title="Existing study title",
+        description="Existing study description",
+        funding_sources=["Existing award"],
+        associated_dois=[
+            Doi(
+                doi_value="doi:10.0000/existing",
+                doi_provider=DoiProviderEnum("emsl"),
+                doi_category=DoiCategoryEnum("dataset_doi"),
+                type="nmdc:Doi",
+            ),
+        ],
+        emsl_project_identifiers=["emsl.project:existing"],
+        jgi_portal_study_identifiers=["jgi.proposal:existing"],
+    )
+    metadata_submission = {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "study_form": {
+            # In reality, the Submission Portal UI should prevent this form from being updated in
+            # the case where a new sample set is being added to an existing study. But if somehow
+            # the form is updated, the translator should ignore the updates.
+            "studyName": "Incoming study name",
+            "description": "Incoming study description",
+            "fundingSources": ["Incoming award"],
+            "dataDois": [
+                {
+                    "provider": "emsl",
+                    "value": "10.1111/from-study-form",
+                },
+            ],
+        },
+    }
+    sample_set = {
+        "multi_omics_form": {
+            "awardDois": [
+                {
+                    "provider": "jgi",
+                    "value": "10.2222/from-sample-set",
+                },
+            ],
+            "JGIStudyId": "123456",
+            "studyNumber": "78910",
+        },
+    }
+    translator = SubmissionPortalTranslator(
+        metadata_submission=metadata_submission,
+        sample_set=sample_set,
+        existing_study=existing_study,
+        id_minter=test_minter,
+        study_category="research_study",
+    )
+
+    database = translator.get_database()
+
+    assert len(database.study_set) == 1
+    study = database.study_set[0]
+
+    # Assert that the study-level information did not change.
+    assert study.id == existing_study.id
+    assert study.name == "Existing study name"
+    assert study.title == "Existing study title"
+    assert study.description == "Existing study description"
+    assert study.funding_sources == ["Existing award"]
+
+    # Assert that information from the sample set was added to the study.
+    assert study.associated_dois is not None
+    assert [doi.doi_value for doi in study.associated_dois] == [
+        "doi:10.0000/existing",
+        "doi:10.2222/from-sample-set",
+    ]
+    assert [doi.doi_category for doi in study.associated_dois] == [
+        DoiCategoryEnum("dataset_doi"),
+        DoiCategoryEnum("award_doi"),
+    ]
+    assert study.emsl_project_identifiers == [
+        "emsl.project:existing",
+        "emsl.project:78910",
+    ]
+    assert study.jgi_portal_study_identifiers == [
+        "jgi.proposal:existing",
+        "jgi.proposal:123456",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -552,10 +656,12 @@ def test_get_database(test_minter, monkeypatch, data_file_base):
     )
 
     expected = Database(**expected_output)
+    expected_as_dict = json_dumper.to_dict(expected)
     actual = translator.get_database()
-    assert actual == expected
+    actual_as_dict = json_dumper.to_dict(actual)
+    assert actual_as_dict == expected_as_dict
 
-    validation_result = validate_json(json_dumper.to_dict(actual), mongo_db)
+    validation_result = validate_json(actual_as_dict, mongo_db)
     assert validation_result == {"result": "All Okay!"}
 
 
