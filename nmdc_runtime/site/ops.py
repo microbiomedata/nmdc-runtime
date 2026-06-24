@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
+
+from nmdc_schema.nmdc import SubmissionStatusEnum
 from toolz.dicttoolz import keyfilter
 from typing import Optional, Set, Tuple
 from zipfile import ZipFile
@@ -638,22 +640,22 @@ def translate_portal_submission_to_nmdc_schema_database(
     if study_id:
         # If a study_id is provided, check that it exists in Mongo. If it exists, use that one. If
         # it doesn't exist, raise an error.
-        mdb = context.resources.mongo.db
-        existing_study = mdb.study_set.find_one({"id": study_id})
-        if existing_study is None:
+        study_doc = mdb.study_set.find_one({"id": study_id}, {"_id": 0})
+        if study_doc is None:
             raise Exception(f"Study with ID '{study_id}' does not exist in Mongo.")
+        existing_study = nmdc.Study(**study_doc)
     elif metadata_submission.get("nmdc_study_id"):
         # If no study_id is provided but the submission has a nmdc_study_id value, check if a study
         # with that ID exists in Mongo. If it exists, use that one. If it doesn't exist, raise an
         # error.
-        mdb = context.resources.mongo.db
-        existing_study = mdb.study_set.find_one(
-            {"id": metadata_submission["nmdc_study_id"]}
+        study_doc = mdb.study_set.find_one(
+            {"id": metadata_submission["nmdc_study_id"]}, {"_id": 0}
         )
-        if existing_study is None:
+        if study_doc is None:
             raise Exception(
                 f"Submission has nmdc_study_id '{metadata_submission['nmdc_study_id']}' but no Study with that ID exists in Mongo."
             )
+        existing_study = nmdc.Study(**study_doc)
 
     translator = SubmissionPortalTranslator(
         metadata_submission,
@@ -673,20 +675,47 @@ def translate_portal_submission_to_nmdc_schema_database(
 
 
 @op(required_resource_keys={"nmdc_portal_api_client"})
-def add_public_image_urls(
-    context: OpExecutionContext, database: nmdc.Database, submission_id: str
-) -> nmdc.Database:
+def finalize_submission(
+    context: OpExecutionContext,
+    run_summary: RunSummary,
+    database: nmdc.Database,
+    metadata_submission: Dict[str, Any],
+) -> None:
+    """Finalize a submission by calling the /api/metadata_submission/{submission_id}/finalize
+    endpoint and using the response to add public image URLs to the translated nmdc:Study.
+
+    Skip this step if:
+      - the preceding insert into MongoDB failed (as indicated by the run_summary.status not being
+        RunEventType.COMPLETE)
+      - the submission is already associated with an existing nmdc:Study (as indicated by having its
+        nmdc_study_id field populated)
+      - the provided nmdc:Database does not contain any nmdc:Study instances.
+    """
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+    submission_id = metadata_submission["id"]
+
+    if run_summary.status != RunEventType.COMPLETE:
+        context.log.info(
+            f"MongoDB insert for submission '{submission_id}' did not complete successfully; skipping submission finalization step."
+        )
+        return
+
+    if metadata_submission.get("nmdc_study_id") is not None:
+        nmdc_study_id = metadata_submission["nmdc_study_id"]
+        context.log.info(
+            f"Submission '{submission_id}' is already associated with nmdc:Study '{nmdc_study_id}'; skipping submission finalization step."
+        )
+        return
 
     if database.study_set is None or len(database.study_set) == 0:
         context.log.info(
-            "No studies in nmdc.Database; skipping public image URL addition."
+            "No studies in nmdc.Database; skipping submission finalization step."
         )
-        return database
+        return
 
     if len(database.study_set) > 1:
         context.log.warning(
-            "Multiple studies in nmdc.Database; only adding public image URLs for the first study."
+            "Multiple studies in nmdc.Database; only finalizing the first study."
         )
 
     study_id = database.study_set[0].id
@@ -698,7 +727,31 @@ def add_public_image_urls(
         public_images.get("study_image_urls"),
     )
 
-    return database
+
+@op(required_resource_keys={"nmdc_portal_api_client"})
+def finalize_sample_set(
+    context: OpExecutionContext,
+    run_summary: RunSummary,
+    sample_set: Dict[str, Any],
+) -> None:
+    """Finalize a sample set by calling the /api/metadata_submission/sample_set/{sample_set_id}/status
+    endpoint to change the sample set's status to 'Released'.
+
+    Skip this step if the preceding insert into MongoDB failed (as indicated by the
+    run_summary.status not being RunEventType.COMPLETE).
+    """
+    client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+    sample_set_id = sample_set["id"]
+
+    if run_summary.status != RunEventType.COMPLETE:
+        context.log.info(
+            f"MongoDB insert for sample set '{sample_set_id}' did not complete successfully; skipping sample set finalization step."
+        )
+        return
+
+    client.set_sample_set_status(
+        sample_set_id, status=SubmissionStatusEnum.Released.text
+    )
 
 
 @op

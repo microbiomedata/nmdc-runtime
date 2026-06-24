@@ -554,6 +554,15 @@ class NmdcPortalApiClient:
         response.raise_for_status()
         return response.json()
 
+    def set_sample_set_status(self, sample_set_id: str, status: str) -> Dict[str, Any]:
+        response = self._request(
+            "PATCH",
+            f"/api/metadata_submission/sample_set/{sample_set_id}/status",
+            json={"status": status},
+        )
+        response.raise_for_status()
+        return response.json()
+
 
 @resource(
     config_schema={
