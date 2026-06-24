@@ -31,7 +31,7 @@ services:
     expose:
       - "3000"
     ports:
-      - "${DEV_STACK_HOST_MACHINE_PORT_DAGIT}:3000"
+      - "${DEV_STACK_HOST_MACHINE_PORT_DAGIT:-3000}:3000"
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -44,7 +44,7 @@ services:
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
       #       from being mounted at this location within the container.
       - /opt/dagster/lib/.venv
-    env_file: .env
+    env_file: ../_secrets/nmdc-runtime/.env
 
   # Dagster daemon.
   #
@@ -72,7 +72,7 @@ services:
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
       #       from being mounted at this location within the container.
       - /opt/dagster/lib/.venv
-    env_file: .env
+    env_file: ../_secrets/nmdc-runtime/.env
 
   # Uvicorn server hosting the FastAPI application.
   fastapi:
@@ -81,7 +81,7 @@ services:
       dockerfile: nmdc_runtime/Dockerfile
       target: fastapi
     ports:
-      - "${DEV_STACK_HOST_MACHINE_PORT_FASTAPI}:8000"
+      - "${DEV_STACK_HOST_MACHINE_PORT_FASTAPI:-8000}:8000"
     volumes:
       - .:/code
       # Note: We create this anonymous mount in order to prevent the host's `.venv` directory
@@ -97,7 +97,7 @@ services:
     #       not part of the FastAPI app.
     #       Docs: https://www.uvicorn.org/settings/?h=watch#reloading-with-watchfiles
     command: ["uv", "run", "--active", "--no-sync", "uvicorn", "nmdc_runtime.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000", "--reload-exclude", "util/load_testing/*"]
-    env_file: .env
+    env_file: ../_secrets/nmdc-runtime/.env
     # Note: Setting `tty: true` makes it so the console output is in color.
     #       Reference: https://docs.docker.com/reference/cli/docker/container/run/#tty
     tty: true
@@ -117,7 +117,7 @@ services:
   mongo:
     image: mongo:8.2.3
     ports:
-      - "${DEV_STACK_HOST_MACHINE_PORT_MONGO}:27017"
+      - "${DEV_STACK_HOST_MACHINE_PORT_MONGO:-27017}:27017"
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
