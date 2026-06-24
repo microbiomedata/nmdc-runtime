@@ -674,15 +674,17 @@ def translate_portal_submission_to_nmdc_schema_database(
     return database
 
 
-@op(required_resource_keys={"nmdc_portal_api_client"})
+@op(required_resource_keys={"nmdc_portal_api_client"}, out=Out(is_required=False))
 def finalize_submission(
     context: OpExecutionContext,
     run_summary: RunSummary,
     database: nmdc.Database,
     metadata_submission: Dict[str, Any],
-) -> None:
+):
     """Finalize a submission by calling the /api/metadata_submission/{submission_id}/finalize
-    endpoint and using the response to add public image URLs to the translated nmdc:Study.
+    endpoint and using the response to add public image URLs to the translated nmdc:Study. When
+    image URLs are added, emit a minimal nmdc:Database containing only the updated nmdc:Study so
+    it can be persisted through /metadata/json:submit.
 
     Skip this step if:
       - the preceding insert into MongoDB failed (as indicated by the run_summary.status not being
@@ -720,12 +722,27 @@ def finalize_submission(
 
     study_id = database.study_set[0].id
     public_images = client.finalize_submission(submission_id, study_id=study_id)
+
+    if not any(
+        public_images.get(image_field)
+        for image_field in (
+            "pi_image_url",
+            "primary_study_image_url",
+            "study_image_urls",
+        )
+    ):
+        context.log.info(
+            f"Submission '{submission_id}' finalization did not return public image URLs; skipping Study update submission."
+        )
+        return
+
     SubmissionPortalTranslator.set_study_images(
         database.study_set[0],
         public_images.get("pi_image_url"),
         public_images.get("primary_study_image_url"),
         public_images.get("study_image_urls"),
     )
+    yield Output(nmdc.Database(study_set=[database.study_set[0]]))
 
 
 @op(required_resource_keys={"nmdc_portal_api_client"})

@@ -264,7 +264,15 @@ def ingest_metadata_submission():
     run_id = submit_metadata_to_db(database)
     run_summary = poll_for_run_completion(run_id)
 
-    finalize_submission(run_summary, database, metadata_submission)
+    finalized_study_database = finalize_submission(
+        run_summary, database, metadata_submission
+    )
+    finalized_study_run_id = submit_metadata_to_db.alias(
+        "submit_finalized_study_to_db"
+    )(finalized_study_database)
+    poll_for_run_completion.alias("poll_for_finalized_study_update_completion")(
+        finalized_study_run_id
+    )
     finalize_sample_set(run_summary, sample_set)
 
 
