@@ -5,6 +5,7 @@ import os
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
+from enum import Enum
 from importlib.metadata import version
 from io import BytesIO
 from pprint import pformat
@@ -115,6 +116,11 @@ from toolz import get_in, valfilter, identity
 
 # batch size for writing documents to alldocs
 BULK_WRITE_BATCH_SIZE = 2000
+
+
+class SubmissionFinalizeResult(str, Enum):
+    FINALIZED = "finalized"
+    ALREADY_LINKED = "already_linked"
 
 
 @op
@@ -674,7 +680,13 @@ def translate_portal_submission_to_nmdc_schema_database(
     return database
 
 
-@op(required_resource_keys={"nmdc_portal_api_client"}, out=Out(is_required=False))
+@op(
+    required_resource_keys={"nmdc_portal_api_client"},
+    out={
+        "finalized_study_database": Out(is_required=False),
+        "submission_finalize_result": Out(SubmissionFinalizeResult),
+    },
+)
 def finalize_submission(
     context: OpExecutionContext,
     run_summary: RunSummary,
@@ -684,7 +696,10 @@ def finalize_submission(
     """Finalize a submission by calling the /api/metadata_submission/{submission_id}/finalize
     endpoint and using the response to add public image URLs to the translated nmdc:Study. When
     image URLs are added, emit a minimal nmdc:Database containing only the updated nmdc:Study so
-    it can be persisted through /metadata/json:submit.
+    it can be persisted through /metadata/json:submit. Emit a finalize result only when the
+    submission is known to be finalized or was already linked to an nmdc:Study. Emitting a
+    finalize result allows downstream steps to finalize the sample set. The finalize result is
+    not emitted when finalizing the sample set should be skipped.
 
     Skip this step if:
       - the preceding insert into MongoDB failed (as indicated by the run_summary.status not being
@@ -707,6 +722,10 @@ def finalize_submission(
         context.log.info(
             f"Submission '{submission_id}' is already associated with nmdc:Study '{nmdc_study_id}'; skipping submission finalization step."
         )
+        yield Output(
+            SubmissionFinalizeResult.ALREADY_LINKED,
+            output_name="submission_finalize_result",
+        )
         return
 
     if database.study_set is None or len(database.study_set) == 0:
@@ -722,6 +741,9 @@ def finalize_submission(
 
     study_id = database.study_set[0].id
     public_images = client.finalize_submission(submission_id, study_id=study_id)
+    yield Output(
+        SubmissionFinalizeResult.FINALIZED, output_name="submission_finalize_result"
+    )
 
     if not any(
         public_images.get(image_field)
@@ -742,7 +764,10 @@ def finalize_submission(
         public_images.get("primary_study_image_url"),
         public_images.get("study_image_urls"),
     )
-    yield Output(nmdc.Database(study_set=[database.study_set[0]]))
+    yield Output(
+        nmdc.Database(study_set=[database.study_set[0]]),
+        output_name="finalized_study_database",
+    )
 
 
 @op(required_resource_keys={"nmdc_portal_api_client"})
@@ -750,14 +775,20 @@ def finalize_sample_set(
     context: OpExecutionContext,
     run_summary: RunSummary,
     sample_set: Dict[str, Any],
+    submission_finalize_result: SubmissionFinalizeResult,
 ) -> None:
     """Finalize a sample set by calling the /api/metadata_submission/sample_set/{sample_set_id}/status
     endpoint to change the sample set's status to 'Released'.
 
     Skip this step if the preceding insert into MongoDB failed (as indicated by the
-    run_summary.status not being RunEventType.COMPLETE).
+    run_summary.status not being RunEventType.COMPLETE). This step also depends on a submission
+    finalize result emitted only after the parent submission has been finalized or was already
+    linked to an nmdc:Study.
     """
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
+    context.log.info(
+        f"Submission finalize result satisfied: {submission_finalize_result}"
+    )
     sample_set_id = sample_set["id"]
 
     if run_summary.status != RunEventType.COMPLETE:
