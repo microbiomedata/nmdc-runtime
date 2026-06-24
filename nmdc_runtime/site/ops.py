@@ -612,6 +612,47 @@ def fetch_nmdc_portal_submission_by_id(
     return client.fetch_metadata_submission(submission_id)
 
 
+@op
+def validate_submission_sample_set_id(
+    metadata_submission: Dict[str, Any], sample_set_id: str
+) -> str:
+    submission_id = metadata_submission.get("id")
+    sample_sets = metadata_submission.get("sample_sets")
+
+    if not isinstance(sample_sets, list):
+        raise Failure(
+            description=(
+                f"Submission '{submission_id}' response does not include a sample_sets list."
+            ),
+            metadata={
+                "submission_id": MetadataValue.text(str(submission_id)),
+                "sample_set_id": MetadataValue.text(sample_set_id),
+            },
+        )
+
+    submission_sample_set_ids = [
+        sample_set["id"]
+        for sample_set in sample_sets
+        if isinstance(sample_set, dict) and sample_set.get("id") is not None
+    ]
+
+    if sample_set_id not in submission_sample_set_ids:
+        raise Failure(
+            description=(
+                f"Sample set '{sample_set_id}' is not associated with submission '{submission_id}'."
+            ),
+            metadata={
+                "submission_id": MetadataValue.text(str(submission_id)),
+                "sample_set_id": MetadataValue.text(sample_set_id),
+                "submission_sample_set_ids": MetadataValue.json(
+                    submission_sample_set_ids
+                ),
+            },
+        )
+
+    return sample_set_id
+
+
 @op(required_resource_keys={"nmdc_portal_api_client"})
 def fetch_nmdc_portal_submission_sample_set_by_id(
     context: OpExecutionContext, sample_set_id: str
