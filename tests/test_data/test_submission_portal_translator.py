@@ -593,6 +593,59 @@ def test_existing_study_only_uses_sample_set_updates(test_minter):
     ]
 
 
+def test_existing_study_sample_set_updates_are_deduplicated(test_minter):
+    existing_study = Study(
+        id="nmdc:sty-00-00000000",
+        type="nmdc:Study",
+        study_category="research_study",
+        name="Existing study name",
+        title="Existing study title",
+        description="Existing study description",
+        associated_dois=[
+            Doi(
+                doi_value="doi:10.2222/from-sample-set",
+                doi_provider=DoiProviderEnum("jgi"),
+                doi_category=DoiCategoryEnum("award_doi"),
+                type="nmdc:Doi",
+            ),
+        ],
+        emsl_project_identifiers=["emsl.project:78910"],
+        jgi_portal_study_identifiers=["jgi.proposal:123456"],
+    )
+    metadata_submission = {
+        "id": "00000000-0000-0000-0000-000000000000",
+    }
+    sample_set = {
+        "multi_omics_form": {
+            "awardDois": [
+                {
+                    "provider": "jgi",
+                    "value": "10.2222/from-sample-set",
+                },
+            ],
+            "JGIStudyId": "123456",
+            "studyNumber": "78910",
+        },
+    }
+    translator = SubmissionPortalTranslator(
+        metadata_submission=metadata_submission,
+        sample_set=sample_set,
+        existing_study=existing_study,
+        id_minter=test_minter,
+        study_category="research_study",
+    )
+
+    database = translator.get_database()
+
+    study = database.study_set[0]
+    assert study.associated_dois is not None
+    assert [doi.doi_value for doi in study.associated_dois] == [
+        "doi:10.2222/from-sample-set",
+    ]
+    assert study.emsl_project_identifiers == ["emsl.project:78910"]
+    assert study.jgi_portal_study_identifiers == ["jgi.proposal:123456"]
+
+
 @pytest.mark.parametrize(
     "data_file_base",
     [

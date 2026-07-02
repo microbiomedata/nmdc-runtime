@@ -5,7 +5,17 @@ from copy import deepcopy
 from decimal import Decimal
 from functools import lru_cache
 from importlib import resources
-from typing import Any, List, Optional, Union, Tuple, TypedDict, Literal
+from typing import (
+    Any,
+    Callable,
+    Hashable,
+    List,
+    Optional,
+    Union,
+    Tuple,
+    TypedDict,
+    Literal,
+)
 from urllib.parse import urlparse
 
 from linkml_runtime import SchemaView
@@ -485,28 +495,32 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
-    def _extend_list(
-        self, original: Optional[List], to_extend: Optional[List]
+    def _merge_list(
+        self,
+        target: Optional[List],
+        source: Optional[List],
+        *,
+        key: Callable[[Any], Hashable] = lambda item: item,
     ) -> Optional[List]:
-        """Extend a list with another list, handling the case where one or both lists are None or empty.
+        """Merge two lists while preserving order and removing duplicates.
 
-        :param original: original list
-        :param to_extend: list to extend with
-        :return: extended list or None
+        :param target: original list
+        :param source: list to merge into the target
+        :param key: function that returns a unique identifier for each list item
+        :return: merged list or None
         """
-        if original is None and to_extend is None:
-            return None
+        merged = []
+        seen = set()
+        for item in (target or []) + (source or []):
+            dedupe_key = key(item)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            merged.append(item)
 
-        elif original is None:
-            extended = to_extend
-        elif to_extend is None:
-            extended = original
-        else:
-            extended = original + to_extend
-
-        if not extended:
+        if not merged:
             return None
-        return extended
+        return merged
 
     def _get_study_dois(
         self, metadata_submission: JSON_OBJECT
@@ -969,14 +983,20 @@ class SubmissionPortalTranslator(Translator):
             )
 
         # Populate the Study fields that are derived from values on sample set forms.
-        nmdc_study.associated_dois = self._extend_list(
-            nmdc_study.associated_dois, self._get_sample_set_dois(self.sample_set)
+        nmdc_study.associated_dois = self._merge_list(
+            nmdc_study.associated_dois,
+            self._get_sample_set_dois(self.sample_set),
+            key=lambda doi: (
+                str(doi.doi_value),
+                str(doi.doi_provider),
+                str(doi.doi_category),
+            ),
         )
-        nmdc_study.emsl_project_identifiers = self._extend_list(
+        nmdc_study.emsl_project_identifiers = self._merge_list(
             nmdc_study.emsl_project_identifiers,
             self._get_emsl_project_identifiers(self.sample_set),
         )
-        nmdc_study.jgi_portal_study_identifiers = self._extend_list(
+        nmdc_study.jgi_portal_study_identifiers = self._merge_list(
             nmdc_study.jgi_portal_study_identifiers,
             self._get_jgi_study_identifiers(self.sample_set),
         )
