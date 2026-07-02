@@ -66,7 +66,10 @@ from nmdc_runtime.site.ops import (
     generate_data_generation_set_post_biosample_ingest,
     get_instrument_ids_by_model,
     log_database_ids,
-    add_public_image_urls,
+    finalize_submission,
+    fetch_nmdc_portal_submission_sample_set_by_id,
+    finalize_sample_set,
+    validate_submission_sample_set_id,
 )
 from nmdc_runtime.site.export.study_metadata import get_biosamples_by_study_id
 
@@ -182,6 +185,7 @@ def gold_study_to_database():
 def translate_metadata_submission_to_nmdc_schema_database():
     (
         submission_id,
+        sample_set_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
@@ -190,6 +194,10 @@ def translate_metadata_submission_to_nmdc_schema_database():
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    validated_sample_set_id = validate_submission_sample_set_id(
+        metadata_submission, sample_set_id
+    )
+    sample_set = fetch_nmdc_portal_submission_sample_set_by_id(validated_sample_set_id)
     nucleotide_sequencing_mapping = get_csv_rows_from_url(
         nucleotide_sequencing_mapping_file_url
     )
@@ -202,6 +210,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
+        sample_set,
         nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
@@ -224,6 +233,7 @@ def translate_metadata_submission_to_nmdc_schema_database():
 def ingest_metadata_submission():
     (
         submission_id,
+        sample_set_id,
         nucleotide_sequencing_mapping_file_url,
         data_object_mapping_file_url,
         biosample_extras_file_url,
@@ -232,6 +242,10 @@ def ingest_metadata_submission():
     ) = get_submission_portal_pipeline_inputs()
 
     metadata_submission = fetch_nmdc_portal_submission_by_id(submission_id)
+    validated_sample_set_id = validate_submission_sample_set_id(
+        metadata_submission, sample_set_id
+    )
+    sample_set = fetch_nmdc_portal_submission_sample_set_by_id(validated_sample_set_id)
     nucleotide_sequencing_mapping = get_csv_rows_from_url(
         nucleotide_sequencing_mapping_file_url
     )
@@ -244,6 +258,7 @@ def ingest_metadata_submission():
 
     database = translate_portal_submission_to_nmdc_schema_database(
         metadata_submission,
+        sample_set,
         nucleotide_sequencing_mapping=nucleotide_sequencing_mapping,
         data_object_mapping=data_object_mapping,
         biosample_extras=biosample_extras,
@@ -251,12 +266,23 @@ def ingest_metadata_submission():
         instrument_mapping=instrument_mapping,
         study_id=study_id,
     )
-    database = add_public_image_urls(database, submission_id)
-
     log_database_ids(database)
 
     run_id = submit_metadata_to_db(database)
-    poll_for_run_completion(run_id)
+    run_summary = poll_for_run_completion(run_id)
+
+    finalized_submission = finalize_submission(
+        run_summary, database, metadata_submission
+    )
+    finalized_study_run_id = submit_metadata_to_db.alias(
+        "submit_finalized_study_to_db"
+    )(finalized_submission.finalized_study_database)
+    poll_for_run_completion.alias("poll_for_finalized_study_update_completion")(
+        finalized_study_run_id
+    )
+    finalize_sample_set(
+        run_summary, sample_set, finalized_submission.submission_finalize_result
+    )
 
 
 @graph

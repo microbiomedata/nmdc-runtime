@@ -536,6 +536,13 @@ class NmdcPortalApiClient:
         response.raise_for_status()
         return response.json()
 
+    def fetch_sample_set(self, sample_set_id: str) -> Dict[str, Any]:
+        response = self._request(
+            "GET", f"/api/metadata_submission/sample_set/{sample_set_id}"
+        )
+        response.raise_for_status()
+        return response.json()
+
     def finalize_submission(
         self, submission_id: str, *, study_id: str
     ) -> Dict[str, Any]:
@@ -543,6 +550,15 @@ class NmdcPortalApiClient:
             "POST",
             f"/api/metadata_submission/{submission_id}/finalize",
             json={"study_id": study_id},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def set_sample_set_status(self, sample_set_id: str, status: str) -> Dict[str, Any]:
+        response = self._request(
+            "PATCH",
+            f"/api/metadata_submission/sample_set/{sample_set_id}/status",
+            json={"status": status},
         )
         response.raise_for_status()
         return response.json()

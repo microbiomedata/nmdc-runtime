@@ -508,10 +508,11 @@ def biosample_submission_ingest():
                     },
                 ),
                 "ops": {
-                    "export_json_to_drs": {"config": {"username": "..."}},
+                    "export_json_to_drs": {"config": {"username": ""}},
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
+                            "sample_set_id": "",
                             "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
@@ -549,6 +550,7 @@ def biosample_submission_ingest():
                     "get_submission_portal_pipeline_inputs": {
                         "inputs": {
                             "submission_id": "",
+                            "sample_set_id": "",
                             "nucleotide_sequencing_mapping_file_url": None,
                             "data_object_mapping_file_url": None,
                             "biosample_extras_file_url": None,
