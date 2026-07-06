@@ -281,7 +281,7 @@ def ingest_metadata_submission():
         finalized_study_run_id
     )
     finalize_sample_set(
-        run_summary, sample_set, finalized_submission.submission_finalize_result
+        run_summary, sample_set, finalized_submission.finalize_submission_result
     )
 
 

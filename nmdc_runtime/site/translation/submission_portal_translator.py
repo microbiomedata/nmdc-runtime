@@ -152,7 +152,7 @@ class SubmissionPortalTranslator(Translator):
 
     This translator is constructed with a metadata_submission object and a
     sample set object from the submission portal. Since the submission schema
-    is built by importing slots from the nmdc:Biosample class this translator
+    is built by importing slots from the nmdc:Biosample class, this translator
     largely works by introspecting the nmdc:Biosample class (via a SchemaView
     instance)
     """
@@ -465,9 +465,9 @@ class SubmissionPortalTranslator(Translator):
     def _get_from(self, json_object: JSON_OBJECT, field: Union[str, List[str]]):
         """Extract and sanitize a value from a nested dict
 
-        For field = [i0, i1, ..., iN] extract json_object[i0][i1]...[iN]. This value is then
-        sanitized by trimming strings, replacing empty strings with None, filtering Nones and
-        empty strings from arrays.
+        For field = [i0, i1, ..., iN], extract the value at json_object[i0][i1]...[iN]. This
+        value is then sanitized by trimming strings, replacing empty strings with None,
+        and filtering Nones and empty strings from arrays.
 
         :param json_object: submission portal form object
         :param field: list of nested fields to extract

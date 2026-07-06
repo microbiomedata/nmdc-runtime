@@ -118,7 +118,7 @@ from toolz import get_in, valfilter, identity
 BULK_WRITE_BATCH_SIZE = 2000
 
 
-class SubmissionFinalizeResult(str, Enum):
+class FinalizeSubmissionResult(str, Enum):
     FINALIZED = "finalized"
     ALREADY_LINKED = "already_linked"
 
@@ -591,6 +591,12 @@ def get_submission_portal_pipeline_inputs(
     biosample_extras_slot_mapping_file_url: Optional[str],
     study_id: Optional[str],
 ) -> Tuple[str, str, str | None, str | None, str | None, str | None, str | None]:
+    """Collect inputs required for translating a submission portal submission.
+
+    This op defines required and optional inputs for translating a submission portal submission into
+    NMDC schema records. The values are returned as a tuple. This is defined as an op so that
+    multiple Dagster graphs can use the same input definition.
+    """
     return (
         submission_id,
         sample_set_id,
@@ -616,6 +622,14 @@ def fetch_nmdc_portal_submission_by_id(
 def validate_submission_sample_set_id(
     metadata_submission: Dict[str, Any], sample_set_id: str
 ) -> str:
+    """Validate that the sample_set_id is associated with the metadata_submission.
+
+    Some Dagster graphs accept both a submission ID and a sample set ID as inputs. It is expected
+    that the sample set ID is associated with the submission. To prevent accidental mismatches (for
+    example, a Dagster user re-uses a previous run configuration and forgets to update one of the
+    IDs), this op checks that the sample set ID is included in the submission's sample sets. If it
+    is not, a Failure is raised. If it is, the sample set ID is returned.
+    """
     submission_id = metadata_submission.get("id")
     sample_sets = metadata_submission.get("sample_sets")
 
@@ -725,7 +739,7 @@ def translate_portal_submission_to_nmdc_schema_database(
     required_resource_keys={"nmdc_portal_api_client"},
     out={
         "finalized_study_database": Out(is_required=False),
-        "submission_finalize_result": Out(SubmissionFinalizeResult),
+        "finalize_submission_result": Out(FinalizeSubmissionResult),
     },
 )
 def finalize_submission(
@@ -764,28 +778,32 @@ def finalize_submission(
             f"Submission '{submission_id}' is already associated with nmdc:Study '{nmdc_study_id}'; skipping submission finalization step."
         )
         yield Output(
-            SubmissionFinalizeResult.ALREADY_LINKED,
-            output_name="submission_finalize_result",
+            FinalizeSubmissionResult.ALREADY_LINKED,
+            output_name="finalize_submission_result",
         )
         return
 
     if database.study_set is None or len(database.study_set) == 0:
         context.log.info(
-            "No studies in nmdc.Database; skipping submission finalization step."
+            "No studies in nmdc:Database; skipping submission finalization step."
         )
         return
 
     if len(database.study_set) > 1:
         context.log.warning(
-            "Multiple studies in nmdc.Database; only finalizing the first study."
+            "Multiple studies in nmdc:Database; only finalizing the first study."
         )
 
+    # Call the submission portal API to finalize the submission and yield a result indicating that
+    # the submission was finalized. The API call returns optional public image URLs (if any were
+    # uploaded for the submission). These will handled after the finalize result is yielded.
     study_id = database.study_set[0].id
     public_images = client.finalize_submission(submission_id, study_id=study_id)
     yield Output(
-        SubmissionFinalizeResult.FINALIZED, output_name="submission_finalize_result"
+        FinalizeSubmissionResult.FINALIZED, output_name="finalize_submission_result"
     )
 
+    # Check if any public image URLs were returned by the API call
     if not any(
         public_images.get(image_field)
         for image_field in (
@@ -794,11 +812,17 @@ def finalize_submission(
             "study_image_urls",
         )
     ):
+        # This is an expected case where the user did not upload any images for this submission. In
+        # this case there is no further work to do. Just log a message and return.
         context.log.info(
-            f"Submission '{submission_id}' finalization did not return public image URLs; skipping Study update submission."
+            f"Submission '{submission_id}' finalization did not return public image URLs;"
+            f"no updates to nmdc:Study '{study_id}' to make."
         )
         return
 
+    # If any public image URLs were returned by the API call, update the nmdc:Study and yield a
+    # minimal "finalized" nmdc:Database containing only the updated nmdc:Study so the image URLs can
+    # be persisted through /metadata/json:submit.
     SubmissionPortalTranslator.set_study_images(
         database.study_set[0],
         public_images.get("pi_image_url"),
@@ -816,7 +840,7 @@ def finalize_sample_set(
     context: OpExecutionContext,
     run_summary: RunSummary,
     sample_set: Dict[str, Any],
-    submission_finalize_result: SubmissionFinalizeResult,
+    finalize_submission_result: FinalizeSubmissionResult,
 ) -> None:
     """Finalize a sample set by calling the /api/metadata_submission/sample_set/{sample_set_id}/status
     endpoint to change the sample set's status to 'Released'.
@@ -828,7 +852,7 @@ def finalize_sample_set(
     """
     client: NmdcPortalApiClient = context.resources.nmdc_portal_api_client
     context.log.info(
-        f"Submission finalize result satisfied: {submission_finalize_result}"
+        f"Submission finalize result satisfied: {finalize_submission_result}"
     )
     sample_set_id = sample_set["id"]
 
