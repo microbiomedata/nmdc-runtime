@@ -129,6 +129,7 @@ build-constraint-dependencies = [
 [project.urls]
 # > "A list of URLs associated with your project, displayed on the left sidebar of your PyPI project page."
 # Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+# Note: We stopped publishing to PyPI after version 2.19.0, but we keep these URLs here for reference.
 Changelog = "https://github.com/microbiomedata/nmdc-runtime/releases"
 Documentation = "https://docs.microbiomedata.org/runtime"
 Issues = "https://github.com/microbiomedata/nmdc-runtime/issues"

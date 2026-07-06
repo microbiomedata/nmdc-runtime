@@ -268,15 +268,10 @@ found **12 GB** to be sufficient for running the tests.
 > Dedicating 12 GB of RAM to Docker may be prohibitive for some prospective developers.
 > There is an open [issue](https://github.com/microbiomedata/nmdc-runtime/issues/928) about the memory requirement.
 
-## Publish to PyPI
-
-This repository contains a GitHub Actions workflow that publishes a Python package to [PyPI](https://pypi.org/project/nmdc-runtime/).
-
 ## Links
 
 Here are links related to this repository:
 
 - Production API server: https://api.microbiomedata.org
-- PyPI package: https://pypi.org/project/nmdc-runtime
 - Container image (API server): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-fastapi
 - Container image (Dagster): https://github.com/microbiomedata/nmdc-runtime/pkgs/container/nmdc-runtime-dagster
