@@ -1,143 +1,21 @@
 metadata_submission:
-  metadata_submission:
-    sampleEnvironmentForm:
-      packageName:
-        - isolate
-        - soil
-      validation: [ ]
-    senderShippingInfoForm:
-      shipper:
-        name: ""
-        email: ""
-        phone: ""
-        line1: ""
-        line2: ""
-        city: ""
-        state: ""
-        postalCode: ""
-        country: ""
-      expectedShippingDate: null
-      shippingConditions: ""
-      sample: ""
-      description: ""
-      experimentalGoals: ""
-      randomization: ""
-      usdaRegulated: null
-      permitNumber: ""
-      biosafetyLevel: ""
-      irbOrHipaa: null
-      comments: ""
-      validation: null
-    templates:
-      - isolate
-      - soil
-      - jgi_isolate_genome
-    studyForm:
-      studyName: Soil + Isolate + JGI
-      piName: ""
-      piEmail: tester@example.gov
-      piOrcid: ""
-      fundingSources: [ ]
-      dataDois: [ ]
-      publicationDois: [ ]
-      linkOutWebpage: [ ]
-      studyDate: null
-      description: ""
-      notes: ""
-      contributors: [ ]
-      validation: [ ]
-      alternativeNames: [ ]
-      GOLDStudyId: ""
-      NCBIBioProjectId: ""
-    multiOmicsForm:
-      award: CSP
-      awardDois:
-        - value: "10.123/abcd"
-          provider: "jgi"
-      dataGenerated: false
-      doe: true
-      facilities:
-        - JGI
-      facilityGenerated: null
-      JGIStudyId: "123456"
-      mgCompatible: null
-      mgInterleaved: null
-      mtCompatible: null
-      mtInterleaved: null
-      omicsProcessingTypes:
-        - isolate-genome-jgi
-      otherAward: ""
-      ship: null
-      studyNumber: ""
-      unknownDoi: false
-      mpProtocols: null
-      mbProtocols: null
-      mbGcProtocols: null
-      lipProtocols: null
-      nomProtocols: null
-      nomLcProtocols: null
-      validation: [ ]
-    sampleData:
-      data:
-        soil_data:
-          - elev: 0
-            depth: 0 - 1
-            lat_lon: 0 0
-            samp_name: soil-001
-            env_medium: acidic soil [ENVO:01001185]
-            store_cond: fresh
-            geo_loc_name: "USA: Test, Test"
-            growth_facil: experimental_garden
-            analysis_type:
-              - metagenomics
-            collection_date: "2021"
-            env_broad_scale: alpine tundra biome [ENVO:01001505]
-            env_local_scale: active permafrost layer [ENVO:04000009]
-            samp_store_temp: 0
-        isolate_data:
-          - ploidy: haploid
-            samp_name: isolate-001
-            gc_content: 0
-            sample_link: soil-001
-            strain_name: Lorem ipsum dolor sit
-            isolate_name: Lorem ipsum dolor sit 0001
-            analysis_type:
-              - isolate genome sequencing
-            classified_as: NCBITaxon:0001
-            organism_genus: Lorem
-            collection_date: 2021-01-01
-            organism_species: Lorem ipsum
-            isolate_single_colony: yes
-            isolate_known_contaminants: Consectetur adipiscing 1%
-        jgi_isolate_genome_data:
-          - dnase: no
-            cont_type: plate
-            cont_well: B1
-            samp_name: isolate-001
-            analysis_type:
-              - isolate genome sequencing
-            container_name: plate 1
-            estimated_size: 4.6
-            jgi_sample_name: JGI_pond_041618
-            replicate_group: SampleGroup1
-            dna_isolate_meth: phenol/chloroform extraction
-            nuc_acid_absorb1: 2.02
-            nuc_acid_absorb2: 2.02
-            biosafety_mat_cat: Alga
-            jgi_sample_format: Water
-            jgi_sample_volume: 25
-            sample_isolated_from: soil
-            nuc_acid_concentration: 100
-      validation:
-        invalidCells:
-          soil: { }
-          isolate: { }
-          jgi_isolate_genome: { }
-        tabsValidated:
-          soil: true
-          isolate: true
-          jgi_isolate_genome: true
-  status: InProgress
+  study_form:
+    studyName: Soil + Isolate + JGI
+    piName: ""
+    piEmail: tester@example.gov
+    piOrcid: ""
+    fundingSources: [ ]
+    dataDois: [ ]
+    publicationDois: [ ]
+    linkOutWebpage: [ ]
+    studyDate: null
+    description: ""
+    notes: ""
+    contributors: [ ]
+    validation: [ ]
+    alternativeNames: [ ]
+    GOLDStudyId: ""
+    NCBIBioProjectId: ""
   source_client: submission_portal
   is_test_submission: false
   id: ef59f345-8c89-4201-bcdc-28ca1f6919ca
@@ -148,12 +26,8 @@ metadata_submission:
     email: tester@example.gov
     is_admin: true
   study_name: Isolate + Soil
-  templates:
-    - isolate
-    - soil
   date_last_modified: 2026-06-18T18:19:43.435496
   created: 2026-06-18T18:19:19.301941
-  sample_count: 1
   reviewers: []
   contributors:
     - 0000-0000-0000-000X
@@ -166,3 +40,129 @@ metadata_submission:
   pi_image_url: null
   primary_study_image_url: null
   study_image_urls: []
+sample_set:
+  created: 2026-06-18T18:19:19.301941
+  date_last_modified: 2026-06-18T18:19:43.435496
+  id: ef849776-d196-5499-b83f-7ba26474694e
+  multi_omics_form:
+    award: CSP
+    awardDois:
+      - value: "10.123/abcd"
+        provider: "jgi"
+    dataGenerated: false
+    doe: true
+    facilities:
+      - JGI
+    facilityGenerated: null
+    JGIStudyId: "123456"
+    mgCompatible: null
+    mgInterleaved: null
+    mtCompatible: null
+    mtInterleaved: null
+    omicsProcessingTypes:
+      - isolate-genome-jgi
+    otherAward: ""
+    ship: null
+    studyNumber: ""
+    unknownDoi: false
+    mpProtocols: null
+    mbProtocols: null
+    mbGcProtocols: null
+    lipProtocols: null
+    nomProtocols: null
+    nomLcProtocols: null
+    validation: [ ]
+  name: "Sample Set 1"
+  sample_data:
+    data:
+      soil_data:
+        - elev: 0
+          depth: 0 - 1
+          lat_lon: 0 0
+          samp_name: soil-001
+          env_medium: acidic soil [ENVO:01001185]
+          store_cond: fresh
+          geo_loc_name: "USA: Test, Test"
+          growth_facil: experimental_garden
+          analysis_type:
+            - metagenomics
+          collection_date: "2021"
+          env_broad_scale: alpine tundra biome [ENVO:01001505]
+          env_local_scale: active permafrost layer [ENVO:04000009]
+          samp_store_temp: 0
+      isolate_data:
+        - ploidy: haploid
+          samp_name: isolate-001
+          gc_content: 0
+          sample_link: soil-001
+          strain_name: Lorem ipsum dolor sit
+          isolate_name: Lorem ipsum dolor sit 0001
+          analysis_type:
+            - isolate genome sequencing
+          classified_as: NCBITaxon:0001
+          organism_genus: Lorem
+          collection_date: 2021-01-01
+          organism_species: Lorem ipsum
+          isolate_single_colony: yes
+          isolate_known_contaminants: Consectetur adipiscing 1%
+      jgi_isolate_genome_data:
+        - dnase: no
+          cont_type: plate
+          cont_well: B1
+          samp_name: isolate-001
+          analysis_type:
+            - isolate genome sequencing
+          container_name: plate 1
+          estimated_size: 4.6
+          jgi_sample_name: JGI_pond_041618
+          replicate_group: SampleGroup1
+          dna_isolate_meth: phenol/chloroform extraction
+          nuc_acid_absorb1: 2.02
+          nuc_acid_absorb2: 2.02
+          biosafety_mat_cat: Alga
+          jgi_sample_format: Water
+          jgi_sample_volume: 25
+          sample_isolated_from: soil
+          nuc_acid_concentration: 100
+    validation:
+      invalidCells:
+        soil: { }
+        isolate: { }
+        jgi_isolate_genome: { }
+      tabsValidated:
+        soil: true
+        isolate: true
+        jgi_isolate_genome: true
+  sample_environment_form:
+    packageName:
+      - isolate
+      - soil
+    validation: [ ]
+  sender_shipping_info_form:
+    shipper:
+      name: ""
+      email: ""
+      phone: ""
+      line1: ""
+      line2: ""
+      city: ""
+      state: ""
+      postalCode: ""
+      country: ""
+    expectedShippingDate: null
+    shippingConditions: ""
+    sample: ""
+    description: ""
+    experimentalGoals: ""
+    randomization: ""
+    usdaRegulated: null
+    permitNumber: ""
+    biosafetyLevel: ""
+    irbOrHipaa: null
+    comments: ""
+    validation: null
+  status: InProgress
+  templates:
+    - isolate
+    - soil
+    - jgi_isolate_genome
