@@ -16,6 +16,8 @@ from dagster import (
     RunStatusSensorContext,
     DefaultSensorStatus,
     MAX_RUNTIME_SECONDS_TAG,
+    RunsFilter,
+    ScheduleEvaluationContext,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -115,11 +117,41 @@ housekeeping_weekly = ScheduleDefinition(
     job=housekeeping.to_job(**preset_normal),
 )
 
+
+def should_execute_ensure_alldocs(context: ScheduleEvaluationContext) -> bool:
+    """
+    Helper function that returns `True` if there are no running or queued runs of the
+    `ensure_alldocs` job; otherwise, returns `False`. This function was designed to be passed to
+    the `ScheduleDefinition` constructor via the latter's `should_execute` kwarg.
+    """
+    num_matching_runs = context.instance.get_runs_count(
+        filters=RunsFilter(
+            job_name=ensure_alldocs.name,
+            statuses=[
+                DagsterRunStatus.NOT_STARTED,
+                DagsterRunStatus.QUEUED,
+                DagsterRunStatus.STARTING,
+                DagsterRunStatus.STARTED,
+                DagsterRunStatus.CANCELING,
+                # We intentionally omitted the following statuses:
+                # - DagsterRunStatus.MANAGED (only relevant when using Dagster with Airflow)
+                # - DagsterRunStatus.SUCCESS (the run has succeeded)
+                # - DagsterRunStatus.FAILURE (the run has failed)
+                # - DagsterRunStatus.CANCELED (the run has stopped after being canceled)
+            ],
+        )
+    )
+    return num_matching_runs == 0
+
+
+# Docs: https://docs.dagster.io/api/dagster/schedules-sensors#dagster.schedule
 # Note: A cron schedule of `0 * * * *` means "every hour".
 ensure_alldocs_hourly = ScheduleDefinition(
     name="hourly_ensure_alldocs",
     cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
+    # Configure Dagster to skip executing the job when there are already running or queued runs of it.
+    should_execute=should_execute_ensure_alldocs,
     job=ensure_alldocs.to_job(
         **preset_normal,
         run_tags={
