@@ -1,3 +1,4 @@
+from datetime import timedelta
 from importlib.metadata import version
 import json
 
@@ -14,6 +15,7 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
+    MAX_RUNTIME_SECONDS_TAG,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -118,7 +120,15 @@ ensure_alldocs_hourly = ScheduleDefinition(
     name="hourly_ensure_alldocs",
     cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
-    job=ensure_alldocs.to_job(**preset_normal),
+    job=ensure_alldocs.to_job(
+        **preset_normal,
+        run_tags={
+            # Configure Dagster's "run monitoring" feature to "fail" runs of this job whose
+            # durations exceed this limit. We enable Dagster's "run monitoring" feature
+            # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
+            MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
+        }
+    ),
 )
 
 
@@ -437,7 +447,15 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
-        ensure_alldocs.to_job(**preset_normal),
+        ensure_alldocs.to_job(
+            **preset_normal,
+            run_tags={
+                # Configure Dagster's "run monitoring" feature to "fail" runs of this job whose
+                # durations exceed this limit. We enable Dagster's "run monitoring" feature
+                # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
+                MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
+            }
+        ),
     ]
     schedules = [
         housekeeping_weekly,
