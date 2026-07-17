@@ -10,6 +10,12 @@ run_launcher:
   module: dagster.core.launcher
   class: DefaultRunLauncher
 
+# Enable Dagster's "run monitoring" feature, so Dagster will enforce the `MAX_RUNTIME_SECONDS_TAG`
+# duration limits that we define at the job level (e.g. we define one for the `ensure_alldocs` job).
+# Docs: https://docs.dagster.io/deployment/execution/run-monitoring#general-run-timeouts
+run_monitoring:
+  enabled: true
+
 run_storage:
   module: dagster_postgres.run_storage
   class: PostgresRunStorage

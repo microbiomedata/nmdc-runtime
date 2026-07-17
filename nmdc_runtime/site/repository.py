@@ -1,3 +1,4 @@
+from datetime import timedelta
 from importlib.metadata import version
 import json
 
@@ -14,6 +15,9 @@ from dagster import (
     DagsterRunStatus,
     RunStatusSensorContext,
     DefaultSensorStatus,
+    MAX_RUNTIME_SECONDS_TAG,
+    RunsFilter,
+    ScheduleEvaluationContext,
 )
 from starlette import status
 from toolz import merge, get_in
@@ -113,12 +117,50 @@ housekeeping_weekly = ScheduleDefinition(
     job=housekeeping.to_job(**preset_normal),
 )
 
+
+def should_execute_ensure_alldocs(context: ScheduleEvaluationContext) -> bool:
+    """
+    Helper function that returns `True` if there are no running or queued runs of the
+    `ensure_alldocs` job; otherwise, returns `False`. This function was designed to be passed to
+    the `ScheduleDefinition` constructor via the latter's `should_execute` kwarg.
+    """
+    num_matching_runs = context.instance.get_runs_count(
+        filters=RunsFilter(
+            job_name=ensure_alldocs.name,
+            statuses=[
+                DagsterRunStatus.NOT_STARTED,
+                DagsterRunStatus.QUEUED,
+                DagsterRunStatus.STARTING,
+                DagsterRunStatus.STARTED,
+                DagsterRunStatus.CANCELING,
+                # We intentionally omitted the following statuses:
+                # - DagsterRunStatus.MANAGED (only relevant when using Dagster with Airflow)
+                # - DagsterRunStatus.SUCCESS (the run has succeeded)
+                # - DagsterRunStatus.FAILURE (the run has failed)
+                # - DagsterRunStatus.CANCELED (the run has stopped after being canceled)
+            ],
+        )
+    )
+    return num_matching_runs == 0
+
+
+# Docs: https://docs.dagster.io/api/dagster/schedules-sensors#dagster.schedule
 # Note: A cron schedule of `0 * * * *` means "every hour".
 ensure_alldocs_hourly = ScheduleDefinition(
     name="hourly_ensure_alldocs",
     cron_schedule="0 * * * *",
     execution_timezone="America/New_York",
-    job=ensure_alldocs.to_job(**preset_normal),
+    # Configure Dagster to skip executing the job when there are already running or queued runs of it.
+    should_execute=should_execute_ensure_alldocs,
+    job=ensure_alldocs.to_job(
+        **preset_normal,
+        run_tags={
+            # Configure Dagster's "run monitoring" feature to "fail" runs of this job whose
+            # durations exceed this limit. We enable Dagster's "run monitoring" feature
+            # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
+            MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
+        },
+    ),
 )
 
 
@@ -437,7 +479,15 @@ def repo():
         ensure_jobs.to_job(**preset_normal),
         apply_metadata_in.to_job(**preset_normal),
         export_study_biosamples_metadata.to_job(**preset_normal),
-        ensure_alldocs.to_job(**preset_normal),
+        ensure_alldocs.to_job(
+            **preset_normal,
+            run_tags={
+                # Configure Dagster's "run monitoring" feature to "fail" runs of this job whose
+                # durations exceed this limit. We enable Dagster's "run monitoring" feature
+                # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
+                MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
+            },
+        ),
     ]
     schedules = [
         housekeeping_weekly,
