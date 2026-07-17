@@ -159,7 +159,7 @@ ensure_alldocs_hourly = ScheduleDefinition(
             # durations exceed this limit. We enable Dagster's "run monitoring" feature
             # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
             MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
-        }
+        },
     ),
 )
 
@@ -486,7 +486,7 @@ def repo():
                 # durations exceed this limit. We enable Dagster's "run monitoring" feature
                 # via `run_monitoring.enabled: true` in `nmdc_runtime/site/dagster.yaml`.
                 MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
-            }
+            },
         ),
     ]
     schedules = [
