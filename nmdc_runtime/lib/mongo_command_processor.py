@@ -23,6 +23,7 @@ from nmdc_runtime.api.models.query import (
     DeleteCommand,
     DeleteCommandResponse,
     DeleteSpecs,
+    DeleteStatement,
 )
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
@@ -144,50 +145,40 @@ class MongoCommandProcessor:
 
     def _identify_broken_references_deletion_would_leave_behind(
             self,
-            delete_command: DeleteCommand,
+            collection_name: str,
+            target_document_oids: list[ObjectId],
             stop_on_first: bool = False,
     ) -> list:
         """
-        Identify broken references that would be left behind if Mongo were to run the specified
-        "delete" command on the database in its current state.
+        Identify documents that would remain after the deletion, which contain references to any of
+        the documents that would be deleted. The `ObjectId`s of the documents that would be deleted
+        are passed to this function via the `target_document_oids` parameter.
         
-        If `stop_on_first` is `True`, the function will stop checking after it finds a single broken
-        reference that would be left behind (this will decrease response times since the function
-        won't have to continue looking for additional references).
-
-        Note: This function disregards the "limit" property, if any, of the "delete" specification.
-              We have no way of predicting _which_ document Mongo would delete, and so we behave as
-              though _all_ matching documents would be deleted.
-              TODO: Address the fact that this could create a false negative result when one of the
-                    referring documents happens to match the "delete" specification.
+        If `stop_on_first` is `True`, the function will stop checking after it finds a single such
+        document that would be left behind (this will decrease return times since the function won't
+        have to continue looking for additional such documents).
         """
-        collection = self.db.get_collection(delete_command.delete)
-        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=delete_command)
+        collection = self.db.get_collection(collection_name)
 
         # Initialize a list of descriptors of the broken references that would be left behind.
         # Note: These descriptors will identify referring _documents_, but not referring _fields_.
         descriptors_of_broken_references: list = []
 
-        # Make a list of the documents that would be deleted.
+        # Get the `id` and `type` values of the documents that would be deleted.
         target_document_descriptors = list(
             collection.find(
-                filter={"$or": [spec["filter"] for spec in delete_specs]},
+                filter={"_id": {"$in": target_document_oids}},
                 projection={"_id": 1, "id": 1, "type": 1},
             )
         )
 
-        # Make a set of their `_id` values (i.e. their ObjectId values).
-        target_document_oids = set(
-            tdd["_id"] for tdd in target_document_descriptors
-        )
-
         # For each of those documents, check whether it is referenced by any documents that would
-        # not be deleted (if so, it means a broken reference would be left behind).
+        # _not_ be deleted (if so, it means a broken reference would be left behind).
         finder = Finder(database=self.db)
         for target_document_descriptor in target_document_descriptors:
             # If the document descriptor lacks an "id" field, we already know that no documents can
             # reference it (since they would have to _use_ that "id" value to do so). In that case,
-            # we won't bother trying to identify referring documents for it.
+            # we won't bother trying to identify documents that reference it.
             if "id" not in target_document_descriptor:
                 continue
 
@@ -200,7 +191,7 @@ class MongoCommandProcessor:
             )
 
             # If _any_ referring document is _not_ among those that would be deleted, it means that
-            # performing the deletion _would_ leave behind broken references.
+            # performing the deletion _would_ leave behind a referring document (i.e. a broken reference).
             for rdd in referring_document_descriptors:
                 source_document_oid = rdd["source_document_object_id"]
                 if source_document_oid not in target_document_oids:
@@ -262,27 +253,31 @@ class MongoCommandProcessor:
         raw_response = self.db.command(command=mongo_command_document)
         return CollStatsCommandResponse(**raw_response)
 
-    def _back_up_documents_before_deletion(self, delete_command: DeleteCommand) -> None:
+    def _back_up_documents_before_deletion(
+        self,
+        collection_name: str,
+        target_document_oids: list[ObjectId],
+    ) -> None:
         """Back up the documents identified by the specified "delete" command."""
 
-        collection = self.db.get_collection(delete_command.delete)
-        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=delete_command)
-
         # Get a cursor referencing the documents that would be deleted.
+        collection = self.db.get_collection(collection_name)
         target_documents_cursor = collection.find(
-            filter={"$or": [spec["filter"] for spec in delete_specs]},
+            filter={"_id": {"$in": target_document_oids}},
         )
 
         # Insert each of those documents into the deletion archive database (e.g. "nmdc_deleted").
         deleted_at = now()  # they'll all have the same `deleted_at` timestamp.
         deletion_archive_db = self.db.client.get_database(self.DELETION_ARCHIVE_DATABASE_NAME)
-        deletion_archive_collection = deletion_archive_db.get_collection(delete_command.delete)
+        deletion_archive_collection = deletion_archive_db.get_collection(collection_name)
         documents_to_back_up = []
         for doc in target_documents_cursor:
             documents_to_back_up.append(dict(doc=doc, deleted_at=deleted_at))
         insert_many_result = deletion_archive_collection.insert_many(documents_to_back_up)
 
         # If we didn't back up all of the documents, raise an exception.
+        # TODO: Consider delegating the reporting that "no documents have been deleted" to the
+        #       caller, since the actual deletion is not one of this method's concerns.
         if len(insert_many_result.inserted_ids) != len(documents_to_back_up):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -331,20 +326,27 @@ class MongoCommandProcessor:
                 detail=f"Collection '{collection_name}' is not described by the NMDC Schema",
             )
 
-        # Check how many documents containing broken references the deletion would leave behind.
-        # If there are any, log warnings or raise an exception, depending upon `allow_broken_refs`.
-        broken_refs = self._identify_broken_references_deletion_would_leave_behind(
-            delete_command=command,
+        # Get the `_id` values of the documents that would be deleted.
+        target_document_oids = self._get_oids_of_specified_documents(command)
+
+        # Determine whether any documents that reference those documents would be left behind
+        # if the deletion were to be performed.
+        referrers_left_behind = self._identify_broken_references_deletion_would_leave_behind(
+            collection_name=collection_name,
+            target_document_oids=target_document_oids,
             stop_on_first=True,
         )
-        if len(broken_refs) > 0:
+
+        # Check how many documents containing broken references the deletion would leave behind.
+        # If there are any, log warnings or raise an exception, depending upon `allow_broken_refs`.
+        if len(referrers_left_behind) > 0:
             if allow_broken_refs:
-                for ref in broken_refs:
+                for r in referrers_left_behind:
                     logger.warning(
-                        f"The document having 'id'='{ref['target_document_id']}' in "
-                        f"the collection '{ref['collection_name']}' is referenced by "
-                        f"the document having 'id'='{ref['source_document_id']}' in "
-                        f"the collection '{ref['source_collection_name']}'. "
+                        f"The document having 'id'='{r['target_document_id']}' in "
+                        f"the collection '{r['collection_name']}' is referenced by "
+                        f"the document having 'id'='{r['source_document_id']}' in "
+                        f"the collection '{r['source_collection_name']}'. "
                         f"Deleting the former will leave behind a broken reference."
                     )
             else:
@@ -356,26 +358,35 @@ class MongoCommandProcessor:
                 #       such references; but it would also take longer to compute and
                 #       would increase the response size (consider the case where the
                 #       user-specified filter matches many, many documents).
-                ref = broken_refs[0]
+                r = referrers_left_behind[0]
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=(
                         f"The operation was not performed, because performing it would "
                         f"have left behind one or more broken references. For example: "
-                        f"The document having 'id'='{ref['target_document_id']}' in "
-                        f"the collection '{ref['collection_name']}' is referenced by "
-                        f"the document having 'id'='{ref['source_document_id']}' in "
-                        f"the collection '{ref['source_collection_name']}'. "
+                        f"The document having 'id'='{r['target_document_id']}' in "
+                        f"the collection '{r['collection_name']}' is referenced by "
+                        f"the document having 'id'='{r['source_document_id']}' in "
+                        f"the collection '{r['source_collection_name']}'. "
                         f"Deleting the former would leave behind a broken reference. "
                         f"Update or delete referring document(s) and try again."
                     ),
                 )
 
         # Back up the would-be deleted documents.
-        self._back_up_documents_before_deletion(delete_command=command)
+        self._back_up_documents_before_deletion(
+            collection_name=collection_name,
+            target_document_oids=target_document_oids,
+        )
 
         # Perform the deletion.
-        mongo_command_document = self._make_mongo_command_document(command)
+        delete_command = DeleteCommand(
+            delete=collection_name,
+            deletes=[
+                DeleteStatement(q={"_id": {"$in": target_document_oids}}, limit=0)
+            ],
+        )
+        mongo_command_document = self._make_mongo_command_document(delete_command)
         raw_response = self.db.command(command=mongo_command_document)
 
         # Handle `writeErrors`.
