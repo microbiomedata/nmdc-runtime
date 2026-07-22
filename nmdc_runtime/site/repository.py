@@ -214,6 +214,9 @@ load_po_ontology_weekly = ScheduleDefinition(
 
 # NCBITaxon is far larger than envo/uberon/po (~2.7M classes), so it uses mode="fast-initial"
 # (raw pymongo insert_many) rather than the meticulous per-item upsert the others use.
+# It uses closure="isa" (not the "combined" default): NCBITaxon is a pure is_a taxonomy with
+# no part_of, so isa is the correct and ontology-loader-recommended closure, and it stores the
+# ancestry under the accurate `entailed_isa_closure` predicate. See the ontology-loader README.
 # Caveat: fast-initial is an initial-install path and is NOT idempotent on re-run (it does not
 # upsert). A steady-state weekly cadence needs a re-load strategy (drop-then-load, or a
 # meticulous refresh); that decision is still open. Until then this is intended as a
@@ -233,7 +236,7 @@ load_ncbitaxon_ontology_weekly = ScheduleDefinition(
                             "config": {
                                 "source_ontology": "ncbitaxon",
                                 "mode": "fast-initial",
-                                "closure": "combined",
+                                "closure": "isa",
                             }
                         }
                     }

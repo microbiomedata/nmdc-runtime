@@ -79,6 +79,39 @@ def test_load_ontology(mock_ontology_loader, op_context):
     assert result is None
 
 
+@pytest.fixture
+def op_context_fast_initial(client_config):
+    # No report_directory: fast-initial writes no reports, so the op should leave it None.
+    return build_op_context(
+        resources={"mongo": mongo_resource.configured(client_config)},
+        op_config={
+            "source_ontology": "ncbitaxon",
+            "mode": "fast-initial",
+            "closure": "isa",
+        }
+    )
+
+
+# Always runs - no MongoDB connection needed.
+@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+def test_load_ontology_fast_initial(mock_ontology_loader, op_context_fast_initial):
+    """fast-initial: op passes mode/closure through and leaves report_directory=None."""
+    mock_instance = MagicMock()
+    mock_ontology_loader.return_value = mock_instance
+
+    result = load_ontology(op_context_fast_initial)
+
+    mock_ontology_loader.assert_called_once_with(
+        source_ontology="ncbitaxon",
+        mode="fast-initial",
+        closure="isa",
+        report_directory=None,
+        mongo_client=op_context_fast_initial.resources.mongo.client,
+        db_name=op_context_fast_initial.resources.mongo.db.name,
+    )
+    mock_instance.run_ontology_loader.assert_called_once()
+    assert result is None
+
 
 @pytest.mark.skipif(
     os.getenv("MONGO_PASSWORD") is None or os.getenv("ENABLE_DB_TESTS") != "true",

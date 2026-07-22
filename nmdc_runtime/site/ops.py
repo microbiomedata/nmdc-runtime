@@ -1183,7 +1183,8 @@ def site_code_mapping() -> dict:
         "mode": Field(str, default_value="meticulous", is_required=False),
         # closure: which ancestry closures to emit ("combined" = rdfs:subClassOf + BFO:0000050).
         "closure": Field(str, default_value="combined", is_required=False),
-        # report_directory: only used when mode="meticulous" (TSV reports). None => tempdir.
+        # report_directory: only used when mode="meticulous" (TSV reports). When None it
+        #   defaults to <cwd>/ontology_reports for meticulous; fast-initial writes no reports.
         "report_directory": Field(Noneable(str), default_value=None, is_required=False),
     },
 )
@@ -1194,8 +1195,8 @@ def load_ontology(context: OpExecutionContext):
     closure = cfg.get("closure", "combined")
     report_directory = cfg.get("report_directory")
     # Preserve the pre-0.2.3 report location for meticulous runs (unchanged behavior
-    # for envo/uberon/po). Ignored by fast-initial mode, which writes no reports.
-    if report_directory is None:
+    # for envo/uberon/po). fast-initial writes no reports, so leave it None there.
+    if report_directory is None and mode == "meticulous":
         report_directory = os.path.join(os.getcwd(), "ontology_reports")
 
     # Redirect Python logging to Dagster context
