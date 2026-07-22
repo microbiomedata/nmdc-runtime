@@ -212,6 +212,38 @@ load_po_ontology_weekly = ScheduleDefinition(
     ),
 )
 
+# NCBITaxon is far larger than envo/uberon/po (~2.7M classes), so it uses mode="fast-initial"
+# (raw pymongo insert_many) rather than the meticulous per-item upsert the others use.
+# Caveat: fast-initial is an initial-install path and is NOT idempotent on re-run (it does not
+# upsert). A steady-state weekly cadence needs a re-load strategy (drop-then-load, or a
+# meticulous refresh); that decision is still open. Until then this is intended as a
+# manually-launched job for the one-time bulk load.
+load_ncbitaxon_ontology_weekly = ScheduleDefinition(
+    name="weekly_load_ncbitaxon_ontology",
+    cron_schedule="0 10 * * 1",
+    execution_timezone="America/New_York",
+    job=run_ontology_load.to_job(
+        name="scheduled_ncbitaxon_ontology_load",
+        config=unfreeze(
+            merge(
+                run_config_frozen__normal_env,
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "ncbitaxon",
+                                "mode": "fast-initial",
+                                "closure": "combined",
+                            }
+                        }
+                    }
+                },
+            )
+        ),
+        resource_defs=resource_defs,
+    ),
+)
+
 
 def asset_materialization_metadata(asset_event, key):
     """Get metadata from an asset materialization event.
@@ -495,6 +527,7 @@ def repo():
         load_envo_ontology_weekly,
         load_uberon_ontology_weekly,
         load_po_ontology_weekly,
+        load_ncbitaxon_ontology_weekly,
     ]
     sensors = [
         done_object_put_ops,

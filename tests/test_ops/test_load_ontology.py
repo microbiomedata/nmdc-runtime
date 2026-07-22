@@ -44,8 +44,9 @@ def op_context(client_config, tmp_path):
         resources={"mongo": mongo_resource.configured(client_config)},
         op_config={
             "source_ontology": "envo",
-            "output_directory": str(tmp_path),
-            "generate_reports": False
+            "mode": "meticulous",
+            "closure": "combined",
+            "report_directory": str(tmp_path),
         }
     )
 
@@ -64,8 +65,9 @@ def test_load_ontology(mock_ontology_loader, op_context):
     # Verify the correct parameters were used to initialize OntologyLoaderController
     mock_ontology_loader.assert_called_once_with(
         source_ontology="envo",
-        output_directory=op_context.op_config["output_directory"],
-        generate_reports=False,
+        mode="meticulous",
+        closure="combined",
+        report_directory=op_context.op_config["report_directory"],
         mongo_client=op_context.resources.mongo.client,
         db_name=op_context.resources.mongo.db.name
     )
@@ -117,9 +119,9 @@ def test_load_ontology_integration(op_context):
     envo_term = mdb.get_collection("ontology_class_set").find_one({"id": sample_envo_id})
     assert envo_term is not None
 
-    # 4. Check report files if generate_reports was True
-    if op_context.op_config["generate_reports"]:
-        output_dir = op_context.op_config["output_directory"]
+    # 4. Check report files (only the "meticulous" mode writes TSV reports)
+    if op_context.op_config["mode"] == "meticulous":
+        output_dir = op_context.op_config["report_directory"]
         assert os.path.exists(os.path.join(output_dir, "ontology_inserts.tsv"))
         assert os.path.exists(os.path.join(output_dir, "ontology_updates.tsv"))
 

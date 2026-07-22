@@ -1177,18 +1177,26 @@ def site_code_mapping() -> dict:
     required_resource_keys={"mongo"},
     config_schema={
         "source_ontology": str,
-        "output_directory": Field(Noneable(str), default_value=None, is_required=False),
-        "generate_reports": Field(bool, default_value=True, is_required=False),
+        # mode: "meticulous" (default) = linkml-store per-item upsert, for incremental
+        #   weekly re-loads; "fast-initial" = raw pymongo insert_many, for the one-time
+        #   bulk install of a large ontology (e.g. NCBITaxon, ~2.7M classes).
+        "mode": Field(str, default_value="meticulous", is_required=False),
+        # closure: which ancestry closures to emit ("combined" = rdfs:subClassOf + BFO:0000050).
+        "closure": Field(str, default_value="combined", is_required=False),
+        # report_directory: only used when mode="meticulous" (TSV reports). None => tempdir.
+        "report_directory": Field(Noneable(str), default_value=None, is_required=False),
     },
 )
 def load_ontology(context: OpExecutionContext):
     cfg = context.op_config
     source_ontology = cfg["source_ontology"]
-    output_directory = cfg.get("output_directory")
-    generate_reports = cfg.get("generate_reports", True)
-
-    if output_directory is None:
-        output_directory = os.path.join(os.getcwd(), "ontology_reports")
+    mode = cfg.get("mode", "meticulous")
+    closure = cfg.get("closure", "combined")
+    report_directory = cfg.get("report_directory")
+    # Preserve the pre-0.2.3 report location for meticulous runs (unchanged behavior
+    # for envo/uberon/po). Ignored by fast-initial mode, which writes no reports.
+    if report_directory is None:
+        report_directory = os.path.join(os.getcwd(), "ontology_reports")
 
     # Redirect Python logging to Dagster context
     handler = logging.Handler()
@@ -1199,11 +1207,15 @@ def load_ontology(context: OpExecutionContext):
     controller_logger.setLevel(logging.INFO)
     controller_logger.addHandler(handler)
 
-    context.log.info(f"Running Ontology Loader for ontology: {source_ontology}")
+    context.log.info(
+        f"Running Ontology Loader for ontology: {source_ontology} "
+        f"(mode={mode}, closure={closure})"
+    )
     loader = OntologyLoaderController(
         source_ontology=source_ontology,
-        output_directory=output_directory,
-        generate_reports=generate_reports,
+        mode=mode,
+        closure=closure,
+        report_directory=report_directory,
         mongo_client=context.resources.mongo.client,
         db_name=context.resources.mongo.db.name,
     )
