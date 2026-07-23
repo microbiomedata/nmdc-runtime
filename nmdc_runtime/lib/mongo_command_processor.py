@@ -173,10 +173,19 @@ class MongoCommandProcessor:
             )
         )
 
+        # Make a set, so existence searches are faster (than with a list).
+        target_document_oids_set: set = set(target_document_oids)
+
         # For each of those documents, check whether it is referenced by any documents that would
         # _not_ be deleted (if so, it means a broken reference would be left behind).
+        is_scan_aborted = False
         finder = Finder(database=self.db)
         for target_document_descriptor in target_document_descriptors:
+            # If the "is scan aborted" flag has been set, break out of this loop. This happens when
+            # the `stop_on_first` flag is set and we have already found our first violation.
+            if is_scan_aborted:
+                break
+
             # If the document descriptor lacks an "id" field, we already know that no documents can
             # reference it (since they would have to _use_ that "id" value to do so). In that case,
             # we won't bother trying to identify documents that reference it.
@@ -195,7 +204,11 @@ class MongoCommandProcessor:
             # performing the deletion _would_ leave behind a referring document (i.e. a broken reference).
             for rdd in referring_document_descriptors:
                 source_document_oid = rdd["source_document_object_id"]
-                if source_document_oid not in target_document_oids:
+                source_collection_name = rdd["source_collection_name"]
+                if not (
+                    source_collection_name == collection_name and
+                    source_document_oid in target_document_oids_set
+                ):
                     descriptor_of_broken_reference = dict(
                         source_collection_name=rdd["source_collection_name"],
                         source_class_name=rdd["source_class_name"],
@@ -210,6 +223,7 @@ class MongoCommandProcessor:
                     # If the caller opted to stop after identifying the first reference that would
                     # be broken, stop iterating now.
                     if stop_on_first:
+                        is_scan_aborted = True
                         break
 
         return descriptors_of_broken_references
@@ -265,6 +279,11 @@ class MongoCommandProcessor:
     ) -> None:
         """Back up the documents identified by the specified "delete" command."""
 
+        # If no `ObjectId`s were specified, return early.
+        if len(target_document_oids) == 0:
+            logger.debug("No documents were specified to be backed up.")
+            return None
+
         # Get a cursor referencing the documents that would be deleted.
         collection = self.db.get_collection(collection_name)
         target_documents_cursor = collection.find(
@@ -280,23 +299,31 @@ class MongoCommandProcessor:
             collection_name
         )
         documents_to_back_up = []
-        for doc in target_documents_cursor:
-            documents_to_back_up.append(dict(doc=doc, deleted_at=deleted_at))
-        insert_many_result = deletion_archive_collection.insert_many(
-            documents_to_back_up
-        )
+        for target_document in target_documents_cursor:
+            documents_to_back_up.append(dict(doc=target_document, deleted_at=deleted_at))
 
-        # If we didn't back up all of the documents, raise an exception.
-        # TODO: Consider delegating the reporting that "no documents have been deleted" to the
-        #       caller, since the actual deletion is not one of this method's concerns.
-        if len(insert_many_result.inserted_ids) != len(documents_to_back_up):
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=(
-                    "Deletion failed. We failed to back up the documents before starting deletion. "
-                    "The entire operation has been aborted. No documents have been deleted."
-                ),
+        if len(documents_to_back_up) < len(target_document_oids):
+            logger.warning(
+                f"We expected to back up {len(target_document_oids)} documents, "
+                f"but we found only {len(documents_to_back_up)} documents to back up."
             )
+
+        if len(documents_to_back_up) > 0:
+            insert_many_result = deletion_archive_collection.insert_many(documents_to_back_up)
+
+            # If we didn't back up all of the documents we found, raise an exception.
+            # TODO: Consider delegating the reporting that "no documents have been deleted" to the
+            #       caller, since the actual deletion is not one of this method's concerns.
+            if len(insert_many_result.inserted_ids) != len(documents_to_back_up):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=(
+                        "We failed to back up some documents before starting the deletion. "
+                        "The entire operation has been aborted. No documents have been deleted."
+                    ),
+                )
+        else:
+            logger.debug("There are no documents to back up.")
 
     @staticmethod
     def _generate_user_facing_event_id() -> str:
@@ -357,7 +384,7 @@ class MongoCommandProcessor:
                 for r in referrers_left_behind:
                     logger.warning(
                         f"The document having 'id'='{r['target_document_id']}' in "
-                        f"the collection '{r['collection_name']}' is referenced by "
+                        f"the collection '{collection_name}' is referenced by "
                         f"the document having 'id'='{r['source_document_id']}' in "
                         f"the collection '{r['source_collection_name']}'. "
                         f"Deleting the former will leave behind a broken reference."
@@ -378,7 +405,7 @@ class MongoCommandProcessor:
                         f"The operation was not performed, because performing it would "
                         f"have left behind one or more broken references. For example: "
                         f"The document having 'id'='{r['target_document_id']}' in "
-                        f"the collection '{r['collection_name']}' is referenced by "
+                        f"the collection '{collection_name}' is referenced by "
                         f"the document having 'id'='{r['source_document_id']}' in "
                         f"the collection '{r['source_collection_name']}'. "
                         f"Deleting the former would leave behind a broken reference. "
@@ -396,11 +423,14 @@ class MongoCommandProcessor:
         delete_command = DeleteCommand(
             delete=collection_name,
             deletes=[
-                DeleteStatement(q={"_id": {"$in": target_document_oids}}, limit=0)
+                DeleteStatement(q={"_id": {"$in": target_document_oids}}, limit=0),
             ],
         )
         mongo_command_document = self._make_mongo_command_document(delete_command)
-        raw_response = self.db.command(command=mongo_command_document)
+        raw_response = self.db.command(
+            command=mongo_command_document,
+            comment="A deletion by MongoCommandProcessor within nmdc-runtime",
+        )
 
         # Handle `writeErrors`.
         response = DeleteCommandResponse(**raw_response)
@@ -420,9 +450,18 @@ class MongoCommandProcessor:
 
         return response
 
-    def process(self, command: MongoCommand) -> MongoCommandResponse:
+    def process(
+        self,
+        command: MongoCommand,
+        allow_broken_refs: bool = False,
+    ) -> MongoCommandResponse:
         """
         Submit the specified command to the configured Mongo database.
+
+        For "delete" commands, the `allow_broken_refs` parameter controls whether this processor
+        will still carry out the deletion, even if it would leave behind broken reference. This
+        is offered as an option because a "delete" command can only target a single collection;
+        meanwhile, it's possible for documents in two collections to reference one another.
         """
 
         # Initialize the response.
@@ -434,15 +473,20 @@ class MongoCommandProcessor:
         elif isinstance(command, CollStatsCommand):
             response = self._process_collstats_command(command)
         elif isinstance(command, DeleteCommand):
-            response = self._process_delete_command(command)
+            response = self._process_delete_command(command, allow_broken_refs=allow_broken_refs)
 
             # If no documents were deleted, the user might have made a mistake. In that case,
             # we return an error response as a courtesy.
             if response.n == 0:
                 raise HTTPException(
                     status_code=status.HTTP_418_IM_A_TEAPOT,
-                    detail="No documents were deleted. Check the syntax of your request.",
+                    detail="No documents were deleted. Check the syntax of your request."
                 )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported command: {command}"
+            )
 
         # Return the response.
         return response
