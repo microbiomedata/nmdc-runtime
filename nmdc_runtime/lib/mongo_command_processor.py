@@ -27,7 +27,6 @@ from nmdc_runtime.api.models.query import (
 )
 from nmdc_runtime.util import get_allowed_references, nmdc_schema_view
 
-
 logger = getLogger(__name__)
 
 
@@ -93,7 +92,9 @@ class MongoCommandProcessor:
         """Returns the names of all collections described by the NMDC Schema."""
         return get_collection_names_from_schema(schema_view=self.schema_view)
 
-    def _get_oids_of_specified_documents(self, delete_command: DeleteCommand) -> List[ObjectId]:
+    def _get_oids_of_specified_documents(
+        self, delete_command: DeleteCommand
+    ) -> List[ObjectId]:
         """
         Returns a sorted list of the `ObjectId`s (i.e. `_id` values) of the documents matching a
         given command, considering all of the command's constituent specifications.
@@ -144,16 +145,16 @@ class MongoCommandProcessor:
         return sorted(oids, key=str)
 
     def _identify_broken_references_deletion_would_leave_behind(
-            self,
-            collection_name: str,
-            target_document_oids: list[ObjectId],
-            stop_on_first: bool = False,
+        self,
+        collection_name: str,
+        target_document_oids: list[ObjectId],
+        stop_on_first: bool = False,
     ) -> list:
         """
         Identify documents that would remain after the deletion, which contain references to any of
         the documents that would be deleted. The `ObjectId`s of the documents that would be deleted
         are passed to this function via the `target_document_oids` parameter.
-        
+
         If `stop_on_first` is `True`, the function will stop checking after it finds a single such
         document that would be left behind (this will decrease return times since the function won't
         have to continue looking for additional such documents).
@@ -202,7 +203,9 @@ class MongoCommandProcessor:
                         source_document_id=rdd["source_document_id"],
                         target_document_id=target_document_descriptor["id"],
                     )
-                    descriptors_of_broken_references.append(descriptor_of_broken_reference)
+                    descriptors_of_broken_references.append(
+                        descriptor_of_broken_reference
+                    )
 
                     # If the caller opted to stop after identifying the first reference that would
                     # be broken, stop iterating now.
@@ -228,7 +231,9 @@ class MongoCommandProcessor:
         raw_response = self.db.command(command=mongo_command_document)
         return CountCommandResponse(**raw_response)
 
-    def _process_collstats_command(self, command: CollStatsCommand) -> CollStatsCommandResponse:
+    def _process_collstats_command(
+        self, command: CollStatsCommand
+    ) -> CollStatsCommandResponse:
         """
         Process a MongoDB `collStats` command.
 
@@ -268,12 +273,18 @@ class MongoCommandProcessor:
 
         # Insert each of those documents into the deletion archive database (e.g. "nmdc_deleted").
         deleted_at = now()  # they'll all have the same `deleted_at` timestamp.
-        deletion_archive_db = self.db.client.get_database(self.DELETION_ARCHIVE_DATABASE_NAME)
-        deletion_archive_collection = deletion_archive_db.get_collection(collection_name)
+        deletion_archive_db = self.db.client.get_database(
+            self.DELETION_ARCHIVE_DATABASE_NAME
+        )
+        deletion_archive_collection = deletion_archive_db.get_collection(
+            collection_name
+        )
         documents_to_back_up = []
         for doc in target_documents_cursor:
             documents_to_back_up.append(dict(doc=doc, deleted_at=deleted_at))
-        insert_many_result = deletion_archive_collection.insert_many(documents_to_back_up)
+        insert_many_result = deletion_archive_collection.insert_many(
+            documents_to_back_up
+        )
 
         # If we didn't back up all of the documents, raise an exception.
         # TODO: Consider delegating the reporting that "no documents have been deleted" to the
@@ -303,7 +314,7 @@ class MongoCommandProcessor:
         >>> id_.startswith("20")
         True
         """
-        timestamp: str = now().strftime('%Y%m%d%H%M%S')
+        timestamp: str = now().strftime("%Y%m%d%H%M%S")
         uuid_ = str(uuid.uuid4())
         return f"{timestamp}-{uuid_}"
 
@@ -331,10 +342,12 @@ class MongoCommandProcessor:
 
         # Determine whether any documents that reference those documents would be left behind
         # if the deletion were to be performed.
-        referrers_left_behind = self._identify_broken_references_deletion_would_leave_behind(
-            collection_name=collection_name,
-            target_document_oids=target_document_oids,
-            stop_on_first=True,
+        referrers_left_behind = (
+            self._identify_broken_references_deletion_would_leave_behind(
+                collection_name=collection_name,
+                target_document_oids=target_document_oids,
+                stop_on_first=True,
+            )
         )
 
         # Check how many documents containing broken references the deletion would leave behind.
@@ -393,7 +406,9 @@ class MongoCommandProcessor:
         response = DeleteCommandResponse(**raw_response)
         if isinstance(response.writeErrors, list) and len(response.writeErrors) > 0:
             event_id = self._generate_user_facing_event_id()
-            logger.error(f"An error(s) occurred while deleting documents. Event ID: {event_id}")
+            logger.error(
+                f"An error(s) occurred while deleting documents. Event ID: {event_id}"
+            )
             logger.error(response.writeErrors)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -402,7 +417,7 @@ class MongoCommandProcessor:
                     f"an administrator of this application, referencing system event '{event_id}'. "
                 ),
             )
-    
+
         return response
 
     def process(self, command: MongoCommand) -> MongoCommandResponse:
@@ -426,7 +441,7 @@ class MongoCommandProcessor:
             if response.n == 0:
                 raise HTTPException(
                     status_code=status.HTTP_418_IM_A_TEAPOT,
-                    detail="No documents were deleted. Check the syntax of your request."
+                    detail="No documents were deleted. Check the syntax of your request.",
                 )
 
         # Return the response.
