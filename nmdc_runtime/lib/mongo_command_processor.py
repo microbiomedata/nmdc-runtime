@@ -206,8 +206,8 @@ class MongoCommandProcessor:
                 source_document_oid = rdd["source_document_object_id"]
                 source_collection_name = rdd["source_collection_name"]
                 if not (
-                    source_collection_name == collection_name and
-                    source_document_oid in target_document_oids_set
+                    source_collection_name == collection_name
+                    and source_document_oid in target_document_oids_set
                 ):
                     descriptor_of_broken_reference = dict(
                         source_collection_name=rdd["source_collection_name"],
@@ -300,7 +300,9 @@ class MongoCommandProcessor:
         )
         documents_to_back_up = []
         for target_document in target_documents_cursor:
-            documents_to_back_up.append(dict(doc=target_document, deleted_at=deleted_at))
+            documents_to_back_up.append(
+                dict(doc=target_document, deleted_at=deleted_at)
+            )
 
         if len(documents_to_back_up) < len(target_document_oids):
             logger.warning(
@@ -309,7 +311,9 @@ class MongoCommandProcessor:
             )
 
         if len(documents_to_back_up) > 0:
-            insert_many_result = deletion_archive_collection.insert_many(documents_to_back_up)
+            insert_many_result = deletion_archive_collection.insert_many(
+                documents_to_back_up
+            )
 
             # If we didn't back up all of the documents we found, raise an exception.
             # TODO: Consider delegating the reporting that "no documents have been deleted" to the
@@ -473,19 +477,21 @@ class MongoCommandProcessor:
         elif isinstance(command, CollStatsCommand):
             response = self._process_collstats_command(command)
         elif isinstance(command, DeleteCommand):
-            response = self._process_delete_command(command, allow_broken_refs=allow_broken_refs)
+            response = self._process_delete_command(
+                command, allow_broken_refs=allow_broken_refs
+            )
 
             # If no documents were deleted, the user might have made a mistake. In that case,
             # we return an error response as a courtesy.
             if response.n == 0:
                 raise HTTPException(
                     status_code=status.HTTP_418_IM_A_TEAPOT,
-                    detail="No documents were deleted. Check the syntax of your request."
+                    detail="No documents were deleted. Check the syntax of your request.",
                 )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported command: {command}"
+                detail=f"Unsupported command: {command}",
             )
 
         # Return the response.
