@@ -1,0 +1,44 @@
+# -----------------------------------------------------------------------------
+# CODEOWNERS
+#
+# GitHub uses this file to determine who "owns" files in the repository. When a
+# Pull Request (PR) includes changes to a file that matches one of the patterns
+# below, GitHub will automatically request a review from each listed owner.
+#
+# Note: The specified GitHub users/teams must have "Write" access to the repo.
+#
+# Note: The rules below intentionally go from generic to specific. If more than
+#       one pattern matches a file, the LATER rule here will take precedence.
+#       Unlike CSS, the rules do not "cascade" (instead, the later rules
+#       completely "replace" the earlier ones).
+#
+# Note: The narrowest granularity of a code specifier is the _file_ level.
+#       So, we may do some refactoring/modularizing of the codebase in
+#       order to be able to better leverage CODEOWNERS functionality.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# -----------------------------------------------------------------------------
+
+# Repository (fallback owner):
+# - @eecavanna for all
+*                                                                @eecavanna
+
+# CODEOWNERS file:
+# - @eecavanna
+/.github/CODEOWNERS                                              @eecavanna
+
+# Translators:
+# - @sujaypatil96 for all, except...
+# - @pkalita-lbl for the submission portal translator only
+/nmdc_runtime/site/translation/                                  @sujaypatil96
+/nmdc_runtime/site/translation/submission_portal_translator.py   @pkalita-lbl
+/tests/test_data/                                                @sujaypatil96
+/tests/test_data/test_submission_portal_translator.py            @pkalita-lbl
+/tests/test_graphs/test_submission_portal_graphs.py              @pkalita-lbl
+/docs/content/tutorials/translators.md                           @sujaypatil96
+
+# Ontology loader:
+# - @sierra-moxon for all
+# TODO: Modularize the `ops.py` file so we can assign owners to specific ops.
+/docs/content/nb/ontology_loader.ipynb                           @sierra-moxon
+/tests/test_ops/test_load_ontology.py                            @sierra-moxon
