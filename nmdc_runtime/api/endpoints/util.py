@@ -806,7 +806,7 @@ def _get_dagster_run_status(run_id: str):
     dagster_client = get_dagster_graphql_client()
     try:
         run_status: DagsterRunStatus = dagster_client.get_run_status(run_id)
-        return {"type": "success", "detail": str(run_status)}
+        return {"type": "success", "detail": str(run_status.value)}
     except DagsterGraphQLClientError as exc:
         return {"type": "error", "detail": str(exc)}
 
