@@ -11,9 +11,17 @@ class MigrationEvent(StrEnum):
     Enumeration of all migration events that can be recorded.
     Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
 
-    >>> MigrationEvent.MIGRATION_COMPLETED
+    >>> MigrationEvent.MIGRATION_COMPLETED.value
     'MIGRATION_COMPLETED'
-    >>> MigrationEvent.MIGRATION_STARTED
+    >>> MigrationEvent.MIGRATION_STARTED.value
+    'MIGRATION_STARTED'
+
+    Now that this class inherits from StrEnum, the string value can also be
+    accessed without using `.value`.
+
+    >>> str(MigrationEvent.MIGRATION_COMPLETED)
+    'MIGRATION_COMPLETED'
+    >>> str(MigrationEvent.MIGRATION_STARTED)
     'MIGRATION_STARTED'
     """
 
