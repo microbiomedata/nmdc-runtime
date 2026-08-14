@@ -3,15 +3,10 @@
 #       Reference: https://docs.docker.com/get-started/docker-concepts/building-images/multi-stage-builds/
 #
 # Base this image upon a variant of the official Python 3.12 image that is, in turn, based upon a
-# minimal (slim) variant of the Debian 11 (bullseye) image.
-# TODO: Use a newer Debian version.
-#
-# References: 
-# - https://hub.docker.com/_/python
-# - https://hub.docker.com/layers/library/python/3.12-slim-bullseye/images/sha256-bdc3a7e2832a0106e7de2ec2eb09cd7400acd7cede550e73a38ffb7d04e5fac1
-#
+# minimal (slim) variant of the Debian 13 (trixie) image.
+# References: https://hub.docker.com/_/python and https://www.debian.org/releases/trixie/
 # ────────────────────────────────────────────────────────────────────────────┐
-FROM python:3.12-slim-bullseye AS base
+FROM python:3.12-slim-trixie AS base
 # ────────────────────────────────────────────────────────────────────────────┘
 
 # Install and upgrade system-level software in a non-interactive way, then delete temporary files.
