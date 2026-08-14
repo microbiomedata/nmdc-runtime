@@ -3069,7 +3069,7 @@ requires-dist = [
     { name = "linkml" },
     { name = "linkml-runtime" },
     { name = "lxml" },
-    { name = "nmdc-schema", specifier = "==11.22.0" },
+    { name = "nmdc-schema", specifier = "==11.23.0" },
     { name = "ontology-loader", specifier = "==0.2.2" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"] },
@@ -3113,7 +3113,7 @@ docs = [
 
 [[package]]
 name = "nmdc-schema"
-version = "11.22.0"
+version = "11.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -3124,7 +3124,6 @@ dependencies = [
     { name = "jsonschema" },
     { name = "linkml" },
     { name = "linkml-runtime" },
-    { name = "pymdown-extensions" },
     { name = "pymongo" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -3132,9 +3131,9 @@ dependencies = [
     { name = "requests" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/b2/792b33c9be21aca6ca3e167f1888eaa87bf593b6c6f1127c7de178595715/nmdc_schema-11.22.0.tar.gz", hash = "sha256:a5e802efff1ea172209005d140cdea92eebb6dc594e8a0c3c3af16699e29396d", size = 781854, upload-time = "2026-07-16T01:15:28.315Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/df/47fe489c988e91e1de43e923eb88327c7780d6641e346cc5a2e73084c84a/nmdc_schema-11.23.0.tar.gz", hash = "sha256:12060bd363963b28102ccffb4e1452da9c423d913126fc7480789596ebfb572e", size = 799042, upload-time = "2026-08-13T21:52:45.614Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/f4/b6ddfcb672f61bb103b5596ef639343ded57e358b7101d31d26e60f77654/nmdc_schema-11.22.0-py3-none-any.whl", hash = "sha256:0860804693c5ac233aff31657979def76ec3f6bfa6c782583c5d95b39ae61b8c", size = 859046, upload-time = "2026-07-16T01:15:26.77Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/8c/c6c252acab3ce81c56115fdbe4856674ecd0ce89b5a3be148fc8007edd8e/nmdc_schema-11.23.0-py3-none-any.whl", hash = "sha256:369ddeaa2965b172a6609f292b48163e670b03b25d7317da44068a57b6fe437f", size = 877322, upload-time = "2026-08-13T21:52:43.788Z" },
 ]
 
 [[package]]
