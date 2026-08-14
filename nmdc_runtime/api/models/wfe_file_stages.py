@@ -1,16 +1,16 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from enum import Enum
+from enum import StrEnum
 import datetime
 
 
-class WorkflowFileStagingCollectionName(str, Enum):
+class WorkflowFileStagingCollectionName(StrEnum):
     """The name of a MongoDB collection related to workflow file staging."""
 
     JGI_SEQUENCING_PROJECTS = "wf_file_staging.jgi_sequencing_projects"
 
 
-class GlobusTaskStatus(str, Enum):
+class GlobusTaskStatus(StrEnum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     SUCCEEDED = "SUCCEEDED"
@@ -20,7 +20,7 @@ class GlobusTaskStatus(str, Enum):
     COMPLETED = "COMPLETED"
 
 
-class JDPFileStatus(str, Enum):
+class JDPFileStatus(StrEnum):
     RESTORED = "RESTORED"
     PURGED = "PURGED"
     READY = "READY"

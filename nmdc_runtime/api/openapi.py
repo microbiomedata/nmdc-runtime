@@ -11,11 +11,14 @@ Notes:
 """
 
 from typing import List, Dict
-from enum import Enum
+from enum import StrEnum
 
 
-class OpenAPITag(str, Enum):
-    r"""A tag you can use to group related API endpoints together in an OpenAPI schema."""
+class OpenAPITag(StrEnum):
+    r"""
+    A tag you can use to group related API endpoints together in an OpenAPI schema.
+    Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
+    """
 
     MINTER = "Persistent identifiers"
     SYSTEM_ADMINISTRATION = "System administration"

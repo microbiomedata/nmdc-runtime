@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 import os
 from functools import lru_cache
 from typing import List, Optional
@@ -44,7 +44,7 @@ class Run(BaseModel):
     facets: Optional[dict] = None
 
 
-class RunEventType(str, Enum):
+class RunEventType(StrEnum):
     REQUESTED = "REQUESTED"
     STARTED = "STARTED"
     FAIL = "FAIL"

@@ -3,6 +3,9 @@ name = "nmdc-migration-cli"
 version = "0.1.0"
 description = "CLI app for migrating the NMDC database between two versions of the NMDC schema"
 readme = "README.md"
+# TODO: Consider updating the minimum Python version, now that the minimum Python version of
+#       `nmdc-runtime`, itself, has been updated from 3.10 to 3.12. I assume 3.10 was chosen
+#       here because this lives in the `nmdc-runtime` repo (although they are independent apps).
 requires-python = ">=3.10"
 dependencies = [
     "linkml>=1.10.0",

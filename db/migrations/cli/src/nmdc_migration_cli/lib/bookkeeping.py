@@ -8,16 +8,16 @@ though, since the migration CLI doesn't identify `nmdc-schema` as a dependency (
 dynamically).
 """
 
-from enum import Enum
+from enum import StrEnum
 from datetime import datetime, timezone
 
 from pymongo import MongoClient
 
 
-class MigrationEvent(str, Enum):
+class MigrationEvent(StrEnum):
     r"""
     Enumeration of all migration events that can be recorded.
-    Reference: https://docs.python.org/3.10/library/enum.html#others
+    Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
 
     >>> MigrationEvent.MIGRATION_COMPLETED.value
     'MIGRATION_COMPLETED'
