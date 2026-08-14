@@ -17,7 +17,7 @@ def check_can_manage_allowances(user: User):
     Raises an exception if the specified user cannot manage allowances.
     """
     if not check_action_permitted(
-        user.username, AllowanceAction.MANAGE_ALLOWANCES.value
+        user.username, AllowanceAction.MANAGE_ALLOWANCES
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

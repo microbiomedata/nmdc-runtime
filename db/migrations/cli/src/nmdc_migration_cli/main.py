@@ -1,6 +1,6 @@
 import logging
 import sys
-from enum import Enum
+from enum import StrEnum
 from importlib.metadata import version
 from logging import getLogger
 from pathlib import Path
@@ -61,14 +61,14 @@ app = typer.Typer(
 )
 
 
-class AccessManagementOperation(str, Enum):
+class AccessManagementOperation(StrEnum):
     """Name of the access management operation to perform on the MongoDB server."""
 
     REVOKE = "revoke"
     RESTORE = "restore"
 
 
-class RichHelpPanelName(Enum):
+class RichHelpPanelName(StrEnum):
     """Names of Rich Help Panels into which CLI parameters can be organized."""
 
     SYSTEM = "System"
@@ -88,7 +88,7 @@ def migrate(
                 "you want to run (e.g., 'main', 'v1.0.0'). "
                 f"Special values: {get_reserved_git_refs_help_snippet()}"
             ),
-            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            rich_help_panel=RichHelpPanelName.MIGRATOR,
             show_default=False,
         ),
     ],
@@ -100,7 +100,7 @@ def migrate(
                 "Name of the Python module that constitutes the migrator you want to run "
                 "(e.g. 'migrator_from_1_0_0_to_2_0_0')."
             ),
-            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            rich_help_panel=RichHelpPanelName.MIGRATOR,
             show_default=False,
         ),
     ],
@@ -112,7 +112,7 @@ def migrate(
             envvar="COLLECTION_NAMES",
             help="Names of MongoDB collections to migrate. You can specify this option multiple times, or populate the environment variable with a space-delimited list of names.",
             callback=ParamValidators.validate_collection_names,
-            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            rich_help_panel=RichHelpPanelName.MIGRATOR,
             show_default=False,
         ),
     ],
@@ -121,7 +121,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_HOST",
             help="Hostname for the origin MongoDB server.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
             show_default=False,
         ),
     ],
@@ -130,7 +130,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_PORT",
             help="Port number for the origin MongoDB server.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = 27017,
     origin_mongo_username: Annotated[
@@ -138,7 +138,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_USERNAME",
             help="Username for the origin MongoDB server. Leave empty for no auth.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = "",
     origin_mongo_password: Annotated[
@@ -146,7 +146,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_PASSWORD",
             help="Password for the origin MongoDB server.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = "",
     origin_mongo_database_name: Annotated[
@@ -154,7 +154,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_DATABASE_NAME",
             help="Name of the origin MongoDB database.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = "nmdc",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
@@ -163,7 +163,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_MONGO_DIRECT_CONNECTION",
             help="Whether to use the `directConnection` option when connecting to the origin MongoDB server.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = True,
     origin_dump_folder_path: Annotated[
@@ -171,7 +171,7 @@ def migrate(
         typer.Option(
             envvar="ORIGIN_DUMP_FOLDER_PATH",
             help="Path to the directory in which you want the origin database dump to be created.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
             dir_okay=True,
             file_okay=False,
             resolve_path=True,
@@ -188,7 +188,7 @@ def migrate(
                 "can be useful during test-driven development of migrators and is often paired "
                 "with the `--skip-origin-writes` option."
             ),
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
             dir_okay=True,
             file_okay=False,
             exists=True,
@@ -200,7 +200,7 @@ def migrate(
         typer.Option(
             envvar="AUTO_EMPTY_ORIGIN_DUMP_FOLDER",
             help="Whether to automatically delete the contents of the origin dump folder before use, if it is not empty. By default, the script will abort in that situation.",
-            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.ORIGIN_DATABASE,
         ),
     ] = False,
     transformer_mongo_host: Annotated[
@@ -208,7 +208,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_HOST",
             help="Hostname for the transformer MongoDB server.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = "localhost",
     transformer_mongo_port: Annotated[
@@ -216,7 +216,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_PORT",
             help="Port number for the transformer MongoDB server.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = 27017,
     transformer_mongo_username: Annotated[
@@ -224,7 +224,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_USERNAME",
             help="Username for the transformer MongoDB server. Leave empty for no auth.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = "",
     transformer_mongo_password: Annotated[
@@ -232,7 +232,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_PASSWORD",
             help="Password for the transformer MongoDB server.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = "",
     transformer_mongo_database_name: Annotated[
@@ -240,7 +240,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_DATABASE_NAME",
             help="Name of the transformer MongoDB database.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = "transformer",
     # Reference: https://www.mongodb.com/docs/drivers/go/current/connect/connection-targets/#direct-connection
@@ -249,7 +249,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_MONGO_DIRECT_CONNECTION",
             help="Whether to use the `directConnection` option when connecting to the transformer MongoDB server.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = True,
     transformer_dump_folder_path: Annotated[
@@ -257,7 +257,7 @@ def migrate(
         typer.Option(
             envvar="TRANSFORMER_DUMP_FOLDER_PATH",
             help="Path to the directory in which you want the transformer database dump to be created.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
             dir_okay=True,
             file_okay=False,
             resolve_path=True,
@@ -268,7 +268,7 @@ def migrate(
         typer.Option(
             envvar="AUTO_EMPTY_TRANSFORMER_DUMP_FOLDER",
             help="Whether to automatically delete the contents of the transformer dump folder before use, if it is not empty. By default, the script will abort in that situation.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = False,
     auto_drop_transformer_database: Annotated[
@@ -276,7 +276,7 @@ def migrate(
         typer.Option(
             envvar="AUTO_DROP_TRANSFORMER_DATABASE",
             help="Whether to automatically drop the transformer database if it already exists. By default, the script will abort in that situation.",
-            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE.value,
+            rich_help_panel=RichHelpPanelName.TRANSFORMER_DATABASE,
         ),
     ] = False,
     mongodump_path: Annotated[
@@ -287,7 +287,7 @@ def migrate(
             resolve_path=True,
             envvar="MONGODUMP_PATH",
             help="Path to the `mongodump` executable.",
-            rich_help_panel=RichHelpPanelName.SYSTEM.value,
+            rich_help_panel=RichHelpPanelName.SYSTEM,
             callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongodump"),
@@ -299,7 +299,7 @@ def migrate(
             resolve_path=True,
             envvar="MONGORESTORE_PATH",
             help="Path to the `mongorestore` executable.",
-            rich_help_panel=RichHelpPanelName.SYSTEM.value,
+            rich_help_panel=RichHelpPanelName.SYSTEM,
             callback=ParamValidators.validate_executable_file,
         ),
     ] = Path("/usr/bin/mongorestore"),
@@ -308,7 +308,7 @@ def migrate(
         typer.Option(
             envvar="SCHEMA_REPO_URL",
             help="URL of the Git repository containing the NMDC schema and its migrators.",
-            rich_help_panel=RichHelpPanelName.MIGRATOR.value,
+            rich_help_panel=RichHelpPanelName.MIGRATOR,
         ),
     ] = "https://github.com/microbiomedata/nmdc-schema.git",
     show_diff: Annotated[
@@ -331,7 +331,7 @@ def migrate(
             "--log-file",
             envvar="LOG_FILE",
             help="Path to the file in which you want the app to store its logs.",
-            rich_help_panel=RichHelpPanelName.SYSTEM.value,
+            rich_help_panel=RichHelpPanelName.SYSTEM,
             dir_okay=False,
             file_okay=True,
             resolve_path=True,

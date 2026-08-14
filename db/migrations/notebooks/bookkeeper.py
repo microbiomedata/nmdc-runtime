@@ -11,9 +11,9 @@ class MigrationEvent(StrEnum):
     Enumeration of all migration events that can be recorded.
     Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
 
-    >>> MigrationEvent.MIGRATION_COMPLETED.value
+    >>> MigrationEvent.MIGRATION_COMPLETED
     'MIGRATION_COMPLETED'
-    >>> MigrationEvent.MIGRATION_STARTED.value
+    >>> MigrationEvent.MIGRATION_STARTED
     'MIGRATION_STARTED'
     """
 
@@ -74,7 +74,7 @@ class Bookkeeper:
 
         document = dict(
             created_at=self.get_current_timestamp(),
-            event=event.value,
+            event=event,
             from_schema_version=migrator.get_origin_version(),
             to_schema_version=to_schema_version_str,
             migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
@@ -108,7 +108,7 @@ class Bookkeeper:
                                 "if": {
                                     "$eq": [
                                         "$event",
-                                        MigrationEvent.MIGRATION_COMPLETED.value,
+                                        MigrationEvent.MIGRATION_COMPLETED,
                                     ]
                                 },
                                 "then": "$to_schema_version",  # database conforms to this version of the NMDC Schema

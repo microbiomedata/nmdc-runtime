@@ -23,6 +23,14 @@ class MigrationEvent(StrEnum):
     'MIGRATION_COMPLETED'
     >>> MigrationEvent.MIGRATION_STARTED.value
     'MIGRATION_STARTED'
+
+    Now that this class inherits from StrEnum, the string value can also be
+    accessed without using `.value`.
+
+    >>> str(MigrationEvent.MIGRATION_COMPLETED)
+    'MIGRATION_COMPLETED'
+    >>> str(MigrationEvent.MIGRATION_STARTED)
+    'MIGRATION_STARTED'
     """
 
     MIGRATION_STARTED = "MIGRATION_STARTED"
@@ -77,7 +85,7 @@ class Bookkeeper:
 
         document = dict(
             created_at=self.get_current_timestamp(),
-            event=event.value,
+            event=event,
             from_schema_version=from_schema_version,
             to_schema_version=to_schema_version,
             migrator_module=name_of_migrator_module,
@@ -109,7 +117,7 @@ class Bookkeeper:
                                 "if": {
                                     "$eq": [
                                         "$event",
-                                        MigrationEvent.MIGRATION_COMPLETED.value,
+                                        MigrationEvent.MIGRATION_COMPLETED,
                                     ]
                                 },
                                 "then": "$to_schema_version",  # database conforms to this version of the NMDC Schema

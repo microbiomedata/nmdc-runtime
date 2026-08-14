@@ -231,7 +231,7 @@ def update_site_client(
 
     # Check whether the user is allowed to manage site clients.
     if not check_action_permitted(
-        user.username, AllowanceAction.MANAGE_SITE_CLIENTS.value
+        user.username, AllowanceAction.MANAGE_SITE_CLIENTS
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
