@@ -1,7 +1,7 @@
 import datetime
 import hashlib
 import http
-from enum import Enum
+from enum import StrEnum
 from typing import Optional, List, Dict
 
 from pydantic import (
@@ -17,7 +17,7 @@ from pydantic import (
 from typing_extensions import Annotated
 
 
-class AccessMethodType(str, Enum):
+class AccessMethodType(StrEnum):
     s3 = "s3"
     gs = "gs"
     ftp = "ftp"

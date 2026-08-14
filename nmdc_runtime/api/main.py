@@ -91,23 +91,23 @@ if config.IS_SENTRY_ENABLED and len(config.SENTRY_DSN.strip()) > 0:
 
 
 api_router = APIRouter()
-api_router.include_router(find.router, tags=[OpenAPITag.METADATA_ACCESS.value])
-api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA_ACCESS.value])
-api_router.include_router(queries.router, tags=[OpenAPITag.METADATA_ACCESS.value])
-api_router.include_router(metadata.router, tags=[OpenAPITag.METADATA_ACCESS.value])
-api_router.include_router(sites.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(workflows.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(capabilities.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(object_types.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(triggers.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(jobs.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(objects.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER.value])
-api_router.include_router(users.router, tags=[OpenAPITag.USERS.value])
-api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS.value])
-api_router.include_router(allowances.router, tags=[OpenAPITag.USERS.value])
+api_router.include_router(find.router, tags=[OpenAPITag.METADATA_ACCESS])
+api_router.include_router(nmdcschema.router, tags=[OpenAPITag.METADATA_ACCESS])
+api_router.include_router(queries.router, tags=[OpenAPITag.METADATA_ACCESS])
+api_router.include_router(metadata.router, tags=[OpenAPITag.METADATA_ACCESS])
+api_router.include_router(sites.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(workflows.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(capabilities.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(object_types.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(triggers.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(jobs.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(objects.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(operations.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(runs.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(minter_router, prefix="/pids", tags=[OpenAPITag.MINTER])
+api_router.include_router(users.router, tags=[OpenAPITag.USERS])
+api_router.include_router(wf_file_staging.router, tags=[OpenAPITag.WORKFLOWS])
+api_router.include_router(allowances.router, tags=[OpenAPITag.USERS])
 
 
 def ensure_initial_resources_on_boot():
@@ -272,7 +272,7 @@ def ensure_sequencing_project_name_is_indexed():
     """
 
     mdb = get_mongo_db()
-    mdb[WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS.value].create_index(
+    mdb[WorkflowFileStagingCollectionName.JGI_SEQUENCING_PROJECTS].create_index(
         "sequencing_project_name", background=True, unique=True
     )
 
@@ -291,7 +291,7 @@ def ensure_default_api_perms():
 
     for action in AllowanceAction:
         for username in default_users:
-            doc = {"username": username, "action": action.value}
+            doc = {"username": username, "action": action}
             db["_runtime.api.allow"].replace_one(doc, doc, upsert=True)
 
 
@@ -328,7 +328,7 @@ async def root():
     )
 
 
-@api_router.get("/version", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
+@api_router.get("/version", tags=[OpenAPITag.SYSTEM_ADMINISTRATION])
 async def get_versions():
     return {
         "nmdc-runtime": version("nmdc_runtime"),
@@ -337,7 +337,7 @@ async def get_versions():
     }
 
 
-@api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION.value])
+@api_router.get("/health", tags=[OpenAPITag.SYSTEM_ADMINISTRATION])
 def get_health(response: Response) -> HealthResponse:
     r"""Get system health information."""
 

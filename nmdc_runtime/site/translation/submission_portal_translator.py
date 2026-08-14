@@ -4,7 +4,6 @@ from collections import namedtuple
 from copy import deepcopy
 from decimal import Decimal
 from functools import lru_cache
-from importlib import resources
 from typing import (
     Any,
     Callable,
@@ -21,6 +20,7 @@ from urllib.parse import urlparse
 from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model import SlotDefinition
 from nmdc_schema import nmdc
+from nmdc_schema.get_nmdc_view import ViewGetter
 from toolz import concat, dissoc, get_in, groupby, valmap
 
 from nmdc_runtime.site.translation.translator import JSON_OBJECT, Translator
@@ -102,9 +102,7 @@ DATA_FIELDS: dict[str, DataFieldInfo] = {
 @lru_cache
 def _get_schema_view():
     """Return a SchemaView instance representing the NMDC schema"""
-    return SchemaView(
-        str(resources.path("nmdc_schema", "nmdc_materialized_patterns.yaml"))
-    )
+    return ViewGetter().get_view()
 
 
 def group_dicts_by_key(key: str, seq: Optional[list[dict]]) -> Optional[dict]:

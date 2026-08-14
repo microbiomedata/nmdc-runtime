@@ -254,7 +254,7 @@ def list_sequencing_project_records(
     """Get a list of `JGISequencingProject`s."""
 
     check_can_run_wf_file_staging_endpoints(user)
-    rv = list_resources(req, mdb, CollectionName.JGI_SEQUENCING_PROJECTS.value)
+    rv = list_resources(req, mdb, CollectionName.JGI_SEQUENCING_PROJECTS)
     rv["resources"] = [strip_oid(d) for d in rv["resources"]]
     return rv
 
@@ -272,7 +272,7 @@ def create_sequencing_record(
     """Create a `JGISequencingProject`."""
 
     check_can_run_wf_file_staging_endpoints(user)
-    existing = mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
+    existing = mdb[CollectionName.JGI_SEQUENCING_PROJECTS].find_one(
         {"sequencing_project_name": sequencing_project_in.sequencing_project_name}
     )
     if existing is not None:
@@ -281,9 +281,7 @@ def create_sequencing_record(
             detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_name} already exists.",
         )
     sequencing_project_dict = sequencing_project_in.model_dump()
-    mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].insert_one(
-        sequencing_project_dict
-    )
+    mdb[CollectionName.JGI_SEQUENCING_PROJECTS].insert_one(sequencing_project_dict)
     return sequencing_project_dict
 
 
@@ -301,7 +299,7 @@ def get_sequencing_project(
     check_can_run_wf_file_staging_endpoints(user)
 
     return raise404_if_none(
-        mdb[CollectionName.JGI_SEQUENCING_PROJECTS.value].find_one(
+        mdb[CollectionName.JGI_SEQUENCING_PROJECTS].find_one(
             {"sequencing_project_name": sequencing_project_name}
         )
     )
