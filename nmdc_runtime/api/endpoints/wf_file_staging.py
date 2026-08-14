@@ -281,9 +281,7 @@ def create_sequencing_record(
             detail=f"JGISequencingProject with project name {sequencing_project_in.sequencing_project_name} already exists.",
         )
     sequencing_project_dict = sequencing_project_in.model_dump()
-    mdb[CollectionName.JGI_SEQUENCING_PROJECTS].insert_one(
-        sequencing_project_dict
-    )
+    mdb[CollectionName.JGI_SEQUENCING_PROJECTS].insert_one(sequencing_project_dict)
     return sequencing_project_dict
 
 
