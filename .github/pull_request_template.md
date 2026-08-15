@@ -1,5 +1,5 @@
 <!--──────────────────┐
-1. Summary (required)
+1. 📰 Summary (required)
 
 Instructions: Summarize the changes you made on this branch. This is typically a more detailed restatement of the PR title.
 
@@ -11,7 +11,7 @@ On this branch, I...
 ### Details
 
 <!--──────────────────┐
-2. Details (optional)
+2. 📓 Details (optional)
 
 Instructions: Provide additional information you think readers will find useful. Readers include PR reviewers, release note authors, app debuggers, and your future self. Additional information might include motivation, rationale, and a description of how things used to be.
 
@@ -23,7 +23,7 @@ Example: "It previously returned an HTTP 404 response and an empty JSON object."
 ### Related issue(s)
 
 <!--───────────────────────────┐
-3. Related issue(s) (optional)
+3. 🔗 Related issue(s) (optional)
 
 Instructions: Link to any GitHub issue(s) this branch was designed to resolve.
 
@@ -35,7 +35,7 @@ Example: "Fixes #12345"
 ### Related subsystem(s)
 
 <!--───────────────────────────────┐
-4. Related subsystem(s) (required)
+4. 🧩 Related subsystem(s) (required)
 
 Instructions: Mark the checkbox next to each subsystem related to the changes in this branch. This information might influence who you request reviews from.
 
@@ -53,7 +53,7 @@ Example: If you modified the `/studies/{study_id}` API endpoint, mark the checkb
 ### Testing
 
 <!--──────────────────┐
-5. Testing (required)
+5. 🧪 Testing (required)
 
 Instructions: Indicate whether you have already tested the changes this branch contains; and, if so, how someone other than you can test them. That may involve attaching example files or ad hoc test instructions.
 
@@ -68,7 +68,7 @@ I tested these changes by...
 ### Documentation
 
 <!--────────────────────────┐
-6. Documentation (required)
+6. 📚 Documentation (required)
 
 Instructions: Indicate whether, on this branch, you have updated all documentation that would otherwise become inaccurate if this branch were to be merged in.
 └─────────────────────────-->
@@ -80,7 +80,7 @@ Instructions: Indicate whether, on this branch, you have updated all documentati
 ### Maintainability
 
 <!--──────────────────────────┐
-7. Maintainability (required)
+7. 🧑‍🔧 Maintainability (required)
 
 Instructions: Indicate whether you have done each of these things that can make code easier to maintain, whether by your teammates or by your future self.
 └───────────────────────────-->
