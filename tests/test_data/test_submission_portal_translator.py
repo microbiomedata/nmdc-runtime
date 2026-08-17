@@ -547,6 +547,46 @@ def test_get_analyte_category():
         )
 
 
+def test_get_database_translates_sequencing_for_organism_sample(test_minter):
+    data_path = Path(__file__).parent / "data"
+    with open(data_path / "isolate_only_input.yaml") as f:
+        translator_inputs = yaml.safe_load(f)
+
+    # Add a DNA Sequence Data tab to the test input data.
+    translator_inputs["sample_set"]["sample_data"]["data"][
+        "dna_sequencing_interleaved_data"
+    ] = [
+        {
+            "samp_name": "0001",
+            "analysis_type": ["isolate genome sequencing"],
+            "model": "novaseq_6000",
+            "interleaved_url": "https://example.com/read1.fastq",
+            "interleaved_md5_checksum": "0123456789abcdef0123456789abcdef",
+        }
+    ]
+    translator = SubmissionPortalTranslator(
+        **translator_inputs,
+        id_minter=test_minter,
+        illumina_instrument_mapping={"novaseq_6000": "nmdc:inst-00-00000001"},
+        study_category="research_study",
+    )
+
+    database = translator.get_database()
+
+    # Assert the right collections were populated
+    assert len(database.organism_sample_set) == 1
+    assert len(database.data_generation_set) == 1
+    assert len(database.data_object_set) == 1
+
+    # Assert the relationships between the collection items are correct
+    organism_sample = database.organism_sample_set[0]
+    nucleotide_sequencing = database.data_generation_set[0]
+    data_object = database.data_object_set[0]
+    assert nucleotide_sequencing.has_input == [organism_sample.id]
+    assert nucleotide_sequencing.has_output == [data_object.id]
+    assert data_object.was_generated_by == nucleotide_sequencing.id
+
+
 def test_existing_study_only_uses_sample_set_updates(test_minter):
     existing_study = Study(
         id="nmdc:sty-00-00000000",

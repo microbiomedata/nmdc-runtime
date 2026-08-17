@@ -1348,7 +1348,17 @@ class SubmissionPortalTranslator(Translator):
         database.data_object_set = []
         database.instrument_set = []
         database.manifest_set = []
-        for sample_data_id, sample_data in biosample_data_by_id.items():
+        sample_data_to_nmdc_sequencing_input_ids = {
+            **sample_data_to_nmdc_biosample_ids,
+            **sample_data_to_nmdc_organism_sample_ids,
+            **sample_data_to_nmdc_processed_sample_ids,
+        }
+        for sample_data_id, sample_data in sample_data_by_id.items():
+            sequencing_input_id = sample_data_to_nmdc_sequencing_input_ids.get(
+                sample_data_id
+            )
+            if sequencing_input_id is None:
+                continue
             for tab in sample_data:
                 tab_name = tab.get(TAB_NAME_KEY)
                 analysis_type = tab.get("analysis_type")
@@ -1408,7 +1418,7 @@ class SubmissionPortalTranslator(Translator):
                     )[0]
                     nucleotide_sequencing_slots = {
                         "id": nucleotide_sequencing_id,
-                        "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
+                        "has_input": sequencing_input_id,
                         "has_output": [],
                         "associated_studies": [nmdc_study_id],
                         "analyte_category": analyte_category,
