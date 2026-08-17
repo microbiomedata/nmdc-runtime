@@ -40,12 +40,12 @@ METAGENOME = nmdc.NucleotideSequencingEnum(nmdc.NucleotideSequencingEnum.metagen
 METATRANSCRIPTOME = nmdc.NucleotideSequencingEnum(
     nmdc.NucleotideSequencingEnum.metatranscriptome
 )
-TAB_NAME_TO_ANALYTE_CATEGORY: dict[str, nmdc.NucleotideSequencingEnum] = {
-    "metagenome_sequencing_non_interleaved_data": METAGENOME,
-    "metagenome_sequencing_interleaved_data": METAGENOME,
-    "metatranscriptome_sequencing_non_interleaved_data": METATRANSCRIPTOME,
-    "metatranscriptome_sequencing_interleaved_data": METATRANSCRIPTOME,
-}
+ISOLATE_GENOME = nmdc.NucleotideSequencingEnum(
+    nmdc.NucleotideSequencingEnum.isolate_genome
+)
+ISOLATE_TRANSCRIPTOME = nmdc.NucleotideSequencingEnum(
+    nmdc.NucleotideSequencingEnum.isolate_transcriptome
+)
 
 DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] = {
     (READ_1, str(METAGENOME)): "Metagenome Raw Read 1",
@@ -54,6 +54,12 @@ DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE: dict[tuple[DataUrlSet, str], str] 
     (READ_1, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 1",
     (READ_2, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Read 2",
     (INTERLEAVED, str(METATRANSCRIPTOME)): "Metatranscriptome Raw Reads",
+    (READ_1, str(ISOLATE_GENOME)): "Raw sequencing data read 1",
+    (READ_2, str(ISOLATE_GENOME)): "Raw sequencing data read 2",
+    (INTERLEAVED, str(ISOLATE_GENOME)): "Paired interleaved raw sequencing data",
+    (READ_1, str(ISOLATE_TRANSCRIPTOME)): "Raw sequencing data read 1",
+    (READ_2, str(ISOLATE_TRANSCRIPTOME)): "Raw sequencing data read 2",
+    (INTERLEAVED, str(ISOLATE_TRANSCRIPTOME)): "Paired interleaved raw sequencing data",
 }
 
 UNIT_OVERRIDES: dict[str, dict[str, str]] = {
@@ -493,6 +499,52 @@ class SubmissionPortalTranslator(Translator):
 
         return value
 
+    def _get_analyte_category(
+        self, tab_name: str, analysis_type: list[str]
+    ) -> Optional[nmdc.NucleotideSequencingEnum]:
+        """Determine the analyte category based on the tab name and analysis type.
+
+        :param tab_name: name of the tab in the submission portal
+        :param analysis_type: list of analysis types from the submission portal
+        :return: nmdc.NucleotideSequencingEnum or None
+        """
+        dna_tab_names = (
+            "dna_sequencing_interleaved_data",
+            "dna_sequencing_non_interleaved_data",
+        )
+        rna_tab_names = (
+            "rna_sequencing_interleaved_data",
+            "rna_sequencing_non_interleaved_data",
+        )
+        isolate_genome = "isolate genome sequencing"
+        isolate_transcriptome = "isolate transcriptome sequencing"
+        metagenome = "metagenomics"
+        metatranscriptome = "metatranscriptomics"
+
+        if isolate_genome in analysis_type and metagenome in analysis_type:
+            raise ValueError(
+                "Ambiguous analysis type: both 'isolate genome sequencing' and 'metagenomics' are present."
+            )
+
+        if (
+            isolate_transcriptome in analysis_type
+            and metatranscriptome in analysis_type
+        ):
+            raise ValueError(
+                "Ambiguous analysis type: both 'isolate transcriptome sequencing' and 'metatranscriptomics' are present."
+            )
+
+        if tab_name in dna_tab_names:
+            if isolate_genome in analysis_type:
+                return ISOLATE_GENOME
+            return METAGENOME
+        elif tab_name in rna_tab_names:
+            if isolate_transcriptome in analysis_type:
+                return ISOLATE_TRANSCRIPTOME
+            return METATRANSCRIPTOME
+        else:
+            return None
+
     def _merge_list(
         self,
         target: Optional[List],
@@ -594,17 +646,23 @@ class SubmissionPortalTranslator(Translator):
         md5_checksum_field_name: str,
         nucleotide_sequencing_id: str,
         data_object_type: nmdc.FileTypeEnum,
+        url_index: int | None = None,
+        manifest: nmdc.Manifest | None = None,
     ) -> Tuple[List[nmdc.DataObject], nmdc.Manifest | None]:
         """Get a DataObject instances based on the URLs and MD5 checksums in the given fields.
 
         If the field provides multiple URLs, multiple DataObject instances will be created and a
-        Manifest will be created and provided in the second return value.
+        Manifest will be created and provided in the second return value. If ``url_index`` is
+        provided, only the DataObject at that index is created and any provided ``manifest`` is
+        attached to it.
 
         :param sample_data: sample data
         :param url_field_name: field name for the URL
         :param md5_checksum_field_name: field name for the MD5 checksum
         :param nucleotide_sequencing_id: ID for the nmdc:NucleotideSequencing object that generated the data object(s)
         :param data_object_type: FileTypeEnum representing the type of the data object
+        :param url_index: optional index of the URL to translate
+        :param manifest: optional Manifest to associate with the generated DataObject
         :return: nmdc.DataObject or None
         """
         data_objects: List[nmdc.DataObject] = []
@@ -618,9 +676,9 @@ class SubmissionPortalTranslator(Translator):
                 f"{url_field_name} and {md5_checksum_field_name} must have the same number of values"
             )
 
-        data_object_ids = self._id_minter("nmdc:DataObject", len(urls))
-        manifest: nmdc.Manifest | None = None
-        if len(urls) > 1:
+        url_indices = range(len(urls)) if url_index is None else [url_index]
+        data_object_ids = self._id_minter("nmdc:DataObject", len(url_indices))
+        if manifest is None and url_index is None and len(urls) > 1:
             manifest_id = self._id_minter("nmdc:Manifest", 1)[0]
             manifest = nmdc.Manifest(
                 id=manifest_id,
@@ -630,8 +688,8 @@ class SubmissionPortalTranslator(Translator):
                 type="nmdc:Manifest",
             )
 
-        for i, url in enumerate(urls):
-            data_object_id = data_object_ids[i]
+        for data_object_id, i in zip(data_object_ids, url_indices):
+            url = urls[i]
             parsed_url = urlparse(url)
             possible_filename = parsed_url.path.rsplit("/", 1)[-1]
             data_object_slots = {
@@ -654,6 +712,84 @@ class SubmissionPortalTranslator(Translator):
             data_objects.append(nmdc.DataObject(**data_object_slots))
 
         return data_objects, manifest
+
+    def _get_data_url_sets_and_cardinality(
+        self, sample_data: JSON_OBJECT
+    ) -> tuple[list[DataUrlSet], int]:
+        """Determine the URL layout and sequencing cardinality for a sequencing row."""
+        urls_by_set = {
+            data_url_set: split_strip(sample_data.get(data_url_set.url), ";") or []
+            for data_url_set in DATA_URL_SETS
+        }
+        has_read_1 = bool(urls_by_set[READ_1])
+        has_read_2 = bool(urls_by_set[READ_2])
+        has_interleaved = bool(urls_by_set[INTERLEAVED])
+
+        if has_interleaved and (has_read_1 or has_read_2):
+            raise ValueError(
+                "Sequencing data must contain either paired read URLs or interleaved URLs, not both"
+            )
+        if has_read_1 != has_read_2:
+            raise ValueError(
+                "Sequencing data must contain both read_1_url and read_2_url"
+            )
+        if not has_interleaved and not has_read_1:
+            if sample_data.get("insdc_run_identifiers"):
+                return [], 1
+            raise ValueError(
+                "Sequencing data must contain paired read URLs, interleaved URLs, "
+                "or an insdc_run_identifiers value"
+            )
+
+        data_url_sets = [INTERLEAVED] if has_interleaved else [READ_1, READ_2]
+        cardinality = len(urls_by_set[data_url_sets[0]])
+        for data_url_set in data_url_sets:
+            urls = urls_by_set[data_url_set]
+            if len(urls) != cardinality:
+                raise ValueError(
+                    "read_1_url and read_2_url must have the same number of values"
+                )
+
+            md5_checksums = (
+                split_strip(sample_data.get(data_url_set.md5_checksum), ";") or []
+            )
+            if md5_checksums and len(md5_checksums) != len(urls):
+                raise ValueError(
+                    f"{data_url_set.url} and {data_url_set.md5_checksum} must have "
+                    "the same number of values"
+                )
+
+        return data_url_sets, cardinality
+
+    def _get_data_object_from_insdc_run_identifier(
+        self,
+        sample_data: JSON_OBJECT,
+        nucleotide_sequencing_id: str,
+    ) -> nmdc.DataObject:
+        """Create one DataObject for sequencing data represented by a run identifier."""
+        run_identifiers = sample_data["insdc_run_identifiers"]
+        run_identifier = (
+            run_identifiers[0] if isinstance(run_identifiers, list) else run_identifiers
+        )
+        run_accession = str(run_identifier).rsplit(":", 1)[-1]
+        description = f"Data file for run accession {run_accession}"
+        data_object_slots = {
+            "id": self._id_minter("nmdc:DataObject", 1)[0],
+            "name": description,
+            "description": description,
+            "type": "nmdc:DataObject",
+            "data_category": nmdc.DataCategoryEnum(
+                nmdc.DataCategoryEnum.instrument_data
+            ),
+            "data_object_type": nmdc.FileTypeEnum(
+                "SRA toolkit-accessible sequence data"
+            ),
+            "was_generated_by": nucleotide_sequencing_id,
+        }
+        data_object_slots.update(
+            self._transform_dict_for_class(sample_data, "DataObject")
+        )
+        return nmdc.DataObject(**data_object_slots)
 
     def _parse_sample_link(self, sample_link: str) -> tuple[str, list[str]] | None:
         """Parse a sample link in the form of `ProcessingName:SampleName,..."""
@@ -1215,40 +1351,37 @@ class SubmissionPortalTranslator(Translator):
         for sample_data_id, sample_data in biosample_data_by_id.items():
             for tab in sample_data:
                 tab_name = tab.get(TAB_NAME_KEY)
-                analyte_category = TAB_NAME_TO_ANALYTE_CATEGORY.get(tab_name)
+                analysis_type = tab.get("analysis_type")
+                analyte_category = self._get_analyte_category(tab_name, analysis_type)
                 if not analyte_category:
-                    # If the tab name cannot be mapped to an analyte category, that means we're
-                    # not in an external sequencing data tabs (e.g. this is an environmental data
-                    # tab or a JGI/EMSL tab). Skip this tab.
+                    # If _get_analyte_category returns None, that means we're not in
+                    # an external sequencing data tabs (e.g. this is an environmental
+                    # data tab or a JGI/EMSL tab). Skip this tab.
                     continue
 
-                # Start by generating one NucleotideSequencing instance with a has_input
-                # relationship to the current Biosample instance.
-                nucleotide_sequencing_id = self._id_minter(
-                    "nmdc:NucleotideSequencing", 1
-                )[0]
-                nucleotide_sequencing_slots = {
-                    "id": nucleotide_sequencing_id,
-                    "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
-                    "has_output": [],
-                    "associated_studies": [nmdc_study_id],
-                    "analyte_category": analyte_category,
-                    "type": "nmdc:NucleotideSequencing",
-                }
-                # If the protocol_link column was filled in, expand it into an nmdc:Protocol object
-                if "protocol_link" in tab:
-                    protocol_link = tab.pop("protocol_link")
-                    nucleotide_sequencing_slots["protocol_link"] = nmdc.Protocol(
-                        url=protocol_link,
-                        type="nmdc:Protocol",
+                data_url_sets, cardinality = self._get_data_url_sets_and_cardinality(
+                    tab
+                )
+
+                manifest = None
+                if cardinality > 1:
+                    manifest = nmdc.Manifest(
+                        id=self._id_minter("nmdc:Manifest", 1)[0],
+                        manifest_category=nmdc.ManifestCategoryEnum(
+                            nmdc.ManifestCategoryEnum.poolable_replicates
+                        ),
+                        type="nmdc:Manifest",
                     )
+                    database.manifest_set.append(manifest)
+
                 # If model column was filled in, expand it into an nmdc:Instrument object. This is
                 # done by first checking the provided instrument mapping to see if the model is
                 # already present. If it is not, a new instrument object is created and added to the
                 # instrument_set. Currently, we only accept sequencing data in the submission portal
                 # that was generated by Illumina instruments, so the vendor is hardcoded here.
+                instrument_id = None
                 if "model" in tab:
-                    model = tab.pop("model")
+                    model = tab["model"]
                     if model not in self.illumina_instrument_mapping:
                         # If the model is not already in the mapping, create a new record for it
                         nmdc_instrument_id = self._id_minter("nmdc:Instrument", 1)[0]
@@ -1263,40 +1396,66 @@ class SubmissionPortalTranslator(Translator):
                             )
                         )
                         self.illumina_instrument_mapping[model] = nmdc_instrument_id
-                    nucleotide_sequencing_slots["instrument_used"] = (
-                        self.illumina_instrument_mapping[model]
-                    )
-                # Process the remaining columns according to the NucleotideSequencing class
-                # definition
-                nucleotide_sequencing_slots.update(
-                    self._transform_dict_for_class(tab, "NucleotideSequencing")
-                )
-                nucleotide_sequencing = nmdc.NucleotideSequencing(
-                    **nucleotide_sequencing_slots,
-                    provenance_metadata=provenance_metadata,
-                )
-                database.data_generation_set.append(nucleotide_sequencing)
+                    instrument_id = self.illumina_instrument_mapping[model]
 
-                # Iterate over the columns that contain URLs and MD5 checksums and translate them
-                # into DataObject instances. Each of these DataObject instances will be connected
-                # to the NucleotideSequencing instance via the has_output/was_generated_by
-                # relationships.
-                for data_url in DATA_URL_SETS:
-                    data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[
-                        (data_url, str(analyte_category))
-                    ]
-                    data_objects, manifest = self._get_data_objects_from_fields(
-                        tab,
-                        url_field_name=data_url.url,
-                        md5_checksum_field_name=data_url.md5_checksum,
-                        nucleotide_sequencing_id=nucleotide_sequencing_id,
-                        data_object_type=nmdc.FileTypeEnum(data_object_type),
+                nucleotide_sequencing_metadata = self._transform_dict_for_class(
+                    dissoc(tab, "protocol_link", "model"), "NucleotideSequencing"
+                )
+
+                for url_index in range(cardinality):
+                    nucleotide_sequencing_id = self._id_minter(
+                        "nmdc:NucleotideSequencing", 1
+                    )[0]
+                    nucleotide_sequencing_slots = {
+                        "id": nucleotide_sequencing_id,
+                        "has_input": sample_data_to_nmdc_biosample_ids[sample_data_id],
+                        "has_output": [],
+                        "associated_studies": [nmdc_study_id],
+                        "analyte_category": analyte_category,
+                        "type": "nmdc:NucleotideSequencing",
+                    }
+                    if "protocol_link" in tab:
+                        nucleotide_sequencing_slots["protocol_link"] = nmdc.Protocol(
+                            url=tab["protocol_link"],
+                            type="nmdc:Protocol",
+                        )
+                    if instrument_id:
+                        nucleotide_sequencing_slots["instrument_used"] = instrument_id
+                    nucleotide_sequencing_slots.update(nucleotide_sequencing_metadata)
+                    nucleotide_sequencing = nmdc.NucleotideSequencing(
+                        **nucleotide_sequencing_slots,
+                        provenance_metadata=provenance_metadata,
                     )
-                    if manifest:
-                        database.manifest_set.append(manifest)
-                    for data_object in data_objects:
+
+                    # Create the DataObjects at this index and connect them to the
+                    # corresponding NucleotideSequencing instance.
+                    for data_url in data_url_sets:
+                        data_object_type = DATA_URL_SET_AND_ANALYTE_TO_DATA_OBJECT_TYPE[
+                            (data_url, str(analyte_category))
+                        ]
+                        data_objects, _ = self._get_data_objects_from_fields(
+                            tab,
+                            url_field_name=data_url.url,
+                            md5_checksum_field_name=data_url.md5_checksum,
+                            nucleotide_sequencing_id=nucleotide_sequencing_id,
+                            data_object_type=nmdc.FileTypeEnum(data_object_type),
+                            url_index=url_index,
+                            manifest=manifest,
+                        )
+                        for data_object in data_objects:
+                            nucleotide_sequencing.has_output.append(data_object.id)
+                            database.data_object_set.append(data_object)
+
+                    # No URL fields were provided, so create a DataObject from the INSDC
+                    # run identifier instead.
+                    if not data_url_sets:
+                        data_object = self._get_data_object_from_insdc_run_identifier(
+                            tab, nucleotide_sequencing_id
+                        )
                         nucleotide_sequencing.has_output.append(data_object.id)
                         database.data_object_set.append(data_object)
+
+                    database.data_generation_set.append(nucleotide_sequencing)
 
         # This is the older way of handling attaching NucleotideSequencing and DataObject instances
         # to the Biosample instances. This should now mainly be handled by the external sequencing
