@@ -518,17 +518,20 @@ class SubmissionPortalTranslator(Translator):
         )
         isolate_genome = "isolate genome sequencing"
         isolate_transcriptome = "isolate transcriptome sequencing"
-        metagenome = "metagenomics"
-        metatranscriptome = "metatranscriptomics"
+        metagenomics = "metagenomics"
+        metatranscriptomics = "metatranscriptomics"
 
-        if isolate_genome in analysis_type and metagenome in analysis_type:
+        # These ambiguous combinations of analysis types should not occur because of
+        # validation in the Submission Portal, but we add an extra safety net here just
+        # in case.
+        if isolate_genome in analysis_type and metagenomics in analysis_type:
             raise ValueError(
                 "Ambiguous analysis type: both 'isolate genome sequencing' and 'metagenomics' are present."
             )
 
         if (
             isolate_transcriptome in analysis_type
-            and metatranscriptome in analysis_type
+            and metatranscriptomics in analysis_type
         ):
             raise ValueError(
                 "Ambiguous analysis type: both 'isolate transcriptome sequencing' and 'metatranscriptomics' are present."
@@ -537,11 +540,21 @@ class SubmissionPortalTranslator(Translator):
         if tab_name in dna_tab_names:
             if isolate_genome in analysis_type:
                 return ISOLATE_GENOME
-            return METAGENOME
+            elif metagenomics in analysis_type:
+                return METAGENOME
+            else:
+                raise ValueError(
+                    f"Unexpected analysis type for DNA sequencing tab: {analysis_type}"
+                )
         elif tab_name in rna_tab_names:
             if isolate_transcriptome in analysis_type:
                 return ISOLATE_TRANSCRIPTOME
-            return METATRANSCRIPTOME
+            elif metatranscriptomics in analysis_type:
+                return METATRANSCRIPTOME
+            else:
+                raise ValueError(
+                    f"Unexpected analysis type for RNA sequencing tab: {analysis_type}"
+                )
         else:
             return None
 
