@@ -225,23 +225,32 @@ biosample_set:
     has_raw_value: frozen
   analysis_type:
   - metatranscriptomics
-data_generation_set:
-- id: nmdc:dgns-00-27qd9afz
-  type: nmdc:NucleotideSequencing
-  has_input:
-  - nmdc:bsm-00-4wn6isig
-  has_output:
-  - nmdc:dobj-00-a5vpuemo
-  - nmdc:dobj-00-pj82ffu6
-  processing_institution: UCSD
-  protocol_link:
-    type: nmdc:Protocol
-    url: http://example.com
-  analyte_category: metagenome
+- id: nmdc:bsm-00-27qd9afz
+  type: nmdc:Biosample
+  name: sample name isolate genome interleaved url
   associated_studies:
   - nmdc:sty-00-y0cq65zt
-  instrument_used:
-  - nmdc:inst-00-00000001
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
   provenance_metadata:
     type: nmdc:ProvenanceMetadata
     add_date: '2023-10-17T09:00:00+00:00'
@@ -251,14 +260,201 @@ data_generation_set:
     source_system_of_record: NMDC_Submission_Portal
     submission_portal_identifier:
     - e12d0754-c00c-4417-9a25-6eb372054182
-  insdc_bioproject_identifiers:
-  - bioproject:PRJNA366857
-  insdc_experiment_identifiers:
-  - insdc.sra:ERX000000
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 1
+    has_unit: m
+    has_maximum_numeric_value: 1
+    has_minimum_numeric_value: 0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_name: sample name isolate genome interleaved url
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_unit: Cel
+    has_numeric_value: -80
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: 0.5%
+    has_unit: '%'
+    has_numeric_value: 0.5
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - isolate genome sequencing
+- id: nmdc:bsm-00-a5vpuemo
+  type: nmdc:Biosample
+  name: sample name isolate genome sra accession
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 1
+    has_unit: m
+    has_maximum_numeric_value: 1
+    has_minimum_numeric_value: 0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_name: sample name isolate genome sra accession
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_unit: Cel
+    has_numeric_value: -80
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: 0.5%
+    has_unit: '%'
+    has_numeric_value: 0.5
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - isolate genome sequencing
+- id: nmdc:bsm-00-pj82ffu6
+  type: nmdc:Biosample
+  name: sample name isolate transcriptome non-interleaved
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  env_broad_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: mixed forest biome [ENVO:01000198]
+    term:
+      id: ENVO:01000198
+      type: nmdc:OntologyClass
+      name: mixed forest biome
+  env_local_scale:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: area of evergreen forest [ENVO:01000843]
+    term:
+      id: ENVO:01000843
+      type: nmdc:OntologyClass
+      name: area of evergreen forest
+  env_medium:
+    type: nmdc:ControlledIdentifiedTermValue
+    has_raw_value: bulk soil [ENVO:00005802]
+    term:
+      id: ENVO:00005802
+      type: nmdc:OntologyClass
+      name: bulk soil
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  collection_date:
+    type: nmdc:TimestampValue
+    has_raw_value: '2025-01-01'
+  depth:
+    type: nmdc:QuantityValue
+    has_raw_value: 0 - 1
+    has_unit: m
+    has_maximum_numeric_value: 1
+    has_minimum_numeric_value: 0
+  elev: 1325.0
+  env_package:
+    type: nmdc:TextValue
+    has_raw_value: soil
+  geo_loc_name:
+    type: nmdc:TextValue
+    has_raw_value: 'USA: Fake, Fake'
+  growth_facil:
+    type: nmdc:ControlledTermValue
+    has_raw_value: field
+  lat_lon:
+    type: nmdc:GeolocationValue
+    has_raw_value: 43 -120
+    latitude: 43.0
+    longitude: -120.0
+  samp_name: sample name isolate transcriptome non-interleaved
+  samp_store_temp:
+    type: nmdc:QuantityValue
+    has_raw_value: -80 Cel
+    has_unit: Cel
+    has_numeric_value: -80
+  slope_gradient:
+    type: nmdc:QuantityValue
+    has_raw_value: 0.5%
+    has_unit: '%'
+    has_numeric_value: 0.5
+  store_cond:
+    type: nmdc:TextValue
+    has_raw_value: frozen
+  analysis_type:
+  - isolate transcriptome sequencing
+data_generation_set:
 - id: nmdc:dgns-00-5gt9sh9v
   type: nmdc:NucleotideSequencing
   has_input:
-  - nmdc:bsm-00-q8jtgev4
+  - nmdc:bsm-00-4wn6isig
   has_output:
   - nmdc:dobj-00-8n9s2fyu
   - nmdc:dobj-00-pslmlcq4
@@ -290,15 +486,16 @@ data_generation_set:
   - nmdc:bsm-00-q8jtgev4
   has_output:
   - nmdc:dobj-00-7r7pn0r2
-  processing_institution: Battelle
+  - nmdc:dobj-00-5wfuh5vm
+  processing_institution: UCSD
   protocol_link:
     type: nmdc:Protocol
-    url: http://example.org/protocol.html
-  analyte_category: metatranscriptome
+    url: http://example.com
+  analyte_category: metagenome
   associated_studies:
   - nmdc:sty-00-y0cq65zt
   instrument_used:
-  - nmdc:inst-00-00000002
+  - nmdc:inst-00-00000001
   provenance_metadata:
     type: nmdc:ProvenanceMetadata
     add_date: '2023-10-17T09:00:00+00:00'
@@ -309,15 +506,14 @@ data_generation_set:
     submission_portal_identifier:
     - e12d0754-c00c-4417-9a25-6eb372054182
   insdc_bioproject_identifiers:
-  - bioproject:PRJNA366858
+  - bioproject:PRJNA366857
   insdc_experiment_identifiers:
-  - insdc.sra:DRX000001
-- id: nmdc:dgns-00-5wfuh5vm
+  - insdc.sra:ERX000000
+- id: nmdc:dgns-00-pbrhoxkv
   type: nmdc:NucleotideSequencing
   has_input:
-  - nmdc:bsm-00-9gw1un94
+  - nmdc:bsm-00-q8jtgev4
   has_output:
-  - nmdc:dobj-00-pbrhoxkv
   - nmdc:dobj-00-1dgjoc8e
   processing_institution: Battelle
   protocol_link:
@@ -340,89 +536,263 @@ data_generation_set:
   insdc_bioproject_identifiers:
   - bioproject:PRJNA366858
   insdc_experiment_identifiers:
+  - insdc.sra:DRX000001
+- id: nmdc:dgns-00-cbmlh4nd
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-9gw1un94
+  has_output:
+  - nmdc:dobj-00-b81gqeoe
+  processing_institution: Battelle
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.org/protocol.html
+  analyte_category: metatranscriptome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  instrument_used:
+  - nmdc:inst-00-00000002
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366858
+  insdc_experiment_identifiers:
   - insdc.sra:DRX000002
+- id: nmdc:dgns-00-tw1ld63c
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-9gw1un94
+  has_output:
+  - nmdc:dobj-00-gzmqw4kn
+  processing_institution: Battelle
+  protocol_link:
+    type: nmdc:Protocol
+    url: http://example.org/protocol.html
+  analyte_category: metatranscriptome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  instrument_used:
+  - nmdc:inst-00-00000002
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366858
+  insdc_experiment_identifiers:
+  - insdc.sra:DRX000002
+- id: nmdc:dgns-00-dkkv7qh2
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-27qd9afz
+  has_output:
+  - nmdc:dobj-00-la406twy
+  processing_institution: UCSD
+  analyte_category: isolate_genome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  instrument_used:
+  - nmdc:inst-00-00000003
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366857
+- id: nmdc:dgns-00-qj9a3fvc
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-a5vpuemo
+  has_output:
+  - nmdc:dobj-00-8rip4wsw
+  processing_institution: UCSD
+  protocol_link:
+    type: nmdc:Protocol
+    url: https://example.com/protocol.html
+  analyte_category: isolate_genome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  instrument_used:
+  - nmdc:inst-00-00000003
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366857
+- id: nmdc:dgns-00-ity0famv
+  type: nmdc:NucleotideSequencing
+  has_input:
+  - nmdc:bsm-00-pj82ffu6
+  has_output:
+  - nmdc:dobj-00-kpo2y0cz
+  - nmdc:dobj-00-0ck2eqk2
+  processing_institution: UCSD
+  protocol_link:
+    type: nmdc:Protocol
+    url: https://example.com/protocol.html
+  analyte_category: isolate_transcriptome
+  associated_studies:
+  - nmdc:sty-00-y0cq65zt
+  instrument_used:
+  - nmdc:inst-00-00000003
+  provenance_metadata:
+    type: nmdc:ProvenanceMetadata
+    add_date: '2023-10-17T09:00:00+00:00'
+    git_url: https://github.com/microbiomedata/nmdc-runtime
+    mod_date: '2023-10-17T09:00:00+00:00'
+    version: 999.9.9
+    source_system_of_record: NMDC_Submission_Portal
+    submission_portal_identifier:
+    - e12d0754-c00c-4417-9a25-6eb372054182
+  insdc_bioproject_identifiers:
+  - bioproject:PRJNA366857
 data_object_set:
-- id: nmdc:dobj-00-a5vpuemo
+- id: nmdc:dobj-00-8n9s2fyu
   type: nmdc:DataObject
   name: 001-1.fastq.gz
-  description: Metagenome Raw Read 1 for nmdc:dgns-00-27qd9afz
+  description: Metagenome Raw Read 1 for nmdc:dgns-00-5gt9sh9v
   data_category: instrument_data
   data_object_type: Metagenome Raw Read 1
   insdc_experiment_identifiers:
   - insdc.sra:ERX000000
   md5_checksum: b1946ac92492d2347c6235b4d2611184
   url: http://example.com/001-1.fastq.gz
-  was_generated_by: nmdc:dgns-00-27qd9afz
-- id: nmdc:dobj-00-pj82ffu6
+  was_generated_by: nmdc:dgns-00-5gt9sh9v
+- id: nmdc:dobj-00-pslmlcq4
   type: nmdc:DataObject
   name: 001-2.fastq.gz
-  description: Metagenome Raw Read 2 for nmdc:dgns-00-27qd9afz
+  description: Metagenome Raw Read 2 for nmdc:dgns-00-5gt9sh9v
   data_category: instrument_data
   data_object_type: Metagenome Raw Read 2
   insdc_experiment_identifiers:
   - insdc.sra:ERX000000
   md5_checksum: 94baaad4d1347ec6e15ae35c88ee8bc8
   url: http://example.com/001-2.fastq.gz
-  was_generated_by: nmdc:dgns-00-27qd9afz
-- id: nmdc:dobj-00-8n9s2fyu
+  was_generated_by: nmdc:dgns-00-5gt9sh9v
+- id: nmdc:dobj-00-7r7pn0r2
   type: nmdc:DataObject
   name: 002-1.fastq.gz
-  description: Metagenome Raw Read 1 for nmdc:dgns-00-5gt9sh9v
+  description: Metagenome Raw Read 1 for nmdc:dgns-00-efijcf8z
   data_category: instrument_data
   data_object_type: Metagenome Raw Read 1
   insdc_experiment_identifiers:
   - insdc.sra:ERX000000
   md5_checksum: 916f4c31aaa35d6b867dae9a7f54270d
   url: http://example.com/002-1.fastq.gz
-  was_generated_by: nmdc:dgns-00-5gt9sh9v
-- id: nmdc:dobj-00-pslmlcq4
+  was_generated_by: nmdc:dgns-00-efijcf8z
+- id: nmdc:dobj-00-5wfuh5vm
   type: nmdc:DataObject
   name: 002-2.fastq.gz
-  description: Metagenome Raw Read 2 for nmdc:dgns-00-5gt9sh9v
+  description: Metagenome Raw Read 2 for nmdc:dgns-00-efijcf8z
   data_category: instrument_data
   data_object_type: Metagenome Raw Read 2
   insdc_experiment_identifiers:
   - insdc.sra:ERX000000
   md5_checksum: 764efa883dda1e11db47671c4a3bbd9e
   url: http://example.com/002-2.fastq.gz
-  was_generated_by: nmdc:dgns-00-5gt9sh9v
-- id: nmdc:dobj-00-7r7pn0r2
+  was_generated_by: nmdc:dgns-00-efijcf8z
+- id: nmdc:dobj-00-1dgjoc8e
   type: nmdc:DataObject
   name: 002-metat.fastq.gz
-  description: Metatranscriptome Raw Reads for nmdc:dgns-00-efijcf8z
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-pbrhoxkv
   data_category: instrument_data
   data_object_type: Metatranscriptome Raw Reads
   insdc_experiment_identifiers:
   - insdc.sra:DRX000001
   md5_checksum: 93ee47243d79217978cbed946c4e203a
   url: http://example.org/002-metat.fastq.gz
-  was_generated_by: nmdc:dgns-00-efijcf8z
-- id: nmdc:dobj-00-pbrhoxkv
+  was_generated_by: nmdc:dgns-00-pbrhoxkv
+- id: nmdc:dobj-00-b81gqeoe
   type: nmdc:DataObject
   name: 003-metat-a.fastq.gz
-  description: Metatranscriptome Raw Reads for nmdc:dgns-00-5wfuh5vm
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-cbmlh4nd
   data_category: instrument_data
   data_object_type: Metatranscriptome Raw Reads
   insdc_experiment_identifiers:
   - insdc.sra:DRX000002
   md5_checksum: 8a7a02537074949bbef514cba5d669d8
   url: http://example.org/003-metat-a.fastq.gz
-  was_generated_by: nmdc:dgns-00-5wfuh5vm
+  was_generated_by: nmdc:dgns-00-cbmlh4nd
   in_manifest:
   - nmdc:manif-00-bhmhzfxh
-- id: nmdc:dobj-00-1dgjoc8e
+- id: nmdc:dobj-00-gzmqw4kn
   type: nmdc:DataObject
   name: 003-metat-b.fastq.gz
-  description: Metatranscriptome Raw Reads for nmdc:dgns-00-5wfuh5vm
+  description: Metatranscriptome Raw Reads for nmdc:dgns-00-tw1ld63c
   data_category: instrument_data
   data_object_type: Metatranscriptome Raw Reads
   insdc_experiment_identifiers:
   - insdc.sra:DRX000002
   md5_checksum: 2dee554dd9bd8d2403e3b5430d19e3c3
   url: http://example.org/003-metat-b.fastq.gz
-  was_generated_by: nmdc:dgns-00-5wfuh5vm
+  was_generated_by: nmdc:dgns-00-tw1ld63c
   in_manifest:
   - nmdc:manif-00-bhmhzfxh
+- id: nmdc:dobj-00-la406twy
+  type: nmdc:DataObject
+  name: read1.fastq
+  description: Paired interleaved raw sequencing data for nmdc:dgns-00-dkkv7qh2
+  data_category: instrument_data
+  data_object_type: Paired interleaved raw sequencing data
+  insdc_run_identifiers:
+  - insdc.run:SRR400868
+  md5_checksum: 0123456789abcdef0123456789abcdef
+  url: https://example.com/read1.fastq
+  was_generated_by: nmdc:dgns-00-dkkv7qh2
+- id: nmdc:dobj-00-8rip4wsw
+  type: nmdc:DataObject
+  name: Data file for run accession SRR400868
+  description: Data file for run accession SRR400868
+  data_category: instrument_data
+  data_object_type: SRA toolkit-accessible sequence data
+  insdc_run_identifiers:
+  - insdc.run:SRR400868
+  was_generated_by: nmdc:dgns-00-qj9a3fvc
+- id: nmdc:dobj-00-kpo2y0cz
+  type: nmdc:DataObject
+  name: read1.fastq
+  description: Raw sequencing data read 1 for nmdc:dgns-00-ity0famv
+  data_category: instrument_data
+  data_object_type: Raw sequencing data read 1
+  insdc_run_identifiers:
+  - insdc.run:SRR400868
+  md5_checksum: 0123456789abcdef0123456789abcdef
+  url: https://example.com/read1.fastq
+  was_generated_by: nmdc:dgns-00-ity0famv
+- id: nmdc:dobj-00-0ck2eqk2
+  type: nmdc:DataObject
+  name: read2.fastq
+  description: Raw sequencing data read 2 for nmdc:dgns-00-ity0famv
+  data_category: instrument_data
+  data_object_type: Raw sequencing data read 2
+  insdc_run_identifiers:
+  - insdc.run:SRR400868
+  md5_checksum: 0123456789abcdef0123456789abcdef
+  url: https://example.com/read2.fastq
+  was_generated_by: nmdc:dgns-00-ity0famv
 manifest_set:
 - id: nmdc:manif-00-bhmhzfxh
   type: nmdc:Manifest

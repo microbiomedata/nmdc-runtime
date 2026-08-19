@@ -5,8 +5,8 @@ name = "nmdc-runtime"
 dynamic = ["version"]
 description = "A runtime system for NMDC data management and orchestration"
 authors = []
-# Note: This version requirement of ">= 3.10" was copied from the `setup.py` file used by the application's original build system.
-requires-python = ">= 3.10"
+# Note: This version requirement of ">= 3.12" was chosen to match the `nmdc-server` codebase.
+requires-python = ">=3.12"
 # Note: Here's a handy command you can use to find imports of the "foo" package in the codebase:
 #       ```
 #       $ grep -rE '(import|from)\s+.*foo' ./nmdc_runtime/
@@ -57,7 +57,7 @@ dependencies = [
     # We use `nmdc-schema` to interpret data residing in—and validate data
     # destined for—the NMDC database (i.e. the MongoDB database named `nmdc`).
     # Docs: https://microbiomedata.github.io/nmdc-schema/
-    "nmdc-schema==11.22.0",
+    "nmdc-schema==11.23.0",
     "pandas",
     "passlib[bcrypt]",
     "pymongo",

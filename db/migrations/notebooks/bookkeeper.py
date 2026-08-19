@@ -1,19 +1,27 @@
 from typing import Optional
-from enum import Enum
+from enum import StrEnum
 from datetime import datetime, timezone
 
 from pymongo import MongoClient
 from nmdc_schema.migrators.migrator_base import MigratorBase
 
 
-class MigrationEvent(str, Enum):
+class MigrationEvent(StrEnum):
     r"""
     Enumeration of all migration events that can be recorded.
-    Reference: https://docs.python.org/3.10/library/enum.html#others
+    Reference: https://docs.python.org/3.12/library/enum.html#enum.StrEnum
 
     >>> MigrationEvent.MIGRATION_COMPLETED.value
     'MIGRATION_COMPLETED'
     >>> MigrationEvent.MIGRATION_STARTED.value
+    'MIGRATION_STARTED'
+
+    Now that this class inherits from StrEnum, the string value can also be
+    accessed without using `.value`.
+
+    >>> str(MigrationEvent.MIGRATION_COMPLETED)
+    'MIGRATION_COMPLETED'
+    >>> str(MigrationEvent.MIGRATION_STARTED)
     'MIGRATION_STARTED'
     """
 
@@ -74,7 +82,7 @@ class Bookkeeper:
 
         document = dict(
             created_at=self.get_current_timestamp(),
-            event=event.value,
+            event=event,
             from_schema_version=migrator.get_origin_version(),
             to_schema_version=to_schema_version_str,
             migrator_module=migrator.__module__,  # name of the Python module in which the `Migrator` class is defined
@@ -108,7 +116,7 @@ class Bookkeeper:
                                 "if": {
                                     "$eq": [
                                         "$event",
-                                        MigrationEvent.MIGRATION_COMPLETED.value,
+                                        MigrationEvent.MIGRATION_COMPLETED,
                                     ]
                                 },
                                 "then": "$to_schema_version",  # database conforms to this version of the NMDC Schema

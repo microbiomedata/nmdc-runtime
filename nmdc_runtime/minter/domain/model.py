@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 import re
 from typing import Optional
 
@@ -21,7 +21,7 @@ class ValueObject(BaseModel):
     """
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     """Status of an identifier.
 
     Note: These state values were chosen in an attempt to mirror those that DataCite uses for DOIs,

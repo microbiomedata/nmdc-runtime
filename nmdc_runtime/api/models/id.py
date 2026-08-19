@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from enum import StrEnum
 from typing import Union, Any, Optional, Literal
 
 from pydantic import model_validator, StringConstraints, BaseModel, PositiveInt
@@ -62,7 +62,7 @@ class IdBindings(BaseModel):
     where: BaseObjectName
 
 
-class IdBindingOp(str, Enum):
+class IdBindingOp(StrEnum):
     set = "set"
     addToSet = "addToSet"
     rm = "rm"

@@ -237,6 +237,7 @@ entity_attributes_to_index = {
         "data_object_type",
         "file_size_bytes",
         "md5_checksum",
+        "superseded_by",
         "url",
     },
     # TODO: Refrain from ensuring indexes exist in the `omics_processing_set` collection,
@@ -252,6 +253,7 @@ entity_attributes_to_index = {
     "workflow_execution_set": {
         "has_input",
         "has_output",
+        "superseded_by",
     },
     # Note: The `jobs` collection is not described by the NMDC schema.
     "jobs": {
