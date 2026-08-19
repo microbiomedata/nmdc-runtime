@@ -1173,14 +1173,19 @@ def site_code_mapping() -> dict:
         )
 
 
+LOAD_ONTOLOGY_MODES = {"meticulous", "fast-initial"}
+
+
 @op(
     required_resource_keys={"mongo"},
     config_schema={
         "source_ontology": str,
-        # mode: "meticulous" (default) = linkml-store per-item upsert, for incremental
-        #   weekly re-loads; "fast-initial" = raw pymongo insert_many, for the one-time
-        #   bulk install of a large ontology (e.g. NCBITaxon, ~2.7M classes).
-        "mode": Field(str, default_value="meticulous", is_required=False),
+        # mode: "meticulous" = linkml-store per-item upsert, for incremental weekly
+        #   re-loads; "fast-initial" = raw pymongo insert_many, for the one-time bulk
+        #   install of a large ontology (e.g. NCBITaxon, ~2.7M classes). Required (not
+        #   defaulted) so every schedule/job states its mode explicitly rather than
+        #   silently falling back to the per-item-upsert path.
+        "mode": Field(str, is_required=True),
         # closure: which ancestry closures to emit ("combined" = rdfs:subClassOf + BFO:0000050).
         "closure": Field(str, default_value="combined", is_required=False),
         # report_directory: only used when mode="meticulous" (TSV reports). When None it
@@ -1191,7 +1196,12 @@ def site_code_mapping() -> dict:
 def load_ontology(context: OpExecutionContext):
     cfg = context.op_config
     source_ontology = cfg["source_ontology"]
-    mode = cfg.get("mode", "meticulous")
+    mode = cfg["mode"]
+    if mode not in LOAD_ONTOLOGY_MODES:
+        raise ValueError(
+            f"Invalid mode {mode!r} for load_ontology (source_ontology={source_ontology!r}): "
+            f"must be one of {sorted(LOAD_ONTOLOGY_MODES)}."
+        )
     closure = cfg.get("closure", "combined")
     report_directory = cfg.get("report_directory")
     # Preserve the pre-0.2.3 report location for meticulous runs (unchanged behavior

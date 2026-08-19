@@ -164,6 +164,11 @@ ensure_alldocs_hourly = ScheduleDefinition(
 )
 
 
+# envo/uberon/po all use mode="meticulous" (per-item upsert, safe to re-run weekly) and
+# closure="combined" (rdfs:subClassOf + BFO:0000050): unlike NCBITaxon, these ontologies
+# carry real part_of relations, so "combined" is required to capture partonomy ancestry,
+# not just is_a. An isa-only closure would silently drop those part_of ancestors, so this
+# is a deliberate choice, not an oversight left over from the pre-0.2.3 defaults.
 load_envo_ontology_weekly = ScheduleDefinition(
     name="weekly_load_envo_ontology",
     cron_schedule="0 7 * * 1",
@@ -173,7 +178,17 @@ load_envo_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "envo"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "envo",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -189,7 +204,17 @@ load_uberon_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "uberon"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "uberon",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -205,7 +230,17 @@ load_po_ontology_weekly = ScheduleDefinition(
         config=unfreeze(
             merge(
                 run_config_frozen__normal_env,
-                {"ops": {"load_ontology": {"config": {"source_ontology": "po"}}}},
+                {
+                    "ops": {
+                        "load_ontology": {
+                            "config": {
+                                "source_ontology": "po",
+                                "mode": "meticulous",
+                                "closure": "combined",
+                            }
+                        }
+                    }
+                },
             )
         ),
         resource_defs=resource_defs,
@@ -214,9 +249,10 @@ load_po_ontology_weekly = ScheduleDefinition(
 
 # NCBITaxon is far larger than envo/uberon/po (~2.7M classes), so it uses mode="fast-initial"
 # (raw pymongo insert_many) rather than the meticulous per-item upsert the others use.
-# It uses closure="isa" (not the "combined" default): NCBITaxon is a pure is_a taxonomy with
-# no part_of, so isa is the correct and ontology-loader-recommended closure, and it stores the
-# ancestry under the accurate `entailed_isa_closure` predicate. See the ontology-loader README.
+# It uses closure="isa" (not "combined", unlike envo/uberon/po above): NCBITaxon is a pure
+# is_a taxonomy with no part_of, so isa is the correct and ontology-loader-recommended
+# closure, and it stores the ancestry under the accurate `entailed_isa_closure` predicate.
+# See the ontology-loader README.
 # Caveat: fast-initial is an initial-install path and is NOT idempotent on re-run (it does not
 # upsert). A steady-state weekly cadence needs a re-load strategy (drop-then-load, or a
 # meticulous refresh); that decision is still open. Until then this is intended as a

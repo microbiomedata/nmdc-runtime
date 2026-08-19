@@ -80,6 +80,26 @@ def test_load_ontology(mock_ontology_loader, op_context):
 
 
 @pytest.fixture
+def op_context_invalid_mode(client_config):
+    return build_op_context(
+        resources={"mongo": mongo_resource.configured(client_config)},
+        op_config={
+            "source_ontology": "envo",
+            "mode": "meticulously",  # typo: not a valid mode
+            "closure": "combined",
+        }
+    )
+
+
+@patch('nmdc_runtime.site.ops.OntologyLoaderController')
+def test_load_ontology_invalid_mode_raises(mock_ontology_loader, op_context_invalid_mode):
+    """An unrecognized mode value must raise, not silently fall through."""
+    with pytest.raises(ValueError, match="Invalid mode"):
+        load_ontology(op_context_invalid_mode)
+    mock_ontology_loader.assert_not_called()
+
+
+@pytest.fixture
 def op_context_fast_initial(client_config):
     # No report_directory: fast-initial writes no reports, so the op should leave it None.
     return build_op_context(
