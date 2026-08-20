@@ -270,11 +270,16 @@ _mdb = get_mongo_db()
 
 
 def _run_mdb_cmd(
-    cmd: Cmd, mdb: MongoDatabase = _mdb, allow_broken_refs: bool = False
+    cmd: FindCommand | AggregateCommand | UpdateCommand | GetMoreCommand,
+    mdb: MongoDatabase = _mdb,
+    allow_broken_refs: bool = False,
 ) -> CommandResponse:
     r"""
-    TODO: Document this function.
-    TODO: Consider splitting this function into multiple, smaller functions (if practical). It is currently ~370 lines.
+    Process a MongoDB Database command of type "find", "aggregate", or "update";
+    or a custom command of type "getMore".
+
+    Reference: https://www.mongodb.com/docs/manual/reference/command/
+
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
 
     TODO: For `UpdateCommand` commands that involve the "biosample_set" collection, validate the
@@ -291,128 +296,22 @@ def _run_mdb_cmd(
                               reject the command for that reason (however, it may reject the command
                               for other reasons).
     """
+
+    # Raise an exception if the caller specifies a command of a type that this function _used to_
+    # support, but no longer supports. This could happen if the author of the caller is referencing
+    # some older example code and not running mypy. We can eventually remove this check.
+    if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
+        raise TypeError(
+            "The `_run_mdb_cmd` function no longer processes 'count', 'collStats', or 'delete' " \
+            "commands. Use the `MongoCommandProcessor.process` method instead."
+        )
+
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
     logging.info(f"Command type: {type(cmd).__name__}")
     logging.info(f"Cursor ID: {cursor_id}")
 
-    if isinstance(cmd, DeleteCommand):
-        collection_name = cmd.delete
-        if collection_name not in get_nonempty_nmdc_schema_collection_names(mdb):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=(
-                    "Can only delete documents from collections that are "
-                    "not empty and are described by the NMDC schema."
-                ),
-            )
-        delete_specs: DeleteSpecs = derive_delete_specs(delete_command=cmd)
-
-        # Check whether any of the documents the user wants to delete are referenced
-        # by any documents that are _not_ among those documents. If any of them are,
-        # it means that performing the deletion would leave behind a broken reference(s).
-        #
-        # TODO: Consider accounting for the "limit" property of the delete specs.
-        #       Currently, we ignore it and—instead—perform the validation as though
-        #       the user wants to delete _all_ matching documents.
-        #
-        # TODO: Account for the fact that this validation step and the actual deletion
-        #       step do not occur within a transaction; so, the database may change
-        #       between the two events (i.e. there's a race condition).
-        #
-        target_document_descriptors = list(
-            mdb[collection_name].find(
-                filter={"$or": [spec["filter"] for spec in delete_specs]},
-                projection={"_id": 1, "id": 1, "type": 1},
-            )
-        )
-
-        # Make a set of the `_id` values of the target documents so that (later) we can
-        # check whether a given _referring_ document is also one of the _target_ documents
-        # (i.e. is among the documents the user wants to delete).
-        target_document_object_ids = set(
-            tdd["_id"] for tdd in target_document_descriptors
-        )
-
-        # For each document the user wants to delete, check whether it is referenced
-        # by any documents that are _not_ among those that the user wants to delete
-        # (i.e. check whether there are any references that would be broken).
-        finder = Finder(database=mdb)
-        for target_document_descriptor in target_document_descriptors:
-            # If the document descriptor lacks the "id" field, we already know that no
-            # documents reference it (since they would have to _use_ that "id" value to
-            # do so). So, we don't bother trying to identify documents that reference it.
-            if "id" not in target_document_descriptor:
-                continue
-
-            referring_document_descriptors = identify_referring_documents(
-                document=target_document_descriptor,  # expects at least "id" and "type"
-                schema_view=nmdc_schema_view(),
-                references=get_allowed_references(),
-                finder=finder,
-            )
-            # If _any_ referring document is _not_ among the documents the user wants
-            # to delete, then we know that performing the deletion would leave behind a
-            # broken reference(s).
-            #
-            # In that case, we either (a) log a warning to the server console (if broken
-            # references are being allowed) or (b) abort with an HTTP 422 error response
-            # (if broken references are not being allowed).
-            #
-            for referring_document_descriptor in referring_document_descriptors:
-                if (
-                    referring_document_descriptor["source_document_object_id"]
-                    not in target_document_object_ids
-                ):
-                    source_document_id = referring_document_descriptor[
-                        "source_document_id"
-                    ]
-                    source_collection_name = referring_document_descriptor[
-                        "source_collection_name"
-                    ]
-                    target_document_id = target_document_descriptor["id"]
-                    if allow_broken_refs:
-                        logging.warning(
-                            f"The document having 'id'='{target_document_id}' in "
-                            f"the collection '{collection_name}' is referenced by "
-                            f"the document having 'id'='{source_document_id}' in "
-                            f"the collection '{source_collection_name}'. "
-                            f"Deleting the former will leave behind a broken reference."
-                        )
-                    else:
-                        # TODO: Consider reporting _all_ would-be-broken references instead of
-                        #       only the _first_ one we encounter. That would make the response
-                        #       more informative to the user in cases where there are multiple
-                        #       such references; but it would also take longer to compute and
-                        #       would increase the response size (consider the case where the
-                        #       user-specified filter matches many, many documents).
-                        raise HTTPException(
-                            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                            detail=(
-                                f"The operation was not performed, because performing it would "
-                                f"have left behind one or more broken references. For example: "
-                                f"The document having 'id'='{target_document_id}' in "
-                                f"the collection '{collection_name}' is referenced by "
-                                f"the document having 'id'='{source_document_id}' in "
-                                f"the collection '{source_collection_name}'. "
-                                f"Deleting the former would leave behind a broken reference. "
-                                f"Update or delete referring document(s) and try again."
-                            ),
-                        )
-
-        for spec in delete_specs:
-            docs = list(mdb[collection_name].find(**spec))
-            if not docs:
-                continue
-            insert_many_result = mdb.client["nmdc_deleted"][
-                collection_name
-            ].insert_many({"doc": d, "deleted_at": ran_at} for d in docs)
-            if len(insert_many_result.inserted_ids) != len(docs):
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to back up to-be-deleted documents. operation aborted.",
-                )
-    elif isinstance(cmd, UpdateCommand):
+    if isinstance(cmd, UpdateCommand):
         # Check whether the user submitted any "replacement documents" instead of submitting all
         # "operations documents." If so, abort with an HTTP 422 because we have not yet implemented
         # the preservation of `provenance_metadata.add_date` values from the original documents
@@ -608,28 +507,13 @@ def _run_mdb_cmd(
     if not cmd_response.ok:
         return cmd_response
 
-    # If the command response is of a kind that has a `writeErrors` attribute, and the value of that
-    # attribute is a list, and that list is non-empty, we know that some errors occurred.
-    # In that case, we respond with an HTTP 422 status code and the list of those errors.
-    if isinstance(cmd_response, DeleteCommandResponse) or isinstance(
-        cmd_response, UpdateCommandResponse
-    ):
-        if (
-            isinstance(cmd_response.writeErrors, list)
-            and len(cmd_response.writeErrors) > 0
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=cmd_response.writeErrors,
-            )
-
-    if isinstance(cmd, (DeleteCommand, UpdateCommand)):
+    if isinstance(cmd, UpdateCommand):
         # TODO `_request_dagster_run` of `ensure_alldocs`?
         if cmd_response.n == 0:
             raise HTTPException(
                 status_code=status.HTTP_418_IM_A_TEAPOT,
                 detail=(
-                    f"{'update' if isinstance(cmd, UpdateCommand) else 'delete'} command modified zero documents."
+                    "The 'update' command modified zero documents."
                     " I'm guessing that's not what you expected. Check the syntax of your request."
                     " But what do I know? I'm just a teapot.",
                 ),
