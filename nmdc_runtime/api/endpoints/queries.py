@@ -302,7 +302,7 @@ def _run_mdb_cmd(
     # some older example code and not running mypy. We can eventually remove this check.
     if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
         raise TypeError(
-            "The `_run_mdb_cmd` function no longer processes 'count', 'collStats', or 'delete' " \
+            "The `_run_mdb_cmd` function no longer processes 'count', 'collStats', or 'delete' "
             "commands. Use the `MongoCommandProcessor.process` method instead."
         )
 
