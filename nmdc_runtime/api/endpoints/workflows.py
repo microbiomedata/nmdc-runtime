@@ -615,7 +615,8 @@ async def delete_workflow_execution(
                 #
                 mongo_command_processor = MongoCommandProcessor(db=mdb)
                 response = mongo_command_processor.process(
-                    command=delete_cmd, allow_broken_refs=True,
+                    command=delete_cmd,
+                    allow_broken_refs=True,
                 )
 
             # Store the result

@@ -258,7 +258,8 @@ def run_query(
     if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
         mongo_command_processor = MongoCommandProcessor(db=get_mongo_db())
         cmd_response = mongo_command_processor.process(
-            command=cmd, allow_broken_refs=allow_broken_refs,
+            command=cmd,
+            allow_broken_refs=allow_broken_refs,
         )
     else:
         cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
