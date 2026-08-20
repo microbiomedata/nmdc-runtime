@@ -27,6 +27,8 @@ from nmdc_runtime.api.endpoints.util import (
 )
 import nmdc_runtime.api.models.query_continuation as qc
 from nmdc_runtime.api.models.query import (
+    CollStatsCommand,
+    CountCommand,
     DeleteCommand,
     DeleteCommandResponse,
     CommandResponse,
@@ -46,6 +48,7 @@ from nmdc_runtime.api.models.query import (
 )
 from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
+from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
 from nmdc_runtime.util import (
     get_allowed_references,
     nmdc_schema_view,
@@ -245,7 +248,20 @@ def run_query(
     if isinstance(cmd, AggregateCommand):
         check_can_aggregate(user)
 
-    cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
+    # Route the command to the appropriate command-processing function, based upon the command type.
+    #
+    # Note: In August, 2026, we introduced the `MongoCommandProcessor` class, whose
+    #       methods can be used to process _some_ (but not yet _all_) kinds of commands.
+    #       This allowed us to remove the corresponding code from the `_run_mdb_cmd`
+    #       function, thereby making the latter easier to debug and maintain.
+    #
+    if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
+        mongo_command_processor = MongoCommandProcessor(db=get_mongo_db())
+        cmd_response = mongo_command_processor.process(
+            command=cmd, allow_broken_refs=allow_broken_refs,
+        )
+    else:
+        cmd_response = _run_mdb_cmd(cmd, allow_broken_refs=allow_broken_refs)
     return cmd_response
 
 

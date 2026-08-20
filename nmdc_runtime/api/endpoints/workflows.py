@@ -39,6 +39,7 @@ from nmdc_schema.nmdc import (
     MetatranscriptomeAnnotation,
 )
 
+from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
 from nmdc_runtime.util import duration_logger
 
 router = APIRouter()
@@ -605,7 +606,17 @@ async def delete_workflow_execution(
             if collection_name == "jobs":
                 response = _run_delete_nonschema(delete_cmd, mdb)
             else:
-                response = _run_mdb_cmd(delete_cmd, mdb, allow_broken_refs=True)
+                # Route the command to the `MongoCommandProcessor` class.
+                #
+                # Note: In August, 2026, we introduced the `MongoCommandProcessor` class, whose
+                #       methods can be used to process _some_ (but not yet _all_) kinds of commands.
+                #       This allowed us to remove the corresponding code from the `_run_mdb_cmd`
+                #       function, thereby making the latter easier to debug and maintain.
+                #
+                mongo_command_processor = MongoCommandProcessor(db=mdb)
+                response = mongo_command_processor.process(
+                    command=delete_cmd, allow_broken_refs=True,
+                )
 
             # Store the result
             deletion_results[collection_name] = {
