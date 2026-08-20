@@ -6,8 +6,6 @@ import bson.json_util
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from pymongo.database import Database as MongoDatabase
 from toolz import assoc_in
-from refscan.lib.Finder import Finder
-from refscan.scanner import identify_referring_documents
 
 from nmdc_runtime.api.core.provenance import (
     NAMES_OF_COLLECTIONS_ALLOWING_DOCUMENTS_HAVING_PROVENANCE_METADATA_FIELD,
@@ -49,10 +47,6 @@ from nmdc_runtime.api.models.query import (
 from nmdc_runtime.api.models.lib.helpers import derive_delete_specs, derive_update_specs
 from nmdc_runtime.api.models.user import get_current_active_user, User
 from nmdc_runtime.lib.mongo_command_processor import MongoCommandProcessor
-from nmdc_runtime.util import (
-    get_allowed_references,
-    nmdc_schema_view,
-)
 
 router = APIRouter()
 
@@ -98,7 +92,8 @@ def run_query(
     ] = False,
 ):
     r"""
-    Performs `find`, `aggregate`, `update`, `delete`, and `getMore` commands for users that have adequate permissions.
+    Performs `find`, `aggregate`, `update`, `delete`, `count`, `collStats`, and `getMore` commands
+    for users that have adequate permissions.
 
     For `find` and `aggregate` commands, the requested items will be in `cursor.batch`.
     When the response includes a non-null `cursor.id`, there _may_ be more items available.
@@ -278,8 +273,6 @@ def _run_mdb_cmd(
     Process a MongoDB Database command of type "find", "aggregate", or "update";
     or a custom command of type "getMore".
 
-    Reference: https://www.mongodb.com/docs/manual/reference/command/
-
     TODO: How does this function behave when the "batchSize" is invalid (e.g. 0, negative, non-numeric)?
 
     TODO: For `UpdateCommand` commands that involve the "biosample_set" collection, validate the
@@ -287,8 +280,12 @@ def _run_mdb_cmd(
           in April 11, 2026), so we can return an error response to the user, rather than them only
           realizing later that the write operation eventually attempted by Dagster failed.
 
-    :param cmd: Undocumented. TODO: Document this parameter.
+    :param cmd: A MongoDB Database command of type "find", "aggregate", or "update"; or a custom
+                command of type "getMore". Reference:
+                https://www.mongodb.com/docs/manual/reference/command/
+
     :param mdb: Undocumented. TODO: Document this parameter.
+
     :param allow_broken_refs: Under normal circumstances, if this function determines that performing
                               the specified command would leave behind broken references, this function
                               will reject the command (i.e. raise an HTTP 422). In contrast, when the
@@ -296,20 +293,10 @@ def _run_mdb_cmd(
                               reject the command for that reason (however, it may reject the command
                               for other reasons).
     """
-
-    # Raise an exception if the caller specifies a command of a type that this function _used to_
-    # support, but no longer supports. This could happen if the author of the caller is referencing
-    # some older example code and not running mypy. We can eventually remove this check.
-    if isinstance(cmd, (CountCommand, CollStatsCommand, DeleteCommand)):
-        raise TypeError(
-            "The `_run_mdb_cmd` function no longer processes 'count', 'collStats', or 'delete' "
-            "commands. Use the `MongoCommandProcessor.process` method instead."
-        )
-
     ran_at = now()
     cursor_id = cmd.getMore if isinstance(cmd, GetMoreCommand) else None
-    logging.info(f"Command type: {type(cmd).__name__}")
-    logging.info(f"Cursor ID: {cursor_id}")
+    logging.debug(f"Command type: {type(cmd).__name__}")
+    logging.debug(f"Cursor ID: {cursor_id}")
 
     if isinstance(cmd, UpdateCommand):
         # Check whether the user submitted any "replacement documents" instead of submitting all
@@ -506,6 +493,19 @@ def _run_mdb_cmd(
     # Not okay? Early return.
     if not cmd_response.ok:
         return cmd_response
+
+    # If the command response is of a kind that has a `writeErrors` attribute, and the value of that
+    # attribute is a list, and that list is non-empty, we know that some errors occurred.
+    # In that case, we respond with an HTTP 422 status code and the list of those errors.
+    if isinstance(cmd_response, UpdateCommandResponse):
+        if (
+            isinstance(cmd_response.writeErrors, list)
+            and len(cmd_response.writeErrors) > 0
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=cmd_response.writeErrors,
+            )
 
     if isinstance(cmd, UpdateCommand):
         # TODO `_request_dagster_run` of `ensure_alldocs`?

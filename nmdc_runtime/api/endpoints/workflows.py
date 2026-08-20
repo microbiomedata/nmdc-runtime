@@ -19,7 +19,6 @@ from nmdc_runtime.api.endpoints.lib.workflow_executions import (
     update_superseded_by_field_of_data_objects_having_id_in_list,
 )
 from nmdc_runtime.api.endpoints.queries import (
-    _run_mdb_cmd,
     check_can_update_and_delete,
     _run_delete_nonschema,
 )
