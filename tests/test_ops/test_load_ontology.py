@@ -1,9 +1,9 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from dagster import build_op_context
+from dagster import build_op_context, DagsterRun, DagsterRunStatus, Failure
 from nmdc_runtime.site.resources import mongo_resource
-from nmdc_runtime.site.ops import load_ontology
+from nmdc_runtime.site.ops import load_ontology, delete_ontology_terms_by_prefix
 import logging
 
 logging.basicConfig(
@@ -180,3 +180,144 @@ def test_load_ontology_integration(op_context):
 
     # 5. Verify the function has no return value (was incorrectly expected to be 0)
     assert result is None
+
+
+# --- delete_ontology_terms_by_prefix ------------------------------------------------------------
+
+
+def _mock_mongo_context(op_config, instance_get_runs_return=None):
+    """
+    Build an op context with a mocked mongo resource's raw `db[...]` bracket access, and a mocked
+    `context.instance.get_runs` (the concurrency guard's own dependency, not something this op
+    owns, so mocked rather than exercised against a real DagsterInstance -- matches this test
+    file's existing style of mocking OntologyLoaderController rather than a real Mongo/ontology).
+
+    `build_op_context()` doesn't accept a run_id override; `context.run_id` is always the literal
+    string "EPHEMERAL" for a direct-invocation test context. Tests exercising the concurrency
+    guard use that exact value for "this op's own run" and a different id for "another run".
+    """
+    mock_db = MagicMock()
+    mock_client_config = {
+        "dbname": "test_db",
+        "host": "mongodb://localhost:27017",
+        "password": "x",
+        "username": "x",
+    }
+    context = build_op_context(
+        resources={"mongo": mongo_resource.configured(mock_client_config)},
+        op_config=op_config,
+    )
+    context.resources.mongo.db = mock_db
+    context.instance.get_runs = MagicMock(return_value=instance_get_runs_return or [])
+    return context, mock_db
+
+
+def test_delete_ontology_terms_by_prefix_happy_path():
+    """Deletes classes by id prefix and relations by subject prefix; returns both counts."""
+    context, mock_db = _mock_mongo_context(
+        op_config={"id_prefix": "NCBITaxon:"},
+    )
+    mock_db.__getitem__.return_value.delete_many.side_effect = [
+        MagicMock(deleted_count=2708804),  # ontology_class_set
+        MagicMock(deleted_count=54700052),  # ontology_relation_set
+    ]
+
+    result = delete_ontology_terms_by_prefix(context)
+
+    assert result == {
+        "class_collection_name": "ontology_class_set",
+        "class_deleted_count": 2708804,
+        "relation_collection_name": "ontology_relation_set",
+        "relation_deleted_count": 54700052,
+    }
+    calls = mock_db.__getitem__.return_value.delete_many.call_args_list
+    assert "id" in calls[0].args[0]
+    assert "subject" in calls[1].args[0]
+
+
+def test_delete_ontology_terms_by_prefix_custom_collection_names():
+    """Collection name overrides are honored, not hardcoded."""
+    context, mock_db = _mock_mongo_context(
+        op_config={
+            "id_prefix": "TEST:",
+            "class_collection_name": "custom_class_set",
+            "relation_collection_name": "custom_relation_set",
+        },
+    )
+    mock_db.__getitem__.return_value.delete_many.return_value = MagicMock(
+        deleted_count=0
+    )
+
+    result = delete_ontology_terms_by_prefix(context)
+
+    assert result["class_collection_name"] == "custom_class_set"
+    assert result["relation_collection_name"] == "custom_relation_set"
+    accessed_names = [c.args[0] for c in mock_db.__getitem__.call_args_list]
+    assert "custom_class_set" in accessed_names
+    assert "custom_relation_set" in accessed_names
+
+
+def test_delete_ontology_terms_by_prefix_raises_on_other_active_run():
+    """
+    The concurrency guard must raise Failure when another run of a named job is active.
+
+    This is the scenario the guard exists for: an operator double-launches the reload job, or
+    launches it while the regular weekly NCBITaxon load happens to be running.
+    """
+    other_run = DagsterRun(
+        job_name="scheduled_ncbitaxon_ontology_load",
+        run_id="other-run-id",
+        status=DagsterRunStatus.STARTED,
+    )
+    context, mock_db = _mock_mongo_context(
+        op_config={
+            "id_prefix": "NCBITaxon:",
+            "concurrent_job_names": ["scheduled_ncbitaxon_ontology_load"],
+        },
+        instance_get_runs_return=[other_run],
+    )
+
+    with pytest.raises(Failure, match="scheduled_ncbitaxon_ontology_load"):
+        delete_ontology_terms_by_prefix(context)
+
+    mock_db.__getitem__.return_value.delete_many.assert_not_called()
+
+
+def test_delete_ontology_terms_by_prefix_does_not_raise_on_only_own_run():
+    """
+    The guard must exclude the op's own in-progress run from the "other active run" count.
+
+    Without excluding context.run_id, every run of a guarded job would see itself in the active
+    list and refuse to ever proceed.
+    """
+    own_run = DagsterRun(
+        job_name="reload_ncbitaxon_ontology",
+        run_id="EPHEMERAL",  # matches context.run_id for a build_op_context() test context
+        status=DagsterRunStatus.STARTED,
+    )
+    context, mock_db = _mock_mongo_context(
+        op_config={
+            "id_prefix": "NCBITaxon:",
+            "concurrent_job_names": ["reload_ncbitaxon_ontology"],
+        },
+        instance_get_runs_return=[own_run],
+    )
+    mock_db.__getitem__.return_value.delete_many.return_value = MagicMock(
+        deleted_count=0
+    )
+
+    result = delete_ontology_terms_by_prefix(context)  # must not raise
+
+    assert result["class_deleted_count"] == 0
+
+
+def test_delete_ontology_terms_by_prefix_guard_is_noop_when_no_job_names_configured():
+    """concurrent_job_names defaults to empty: no guard check, no instance.get_runs call at all."""
+    context, mock_db = _mock_mongo_context(op_config={"id_prefix": "NCBITaxon:"})
+    mock_db.__getitem__.return_value.delete_many.return_value = MagicMock(
+        deleted_count=0
+    )
+
+    delete_ontology_terms_by_prefix(context)  # must not raise
+
+    context.instance.get_runs.assert_not_called()

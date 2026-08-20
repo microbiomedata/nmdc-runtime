@@ -48,6 +48,7 @@ from nmdc_runtime.site.graphs import (
     ingest_neon_surface_water_metadata,
     ensure_alldocs,
     run_ontology_load,
+    reload_ontology_by_prefix,
     nmdc_study_to_ncbi_submission_export,
     generate_data_generation_set_for_biosamples_in_nmdc_study,
     generate_update_script_for_insdc_biosample_identifiers,
@@ -253,10 +254,12 @@ load_po_ontology_weekly = ScheduleDefinition(
 # is_a taxonomy with no part_of, so isa is the correct and ontology-loader-recommended
 # closure, and it stores the ancestry under the accurate `entailed_isa_closure` predicate.
 # See the ontology-loader README.
-# Caveat: fast-initial is an initial-install path and is NOT idempotent on re-run (it does not
-# upsert). A steady-state weekly cadence needs a re-load strategy (drop-then-load, or a
-# meticulous refresh); that decision is still open. Until then this is intended as a
-# manually-launched job for the one-time bulk load.
+# Caveat: fast-initial is an initial-install path and does not upsert. A naive rerun (this
+# schedule enabled on a cadence, or a duplicate manual launch) previously silently duplicated
+# every class and relation; ontology-loader#60 fixed that specific risk (a rerun is now a no-op,
+# not a duplication), but this schedule still ships stopped because there's no INTENTIONAL
+# refresh mechanism here -- for that, use the reload_ncbitaxon_ontology job below (scoped
+# drop-then-load, per nmdc-runtime issue 1565), launched manually.
 load_ncbitaxon_ontology_weekly = ScheduleDefinition(
     name="weekly_load_ncbitaxon_ontology",
     cron_schedule="0 10 * * 1",
@@ -281,6 +284,41 @@ load_ncbitaxon_ontology_weekly = ScheduleDefinition(
         ),
         resource_defs=resource_defs,
     ),
+)
+
+# Manual-only (no ScheduleDefinition): a full NCBITaxon reload is a heavy, high-blast-radius
+# operation (a scoped delete across ~54.7M relations, then a ~93-minute fast-initial reload) that
+# an operator should launch deliberately, not something a cron schedule should trigger unattended.
+# concurrent_job_names guards against this job's own delete step running while either another
+# instance of itself or the regular weekly NCBITaxon load is active against the same collections.
+reload_ncbitaxon_ontology_job = reload_ontology_by_prefix.to_job(
+    name="reload_ncbitaxon_ontology",
+    config=unfreeze(
+        merge(
+            run_config_frozen__normal_env,
+            {
+                "ops": {
+                    "delete_ontology_terms_by_prefix": {
+                        "config": {
+                            "id_prefix": "NCBITaxon:",
+                            "concurrent_job_names": [
+                                "reload_ncbitaxon_ontology",
+                                "scheduled_ncbitaxon_ontology_load",
+                            ],
+                        }
+                    },
+                    "load_ontology": {
+                        "config": {
+                            "source_ontology": "ncbitaxon",
+                            "mode": "fast-initial",
+                            "closure": "isa",
+                        }
+                    },
+                }
+            },
+        )
+    ),
+    resource_defs=resource_defs,
 )
 
 
@@ -559,6 +597,7 @@ def repo():
                 MAX_RUNTIME_SECONDS_TAG: timedelta(minutes=45).total_seconds(),
             },
         ),
+        reload_ncbitaxon_ontology_job,
     ]
     schedules = [
         housekeeping_weekly,

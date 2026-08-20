@@ -51,6 +51,7 @@ from nmdc_runtime.site.ops import (
     site_code_mapping,
     materialize_alldocs,
     load_ontology,
+    delete_ontology_terms_by_prefix,
     get_ncbi_export_pipeline_study,
     get_data_objects_from_biosamples,
     get_nucleotide_sequencing_from_biosamples,
@@ -114,6 +115,20 @@ def run_ontology_load():
     and passed to the load_ontology op.
     """
     load_ontology()
+
+
+@graph
+def reload_ontology_by_prefix():
+    """
+    Delete an ontology's existing docs by id prefix, then load it fresh.
+
+    The scoped drop-then-load reload strategy from nmdc-runtime issue 1565, for ontologies
+    loaded via mode=fast-initial (which has no upsert, so a refresh needs a delete first).
+    `waits_for` is a Nothing-dependency (see the note on materialize_alldocs's `waits_for` input)
+    that only sequences the two ops; load_ontology does not use delete's return value.
+    """
+    _ = delete_ontology_terms_by_prefix()
+    load_ontology(waits_for=_)
 
 
 @graph
